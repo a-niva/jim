@@ -21,6 +21,8 @@ share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+consolidated_content.txt
+enrich_with_ollama_fixed.py
 
 # Virtual Environment
 venv/

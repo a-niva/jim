@@ -723,22 +723,6 @@ function setupProgramWorkout(program) {
     startWorkoutTimer();
 }
 
-async function loadAvailableExercises() {
-    try {
-        const exercises = await apiGet(`/api/exercises?user_id=${currentUser.id}`);
-        const container = document.getElementById('exerciseList');
-        
-        container.innerHTML = exercises.map(exercise => `
-            <div class="exercise-item" onclick="selectExercise({id: ${exercise.id}, name: '${exercise.name}'})">
-                <h4>${exercise.name}</h4>
-                <p>${exercise.muscle_groups.join(', ')} • ${exercise.difficulty}</p>
-            </div>
-        `).join('');
-        
-    } catch (error) {
-        console.error('Erreur chargement exercices:', error);
-    }
-}
 
 function selectExercise(exercise) {
     currentExercise = exercise;
