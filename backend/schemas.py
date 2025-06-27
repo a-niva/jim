@@ -40,7 +40,7 @@ class ExerciseResponse(BaseModel):
     default_sets: int
     default_reps_min: int
     default_reps_max: int
-    rest_time_seconds: int
+    base_rest_time_seconds: int
     instructions: Optional[str] = None
     
     class Config:
@@ -98,7 +98,7 @@ class SetCreate(BaseModel):
     reps: int
     weight: Optional[float] = None
     duration_seconds: Optional[int] = None
-    rest_time_seconds: Optional[int] = None
+    base_rest_time_seconds: Optional[int] = None
     
     # Nouveaux champs pour l'interface détaillée et le ML
     target_reps: Optional[int] = None
@@ -126,7 +126,7 @@ class SetResponse(BaseModel):
     reps: int
     weight: Optional[float]
     duration_seconds: Optional[int]
-    rest_time_seconds: Optional[int]
+    base_rest_time_seconds: Optional[int]
     target_reps: Optional[int]
     target_weight: Optional[float]
     fatigue_level: Optional[int]

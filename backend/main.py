@@ -56,7 +56,7 @@ async def load_exercises(db: Session):
                     default_sets=exercise_data.get("default_sets", 3),
                     default_reps_min=exercise_data.get("default_reps_min", 8),
                     default_reps_max=exercise_data.get("default_reps_max", 12),
-                    rest_time_seconds=exercise_data.get("base_rest_time_seconds", 60),
+                    base_rest_time_seconds=exercise_data.get("base_rest_time_seconds", 60),
                     instructions=exercise_data.get("instructions", "")
                 )
                 db.add(exercise)
@@ -265,7 +265,7 @@ def generate_program_exercises(user: User, program: ProgramCreate, db: Session) 
                 "sets": exercise.default_sets,
                 "reps_min": exercise.default_reps_min,
                 "reps_max": exercise.default_reps_max,
-                "rest_seconds": exercise.rest_time_seconds
+                "rest_seconds": exercise.base_rest_time_seconds
             })
     
     return program_exercises
@@ -325,7 +325,7 @@ def add_set(workout_id: int, set_data: SetCreate, db: Session = Depends(get_db))
         reps=set_data.reps,
         weight=set_data.weight,
         duration_seconds=set_data.duration_seconds,
-        rest_time_seconds=set_data.rest_time_seconds,
+        base_rest_time_seconds=set_data.base_rest_time_seconds,
         target_reps=set_data.target_reps,
         target_weight=set_data.target_weight,
         fatigue_level=set_data.fatigue_level,
@@ -354,7 +354,7 @@ def add_set(workout_id: int, set_data: SetCreate, db: Session = Depends(get_db))
             "exercise_order": set_data.exercise_order_in_session or 1,
             "set_order_global": set_data.set_order_in_session or 1,
             "set_number": set_data.set_number,
-            "rest_before_seconds": set_data.rest_time_seconds,
+            "rest_before_seconds": set_data.base_rest_time_seconds,
             "session_fatigue_start": workout.overall_fatigue_start
         }
         

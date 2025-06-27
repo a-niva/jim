@@ -93,7 +93,7 @@ class WorkoutSet(Base):
     # NOUVEAUX CHAMPS pour le ML et l'interface détaillée
     target_reps = Column(Integer, nullable=True)  # Reps prévues
     target_weight = Column(Float, nullable=True)  # Poids prévu
-    rest_time_seconds = Column(Integer, nullable=True)  # Temps de repos effectué après cette série
+    base_rest_time_seconds = Column(Integer, nullable=True)  # Temps de repos effectué après cette série
     
     # Feedback utilisateur pour le ML
     fatigue_level = Column(Integer, nullable=True)  # 1-5 (très facile à très difficile)
