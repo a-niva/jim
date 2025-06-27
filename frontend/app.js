@@ -37,9 +37,7 @@ const EQUIPMENT_CONFIG = {
     kettlebells: { name: 'Kettlebells', icon: '⚫', type: 'fixed_weights' },
     pull_up_bar: { name: 'Barre de traction', icon: '🎯', type: 'bodyweight' },
     dip_bar: { name: 'Barre de dips', icon: '💪', type: 'bodyweight' },
-    bench_flat: { name: 'Banc plat', icon: '🛏️', type: 'support' },
-    bench_incline: { name: 'Banc inclinable', icon: '📐', type: 'support' },
-    bench_decline: { name: 'Banc déclinable', icon: '📉', type: 'support' },
+    bench: { name: 'Banc de musculation', icon: '🛏️', type: 'bench', hasOptions: true },
     cable_machine: { name: 'Machine à poulies', icon: '🏗️', type: 'machine' },
     leg_press: { name: 'Presse à cuisses', icon: '🦵', type: 'machine' },
     lat_pulldown: { name: 'Tirage vertical', icon: '⬇️', type: 'machine' },
@@ -77,6 +75,21 @@ function validateEquipmentConfig(config) {
         
         if (!hasTensions) {
             errors.push('Sélectionnez au moins une tension d\'élastique');
+        }
+    }
+
+    // Vérifier la configuration du banc
+    if (config.bench?.available) {
+        const positions = config.bench.positions || {};
+        
+        if (!positions.flat) {
+            errors.push('La position plate du banc est obligatoire');
+        }
+        
+        // Au moins une position doit être disponible
+        const hasAnyPosition = Object.values(positions).some(p => p === true);
+        if (!hasAnyPosition) {
+            errors.push('Sélectionnez au moins une position pour le banc');
         }
     }
 
@@ -459,6 +472,48 @@ function loadDetailedEquipmentConfig() {
                 `;
                 break;     
 
+            case 'bench':
+                detailHTML += `
+                    <div class="form-group">
+                        <label>Positions disponibles du banc</label>
+                        <div class="bench-options" style="display: grid; gap: 0.75rem; margin-top: 1rem;">
+                            <label class="checkbox-option">
+                                <input type="checkbox" id="${equipment}_flat" checked>
+                                <span>🛏️ Position plate (obligatoire)</span>
+                            </label>
+                            <label class="checkbox-option">
+                                <input type="checkbox" id="${equipment}_incline_up">
+                                <span>📐 Inclinable vers le haut (développé incliné)</span>
+                            </label>
+                            <label class="checkbox-option">
+                                <input type="checkbox" id="${equipment}_decline">
+                                <span>📉 Inclinable vers le bas (développé décliné)</span>
+                            </label>
+                        </div>
+                        <small style="display: block; margin-top: 0.5rem;">
+                            La position plate est obligatoire pour la plupart des exercices.
+                        </small>
+                    </div>
+                    <div class="form-group">
+                        <label>Réglages disponibles</label>
+                        <div class="bench-settings" style="display: grid; gap: 0.75rem; margin-top: 1rem;">
+                            <label class="checkbox-option">
+                                <input type="checkbox" id="${equipment}_height_adjustable">
+                                <span>📏 Hauteur réglable</span>
+                            </label>
+                            <label class="checkbox-option">
+                                <input type="checkbox" id="${equipment}_has_rack">
+                                <span>🏗️ Support de barre intégré</span>
+                            </label>
+                            <label class="checkbox-option">
+                                <input type="checkbox" id="${equipment}_preacher_curl">
+                                <span>💪 Pupitre à biceps (preacher curl)</span>
+                            </label>
+                        </div>
+                    </div>
+                `;
+                break;
+
             case 'machine':
                 detailHTML += `
                     <div class="form-group">
@@ -494,18 +549,61 @@ function loadDetailedEquipmentConfig() {
     showEquipmentWarnings();
 }
 
+function getBenchCapabilities(config) {
+    /**
+     * Retourne les capacités du banc configuré
+     */
+    const bench = config.bench;
+    if (!bench?.available) {
+        return { available: false, capabilities: [] };
+    }
+    
+    const capabilities = [];
+    const positions = bench.positions || {};
+    const settings = bench.settings || {};
+    
+    if (positions.flat) capabilities.push('Développé couché plat');
+    if (positions.incline_up) capabilities.push('Développé incliné');
+    if (positions.decline) capabilities.push('Développé décliné');
+    if (settings.has_rack) capabilities.push('Support de barre intégré');
+    if (settings.preacher_curl) capabilities.push('Curl pupitre');
+    if (settings.height_adjustable) capabilities.push('Hauteur réglable');
+    
+    return {
+        available: true,
+        capabilities: capabilities,
+        exerciseCount: cls._estimateExerciseCompatibility(positions, settings)
+    };
+}
+
+function _estimateExerciseCompatibility(positions, settings) {
+    let exerciseCount = 0;
+    
+    if (positions.flat) exerciseCount += 15; // Développé, rowing, etc.
+    if (positions.incline_up) exerciseCount += 8; // Développé incliné, etc.
+    if (positions.decline) exerciseCount += 5; // Développé décliné, etc.
+    if (settings.preacher_curl) exerciseCount += 3; // Curls
+    
+    return exerciseCount;
+}
+
 function showEquipmentWarnings() {
     const selectedCards = document.querySelectorAll('.equipment-card.selected');
     const selectedEquipment = Array.from(selectedCards).map(card => card.dataset.equipment);
     
     const warnings = [];
-    
+    // Nouveau warning pour les bancs
+    if (selectedEquipment.includes('bench')) {
+        const benchCapabilities = getBenchCapabilities(collectEquipmentConfig());
+        if (benchCapabilities.available && benchCapabilities.exerciseCount < 10) {
+            warnings.push(`ℹ️ Configuration basique du banc (${benchCapabilities.exerciseCount} exercices compatibles)`);
+        }
+    }
     // Vérifier les dépendances
     const barbellsRequiringPlates = ['barbell_athletic', 'barbell_ez', 'barbell_short_pair'];
-    const hasBarbell = barbellsRequiringPlates.some(b => selectedEquipment.includes(b));
-    
-    if (hasBarbell && !selectedEquipment.includes('weight_plates')) {
-        warnings.push('⚠️ Les disques sont nécessaires pour utiliser les barres');
+    const hasBarbell = ['barbell_athletic', 'barbell_ez'].some(b => selectedEquipment.includes(b));
+    if (hasBarbell && !selectedEquipment.includes('bench')) {
+        warnings.push('💡 Conseil: Un banc multiplierait vos possibilités d\'exercices avec barres');
     }
     
     if (warnings.length > 0) {
@@ -643,6 +741,30 @@ function collectEquipmentConfig() {
                 const combinableCheckbox = document.getElementById(`${equipment}_combinable`);
                 if (combinableCheckbox) {
                     config[equipment].combinable = combinableCheckbox.checked;
+                }
+                break;
+
+            case 'bench':
+                // Positions obligatoires et optionnelles
+                const positions = {
+                    flat: document.getElementById(`${equipment}_flat`)?.checked || false,
+                    incline_up: document.getElementById(`${equipment}_incline_up`)?.checked || false,
+                    decline: document.getElementById(`${equipment}_decline`)?.checked || false
+                };
+                
+                // Réglages supplémentaires
+                const settings = {
+                    height_adjustable: document.getElementById(`${equipment}_height_adjustable`)?.checked || false,
+                    has_rack: document.getElementById(`${equipment}_has_rack`)?.checked || false,
+                    preacher_curl: document.getElementById(`${equipment}_preacher_curl`)?.checked || false
+                };
+                
+                config[equipment].positions = positions;
+                config[equipment].settings = settings;
+                
+                // Validation : au moins la position plate doit être disponible
+                if (!positions.flat) {
+                    throw new Error('La position plate du banc est obligatoire');
                 }
                 break;
 

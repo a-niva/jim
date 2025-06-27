@@ -18,15 +18,13 @@ class EquipmentService:
         'resistance_bands': 'resistance_bands',
         'pull_up_bar': 'pull_up_bar',
         'dip_bar': 'dip_bar',
-        'bench_flat': 'bench_flat',
-        'bench_incline': 'bench_incline',
-        'bench_decline': 'bench_decline',
+        'bench': 'bench',  # Unifié
         'cable_machine': 'cable_machine',
         'leg_press': 'leg_press',
         'lat_pulldown': 'lat_pulldown',
         'chest_press': 'chest_press'
     }
-    
+        
     @classmethod
     def _calculate_resistance_combinations(cls, tensions_dict: dict, max_combined: int = 3) -> List[float]:
         """Calcule les combinaisons possibles d'élastiques"""
@@ -86,7 +84,56 @@ class EquipmentService:
             logger.info("✅ Équivalence activée: barres courtes + disques = dumbbells")
         
         return available
-    
+
+    @classmethod
+    def get_available_bench_types(cls, config: dict) -> List[str]:
+        """Retourne les types de banc disponibles selon la configuration"""
+        bench_types = []
+        
+        bench_config = config.get('bench', {})
+        if not bench_config.get('available', False):
+            return bench_types
+        
+        positions = bench_config.get('positions', {})
+        
+        if positions.get('flat', False):
+            bench_types.append('bench_flat')
+        if positions.get('incline_up', False):
+            bench_types.append('bench_incline')
+        if positions.get('decline', False):
+            bench_types.append('bench_decline')
+        
+        return bench_types
+
+    @classmethod
+    def get_available_equipment_types(cls, config: dict) -> Set[str]:
+        """Version mise à jour avec gestion du banc unifié"""
+        available = set(['bodyweight'])
+        
+        if not config:
+            return available
+            
+        for equipment_key, equipment_data in config.items():
+            if equipment_data.get('available', False):
+                if equipment_key == 'bench':
+                    # Gestion spéciale pour le banc
+                    bench_types = cls.get_available_bench_types(config)
+                    available.update(bench_types)
+                else:
+                    mapped_type = cls.EQUIPMENT_MAPPING.get(equipment_key)
+                    if mapped_type:
+                        available.add(mapped_type)
+        
+        # Logique d'équivalence : barres courtes + disques = dumbbells
+        if (config.get('barbell_short_pair', {}).get('available', False) and 
+            config.get('barbell_short_pair', {}).get('count', 0) >= 2 and
+            config.get('weight_plates', {}).get('available', False) and
+            'dumbbells' not in available):
+            available.add('dumbbells')
+            logger.info("✅ Équivalence activée: barres courtes + disques = dumbbells")
+        
+        return available
+
     @classmethod
     def get_available_weights(cls, db: Session, user_id: int, exercise_type: str = None) -> List[float]:
         """Calcule tous les poids disponibles selon la configuration"""
@@ -197,17 +244,34 @@ class EquipmentService:
             combinations.update(new_combinations)
         
         return sorted(list(combinations))
-    
+        
     @classmethod
     def can_perform_exercise(cls, exercise_equipment: List[str], user_config: dict) -> bool:
-        """Vérifie si un exercice peut être réalisé avec l'équipement disponible"""
+        """Version améliorée avec gestion fine des bancs"""
         if not exercise_equipment:
             return True  # Poids du corps
             
         available_types = cls.get_available_equipment_types(user_config)
         
-        # Un exercice est réalisable si au moins un équipement requis est disponible
-        return any(eq in available_types for eq in exercise_equipment)
+        # Gestion spéciale pour les exercices nécessitant un type de banc spécifique
+        bench_mapping = {
+            'bench_flat': 'bench_flat',
+            'bench_incline': 'bench_incline', 
+            'bench_decline': 'bench_decline',
+            'bench': 'bench_flat'  # Mapping par défaut vers plat
+        }
+        
+        for required_equipment in exercise_equipment:
+            # Si c'est un type de banc spécifique, vérifier la position
+            if required_equipment in bench_mapping:
+                bench_type_needed = bench_mapping[required_equipment]
+                if bench_type_needed in available_types:
+                    return True
+            # Sinon, vérification standard
+            elif required_equipment in available_types:
+                return True
+        
+        return False
     
     @classmethod
     def get_equipment_setup(cls, config: dict, target_weight: float, exercise_type: str) -> dict:
