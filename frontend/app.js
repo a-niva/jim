@@ -120,8 +120,22 @@ async function showAvailableWeightsPreview() {
     }
 }
 
-const PLATE_WEIGHTS = [1.25, 2.5, 5, 10, 15, 20, 25]; // Poids standards
+const PLATE_WEIGHTS = [1.25, 2, 42.5, 5, 10, 15, 20, 25]; // Poids standards
 const RESISTANCE_TENSIONS = [5, 10, 15, 20, 25, 30, 35, 40]; // Tensions standards en kg équivalent
+const DEFAULT_PLATE_COUNTS = {
+    1.25: 8,
+    2: 2,
+    2.5: 4, 
+    5: 4,
+    10: 2,
+    15: 2,
+    20: 0,
+    25: 0
+};
+const DEFAULT_RESISTANCE_COUNTS = {
+    15: 1,
+    30: 1
+};
 
 // Zones musculaires spécifiques
 const MUSCLE_GROUPS = {
@@ -418,7 +432,8 @@ function loadDetailedEquipmentConfig() {
                                 <div class="plate-input" style="text-align: center;">
                                     <label style="display: block; font-size: 0.9rem; margin-bottom: 0.25rem;">${weight}kg</label>
                                     <input type="number" id="plate_${weight.toString().replace('.', '_')}" 
-                                           min="0" max="20" value="2" style="width: 100%; text-align: center;">
+                                        min="0" max="20" value="${DEFAULT_PLATE_COUNTS[weight] || 0}" 
+                                        style="width: 100%; text-align: center;">
                                 </div>
                             `).join('')}
                         </div>
@@ -454,7 +469,8 @@ function loadDetailedEquipmentConfig() {
                                 <div class="tension-input" style="text-align: center;">
                                     <label style="display: block; font-size: 0.9rem; margin-bottom: 0.25rem;">${tension}kg</label>
                                     <input type="number" id="tension_${tension}" 
-                                        min="0" max="10" value="1" style="width: 100%; text-align: center;">
+                                        min="0" max="10" value="${DEFAULT_RESISTANCE_COUNTS[tension] || 0}" 
+                                        style="width: 100%; text-align: center;">
                                 </div>
                             `).join('')}
                         </div>
@@ -470,7 +486,7 @@ function loadDetailedEquipmentConfig() {
                         </label>
                     </div>
                 `;
-                break;     
+                break;   
 
             case 'bench':
                 detailHTML += `
@@ -482,16 +498,16 @@ function loadDetailedEquipmentConfig() {
                                 <span>🛏️ Position plate (obligatoire)</span>
                             </label>
                             <label class="checkbox-option">
-                                <input type="checkbox" id="${equipment}_incline_up">
+                                <input type="checkbox" id="${equipment}_incline_up" checked>
                                 <span>📐 Inclinable vers le haut (développé incliné)</span>
                             </label>
                             <label class="checkbox-option">
-                                <input type="checkbox" id="${equipment}_decline">
+                                <input type="checkbox" id="${equipment}_decline" checked>
                                 <span>📉 Inclinable vers le bas (développé décliné)</span>
                             </label>
                         </div>
                         <small style="display: block; margin-top: 0.5rem;">
-                            La position plate est obligatoire pour la plupart des exercices.
+                            Configuration complète recommandée pour un maximum d'exercices.
                         </small>
                     </div>
                     <div class="form-group">
@@ -547,6 +563,11 @@ function loadDetailedEquipmentConfig() {
     
     // Afficher les warnings si nécessaire
     showEquipmentWarnings();
+    
+    // Afficher le résumé de configuration
+    setTimeout(() => {
+        showConfigurationSummary();
+    }, 500); // Délai pour que les inputs soient initialisés
 }
 
 function getBenchCapabilities(config) {
@@ -1207,6 +1228,93 @@ function editEquipment() {
 
 function toggleModalEquipment(card) {
     card.classList.toggle('selected');
+}
+
+function estimateTrainingCapacity(config) {
+    /**
+     * Estime la capacité d'entraînement selon la configuration
+     */
+    let capacity = {
+        exercises: 0,
+        weight_range: { min: 0, max: 0 },
+        versatility: 'basic'
+    };
+    
+    // Calcul basé sur les disques
+    if (config.weight_plates?.available) {
+        const plates = config.weight_plates.weights || {};
+        const totalDisques = Object.values(plates).reduce((sum, count) => sum + count, 0);
+        
+        if (totalDisques >= 15) {
+            capacity.versatility = 'excellent';
+            capacity.exercises += 50;
+        } else if (totalDisques >= 10) {
+            capacity.versatility = 'good';
+            capacity.exercises += 30;
+        } else {
+            capacity.versatility = 'limited';
+            capacity.exercises += 15;
+        }
+        
+        // Estimation de la gamme de poids
+        const maxWeight = Math.max(...Object.keys(plates).map(w => parseFloat(w))) * 4; // 4 disques max par côté
+        capacity.weight_range.max = maxWeight;
+    }
+    
+    // Ajustement selon le banc
+    if (config.bench?.available) {
+        const positions = config.bench.positions || {};
+        if (positions.flat) capacity.exercises += 15;
+        if (positions.incline_up) capacity.exercises += 8;
+        if (positions.decline) capacity.exercises += 5;
+    }
+    
+    // Ajustement selon les dumbbells/barres courtes
+    if (config.dumbbells?.available || config.barbell_short_pair?.available) {
+        capacity.exercises += 20;
+    }
+    
+    return capacity;
+}
+
+function showConfigurationSummary() {
+    /**
+     * Affiche un résumé de la configuration actuelle
+     */
+    try {
+        const config = collectEquipmentConfig();
+        const capacity = estimateTrainingCapacity(config);
+        
+        const summaryHTML = `
+            <div class="config-summary" style="background: var(--bg-card); padding: 1rem; border-radius: var(--radius); margin-top: 1rem;">
+                <h4>📊 Résumé de votre configuration</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                    <div class="summary-item">
+                        <div style="font-size: 1.5rem; font-weight: bold; color: var(--primary);">${capacity.exercises}+</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">Exercices possibles</div>
+                    </div>
+                    <div class="summary-item">
+                        <div style="font-size: 1.5rem; font-weight: bold; color: var(--success);">${capacity.weight_range.max}kg</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">Poids maximum</div>
+                    </div>
+                    <div class="summary-item">
+                        <div style="font-size: 1.5rem; font-weight: bold; color: var(--warning);">${capacity.versatility}</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">Polyvalence</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const existingSummary = document.querySelector('.config-summary');
+        if (existingSummary) {
+            existingSummary.remove();
+        }
+        
+        document.getElementById('detailedConfig').insertAdjacentHTML('beforeend', summaryHTML);
+        
+    } catch (error) {
+        console.log('Configuration incomplète, résumé non disponible');
+    }
 }
 
 async function saveEquipmentChanges() {

@@ -221,15 +221,20 @@ class EquipmentService:
     
     @classmethod
     def _calculate_plate_combinations(cls, plates_dict: dict, max_per_side: float = 50) -> List[float]:
-        """Calcule toutes les combinaisons de disques possibles"""
+        """Version améliorée avec support du disque de 2kg"""
         if not plates_dict:
             return [0]
         
         combinations = set([0])
         
-        for weight_str, count in plates_dict.items():
-            weight = float(weight_str)
-            max_pairs = count // 2  # Paires seulement
+        # Trier par poids croissant pour optimiser les petites combinaisons
+        sorted_plates = sorted(
+            [(float(w), count) for w, count in plates_dict.items()],
+            key=lambda x: x[0]
+        )
+        
+        for weight, available_count in sorted_plates:
+            max_pairs = available_count // 2  # Paires seulement
             
             if max_pairs == 0:
                 continue
