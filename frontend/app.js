@@ -723,7 +723,6 @@ function setupProgramWorkout(program) {
     startWorkoutTimer();
 }
 
-
 function selectExercise(exercise) {
     currentExercise = exercise;
     currentSet = 1;
@@ -736,26 +735,6 @@ function selectExercise(exercise) {
         'Effectuez vos séries et renseignez le nombre de répétitions et le poids utilisé.';
     
     loadSets();
-}
-
-function loadSets() {
-    const container = document.getElementById('setsList');
-    container.innerHTML = '';
-    
-    // Afficher les séries déjà effectuées + la prochaine
-    for (let i = 1; i <= currentSet; i++) {
-        const setItem = document.createElement('div');
-        setItem.className = 'set-item';
-        setItem.innerHTML = `
-            <div class="set-number">${i}</div>
-            <div class="set-inputs">
-                <input type="number" placeholder="Reps" id="reps_${i}" min="1" max="50">
-                <input type="number" placeholder="Poids (kg)" id="weight_${i}" min="0" step="0.5">
-            </div>
-            <button class="btn btn-success btn-sm" onclick="completeSet(${i})">✓</button>
-        `;
-        container.appendChild(setItem);
-    }
 }
 
 async function completeSet(setNumber) {
@@ -810,23 +789,6 @@ function finishExercise() {
     
     currentExercise = null;
     currentSet = 1;
-}
-
-function startRestPeriod() {
-    document.getElementById('restPeriod').style.display = 'flex';
-    
-    let timeLeft = 60; // 60 secondes
-    updateRestTimer(timeLeft);
-    
-    restTimer = setInterval(() => {
-        timeLeft--;
-        updateRestTimer(timeLeft);
-        
-        if (timeLeft <= 0) {
-            clearInterval(restTimer);
-            endRest();
-        }
-    }, 1000);
 }
 
 function updateRestTimer(seconds) {
@@ -1357,15 +1319,7 @@ function showSessionSummary() {
 }
 
 // ===== VIBRATIONS ET NOTIFICATIONS =====
-function requestNotificationPermission() {
-    if ('Notification' in window && Notification.permission === 'default') {
-        Notification.requestPermission().then(permission => {
-            if (permission === 'granted') {
-                showToast('Notifications activées', 'success');
-            }
-        });
-    }
-}
+
 
 function sendNotification(title, body, options = {}) {
     if ('Notification' in window && Notification.permission === 'granted') {
