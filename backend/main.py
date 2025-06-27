@@ -163,53 +163,16 @@ def get_exercises(
     return exercises
 
 def get_available_equipment(equipment_config: Dict[str, Any]) -> List[str]:
-    """Détermine l'équipement disponible basé sur la configuration"""
-    available = ["bodyweight"]  # Toujours disponible
-    
-    if equipment_config.get("dumbbells", {}).get("available"):
-        available.append("dumbbells")
-    if equipment_config.get("barbell", {}).get("available"):
-        available.append("barbell")
-    if equipment_config.get("resistance_bands", {}).get("available"):
-        available.append("resistance_bands")
-    if equipment_config.get("kettlebells", {}).get("available"):
-        available.append("kettlebells")
-    if equipment_config.get("pull_up_bar", {}).get("available"):
-        available.append("pull_up_bar")
-    if equipment_config.get("dip_bar", {}).get("available"):
-        available.append("dip_bar")
-    if equipment_config.get("bench_flat", {}).get("available"):
-        available.append("bench_flat")
-    if equipment_config.get("bench_incline", {}).get("available"):
-        available.append("bench_incline")
-    if equipment_config.get("bench_decline", {}).get("available"):
-        available.append("bench_decline")
-    if equipment_config.get("cable_machine", {}).get("available"):
-        available.append("cable_machine")
-    if equipment_config.get("leg_press", {}).get("available"):
-        available.append("leg_press")
-    if equipment_config.get("lat_pulldown", {}).get("available"):
-        available.append("lat_pulldown")
-    if equipment_config.get("chest_press", {}).get("available"):
-        available.append("chest_press")
-    
-    return available
+    """Utilise le service d'équipement unifié"""
+    from backend.equipment_service import EquipmentService
+    return list(EquipmentService.get_available_equipment_types(equipment_config))
 
 def can_perform_exercise(exercise: Exercise, available_equipment: List[str]) -> bool:
-    """Vérifie si un exercice peut être réalisé avec l'équipement disponible"""
-    required = exercise.equipment_required
-    
-    # Vérifier que TOUS les équipements requis sont disponibles
-    for equipment in required:
-        if equipment not in available_equipment:
-            # Gérer les équivalences pour la compatibilité descendante
-            if equipment == "bench" and any(bench in available_equipment for bench in ["bench_flat", "bench_incline", "bench_decline"]):
-                continue
-            if equipment == "machines" and any(machine in available_equipment for machine in ["cable_machine", "leg_press", "lat_pulldown", "chest_press"]):
-                continue
-            return False
-    
-    return True
+    """Utilise le service d'équipement unifié"""
+    from backend.equipment_service import EquipmentService
+    # Simuler une config depuis la liste disponible
+    mock_config = {eq: {'available': True} for eq in available_equipment}
+    return EquipmentService.can_perform_exercise(exercise.equipment_required, mock_config)
 
 # ===== ENDPOINTS PROGRAMMES =====
 
@@ -551,78 +514,15 @@ def get_progress_data(user_id: int, days: int = 30, db: Session = Depends(get_db
 
 @app.get("/api/users/{user_id}/available-weights")
 def get_available_weights(user_id: int, db: Session = Depends(get_db)):
-    """Calculer les poids disponibles basés sur l'équipement"""
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    """Utilise le service d'équipement unifié"""
+    from backend.equipment_service import EquipmentService
     
-    equipment = user.equipment_config
-    available_weights = []
-    
-    # 1. POIDS DU CORPS
-    bodyweight = user.weight
-    available_weights.append(bodyweight)
-    
-    # 2. HALTÈRES FIXES
-    if equipment.get("dumbbells", {}).get("available"):
-        dumbbell_weights = equipment["dumbbells"].get("weights", [])
-        # Poids individuels
-        available_weights.extend(dumbbell_weights)
-        # Paires d'haltères (pour exercices bilatéraux)
-        available_weights.extend([w * 2 for w in dumbbell_weights])
-    
-    # 3. BARRE + DISQUES
-    if equipment.get("barbell", {}).get("available") and equipment.get("plates", {}).get("available"):
-        barbell_weight = equipment["barbell"].get("weight", 20)
-        plates = equipment["plates"].get("weights", [])
-        
-        # Générer toutes les combinaisons possibles de disques (symétriques)
-        plate_combinations = generate_plate_combinations(plates)
-        for combo_weight in plate_combinations:
-            available_weights.append(barbell_weight + combo_weight * 2)  # Disques des deux côtés
-    
-    # 4. KETTLEBELLS
-    if equipment.get("kettlebells", {}).get("available"):
-        kb_weights = equipment["kettlebells"].get("weights", [])
-        # Poids individuels
-        available_weights.extend(kb_weights)
-        # Paires de kettlebells
-        available_weights.extend([w * 2 for w in kb_weights])
-    
-    # 5. ÉLASTIQUES (tensions équivalentes)
-    if equipment.get("resistance_bands", {}).get("available"):
-        band_tensions = equipment["resistance_bands"].get("tensions", [])
-        available_weights.extend(band_tensions)
-        
-        # Si combinables, ajouter les sommes possibles
-        if equipment["resistance_bands"].get("combinable", False):
-            available_weights.extend(generate_band_combinations(band_tensions))
-    
-    # 6. BARRES DE TRACTION/DIPS (poids du corps + lest)
-    for equipment_type in ["pull_up_bar", "dip_bar"]:
-        if equipment.get(equipment_type, {}).get("available"):
-            available_weights.append(bodyweight)  # Poids du corps
-            
-            if equipment[equipment_type].get("can_add_weight", False):
-                additional_weights = equipment[equipment_type].get("additional_weights", [])
-                for weight in additional_weights:
-                    available_weights.append(bodyweight + weight)
-    
-    # 7. MACHINES (gammes de poids spécifiques)
-    machine_types = ["cable_machine", "leg_press", "lat_pulldown", "chest_press"]
-    for machine_type in machine_types:
-        if equipment.get(machine_type, {}).get("available"):
-            max_weight = equipment[machine_type].get("max_weight", 100)
-            increment = equipment[machine_type].get("increment", 5)
-            
-            # Générer tous les poids possibles de 0 à max par incréments
-            machine_weights = [i * increment for i in range(0, int(max_weight / increment) + 1)]
-            available_weights.extend(machine_weights)
-    
-    # Trier, dédupliquer et arrondir
-    available_weights = sorted(list(set([round(w, 1) for w in available_weights if w > 0])))
-    
-    return {"available_weights": available_weights}
+    try:
+        weights = EquipmentService.get_available_weights(db, user_id)
+        return {"available_weights": weights}
+    except Exception as e:
+        logger.error(f"Erreur calcul poids user {user_id}: {e}")
+        raise HTTPException(status_code=500, detail="Erreur calcul des poids")
 
 def generate_plate_combinations(plates: List[float]) -> List[float]:
     """Génère toutes les combinaisons possibles de disques"""

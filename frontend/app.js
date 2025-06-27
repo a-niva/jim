@@ -23,20 +23,92 @@ const totalSteps = 4;
 
 // Configuration équipement disponible
 const EQUIPMENT_CONFIG = {
-    dumbbells: { name: 'Haltères', icon: '🏋️', hasWeights: true },
-    barbell: { name: 'Barre olympique', icon: '🥉', hasWeights: true },
-    resistance_bands: { name: 'Élastiques', icon: '🎗️', hasTensions: true },
-    kettlebells: { name: 'Kettlebells', icon: '⚫', hasWeights: true },
-    pull_up_bar: { name: 'Barre de traction', icon: '🎯', bodyweightBased: true },
-    dip_bar: { name: 'Barre de dips', icon: '💪', bodyweightBased: true },
-    bench_flat: { name: 'Banc plat', icon: '🛏️', supportEquipment: true },
-    bench_incline: { name: 'Banc inclinable', icon: '📐', supportEquipment: true },
-    bench_decline: { name: 'Banc déclinable', icon: '📉', supportEquipment: true },
-    cable_machine: { name: 'Machine à poulies', icon: '🏗️', hasMachineWeights: true },
-    leg_press: { name: 'Presse à cuisses', icon: '🦵', hasMachineWeights: true },
-    lat_pulldown: { name: 'Tirage vertical', icon: '⬇️', hasMachineWeights: true },
-    chest_press: { name: 'Développé machine', icon: '💻', hasMachineWeights: true }
+    // Barres spécialisées
+    barbell_athletic: { name: 'Barre athlétique (20kg)', icon: '🏋️', type: 'barbell', defaultWeight: 20 },
+    barbell_ez: { name: 'Barre EZ/Curl (10kg)', icon: '〰️', type: 'barbell', defaultWeight: 10 },
+    barbell_short_pair: { name: 'Paire barres courtes', icon: '🤝', type: 'adjustable', defaultWeight: 2.5 },
+    
+    // Poids fixes et ajustables
+    dumbbells: { name: 'Dumbbells fixes', icon: '💪', type: 'fixed_weights' },
+    weight_plates: { name: 'Disques de musculation', icon: '⚫', type: 'plates', required_for: ['barbell_athletic', 'barbell_ez', 'barbell_short_pair'] },
+    
+    // Équipement cardio/fonctionnel (garder existant)
+    resistance_bands: { name: 'Élastiques', icon: '🎗️', type: 'resistance' },
+    kettlebells: { name: 'Kettlebells', icon: '⚫', type: 'fixed_weights' },
+    pull_up_bar: { name: 'Barre de traction', icon: '🎯', type: 'bodyweight' },
+    dip_bar: { name: 'Barre de dips', icon: '💪', type: 'bodyweight' },
+    bench_flat: { name: 'Banc plat', icon: '🛏️', type: 'support' },
+    bench_incline: { name: 'Banc inclinable', icon: '📐', type: 'support' },
+    bench_decline: { name: 'Banc déclinable', icon: '📉', type: 'support' },
+    cable_machine: { name: 'Machine à poulies', icon: '🏗️', type: 'machine' },
+    leg_press: { name: 'Presse à cuisses', icon: '🦵', type: 'machine' },
+    lat_pulldown: { name: 'Tirage vertical', icon: '⬇️', type: 'machine' },
+    chest_press: { name: 'Développé machine', icon: '💻', type: 'machine' }
 };
+
+
+
+function validateEquipmentConfig(config) {
+    const errors = [];
+    
+    // Vérifier que les disques sont disponibles si des barres le requièrent
+    const barbellsRequiringPlates = ['barbell_athletic', 'barbell_ez', 'barbell_short_pair'];
+    const hasBarbell = barbellsRequiringPlates.some(b => config[b]?.available);
+    
+    if (hasBarbell && !config.weight_plates?.available) {
+        errors.push('Les disques sont obligatoires pour utiliser les barres');
+    }
+    
+    // Vérifier les paires de barres courtes
+    if (config.barbell_short_pair?.available && config.barbell_short_pair?.count < 2) {
+        errors.push('Au moins 2 barres courtes sont nécessaires');
+    }
+    
+    // Vérifier qu'au moins un équipement de force est disponible
+    const forceEquipment = ['dumbbells', 'barbell_athletic', 'barbell_ez', 'barbell_short_pair'];
+    if (!forceEquipment.some(eq => config[eq]?.available)) {
+        errors.push('Sélectionnez au moins un équipement de musculation');
+    }
+    
+    // Vérifier les élastiques si sélectionnés
+    if (config.resistance_bands?.available) {
+        const tensions = config.resistance_bands.tensions || {};
+        const hasTensions = Object.values(tensions).some(count => count > 0);
+        
+        if (!hasTensions) {
+            errors.push('Sélectionnez au moins une tension d\'élastique');
+        }
+    }
+
+    return errors;
+}
+
+async function showAvailableWeightsPreview() {
+    if (!currentUser) return;
+    
+    try {
+        const weightsData = await apiGet(`/api/users/${currentUser.id}/available-weights`);
+        const weights = weightsData.available_weights;
+        
+        console.log('Poids disponibles:', weights.slice(0, 20)); // Afficher les 20 premiers
+        
+        // Organiser par type d'équipement pour l'affichage
+        const organized = {
+            bodyweight: [currentUser.weight],
+            dumbbells: weights.filter(w => w <= 50),
+            barbell: weights.filter(w => w >= 20 && w <= 200),
+            resistance: weights.filter(w => w <= 40 && Number.isInteger(w))
+        };
+        
+        console.log('Organisé par type:', organized);
+        
+    } catch (error) {
+        console.error('Erreur chargement poids:', error);
+    }
+}
+
+const PLATE_WEIGHTS = [1.25, 2.5, 5, 10, 15, 20, 25]; // Poids standards
+const RESISTANCE_TENSIONS = [5, 10, 15, 20, 25, 30, 35, 40]; // Tensions standards en kg équivalent
 
 // Zones musculaires spécifiques
 const MUSCLE_GROUPS = {
@@ -277,56 +349,74 @@ function loadDetailedEquipmentConfig() {
         
         let detailHTML = `<h3>${config.icon} ${config.name}</h3>`;
         
-        switch (equipment) {
-            case 'dumbbells':
-                detailHTML += `
-                    <div class="form-group">
-                        <label>Poids disponibles (kg) - séparés par des virgules</label>
-                        <input type="text" id="dumbbells_weights" placeholder="5, 10, 15, 20, 25, 30" value="5, 10, 15, 20, 25, 30">
-                    </div>
-                `;
-                break;
-                
+        switch (config.type) {
             case 'barbell':
                 detailHTML += `
                     <div class="form-group">
                         <label>Poids de la barre (kg)</label>
-                        <input type="number" id="barbell_weight" value="20" min="5" max="50">
-                    </div>
-                    <div class="form-group">
-                        <label>Disques disponibles (kg) - séparés par des virgules</label>
-                        <input type="text" id="plates_weights" placeholder="1.25, 2.5, 5, 10, 20" value="1.25, 2.5, 5, 10, 20">
+                        <input type="number" id="${equipment}_weight" value="${config.defaultWeight}" 
+                               min="${Math.max(5, config.defaultWeight - 5)}" max="${config.defaultWeight + 10}" step="0.5">
                     </div>
                 `;
                 break;
                 
-            case 'resistance_bands':
+            case 'adjustable':
                 detailHTML += `
                     <div class="form-group">
-                        <label>Tensions disponibles (kg équivalent) - séparés par des virgules</label>
-                        <input type="text" id="bands_tensions" placeholder="5, 10, 15, 20, 25" value="5, 10, 15, 20, 25">
+                        <label>Poids par barre courte (kg)</label>
+                        <input type="number" id="${equipment}_weight" value="${config.defaultWeight}" 
+                               min="1" max="5" step="0.5">
                     </div>
                     <div class="form-group">
-                        <label>Possibilité de combiner les élastiques</label>
-                        <label class="checkbox-option">
-                            <input type="checkbox" id="bands_combinable" checked>
-                            <span>Oui, je peux utiliser plusieurs élastiques ensemble</span>
-                        </label>
+                        <label>Nombre de barres courtes</label>
+                        <input type="number" id="${equipment}_count" value="2" min="2" max="6">
+                        <small>Minimum 2 pour faire une paire</small>
                     </div>
                 `;
                 break;
                 
-            case 'kettlebells':
+            case 'fixed_weights':
+                if (equipment === 'dumbbells') {
+                    detailHTML += `
+                        <div class="form-group">
+                            <label>Poids disponibles (kg)</label>
+                            <input type="text" id="${equipment}_weights" 
+                                   placeholder="5, 10, 15, 20, 25, 30" value="5, 10, 15, 20, 25, 30">
+                            <small>Dumbbells fixes d'un seul tenant, séparés par des virgules</small>
+                        </div>
+                    `;
+                } else if (equipment === 'kettlebells') {
+                    detailHTML += `
+                        <div class="form-group">
+                            <label>Poids disponibles (kg)</label>
+                            <input type="text" id="${equipment}_weights" 
+                                   placeholder="8, 12, 16, 20, 24" value="8, 12, 16, 20, 24">
+                        </div>
+                    `;
+                }
+                break;
+                
+            case 'plates':
                 detailHTML += `
                     <div class="form-group">
-                        <label>Poids disponibles (kg) - séparés par des virgules</label>
-                        <input type="text" id="kettlebells_weights" placeholder="8, 12, 16, 20, 24" value="8, 12, 16, 20, 24">
+                        <label>Disques disponibles par poids</label>
+                        <div class="plates-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                            ${PLATE_WEIGHTS.map(weight => `
+                                <div class="plate-input" style="text-align: center;">
+                                    <label style="display: block; font-size: 0.9rem; margin-bottom: 0.25rem;">${weight}kg</label>
+                                    <input type="number" id="plate_${weight.toString().replace('.', '_')}" 
+                                           min="0" max="20" value="2" style="width: 100%; text-align: center;">
+                                </div>
+                            `).join('')}
+                        </div>
+                        <small style="display: block; margin-top: 0.5rem;">
+                            Nombre de disques par poids. Minimum 2 par poids pour faire une paire.
+                        </small>
                     </div>
                 `;
                 break;
                 
-            case 'pull_up_bar':
-            case 'dip_bar':
+            case 'bodyweight':
                 detailHTML += `
                     <div class="form-group">
                         <label>Possibilité d'ajouter du lest</label>
@@ -341,11 +431,35 @@ function loadDetailedEquipmentConfig() {
                     </div>
                 `;
                 break;
-                
-            case 'cable_machine':
-            case 'leg_press':
-            case 'lat_pulldown':
-            case 'chest_press':
+
+            case 'resistance':
+                detailHTML += `
+                    <div class="form-group">
+                        <label>Tensions disponibles (kg équivalent)</label>
+                        <div class="resistance-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                            ${RESISTANCE_TENSIONS.map(tension => `
+                                <div class="tension-input" style="text-align: center;">
+                                    <label style="display: block; font-size: 0.9rem; margin-bottom: 0.25rem;">${tension}kg</label>
+                                    <input type="number" id="tension_${tension}" 
+                                        min="0" max="10" value="1" style="width: 100%; text-align: center;">
+                                </div>
+                            `).join('')}
+                        </div>
+                        <small style="display: block; margin-top: 0.5rem;">
+                            Nombre d'élastiques par tension disponible.
+                        </small>
+                    </div>
+                    <div class="form-group">
+                        <label>Possibilité de combiner les élastiques</label>
+                        <label class="checkbox-option">
+                            <input type="checkbox" id="${equipment}_combinable" checked>
+                            <span>Oui, je peux utiliser plusieurs élastiques ensemble</span>
+                        </label>
+                    </div>
+                `;
+                break;     
+
+            case 'machine':
                 detailHTML += `
                     <div class="form-group">
                         <label>Poids maximum de la machine (kg)</label>
@@ -365,16 +479,42 @@ function loadDetailedEquipmentConfig() {
         section.innerHTML = detailHTML;
         container.appendChild(section);
         
-        // Ajouter les event listeners pour les équipements avec lest
-        if (equipment === 'pull_up_bar' || equipment === 'dip_bar') {
+        // Event listeners pour équipement avec lest
+        if (config.type === 'bodyweight') {
             const checkbox = document.getElementById(`${equipment}_weighted`);
             const weightsContainer = document.getElementById(`${equipment}_weights_container`);
             
-            checkbox.addEventListener('change', () => {
+            checkbox?.addEventListener('change', () => {
                 weightsContainer.style.display = checkbox.checked ? 'block' : 'none';
             });
         }
     });
+    
+    // Afficher les warnings si nécessaire
+    showEquipmentWarnings();
+}
+
+function showEquipmentWarnings() {
+    const selectedCards = document.querySelectorAll('.equipment-card.selected');
+    const selectedEquipment = Array.from(selectedCards).map(card => card.dataset.equipment);
+    
+    const warnings = [];
+    
+    // Vérifier les dépendances
+    const barbellsRequiringPlates = ['barbell_athletic', 'barbell_ez', 'barbell_short_pair'];
+    const hasBarbell = barbellsRequiringPlates.some(b => selectedEquipment.includes(b));
+    
+    if (hasBarbell && !selectedEquipment.includes('weight_plates')) {
+        warnings.push('⚠️ Les disques sont nécessaires pour utiliser les barres');
+    }
+    
+    if (warnings.length > 0) {
+        const warningDiv = document.createElement('div');
+        warningDiv.className = 'equipment-warnings';
+        warningDiv.style.cssText = 'background: var(--warning); color: white; padding: 1rem; border-radius: var(--radius); margin-top: 1rem;';
+        warningDiv.innerHTML = warnings.join('<br>');
+        document.getElementById('detailedConfig').appendChild(warningDiv);
+    }
 }
 
 async function completeOnboarding() {
@@ -427,80 +567,86 @@ function collectEquipmentConfig() {
     
     selectedCards.forEach(card => {
         const equipment = card.dataset.equipment;
+        const equipmentType = EQUIPMENT_CONFIG[equipment].type;
+        
         config[equipment] = { available: true };
         
-        // Ajouter les détails spécifiques
-        switch (equipment) {
-            case 'dumbbells':
-                const dumbbellWeights = document.getElementById('dumbbells_weights');
-                if (dumbbellWeights) {
-                    config[equipment].weights = dumbbellWeights.value
-                        .split(',')
-                        .map(w => parseFloat(w.trim()))
-                        .filter(w => !isNaN(w));
-                }
-                break;
-                
+        switch (equipmentType) {
             case 'barbell':
-                const barbellWeight = document.getElementById('barbell_weight');
-                const platesWeights = document.getElementById('plates_weights');
-                if (barbellWeight) {
-                    config[equipment].weight = parseFloat(barbellWeight.value);
+            case 'adjustable':
+                const weightInput = document.getElementById(`${equipment}_weight`);
+                if (weightInput) {
+                    config[equipment].weight = parseFloat(weightInput.value);
                 }
-                if (platesWeights) {
-                    config.plates = {
-                        available: true,
-                        weights: platesWeights.value
-                            .split(',')
-                            .map(w => parseFloat(w.trim()))
-                            .filter(w => !isNaN(w))
-                    };
-                }
-                break;
                 
-            case 'resistance_bands':
-                const bandsTensions = document.getElementById('bands_tensions');
-                const bandsCombinable = document.getElementById('bands_combinable');
-                if (bandsTensions) {
-                    config[equipment].tensions = bandsTensions.value
-                        .split(',')
-                        .map(t => parseFloat(t.trim()))
-                        .filter(t => !isNaN(t));
-                }
-                if (bandsCombinable) {
-                    config[equipment].combinable = bandsCombinable.checked;
-                }
-                break;
-                
-            case 'kettlebells':
-                const kettlebellWeights = document.getElementById('kettlebells_weights');
-                if (kettlebellWeights) {
-                    config[equipment].weights = kettlebellWeights.value
-                        .split(',')
-                        .map(w => parseFloat(w.trim()))
-                        .filter(w => !isNaN(w));
-                }
-                break;
-                
-            case 'pull_up_bar':
-            case 'dip_bar':
-                const weightedCheckbox = document.getElementById(`${equipment}_weighted`);
-                const weightsInput = document.getElementById(`${equipment}_weights`);
-                if (weightedCheckbox) {
-                    config[equipment].can_add_weight = weightedCheckbox.checked;
-                    if (weightedCheckbox.checked && weightsInput) {
-                        config[equipment].additional_weights = weightsInput.value
-                            .split(',')
-                            .map(w => parseFloat(w.trim()))
-                            .filter(w => !isNaN(w));
+                if (equipment === 'barbell_short_pair') {
+                    const countInput = document.getElementById(`${equipment}_count`);
+                    if (countInput) {
+                        config[equipment].count = parseInt(countInput.value);
                     }
                 }
                 break;
                 
-            case 'cable_machine':
-            case 'leg_press':
-            case 'lat_pulldown':
-            case 'chest_press':
+            case 'fixed_weights':
+                const weightsInput = document.getElementById(`${equipment}_weights`);
+                if (weightsInput) {
+                    config[equipment].weights = weightsInput.value
+                        .split(',')
+                        .map(w => parseFloat(w.trim()))
+                        .filter(w => !isNaN(w) && w > 0)
+                        .sort((a, b) => a - b);
+                }
+                break;
+                
+            case 'plates':
+                const plateWeights = {};
+                PLATE_WEIGHTS.forEach(weight => {
+                    const input = document.getElementById(`plate_${weight.toString().replace('.', '_')}`);
+                    if (input) {
+                        const count = parseInt(input.value);
+                        if (count > 0) {
+                            plateWeights[weight] = count;
+                        }
+                    }
+                });
+                config[equipment].weights = plateWeights;
+                break;
+                
+            case 'bodyweight':
+                const weightedCheckbox = document.getElementById(`${equipment}_weighted`);
+                const weightsInput2 = document.getElementById(`${equipment}_weights`);
+                if (weightedCheckbox) {
+                    config[equipment].can_add_weight = weightedCheckbox.checked;
+                    if (weightedCheckbox.checked && weightsInput2) {
+                        config[equipment].additional_weights = weightsInput2.value
+                            .split(',')
+                            .map(w => parseFloat(w.trim()))
+                            .filter(w => !isNaN(w) && w > 0)
+                            .sort((a, b) => a - b);
+                    }
+                }
+                break;
+
+            case 'resistance':
+                const tensions = {};
+                RESISTANCE_TENSIONS.forEach(tension => {
+                    const input = document.getElementById(`tension_${tension}`);
+                    if (input) {
+                        const count = parseInt(input.value);
+                        if (count > 0) {
+                            tensions[tension] = count;
+                        }
+                    }
+                });
+                config[equipment].tensions = tensions;
+                
+                const combinableCheckbox = document.getElementById(`${equipment}_combinable`);
+                if (combinableCheckbox) {
+                    config[equipment].combinable = combinableCheckbox.checked;
+                }
+                break;
+
+            case 'machine':
                 const maxWeight = document.getElementById(`${equipment}_max_weight`);
                 const increment = document.getElementById(`${equipment}_increment`);
                 if (maxWeight) {
@@ -512,6 +658,12 @@ function collectEquipmentConfig() {
                 break;
         }
     });
+    
+    // Validation finale
+    const errors = validateEquipmentConfig(config);
+    if (errors.length > 0) {
+        throw new Error(errors.join('\n'));
+    }
     
     return config;
 }
