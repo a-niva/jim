@@ -1,11 +1,10 @@
 # ===== backend/ml_engine.py =====
-from logging import config
+import logging
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
 from datetime import datetime, timedelta
 from backend.models import User, Exercise, Workout, WorkoutSet, AdaptiveTargets, UserCommitment
-import logging
 import itertools
 
 logging.basicConfig(level=logging.INFO)
@@ -718,12 +717,14 @@ class FitnessMLEngine:
                 return []
             
             # Grouper par partie du corps
-            logger.error(f"DEBUG: Groupage de {len(available_exercises)} exercices")
+            logger.info(f"DEBUG: Groupage de {len(available_exercises)} exercices")
             body_parts = {}
             for ex in available_exercises:
-                if ex.body_part not in body_parts:
-                    body_parts[ex.body_part] = []
-                body_parts[ex.body_part].append(ex)
+                # Utiliser le premier muscle group comme catégorie principale
+                primary_muscle = ex.muscle_groups[0] if ex.muscle_groups else "Général"
+                if primary_muscle not in body_parts:
+                    body_parts[primary_muscle] = []
+                body_parts[primary_muscle].append(ex)
 
             # AJOUTER CE LOG
             logger.error(f"DEBUG: Body parts trouvés: {list(body_parts.keys())}")
@@ -1594,15 +1595,17 @@ class SessionBuilder:
             # Bonus selon le type d'exercice et les objectifs
             primary_goal = user.goals[0] if user.goals else "hypertrophie"
             
-            # Exercices composés (multi-articulaires) favorisés
-            if exercise.fatigue_profile and exercise.fatigue_profile.get("compound_movement"):
+            # Estimation basée sur exercise_type
+            is_compound = exercise.exercise_type == "compound" if exercise.exercise_type else False
+            if is_compound:
                 if primary_goal in ["force", "hypertrophie"]:
                     score += 20
                 else:
                     score += 10
             
-            # Ajustement selon la complexité technique
-            skill_complexity = exercise.progression_metadata.get("skill_complexity", 3) if exercise.progression_metadata else 3
+            # Estimation basée sur difficulty
+            difficulty_to_complexity = {"beginner": 1, "intermediate": 3, "advanced": 5}
+            skill_complexity = difficulty_to_complexity.get(exercise.difficulty, 3)
             exp_level_num = {"débutant": 1, "intermédiaire": 2, "avancé": 3, "élite": 4, "extrême": 5}.get(user.experience_level, 2)
             
             # Favoriser les exercices adaptés au niveau technique

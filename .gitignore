@@ -23,7 +23,7 @@ share/python-wheels/
 *.egg
 consolidated_content.txt
 enrich_with_ollama_fixed.py
-
+exercises_old.json
 # Virtual Environment
 venv/
 env/

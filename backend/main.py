@@ -1,5 +1,5 @@
 # ===== backend/main.py - VERSION REFACTORISÉE =====
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -56,7 +56,7 @@ async def load_exercises(db: Session):
                     default_sets=exercise_data.get("default_sets", 3),
                     default_reps_min=exercise_data.get("default_reps_min", 8),
                     default_reps_max=exercise_data.get("default_reps_max", 12),
-                    rest_time_seconds=exercise_data.get("rest_time_seconds", 60),
+                    rest_time_seconds=exercise_data.get("base_rest_time_seconds", 60),
                     instructions=exercise_data.get("instructions", "")
                 )
                 db.add(exercise)
