@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 import json
 import os
 import logging
-
+from backend.ml_recommendations import FitnessRecommendationEngine
 from backend.database import engine, get_db, SessionLocal
 from backend.models import Base, User, Exercise, Program, Workout, WorkoutSet
 from backend.schemas import UserCreate, UserResponse, ProgramCreate, WorkoutCreate, SetCreate, ExerciseResponse
@@ -353,8 +353,6 @@ def add_set(workout_id: int, set_data: SetCreate, db: Session = Depends(get_db))
     if not workout:
         raise HTTPException(status_code=404, detail="Séance non trouvée")
     
-    # Importer le moteur de recommandations
-    from backend.ml_recommendations import FitnessRecommendationEngine
     ml_engine = FitnessRecommendationEngine(db)
     
     db_set = WorkoutSet(

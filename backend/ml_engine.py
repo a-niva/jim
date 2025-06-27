@@ -4,7 +4,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
 from datetime import datetime, timedelta
-from backend.models import User, Exercise, Workout, Set, AdaptiveTargets, ProgramExercise, UserCommitment
+from backend.models import User, Exercise, Workout, WorkoutSet, AdaptiveTargets, UserCommitment
 import logging
 import itertools
 
@@ -32,7 +32,7 @@ class FitnessMLEngine:
             4: 0.85,   # Très fatigué
             5: 0.80    # Épuisé
         }
-        
+         
         self.EXPERIENCE_MULTIPLIERS = {
             "débutant": 0.7,
             "intermédiaire": 0.85,
@@ -132,11 +132,10 @@ class FitnessMLEngine:
         """
         
         # Récupérer l'historique de cet exercice
-        history = self.db.query(Set).join(Workout).filter(
+        history = self.db.query(WorkoutSet).join(Workout).filter(
             Workout.user_id == user.id,
-            Set.exercise_id == exercise.id,
-            Set.skipped == False
-        ).order_by(Set.completed_at.desc()).limit(10).all()
+            WorkoutSet.exercise_id == exercise.id
+        ).order_by(WorkoutSet.completed_at.desc()).limit(10).all()
         
         if history:
             # Utiliser la moyenne pondérée des dernières performances
@@ -297,11 +296,10 @@ class FitnessMLEngine:
         """
         Prédit la performance pour la prochaine session
         """
-        recent_sets = self.db.query(Set).join(Workout).filter(
+        recent_sets = self.db.query(WorkoutSet).join(Workout).filter(
             Workout.user_id == user.id,
-            Set.exercise_id == exercise.id,
-            Set.skipped == False
-        ).order_by(Set.completed_at.desc()).limit(20).all()
+            WorkoutSet.exercise_id == exercise.id
+        ).order_by(WorkoutSet.completed_at.desc()).limit(20).all()
         
         if not recent_sets:
             # Première fois, utiliser les valeurs par défaut
@@ -315,7 +313,7 @@ class FitnessMLEngine:
         
         # Analyser la progression
         weights = [s.weight for s in recent_sets]
-        reps = [s.actual_reps for s in recent_sets]
+        reps = [s.reps for s in recent_sets]
         fatigue_levels = [s.fatigue_level for s in recent_sets]
         
         # Calcul de la tendance (régression linéaire simple)
@@ -332,7 +330,7 @@ class FitnessMLEngine:
             fatigue_factor = self.FATIGUE_WEIGHTS.get(int(recent_fatigue), 0.9)
             
             # Ajustement selon la réussite des dernières séances
-            success_rate = sum(1 for s in recent_sets[:5] if s.actual_reps >= s.target_reps) / min(5, len(recent_sets))
+            success_rate = sum(1 for s in recent_sets[:5] if s.reps >= s.target_reps) / min(5, len(recent_sets))
             
             if success_rate >= 0.8:
                 # Augmenter le poids
@@ -401,7 +399,7 @@ class FitnessMLEngine:
     def adjust_workout_in_progress(
         self,
         user: User,
-        current_set: Set,
+        current_set: WorkoutSet,
         remaining_sets: int
     ) -> Dict:
         """
@@ -409,7 +407,7 @@ class FitnessMLEngine:
         """
         # Analyser la performance de la série actuelle
         if current_set.target_reps > 0:
-            performance_ratio = current_set.actual_reps / current_set.target_reps
+            performance_ratio = current_set.reps / current_set.target_reps
         else:
             performance_ratio = 0
         
@@ -417,11 +415,10 @@ class FitnessMLEngine:
         adjustments = {}
 
         # Calculer l'ajustement des répétitions
-        recent_sets = self.db.query(Set).join(Workout).filter(
+        recent_sets = self.db.query(WorkoutSet).join(Workout).filter(
             Workout.user_id == user.id,
-            Set.exercise_id == current_set.exercise_id,
-            Set.skipped == False
-        ).order_by(Set.completed_at.desc()).limit(5).all()
+            WorkoutSet.exercise_id == current_set.exercise_id
+        ).order_by(WorkoutSet.completed_at.desc()).limit(5).all()
 
         rep_suggestion = self.calculate_optimal_rep_range(
             user=user,
@@ -489,7 +486,7 @@ class FitnessMLEngine:
         user: User,
         exercise: Exercise,
         current_fatigue: float,
-        recent_performance: List[Set],
+        recent_performance: List[WorkoutSet],
         remaining_sets: int
     ) -> Dict:
         """
@@ -526,7 +523,7 @@ class FitnessMLEngine:
             success_ratios = []
             for perf in recent_performance[-3:]:
                 if perf.target_reps > 0:
-                    ratio = perf.actual_reps / perf.target_reps
+                    ratio = perf.reps / perf.target_reps
                     success_ratios.append(ratio)
             
             if success_ratios:
@@ -1544,10 +1541,10 @@ class SessionBuilder:
         
         # 2. Analyser l'historique récent (derniers 14 jours)
         recent_date = datetime.utcnow() - timedelta(days=14)
-        recent_sets = self.db.query(Set).join(Workout).filter(
+        recent_sets = self.db.query(WorkoutSet).join(Workout).filter(
             Workout.user_id == user.id,
             Workout.completed_at >= recent_date,
-            Set.exercise_id.in_([ex.id for ex in suitable_exercises])
+            WorkoutSet.exercise_id.in_([ex.id for ex in suitable_exercises])
         ).all()
         
         # Calculer la fréquence d'utilisation récente par exercice
@@ -1564,7 +1561,7 @@ class SessionBuilder:
             if ex_id not in exercise_performance:
                 exercise_performance[ex_id] = []
             if set_record.target_reps > 0:
-                performance_ratio = set_record.actual_reps / set_record.target_reps
+                performance_ratio = set_record.reps / set_record.target_reps
                 exercise_performance[ex_id].append(performance_ratio)
         
         # 3. Calculer un score pour chaque exercice
@@ -1741,11 +1738,11 @@ class ProgressionAnalyzer:
         # Requête pour obtenir le volume
         results = self.db.query(
             Exercise.body_part,
-            func.sum(Set.actual_reps * Set.weight).label('volume')
+            func.sum(WorkoutSet.reps * WorkoutSet.weight).label('volume')
         ).join(
-            Set, Set.exercise_id == Exercise.id
+            WorkoutSet, WorkoutSet.exercise_id == Exercise.id
         ).join(
-            Workout, Workout.id == Set.workout_id
+            Workout, Workout.id == WorkoutSet.workout_id
         ).filter(
             and_(
                 Workout.user_id == user.id,
@@ -1924,7 +1921,7 @@ class RealTimeAdapter:
             
             if exercise:
                 muscle = exercise.body_part
-                volume = set_item.actual_reps * set_item.weight
+                volume = set_item.reps * set_item.weight
                 
                 if muscle in volume_by_muscle:
                     volume_by_muscle[muscle] += volume
@@ -1953,7 +1950,7 @@ class RealTimeAdapter:
         """Calcule le volume sur 7 jours glissants"""
         cutoff = datetime.utcnow() - timedelta(days=7)
         
-        result = self.db.query(func.sum(Set.actual_reps * Set.weight)).join(
+        result = self.db.query(func.sum(WorkoutSet.reps * WorkoutSet.weight)).join(
             Workout
         ).join(
             Exercise
@@ -1969,7 +1966,7 @@ class RealTimeAdapter:
     def _detect_overtraining(self, user: User) -> bool:
         """Détecte les signes de surentraînement"""
         # Moyenne de fatigue sur 7 jours
-        avg_fatigue = self.db.query(func.avg(Set.fatigue_level)).join(
+        avg_fatigue = self.db.query(func.avg(WorkoutSet.fatigue_level)).join(
             Workout
         ).filter(
             Workout.user_id == user.id,
@@ -2033,9 +2030,8 @@ class RealTimeAdapter:
         # Analyser la progression par muscle
         muscle_progress = {}
         for workout in recent_workouts:
-            sets = self.db.query(Set).filter(
-                Set.workout_id == workout.id,
-                Set.skipped == False
+            sets = self.db.query(WorkoutSet).filter(
+                WorkoutSet.workout_id == workout.id
             ).all()
             
             for set in sets:
@@ -2052,7 +2048,7 @@ class RealTimeAdapter:
                     }
                 
                 muscle_progress[muscle]["weights"].append(set.weight)
-                muscle_progress[muscle]["reps"].append(set.actual_reps)
+                muscle_progress[muscle]["reps"].append(set.reps)
                 muscle_progress[muscle]["fatigue"].append(set.fatigue_level)
         
         # Calculer les tendances
@@ -2111,13 +2107,13 @@ class RealTimeAdapter:
                     "action": "Remplacer un exercice par une variante"
                 })
                 
-                # Suggérer des exercices alternatifs
-                current_exercises = self.db.query(Exercise).join(
-                    ProgramExercise
-                ).filter(
+                # CORRECTION ICI : Supprimer le join avec ProgramExercise
+                # Récupérer les exercices actuels pour ce muscle
+                current_exercises = self.db.query(Exercise).filter(
                     Exercise.body_part == muscle
                 ).limit(3).all()
                 
+                # Récupérer des alternatives
                 alternatives = self.db.query(Exercise).filter(
                     Exercise.body_part == muscle,
                     ~Exercise.id.in_([e.id for e in current_exercises])

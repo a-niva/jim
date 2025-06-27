@@ -164,3 +164,77 @@ class RecommendationResponse(BaseModel):
     reps_change: str
     baseline_weight: Optional[float]
     baseline_reps: int
+
+# ===== SCHEMAS POUR LA GÉNÉRATION DE PROGRAMMES =====
+
+class ProgramGenerationRequest(BaseModel):
+    weeks: int = 4
+    frequency: int = 3
+    
+
+# ===== SCHEMAS POUR LE SYSTÈME ADAPTATIF =====
+
+class UserCommitmentCreate(BaseModel):
+    sessions_per_week: int
+    minutes_per_session: int
+    focus_muscles: Optional[Dict[str, str]] = None
+    preferred_days: Optional[List[str]] = None
+    preferred_time: Optional[str] = None
+
+
+class UserCommitmentResponse(BaseModel):
+    id: int
+    user_id: int
+    sessions_per_week: int
+    minutes_per_session: int
+    focus_muscles: Optional[Dict[str, str]]
+    preferred_days: Optional[List[str]]
+    preferred_time: Optional[str]
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class AdaptiveTargetsResponse(BaseModel):
+    id: int
+    user_id: int
+    muscle_group: str
+    target_volume: float
+    current_volume: float
+    recovery_debt: float
+    last_trained: Optional[datetime]
+    adaptation_rate: float
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class TrajectoryAnalysis(BaseModel):
+    status: str = "ready"
+    on_track: bool
+    sessions_this_week: int
+    sessions_target: int
+    volume_adherence: float
+    consistency_score: float
+    muscle_balance: Dict[str, float]
+    insights: List[str]
+
+
+# ===== SCHEMAS NON UTILISÉS MAIS RÉFÉRENCÉS (optionnels) =====
+
+class ProgramDayBase(BaseModel):
+    """Schéma pour un jour de programme (non utilisé actuellement)"""
+    day: int
+    exercises: List[Dict[str, Any]]
+
+
+class ProgramExerciseBase(BaseModel):
+    """Schéma pour un exercice dans un programme (non utilisé actuellement)"""
+    exercise_id: int
+    sets: int
+    reps: int
+    rest_seconds: int = 90

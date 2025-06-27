@@ -147,3 +147,51 @@ class SetHistory(Base):
     
     user = relationship("User")
     exercise = relationship("Exercise")
+
+class UserCommitment(Base):
+    """Engagement et objectifs de l'utilisateur"""
+    __tablename__ = "user_commitments"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
+    
+    # Objectifs hebdomadaires
+    sessions_per_week = Column(Integer, nullable=False)
+    minutes_per_session = Column(Integer, nullable=False)
+    
+    # Priorités musculaires
+    focus_muscles = Column(JSON, nullable=True)  # {"pectoraux": "priority", "dos": "normal"}
+    
+    # Préférences
+    preferred_days = Column(JSON, nullable=True)  # ["lundi", "mercredi", "vendredi"]
+    preferred_time = Column(String, nullable=True)  # "morning", "afternoon", "evening"
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = relationship("User")
+
+
+class AdaptiveTargets(Base):
+    """Objectifs adaptatifs par groupe musculaire"""
+    __tablename__ = "adaptive_targets"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    muscle_group = Column(String, nullable=False)
+    
+    # Volumes cibles et actuels
+    target_volume = Column(Float, nullable=False)
+    current_volume = Column(Float, default=0.0)
+    
+    # Récupération
+    recovery_debt = Column(Float, default=0.0)
+    last_trained = Column(DateTime, nullable=True)
+    
+    # Adaptation
+    adaptation_rate = Column(Float, default=1.0)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = relationship("User")
