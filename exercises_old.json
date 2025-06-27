@@ -1,0 +1,6443 @@
+[
+  {
+    "name_fr": "Développé assis à la machine convergente",
+    "name_eng": "Convergent Machine Seated Press",
+    "equipment": [
+      "machine_convergente"
+    ],
+    "level": "basic",
+    "body_part": "Pectoraux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 5,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "machine_required": true
+    }
+  },
+  {
+    "name_fr": "Développé couché avec haltères",
+    "name_eng": "Dumbbell Bench Press",
+    "equipment": [
+      "dumbbells",
+      "bench_plat"
+    ],
+    "level": "basic",
+    "body_part": "Pectoraux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 5,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Développé couché à la barre",
+    "name_eng": "Barbell Bench Press",
+    "equipment": [
+      "barbell_standard",
+      "bench_plat"
+    ],
+    "level": "basic",
+    "body_part": "Pectoraux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 5,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "barbell_count": 1
+    }
+  },
+  {
+    "name_fr": "Développé couché à la machine convergente",
+    "name_eng": "Convergent Machine Bench Press",
+    "equipment": [
+      "machine_convergente"
+    ],
+    "level": "basic",
+    "body_part": "Pectoraux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 5,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "machine_required": true
+    }
+  },
+  {
+    "name_fr": "Développé décliné avec haltères",
+    "name_eng": "Decline Dumbbell Press",
+    "equipment": [
+      "dumbbells",
+      "bench_declinable"
+    ],
+    "level": "basic",
+    "body_part": "Pectoraux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 5,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 2,
+      "requires_decline": true
+    }
+  },
+  {
+    "name_fr": "Développé décliné à la barre",
+    "name_eng": "Decline Barbell Press",
+    "equipment": [
+      "barbell_standard",
+      "bench_declinable"
+    ],
+    "level": "basic",
+    "body_part": "Pectoraux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 5,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "barbell_count": 1,
+      "requires_decline": true
+    }
+  },
+  {
+    "name_fr": "Développé incliné avec haltères",
+    "name_eng": "Incline Dumbbell Press",
+    "equipment": [
+      "dumbbells",
+      "bench_inclinable"
+    ],
+    "level": "basic",
+    "body_part": "Pectoraux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 5,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 2,
+      "requires_incline": true
+    }
+  },
+  {
+    "name_fr": "Développé incliné à la barre",
+    "name_eng": "Incline Barbell Press",
+    "equipment": [
+      "barbell_standard",
+      "bench_inclinable"
+    ],
+    "level": "basic",
+    "body_part": "Pectoraux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 5,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "barbell_count": 1,
+      "requires_incline": true
+    }
+  },
+  {
+    "name_fr": "Développé incliné à la machine convergente",
+    "name_eng": "Convergent Machine Incline Press",
+    "equipment": [
+      "machine_convergente"
+    ],
+    "level": "basic",
+    "body_part": "Pectoraux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 5,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "machine_required": true
+    }
+  },
+  {
+    "name_fr": "Dips prise large buste penché",
+    "name_eng": "Wide-Grip Dips",
+    "equipment": [
+      "dip_bars"
+    ],
+    "level": "basic",
+    "body_part": "Pectoraux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Pull over avec barre ou haltère",
+    "name_eng": "Barbell or Dumbbell Pullover",
+    "equipment": [
+      "barbell_standard",
+      "dumbbells",
+      "bench_plat"
+    ],
+    "level": "basic",
+    "body_part": "Pectoraux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 5,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "barbell_count": 1,
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Pull over en travers d’un banc avec barre ou haltère",
+    "name_eng": "Cross-Bench Barbell or Dumbbell Pullover",
+    "equipment": [
+      "barbell_standard",
+      "dumbbells",
+      "bench_plat"
+    ],
+    "level": "basic",
+    "body_part": "Pectoraux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 5,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "barbell_count": 1,
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Écarté couché avec haltères",
+    "name_eng": "Dumbbell Fly",
+    "equipment": [
+      "dumbbells",
+      "bench_plat"
+    ],
+    "level": "advanced",
+    "body_part": "Pectoraux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Écarté décliné avec haltères",
+    "name_eng": "Decline Dumbbell Fly",
+    "equipment": [
+      "dumbbells",
+      "bench_declinable"
+    ],
+    "level": "advanced",
+    "body_part": "Pectoraux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 2,
+      "requires_decline": true
+    }
+  },
+  {
+    "name_fr": "Écarté incliné avec haltères",
+    "name_eng": "Incline Dumbbell Fly",
+    "equipment": [
+      "dumbbells",
+      "bench_inclinable"
+    ],
+    "level": "advanced",
+    "body_part": "Pectoraux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 2,
+      "requires_incline": true
+    }
+  },
+  {
+    "name_fr": "Écarté pectoraux à la machine",
+    "name_eng": "Machine Pec Fly",
+    "equipment": [
+      "machine_pectoraux"
+    ],
+    "level": "advanced",
+    "body_part": "Pectoraux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "machine_required": true
+    }
+  },
+  {
+    "name_fr": "Pompes prise large au sol",
+    "name_eng": "Wide-Grip Push-Up",
+    "equipment": [
+      "bodyweight"
+    ],
+    "level": "advanced",
+    "body_part": "Pectoraux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Pull over à la poulie basse",
+    "name_eng": "Low Cable Pullover",
+    "equipment": [
+      "cables"
+    ],
+    "level": "advanced",
+    "body_part": "Pectoraux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Écarté à la poulie vis à vis basse",
+    "name_eng": "Low Cable Crossover",
+    "equipment": [
+      "cables"
+    ],
+    "level": "finition",
+    "body_part": "Pectoraux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Écarté à la poulie vis à vis haute",
+    "name_eng": "High Cable Crossover",
+    "equipment": [
+      "cables"
+    ],
+    "level": "finition",
+    "body_part": "Pectoraux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Développé couché à la machine",
+    "name_eng": "Machine Bench Press",
+    "equipment": [
+      "machine_developpe"
+    ],
+    "level": "finition",
+    "body_part": "Pectoraux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "machine_required": true
+    }
+  },
+  {
+    "name_fr": "Crunch abdominaux avec l’Abmat",
+    "name_eng": "Abmat Crunch",
+    "equipment": [
+      "abmat"
+    ],
+    "level": "basic",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 20,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 25,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 30,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 35,
+        "reps_tolerance": 5
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Crunch à la poulie haute",
+    "name_eng": "Cable Crunch",
+    "equipment": [
+      "cables"
+    ],
+    "level": "basic",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 20,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 25,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 30,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 35,
+        "reps_tolerance": 5
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Enroulement de bassin au sol avec l’Abmat",
+    "name_eng": "Abmat Reverse Crunch",
+    "equipment": [
+      "abmat"
+    ],
+    "level": "basic",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 20,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 25,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 30,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 35,
+        "reps_tolerance": 5
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Enroulement de bassin suspendu à la barre fixe",
+    "name_eng": "Hanging Leg Raise",
+    "equipment": [
+      "barre_traction"
+    ],
+    "level": "basic",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 20,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 25,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 30,
+        "reps_tolerance": 5
+      }
+    ],
+    "equipment_specs": {
+      "pullup_bar_required": true
+    }
+  },
+  {
+    "name_fr": "Obliques sur banc à lombaires",
+    "name_eng": "Back Extension Bench Side Crunch",
+    "equipment": [
+      "banc_lombaires"
+    ],
+    "level": "basic",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 20,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 25,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 30,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 35,
+        "reps_tolerance": 5
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Crunch abdominaux au sol",
+    "name_eng": "Floor Crunch",
+    "equipment": [
+      "bodyweight"
+    ],
+    "level": "advanced",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 20,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 25,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 30,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 35,
+        "reps_tolerance": 5
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Crunch abdominaux à la machine",
+    "name_eng": "Machine Crunch",
+    "equipment": [
+      "machine_abdos"
+    ],
+    "level": "advanced",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 20,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 25,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 30,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 35,
+        "reps_tolerance": 5
+      }
+    ],
+    "equipment_specs": {
+      "machine_required": true
+    }
+  },
+  {
+    "name_fr": "Crunch abdominaux sur la Swiss Ball",
+    "name_eng": "Swiss Ball Crunch",
+    "equipment": [
+      "swiss_ball"
+    ],
+    "level": "advanced",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 20,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 25,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 30,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 35,
+        "reps_tolerance": 5
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Crunch oblique au sol",
+    "name_eng": "Oblique Floor Crunch",
+    "equipment": [
+      "bodyweight"
+    ],
+    "level": "advanced",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 20,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 25,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 30,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 35,
+        "reps_tolerance": 5
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Enroulement de bassin au sol",
+    "name_eng": "Reverse Crunch",
+    "equipment": [
+      "bodyweight"
+    ],
+    "level": "advanced",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 20,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 25,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 30,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 35,
+        "reps_tolerance": 5
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Obliques avec l’Abmat",
+    "name_eng": "Abmat Oblique Crunch",
+    "equipment": [
+      "abmat"
+    ],
+    "level": "advanced",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 20,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 25,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 30,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 35,
+        "reps_tolerance": 5
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Obliques sur la Swiss Ball",
+    "name_eng": "Swiss Ball Oblique Crunch",
+    "equipment": [
+      "swiss_ball"
+    ],
+    "level": "advanced",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 20,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 25,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 30,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 35,
+        "reps_tolerance": 5
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Obliques suspendu à la barre fixe",
+    "name_eng": "Hanging Oblique Raise",
+    "equipment": [
+      "barre_traction"
+    ],
+    "level": "advanced",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 20,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 25,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 30,
+        "reps_tolerance": 5
+      }
+    ],
+    "equipment_specs": {
+      "pullup_bar_required": true
+    }
+  },
+  {
+    "name_fr": "Rotation à la machine",
+    "name_eng": "Machine Torso Rotation",
+    "equipment": [
+      "machine_rotation"
+    ],
+    "level": "advanced",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 20,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 25,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 30,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 35,
+        "reps_tolerance": 5
+      }
+    ],
+    "equipment_specs": {
+      "machine_required": true
+    }
+  },
+  {
+    "name_fr": "Vacuum",
+    "name_eng": "Stomach Vacuum",
+    "equipment": [
+      "bodyweight"
+    ],
+    "level": "advanced",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 20,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 25,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 30,
+        "reps_tolerance": 5
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Crunch abdominaux avec rotation au sol",
+    "name_eng": "Rotational Floor Crunch",
+    "equipment": [
+      "bodyweight"
+    ],
+    "level": "finition",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 20,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 25,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 30,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 35,
+        "reps_tolerance": 5
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Drapeau du dragon",
+    "name_eng": "Dragon Flag",
+    "equipment": [
+      "bench_plat"
+    ],
+    "level": "finition",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 20,
+        "reps_tolerance": 3
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Flexion latérale avec haltère",
+    "name_eng": "Dumbbell Side Bend",
+    "equipment": [
+      "dumbbells"
+    ],
+    "level": "finition",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Gainage abdominal frontal",
+    "name_eng": "Front Plank",
+    "equipment": [
+      "bodyweight"
+    ],
+    "level": "finition",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 30,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 45,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 60,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 75,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 90,
+        "reps_tolerance": 5
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Gainage abdominal oblique",
+    "name_eng": "Side Plank",
+    "equipment": [
+      "bodyweight"
+    ],
+    "level": "finition",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 30,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 45,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 60,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 75,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 90,
+        "reps_tolerance": 5
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Rotation debout avec balais",
+    "name_eng": "Standing Broomstick Twist",
+    "equipment": [
+      "balai"
+    ],
+    "level": "finition",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 20,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 25,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 30,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 35,
+        "reps_tolerance": 5
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Hack squat à la machine",
+    "name_eng": "Machine Hack Squat",
+    "equipment": [
+      "machine_hack_squat"
+    ],
+    "level": "basic",
+    "body_part": "Quadriceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 5,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "machine_required": true
+    }
+  },
+  {
+    "name_fr": "Presse à cuisses allongé",
+    "name_eng": "Lying Leg Press",
+    "equipment": [
+      "machine_jambes"
+    ],
+    "level": "basic",
+    "body_part": "Quadriceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 5,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "machine_required": true
+    }
+  },
+  {
+    "name_fr": "Presse à cuisses assis",
+    "name_eng": "Seated Leg Press",
+    "equipment": [
+      "machine_jambes"
+    ],
+    "level": "basic",
+    "body_part": "Quadriceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 5,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "machine_required": true
+    }
+  },
+  {
+    "name_fr": "Presse à cuisses incliné",
+    "name_eng": "Incline Leg Press",
+    "equipment": [
+      "machine_jambes"
+    ],
+    "level": "basic",
+    "body_part": "Quadriceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 5,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "machine_required": true
+    }
+  },
+  {
+    "name_fr": "Squat avant avec barre",
+    "name_eng": "Front Squat",
+    "equipment": [
+      "barbell_standard",
+      "squat_rack"
+    ],
+    "level": "basic",
+    "body_part": "Quadriceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 5,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "barbell_count": 1
+    }
+  },
+  {
+    "name_fr": "Squat avec barre derrière la nuque",
+    "name_eng": "Back Squat",
+    "equipment": [
+      "barbell_standard",
+      "squat_rack"
+    ],
+    "level": "basic",
+    "body_part": "Quadriceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 5,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "barbell_count": 1
+    }
+  },
+  {
+    "name_fr": "Squat sumo avec barre",
+    "name_eng": "Sumo Squat",
+    "equipment": [
+      "barbell_standard",
+      "squat_rack"
+    ],
+    "level": "basic",
+    "body_part": "Quadriceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 5,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "barbell_count": 1
+    }
+  },
+  {
+    "name_fr": "Fente latérale avec barre",
+    "name_eng": "Barbell Lateral Lunge",
+    "equipment": [
+      "barbell_standard"
+    ],
+    "level": "advanced",
+    "body_part": "Quadriceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "barbell_count": 1
+    }
+  },
+  {
+    "name_fr": "Gobelet Squat avec haltère",
+    "name_eng": "Goblet Squat",
+    "equipment": [
+      "dumbbells"
+    ],
+    "level": "advanced",
+    "body_part": "Quadriceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Hack squat avec une barre",
+    "name_eng": "Barbell Hack Squat",
+    "equipment": [
+      "barbell_standard"
+    ],
+    "level": "advanced",
+    "body_part": "Quadriceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "barbell_count": 1
+    }
+  },
+  {
+    "name_fr": "Montée sur banc avec barre ou haltères",
+    "name_eng": "Barbell or Dumbbell Step-Up",
+    "equipment": [
+      "barbell_standard",
+      "dumbbells",
+      "bench_plat"
+    ],
+    "level": "advanced",
+    "body_part": "Quadriceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "barbell_count": 1,
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Squat avec ceinture de lest",
+    "name_eng": "Weighted Belt Squat",
+    "equipment": [
+      "ceinture_lest"
+    ],
+    "level": "advanced",
+    "body_part": "Quadriceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Squat à la machine",
+    "name_eng": "Machine Squat",
+    "equipment": [
+      "machine_squat"
+    ],
+    "level": "advanced",
+    "body_part": "Quadriceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "machine_required": true
+    }
+  },
+  {
+    "name_fr": "Squat bulgare avec haltères",
+    "name_eng": "Bulgarian Split Squat",
+    "equipment": [
+      "dumbbells",
+      "bench_plat"
+    ],
+    "level": "advanced",
+    "body_part": "Quadriceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Fente avant avec barre ou haltères",
+    "name_eng": "Barbell or Dumbbell Lunge",
+    "equipment": [
+      "barbell_standard",
+      "dumbbells"
+    ],
+    "level": "finition",
+    "body_part": "Quadriceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "barbell_count": 1,
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Fente arrière avec barre ou haltères",
+    "name_eng": "Reverse Barbell or Dumbbell Lunge",
+    "equipment": [
+      "barbell_standard",
+      "dumbbells"
+    ],
+    "level": "finition",
+    "body_part": "Quadriceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "barbell_count": 1,
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Squat sauté",
+    "name_eng": "Jump Squat",
+    "equipment": [
+      "bodyweight"
+    ],
+    "level": "finition",
+    "body_part": "Quadriceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Développé militaire avec barre",
+    "name_eng": "Barbell Military Press",
+    "equipment": [
+      "barbell_standard",
+      "squat_rack"
+    ],
+    "level": "basic",
+    "body_part": "Deltoïdes",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 5,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "barbell_count": 1
+    }
+  },
+  {
+    "name_fr": "Développé militaire avec haltères",
+    "name_eng": "Dumbbell Military Press",
+    "equipment": [
+      "dumbbells"
+    ],
+    "level": "basic",
+    "body_part": "Deltoïdes",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 5,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Développé militaire à la machine",
+    "name_eng": "Machine Military Press",
+    "equipment": [
+      "machine_epaules"
+    ],
+    "level": "basic",
+    "body_part": "Deltoïdes",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 5,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "machine_required": true
+    }
+  },
+  {
+    "name_fr": "Développé militaire assis avec barre",
+    "name_eng": "Seated Barbell Military Press",
+    "equipment": [
+      "barbell_standard",
+      "bench_plat"
+    ],
+    "level": "basic",
+    "body_part": "Deltoïdes",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 5,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "barbell_count": 1
+    }
+  },
+  {
+    "name_fr": "Développé militaire assis avec haltères",
+    "name_eng": "Seated Dumbbell Military Press",
+    "equipment": [
+      "dumbbells",
+      "bench_plat"
+    ],
+    "level": "basic",
+    "body_part": "Deltoïdes",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 5,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Développé Arnold avec haltères",
+    "name_eng": "Arnold Press",
+    "equipment": [
+      "dumbbells"
+    ],
+    "level": "advanced",
+    "body_part": "Deltoïdes",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Élévation frontale à la barre",
+    "name_eng": "Barbell Front Raise",
+    "equipment": [
+      "barbell_standard"
+    ],
+    "level": "advanced",
+    "body_part": "Deltoïdes",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "barbell_count": 1,
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Élévation frontale avec haltères",
+    "name_eng": "Dumbbell Front Raise",
+    "equipment": [
+      "dumbbells"
+    ],
+    "level": "advanced",
+    "body_part": "Deltoïdes",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Élévation latérale avec haltères",
+    "name_eng": "Dumbbell Lateral Raise",
+    "equipment": [
+      "dumbbells"
+    ],
+    "level": "advanced",
+    "body_part": "Deltoïdes",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Élévation latérale à la poulie basse",
+    "name_eng": "Low Cable Lateral Raise",
+    "equipment": [
+      "cables"
+    ],
+    "level": "advanced",
+    "body_part": "Deltoïdes",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Oiseau avec haltères",
+    "name_eng": "Dumbbell Rear Delt Fly",
+    "equipment": [
+      "dumbbells",
+      "bench_plat"
+    ],
+    "level": "advanced",
+    "body_part": "Deltoïdes",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Oiseau à la poulie basse",
+    "name_eng": "Low Cable Rear Delt Fly",
+    "equipment": [
+      "cables"
+    ],
+    "level": "advanced",
+    "body_part": "Deltoïdes",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Élévation frontale à la poulie basse",
+    "name_eng": "Low Cable Front Raise",
+    "equipment": [
+      "cables"
+    ],
+    "level": "finition",
+    "body_part": "Deltoïdes",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Oiseau à la machine",
+    "name_eng": "Machine Rear Delt Fly",
+    "equipment": [
+      "machine_oiseau"
+    ],
+    "level": "finition",
+    "body_part": "Deltoïdes",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "machine_required": true
+    }
+  },
+  {
+    "name_fr": "Curl avec barre droite",
+    "name_eng": "Barbell Curl",
+    "equipment": [
+      "barbell_standard"
+    ],
+    "level": "basic",
+    "body_part": "Biceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "barbell_count": 1
+    }
+  },
+  {
+    "name_fr": "Curl avec barre EZ",
+    "name_eng": "EZ Bar Curl",
+    "equipment": [
+      "barbell_ez"
+    ],
+    "level": "basic",
+    "body_part": "Biceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "barbell_count": 1
+    }
+  },
+  {
+    "name_fr": "Curl avec haltères",
+    "name_eng": "Dumbbell Curl",
+    "equipment": [
+      "dumbbells"
+    ],
+    "level": "basic",
+    "body_part": "Biceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Curl incliné avec haltères",
+    "name_eng": "Incline Dumbbell Curl",
+    "equipment": [
+      "dumbbells",
+      "bench_inclinable"
+    ],
+    "level": "basic",
+    "body_part": "Biceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 2,
+      "requires_incline": true
+    }
+  },
+  {
+    "name_fr": "Curl marteau avec haltères",
+    "name_eng": "Hammer Curl",
+    "equipment": [
+      "dumbbells"
+    ],
+    "level": "basic",
+    "body_part": "Biceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Curl à la poulie basse",
+    "name_eng": "Low Cable Curl",
+    "equipment": [
+      "cables"
+    ],
+    "level": "advanced",
+    "body_part": "Biceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Curl à la poulie haute",
+    "name_eng": "High Cable Curl",
+    "equipment": [
+      "cables"
+    ],
+    "level": "advanced",
+    "body_part": "Biceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Curl concentré avec haltère",
+    "name_eng": "Concentration Curl",
+    "equipment": [
+      "dumbbells",
+      "bench_plat"
+    ],
+    "level": "advanced",
+    "body_part": "Biceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 1
+    }
+  },
+  {
+    "name_fr": "Curl prêcheur avec barre droite",
+    "name_eng": "Barbell Preacher Curl",
+    "equipment": [
+      "barbell_standard",
+      "banc_preacher"
+    ],
+    "level": "advanced",
+    "body_part": "Biceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "barbell_count": 1
+    }
+  },
+  {
+    "name_fr": "Curl prêcheur avec barre EZ",
+    "name_eng": "EZ Bar Preacher Curl",
+    "equipment": [
+      "barbell_ez",
+      "banc_preacher"
+    ],
+    "level": "advanced",
+    "body_part": "Biceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "barbell_count": 1
+    }
+  },
+  {
+    "name_fr": "Curl prêcheur avec haltères",
+    "name_eng": "Dumbbell Preacher Curl",
+    "equipment": [
+      "dumbbells",
+      "banc_preacher"
+    ],
+    "level": "advanced",
+    "body_part": "Biceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 1
+    }
+  },
+  {
+    "name_fr": "Curl à la machine",
+    "name_eng": "Machine Curl",
+    "equipment": [
+      "machine_biceps"
+    ],
+    "level": "finition",
+    "body_part": "Biceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "machine_required": true
+    }
+  },
+  {
+    "name_fr": "Curl inversé avec barre",
+    "name_eng": "Reverse Barbell Curl",
+    "equipment": [
+      "barbell_standard"
+    ],
+    "level": "advanced",
+    "body_part": "Avants-Bras",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "barbell_count": 1
+    }
+  },
+  {
+    "name_fr": "Curl inversé avec haltères",
+    "name_eng": "Reverse Dumbbell Curl",
+    "equipment": [
+      "dumbbells"
+    ],
+    "level": "advanced",
+    "body_part": "Avants-Bras",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Curl poignet avec barre",
+    "name_eng": "Barbell Wrist Curl",
+    "equipment": [
+      "barbell_standard",
+      "bench_plat"
+    ],
+    "level": "advanced",
+    "body_part": "Avants-Bras",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "barbell_count": 1
+    }
+  },
+  {
+    "name_fr": "Curl poignet avec haltères",
+    "name_eng": "Dumbbell Wrist Curl",
+    "equipment": [
+      "dumbbells",
+      "bench_plat"
+    ],
+    "level": "advanced",
+    "body_part": "Avants-Bras",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Curl inversé à la poulie basse",
+    "name_eng": "Low Cable Reverse Curl",
+    "equipment": [
+      "cables"
+    ],
+    "level": "finition",
+    "body_part": "Avants-Bras",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Curl poignet à la machine",
+    "name_eng": "Machine Wrist Curl",
+    "equipment": [
+      "machine_poignets"
+    ],
+    "level": "finition",
+    "body_part": "Avants-Bras",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "machine_required": true
+    }
+  },
+  {
+    "name_fr": "Rowing à la T-bar",
+    "name_eng": "T-Bar Row",
+    "equipment": [
+      "machine_t_bar",
+      "barbell_standard"
+    ],
+    "level": "basic",
+    "body_part": "Trapèzes",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 5,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "barbell_count": 1,
+      "machine_required": true
+    }
+  },
+  {
+    "name_fr": "Shrug avec barre",
+    "name_eng": "Barbell Shrug",
+    "equipment": [
+      "barbell_standard"
+    ],
+    "level": "basic",
+    "body_part": "Trapèzes",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 5,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "barbell_count": 1
+    }
+  },
+  {
+    "name_fr": "Shrug avec haltères",
+    "name_eng": "Dumbbell Shrug",
+    "equipment": [
+      "dumbbells"
+    ],
+    "level": "basic",
+    "body_part": "Trapèzes",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 5,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Shrug à la machine",
+    "name_eng": "Machine Shrug",
+    "equipment": [
+      "machine_shrug"
+    ],
+    "level": "basic",
+    "body_part": "Trapèzes",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 5,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "machine_required": true
+    }
+  },
+  {
+    "name_fr": "Face pull à la poulie",
+    "name_eng": "Cable Face Pull",
+    "equipment": [
+      "cables"
+    ],
+    "level": "advanced",
+    "body_part": "Trapèzes",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Rowing vertical avec barre",
+    "name_eng": "Barbell Upright Row",
+    "equipment": [
+      "barbell_standard"
+    ],
+    "level": "advanced",
+    "body_part": "Trapèzes",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "barbell_count": 1
+    }
+  },
+  {
+    "name_fr": "Rowing vertical avec haltères",
+    "name_eng": "Dumbbell Upright Row",
+    "equipment": [
+      "dumbbells"
+    ],
+    "level": "advanced",
+    "body_part": "Trapèzes",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Shrug à la poulie basse",
+    "name_eng": "Low Cable Shrug",
+    "equipment": [
+      "cables"
+    ],
+    "level": "finition",
+    "body_part": "Trapèzes",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Barre au front triceps avec barre ou haltères",
+    "name_eng": "Skull Crusher",
+    "equipment": [
+      "barbell_standard",
+      "dumbbells",
+      "bench_plat"
+    ],
+    "level": "basic",
+    "body_part": "Triceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "barbell_count": 1,
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Dips prise étroite",
+    "name_eng": "Close-Grip Dips",
+    "equipment": [
+      "dip_bars"
+    ],
+    "level": "basic",
+    "body_part": "Triceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Extension triceps à la poulie haute",
+    "name_eng": "Cable Tricep Pushdown",
+    "equipment": [
+      "cables"
+    ],
+    "level": "basic",
+    "body_part": "Triceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Développé couché prise serrée avec barre",
+    "name_eng": "Close-Grip Barbell Bench Press",
+    "equipment": [
+      "barbell_standard",
+      "bench_plat"
+    ],
+    "level": "advanced",
+    "body_part": "Triceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "barbell_count": 1
+    }
+  },
+  {
+    "name_fr": "Extension triceps avec haltère au-dessus de la tête",
+    "name_eng": "Overhead Dumbbell Tricep Extension",
+    "equipment": [
+      "dumbbells"
+    ],
+    "level": "advanced",
+    "body_part": "Triceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 1
+    }
+  },
+  {
+    "name_fr": "Extension triceps couché avec barre EZ",
+    "name_eng": "EZ Bar Lying Tricep Extension",
+    "equipment": [
+      "barbell_ez",
+      "bench_plat"
+    ],
+    "level": "advanced",
+    "body_part": "Triceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "barbell_count": 1
+    }
+  },
+  {
+    "name_fr": "Extension triceps à la machine",
+    "name_eng": "Machine Tricep Extension",
+    "equipment": [
+      "machine_triceps"
+    ],
+    "level": "advanced",
+    "body_part": "Triceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "machine_required": true
+    }
+  },
+  {
+    "name_fr": "Kick back avec haltères",
+    "name_eng": "Dumbbell Kickback",
+    "equipment": [
+      "dumbbells",
+      "bench_plat"
+    ],
+    "level": "advanced",
+    "body_part": "Triceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Extension triceps à la poulie avec corde",
+    "name_eng": "Cable Tricep Pushdown with Rope",
+    "equipment": [
+      "cables",
+      "corde_triceps"
+    ],
+    "level": "finition",
+    "body_part": "Triceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Extension triceps à la poulie inversée",
+    "name_eng": "Reverse Cable Tricep Pushdown",
+    "equipment": [
+      "cables"
+    ],
+    "level": "finition",
+    "body_part": "Triceps",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Crunch au sol",
+    "name_eng": "Floor Crunch",
+    "equipment": [
+      "bodyweight",
+      "tapis"
+    ],
+    "level": "basic",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Crunch à la machine",
+    "name_eng": "Machine Crunch",
+    "equipment": [
+      "machine_crunch"
+    ],
+    "level": "basic",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "machine_required": true
+    }
+  },
+  {
+    "name_fr": "Relevé de jambes suspendu",
+    "name_eng": "Hanging Leg Raise",
+    "equipment": [
+      "barre_traction"
+    ],
+    "level": "advanced",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "pullup_bar_required": true
+    }
+  },
+  {
+    "name_fr": "Relevé de jambes au banc",
+    "name_eng": "Bench Leg Raise",
+    "equipment": [
+      "bench_plat"
+    ],
+    "level": "advanced",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Obliques à la poulie",
+    "name_eng": "Cable Oblique Twist",
+    "equipment": [
+      "cables"
+    ],
+    "level": "advanced",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Russian twist",
+    "name_eng": "Russian Twist",
+    "equipment": [
+      "bodyweight",
+      "tapis",
+      "medicine_ball"
+    ],
+    "level": "advanced",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Planche",
+    "name_eng": "Plank",
+    "equipment": [
+      "bodyweight",
+      "tapis"
+    ],
+    "level": "basic",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 30,
+        "reps_tolerance": 10
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 45,
+        "reps_tolerance": 15
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 60,
+        "reps_tolerance": 15
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 75,
+        "reps_tolerance": 15
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 90,
+        "reps_tolerance": 15
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Planche latérale",
+    "name_eng": "Side Plank",
+    "equipment": [
+      "bodyweight",
+      "tapis"
+    ],
+    "level": "advanced",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 20,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 30,
+        "reps_tolerance": 10
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 45,
+        "reps_tolerance": 10
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 60,
+        "reps_tolerance": 10
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 75,
+        "reps_tolerance": 10
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Abdominaux à la roue",
+    "name_eng": "Ab Wheel Rollout",
+    "equipment": [
+      "roue_abdos"
+    ],
+    "level": "advanced",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Mountain climbers",
+    "name_eng": "Mountain Climbers",
+    "equipment": [
+      "bodyweight",
+      "tapis"
+    ],
+    "level": "finition",
+    "body_part": "Abdominaux",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 20,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 25,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 30,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 35,
+        "reps_tolerance": 5
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 40,
+        "reps_tolerance": 5
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Pont fessier",
+    "name_eng": "Glute Bridge",
+    "equipment": [
+      "bodyweight",
+      "tapis"
+    ],
+    "level": "basic",
+    "body_part": "Fessiers",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Hip thrust avec barre",
+    "name_eng": "Barbell Hip Thrust",
+    "equipment": [
+      "barbell_standard",
+      "bench_plat"
+    ],
+    "level": "basic",
+    "body_part": "Fessiers",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 6,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "barbell_count": 1
+    }
+  },
+  {
+    "name_fr": "Fente arrière fessier avec haltères",
+    "name_eng": "Dumbbell Reverse Lunge",
+    "equipment": [
+      "dumbbells"
+    ],
+    "level": "advanced",
+    "body_part": "Fessiers",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Abduction fessier à la machine",
+    "name_eng": "Machine Hip Abduction",
+    "equipment": [
+      "machine_abduction"
+    ],
+    "level": "advanced",
+    "body_part": "Fessiers",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "machine_required": true
+    }
+  },
+  {
+    "name_fr": "Adduction fessier à la machine",
+    "name_eng": "Machine Hip Adduction",
+    "equipment": [
+      "machine_adduction"
+    ],
+    "level": "advanced",
+    "body_part": "Fessiers",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 8,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "machine_required": true
+    }
+  },
+  {
+    "name_fr": "Kick back fessier à la poulie",
+    "name_eng": "Cable Glute Kickback",
+    "equipment": [
+      "cables"
+    ],
+    "level": "advanced",
+    "body_part": "Fessiers",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": "7",
+        "sets_tolerance": "1",
+        "reps": "8",
+        "reps_tolerance": "2"
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Élévation latérale fessier au poids du corps",
+    "name_eng": "Bodyweight Lateral Step-Up",
+    "equipment": [
+      "bodyweight",
+      "bench_plat"
+    ],
+    "level": "finition",
+    "body_part": "Fessiers",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Mollets debout à la machine",
+    "name_eng": "Standing Machine Calf Raise",
+    "equipment": [
+      "machine_mollets_debout"
+    ],
+    "level": "basic",
+    "body_part": "Mollets",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "machine_required": true
+    }
+  },
+  {
+    "name_fr": "Mollets assis à la machine",
+    "name_eng": "Seated Machine Calf Raise",
+    "equipment": [
+      "machine_mollets_assis"
+    ],
+    "level": "basic",
+    "body_part": "Mollets",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "machine_required": true
+    }
+  },
+  {
+    "name_fr": "Mollets à la presse à cuisses",
+    "name_eng": "Leg Press Calf Raise",
+    "equipment": [
+      "machine_jambes"
+    ],
+    "level": "basic",
+    "body_part": "Mollets",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "machine_required": true
+    }
+  },
+  {
+    "name_fr": "Mollets debout avec haltères",
+    "name_eng": "Dumbbell Standing Calf Raise",
+    "equipment": [
+      "dumbbells"
+    ],
+    "level": "advanced",
+    "body_part": "Mollets",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {
+      "dumbbell_count": 2
+    }
+  },
+  {
+    "name_fr": "Mollets à la poulie",
+    "name_eng": "Cable Calf Raise",
+    "equipment": [
+      "cables"
+    ],
+    "level": "advanced",
+    "body_part": "Mollets",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 15,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 3
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 12,
+        "reps_tolerance": 2
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 10,
+        "reps_tolerance": 2
+      }
+    ],
+    "equipment_specs": {}
+  },
+  {
+    "name_fr": "Saut à la corde",
+    "name_eng": "Jump Rope",
+    "equipment": [
+      "corde_sauter"
+    ],
+    "level": "finition",
+    "body_part": "Mollets",
+    "sets_reps": [
+      {
+        "level": "beginner",
+        "sets": 3,
+        "sets_tolerance": 1,
+        "reps": 50,
+        "reps_tolerance": 10
+      },
+      {
+        "level": "intermediate",
+        "sets": 4,
+        "sets_tolerance": 1,
+        "reps": 75,
+        "reps_tolerance": 15
+      },
+      {
+        "level": "advanced",
+        "sets": 5,
+        "sets_tolerance": 1,
+        "reps": 100,
+        "reps_tolerance": 20
+      },
+      {
+        "level": "elite",
+        "sets": 6,
+        "sets_tolerance": 1,
+        "reps": 125,
+        "reps_tolerance": 25
+      },
+      {
+        "level": "extreme",
+        "sets": 7,
+        "sets_tolerance": 1,
+        "reps": 150,
+        "reps_tolerance": 30
+      }
+    ],
+    "equipment_specs": {}
+  }
+]
