@@ -9,6 +9,16 @@ let currentSet = 1;
 let workoutTimer = null;
 let restTimer = null;
 let currentStep = 1;
+let currentWorkoutSession = {
+    workout: null,
+    currentExercise: null,
+    currentSetNumber: 1,
+    exerciseOrder: 1,
+    globalSetCount: 0,
+    sessionFatigue: 3,
+    completedSets: [],
+    type: 'free'
+};
 const totalSteps = 4;
 
 // Configuration équipement disponible
@@ -1140,6 +1150,12 @@ window.addEventListener('offline', () => {
     showToast('Mode hors ligne', 'warning');
 });
 
+function showExerciseSelection() {
+    document.getElementById('exerciseSelection').style.display = 'block';
+    document.getElementById('currentExercise').style.display = 'none';
+    loadAvailableExercises();
+}
+
 // ===== API AVEC GESTION D'ERREUR AMÉLIORÉE =====
 async function apiRequest(url, options = {}) {
     if (!isOnline && !url.includes('health')) {
@@ -1203,40 +1219,6 @@ function apiDelete(url) {
     });
 }
 
-// ===== EXPOSITION GLOBALE =====
-window.showView = showView;
-window.nextStep = nextStep;
-window.prevStep = prevStep;
-window.completeOnboarding = completeOnboarding;
-window.startFreeWorkout = startFreeWorkout;
-window.startProgramWorkout = startProgramWorkout;
-window.selectExercise = selectExercise;
-window.editEquipment = editEquipment;
-window.clearHistory = clearHistory;
-window.deleteProfile = deleteProfile;
-window.closeModal = closeModal;
-window.toggleModalEquipment = toggleModalEquipment;
-window.saveEquipmentChanges = saveEquipmentChanges;
-window.resumeWorkout = resumeWorkout;
-
-// Nouvelles fonctions pour l'interface de séance détaillée
-window.setSessionFatigue = setSessionFatigue;
-window.adjustWeight = adjustWeight;
-window.adjustReps = adjustReps;
-window.executeSet = executeSet;
-window.setFatigue = setFatigue;
-window.setEffort = setEffort;
-window.validateSet = validateSet;
-window.nextSet = nextSet;
-window.previousSet = previousSet;
-window.changeExercise = changeExercise;
-window.skipRest = skipRest;
-window.addRestTime = addRestTime;
-window.endRest = endRest;
-window.pauseWorkout = pauseWorkout;
-window.abandonWorkout = abandonWorkout;
-window.endWorkout = endWorkout;
-
 async function loadProgramExercise() {
     try {
         // Récupérer le programme actif
@@ -1269,18 +1251,6 @@ async function loadProgramExercise() {
     }
 }
 
-function startWorkoutTimer() {
-    const startTime = new Date();
-    
-    workoutTimer = setInterval(() => {
-        const elapsed = new Date() - startTime;
-        const minutes = Math.floor(elapsed / 60000);
-        const seconds = Math.floor((elapsed % 60000) / 1000);
-        
-        document.getElementById('workoutTimer').textContent = 
-            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    }, 1000);
-}
 
 // ===== FONCTIONS UTILITAIRES SÉANCES =====
 async function loadAvailableExercises() {
@@ -1674,3 +1644,111 @@ async function requestNotificationPermission() {
         }
     }
 }
+
+// ===== FONCTIONS MANQUANTES POUR L'INTERFACE DÉTAILLÉE =====
+function setSessionFatigue(value) {
+    currentWorkoutSession.sessionFatigue = value;
+}
+
+function adjustWeight(delta) {
+    const weightInput = document.querySelector(`#weight_${currentSet}`);
+    if (weightInput) {
+        weightInput.value = Math.max(0, parseFloat(weightInput.value || 0) + delta);
+    }
+}
+
+function adjustReps(delta) {
+    const repsInput = document.querySelector(`#reps_${currentSet}`);
+    if (repsInput) {
+        repsInput.value = Math.max(1, parseInt(repsInput.value || 0) + delta);
+    }
+}
+
+function executeSet() {
+    completeSet(currentSet);
+}
+
+function setFatigue(exerciseId, value) {
+    // Stocker la fatigue pour cet exercice
+    console.log(`Fatigue set to ${value} for exercise ${exerciseId}`);
+}
+
+function setEffort(setId, value) {
+    // Stocker l'effort pour cette série
+    console.log(`Effort set to ${value} for set ${setId}`);
+}
+
+function validateSet() {
+    return completeSet(currentSet);
+}
+
+function nextSet() {
+    currentSet++;
+    loadSets();
+}
+
+function previousSet() {
+    if (currentSet > 1) {
+        currentSet--;
+        loadSets();
+    }
+}
+
+function changeExercise() {
+    finishExercise();
+}
+
+function addRestTime(seconds) {
+    // Ajouter du temps au repos en cours
+    console.log(`Adding ${seconds} seconds to rest`);
+}
+
+function pauseWorkout() {
+    if (workoutTimer) {
+        clearInterval(workoutTimer);
+        workoutTimer = null;
+    }
+    saveWorkoutState();
+    showToast('Séance mise en pause', 'info');
+}
+
+function abandonWorkout() {
+    if (confirm('Êtes-vous sûr d\'abandonner cette séance ?')) {
+        endWorkout();
+    }
+}
+
+
+// ===== EXPOSITION GLOBALE =====
+window.showView = showView;
+window.nextStep = nextStep;
+window.prevStep = prevStep;
+window.completeOnboarding = completeOnboarding;
+window.startFreeWorkout = startFreeWorkout;
+window.startProgramWorkout = startProgramWorkout;
+window.selectExercise = selectExercise;
+window.editEquipment = editEquipment;
+window.clearHistory = clearHistory;
+window.deleteProfile = deleteProfile;
+window.closeModal = closeModal;
+window.toggleModalEquipment = toggleModalEquipment;
+window.saveEquipmentChanges = saveEquipmentChanges;
+window.resumeWorkout = resumeWorkout;
+
+// Nouvelles fonctions pour l'interface de séance détaillée
+window.setSessionFatigue = setSessionFatigue;
+window.adjustWeight = adjustWeight;
+window.adjustReps = adjustReps;
+window.executeSet = executeSet;
+window.setFatigue = setFatigue;
+window.setEffort = setEffort;
+window.validateSet = validateSet;
+window.nextSet = nextSet;
+window.previousSet = previousSet;
+window.changeExercise = changeExercise;
+window.skipRest = skipRest;
+window.addRestTime = addRestTime;
+window.endRest = endRest;
+window.pauseWorkout = pauseWorkout;
+window.abandonWorkout = abandonWorkout;
+window.endWorkout = endWorkout;
