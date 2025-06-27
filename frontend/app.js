@@ -571,7 +571,7 @@ function showWorkoutResumeBanner(workout) {
     `;
     
     const startedAt = new Date(workout.started_at);
-    const elapsed = Math.floor((new Date() - startedAt) / 60000); // minutes
+    const elapsed = startedAt && !isNaN(startedAt) ? Math.floor((new Date() - startedAt) / 60000) : 0;
     
     banner.innerHTML = `
         <h3>⏱️ Séance en cours</h3>
@@ -1257,17 +1257,6 @@ async function loadAvailableExercises() {
         console.error('Erreur chargement exercices:', error);
         showToast('Erreur chargement des exercices', 'error');
     }
-}
-
-function filterExercises() {
-    const filter = document.getElementById('muscleFilter').value;
-    const exercises = document.querySelectorAll('.exercise-item');
-    
-    exercises.forEach(exercise => {
-        const text = exercise.textContent.toLowerCase();
-        const visible = !filter || text.includes(filter.toLowerCase());
-        exercise.style.display = visible ? 'block' : 'none';
-    });
 }
 
 // ===== GESTION AVANCÉE DU REPOS =====
