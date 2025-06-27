@@ -593,8 +593,19 @@ function getBenchCapabilities(config) {
     return {
         available: true,
         capabilities: capabilities,
-        exerciseCount: cls._estimateExerciseCompatibility(positions, settings)
+        exerciseCount: estimateExerciseCompatibilityFromBench(positions, settings) // CORRECTION ICI
     };
+}
+
+function estimateExerciseCompatibilityFromBench(positions, settings) {
+    let exerciseCount = 0;
+    
+    if (positions.flat) exerciseCount += 15; // Développé, rowing, etc.
+    if (positions.incline_up) exerciseCount += 8; // Développé incliné, etc.
+    if (positions.decline) exerciseCount += 5; // Développé décliné, etc.
+    if (settings.preacher_curl) exerciseCount += 3; // Curls
+    
+    return exerciseCount;
 }
 
 function _estimateExerciseCompatibility(positions, settings) {
