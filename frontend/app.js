@@ -1651,7 +1651,7 @@ async function endWorkout() {
             restTimer = null;
         }
         
-        // Réinitialiser TOUT l'état
+        // Réinitialiser l'état de la séance MAIS PAS currentUser
         clearWorkoutState();
         currentWorkout = null;
         currentExercise = null;
@@ -1673,6 +1673,7 @@ async function endWorkout() {
             completedSets: [],
             type: 'free'
         };
+        // NE PAS TOUCHER À currentUser !
         
         showToast('Séance terminée ! Bravo ! 🎉', 'success');
         showView('dashboard');
