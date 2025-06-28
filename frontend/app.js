@@ -501,11 +501,6 @@ function startNewProfile() {
     showOnboarding();
 }
 
-function startNewProfile() {
-    document.getElementById('home').classList.remove('active');
-    showOnboarding();
-}
-
 
 // ===== ONBOARDING =====
 function showStep(step) {
