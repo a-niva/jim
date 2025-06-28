@@ -428,6 +428,72 @@ function showHomePage() {
     
     // Afficher la page d'accueil
     document.getElementById('home').classList.add('active');
+    
+    // Charger les profils existants
+    loadExistingProfiles();
+}
+
+async function loadExistingProfiles() {
+    const container = document.getElementById('existingProfiles');
+    container.innerHTML = '';
+    
+    // Récupérer les profils depuis localStorage
+    const savedProfiles = JSON.parse(localStorage.getItem('fitness_profiles') || '[]');
+    
+    if (savedProfiles.length === 0) {
+        return; // Pas de profils existants
+    }
+    
+    // Ajouter le séparateur
+    const divider = document.createElement('div');
+    divider.className = 'profiles-divider';
+    divider.textContent = 'ou continuez avec';
+    container.appendChild(divider);
+    
+    // Charger les infos de chaque profil
+    for (const profileId of savedProfiles) {
+        try {
+            const user = await apiGet(`/api/users/${profileId}`);
+            const stats = await apiGet(`/api/users/${profileId}/stats`);
+            
+            const profileBtn = document.createElement('button');
+            profileBtn.className = 'profile-btn';
+            profileBtn.onclick = () => loadProfile(user);
+            
+            const age = new Date().getFullYear() - new Date(user.birth_date).getFullYear();
+            
+            profileBtn.innerHTML = `
+                <div class="profile-avatar">${user.name[0].toUpperCase()}</div>
+                <div class="profile-info">
+                    <div class="profile-name">${user.name}</div>
+                    <div class="profile-details">
+                        <div class="profile-stats">
+                            <span class="profile-stat">🎂 ${age} ans</span>
+                            <span class="profile-stat">💪 ${stats.total_workouts} séances</span>
+                            <span class="profile-stat">📊 ${user.experience_level}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(profileBtn);
+            
+        } catch (error) {
+            // Profil n'existe plus, le retirer de la liste
+            const index = savedProfiles.indexOf(profileId);
+            if (index > -1) {
+                savedProfiles.splice(index, 1);
+                localStorage.setItem('fitness_profiles', JSON.stringify(savedProfiles));
+            }
+        }
+    }
+}
+
+function loadProfile(user) {
+    currentUser = user;
+    localStorage.setItem('fitness_user_id', user.id);
+    showMainInterface();
+    showToast(`Bon retour ${user.name} ! 💪`, 'success');
 }
 
 function startNewProfile() {
@@ -435,34 +501,11 @@ function startNewProfile() {
     showOnboarding();
 }
 
-function showLoadProfile() {
-    document.getElementById('loadProfileSection').style.display = 'block';
-    document.getElementById('profileIdInput').focus();
+function startNewProfile() {
+    document.getElementById('home').classList.remove('active');
+    showOnboarding();
 }
 
-function hideLoadProfile() {
-    document.getElementById('loadProfileSection').style.display = 'none';
-    document.getElementById('profileIdInput').value = '';
-}
-
-async function loadProfileById() {
-    const profileId = document.getElementById('profileIdInput').value.trim();
-    
-    if (!profileId) {
-        showToast('Veuillez entrer un ID de profil', 'error');
-        return;
-    }
-    
-    try {
-        currentUser = await apiGet(`/api/users/${profileId}`);
-        localStorage.setItem('fitness_user_id', currentUser.id);
-        showMainInterface();
-        showToast(`Profil de ${currentUser.name} chargé avec succès`, 'success');
-    } catch (error) {
-        console.error('Erreur chargement profil:', error);
-        showToast('Profil introuvable', 'error');
-    }
-}
 
 // ===== ONBOARDING =====
 function showStep(step) {
@@ -2514,9 +2557,7 @@ function abandonWorkout() {
 // ===== EXPOSITION GLOBALE =====
 window.showHomePage = showHomePage;
 window.startNewProfile = startNewProfile;
-window.showLoadProfile = showLoadProfile;
-window.hideLoadProfile = hideLoadProfile;
-window.loadProfileById = loadProfileById;
+window.loadProfile = loadProfile;
 
 window.showView = showView;
 window.nextStep = nextStep;
