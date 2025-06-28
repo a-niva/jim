@@ -801,7 +801,7 @@ async function completeOnboarding() {
         // Collecter les données du formulaire
         const userData = {
             name: document.getElementById('userName').value.trim(),
-            birth_date: document.getElementById('birthDate').value,
+            birth_date: document.getElementById('birthDate').value + 'T00:00:00',
             height: parseFloat(document.getElementById('height').value),
             weight: parseFloat(document.getElementById('weight').value),
             experience_level: document.querySelector('input[name="experience"]:checked').value,
@@ -1657,7 +1657,11 @@ async function apiRequest(url, options = {}) {
         
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+            throw new Error(
+                typeof errorData.detail === 'string' 
+                    ? errorData.detail 
+                    : JSON.stringify(errorData.detail) || `HTTP ${response.status}: ${response.statusText}`
+            );
         }
         
         return await response.json();
@@ -2048,7 +2052,7 @@ async function loadSets() {
         setItem.className = 'set-item';
         
         // Obtenir le poids suggéré pour cette série
-        const suggestedWeight = await getSuggestedWeight(currentExercise.id, i);
+        const suggestedWeight = await getSuggestedWeight(currentExercise.id, i) || 0;
         
         setItem.innerHTML = `
             <div class="set-number">${i}</div>
