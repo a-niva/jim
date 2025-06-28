@@ -1174,23 +1174,123 @@ function setupProgramWorkout(program) {
     startWorkoutTimer();
 }
 
-function selectExercise(exercise) {
+async function selectExercise(exercise) {
     currentExercise = exercise;
     currentSet = 1;
+    currentWorkoutSession.currentExercise = exercise;
+    currentWorkoutSession.currentSetNumber = 1;
+    
+    // Définir le nombre de séries selon l'exercice ou un défaut
+    currentWorkoutSession.totalSets = exercise.default_sets || 3;
+    currentWorkoutSession.maxSets = currentWorkoutSession.totalSets + 2; // Permettre jusqu'à 2 séries bonus
     
     document.getElementById('exerciseSelection').style.display = 'none';
     document.getElementById('currentExercise').style.display = 'block';
     
     document.getElementById('exerciseName').textContent = exercise.name;
     document.getElementById('exerciseInstructions').textContent = 
-        'Effectuez vos séries et renseignez le nombre de répétitions et le poids utilisé.';
+        exercise.instructions || 'Effectuez vos séries et renseignez le nombre de répétitions et le poids utilisé.';
     
-    loadSets();
+    // Mise à jour avec le nombre dynamique
+    document.getElementById('currentSetNumber').textContent = currentSet;
+    document.getElementById('exerciseProgress').textContent = `Exercice ${currentWorkoutSession.exerciseOrder}`;
+    document.getElementById('setProgress').textContent = `Série ${currentSet}/${currentWorkoutSession.totalSets}`;
+    
+    // Afficher/masquer les boutons de navigation
+    updateSetNavigationButtons();
+    
+    await updateSetRecommendations();
+}
+
+function updateSetNavigationButtons() {
+    const prevBtn = document.getElementById('prevSetBtn');
+    const nextBtn = document.getElementById('nextSetBtn');
+    const addSetBtn = document.getElementById('addSetBtn');
+    
+    // Bouton précédent
+    if (prevBtn) {
+        prevBtn.style.display = currentSet > 1 ? 'inline-block' : 'none';
+    }
+    
+    // Bouton suivant
+    if (nextBtn) {
+        if (currentSet < currentWorkoutSession.totalSets) {
+            nextBtn.textContent = 'Série suivante →';
+            nextBtn.style.display = 'inline-block';
+        } else if (currentSet === currentWorkoutSession.totalSets) {
+            nextBtn.textContent = 'Terminer l\'exercice →';
+            nextBtn.style.display = 'inline-block';
+        } else {
+            nextBtn.style.display = 'none';
+        }
+    }
+    
+    // Bouton ajouter série (visible seulement sur la dernière série prévue)
+    if (addSetBtn) {
+        addSetBtn.style.display = (currentSet === currentWorkoutSession.totalSets && 
+                                  currentWorkoutSession.totalSets < currentWorkoutSession.maxSets) 
+                                  ? 'inline-block' : 'none';
+    }
+}
+
+async function updateSetRecommendations() {
+    if (!currentUser || !currentWorkout || !currentExercise) return;
+    
+    try {
+        // Obtenir les recommandations ML
+        const recommendations = await apiPost(`/api/workouts/${currentWorkout.id}/recommendations`, {
+            exercise_id: currentExercise.id,
+            set_number: currentSet,
+            current_fatigue: currentWorkoutSession.sessionFatigue,
+            previous_effort: currentSet > 1 ? 3 : null,
+            exercise_order: currentWorkoutSession.exerciseOrder,
+            set_order_global: currentWorkoutSession.globalSetCount + 1
+        });
+        
+        // Obtenir les poids disponibles
+        const weightsData = await apiGet(`/api/users/${currentUser.id}/available-weights`);
+        const availableWeights = weightsData.available_weights.sort((a, b) => a - b);
+        
+        // Pré-remplir les valeurs recommandées
+        const weightInput = document.getElementById('setWeight');
+        const repsInput = document.getElementById('setReps');
+        
+        if (weightInput && recommendations.weight_recommendation) {
+            // Trouver le poids disponible le plus proche
+            const closestWeight = findClosestWeight(recommendations.weight_recommendation, availableWeights);
+            weightInput.value = closestWeight;
+            weightInput.dataset.availableWeights = JSON.stringify(availableWeights);
+            weightInput.dataset.currentIndex = availableWeights.indexOf(closestWeight);
+        }
+        
+        if (repsInput && recommendations.reps_recommendation) {
+            repsInput.value = recommendations.reps_recommendation;
+        }
+        
+        // Afficher les recommandations ML
+        document.getElementById('mlRecommendations').style.display = 'block';
+        document.getElementById('recWeight').textContent = `${recommendations.weight_recommendation}kg`;
+        document.getElementById('recReps').textContent = recommendations.reps_recommendation;
+        document.getElementById('recReason').textContent = recommendations.reasoning;
+        document.getElementById('recConfidence').textContent = Math.round(recommendations.confidence * 100);
+        
+        // Afficher les changements
+        const weightChange = document.getElementById('recWeightChange');
+        weightChange.textContent = recommendations.weight_change === 'increase' ? '↗️ Augmentation' :
+                                  recommendations.weight_change === 'decrease' ? '↘️ Diminution' : '➡️ Maintien';
+        weightChange.className = `rec-change ${recommendations.weight_change}`;
+        
+    } catch (error) {
+        console.error('Erreur chargement recommandations:', error);
+        // Valeurs par défaut en cas d'erreur
+        document.getElementById('setWeight').value = 20;
+        document.getElementById('setReps').value = 10;
+    }
 }
 
 async function completeSet(setNumber) {
-    const reps = document.getElementById(`reps_${setNumber}`).value;
-    const weight = document.getElementById(`weight_${setNumber}`).value;
+    const reps = document.getElementById('setReps').value;
+    const weight = document.getElementById('setWeight').value;
     
     if (!reps) {
         showToast('Veuillez indiquer le nombre de répétitions', 'error');
@@ -1203,19 +1303,24 @@ async function completeSet(setNumber) {
             set_number: setNumber,
             reps: parseInt(reps),
             weight: weight ? parseFloat(weight) : null,
-            rest_seconds: 60
+            base_rest_time_seconds: currentExercise.base_rest_time_seconds || 90,
+            fatigue_level: currentWorkoutSession.sessionFatigue,
+            exercise_order_in_session: currentWorkoutSession.exerciseOrder,
+            set_order_in_session: currentWorkoutSession.globalSetCount + 1
         };
         
         await apiPost(`/api/workouts/${currentWorkout.id}/sets`, setData);
         
-        // Désactiver les inputs de cette série
-        document.getElementById(`reps_${setNumber}`).disabled = true;
-        document.getElementById(`weight_${setNumber}`).disabled = true;
+        currentWorkoutSession.completedSets.push(setData);
+        currentWorkoutSession.globalSetCount++;
+        
+        // Mettre à jour l'historique visuel
+        updateSetsHistory();
         
         showToast(`Série ${setNumber} enregistrée !`, 'success');
         
         // Démarrer la période de repos
-        startRestPeriod();
+        startRestPeriod(currentExercise.base_rest_time_seconds);
         
     } catch (error) {
         console.error('Erreur enregistrement série:', error);
@@ -1223,10 +1328,25 @@ async function completeSet(setNumber) {
     }
 }
 
-function addSet() {
-    currentSet++;
-    loadSets();
+function updateSetsHistory() {
+    const container = document.getElementById('setsHistory');
+    if (!container) return;
+    
+    const exerciseSets = currentWorkoutSession.completedSets.filter(
+        s => s.exercise_id === currentExercise.id
+    );
+    
+    container.innerHTML = exerciseSets.map((set, index) => `
+        <div class="set-history-item">
+            <div class="set-number">${index + 1}</div>
+            <div class="set-details">${set.weight}kg × ${set.reps} reps</div>
+            <div class="set-feedback-summary">
+                ${set.fatigue_level ? `Fatigue: ${set.fatigue_level}/5` : ''}
+            </div>
+        </div>
+    `).join('');
 }
+
 
 function finishExercise() {
     document.getElementById('currentExercise').style.display = 'none';
@@ -2041,32 +2161,6 @@ function findClosestWeight(targetWeight, availableWeights) {
     });
 }
 
-// ===== AMÉLIORATIONS DE L'INTERFACE DE SÉRIE =====
-async function loadSets() {
-    const container = document.getElementById('setsList');
-    container.innerHTML = '';
-    
-    // Afficher les séries déjà effectuées + la prochaine
-    for (let i = 1; i <= currentSet; i++) {
-        const setItem = document.createElement('div');
-        setItem.className = 'set-item';
-        
-        // Obtenir le poids suggéré pour cette série
-        const suggestedWeight = await getSuggestedWeight(currentExercise.id, i) || 0;
-        
-        setItem.innerHTML = `
-            <div class="set-number">${i}</div>
-            <div class="set-inputs">
-                <input type="number" placeholder="Reps" id="reps_${i}" min="1" max="50">
-                <input type="number" placeholder="Poids (kg)" id="weight_${i}" min="0" step="0.5" 
-                       ${suggestedWeight ? `value="${suggestedWeight}"` : ''}>
-                ${suggestedWeight ? `<small style="color: var(--text-muted);">Suggéré: ${suggestedWeight}kg</small>` : ''}
-            </div>
-            <button class="btn btn-success btn-sm" onclick="completeSet(${i})">✓</button>
-        `;
-        container.appendChild(setItem);
-    }
-}
 
 // ===== AMÉLIORATION DU TIMER DE REPOS =====
 function startRestPeriod(customTime = null) {
@@ -2120,10 +2214,27 @@ function setSessionFatigue(value) {
 }
 
 function adjustWeight(delta) {
-    const weightInput = document.querySelector(`#weight_${currentSet}`);
-    if (weightInput) {
+    const weightInput = document.getElementById('setWeight');
+    if (!weightInput) return;
+    
+    const availableWeights = JSON.parse(weightInput.dataset.availableWeights || '[]');
+    let currentIndex = parseInt(weightInput.dataset.currentIndex || '0');
+    
+    if (availableWeights.length === 0) {
+        // Fallback : ajustement simple
         weightInput.value = Math.max(0, parseFloat(weightInput.value || 0) + delta);
+        return;
     }
+    
+    // Parcourir les poids disponibles
+    if (delta > 0 && currentIndex < availableWeights.length - 1) {
+        currentIndex++;
+    } else if (delta < 0 && currentIndex > 0) {
+        currentIndex--;
+    }
+    
+    weightInput.value = availableWeights[currentIndex];
+    weightInput.dataset.currentIndex = currentIndex;
 }
 
 function adjustReps(delta) {
@@ -2134,7 +2245,17 @@ function adjustReps(delta) {
 }
 
 function executeSet() {
-    completeSet(currentSet);
+    // Afficher le feedback au lieu de valider directement
+    document.getElementById('setFeedback').style.display = 'block';
+    document.getElementById('executeSetBtn').style.display = 'none';
+    
+    // Pré-sélectionner une fatigue/effort moyen par défaut
+    document.querySelectorAll('.feedback-btn').forEach(btn => {
+        btn.classList.remove('selected');
+    });
+    
+    // Focus sur le feedback
+    document.getElementById('setFeedback').scrollIntoView({ behavior: 'smooth' });
 }
 
 function setFatigue(exerciseId, value) {
@@ -2147,20 +2268,105 @@ function setEffort(setId, value) {
     console.log(`Effort set to ${value} for set ${setId}`);
 }
 
-function validateSet() {
-    return completeSet(currentSet);
+async function validateSet() {
+    const fatigue = document.querySelector('.feedback-btn[data-fatigue].selected')?.dataset.fatigue;
+    const effort = document.querySelector('.feedback-btn[data-effort].selected')?.dataset.effort;
+    
+    if (!fatigue || !effort) {
+        showToast('Veuillez indiquer votre fatigue et effort', 'warning');
+        return;
+    }
+    
+    // Sauvegarder avec le feedback
+    await completeSet(currentSet);
+    
+    // Si c'était la dernière série, proposer d'en ajouter une
+    if (currentSet === currentWorkoutSession.totalSets && 
+        currentWorkoutSession.totalSets < currentWorkoutSession.maxSets) {
+        
+        // Dans le message de repos, suggérer d'ajouter une série
+        const nextSetInfo = document.getElementById('nextSetInfo');
+        if (nextSetInfo) {
+            nextSetInfo.innerHTML = 'Dernière série terminée - <a href="#" onclick="addExtraSet(); return false;">Ajouter une série ?</a>';
+        }
+    }
 }
 
 function nextSet() {
+    // Si on est sur la dernière série prévue
+    if (currentSet === currentWorkoutSession.totalSets) {
+        if (confirm('Terminer cet exercice ?')) {
+            finishExercise();
+            return;
+        }
+    }
+    
+    // Si on dépasse le maximum absolu
+    if (currentSet >= currentWorkoutSession.maxSets) {
+        showToast('Nombre maximum de séries atteint', 'info');
+        finishExercise();
+        return;
+    }
+    
     currentSet++;
-    loadSets();
+    currentWorkoutSession.currentSetNumber = currentSet;
+    
+    // Mettre à jour l'interface
+    document.getElementById('currentSetNumber').textContent = currentSet;
+    document.getElementById('setProgress').textContent = `Série ${currentSet}/${currentWorkoutSession.totalSets}`;
+    
+    // Réinitialiser les inputs
+    document.getElementById('setWeight').value = '';
+    document.getElementById('setReps').value = '';
+    
+    // Masquer le feedback et réafficher les inputs
+    document.getElementById('setFeedback').style.display = 'none';
+    document.getElementById('executeSetBtn').style.display = 'block';
+    
+    // Mettre à jour les boutons
+    updateSetNavigationButtons();
+    
+    // Charger les nouvelles recommandations ML
+    updateSetRecommendations();
+}
+
+function addExtraSet() {
+    if (currentWorkoutSession.totalSets >= currentWorkoutSession.maxSets) {
+        showToast('Nombre maximum de séries atteint', 'warning');
+        return;
+    }
+    
+    currentWorkoutSession.totalSets++;
+    showToast(`Série supplémentaire ajoutée (${currentWorkoutSession.totalSets} au total)`, 'success');
+    
+    // Mettre à jour l'affichage
+    document.getElementById('setProgress').textContent = `Série ${currentSet}/${currentWorkoutSession.totalSets}`;
+    updateSetNavigationButtons();
 }
 
 function previousSet() {
-    if (currentSet > 1) {
-        currentSet--;
-        loadSets();
+    if (currentSet <= 1) return;
+    
+    currentSet--;
+    currentWorkoutSession.currentSetNumber = currentSet;
+    
+    // Mettre à jour l'interface
+    document.getElementById('currentSetNumber').textContent = currentSet;
+    document.getElementById('setProgress').textContent = `Série ${currentSet}/3`;
+    
+    // Recharger les données de la série précédente si elle existe
+    const previousSetData = currentWorkoutSession.completedSets.find(
+        s => s.exercise_id === currentExercise.id && s.set_number === currentSet
+    );
+    
+    if (previousSetData) {
+        document.getElementById('setWeight').value = previousSetData.weight || '';
+        document.getElementById('setReps').value = previousSetData.reps || '';
     }
+    
+    // Masquer le feedback
+    document.getElementById('setFeedback').style.display = 'none';
+    document.getElementById('executeSetBtn').style.display = 'block';
 }
 
 function changeExercise() {
@@ -2221,3 +2427,5 @@ window.endRest = endRest;
 window.pauseWorkout = pauseWorkout;
 window.abandonWorkout = abandonWorkout;
 window.endWorkout = endWorkout;
+window.addExtraSet = addExtraSet;
+window.updateSetNavigationButtons = updateSetNavigationButtons;
