@@ -540,11 +540,37 @@ textarea:focus {
     border: 1px solid var(--border);
 }
 
+.workout-header {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border);
+}
+
 .workout-info {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1rem;
     align-items: flex-start;
     margin-bottom: 1rem;
+}
+
+.workout-actions-header {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+@media (max-width: 480px) {
+    .workout-info {
+        grid-template-columns: 1fr;
+    }
+    
+    .workout-actions-header {
+        margin-top: 1rem;
+    }
 }
 
 .workout-meta {

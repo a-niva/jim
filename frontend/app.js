@@ -1266,6 +1266,8 @@ async function selectExercise(exercise) {
     currentSet = 1;
     currentWorkoutSession.currentExercise = exercise;
     currentWorkoutSession.currentSetNumber = 1;
+    currentWorkoutSession.totalSets = exercise.default_sets || 3;
+    currentWorkoutSession.maxSets = 6; // Maximum absolu
     
     // Définir le nombre de séries
     currentWorkoutSession.totalSets = exercise.default_sets || 3;
@@ -1274,9 +1276,7 @@ async function selectExercise(exercise) {
     document.getElementById('currentExercise').style.display = 'block';
     
     document.getElementById('exerciseName').textContent = exercise.name;
-    document.getElementById('exerciseInstructions').textContent = 
-        exercise.instructions || 'Effectuez vos séries et renseignez le nombre de répétitions et le poids utilisé.';
-    
+
     // AJOUTER ICI : Initialiser les dots
     updateSeriesDots();
     
@@ -1479,11 +1479,13 @@ function updateRestTimer(seconds) {
 }
 
 function skipRest() {
-    if (restTimer) {
-        clearInterval(restTimer);
-        restTimer = null;
+    if (confirm('Voulez-vous vraiment ignorer le temps de repos ?')) {
+        if (restTimer) {
+            clearInterval(restTimer);
+            restTimer = null;
+        }
+        endRest();
     }
-    endRest();
 }
 
 function endRest() {
@@ -1511,9 +1513,9 @@ function endRest() {
         }, 1000);
     }
     
-    // Passer à la série/exercice suivant
+    // Vérifier si on doit passer à la série suivante
     if (currentSet < currentWorkoutSession.totalSets) {
-        nextSet();
+        window.nextSet(); // Utiliser window.nextSet pour éviter l'erreur de référence
     } else {
         showExerciseCompletion();
     }
@@ -2352,6 +2354,7 @@ function startRestPeriod(customTime = null) {
     
     // Utiliser le temps de repos de l'exercice ou par défaut 60s
     let timeLeft = customTime || 60;
+    const initialTime = timeLeft; // AJOUT : Déclarer initialTime
     updateRestTimer(timeLeft);
     
     // Vibration si supportée
@@ -2362,12 +2365,10 @@ function startRestPeriod(customTime = null) {
     // Notification de fin si supportée
     if ('Notification' in window && Notification.permission === 'granted') {
         setTimeout(() => {
-            if (timeLeft <= 0) {
-                new Notification('Temps de repos terminé !', {
-                    body: 'Prêt pour la série suivante ?',
-                    icon: '/manifest.json'
-                });
-            }
+            new Notification('Temps de repos terminé !', {
+                body: 'Prêt pour la série suivante ?',
+                icon: '/manifest.json'
+            });
         }, timeLeft * 1000);
     }
     
@@ -2375,12 +2376,35 @@ function startRestPeriod(customTime = null) {
         timeLeft--;
         updateRestTimer(timeLeft);
         
+        // Mise à jour de la barre de progression
+        const progressFill = document.getElementById('restProgressFill');
+        if (progressFill) {
+            const progress = ((initialTime - timeLeft) / initialTime) * 100;
+            progressFill.style.width = `${progress}%`;
+        }
+        
         if (timeLeft <= 0) {
             clearInterval(restTimer);
+            restTimer = null;
+            
+            // Auto-terminer le repos
             endRest();
+            
+            // Notification
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('Temps de repos terminé !', {
+                    body: 'Prêt pour la prochaine série ?',
+                    icon: '/manifest.json'
+                });
+            }
+            
+            // Vibration
+            if (navigator.vibrate) {
+                navigator.vibrate([200, 100, 200]);
+            }
         }
     }, 1000);
-}
+} 
 
 // ===== DEMANDE DE PERMISSIONS =====
 async function requestNotificationPermission() {
@@ -2398,6 +2422,8 @@ function setSessionFatigue(value) {
 }
 
 function adjustWeightUp() {
+    if (!validateSessionState()) return; // AJOUT
+    
     const currentWeight = parseFloat(document.getElementById('setWeight').textContent);
     const weights = JSON.parse(sessionStorage.getItem('availableWeights') || '[]');
     
@@ -2448,6 +2474,7 @@ function adjustReps(delta) {
 }
 
 function executeSet() {
+    if (!validateSessionState()) return;
     // Arrêter le timer global de la séance
     if (workoutTimer) {
         clearInterval(workoutTimer);
@@ -2542,7 +2569,18 @@ function setEffort(setId, value) {
     console.log(`Effort set to ${value} for set ${setId}`);
 }
 
+function validateSessionState() {
+    if (!currentWorkout || !currentExercise) {
+        console.error('État de session invalide');
+        showToast('Erreur de session, retour au dashboard', 'error');
+        showView('dashboard');
+        return false;
+    }
+    return true;
+}
+
 async function validateSet() {
+    if (!validateSessionState()) return;
     const fatigue = document.querySelector('.emoji-btn[data-fatigue].selected')?.dataset.fatigue;
     const effort = document.querySelector('.emoji-btn[data-effort].selected')?.dataset.effort;
     
@@ -2610,8 +2648,24 @@ function nextSet() {
     updateSeriesDots();
     
     // Mettre à jour l'interface
-    document.getElementById('currentSetNumber').textContent = currentSet;
-    document.getElementById('setProgress').textContent = `Série ${currentSet}/${currentWorkoutSession.totalSets}`;
+    // Utiliser les éléments qui existent réellement
+    const setProgressEl = document.getElementById('setProgress');
+    if (setProgressEl) {
+        setProgressEl.textContent = `Série ${currentSet}/${currentWorkoutSession.totalSets}`;
+    }
+
+    // Réinitialiser les inputs (corriger les IDs)
+    document.getElementById('setWeight').textContent = '';
+    document.getElementById('setReps').textContent = '';
+
+    // Réinitialiser l'interface
+    document.getElementById('executeSetBtn').style.display = 'block';
+    document.getElementById('setFeedback').style.display = 'none';
+
+    // Désélectionner les emojis
+    document.querySelectorAll('.emoji-btn').forEach(btn => {
+        btn.classList.remove('selected');
+    });
     
     // Réinitialiser les inputs
     document.getElementById('setWeight').value = '';
@@ -2654,8 +2708,10 @@ function previousSet() {
     updateSeriesDots();
 
     // Mettre à jour l'interface
-    document.getElementById('currentSetNumber').textContent = currentSet;
-    document.getElementById('setProgress').textContent = `Série ${currentSet}/3`;
+    const setProgressEl = document.getElementById('setProgress');
+    if (setProgressEl) {
+        setProgressEl.textContent = `Série ${currentSet}/${currentWorkoutSession.totalSets}`;
+    }
     
     // Recharger les données de la série précédente si elle existe
     const previousSetData = currentWorkoutSession.completedSets.find(
@@ -2663,11 +2719,11 @@ function previousSet() {
     );
     
     if (previousSetData) {
-        document.getElementById('setWeight').value = previousSetData.weight || '';
-        document.getElementById('setReps').value = previousSetData.reps || '';
+        document.getElementById('setWeight').textContent = previousSetData.weight || '';
+        document.getElementById('setReps').textContent = previousSetData.reps || '';
     }
     
-    // Masquer le feedback
+    // Masquer le feedback et réafficher le bouton GO
     document.getElementById('setFeedback').style.display = 'none';
     document.getElementById('executeSetBtn').style.display = 'block';
 }
@@ -2681,13 +2737,56 @@ function addRestTime(seconds) {
     console.log(`Adding ${seconds} seconds to rest`);
 }
 
+let isPaused = false;
+let pausedTime = null;
+
 function pauseWorkout() {
-    if (workoutTimer) {
-        clearInterval(workoutTimer);
-        workoutTimer = null;
+    const pauseBtn = event.target;
+    
+    if (!isPaused) {
+        // Mettre en pause
+        if (workoutTimer) {
+            clearInterval(workoutTimer);
+            workoutTimer = null;
+        }
+        
+        // Sauvegarder le temps actuel
+        pausedTime = document.getElementById('workoutTimer').textContent;
+        
+        // Changer le bouton
+        pauseBtn.textContent = '▶️ Reprendre';
+        pauseBtn.classList.remove('btn-warning');
+        pauseBtn.classList.add('btn-success');
+        
+        isPaused = true;
+        saveWorkoutState();
+        showToast('Séance mise en pause', 'info');
+        
+    } else {
+        // Reprendre
+        if (pausedTime) {
+            const [minutes, seconds] = pausedTime.split(':').map(Number);
+            const elapsedSeconds = minutes * 60 + seconds;
+            const startTime = new Date() - (elapsedSeconds * 1000);
+            
+            workoutTimer = setInterval(() => {
+                const elapsed = new Date() - startTime;
+                const mins = Math.floor(elapsed / 60000);
+                const secs = Math.floor((elapsed % 60000) / 1000);
+                
+                document.getElementById('workoutTimer').textContent = 
+                    `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+        
+        // Changer le bouton
+        pauseBtn.textContent = '⏸️ Pause';
+        pauseBtn.classList.remove('btn-success');
+        pauseBtn.classList.add('btn-warning');
+        
+        isPaused = false;
+        showToast('Séance reprise', 'success');
     }
-    saveWorkoutState();
-    showToast('Séance mise en pause', 'info');
 }
 
 function abandonWorkout() {
