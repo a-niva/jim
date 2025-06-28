@@ -313,12 +313,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             
         } catch (error) {
-            console.log('Utilisateur non trouvé, démarrage onboarding');
+            console.log('Utilisateur non trouvé, affichage page d\'accueil');
             localStorage.removeItem('fitness_user_id');
-            showOnboarding();
+            showHomePage(); // MODIFICATION ICI
         }
     } else {
-        showOnboarding();
+        showHomePage(); // MODIFICATION ICI
     }
     
     setupEventListeners();
@@ -412,6 +412,56 @@ function showOnboarding() {
     showStep(1);
     updateProgressBar();
     loadEquipmentStep();
+}
+
+function showHomePage() {
+    // Masquer tout
+    document.getElementById('onboarding').classList.remove('active');
+    document.getElementById('progressContainer').style.display = 'none';
+    document.getElementById('bottomNav').style.display = 'none';
+    document.getElementById('userInitial').style.display = 'none';
+    
+    // Masquer toutes les vues
+    document.querySelectorAll('.view').forEach(el => {
+        el.classList.remove('active');
+    });
+    
+    // Afficher la page d'accueil
+    document.getElementById('home').classList.add('active');
+}
+
+function startNewProfile() {
+    document.getElementById('home').classList.remove('active');
+    showOnboarding();
+}
+
+function showLoadProfile() {
+    document.getElementById('loadProfileSection').style.display = 'block';
+    document.getElementById('profileIdInput').focus();
+}
+
+function hideLoadProfile() {
+    document.getElementById('loadProfileSection').style.display = 'none';
+    document.getElementById('profileIdInput').value = '';
+}
+
+async function loadProfileById() {
+    const profileId = document.getElementById('profileIdInput').value.trim();
+    
+    if (!profileId) {
+        showToast('Veuillez entrer un ID de profil', 'error');
+        return;
+    }
+    
+    try {
+        currentUser = await apiGet(`/api/users/${profileId}`);
+        localStorage.setItem('fitness_user_id', currentUser.id);
+        showMainInterface();
+        showToast(`Profil de ${currentUser.name} chargé avec succès`, 'success');
+    } catch (error) {
+        console.error('Erreur chargement profil:', error);
+        showToast('Profil introuvable', 'error');
+    }
 }
 
 // ===== ONBOARDING =====
@@ -1669,7 +1719,7 @@ async function deleteProfile() {
         localStorage.removeItem('fitness_user_id');
         currentUser = null;
         showToast('Profil supprimé', 'info');
-        showOnboarding();
+        showHomePage();
     } catch (error) {
         console.error('Erreur suppression profil:', error);
         showToast('Erreur lors de la suppression', 'error');
@@ -2462,6 +2512,12 @@ function abandonWorkout() {
 
 
 // ===== EXPOSITION GLOBALE =====
+window.showHomePage = showHomePage;
+window.startNewProfile = startNewProfile;
+window.showLoadProfile = showLoadProfile;
+window.hideLoadProfile = hideLoadProfile;
+window.loadProfileById = loadProfileById;
+
 window.showView = showView;
 window.nextStep = nextStep;
 window.prevStep = prevStep;

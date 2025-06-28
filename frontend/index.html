@@ -176,6 +176,34 @@
             </div>
         </div>
 
+        <!-- HOME PAGE -->
+        <div class="view" id="home">
+            <div class="home-container" style="text-align: center; padding: 3rem 0;">
+                <h1 style="font-size: 3rem; margin-bottom: 1rem;">💪 Fitness Coach</h1>
+                <p class="subtitle">Votre coach personnel intelligent</p>
+                
+                <div class="home-actions" style="display: grid; gap: 1rem; max-width: 300px; margin: 3rem auto;">
+                    <button class="btn btn-primary" onclick="startNewProfile()" style="padding: 1.5rem;">
+                        <span style="font-size: 1.5rem;">🎯</span>
+                        <span>Créer un nouveau profil</span>
+                    </button>
+                    
+                    <button class="btn btn-secondary" onclick="showLoadProfile()" style="padding: 1.5rem;">
+                        <span style="font-size: 1.5rem;">📂</span>
+                        <span>Charger un profil existant</span>
+                    </button>
+                </div>
+                
+                <!-- Section pour charger un profil -->
+                <div id="loadProfileSection" style="display: none; margin-top: 2rem;">
+                    <h3>Entrez votre ID de profil</h3>
+                    <input type="number" id="profileIdInput" placeholder="ID du profil" style="max-width: 200px; margin: 1rem auto;">
+                    <button class="btn btn-primary" onclick="loadProfileById()">Charger</button>
+                    <button class="btn btn-secondary" onclick="hideLoadProfile()">Annuler</button>
+                </div>
+            </div>
+        </div>
+
         <!-- DASHBOARD -->
         <div class="view" id="dashboard">
             <div class="welcome-message" id="welcomeMessage">
