@@ -464,8 +464,12 @@ async function loadExistingProfiles() {
             
             const profileBtn = document.createElement('button');
             profileBtn.className = 'profile-btn';
-            profileBtn.onclick = () => loadProfile(user);
-            
+            profileBtn.onclick = () => {
+                currentUser = user;
+                localStorage.setItem('fitness_user_id', user.id);
+                showMainInterface();
+            };
+                        
             const age = new Date().getFullYear() - new Date(user.birth_date).getFullYear();
             
             profileBtn.innerHTML = `
@@ -898,6 +902,12 @@ async function completeOnboarding() {
         // Créer l'utilisateur
         currentUser = await apiPost('/api/users', userData);
         localStorage.setItem('fitness_user_id', currentUser.id);
+        // Ajouter à la liste des profils
+        const profiles = JSON.parse(localStorage.getItem('fitness_profiles') || '[]');
+        if (!profiles.includes(currentUser.id)) {
+            profiles.push(currentUser.id);
+            localStorage.setItem('fitness_profiles', JSON.stringify(profiles));
+        }
         
         // Créer le programme si des zones sont sélectionnées
         const focusAreas = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))
@@ -1392,8 +1402,8 @@ async function updateSetRecommendations() {
     } catch (error) {
         console.error('Erreur recommandations ML:', error);
         // Valeurs par défaut en cas d'erreur
-        document.getElementById('setWeight').textContent = '20';
-        document.getElementById('setReps').textContent = '10';
+        document.getElementById('setWeight').textContent = '';
+        document.getElementById('setReps').textContent = '';
     }
 }
 
@@ -2654,13 +2664,9 @@ function nextSet() {
         setProgressEl.textContent = `Série ${currentSet}/${currentWorkoutSession.totalSets}`;
     }
 
-    // Réinitialiser les inputs (corriger les IDs)
-    document.getElementById('setWeight').textContent = '';
-    document.getElementById('setReps').textContent = '';
-
-    // Réinitialiser l'interface
-    document.getElementById('executeSetBtn').style.display = 'block';
-    document.getElementById('setFeedback').style.display = 'none';
+    // Réinitialiser les inputs
+    document.getElementById('setWeight').textContent = '20';
+    document.getElementById('setReps').textContent = '10';
 
     // Désélectionner les emojis
     document.querySelectorAll('.emoji-btn').forEach(btn => {
