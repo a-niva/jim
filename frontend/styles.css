@@ -856,6 +856,43 @@ textarea:focus {
     text-align: center;
 }
 
+.emoji-btn {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: all 0.2s;
+    padding: 0.5rem;
+    /* Nouvelles propriétés pour le cercle */
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.emoji-btn.selected {
+    opacity: 1;
+    transform: scale(1.2);
+    /* Fond coloré selon le niveau */
+}
+
+/* Couleurs de fond pour fatigue */
+.emoji-btn[data-fatigue="1"].selected { background-color: #10b981; }
+.emoji-btn[data-fatigue="2"].selected { background-color: #84cc16; }
+.emoji-btn[data-fatigue="3"].selected { background-color: #eab308; }
+.emoji-btn[data-fatigue="4"].selected { background-color: #f97316; }
+.emoji-btn[data-fatigue="5"].selected { background-color: #ef4444; }
+
+/* Couleurs de fond pour effort */
+.emoji-btn[data-effort="1"].selected { background-color: #3b82f6; }
+.emoji-btn[data-effort="2"].selected { background-color: #06b6d4; }
+.emoji-btn[data-effort="3"].selected { background-color: #10b981; }
+.emoji-btn[data-effort="4"].selected { background-color: #f97316; }
+.emoji-btn[data-effort="5"].selected { background-color: #dc2626; }
+
 .emoji-icon {
     display: block;
     font-size: 2rem;

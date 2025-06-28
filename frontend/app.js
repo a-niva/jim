@@ -1492,6 +1492,52 @@ function endRest() {
         clearInterval(restTimer);
         restTimer = null;
     }
+    
+    // Reprendre le timer de séance
+    const pausedTime = sessionStorage.getItem('pausedWorkoutTime');
+    if (pausedTime) {
+        const [minutes, seconds] = pausedTime.split(':').map(Number);
+        const elapsedSeconds = minutes * 60 + seconds;
+        
+        const startTime = new Date() - (elapsedSeconds * 1000);
+        
+        workoutTimer = setInterval(() => {
+            const elapsed = new Date() - startTime;
+            const mins = Math.floor(elapsed / 60000);
+            const secs = Math.floor((elapsed % 60000) / 1000);
+            
+            document.getElementById('workoutTimer').textContent = 
+                `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }, 1000);
+    }
+    
+    // Passer à la série/exercice suivant
+    if (currentSet < currentWorkoutSession.totalSets) {
+        nextSet();
+    } else {
+        showExerciseCompletion();
+    }
+}
+
+function showExerciseCompletion() {
+    // Réinitialiser l'interface
+    document.getElementById('executeSetBtn').style.display = 'block';
+    document.getElementById('setFeedback').style.display = 'none';
+    
+    // Afficher les options
+    showModal('Exercice terminé', `
+        <div style="text-align: center;">
+            <p>Vous avez terminé ${currentSet} séries de ${currentExercise.name}</p>
+            <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">
+                <button class="btn btn-secondary" onclick="addExtraSet(); closeModal();">
+                    Série supplémentaire
+                </button>
+                <button class="btn btn-primary" onclick="finishExercise(); closeModal();">
+                    Exercice suivant
+                </button>
+            </div>
+        </div>
+    `);
 }
 
 function startWorkoutTimer() {
@@ -2289,7 +2335,20 @@ function findClosestWeight(targetWeight, availableWeights) {
 
 // ===== AMÉLIORATION DU TIMER DE REPOS =====
 function startRestPeriod(customTime = null) {
+    // Afficher la période de repos AVEC le feedback visible
     document.getElementById('restPeriod').style.display = 'flex';
+    
+    // Modifier le contenu pour inclure le feedback
+    const restContent = document.querySelector('.rest-content');
+    if (restContent && document.getElementById('setFeedback').style.display === 'block') {
+        // Cloner la zone de feedback dans le modal de repos
+        const feedbackClone = document.getElementById('setFeedback').cloneNode(true);
+        feedbackClone.style.display = 'block';
+        
+        // Insérer avant les actions de repos
+        const restActions = restContent.querySelector('.rest-actions');
+        restContent.insertBefore(feedbackClone, restActions);
+    }
     
     // Utiliser le temps de repos de l'exercice ou par défaut 60s
     let timeLeft = customTime || 60;
@@ -2343,13 +2402,17 @@ function adjustWeightUp() {
     const weights = JSON.parse(sessionStorage.getItem('availableWeights') || '[]');
     
     if (weights.length === 0) {
-        document.getElementById('setWeight').textContent = currentWeight + 2.5;
+        showToast('Poids disponibles non chargés', 'warning');
         return;
     }
     
-    const currentIndex = weights.findIndex(w => w >= currentWeight);
-    if (currentIndex < weights.length - 1) {
-        document.getElementById('setWeight').textContent = weights[currentIndex + 1];
+    // Trouver l'index exact ou le prochain poids supérieur
+    let nextIndex = weights.findIndex(w => w > currentWeight);
+    
+    if (nextIndex !== -1 && nextIndex < weights.length) {
+        document.getElementById('setWeight').textContent = weights[nextIndex];
+    } else {
+        showToast('Poids maximum atteint', 'info');
     }
 }
 
@@ -2358,15 +2421,23 @@ function adjustWeightDown() {
     const weights = JSON.parse(sessionStorage.getItem('availableWeights') || '[]');
     
     if (weights.length === 0) {
-        document.getElementById('setWeight').textContent = Math.max(0, currentWeight - 2.5);
+        showToast('Poids disponibles non chargés', 'warning');
         return;
     }
     
-    const currentIndex = weights.findIndex(w => w >= currentWeight);
-    if (currentIndex > 0) {
-        document.getElementById('setWeight').textContent = weights[currentIndex - 1];
-    } else if (currentWeight > weights[0]) {
-        document.getElementById('setWeight').textContent = weights[0];
+    // Trouver le poids inférieur le plus proche
+    let prevWeight = null;
+    for (let i = weights.length - 1; i >= 0; i--) {
+        if (weights[i] < currentWeight) {
+            prevWeight = weights[i];
+            break;
+        }
+    }
+    
+    if (prevWeight !== null) {
+        document.getElementById('setWeight').textContent = prevWeight;
+    } else {
+        showToast('Poids minimum atteint', 'info');
     }
 }
 
@@ -2377,19 +2448,59 @@ function adjustReps(delta) {
 }
 
 function executeSet() {
-    // Stopper le timer d'exercice si nécessaire
+    // Arrêter le timer global de la séance
     if (workoutTimer) {
-        // Ne pas clear, juste marquer le temps de la série
+        clearInterval(workoutTimer);
+        // Sauvegarder le temps écoulé
+        const timerEl = document.getElementById('workoutTimer');
+        sessionStorage.setItem('pausedWorkoutTime', timerEl.textContent);
     }
+    
+    // Sauvegarder les valeurs actuelles de poids/reps
+    const reps = parseInt(document.getElementById('setReps').textContent);
+    const weight = parseFloat(document.getElementById('setWeight').textContent);
+    sessionStorage.setItem('pendingSetData', JSON.stringify({ reps, weight }));
+    
+    // Calculer un temps de repos par défaut basé sur l'exercice
+    const baseRestTime = currentExercise.base_rest_time_seconds || 90;
+    
+    // Démarrer immédiatement le repos
+    startRestPeriod(baseRestTime);
     
     // Masquer le bouton GO et afficher le feedback
     document.getElementById('executeSetBtn').style.display = 'none';
     document.getElementById('setFeedback').style.display = 'block';
+    
+    // Mettre à jour le texte du bouton
+    updateValidateButton();
+}
+
+function updateValidateButton() {
+    const btn = document.getElementById('validateSetBtn');
+    if (!btn) return;
+    
+    // Si c'est la dernière série prévue
+    if (currentSet >= currentWorkoutSession.totalSets) {
+        // Remplacer par deux boutons
+        const container = btn.parentElement;
+        container.innerHTML = `
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="validate-button" style="flex: 1;" onclick="addExtraSet(); validateSet();">
+                    Série supplémentaire
+                </button>
+                <button class="validate-button" style="flex: 1; background: var(--success);" onclick="validateSet();">
+                    Exercice suivant →
+                </button>
+            </div>
+        `;
+    } else {
+        btn.textContent = 'Série suivante →';
+    }
 }
 
 function selectFatigue(button, value) {
-    // Désélectionner tous les boutons de fatigue
-    document.querySelectorAll('.feedback-btn[data-fatigue]').forEach(btn => {
+    // Désélectionner tous les boutons emojis de fatigue
+    document.querySelectorAll('.emoji-btn[data-fatigue]').forEach(btn => {
         btn.classList.remove('selected');
     });
     
@@ -2405,8 +2516,8 @@ function selectFatigue(button, value) {
 }
 
 function selectEffort(button, value) {
-    // Désélectionner tous les boutons d'effort
-    document.querySelectorAll('.feedback-btn[data-effort]').forEach(btn => {
+    // Désélectionner tous les boutons emojis d'effort
+    document.querySelectorAll('.emoji-btn[data-effort]').forEach(btn => {
         btn.classList.remove('selected');
     });
     
@@ -2432,26 +2543,49 @@ function setEffort(setId, value) {
 }
 
 async function validateSet() {
-    const fatigue = document.querySelector('.feedback-btn[data-fatigue].selected')?.dataset.fatigue;
-    const effort = document.querySelector('.feedback-btn[data-effort].selected')?.dataset.effort;
+    const fatigue = document.querySelector('.emoji-btn[data-fatigue].selected')?.dataset.fatigue;
+    const effort = document.querySelector('.emoji-btn[data-effort].selected')?.dataset.effort;
     
     if (!fatigue || !effort) {
         showToast('Veuillez indiquer votre fatigue et effort', 'warning');
         return;
     }
     
-    // Sauvegarder avec le feedback
-    await completeSet(currentSet);
+    // Récupérer les données sauvegardées
+    const pendingData = JSON.parse(sessionStorage.getItem('pendingSetData') || '{}');
     
-    // Si c'était la dernière série, proposer d'en ajouter une
-    if (currentSet === currentWorkoutSession.totalSets && 
-        currentWorkoutSession.totalSets < currentWorkoutSession.maxSets) {
+    try {
+        const setData = {
+            exercise_id: currentExercise.id,
+            set_number: currentSet,
+            reps: pendingData.reps,
+            weight: pendingData.weight,
+            base_rest_time_seconds: currentExercise.base_rest_time_seconds || 90,
+            fatigue_level: parseInt(fatigue),
+            effort_level: parseInt(effort),
+            exercise_order_in_session: currentWorkoutSession.exerciseOrder,
+            set_order_in_session: currentWorkoutSession.globalSetCount + 1
+        };
         
-        // Dans le message de repos, suggérer d'ajouter une série
-        const nextSetInfo = document.getElementById('nextSetInfo');
-        if (nextSetInfo) {
-            nextSetInfo.innerHTML = 'Dernière série terminée - <a href="#" onclick="addExtraSet(); return false;">Ajouter une série ?</a>';
+        await apiPost(`/api/workouts/${currentWorkout.id}/sets`, setData);
+        
+        currentWorkoutSession.completedSets.push(setData);
+        currentWorkoutSession.globalSetCount++;
+        
+        // Mettre à jour l'historique
+        updateSetsHistory();
+        
+        // Si on était dans la dernière série, terminer l'exercice
+        if (currentSet >= currentWorkoutSession.totalSets) {
+            finishExercise();
+        } else {
+            // Sinon, passer à la série suivante
+            nextSet();
         }
+        
+    } catch (error) {
+        console.error('Erreur enregistrement série:', error);
+        showToast('Erreur lors de l\'enregistrement', 'error');
     }
 }
 
