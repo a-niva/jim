@@ -353,6 +353,12 @@ async function registerServiceWorker() {
 
 // ===== NAVIGATION =====
 function showView(viewName) {
+    // Vérifier qu'on a un utilisateur pour les vues qui en ont besoin
+    if (!currentUser && ['dashboard', 'stats', 'profile'].includes(viewName)) {
+        console.error('Pas d\'utilisateur chargé, retour à l\'accueil');
+        showHomePage();
+        return;
+    }
     // Masquer toutes les vues
     document.querySelectorAll('.view, .onboarding').forEach(el => {
         el.classList.remove('active');
@@ -1553,12 +1559,28 @@ async function loadStats() {
         
     } catch (error) {
         console.error('Erreur chargement stats:', error);
+        // Ajouter ces lignes :
+        document.getElementById('totalWorkouts').textContent = '0';
+        document.getElementById('totalVolume').textContent = '0kg';
+        document.getElementById('lastWorkout').textContent = 'Aucune';
+        document.getElementById('recordsList').innerHTML = '<p class="text-center">Aucun record pour le moment</p>';
     }
 }
 
 // ===== PROFIL =====
 async function loadProfile() {
-    if (!currentUser) return;
+    console.log('loadProfile called, currentUser:', currentUser); // Debug
+    
+    if (!currentUser) {
+        console.error('Pas de currentUser !'); // Debug
+        return;
+    }
+    
+    const profileInfo = document.getElementById('profileInfo');
+    if (!profileInfo) {
+        console.error('Element profileInfo non trouvé !'); // Debug
+        return;
+    }
     
     const age = new Date().getFullYear() - new Date(currentUser.birth_date).getFullYear();
     
