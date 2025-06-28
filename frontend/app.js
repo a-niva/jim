@@ -24,24 +24,169 @@ const totalSteps = 4;
 // Configuration équipement disponible
 const EQUIPMENT_CONFIG = {
     // Barres spécialisées
-    barbell_athletic: { name: 'Barre athlétique (20kg)', icon: '🏋️', type: 'barbell', defaultWeight: 20 },
-    barbell_ez: { name: 'Barre EZ/Curl (10kg)', icon: '〰️', type: 'barbell', defaultWeight: 10 },
-    barbell_short_pair: { name: 'Paire barres courtes', icon: '🤝', type: 'adjustable', defaultWeight: 2.5 },
+    barbell_athletic: { 
+        name: 'Barre athlétique (20kg)', 
+        icon: `<svg viewBox="0 0 48 48" width="32" height="32" fill="currentColor">
+            <rect x="8" y="22" width="32" height="4" rx="2"/>
+            <rect x="4" y="20" width="4" height="8" rx="2"/>
+            <rect x="40" y="20" width="4" height="8" rx="2"/>
+            <circle cx="6" cy="24" r="1"/>
+            <circle cx="42" cy="24" r="1"/>
+        </svg>`, 
+        type: 'barbell', 
+        defaultWeight: 20 
+    },
+    barbell_ez: { 
+        name: 'Barre EZ/Curl (10kg)', 
+        icon: `<svg viewBox="0 0 48 48" width="32" height="32" fill="currentColor">
+            <path d="M8 24 Q16 20 24 24 Q32 28 40 24" stroke="currentColor" stroke-width="4" fill="none"/>
+            <rect x="4" y="22" width="3" height="4" rx="1"/>
+            <rect x="41" y="22" width="3" height="4" rx="1"/>
+        </svg>`, 
+        type: 'barbell', 
+        defaultWeight: 10 
+    },
+    barbell_short_pair: { 
+        name: 'Paire barres courtes', 
+        icon: `<svg viewBox="0 0 48 48" width="32" height="32" fill="currentColor">
+            <rect x="6" y="14" width="16" height="3" rx="1"/>
+            <rect x="26" y="14" width="16" height="3" rx="1"/>
+            <rect x="4" y="12" width="2" height="7" rx="1"/>
+            <rect x="22" y="12" width="2" height="7" rx="1"/>
+            <rect x="24" y="12" width="2" height="7" rx="1"/>
+            <rect x="42" y="12" width="2" height="7" rx="1"/>
+            <rect x="6" y="31" width="16" height="3" rx="1"/>
+            <rect x="26" y="31" width="16" height="3" rx="1"/>
+            <rect x="4" y="29" width="2" height="7" rx="1"/>
+            <rect x="22" y="29" width="2" height="7" rx="1"/>
+            <rect x="24" y="29" width="2" height="7" rx="1"/>
+            <rect x="42" y="29" width="2" height="7" rx="1"/>
+        </svg>`, 
+        type: 'adjustable', 
+        defaultWeight: 2.5 
+    },
     
     // Poids fixes et ajustables
-    dumbbells: { name: 'Dumbbells fixes', icon: '💪', type: 'fixed_weights' },
-    weight_plates: { name: 'Disques de musculation', icon: '⚫', type: 'plates', required_for: ['barbell_athletic', 'barbell_ez', 'barbell_short_pair'] },
+    dumbbells: { 
+        name: 'Dumbbells fixes', 
+        icon: `<svg viewBox="0 0 48 48" width="32" height="32" fill="currentColor">
+            <rect x="18" y="22" width="12" height="4" rx="2"/>
+            <rect x="12" y="18" width="6" height="12" rx="3"/>
+            <rect x="30" y="18" width="6" height="12" rx="3"/>
+            <rect x="10" y="20" width="2" height="8" rx="1"/>
+            <rect x="36" y="20" width="2" height="8" rx="1"/>
+        </svg>`, 
+        type: 'fixed_weights' 
+    },
+    weight_plates: { 
+        name: 'Disques de musculation', 
+        icon: `<svg viewBox="0 0 48 48" width="32" height="32" fill="currentColor">
+            <circle cx="24" cy="24" r="16" fill="none" stroke="currentColor" stroke-width="3"/>
+            <circle cx="24" cy="24" r="4" fill="currentColor"/>
+            <circle cx="24" cy="24" r="10" fill="none" stroke="currentColor" stroke-width="1"/>
+            <text x="24" y="28" text-anchor="middle" font-size="8" fill="currentColor">20</text>
+        </svg>`, 
+        type: 'plates', 
+        required_for: ['barbell_athletic', 'barbell_ez', 'barbell_short_pair'] 
+    },
     
-    // Équipement cardio/fonctionnel (garder existant)
-    resistance_bands: { name: 'Élastiques', icon: '🎗️', type: 'resistance' },
-    kettlebells: { name: 'Kettlebells', icon: '⚫', type: 'fixed_weights' },
-    pull_up_bar: { name: 'Barre de traction', icon: '🎯', type: 'bodyweight' },
-    dip_bar: { name: 'Barre de dips', icon: '💪', type: 'bodyweight' },
-    bench: { name: 'Banc de musculation', icon: '🛏️', type: 'bench', hasOptions: true },
-    cable_machine: { name: 'Machine à poulies', icon: '🏗️', type: 'machine' },
-    leg_press: { name: 'Presse à cuisses', icon: '🦵', type: 'machine' },
-    lat_pulldown: { name: 'Tirage vertical', icon: '⬇️', type: 'machine' },
-    chest_press: { name: 'Développé machine', icon: '💻', type: 'machine' }
+    // Équipement cardio/fonctionnel
+    resistance_bands: { 
+        name: 'Élastiques', 
+        icon: `<svg viewBox="0 0 48 48" width="32" height="32" fill="currentColor">
+            <path d="M8 24 Q16 16 24 24 Q32 32 40 24" stroke="currentColor" stroke-width="3" fill="none"/>
+            <circle cx="8" cy="24" r="3"/>
+            <circle cx="40" cy="24" r="3"/>
+            <path d="M8 28 Q16 20 24 28 Q32 36 40 28" stroke="currentColor" stroke-width="2" fill="none" opacity="0.6"/>
+        </svg>`, 
+        type: 'resistance' 
+    },
+    kettlebells: { 
+        name: 'Kettlebells', 
+        icon: `<svg viewBox="0 0 48 48" width="32" height="32" fill="currentColor">
+            <rect x="20" y="12" width="8" height="6" rx="4"/>
+            <path d="M16 18 Q16 30 24 32 Q32 30 32 18" fill="currentColor"/>
+            <circle cx="24" cy="26" r="8" fill="currentColor"/>
+        </svg>`, 
+        type: 'fixed_weights' 
+    },
+    pull_up_bar: { 
+        name: 'Barre de traction', 
+        icon: `<svg viewBox="0 0 48 48" width="32" height="32" fill="currentColor">
+            <rect x="8" y="12" width="32" height="3" rx="1"/>
+            <rect x="6" y="10" width="4" height="8" rx="2"/>
+            <rect x="38" y="10" width="4" height="8" rx="2"/>
+            <path d="M20 18 Q20 28 24 32 Q28 28 28 18" stroke="currentColor" stroke-width="2" fill="none"/>
+            <circle cx="24" cy="32" r="2"/>
+        </svg>`, 
+        type: 'bodyweight' 
+    },
+    dip_bar: { 
+        name: 'Barre de dips', 
+        icon: `<svg viewBox="0 0 48 48" width="32" height="32" fill="currentColor">
+            <rect x="12" y="16" width="8" height="3" rx="1"/>
+            <rect x="28" y="16" width="8" height="3" rx="1"/>
+            <rect x="10" y="14" width="3" height="8" rx="1"/>
+            <rect x="35" y="14" width="3" height="8" rx="1"/>
+            <path d="M22 22 Q22 28 24 30 Q26 28 26 22" stroke="currentColor" stroke-width="2" fill="none"/>
+            <circle cx="24" cy="30" r="2"/>
+        </svg>`, 
+        type: 'bodyweight' 
+    },
+    bench: { 
+        name: 'Banc de musculation', 
+        icon: `<svg viewBox="0 0 48 48" width="32" height="32" fill="currentColor">
+            <rect x="8" y="20" width="32" height="6" rx="3"/>
+            <rect x="6" y="26" width="4" height="12" rx="2"/>
+            <rect x="38" y="26" width="4" height="12" rx="2"/>
+            <rect x="12" y="14" width="24" height="6" rx="3"/>
+        </svg>`, 
+        type: 'bench', 
+        hasOptions: true 
+    },
+    cable_machine: { 
+        name: 'Machine à poulies', 
+        icon: `<svg viewBox="0 0 48 48" width="32" height="32" fill="currentColor">
+            <rect x="6" y="8" width="4" height="32" rx="2"/>
+            <rect x="38" y="8" width="4" height="32" rx="2"/>
+            <circle cx="24" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/>
+            <path d="M24 15 L24 30" stroke="currentColor" stroke-width="2"/>
+            <rect x="20" y="30" width="8" height="4" rx="2"/>
+        </svg>`, 
+        type: 'machine' 
+    },
+    leg_press: { 
+        name: 'Presse à cuisses', 
+        icon: `<svg viewBox="0 0 48 48" width="32" height="32" fill="currentColor">
+            <rect x="8" y="28" width="32" height="8" rx="2"/>
+            <rect x="12" y="18" width="24" height="10" rx="2"/>
+            <path d="M16 18 L16 12 Q16 10 18 10 L30 10 Q32 10 32 12 L32 18" stroke="currentColor" stroke-width="2" fill="none"/>
+        </svg>`, 
+        type: 'machine' 
+    },
+    lat_pulldown: { 
+        name: 'Tirage vertical', 
+        icon: `<svg viewBox="0 0 48 48" width="32" height="32" fill="currentColor">
+            <rect x="6" y="8" width="36" height="4" rx="2"/>
+            <rect x="4" y="6" width="4" height="8" rx="2"/>
+            <rect x="40" y="6" width="4" height="8" rx="2"/>
+            <path d="M20 12 L20 22 L16 26 L32 26 L28 22 L28 12" stroke="currentColor" stroke-width="2" fill="none"/>
+            <rect x="18" y="22" width="12" height="3" rx="1"/>
+        </svg>`, 
+        type: 'machine' 
+    },
+    chest_press: { 
+        name: 'Développé machine', 
+        icon: `<svg viewBox="0 0 48 48" width="32" height="32" fill="currentColor">
+            <rect x="8" y="18" width="32" height="12" rx="3"/>
+            <rect x="6" y="30" width="4" height="8" rx="2"/>
+            <rect x="38" y="30" width="4" height="8" rx="2"/>
+            <path d="M16 18 L16 14 Q16 12 18 12 L30 12 Q32 12 32 14 L32 18" stroke="currentColor" stroke-width="2" fill="none"/>
+            <circle cx="20" cy="24" r="2"/>
+            <circle cx="28" cy="24" r="2"/>
+        </svg>`, 
+        type: 'machine' 
+    }
 };
 
 
@@ -120,7 +265,7 @@ async function showAvailableWeightsPreview() {
     }
 }
 
-const PLATE_WEIGHTS = [1.25, 2, 42.5, 5, 10, 15, 20, 25]; // Poids standards
+const PLATE_WEIGHTS = [1.25, 2, 2.5, 5, 10, 15, 20, 25]; // Poids standards
 const RESISTANCE_TENSIONS = [5, 10, 15, 20, 25, 30, 35, 40]; // Tensions standards en kg équivalent
 const DEFAULT_PLATE_COUNTS = {
     1.25: 8,
