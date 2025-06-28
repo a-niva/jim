@@ -489,13 +489,6 @@ async function loadExistingProfiles() {
     }
 }
 
-function loadProfile(user) {
-    currentUser = user;
-    localStorage.setItem('fitness_user_id', user.id);
-    showMainInterface();
-    showToast(`Bon retour ${user.name} ! 💪`, 'success');
-}
-
 function startNewProfile() {
     document.getElementById('home').classList.remove('active');
     showOnboarding();
