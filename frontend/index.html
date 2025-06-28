@@ -311,107 +311,136 @@
                     </div>
                 </div>
                 
-                <!-- Série en cours -->
-                <div class="current-set" id="currentSet">
-                    <div class="set-header">
-                        <h4>Série <span id="currentSetNumber">1</span></h4>
-                        <div class="set-controls">
-                            <button class="btn btn-secondary btn-sm" onclick="previousSet()" id="prevSetBtn" style="display: none;">
-                                ← Série précédente
-                            </button>
-                            <button class="btn btn-success btn-sm" onclick="addExtraSet()" id="addSetBtn" style="display: none;">
-                                + Ajouter une série
-                            </button>
-                            <button class="btn btn-primary btn-sm" onclick="nextSet()" id="nextSetBtn">
-                                Série suivante →
-                            </button>
-                        </div>
+            <div class="current-set" id="currentSet">
+                <!-- Header simplifié avec progression -->
+                <div class="set-progress-header">
+                    <div class="set-number-badge">
+                        Série <span id="currentSetNumber">1</span>/<span id="totalSets">3</span>
                     </div>
-                    
-                    <!-- Inputs de la série -->
-                    <div class="set-inputs">
-                        <div class="input-group">
-                            <label for="setWeight">Poids (kg)</label>
-                            <div class="weight-input">
-                                <button class="btn btn-sm btn-secondary" onclick="adjustWeight(-2.5)">-2.5</button>
-                                <input type="number" id="setWeight" step="0.5" min="0" placeholder="0">
-                                <button class="btn btn-sm btn-secondary" onclick="adjustWeight(2.5)">+2.5</button>
-                            </div>
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="setReps">Répétitions</label>
-                            <div class="reps-input">
-                                <button class="btn btn-sm btn-secondary" onclick="adjustReps(-1)">-1</button>
-                                <input type="number" id="setReps" min="1" placeholder="10">
-                                <button class="btn btn-sm btn-secondary" onclick="adjustReps(1)">+1</button>
-                            </div>
-                        </div>
+                    <div class="set-nav-compact">
+                        <button class="nav-arrow" onclick="previousSet()" id="prevSetBtn" style="display: none;">◀</button>
+                        <button class="nav-arrow" onclick="nextSet()" id="nextSetBtn">▶</button>
                     </div>
-                    
-                    <!-- Feedback après la série -->
-                    <div class="set-feedback" id="setFeedback" style="display: none;">
-                        <h4>Comment s'est passée cette série ?</h4>
-                        
-                        <div class="feedback-section">
-                            <label>Niveau de fatigue ressenti :</label>
-                            <div class="feedback-scale">
-                                <button class="feedback-btn" data-fatigue="1" onclick="setFatigue(1)">
-                                    1<br><span>Très facile</span>
-                                </button>
-                                <button class="feedback-btn" data-fatigue="2" onclick="setFatigue(2)">
-                                    2<br><span>Facile</span>
-                                </button>
-                                <button class="feedback-btn" data-fatigue="3" onclick="setFatigue(3)">
-                                    3<br><span>Modéré</span>
-                                </button>
-                                <button class="feedback-btn" data-fatigue="4" onclick="setFatigue(4)">
-                                    4<br><span>Difficile</span>
-                                </button>
-                                <button class="feedback-btn" data-fatigue="5" onclick="setFatigue(5)">
-                                    5<br><span>Très difficile</span>
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div class="feedback-section">
-                            <label>Effort fourni (réserve restante) :</label>
-                            <div class="feedback-scale">
-                                <button class="feedback-btn" data-effort="1" onclick="setEffort(1)">
-                                    1<br><span>Énorme réserve</span>
-                                </button>
-                                <button class="feedback-btn" data-effort="2" onclick="setEffort(2)">
-                                    2<br><span>Bonne réserve</span>
-                                </button>
-                                <button class="feedback-btn" data-effort="3" onclick="setEffort(3)">
-                                    3<br><span>Quelques reps</span>
-                                </button>
-                                <button class="feedback-btn" data-effort="4" onclick="setEffort(4)">
-                                    4<br><span>1-2 reps max</span>
-                                </button>
-                                <button class="feedback-btn" data-effort="5" onclick="setEffort(5)">
-                                    5<br><span>Échec total</span>
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <button class="btn btn-success" onclick="validateSet()">✓ Valider la série</button>
-                    </div>
-                    
-                    <button class="btn btn-primary" onclick="executeSet()" id="executeSetBtn">
-                        🏋️ Effectuer la série
-                    </button>
                 </div>
                 
-                <!-- Historique des séries de l'exercice -->
-                <div class="sets-history">
-                    <h4>Séries effectuées</h4>
-                    <div class="sets-list" id="setsHistory">
-                        <!-- Séries complétées -->
+                <!-- Zone d'input moderne et compacte -->
+                <div class="input-zone" id="inputZone">
+                    <!-- Poids -->
+                    <div class="input-card">
+                        <div class="input-label">
+                            <span class="input-emoji">💪</span>
+                            <span>Poids</span>
+                        </div>
+                        <div class="input-control">
+                            <button class="stepper minus" onclick="adjustWeight(-2.5)">
+                                <svg width="20" height="20"><line x1="5" y1="10" x2="15" y2="10" stroke="currentColor" stroke-width="2"/></svg>
+                            </button>
+                            <div class="input-value">
+                                <input type="number" id="setWeight" step="0.5" min="0" readonly>
+                                <span class="input-unit">kg</span>
+                            </div>
+                            <button class="stepper plus" onclick="adjustWeight(2.5)">
+                                <svg width="20" height="20"><line x1="5" y1="10" x2="15" y2="10" stroke="currentColor" stroke-width="2"/><line x1="10" y1="5" x2="10" y2="15" stroke="currentColor" stroke-width="2"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Répétitions -->
+                    <div class="input-card">
+                        <div class="input-label">
+                            <span class="input-emoji">🔢</span>
+                            <span>Reps</span>
+                        </div>
+                        <div class="input-control">
+                            <button class="stepper minus" onclick="adjustReps(-1)">
+                                <svg width="20" height="20"><line x1="5" y1="10" x2="15" y2="10" stroke="currentColor" stroke-width="2"/></svg>
+                            </button>
+                            <div class="input-value">
+                                <input type="number" id="setReps" min="1" value="10">
+                                <span class="input-unit">×</span>
+                            </div>
+                            <button class="stepper plus" onclick="adjustReps(1)">
+                                <svg width="20" height="20"><line x1="5" y1="10" x2="15" y2="10" stroke="currentColor" stroke-width="2"/><line x1="10" y1="5" x2="10" y2="15" stroke="currentColor" stroke-width="2"/></svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
+                
+                <!-- Bouton GO unique et proéminent -->
+                <button class="btn-go" onclick="executeSet()" id="executeSetBtn">
+                    <span class="go-emoji">🏋️</span>
+                    <span class="go-text">GO !</span>
+                </button>
+                
+                <!-- Feedback après la série -->
+                <div class="set-feedback" id="setFeedback" style="display: none;">
+                    <h4>Comment s'est passée cette série ?</h4>
+                    
+                    <div class="feedback-section">
+                        <label>Niveau de fatigue ressenti :</label>
+                        <div class="feedback-scale emoji-scale">
+                            <button class="feedback-btn" data-fatigue="1" onclick="selectFatigue(this, 1)">
+                                <span class="emoji-icon">😄</span>
+                                <span class="emoji-label">Très frais</span>
+                            </button>
+                            <button class="feedback-btn" data-fatigue="2" onclick="selectFatigue(this, 2)">
+                                <span class="emoji-icon">🙂</span>
+                                <span class="emoji-label">Frais</span>
+                            </button>
+                            <button class="feedback-btn" data-fatigue="3" onclick="selectFatigue(this, 3)">
+                                <span class="emoji-icon">😐</span>
+                                <span class="emoji-label">Normal</span>
+                            </button>
+                            <button class="feedback-btn" data-fatigue="4" onclick="selectFatigue(this, 4)">
+                                <span class="emoji-icon">😓</span>
+                                <span class="emoji-label">Fatigué</span>
+                            </button>
+                            <button class="feedback-btn" data-fatigue="5" onclick="selectFatigue(this, 5)">
+                                <span class="emoji-icon">🥵</span>
+                                <span class="emoji-label">Épuisé</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="feedback-section">
+                        <label>Effort fourni (réserve restante) :</label>
+                        <div class="feedback-scale emoji-scale">
+                            <button class="feedback-btn" data-effort="1" onclick="selectEffort(this, 1)">
+                                <span class="emoji-icon">🚶</span>
+                                <span class="emoji-label">Tranquille</span>
+                            </button>
+                            <button class="feedback-btn" data-effort="2" onclick="selectEffort(this, 2)">
+                                <span class="emoji-icon">🏃</span>
+                                <span class="emoji-label">Modéré</span>
+                            </button>
+                            <button class="feedback-btn" data-effort="3" onclick="selectEffort(this, 3)">
+                                <span class="emoji-icon">🏋️</span>
+                                <span class="emoji-label">Intense</span>
+                            </button>
+                            <button class="feedback-btn" data-effort="4" onclick="selectEffort(this, 4)">
+                                <span class="emoji-icon">🔥</span>
+                                <span class="emoji-label">Très dur</span>
+                            </button>
+                            <button class="feedback-btn" data-effort="5" onclick="selectEffort(this, 5)">
+                                <span class="emoji-icon">🌋</span>
+                                <span class="emoji-label">Maximum</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-success" onclick="validateSet()">✓ Valider la série</button>
+                </div>
             </div>
-            
+
+            <!-- Historique des séries de l'exercice -->
+            <div class="sets-history">
+                <h4>Séries effectuées</h4>
+                <div class="sets-list" id="setsHistory">
+                    <!-- Séries complétées -->
+                </div>
+            </div>
+            </div>
+
             <!-- Période de repos -->
             <div class="rest-period" id="restPeriod" style="display: none;">
                 <div class="rest-content">
@@ -432,7 +461,8 @@
                     </div>
                 </div>
             </div>
-        </div>
+            </div>
+
 
         <!-- STATISTIQUES -->
         <div class="view" id="stats">

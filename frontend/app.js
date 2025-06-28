@@ -1179,7 +1179,8 @@ async function selectExercise(exercise) {
     currentSet = 1;
     currentWorkoutSession.currentExercise = exercise;
     currentWorkoutSession.currentSetNumber = 1;
-    
+    document.getElementById('totalSets').textContent = currentWorkoutSession.totalSets || 3;
+
     // Définir le nombre de séries selon l'exercice ou un défaut
     currentWorkoutSession.totalSets = exercise.default_sets || 3;
     currentWorkoutSession.maxSets = currentWorkoutSession.totalSets + 2; // Permettre jusqu'à 2 séries bonus
@@ -1269,7 +1270,15 @@ async function updateSetRecommendations() {
         
         // Afficher les recommandations ML
         document.getElementById('mlRecommendations').style.display = 'block';
-        document.getElementById('recWeight').textContent = `${recommendations.weight_recommendation}kg`;
+        document.getElementById('recWeight').textContent = recommendations.weight_recommendation 
+            ? `${recommendations.weight_recommendation}kg` 
+            : 'Poids par défaut';
+
+        // Si pas de recommandation, utiliser un poids par défaut
+        if (!recommendations.weight_recommendation) {
+            recommendations.weight_recommendation = 20; // Poids sécurisé par défaut
+            document.getElementById('recReason').textContent = 'Première série - commencez prudemment';
+        }
         document.getElementById('recReps').textContent = recommendations.reps_recommendation;
         document.getElementById('recReason').textContent = recommendations.reasoning;
         document.getElementById('recConfidence').textContent = Math.round(recommendations.confidence * 100);
@@ -2245,17 +2254,49 @@ function adjustReps(delta) {
 }
 
 function executeSet() {
-    // Afficher le feedback au lieu de valider directement
-    document.getElementById('setFeedback').style.display = 'block';
+    // Masquer la zone d'input et le bouton GO
+    document.getElementById('inputZone').style.display = 'none';
     document.getElementById('executeSetBtn').style.display = 'none';
     
-    // Pré-sélectionner une fatigue/effort moyen par défaut
-    document.querySelectorAll('.feedback-btn').forEach(btn => {
-        btn.classList.remove('selected');
-    });
+    // Afficher le feedback
+    document.getElementById('setFeedback').style.display = 'block';
     
     // Focus sur le feedback
     document.getElementById('setFeedback').scrollIntoView({ behavior: 'smooth' });
+}
+
+function selectFatigue(button, value) {
+    // Désélectionner tous les boutons de fatigue
+    document.querySelectorAll('.feedback-btn[data-fatigue]').forEach(btn => {
+        btn.classList.remove('selected');
+    });
+    
+    // Sélectionner le bouton cliqué
+    button.classList.add('selected');
+    
+    // Stocker la valeur
+    currentWorkoutSession.currentSetFatigue = value;
+    
+    // Coloration selon le niveau (vert → rouge)
+    const colors = ['#10b981', '#84cc16', '#eab308', '#f97316', '#ef4444'];
+    button.style.backgroundColor = colors[value - 1];
+}
+
+function selectEffort(button, value) {
+    // Désélectionner tous les boutons d'effort
+    document.querySelectorAll('.feedback-btn[data-effort]').forEach(btn => {
+        btn.classList.remove('selected');
+    });
+    
+    // Sélectionner le bouton cliqué
+    button.classList.add('selected');
+    
+    // Stocker la valeur
+    currentWorkoutSession.currentSetEffort = value;
+    
+    // Coloration selon l'intensité (bleu → rouge)
+    const colors = ['#3b82f6', '#06b6d4', '#10b981', '#f97316', '#dc2626'];
+    button.style.backgroundColor = colors[value - 1];
 }
 
 function setFatigue(exerciseId, value) {
@@ -2318,7 +2359,11 @@ function nextSet() {
     // Réinitialiser les inputs
     document.getElementById('setWeight').value = '';
     document.getElementById('setReps').value = '';
-    
+    // Réafficher la zone d'input et masquer le feedback
+    document.getElementById('inputZone').style.display = 'grid';
+    document.getElementById('executeSetBtn').style.display = 'flex';
+    document.getElementById('setFeedback').style.display = 'none';
+
     // Masquer le feedback et réafficher les inputs
     document.getElementById('setFeedback').style.display = 'none';
     document.getElementById('executeSetBtn').style.display = 'block';
@@ -2429,3 +2474,5 @@ window.abandonWorkout = abandonWorkout;
 window.endWorkout = endWorkout;
 window.addExtraSet = addExtraSet;
 window.updateSetNavigationButtons = updateSetNavigationButtons;
+window.selectFatigue = selectFatigue;
+window.selectEffort = selectEffort;

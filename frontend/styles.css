@@ -721,6 +721,142 @@ textarea:focus {
     margin-bottom: 2rem;
 }
 
+/* Interface de série moderne */
+.set-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.set-number-badge {
+    background: var(--primary);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: bold;
+}
+
+.nav-arrow {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.nav-arrow:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.input-zone {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.input-card {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 1rem;
+}
+
+.input-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    font-weight: 500;
+}
+
+.input-emoji {
+    font-size: 1.2rem;
+}
+
+.input-control {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.stepper {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--bg-light);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.stepper:hover {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+.input-value {
+    flex: 1;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 0.25rem;
+}
+
+.input-value input {
+    width: 60px;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    background: transparent;
+    border: none;
+    color: var(--text);
+}
+
+.input-unit {
+    font-size: 1rem;
+    color: var(--text-muted);
+}
+
+.btn-go {
+    width: 100%;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 1.5rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.btn-go:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+.btn-go:active {
+    transform: translateY(0);
+}
+
+.go-emoji {
+    font-size: 2rem;
+}
+
 .set-header {
     display: flex;
     justify-content: space-between;
@@ -798,6 +934,47 @@ textarea:focus {
     display: flex;
     gap: 0.5rem;
     justify-content: space-between;
+}
+
+.emoji-scale {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: space-between;
+    margin: 1rem 0;
+}
+
+.emoji-scale .feedback-btn {
+    flex: 1;
+    padding: 0.75rem 0.25rem;
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: center;
+}
+
+.emoji-icon {
+    display: block;
+    font-size: 2rem;
+    margin-bottom: 0.25rem;
+}
+
+.emoji-label {
+    display: block;
+    font-size: 0.7rem;
+    opacity: 0.8;
+}
+
+.emoji-scale .feedback-btn:hover {
+    transform: scale(1.1);
+    border-color: var(--primary);
+}
+
+.emoji-scale .feedback-btn.selected {
+    transform: scale(1.15);
+    border-color: white;
+    box-shadow: 0 0 15px rgba(255,255,255,0.3);
 }
 
 .feedback-btn {
