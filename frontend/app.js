@@ -2661,14 +2661,18 @@ function updateValidateButton() {
     const btn = document.getElementById('validateSetBtn');
     if (!btn) return;
     
-    // Si c'est la dernière série prévue
-    if (currentSet >= currentWorkoutSession.totalSets) {
+    // Vérifier d'abord si fatigue/effort sont sélectionnés
+    const hasFeedback = document.querySelector('.emoji-btn[data-fatigue].selected') && 
+                       document.querySelector('.emoji-btn[data-effort].selected');
+    
+    // Si c'est la dernière série prévue ET qu'on a le feedback
+    if (currentSet >= currentWorkoutSession.totalSets && hasFeedback) {
         // Remplacer par deux boutons
         const container = btn.parentElement;
         container.innerHTML = `
             <div style="display: flex; gap: 0.5rem;">
                 <button class="validate-button" style="flex: 1;" onclick="handleExtraSet();">
-                    Série supplémentaire
+                    + Série supplémentaire
                 </button>
                 <button class="validate-button" style="flex: 1; background: var(--success);" onclick="validateSet();">
                     Exercice suivant →
@@ -2676,7 +2680,11 @@ function updateValidateButton() {
             </div>
         `;
     } else {
-        btn.textContent = 'Série suivante →';
+        // Bouton simple
+        btn.textContent = currentSet >= currentWorkoutSession.totalSets ? 
+                         'Terminer l\'exercice →' : 
+                         'Valider et repos →';
+        btn.onclick = validateSet;
     }
 }
 
@@ -2684,6 +2692,7 @@ function selectFatigue(button, value) {
     // Désélectionner tous les boutons emojis de fatigue
     document.querySelectorAll('.emoji-btn[data-fatigue]').forEach(btn => {
         btn.classList.remove('selected');
+        btn.style.backgroundColor = ''; // AJOUT : Réinitialiser la couleur
     });
     
     // Sélectionner le bouton cliqué
@@ -2695,12 +2704,18 @@ function selectFatigue(button, value) {
     // Coloration selon le niveau (vert → rouge)
     const colors = ['#10b981', '#84cc16', '#eab308', '#f97316', '#ef4444'];
     button.style.backgroundColor = colors[value - 1];
+    
+    // Mettre à jour le bouton si on est sur la dernière série
+    if (currentSet >= currentWorkoutSession.totalSets) {
+        updateValidateButton();
+    }
 }
 
 function selectEffort(button, value) {
     // Désélectionner tous les boutons emojis d'effort
     document.querySelectorAll('.emoji-btn[data-effort]').forEach(btn => {
         btn.classList.remove('selected');
+        btn.style.backgroundColor = ''; // AJOUT : Réinitialiser la couleur
     });
     
     // Sélectionner le bouton cliqué
@@ -2712,6 +2727,11 @@ function selectEffort(button, value) {
     // Coloration selon l'intensité (bleu → rouge)
     const colors = ['#3b82f6', '#06b6d4', '#10b981', '#f97316', '#dc2626'];
     button.style.backgroundColor = colors[value - 1];
+    
+    // Mettre à jour le bouton si on est sur la dernière série
+    if (currentSet >= currentWorkoutSession.totalSets) {
+        updateValidateButton();
+    }
 }
 
 function setFatigue(exerciseId, value) {
@@ -2789,7 +2809,16 @@ async function validateSet() {
             parseInt(effort),
             currentSet
         );
-        
+
+        // Gérer la série supplémentaire si demandée
+        if (sessionStorage.getItem('pendingExtraSet') === 'true') {
+            sessionStorage.removeItem('pendingExtraSet');
+            if (currentWorkoutSession.totalSets < currentWorkoutSession.maxSets) {
+                currentWorkoutSession.totalSets++;
+                updateSeriesDots(); // Mettre à jour les points
+                showToast(`Série ${currentWorkoutSession.totalSets} ajoutée !`, 'success');
+            }
+        }
         // DÉBUT DU CHRONO DE REPOS
         workoutState.restStartTime = new Date();
         transitionTo(WorkoutStates.RESTING);
@@ -2907,22 +2936,12 @@ function addExtraSet() {
 }
 
 function handleExtraSet() {
-    const fatigue = document.querySelector('.emoji-btn[data-fatigue].selected')?.dataset.fatigue;
-    const effort = document.querySelector('.emoji-btn[data-effort].selected')?.dataset.effort;
+    // Marquer qu'on veut une série supplémentaire
+    sessionStorage.setItem('pendingExtraSet', 'true');
     
-    if (!fatigue || !effort) {
-        showToast('Veuillez indiquer votre fatigue et effort', 'warning');
-        return;
-    }
-    
-    // D'abord valider la série actuelle
-    validateSet().then(() => {
-        // Puis ajouter une série supplémentaire
-        if (currentWorkoutSession.totalSets < currentWorkoutSession.maxSets) {
-            currentWorkoutSession.totalSets++;
-            showToast(`Série ${currentWorkoutSession.totalSets} ajoutée`, 'success');
-        }
-    });
+    // Simplement valider la série actuelle
+    // La série supplémentaire sera ajoutée APRÈS la validation
+    validateSet();
 }
 
 function previousSet() {
@@ -2981,8 +3000,49 @@ function changeExercise() {
 }
 
 function addRestTime(seconds) {
-    // Ajouter du temps au repos en cours
-    console.log(`Adding ${seconds} seconds to rest`);
+    if (!restTimer) return;
+    
+    // Récupérer le temps actuel affiché
+    const timerEl = document.getElementById('restTimer');
+    if (!timerEl) return;
+    
+    const [minutes, secs] = timerEl.textContent.split(':').map(Number);
+    let currentSeconds = minutes * 60 + secs;
+    
+    // Ajouter le temps
+    currentSeconds += seconds;
+    
+    // Arrêter le timer actuel
+    clearInterval(restTimer);
+    
+    // Redémarrer avec le nouveau temps
+    let timeLeft = currentSeconds;
+    const initialTime = timeLeft;
+    
+    updateRestTimer(timeLeft);
+    
+    restTimer = setInterval(() => {
+        timeLeft--;
+        updateRestTimer(timeLeft);
+        
+        // Barre de progression
+        const progress = ((initialTime - timeLeft) / initialTime) * 100;
+        document.getElementById('restProgressFill').style.width = `${progress}%`;
+        
+        // Alertes sonores
+        if (timeLeft === 10) {
+            playRestSound('warning');
+        }
+        
+        if (timeLeft <= 0) {
+            clearInterval(restTimer);
+            restTimer = null;
+            playRestSound('end');
+            completeRest();
+        }
+    }, 1000);
+    
+    showToast('+30 secondes ajoutées', 'info');
 }
 
 let isPaused = false;
