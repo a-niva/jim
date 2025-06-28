@@ -91,6 +91,12 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(db_user)
     return db_user
 
+@app.get("/api/users", response_model=List[UserResponse])
+def get_all_users(db: Session = Depends(get_db)):
+    """Récupérer tous les profils utilisateurs"""
+    users = db.query(User).all()
+    return users
+
 @app.get("/api/users/{user_id}", response_model=UserResponse)
 def get_user(user_id: int, db: Session = Depends(get_db)):
     """Récupérer un profil utilisateur"""

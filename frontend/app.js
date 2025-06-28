@@ -443,59 +443,57 @@ async function loadExistingProfiles() {
     const container = document.getElementById('existingProfiles');
     container.innerHTML = '';
     
-    // Récupérer les profils depuis localStorage
-    const savedProfiles = JSON.parse(localStorage.getItem('fitness_profiles') || '[]');
-    
-    if (savedProfiles.length === 0) {
-        return; // Pas de profils existants
-    }
-    
-    // Ajouter le séparateur
-    const divider = document.createElement('div');
-    divider.className = 'profiles-divider';
-    divider.textContent = 'ou continuez avec';
-    container.appendChild(divider);
-    
-    // Charger les infos de chaque profil
-    for (const profileId of savedProfiles) {
-        try {
-            const user = await apiGet(`/api/users/${profileId}`);
-            const stats = await apiGet(`/api/users/${profileId}/stats`);
-            
-            const profileBtn = document.createElement('button');
-            profileBtn.className = 'profile-btn';
-            profileBtn.onclick = () => {
-                currentUser = user;
-                localStorage.setItem('fitness_user_id', user.id);
-                showMainInterface();
-            };
-                        
-            const age = new Date().getFullYear() - new Date(user.birth_date).getFullYear();
-            
-            profileBtn.innerHTML = `
-                <div class="profile-avatar">${user.name[0].toUpperCase()}</div>
-                <div class="profile-info">
-                    <div class="profile-name">${user.name}</div>
-                    <div class="profile-details">
-                        <div class="profile-stats">
-                            <span class="profile-stat">🎂 ${age} ans</span>
-                            <span class="profile-stat">💪 ${stats.total_workouts} séances</span>
-                            <span class="profile-stat">📊 ${user.experience_level}</span>
+    try {
+        // Récupérer TOUS les profils depuis l'API
+        const users = await apiGet('/api/users');
+        
+        if (users.length === 0) {
+            return; // Pas de profils existants
+        }
+        
+        // Ajouter le séparateur
+        const divider = document.createElement('div');
+        divider.className = 'profiles-divider';
+        divider.textContent = 'ou continuez avec';
+        container.appendChild(divider);
+        
+        // Afficher chaque profil
+        for (const user of users) {
+            try {
+                const stats = await apiGet(`/api/users/${user.id}/stats`);
+                
+                const profileBtn = document.createElement('button');
+                profileBtn.className = 'profile-btn';
+                profileBtn.onclick = () => {
+                    currentUser = user;
+                    localStorage.setItem('fitness_user_id', user.id);
+                    showMainInterface();
+                };
+                
+                const age = new Date().getFullYear() - new Date(user.birth_date).getFullYear();
+                
+                profileBtn.innerHTML = `
+                    <div class="profile-avatar">${user.name[0].toUpperCase()}</div>
+                    <div class="profile-info">
+                        <div class="profile-name">${user.name}</div>
+                        <div class="profile-details">
+                            <div class="profile-stats">
+                                <span class="profile-stat">🎂 ${age} ans</span>
+                                <span class="profile-stat">💪 ${stats.total_workouts} séances</span>
+                                <span class="profile-stat">📊 ${user.experience_level}</span>
+                            </div>
                         </div>
                     </div>
-                </div>
-            `;
-            
-            container.appendChild(profileBtn);
-            
-        } catch (error) {
-            // Profil n'existe plus, le retirer de la liste
-            const index = savedProfiles.indexOf(profileId);
-            if (index > -1) {
-                savedProfiles.splice(index, 1);
-                localStorage.setItem('fitness_profiles', JSON.stringify(savedProfiles));
+                `;
+                
+                container.appendChild(profileBtn);
+                
+            } catch (error) {
+                console.error(`Erreur chargement stats pour user ${user.id}:`, error);
             }
         }
+    } catch (error) {
+        console.error('Erreur chargement des profils:', error);
     }
 }
 
