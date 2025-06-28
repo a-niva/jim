@@ -643,26 +643,6 @@ textarea:focus {
     line-height: 1.5;
 }
 
-/* Recommandations ML */
-.ml-recommendations {
-    margin-bottom: 1.5rem;
-}
-
-.recommendation-card {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
-    border: 1px solid var(--primary);
-    border-radius: var(--radius);
-    padding: 1.5rem;
-}
-
-.recommendation-card h4 {
-    margin-bottom: 1rem;
-    color: var(--primary);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
 .recommendation-content {
     display: grid;
     gap: 0.75rem;
@@ -716,10 +696,6 @@ textarea:focus {
     color: var(--text-muted);
 }
 
-/* Série en cours */
-.current-set {
-    margin-bottom: 2rem;
-}
 
 /* Interface de série moderne */
 .set-progress-header {
@@ -857,83 +833,9 @@ textarea:focus {
     font-size: 2rem;
 }
 
-.set-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-}
-
 .set-controls {
     display: flex;
     gap: 0.5rem;
-}
-
-.set-inputs {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
-}
-
-.input-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.input-group label {
-    font-weight: 500;
-    color: var(--text);
-}
-
-.weight-input,
-.reps-input {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.weight-input input,
-.reps-input input {
-    flex: 1;
-    text-align: center;
-    font-size: 1.2rem;
-    font-weight: bold;
-}
-
-.weight-input button,
-.reps-input button {
-    min-width: 50px;
-}
-
-/* Feedback de série */
-.set-feedback {
-    background: var(--bg-light);
-    border-radius: var(--radius);
-    padding: 1.5rem;
-    margin: 1.5rem 0;
-    border: 1px solid var(--border);
-}
-
-.feedback-section {
-    margin-bottom: 1.5rem;
-}
-
-.feedback-section:last-child {
-    margin-bottom: 0;
-}
-
-.feedback-section label {
-    display: block;
-    margin-bottom: 0.75rem;
-    font-weight: 500;
-}
-
-.feedback-scale {
-    display: flex;
-    gap: 0.5rem;
-    justify-content: space-between;
 }
 
 .emoji-scale {
@@ -1140,12 +1042,7 @@ textarea:focus {
         text-align: left;
     }
     
-    .set-inputs {
-        grid-template-columns: 1fr;
-    }
-    
-    .fatigue-scale,
-    .feedback-scale {
+    .fatigue-scale {
         flex-direction: column;
         gap: 0.75rem;
     }
@@ -1517,4 +1414,251 @@ select:focus-visible {
 
 .hidden {
     display: none !important;
+}
+
+
+
+/* ===== NOUVEAU DESIGN MODERNE ===== */
+.exercise-header-modern {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.exercise-header-modern h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0;
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.btn-icon:hover {
+    opacity: 1;
+}
+
+/* Carte principale */
+.workout-card {
+    background: var(--bg-card);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Points de progression */
+.series-dots {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: all 0.3s;
+}
+
+.dot.active {
+    background: var(--primary);
+    transform: scale(1.3);
+}
+
+/* Section d'input */
+.input-section {
+    margin-bottom: 2rem;
+}
+
+.input-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    position: relative;
+}
+
+.input-icon {
+    font-size: 1.8rem;
+    margin-right: 1rem;
+}
+
+.stepper-modern {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: var(--text);
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.stepper-modern:hover {
+    background: var(--primary);
+    transform: scale(1.1);
+}
+
+.value-display {
+    flex: 1;
+    text-align: center;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.value-display span:first-child {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: var(--text);
+}
+
+.unit {
+    font-size: 1rem;
+    color: var(--text-muted);
+}
+
+.ai-hint {
+    position: absolute;
+    right: 60px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.8rem;
+    color: var(--primary);
+    opacity: 0.7;
+}
+
+/* Bouton GO */
+.go-button {
+    display: block;
+    margin: 2rem auto;
+    font-size: 4rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.go-button:hover {
+    transform: scale(1.2);
+}
+
+.go-button:active {
+    transform: scale(0.95);
+}
+
+/* Zone de feedback */
+.feedback-zone {
+    border-top: 1px solid var(--border);
+    padding-top: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.feedback-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.feedback-label {
+    width: 80px;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.emoji-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex: 1;
+    justify-content: space-around;
+}
+
+.emoji-btn {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: all 0.2s;
+    padding: 0.5rem;
+}
+
+.emoji-btn:hover {
+    opacity: 0.8;
+    transform: scale(1.1);
+}
+
+.emoji-btn.selected {
+    opacity: 1;
+    transform: scale(1.2);
+}
+
+.validate-button {
+    width: 100%;
+    padding: 1rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 1.5rem;
+    transition: all 0.2s;
+}
+
+.validate-button:hover {
+    background: var(--primary-dark);
+}
+
+/* Historique minimaliste */
+.history-minimal {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.history-minimal .set-done {
+    background: rgba(59, 130, 246, 0.2);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    color: var(--primary);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .workout-card {
+        padding: 1.5rem;
+    }
+    
+    .value-display span:first-child {
+        font-size: 2rem;
+    }
+    
+    .emoji-btn {
+        font-size: 1.5rem;
+    }
+}
+
+.dot.completed {
+    background: var(--success);
+    opacity: 0.5;
 }

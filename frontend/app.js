@@ -1179,11 +1179,9 @@ async function selectExercise(exercise) {
     currentSet = 1;
     currentWorkoutSession.currentExercise = exercise;
     currentWorkoutSession.currentSetNumber = 1;
-    document.getElementById('totalSets').textContent = currentWorkoutSession.totalSets || 3;
-
-    // Définir le nombre de séries selon l'exercice ou un défaut
+    
+    // Définir le nombre de séries
     currentWorkoutSession.totalSets = exercise.default_sets || 3;
-    currentWorkoutSession.maxSets = currentWorkoutSession.totalSets + 2; // Permettre jusqu'à 2 séries bonus
     
     document.getElementById('exerciseSelection').style.display = 'none';
     document.getElementById('currentExercise').style.display = 'block';
@@ -1192,15 +1190,30 @@ async function selectExercise(exercise) {
     document.getElementById('exerciseInstructions').textContent = 
         exercise.instructions || 'Effectuez vos séries et renseignez le nombre de répétitions et le poids utilisé.';
     
-    // Mise à jour avec le nombre dynamique
-    document.getElementById('currentSetNumber').textContent = currentSet;
-    document.getElementById('exerciseProgress').textContent = `Exercice ${currentWorkoutSession.exerciseOrder}`;
-    document.getElementById('setProgress').textContent = `Série ${currentSet}/${currentWorkoutSession.totalSets}`;
+    // AJOUTER ICI : Initialiser les dots
+    updateSeriesDots();
     
-    // Afficher/masquer les boutons de navigation
-    updateSetNavigationButtons();
-    
+    // Obtenir les recommandations ML
     await updateSetRecommendations();
+}
+
+function updateSeriesDots() {
+    const dotsContainer = document.querySelector('.series-dots');
+    if (!dotsContainer) return;
+    
+    // Vider et recréer les dots selon le nombre de séries
+    dotsContainer.innerHTML = '';
+    
+    for (let i = 1; i <= (currentWorkoutSession.totalSets || 3); i++) {
+        const dot = document.createElement('span');
+        dot.className = 'dot';
+        if (i < currentSet) {
+            dot.classList.add('completed');
+        } else if (i === currentSet) {
+            dot.classList.add('active');
+        }
+        dotsContainer.appendChild(dot);
+    }
 }
 
 function updateSetNavigationButtons() {
@@ -1243,7 +1256,7 @@ async function updateSetRecommendations() {
             exercise_id: currentExercise.id,
             set_number: currentSet,
             current_fatigue: currentWorkoutSession.sessionFatigue,
-            previous_effort: currentSet > 1 ? 3 : null,
+            previous_effort: currentSet > 1 ? currentWorkoutSession.currentSetEffort : null,
             exercise_order: currentWorkoutSession.exerciseOrder,
             set_order_global: currentWorkoutSession.globalSetCount + 1
         });
@@ -1252,48 +1265,48 @@ async function updateSetRecommendations() {
         const weightsData = await apiGet(`/api/users/${currentUser.id}/available-weights`);
         const availableWeights = weightsData.available_weights.sort((a, b) => a - b);
         
-        // Pré-remplir les valeurs recommandées
-        const weightInput = document.getElementById('setWeight');
-        const repsInput = document.getElementById('setReps');
+        // Stocker les poids disponibles pour navigation
+        sessionStorage.setItem('availableWeights', JSON.stringify(availableWeights));
         
-        if (weightInput && recommendations.weight_recommendation) {
-            // Trouver le poids disponible le plus proche
-            const closestWeight = findClosestWeight(recommendations.weight_recommendation, availableWeights);
-            weightInput.value = closestWeight;
-            weightInput.dataset.availableWeights = JSON.stringify(availableWeights);
-            weightInput.dataset.currentIndex = availableWeights.indexOf(closestWeight);
-        }
-        
-        if (repsInput && recommendations.reps_recommendation) {
-            repsInput.value = recommendations.reps_recommendation;
-        }
-        
-        // Afficher les recommandations ML
-        document.getElementById('mlRecommendations').style.display = 'block';
-        document.getElementById('recWeight').textContent = recommendations.weight_recommendation 
-            ? `${recommendations.weight_recommendation}kg` 
-            : 'Poids par défaut';
-
-        // Si pas de recommandation, utiliser un poids par défaut
+        // Gérer le cas où pas de recommandation (première série)
         if (!recommendations.weight_recommendation) {
-            recommendations.weight_recommendation = 20; // Poids sécurisé par défaut
-            document.getElementById('recReason').textContent = 'Première série - commencez prudemment';
+            recommendations.weight_recommendation = 20; // Poids par défaut sécurisé
+            recommendations.reasoning = 'Première série - commencez prudemment';
         }
-        document.getElementById('recReps').textContent = recommendations.reps_recommendation;
-        document.getElementById('recReason').textContent = recommendations.reasoning;
-        document.getElementById('recConfidence').textContent = Math.round(recommendations.confidence * 100);
         
-        // Afficher les changements
-        const weightChange = document.getElementById('recWeightChange');
-        weightChange.textContent = recommendations.weight_change === 'increase' ? '↗️ Augmentation' :
-                                  recommendations.weight_change === 'decrease' ? '↘️ Diminution' : '➡️ Maintien';
-        weightChange.className = `rec-change ${recommendations.weight_change}`;
+        // Trouver le poids disponible le plus proche
+        const closestWeight = findClosestWeight(recommendations.weight_recommendation, availableWeights);
+        
+        // Mettre à jour les hints IA
+        document.getElementById('weightHint').textContent = 
+            `IA: ${recommendations.weight_recommendation}kg`;
+        document.getElementById('repsHint').textContent = 
+            `IA: ${recommendations.reps_recommendation || 10}`;
+        
+        // Pré-remplir avec les valeurs recommandées (ou les plus proches disponibles)
+        document.getElementById('setWeight').textContent = closestWeight || recommendations.weight_recommendation;
+        document.getElementById('setReps').textContent = recommendations.reps_recommendation || 10;
+        
+        // Si les hints sont différents des valeurs affichées, les mettre en évidence
+        if (Math.abs(closestWeight - recommendations.weight_recommendation) > 0.1) {
+            document.getElementById('weightHint').style.color = 'var(--warning)';
+        } else {
+            document.getElementById('weightHint').style.color = 'var(--primary)';
+        }
+        
+        // Mettre à jour la confiance
+        if (recommendations.confidence) {
+            const confidenceEl = document.getElementById('recConfidence');
+            if (confidenceEl) {
+                confidenceEl.textContent = Math.round(recommendations.confidence * 100);
+            }
+        }
         
     } catch (error) {
-        console.error('Erreur chargement recommandations:', error);
+        console.error('Erreur recommandations ML:', error);
         // Valeurs par défaut en cas d'erreur
-        document.getElementById('setWeight').value = 20;
-        document.getElementById('setReps').value = 10;
+        document.getElementById('setWeight').textContent = '20';
+        document.getElementById('setReps').textContent = '10';
     }
 }
 
@@ -2222,47 +2235,53 @@ function setSessionFatigue(value) {
     currentWorkoutSession.sessionFatigue = value;
 }
 
-function adjustWeight(delta) {
-    const weightInput = document.getElementById('setWeight');
-    if (!weightInput) return;
+function adjustWeightUp() {
+    const currentWeight = parseFloat(document.getElementById('setWeight').textContent);
+    const weights = JSON.parse(sessionStorage.getItem('availableWeights') || '[]');
     
-    const availableWeights = JSON.parse(weightInput.dataset.availableWeights || '[]');
-    let currentIndex = parseInt(weightInput.dataset.currentIndex || '0');
-    
-    if (availableWeights.length === 0) {
-        // Fallback : ajustement simple
-        weightInput.value = Math.max(0, parseFloat(weightInput.value || 0) + delta);
+    if (weights.length === 0) {
+        document.getElementById('setWeight').textContent = currentWeight + 2.5;
         return;
     }
     
-    // Parcourir les poids disponibles
-    if (delta > 0 && currentIndex < availableWeights.length - 1) {
-        currentIndex++;
-    } else if (delta < 0 && currentIndex > 0) {
-        currentIndex--;
+    const currentIndex = weights.findIndex(w => w >= currentWeight);
+    if (currentIndex < weights.length - 1) {
+        document.getElementById('setWeight').textContent = weights[currentIndex + 1];
+    }
+}
+
+function adjustWeightDown() {
+    const currentWeight = parseFloat(document.getElementById('setWeight').textContent);
+    const weights = JSON.parse(sessionStorage.getItem('availableWeights') || '[]');
+    
+    if (weights.length === 0) {
+        document.getElementById('setWeight').textContent = Math.max(0, currentWeight - 2.5);
+        return;
     }
     
-    weightInput.value = availableWeights[currentIndex];
-    weightInput.dataset.currentIndex = currentIndex;
+    const currentIndex = weights.findIndex(w => w >= currentWeight);
+    if (currentIndex > 0) {
+        document.getElementById('setWeight').textContent = weights[currentIndex - 1];
+    } else if (currentWeight > weights[0]) {
+        document.getElementById('setWeight').textContent = weights[0];
+    }
 }
 
 function adjustReps(delta) {
-    const repsInput = document.querySelector(`#reps_${currentSet}`);
-    if (repsInput) {
-        repsInput.value = Math.max(1, parseInt(repsInput.value || 0) + delta);
-    }
+    const repsElement = document.getElementById('setReps');
+    const current = parseInt(repsElement.textContent);
+    repsElement.textContent = Math.max(1, current + delta);
 }
 
 function executeSet() {
-    // Masquer la zone d'input et le bouton GO
-    document.getElementById('inputZone').style.display = 'none';
+    // Stopper le timer d'exercice si nécessaire
+    if (workoutTimer) {
+        // Ne pas clear, juste marquer le temps de la série
+    }
+    
+    // Masquer le bouton GO et afficher le feedback
     document.getElementById('executeSetBtn').style.display = 'none';
-    
-    // Afficher le feedback
     document.getElementById('setFeedback').style.display = 'block';
-    
-    // Focus sur le feedback
-    document.getElementById('setFeedback').scrollIntoView({ behavior: 'smooth' });
 }
 
 function selectFatigue(button, value) {
@@ -2351,6 +2370,7 @@ function nextSet() {
     
     currentSet++;
     currentWorkoutSession.currentSetNumber = currentSet;
+    updateSeriesDots();
     
     // Mettre à jour l'interface
     document.getElementById('currentSetNumber').textContent = currentSet;
@@ -2394,7 +2414,8 @@ function previousSet() {
     
     currentSet--;
     currentWorkoutSession.currentSetNumber = currentSet;
-    
+    updateSeriesDots();
+
     // Mettre à jour l'interface
     document.getElementById('currentSetNumber').textContent = currentSet;
     document.getElementById('setProgress').textContent = `Série ${currentSet}/3`;
@@ -2439,6 +2460,7 @@ function abandonWorkout() {
 }
 
 
+
 // ===== EXPOSITION GLOBALE =====
 window.showView = showView;
 window.nextStep = nextStep;
@@ -2457,7 +2479,6 @@ window.resumeWorkout = resumeWorkout;
 
 // Nouvelles fonctions pour l'interface de séance détaillée
 window.setSessionFatigue = setSessionFatigue;
-window.adjustWeight = adjustWeight;
 window.adjustReps = adjustReps;
 window.executeSet = executeSet;
 window.setFatigue = setFatigue;
@@ -2476,3 +2497,6 @@ window.addExtraSet = addExtraSet;
 window.updateSetNavigationButtons = updateSetNavigationButtons;
 window.selectFatigue = selectFatigue;
 window.selectEffort = selectEffort;
+window.adjustWeightUp = adjustWeightUp;
+window.adjustWeightDown = adjustWeightDown;
+window.updateSeriesDots = updateSeriesDots;
