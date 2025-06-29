@@ -63,6 +63,7 @@ function updateUIForState(state) {
             
         case WorkoutStates.FEEDBACK:
             document.getElementById('setFeedback').style.display = 'block';
+            updateValidateButton(); // Important
             break;
             
         case WorkoutStates.RESTING:
@@ -2724,56 +2725,55 @@ function executeSet() {
         setTimer = null;
     }
     
-    // Sauvegarder le temps de la série
+    // Sauvegarder le temps et les valeurs
     const timerEl = document.getElementById('setTimer');
-    const serieTime = timerEl ? timerEl.textContent : '00:00';
-    workoutState.setStartTime = serieTime; // Stocker le temps pour l'affichage
+    workoutState.setStartTime = timerEl ? timerEl.textContent : '00:00';
     
-    // Sauvegarder les valeurs
     const reps = parseInt(document.getElementById('setReps').textContent);
     const weight = parseFloat(document.getElementById('setWeight').textContent);
     workoutState.pendingSetData = { reps, weight };
     
-    // Afficher un indicateur visuel
-    const executeBtn = document.getElementById('executeSetBtn');
-    if (executeBtn) {
-        executeBtn.innerHTML = '⏱️ Terminé';
-        executeBtn.disabled = true;
-    }
-    
     // Transition vers FEEDBACK
     transitionTo(WorkoutStates.FEEDBACK);
-    updateValidateButton();
 }
 
 function updateValidateButton() {
     const btn = document.getElementById('validateSetBtn');
     if (!btn) return;
     
-    // Vérifier d'abord si fatigue/effort sont sélectionnés
+    // Vérifier si fatigue/effort sont sélectionnés
     const hasFeedback = document.querySelector('.emoji-btn[data-fatigue].selected') && 
                        document.querySelector('.emoji-btn[data-effort].selected');
     
-    // Si c'est la dernière série prévue ET qu'on a le feedback
+    // Activer/désactiver selon le feedback
+    btn.disabled = !hasFeedback;
+    
+    // Si c'est la dernière série ET qu'on a le feedback
     if (currentSet >= currentWorkoutSession.totalSets && hasFeedback) {
-        // Remplacer par deux boutons
-        const container = btn.parentElement;
-        container.innerHTML = `
-            <div style="display: flex; gap: 0.5rem;">
-                <button class="validate-button" style="flex: 1;" onclick="handleExtraSet();">
-                    + Série supplémentaire
-                </button>
-                <button class="validate-button" style="flex: 1; background: var(--success);" onclick="validateSet();">
-                    Exercice suivant →
-                </button>
-            </div>
-        `;
+        btn.textContent = 'Terminer l\'exercice →';
+        
+        // Si on peut ajouter une série, créer le bouton SANS remplacer le HTML
+        if (currentWorkoutSession.totalSets < currentWorkoutSession.maxSets && 
+            !document.getElementById('extraSetBtn')) {
+            
+            const extraBtn = document.createElement('button');
+            extraBtn.id = 'extraSetBtn';
+            extraBtn.className = 'btn btn-secondary';
+            extraBtn.style.marginRight = '0.5rem';
+            extraBtn.textContent = '+ Série supplémentaire';
+            extraBtn.onclick = handleExtraSet;
+            
+            btn.parentNode.insertBefore(extraBtn, btn);
+        }
     } else {
-        // Bouton simple
-        btn.textContent = currentSet >= currentWorkoutSession.totalSets ? 
-                         'Terminer l\'exercice →' : 
-                         'Valider et repos →';
-        btn.onclick = validateSet;
+        // Cas normal
+        btn.textContent = 'Valider →';
+        
+        // Retirer le bouton extra s'il existe
+        const extraBtn = document.getElementById('extraSetBtn');
+        if (extraBtn) {
+            extraBtn.remove();
+        }
     }
 }
 
@@ -2903,6 +2903,17 @@ async function validateSet() {
         workoutState.restStartTime = new Date();
         transitionTo(WorkoutStates.RESTING);
         startRestTimer(adaptiveRestTime);
+        // Gérer la série supplémentaire si demandée
+        if (sessionStorage.getItem('pendingExtraSet') === 'true') {
+            sessionStorage.removeItem('pendingExtraSet');
+            
+            // Ajouter la série pendant le repos
+            if (currentWorkoutSession.totalSets < currentWorkoutSession.maxSets) {
+                currentWorkoutSession.totalSets++;
+                updateSeriesDots();
+                showToast(`Série ${currentWorkoutSession.totalSets} ajoutée !`, 'success');
+            }
+        }
         
         // Réinitialiser le bouton exécuter pour la prochaine fois
         const executeBtn = document.getElementById('executeSetBtn');
@@ -3018,33 +3029,11 @@ function addExtraSet() {
 }
 
 function handleExtraSet() {
-    // Ajouter directement la série supplémentaire
-    if (currentWorkoutSession.totalSets >= currentWorkoutSession.maxSets) {
-        showToast('Nombre maximum de séries atteint', 'warning');
-        return;
-    }
+    // D'abord valider la série actuelle
+    validateSet();
     
-    currentWorkoutSession.totalSets++;
-    currentSet++;
-    currentWorkoutSession.currentSetNumber = currentSet;
-    
-    // Mettre à jour l'interface
-    updateSeriesDots();
-    document.getElementById('setProgress').textContent = `Série ${currentSet}/${currentWorkoutSession.totalSets}`;
-    
-    // Réinitialiser pour la nouvelle série
-    document.getElementById('setFeedback').style.display = 'none';
-    document.getElementById('executeSetBtn').style.display = 'block';
-    document.querySelectorAll('.emoji-btn').forEach(btn => {
-        btn.classList.remove('selected');
-        btn.style.backgroundColor = '';
-    });
-    
-    updateSetRecommendations();
-    transitionTo(WorkoutStates.READY);
-    // Démarrer le timer pour la nouvelle série
-    startSetTimer();
-    showToast(`Série ${currentSet} ajoutée !`, 'success');
+    // Marquer qu'on veut une série supplémentaire
+    sessionStorage.setItem('pendingExtraSet', 'true');
 }
 
 function previousSet() {
