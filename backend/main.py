@@ -245,8 +245,9 @@ def generate_program_exercises(user: User, program: ProgramCreate, db: Session) 
     # Récupérer exercices par zone focus
     all_exercises = []
     for focus_area in program.focus_areas:
+        from sqlalchemy import func
         muscle_exercises = db.query(Exercise).filter(
-            Exercise.muscle_groups.contains([focus_area])
+            Exercise.muscle_groups.op('@>')([focus_area])
         ).all()
         
         # Filtrer par équipement disponible et niveau d'expérience
