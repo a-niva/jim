@@ -1645,6 +1645,11 @@ function showExerciseCompletion() {
 }
 
 function startWorkoutTimer() {
+    // Éviter les timers multiples
+    if (workoutTimer) {
+        clearInterval(workoutTimer);
+    }
+    
     const startTime = new Date();
     
     workoutTimer = setInterval(() => {
@@ -2660,12 +2665,28 @@ function executeSet() {
         clearInterval(workoutTimer);
         const timerEl = document.getElementById('workoutTimer');
         sessionStorage.setItem('pausedWorkoutTime', timerEl.textContent);
+        
+        // Récupérer le temps déjà écoulé
+        const [minutes, seconds] = timerEl.textContent.split(':').map(Number);
+        const elapsedSeconds = minutes * 60 + seconds;
+        const workoutStartTime = new Date() - (elapsedSeconds * 1000);
+        
+        // Continuer le timer même pendant l'exécution
+        workoutTimer = setInterval(() => {
+            const elapsed = new Date() - workoutStartTime;
+            const mins = Math.floor(elapsed / 60000);
+            const secs = Math.floor((elapsed % 60000) / 1000);
+            
+            document.getElementById('workoutTimer').textContent = 
+                `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }, 1000);
     }
     
     // Sauvegarder les valeurs
     const reps = parseInt(document.getElementById('setReps').textContent);
     const weight = parseFloat(document.getElementById('setWeight').textContent);
     workoutState.pendingSetData = { reps, weight };
+  
     
     // Afficher un indicateur visuel que le chrono tourne
     const executeBtn = document.getElementById('executeSetBtn');
@@ -2832,15 +2853,6 @@ async function validateSet() {
             currentSet
         );
 
-        // Gérer la série supplémentaire si demandée
-        if (sessionStorage.getItem('pendingExtraSet') === 'true') {
-            sessionStorage.removeItem('pendingExtraSet');
-            if (currentWorkoutSession.totalSets < currentWorkoutSession.maxSets) {
-                currentWorkoutSession.totalSets++;
-                updateSeriesDots(); // Mettre à jour les points
-                showToast(`Série ${currentWorkoutSession.totalSets} ajoutée !`, 'success');
-            }
-        }
         // DÉBUT DU CHRONO DE REPOS
         workoutState.restStartTime = new Date();
         transitionTo(WorkoutStates.RESTING);
@@ -2958,12 +2970,31 @@ function addExtraSet() {
 }
 
 function handleExtraSet() {
-    // Marquer qu'on veut une série supplémentaire
-    sessionStorage.setItem('pendingExtraSet', 'true');
+    // Ajouter directement la série supplémentaire
+    if (currentWorkoutSession.totalSets >= currentWorkoutSession.maxSets) {
+        showToast('Nombre maximum de séries atteint', 'warning');
+        return;
+    }
     
-    // Simplement valider la série actuelle
-    // La série supplémentaire sera ajoutée APRÈS la validation
-    validateSet();
+    currentWorkoutSession.totalSets++;
+    currentSet++;
+    currentWorkoutSession.currentSetNumber = currentSet;
+    
+    // Mettre à jour l'interface
+    updateSeriesDots();
+    document.getElementById('setProgress').textContent = `Série ${currentSet}/${currentWorkoutSession.totalSets}`;
+    
+    // Réinitialiser pour la nouvelle série
+    document.getElementById('setFeedback').style.display = 'none';
+    document.getElementById('executeSetBtn').style.display = 'block';
+    document.querySelectorAll('.emoji-btn').forEach(btn => {
+        btn.classList.remove('selected');
+        btn.style.backgroundColor = '';
+    });
+    
+    updateSetRecommendations();
+    transitionTo(WorkoutStates.READY);
+    showToast(`Série ${currentSet} ajoutée !`, 'success');
 }
 
 function previousSet() {
