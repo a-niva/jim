@@ -14,7 +14,7 @@ import os
 import logging
 from backend.ml_recommendations import FitnessRecommendationEngine
 from backend.database import engine, get_db, SessionLocal
-from backend.models import Base, User, Exercise, Program, Workout, WorkoutSet
+from backend.models import Base, User, Exercise, Program, Workout, WorkoutSet, SetHistory, UserCommitment, AdaptiveTargets
 from backend.schemas import UserCreate, UserResponse, ProgramCreate, WorkoutCreate, SetCreate, ExerciseResponse
 
 logging.basicConfig(level=logging.INFO)
@@ -136,10 +136,17 @@ def update_user(user_id: int, user_data: Dict[str, Any], db: Session = Depends(g
 @app.delete("/api/users/{user_id}")
 def delete_user(user_id: int, db: Session = Depends(get_db)):
     """Supprimer un profil utilisateur et toutes ses données"""
+    
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
     
+    # Supprimer dans l'ordre pour respecter les contraintes de clés étrangères
+    db.query(SetHistory).filter(SetHistory.user_id == user_id).delete(synchronize_session=False)
+    db.query(UserCommitment).filter(UserCommitment.user_id == user_id).delete(synchronize_session=False)
+    db.query(AdaptiveTargets).filter(AdaptiveTargets.user_id == user_id).delete(synchronize_session=False)
+    
+    # Les workouts/programs ont cascade configuré, donc seront supprimés automatiquement
     db.delete(user)
     db.commit()
     return {"message": "Profil supprimé avec succès"}
