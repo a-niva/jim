@@ -63,7 +63,6 @@ function updateUIForState(state) {
             
         case WorkoutStates.FEEDBACK:
             document.getElementById('setFeedback').style.display = 'block';
-            updateValidateButton(); // Important
             break;
             
         case WorkoutStates.RESTING:
@@ -2584,8 +2583,9 @@ function findClosestWeight(targetWeight, availableWeights) {
 
 // ===== AMÉLIORATION DU TIMER DE REPOS =====
 function startRestPeriod(customTime = null) {
-    // Afficher la période de repos AVEC le feedback visible
+    // Afficher la période de repos ET le feedback
     document.getElementById('restPeriod').style.display = 'flex';
+    document.getElementById('setFeedback').style.display = 'block'; // Garder le feedback visible
     
     // Modifier le contenu pour inclure le feedback
     const restContent = document.querySelector('.rest-content');
@@ -2725,56 +2725,36 @@ function executeSet() {
         setTimer = null;
     }
     
-    // Sauvegarder le temps et les valeurs
-    const timerEl = document.getElementById('setTimer');
-    workoutState.setStartTime = timerEl ? timerEl.textContent : '00:00';
-    
+    // Sauvegarder les valeurs de la série
     const reps = parseInt(document.getElementById('setReps').textContent);
     const weight = parseFloat(document.getElementById('setWeight').textContent);
-    workoutState.pendingSetData = { reps, weight };
     
-    // Transition vers FEEDBACK
-    transitionTo(WorkoutStates.FEEDBACK);
-}
-
-function updateValidateButton() {
-    const btn = document.getElementById('validateSetBtn');
-    if (!btn) return;
+    // Enregistrer la série SANS feedback pour l'instant
+    const setData = {
+        exercise_id: currentExercise.id,
+        set_number: currentSet,
+        reps: reps,
+        weight: weight,
+        base_rest_time_seconds: currentExercise.base_rest_time_seconds || 90,
+        fatigue_level: null, // On le remplira pendant le repos
+        effort_level: null,
+        exercise_order_in_session: currentWorkoutSession.exerciseOrder,
+        set_order_in_session: currentWorkoutSession.globalSetCount + 1
+    };
     
-    // Vérifier si fatigue/effort sont sélectionnés
-    const hasFeedback = document.querySelector('.emoji-btn[data-fatigue].selected') && 
-                       document.querySelector('.emoji-btn[data-effort].selected');
+    // Stocker temporairement
+    workoutState.pendingSetData = setData;
     
-    // Activer/désactiver selon le feedback
-    btn.disabled = !hasFeedback;
+    // Cacher le bouton ✅
+    document.getElementById('executeSetBtn').style.display = 'none';
     
-    // Si c'est la dernière série ET qu'on a le feedback
-    if (currentSet >= currentWorkoutSession.totalSets && hasFeedback) {
-        btn.textContent = 'Terminer l\'exercice →';
-        
-        // Si on peut ajouter une série, créer le bouton SANS remplacer le HTML
-        if (currentWorkoutSession.totalSets < currentWorkoutSession.maxSets && 
-            !document.getElementById('extraSetBtn')) {
-            
-            const extraBtn = document.createElement('button');
-            extraBtn.id = 'extraSetBtn';
-            extraBtn.className = 'btn btn-secondary';
-            extraBtn.style.marginRight = '0.5rem';
-            extraBtn.textContent = '+ Série supplémentaire';
-            extraBtn.onclick = handleExtraSet;
-            
-            btn.parentNode.insertBefore(extraBtn, btn);
-        }
-    } else {
-        // Cas normal
-        btn.textContent = 'Valider →';
-        
-        // Retirer le bouton extra s'il existe
-        const extraBtn = document.getElementById('extraSetBtn');
-        if (extraBtn) {
-            extraBtn.remove();
-        }
-    }
+    // Afficher le feedback
+    document.getElementById('setFeedback').style.display = 'block';
+    
+    // LANCER IMMÉDIATEMENT LE REPOS
+    const restTime = currentExercise.base_rest_time_seconds || 90;
+    transitionTo(WorkoutStates.RESTING);
+    startRestPeriod(restTime);
 }
 
 function selectFatigue(button, value) {
@@ -2793,11 +2773,6 @@ function selectFatigue(button, value) {
     // Coloration selon le niveau (vert → rouge)
     const colors = ['#10b981', '#84cc16', '#eab308', '#f97316', '#ef4444'];
     button.style.backgroundColor = colors[value - 1];
-    
-    // Mettre à jour le bouton si on est sur la dernière série
-    if (currentSet >= currentWorkoutSession.totalSets) {
-        updateValidateButton();
-    }
 }
 
 function selectEffort(button, value) {
@@ -2817,10 +2792,6 @@ function selectEffort(button, value) {
     const colors = ['#3b82f6', '#06b6d4', '#10b981', '#f97316', '#dc2626'];
     button.style.backgroundColor = colors[value - 1];
     
-    // Mettre à jour le bouton si on est sur la dernière série
-    if (currentSet >= currentWorkoutSession.totalSets) {
-        updateValidateButton();
-    }
 }
 
 function setFatigue(exerciseId, value) {
@@ -2851,8 +2822,6 @@ function validateSessionState() {
 }
 
 async function validateSet() {
-    if (!validateSessionState()) return;
-    
     const fatigue = document.querySelector('.emoji-btn[data-fatigue].selected')?.dataset.fatigue;
     const effort = document.querySelector('.emoji-btn[data-effort].selected')?.dataset.effort;
     
@@ -2861,70 +2830,33 @@ async function validateSet() {
         return;
     }
     
-    // ARRÊT DU CHRONO D'EXERCICE - Au moment de la validation
-    const exerciseDuration = workoutState.setStartTime ? 
-        Math.floor((new Date() - workoutState.setStartTime) / 1000) : 30;
-    
-    // Afficher la durée pour debug
-    console.log(`Durée de l'exercice: ${exerciseDuration}s`);
-    
-    try {
-        const setData = {
-            exercise_id: currentExercise.id,
-            set_number: currentSet,
-            reps: workoutState.pendingSetData.reps,
-            weight: workoutState.pendingSetData.weight,
-            duration_seconds: exerciseDuration, // DURÉE ENREGISTRÉE ICI
-            base_rest_time_seconds: currentExercise.base_rest_time_seconds || 90,
-            fatigue_level: parseInt(fatigue),
-            effort_level: parseInt(effort),
-            exercise_order_in_session: currentWorkoutSession.exerciseOrder,
-            set_order_in_session: currentWorkoutSession.globalSetCount + 1
-        };
+    // Mettre à jour les données de la série avec le feedback
+    if (workoutState.pendingSetData) {
+        workoutState.pendingSetData.fatigue_level = parseInt(fatigue);
+        workoutState.pendingSetData.effort_level = parseInt(effort);
         
-        await apiPost(`/api/workouts/${currentWorkout.id}/sets`, setData);
-        
-        currentWorkoutSession.completedSets.push(setData);
-        currentWorkoutSession.globalSetCount++;
-        currentWorkoutSession.currentSetEffort = parseInt(effort);
-        
-        // Afficher la durée dans l'historique
-        updateSetsHistoryWithDuration(setData);
-        
-        // Calculer le temps de repos adaptatif
-        const adaptiveRestTime = calculateAdaptiveRestTime(
-            currentExercise,
-            parseInt(fatigue),
-            parseInt(effort),
-            currentSet
-        );
-
-        // DÉBUT DU CHRONO DE REPOS
-        workoutState.restStartTime = new Date();
-        transitionTo(WorkoutStates.RESTING);
-        startRestTimer(adaptiveRestTime);
-        // Gérer la série supplémentaire si demandée
-        if (sessionStorage.getItem('pendingExtraSet') === 'true') {
-            sessionStorage.removeItem('pendingExtraSet');
+        try {
+            // Enregistrer la série complète
+            await apiPost(`/api/workouts/${currentWorkout.id}/sets`, workoutState.pendingSetData);
             
-            // Ajouter la série pendant le repos
-            if (currentWorkoutSession.totalSets < currentWorkoutSession.maxSets) {
-                currentWorkoutSession.totalSets++;
-                updateSeriesDots();
-                showToast(`Série ${currentWorkoutSession.totalSets} ajoutée !`, 'success');
-            }
+            currentWorkoutSession.completedSets.push(workoutState.pendingSetData);
+            currentWorkoutSession.globalSetCount++;
+            
+            // Cacher le feedback
+            document.getElementById('setFeedback').style.display = 'none';
+            
+            // Réinitialiser les emojis
+            document.querySelectorAll('.emoji-btn').forEach(btn => {
+                btn.classList.remove('selected');
+                btn.style.backgroundColor = '';
+            });
+            
+            showToast('Feedback enregistré !', 'success');
+            
+        } catch (error) {
+            console.error('Erreur enregistrement série:', error);
+            showToast('Erreur lors de l\'enregistrement', 'error');
         }
-        
-        // Réinitialiser le bouton exécuter pour la prochaine fois
-        const executeBtn = document.getElementById('executeSetBtn');
-        if (executeBtn) {
-            executeBtn.innerHTML = '✅';
-            executeBtn.disabled = false;
-        }
-        
-    } catch (error) {
-        console.error('Erreur enregistrement série:', error);
-        showToast('Erreur lors de l\'enregistrement', 'error');
     }
 }
 
@@ -2967,6 +2899,27 @@ function startRestTimer(duration) {
 }
 
 function completeRest() {
+    // Si le feedback n'a pas été donné, enregistrer la série sans feedback
+    if (document.getElementById('setFeedback').style.display !== 'none') {
+        if (workoutState.pendingSetData) {
+            // Enregistrer sans feedback
+            apiPost(`/api/workouts/${currentWorkout.id}/sets`, workoutState.pendingSetData)
+                .then(() => {
+                    currentWorkoutSession.completedSets.push(workoutState.pendingSetData);
+                    currentWorkoutSession.globalSetCount++;
+                })
+                .catch(err => console.error('Erreur enregistrement série:', err));
+        }
+    }
+    
+    // Cacher le feedback
+    document.getElementById('setFeedback').style.display = 'none';
+    
+    // Réinitialiser les emojis
+    document.querySelectorAll('.emoji-btn').forEach(btn => {
+        btn.classList.remove('selected');
+        btn.style.backgroundColor = '';
+    });
     // Reprendre le timer global
     const pausedTime = sessionStorage.getItem('pausedWorkoutTime');
     if (pausedTime && workoutTimer === null) {
