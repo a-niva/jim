@@ -2728,22 +2728,7 @@ function executeSet() {
     // Sauvegarder les valeurs de la série
     const reps = parseInt(document.getElementById('setReps').textContent);
     const weight = parseFloat(document.getElementById('setWeight').textContent);
-    
-    // Enregistrer la série SANS feedback pour l'instant
-    const setData = {
-        exercise_id: currentExercise.id,
-        set_number: currentSet,
-        reps: reps,
-        weight: weight,
-        base_rest_time_seconds: currentExercise.base_rest_time_seconds || 90,
-        fatigue_level: null, // On le remplira pendant le repos
-        effort_level: null,
-        exercise_order_in_session: currentWorkoutSession.exerciseOrder,
-        set_order_in_session: currentWorkoutSession.globalSetCount + 1
-    };
-    
-    // Stocker temporairement
-    workoutState.pendingSetData = setData;
+    workoutState.pendingSetData = { reps, weight };
     
     // Cacher le bouton ✅
     document.getElementById('executeSetBtn').style.display = 'none';
@@ -2751,47 +2736,97 @@ function executeSet() {
     // Afficher le feedback
     document.getElementById('setFeedback').style.display = 'block';
     
-    // LANCER IMMÉDIATEMENT LE REPOS
-    const restTime = currentExercise.base_rest_time_seconds || 90;
-    transitionTo(WorkoutStates.RESTING);
-    startRestPeriod(restTime);
+    // Transition vers FEEDBACK
+    transitionTo(WorkoutStates.FEEDBACK);
 }
 
 function selectFatigue(button, value) {
-    // Désélectionner tous les boutons emojis de fatigue
+    // Désélectionner tous les boutons de fatigue
     document.querySelectorAll('.emoji-btn[data-fatigue]').forEach(btn => {
         btn.classList.remove('selected');
-        btn.style.backgroundColor = ''; // AJOUT : Réinitialiser la couleur
+        btn.style.backgroundColor = '';
     });
     
     // Sélectionner le bouton cliqué
     button.classList.add('selected');
-    
-    // Stocker la valeur
     currentWorkoutSession.currentSetFatigue = value;
     
-    // Coloration selon le niveau (vert → rouge)
+    // Coloration selon le niveau
     const colors = ['#10b981', '#84cc16', '#eab308', '#f97316', '#ef4444'];
     button.style.backgroundColor = colors[value - 1];
+    
+    // Si les deux feedbacks sont donnés, lancer automatiquement la validation
+    if (document.querySelector('.emoji-btn[data-effort].selected')) {
+        validateAndStartRest();
+    }
 }
 
 function selectEffort(button, value) {
-    // Désélectionner tous les boutons emojis d'effort
+    // Désélectionner tous les boutons d'effort
     document.querySelectorAll('.emoji-btn[data-effort]').forEach(btn => {
         btn.classList.remove('selected');
-        btn.style.backgroundColor = ''; // AJOUT : Réinitialiser la couleur
+        btn.style.backgroundColor = '';
     });
     
     // Sélectionner le bouton cliqué
     button.classList.add('selected');
-    
-    // Stocker la valeur
     currentWorkoutSession.currentSetEffort = value;
     
-    // Coloration selon l'intensité (bleu → rouge)
+    // Coloration selon l'intensité
     const colors = ['#3b82f6', '#06b6d4', '#10b981', '#f97316', '#dc2626'];
     button.style.backgroundColor = colors[value - 1];
     
+    // Si les deux feedbacks sont donnés, lancer automatiquement la validation
+    if (document.querySelector('.emoji-btn[data-fatigue].selected')) {
+        validateAndStartRest();
+    }
+}
+
+async function validateAndStartRest() {
+    const fatigue = document.querySelector('.emoji-btn[data-fatigue].selected')?.dataset.fatigue;
+    const effort = document.querySelector('.emoji-btn[data-effort].selected')?.dataset.effort;
+    
+    if (!fatigue || !effort) return;
+    
+    // Compléter les données de la série
+    const setData = {
+        ...workoutState.pendingSetData,
+        exercise_id: currentExercise.id,
+        set_number: currentSet,
+        base_rest_time_seconds: currentExercise.base_rest_time_seconds || 90,
+        fatigue_level: parseInt(fatigue),
+        effort_level: parseInt(effort),
+        exercise_order_in_session: currentWorkoutSession.exerciseOrder,
+        set_order_in_session: currentWorkoutSession.globalSetCount + 1
+    };
+    
+    try {
+        // Enregistrer la série
+        await apiPost(`/api/workouts/${currentWorkout.id}/sets`, setData);
+        
+        currentWorkoutSession.completedSets.push(setData);
+        currentWorkoutSession.globalSetCount++;
+        currentWorkoutSession.currentSetEffort = parseInt(effort);
+        
+        // Cacher le feedback
+        document.getElementById('setFeedback').style.display = 'none';
+        
+        // Calculer le temps de repos adaptatif
+        const adaptiveRestTime = calculateAdaptiveRestTime(
+            currentExercise,
+            parseInt(fatigue),
+            parseInt(effort),
+            currentSet
+        );
+        
+        // LANCER LE REPOS AUTOMATIQUEMENT
+        transitionTo(WorkoutStates.RESTING);
+        startRestPeriod(adaptiveRestTime);
+        
+    } catch (error) {
+        console.error('Erreur enregistrement série:', error);
+        showToast('Erreur lors de l\'enregistrement', 'error');
+    }
 }
 
 function setFatigue(exerciseId, value) {
@@ -2899,6 +2934,12 @@ function startRestTimer(duration) {
 }
 
 function completeRest() {
+    // Réinitialiser les emojis
+    document.querySelectorAll('.emoji-btn').forEach(btn => {
+        btn.classList.remove('selected');
+        btn.style.backgroundColor = '';
+    });
+    
     // Si le feedback n'a pas été donné, enregistrer la série sans feedback
     if (document.getElementById('setFeedback').style.display !== 'none') {
         if (workoutState.pendingSetData) {
