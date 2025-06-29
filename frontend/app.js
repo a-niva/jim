@@ -53,24 +53,35 @@ function updateUIForState(state) {
     document.getElementById('setFeedback').style.display = 'none';
     document.getElementById('restPeriod').style.display = 'none';
     
+    // Récupérer le panneau des inputs
+    const inputSection = document.querySelector('.input-section');
+    if (inputSection) {
+        inputSection.style.display = 'none';
+    }
+    
     switch(state) {
         case WorkoutStates.READY:
             document.getElementById('executeSetBtn').style.display = 'block';
             document.getElementById('setFeedback').style.display = 'none';
             document.getElementById('restPeriod').style.display = 'none';
+            if (inputSection) inputSection.style.display = 'block';
             break;
             
         case WorkoutStates.EXECUTING:
-            // Rien à afficher, on attend que l'utilisateur clique
             document.getElementById('executeSetBtn').style.display = 'block';
+            if (inputSection) inputSection.style.display = 'block';
             break;
             
         case WorkoutStates.FEEDBACK:
             document.getElementById('setFeedback').style.display = 'block';
+            document.getElementById('executeSetBtn').style.display = 'none';
+            if (inputSection) inputSection.style.display = 'block';
             break;
             
         case WorkoutStates.RESTING:
             document.getElementById('restPeriod').style.display = 'flex';
+            document.getElementById('setFeedback').style.display = 'none';
+            if (inputSection) inputSection.style.display = 'none';
             break;
     }
 }
@@ -1409,6 +1420,12 @@ async function selectExercise(exercise) {
     document.getElementById('exerciseName').textContent = exercise.name;
     document.getElementById('exerciseInstructions').textContent = exercise.instructions || 'Effectuez cet exercice avec une forme correcte';
 
+    // Gérer l'affichage du bouton "Changer d'exercice" selon le mode
+    const changeExerciseBtn = document.querySelector('.btn-change-exercise');
+    if (changeExerciseBtn) {
+        changeExerciseBtn.style.display = currentWorkoutSession.type === 'program' ? 'none' : 'flex';
+    }
+
     updateSeriesDots();
     await updateSetRecommendations();
     
@@ -2483,6 +2500,9 @@ async function selectProgramExercise(exerciseId, isInitialLoad = false) {
             return;
         }
         
+        // S'assurer que le type est bien défini
+        currentWorkoutSession.type = 'program';
+        
         // Utiliser selectExercise qui existe déjà avec les bons paramètres
         const exerciseState = currentWorkoutSession.programExercises[exerciseId];
         exerciseState.startTime = exerciseState.startTime || new Date();
@@ -2911,9 +2931,17 @@ function findClosestWeight(targetWeight, availableWeights) {
 
 // ===== AMÉLIORATION DU TIMER DE REPOS =====
 function startRestPeriod(customTime = null) {
-    // Afficher la période de repos ET le feedback
+    // Afficher la période de repos
     document.getElementById('restPeriod').style.display = 'flex';
-    document.getElementById('setFeedback').style.display = 'block'; // Garder le feedback visible
+    
+    // Cacher le feedback maintenant qu'on est en repos
+    document.getElementById('setFeedback').style.display = 'none';
+    
+    // Cacher aussi les inputs pendant le repos
+    const inputSection = document.querySelector('.input-section');
+    if (inputSection) {
+        inputSection.style.display = 'none';
+    }
     
     // Modifier le contenu pour inclure le feedback
     const restContent = document.querySelector('.rest-content');
@@ -3262,6 +3290,16 @@ function completeRest() {
         currentSet++;
         currentWorkoutSession.currentSetNumber = currentSet;
         updateSeriesDots();
+        
+        // Réafficher les inputs pour la nouvelle série
+        const inputSection = document.querySelector('.input-section');
+        if (inputSection) {
+            inputSection.style.display = 'block';
+        }
+        
+        // Mettre à jour les recommandations pour la nouvelle série
+        updateSetRecommendations();
+        
         startSetTimer();
         transitionTo(WorkoutStates.READY);
     }
