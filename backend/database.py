@@ -4,29 +4,33 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
 
-# Configuration de la base de données
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./fitness_coach.db")
+# Render fournira DATABASE_URL automatiquement pour PostgreSQL
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./fitness_coach.db")
 
-# Pour PostgreSQL sur Render, corriger l'URL si nécessaire
+# Render utilise postgres:// mais SQLAlchemy nécessite postgresql://
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-# Créer le moteur de base de données
-if DATABASE_URL.startswith("sqlite"):
+# Configuration différente selon le type de base de données
+if DATABASE_URL.startswith("postgresql://"):
+    # Configuration PostgreSQL pour production
     engine = create_engine(
         DATABASE_URL,
-        connect_args={"check_same_thread": False}  # Nécessaire pour SQLite
+        pool_pre_ping=True,
+        pool_recycle=300,
+        echo=False
     )
 else:
-    engine = create_engine(DATABASE_URL)
+    # Configuration SQLite pour développement local
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        echo=False
+    )
 
-# Session locale
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Base pour les modèles
 Base = declarative_base()
 
-# Dependency pour FastAPI
 def get_db():
     db = SessionLocal()
     try:
