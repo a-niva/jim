@@ -54,6 +54,8 @@ function updateUIForState(state) {
     switch(state) {
         case WorkoutStates.READY:
             document.getElementById('executeSetBtn').style.display = 'block';
+            document.getElementById('setFeedback').style.display = 'none';
+            document.getElementById('restPeriod').style.display = 'none';
             break;
             
         case WorkoutStates.EXECUTING:
@@ -1647,16 +1649,27 @@ function endRest() {
 }
 
 function showExerciseCompletion() {
+    // Arrêter tous les timers
+    if (restTimer) {
+        clearInterval(restTimer);
+        restTimer = null;
+    }
+    if (setTimer) {
+        clearInterval(setTimer);
+        setTimer = null;
+    }
+    
     // Réinitialiser l'interface
     document.getElementById('executeSetBtn').style.display = 'block';
     document.getElementById('setFeedback').style.display = 'none';
+    document.getElementById('restPeriod').style.display = 'none';
     
     // Afficher les options
     showModal('Exercice terminé', `
         <div style="text-align: center;">
             <p>Vous avez terminé ${currentSet} séries de ${currentExercise.name}</p>
             <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">
-                <button class="btn btn-secondary" onclick="addExtraSet(); closeModal();">
+                <button class="btn btn-secondary" onclick="handleExtraSet(); closeModal();">
                     Série supplémentaire
                 </button>
                 <button class="btn btn-primary" onclick="finishExercise(); closeModal();">
@@ -2934,57 +2947,25 @@ function startRestTimer(duration) {
 }
 
 function completeRest() {
-    // Réinitialiser les emojis
-    document.querySelectorAll('.emoji-btn').forEach(btn => {
-        btn.classList.remove('selected');
-        btn.style.backgroundColor = '';
-    });
-    
-    // Si le feedback n'a pas été donné, enregistrer la série sans feedback
-    if (document.getElementById('setFeedback').style.display !== 'none') {
-        if (workoutState.pendingSetData) {
-            // Enregistrer sans feedback
-            apiPost(`/api/workouts/${currentWorkout.id}/sets`, workoutState.pendingSetData)
-                .then(() => {
-                    currentWorkoutSession.completedSets.push(workoutState.pendingSetData);
-                    currentWorkoutSession.globalSetCount++;
-                })
-                .catch(err => console.error('Erreur enregistrement série:', err));
-        }
+    // 1. Arrêter le timer de repos
+    if (restTimer) {
+        clearInterval(restTimer);
+        restTimer = null;
     }
     
-    // Cacher le feedback
+    // 2. Cacher le panneau de repos
+    document.getElementById('restPeriod').style.display = 'none';
+    
+    // 3. Cacher le feedback (au cas où il serait encore visible)
     document.getElementById('setFeedback').style.display = 'none';
     
-    // Réinitialiser les emojis
-    document.querySelectorAll('.emoji-btn').forEach(btn => {
-        btn.classList.remove('selected');
-        btn.style.backgroundColor = '';
-    });
-    // Reprendre le timer global
-    const pausedTime = sessionStorage.getItem('pausedWorkoutTime');
-    if (pausedTime && workoutTimer === null) {
-        const [minutes, seconds] = pausedTime.split(':').map(Number);
-        const elapsedSeconds = minutes * 60 + seconds;
-        const startTime = new Date() - (elapsedSeconds * 1000);
-        
-        workoutTimer = setInterval(() => {
-            const elapsed = new Date() - startTime;
-            const mins = Math.floor(elapsed / 60000);
-            const secs = Math.floor((elapsed % 60000) / 1000);
-            
-            document.getElementById('workoutTimer').textContent = 
-                `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-        }, 1000);
-    }
-    
-    // Réinitialiser les emojis
+    // 4. Réinitialiser les emojis (une seule fois)
     document.querySelectorAll('.emoji-btn').forEach(btn => {
         btn.classList.remove('selected');
         btn.style.backgroundColor = '';
     });
     
-    // Vérifier si on continue ou on termine
+    // 5. Vérifier si on continue ou on termine
     if (currentSet >= currentWorkoutSession.totalSets) {
         // Exercice terminé
         transitionTo(WorkoutStates.COMPLETED);
@@ -3001,8 +2982,16 @@ function completeRest() {
             setProgressEl.textContent = `Série ${currentSet}/${currentWorkoutSession.totalSets}`;
         }
         
+        // Réafficher le bouton ✅
+        const executeBtn = document.getElementById('executeSetBtn');
+        if (executeBtn) {
+            executeBtn.style.display = 'block';
+            executeBtn.innerHTML = '✅';
+        }
+        
         updateSetRecommendations();
         transitionTo(WorkoutStates.READY);
+        
         // Démarrer le timer de la nouvelle série
         startSetTimer();
     }
@@ -3023,11 +3012,44 @@ function addExtraSet() {
 }
 
 function handleExtraSet() {
-    // D'abord valider la série actuelle
-    validateSet();
+    // Arrêter le timer de repos s'il tourne encore
+    if (restTimer) {
+        clearInterval(restTimer);
+        restTimer = null;
+    }
     
-    // Marquer qu'on veut une série supplémentaire
-    sessionStorage.setItem('pendingExtraSet', 'true');
+    // Cacher le repos
+    document.getElementById('restPeriod').style.display = 'none';
+    
+    // Ajouter la série supplémentaire
+    if (currentWorkoutSession.totalSets >= currentWorkoutSession.maxSets) {
+        showToast('Nombre maximum de séries atteint', 'warning');
+        return;
+    }
+    
+    currentWorkoutSession.totalSets++;
+    currentSet++;
+    currentWorkoutSession.currentSetNumber = currentSet;
+    
+    // Mettre à jour l'interface
+    updateSeriesDots();
+    document.getElementById('setProgress').textContent = `Série ${currentSet}/${currentWorkoutSession.totalSets}`;
+    
+    // Réinitialiser pour la nouvelle série
+    document.getElementById('setFeedback').style.display = 'none';
+    document.getElementById('executeSetBtn').style.display = 'block';
+    document.querySelectorAll('.emoji-btn').forEach(btn => {
+        btn.classList.remove('selected');
+        btn.style.backgroundColor = '';
+    });
+    
+    updateSetRecommendations();
+    transitionTo(WorkoutStates.READY);
+    
+    // IMPORTANT : Démarrer le timer de la nouvelle série
+    startSetTimer();
+    
+    showToast(`Série ${currentSet} ajoutée !`, 'success');
 }
 
 function previousSet() {
