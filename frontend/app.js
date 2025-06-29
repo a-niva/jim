@@ -367,10 +367,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (error) {
             console.log('Utilisateur non trouvé, affichage page d\'accueil');
             localStorage.removeItem('fitness_user_id');
-            showHomePage(); // MODIFICATION ICI
+            showHomePage(); 
         }
     } else {
-        showHomePage(); // MODIFICATION ICI
+        showHomePage();
+        // Forcer un rechargement différé
+        setTimeout(() => {
+            loadExistingProfiles();
+        }, 100);
     }
     
     setupEventListeners();
@@ -493,14 +497,26 @@ function showHomePage() {
 
 async function loadExistingProfiles() {
     const container = document.getElementById('existingProfiles');
-    container.innerHTML = '';
+    if (!container) {
+        console.error('Container existingProfiles non trouvé !');
+        return;
+    }
+    
+    container.innerHTML = '<p style="text-align: center;">Chargement des profils...</p>';
     
     try {
-        // Récupérer TOUS les profils depuis l'API
-        const users = await apiGet('/api/users');
+        const response = await fetch('/api/users');
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const users = await response.json();
+        console.log(`${users.length} profils trouvés`);
+        
+        container.innerHTML = ''; // Vider le message de chargement
         
         if (users.length === 0) {
-            return; // Pas de profils existants
+            return;
         }
         
         // Ajouter le séparateur
@@ -509,42 +525,48 @@ async function loadExistingProfiles() {
         divider.textContent = 'ou continuez avec';
         container.appendChild(divider);
         
-        // Afficher chaque profil
+        // Afficher chaque profil (sans attendre les stats)
         for (const user of users) {
-            try {
-                const stats = await apiGet(`/api/users/${user.id}/stats`);
-                
-                const profileBtn = document.createElement('button');
-                profileBtn.className = 'profile-btn';
-                profileBtn.onclick = () => {
-                    currentUser = user;
-                    localStorage.setItem('fitness_user_id', user.id);
-                    showMainInterface();
-                };
-                
-                const age = new Date().getFullYear() - new Date(user.birth_date).getFullYear();
-                
-                profileBtn.innerHTML = `
-                    <div class="profile-avatar">${user.name[0].toUpperCase()}</div>
-                    <div class="profile-info">
-                        <div class="profile-name">${user.name}</div>
-                        <div class="profile-details">
-                            <div class="profile-stats">
-                                <span class="profile-stat">🎂 ${age} ans</span>
-                                <span class="profile-stat">💪 ${stats.total_workouts} séances</span>
-                            </div>
+            const age = new Date().getFullYear() - new Date(user.birth_date).getFullYear();
+            
+            const profileBtn = document.createElement('button');
+            profileBtn.className = 'profile-btn';
+            profileBtn.onclick = () => {
+                currentUser = user;
+                localStorage.setItem('fitness_user_id', user.id);
+                showMainInterface();
+            };
+            
+            profileBtn.innerHTML = `
+                <div class="profile-avatar">${user.name[0].toUpperCase()}</div>
+                <div class="profile-info">
+                    <div class="profile-name">${user.name}</div>
+                    <div class="profile-details">
+                        <div class="profile-stats">
+                            <span class="profile-stat">🎂 ${age} ans</span>
+                            <span class="profile-stat" id="stats-${user.id}">💪 ... séances</span>
                         </div>
                     </div>
-                `;
-                
-                container.appendChild(profileBtn);
-                
-            } catch (error) {
-                console.error(`Erreur chargement stats pour user ${user.id}:`, error);
-            }
+                </div>
+            `;
+            
+            container.appendChild(profileBtn);
+            
+            // Charger les stats de façon asynchrone
+            apiGet(`/api/users/${user.id}/stats`)
+                .then(stats => {
+                    const statsEl = document.getElementById(`stats-${user.id}`);
+                    if (statsEl) {
+                        statsEl.textContent = `💪 ${stats.total_workouts} séances`;
+                    }
+                })
+                .catch(err => {
+                    console.warn(`Stats non disponibles pour user ${user.id}`, err);
+                });
         }
     } catch (error) {
         console.error('Erreur chargement des profils:', error);
+        container.innerHTML = '<p style="text-align: center; color: var(--danger);">Erreur de chargement des profils</p>';
     }
 }
 
