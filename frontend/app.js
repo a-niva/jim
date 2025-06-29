@@ -1360,10 +1360,34 @@ function setupProgramWorkout(program) {
     document.getElementById('workoutTitle').textContent = 'Séance programme';
     document.getElementById('exerciseSelection').style.display = 'none';
     
-    // Pour la démo, prendre le premier exercice du programme
-    if (program.exercises && program.exercises.length > 0) {
-        const firstExercise = program.exercises[0];
-        selectExercise({ id: firstExercise.exercise_id, name: firstExercise.exercise_name });
+    // Stocker le programme dans la session
+    currentWorkoutSession.program = program;
+    currentWorkoutSession.programExercises = {};
+    currentWorkoutSession.completedExercisesCount = 0;
+    currentWorkoutSession.type = 'program'; // Important pour les vérifications
+    
+    // Initialiser l'état de chaque exercice
+    program.exercises.forEach((exerciseData, index) => {
+        currentWorkoutSession.programExercises[exerciseData.exercise_id] = {
+            ...exerciseData,
+            completedSets: 0,
+            totalSets: exerciseData.sets || 3,
+            isCompleted: false,
+            isSkipped: false,
+            index: index,
+            startTime: null,
+            endTime: null
+        };
+    });
+    
+    // Afficher la liste des exercices
+    document.getElementById('programExercisesContainer').style.display = 'block';
+    loadProgramExercisesList();
+    
+    // Prendre le premier exercice non complété
+    const firstExercise = program.exercises[0];
+    if (firstExercise) {
+        selectProgramExercise(firstExercise.exercise_id, true);
     }
     
     startWorkoutTimer();
@@ -1564,6 +1588,11 @@ function updateSetsHistory() {
             </div>
         </div>
     `).join('');
+    
+    // Mettre à jour la progression dans la liste si on est en mode programme
+    if (currentWorkoutSession.type === 'program') {
+        loadProgramExercisesList();
+    }
 }
 
 function updateSetsHistoryWithDuration(lastSet) {
@@ -1588,6 +1617,11 @@ function updateSetsHistoryWithDuration(lastSet) {
 }
 
 async function finishExercise() {
+    // Sauvegarder l'état final si programme
+    if (currentExercise && currentWorkoutSession.type === 'program') {
+        await saveCurrentExerciseState();
+    }
+    
     // Arrêter le timer de série
     if (setTimer) {
         clearInterval(setTimer);
@@ -1600,9 +1634,51 @@ async function finishExercise() {
         currentExercise = null;
         currentSet = 1;
     } else {
-        // PROGRAMME: passer à l'exercice suivant
-        currentWorkoutSession.exerciseOrder++;
-        await loadNextProgramExercise();
+        // PROGRAMME: proposer le suivant
+        loadProgramExercisesList();
+        
+        // Trouver le prochain exercice non complété
+        const remainingExercises = currentWorkoutSession.program.exercises.filter(ex => 
+            !currentWorkoutSession.programExercises[ex.exercise_id].isCompleted
+        );
+        
+        if (remainingExercises.length > 0) {
+            const nextExercise = remainingExercises[0];
+            showModal('Exercice terminé !', `
+                <div style="text-align: center;">
+                    <p style="font-size: 1.2rem; margin-bottom: 1rem;">
+                        Excellent travail ! 💪
+                    </p>
+                    <p style="color: var(--text-muted); margin-bottom: 2rem;">
+                        Il reste ${remainingExercises.length} exercice(s) à faire
+                    </p>
+                    <div style="display: flex; gap: 1rem; justify-content: center;">
+                        <button class="btn btn-primary" onclick="selectProgramExercise(${nextExercise.exercise_id}); closeModal();">
+                            Continuer
+                        </button>
+                        <button class="btn btn-secondary" onclick="closeModal();">
+                            Voir la liste
+                        </button>
+                    </div>
+                </div>
+            `);
+        } else {
+            // Tous les exercices sont terminés
+            showModal('Programme complété ! 🎉', `
+                <div style="text-align: center;">
+                    <p style="font-size: 1.2rem; margin-bottom: 2rem;">
+                        Félicitations ! Vous avez terminé tous les exercices !
+                    </p>
+                    <button class="btn btn-primary" onclick="endWorkout(); closeModal();">
+                        Terminer la séance
+                    </button>
+                </div>
+            `);
+        }
+        
+        currentExercise = null;
+        currentSet = 1;
+        document.getElementById('currentExercise').style.display = 'none';
     }
 }
 
@@ -2284,36 +2360,229 @@ function apiDelete(url) {
     });
 }
 
-async function loadProgramExercise() {
+async function loadProgramExercisesList() {
+    if (!currentWorkoutSession.program) return;
+    
+    const timeline = document.getElementById('exercisesTimeline');
+    const progressText = document.getElementById('programProgressText');
+    const progressFill = document.getElementById('programProgressFill');
+    
     try {
-        // Récupérer le programme actif
-        const program = await apiGet(`/api/users/${currentUser.id}/programs/active`);
+        // Récupérer les détails des exercices
+        const exercises = await apiGet(`/api/exercises?user_id=${currentUser.id}`);
         
-        if (!program || !program.exercises || program.exercises.length === 0) {
-            showToast('Aucun programme trouvé', 'error');
-            showExerciseSelection();
+        timeline.innerHTML = '';
+        
+        // Calculer la progression
+        const completedCount = Object.values(currentWorkoutSession.programExercises)
+            .filter(ex => ex.isCompleted).length;
+        const totalCount = currentWorkoutSession.program.exercises.length;
+        
+        progressText.textContent = `${completedCount}/${totalCount} exercices complétés`;
+        progressFill.style.width = `${(completedCount / totalCount) * 100}%`;
+        
+        // Créer les cartes d'exercices
+        currentWorkoutSession.program.exercises.forEach((exerciseData, index) => {
+            const exercise = exercises.find(ex => ex.id === exerciseData.exercise_id);
+            if (!exercise) return;
+            
+            const exerciseState = currentWorkoutSession.programExercises[exerciseData.exercise_id];
+            const isCurrentExercise = currentExercise && currentExercise.id === exerciseData.exercise_id;
+            
+            const item = document.createElement('div');
+            item.className = `exercise-timeline-item ${isCurrentExercise ? 'current' : ''} ${exerciseState.isCompleted ? 'completed' : ''}`;
+            item.style.animationDelay = `${index * 0.1}s`;
+            
+            item.innerHTML = `
+                <div class="timeline-connector">${index + 1}</div>
+                <div class="exercise-timeline-card" onclick="handleExerciseCardClick(${exerciseData.exercise_id})">
+                    ${exerciseState.isCompleted ? '<div class="completed-badge">Terminé</div>' : ''}
+                    <div class="exercise-card-content">
+                        <div class="exercise-card-top">
+                            <div class="exercise-card-info">
+                                <div class="exercise-card-name">${exercise.name}</div>
+                                <div class="exercise-card-muscles">
+                                    ${exercise.muscle_groups.map(muscle => 
+                                        `<span class="muscle-chip">${muscle}</span>`
+                                    ).join('')}
+                                </div>
+                            </div>
+                            <div class="exercise-card-stats">
+                                <div class="sets-progress">${exerciseState.completedSets}/${exerciseState.totalSets}</div>
+                                <div class="sets-label">séries</div>
+                            </div>
+                        </div>
+                        <div class="exercise-card-actions">
+                            ${isCurrentExercise ? 
+                                '<button class="exercise-action-btn primary" disabled>En cours</button>' :
+                                exerciseState.isCompleted ?
+                                '<button class="exercise-action-btn" onclick="event.stopPropagation(); restartExercise(' + exerciseData.exercise_id + ')">Refaire</button>' :
+                                '<button class="exercise-action-btn" onclick="event.stopPropagation(); selectProgramExercise(' + exerciseData.exercise_id + ')">Commencer</button>'
+                            }
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            timeline.appendChild(item);
+        });
+        
+    } catch (error) {
+        console.error('Erreur chargement liste exercices programme:', error);
+    }
+}
+
+function handleExerciseCardClick(exerciseId) {
+    const exerciseState = currentWorkoutSession.programExercises[exerciseId];
+    
+    if (currentExercise && currentExercise.id === exerciseId) {
+        showToast('Vous êtes déjà sur cet exercice', 'info');
+        return;
+    }
+    
+    if (exerciseState.isCompleted) {
+        if (confirm('Cet exercice est déjà terminé. Voulez-vous le refaire ?')) {
+            restartExercise(exerciseId);
+        }
+    } else {
+        selectProgramExercise(exerciseId);
+    }
+}
+
+async function selectProgramExercise(exerciseId, isInitialLoad = false) {
+    if (!currentWorkoutSession.program) return;
+    
+    // Vérifier l'état actuel et demander confirmation si nécessaire
+    if (!isInitialLoad && workoutState.current === WorkoutStates.EXECUTING) {
+        if (!confirm('Une série est en cours. Voulez-vous vraiment changer d\'exercice ?')) {
+            return;
+        }
+    }
+    
+    if (!isInitialLoad && restTimer) {
+        if (!confirm('Vous êtes en période de repos. Voulez-vous vraiment changer d\'exercice ?')) {
+            return;
+        }
+    }
+    
+    // Sauvegarder l'état de l'exercice actuel
+    if (currentExercise && !isInitialLoad) {
+        await saveCurrentExerciseState();
+    }
+    
+    // Nettoyer l'état actuel
+    cleanupCurrentState();
+    
+    try {
+        // Récupérer les détails du nouvel exercice
+        const exercises = await apiGet(`/api/exercises?user_id=${currentUser.id}`);
+        const newExercise = exercises.find(ex => ex.id === exerciseId);
+        
+        if (!newExercise) {
+            showToast('Exercice non trouvé', 'error');
             return;
         }
         
-        // Prendre le premier exercice du programme pour cette séance
-        // TODO: Améliorer la logique pour gérer les différentes séances
-        const exerciseData = program.exercises[0];
+        // Utiliser selectExercise qui existe déjà avec les bons paramètres
+        const exerciseState = currentWorkoutSession.programExercises[exerciseId];
+        exerciseState.startTime = exerciseState.startTime || new Date();
         
-        // Récupérer les détails de l'exercice
-        const exercises = await apiGet(`/api/exercises?user_id=${currentUser.id}`);
-        const exercise = exercises.find(ex => ex.id === exerciseData.exercise_id);
+        // Préparer l'objet exercice avec toutes les propriétés nécessaires
+        const exerciseObj = {
+            id: newExercise.id,
+            name: newExercise.name,
+            instructions: newExercise.instructions,
+            base_rest_time_seconds: newExercise.base_rest_time_seconds,
+            default_reps_min: newExercise.default_reps_min,
+            default_reps_max: newExercise.default_reps_max,
+            default_sets: exerciseState.totalSets,
+            intensity_factor: newExercise.intensity_factor
+        };
         
-        if (exercise) {
-            selectExercise(exercise);
-        } else {
-            showToast('Exercice du programme non trouvé', 'error');
-            showExerciseSelection();
+        // Mettre à jour le nombre de séries déjà complétées
+        currentSet = exerciseState.completedSets + 1;
+        currentWorkoutSession.currentSetNumber = currentSet;
+        currentWorkoutSession.exerciseOrder = exerciseState.index + 1;
+        
+        // Utiliser la fonction selectExercise existante
+        selectExercise(exerciseObj);
+        
+        // Mettre à jour la liste des exercices
+        loadProgramExercisesList();
+        
+        if (!isInitialLoad) {
+            showToast(`Exercice changé : ${newExercise.name}`, 'success');
         }
         
     } catch (error) {
-        console.error('Erreur chargement exercice programme:', error);
-        showExerciseSelection();
+        console.error('Erreur changement exercice:', error);
+        showToast('Erreur lors du changement d\'exercice', 'error');
     }
+}
+
+async function saveCurrentExerciseState() {
+    if (!currentExercise || !currentWorkoutSession.programExercises[currentExercise.id]) return;
+    
+    const exerciseState = currentWorkoutSession.programExercises[currentExercise.id];
+    const completedSetsForThisExercise = currentWorkoutSession.completedSets.filter(
+        s => s.exercise_id === currentExercise.id
+    ).length;
+    
+    exerciseState.completedSets = completedSetsForThisExercise;
+    exerciseState.endTime = new Date();
+    
+    // Vérifier si l'exercice est terminé
+    if (completedSetsForThisExercise >= exerciseState.totalSets) {
+        exerciseState.isCompleted = true;
+        currentWorkoutSession.completedExercisesCount++;
+    }
+}
+
+function cleanupCurrentState() {
+    // Arrêter tous les timers
+    if (setTimer) {
+        clearInterval(setTimer);
+        setTimer = null;
+    }
+    if (restTimer) {
+        clearInterval(restTimer);
+        restTimer = null;
+    }
+    
+    // Cacher les interfaces de feedback/repos
+    document.getElementById('setFeedback').style.display = 'none';
+    document.getElementById('restPeriod').style.display = 'none';
+    
+    // Réinitialiser l'état
+    workoutState = {
+        current: WorkoutStates.IDLE,
+        exerciseStartTime: null,
+        setStartTime: null,
+        restStartTime: null,
+        pendingSetData: null
+    };
+}
+
+async function restartExercise(exerciseId) {
+    const exerciseState = currentWorkoutSession.programExercises[exerciseId];
+    
+    // Réinitialiser l'état de l'exercice
+    exerciseState.completedSets = 0;
+    exerciseState.isCompleted = false;
+    exerciseState.startTime = new Date();
+    exerciseState.endTime = null;
+    
+    // Supprimer les séries de cet exercice de l'historique
+    currentWorkoutSession.completedSets = currentWorkoutSession.completedSets.filter(
+        s => s.exercise_id !== exerciseId
+    );
+    
+    // Mettre à jour le compteur global
+    currentWorkoutSession.completedExercisesCount = Object.values(currentWorkoutSession.programExercises)
+        .filter(ex => ex.isCompleted).length;
+    
+    // Sélectionner l'exercice
+    await selectProgramExercise(exerciseId);
 }
 
 
@@ -3277,3 +3546,6 @@ window.updateSeriesDots = updateSeriesDots;
 window.handleExtraSet = handleExtraSet;
 window.completeRest = completeRest;
 window.playRestSound = playRestSound;
+window.selectProgramExercise = selectProgramExercise;
+window.restartExercise = restartExercise;
+window.handleExerciseCardClick = handleExerciseCardClick;
