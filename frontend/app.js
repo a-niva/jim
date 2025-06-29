@@ -1006,7 +1006,7 @@ async function completeOnboarding() {
         }
         
         // Créer le programme si des zones sont sélectionnées
-        const focusAreas = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))
+        const focusAreas = Array.from(document.querySelectorAll('input[name="focusAreas"]:checked'))
             .map(cb => cb.value);
         
         if (focusAreas.length > 0) {
