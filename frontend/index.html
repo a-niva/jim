@@ -313,8 +313,18 @@
 <div class="current-exercise" id="currentExercise" style="display: none;">
     <!-- Header minimaliste -->
     <div class="exercise-header-modern">
-        <h2 id="exerciseName">Nom de l'exercice</h2>
-        <button class="btn-icon" onclick="changeExercise()">🔄</button>
+        <div class="exercise-title-section">
+            <h2 id="exerciseName">Nom de l'exercice</h2>
+            <p class="exercise-instructions" id="exerciseInstructions"></p>
+        </div>
+        <div class="exercise-actions">
+            <button class="btn-change-exercise" onclick="changeExercise()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 3v6h-6M3 21v-6h6M15 3a9 9 0 00-9 9M9 21a9 9 0 009-9"/>
+                </svg>
+                <span>Changer d'exercice</span>
+            </button>
+        </div>
     </div>
     
     <!-- Carte principale unifiée -->

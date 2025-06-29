@@ -2323,7 +2323,7 @@ async function loadAvailableExercises() {
         const container = document.getElementById('exerciseList');
         
         container.innerHTML = exercises.map(exercise => `
-            <div class="exercise-item" onclick="selectExercise({id: ${exercise.id}, name: '${exercise.name}', instructions: '${exercise.instructions}', base_rest_time_seconds: ${exercise.base_rest_time_seconds || 60}, default_reps_min: ${exercise.default_reps_min}, intensity_factor: ${exercise.intensity_factor || 1.0}})">
+            <div class="exercise-item" onclick="selectExercise({id: ${exercise.id}, name: '${exercise.name.replace(/'/g, "\\'")}', instructions: '${(exercise.instructions || '').replace(/'/g, "\\'")}', base_rest_time_seconds: ${exercise.base_rest_time_seconds || 60}, default_reps_min: ${exercise.default_reps_min || 8}, default_reps_max: ${exercise.default_reps_max || 12}, default_sets: ${exercise.default_sets || 3}, intensity_factor: ${exercise.intensity_factor || 1.0}})">
                 <h4>${exercise.name}</h4>
                 <p>${exercise.muscle_groups.join(', ')} • ${exercise.difficulty}</p>
                 <div class="exercise-meta">
@@ -2871,7 +2871,7 @@ async function validateAndStartRest() {
     transitionTo(WorkoutStates.RESTING);
     
     // Démarrer le repos
-    startRestPeriod(currentExercise.base_rest_time_seconds);
+    startRestPeriod(currentExercise.base_rest_time_seconds || 60);
     resetFeedbackSelection(); 
 }
 

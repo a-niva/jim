@@ -1519,6 +1519,69 @@ select:focus-visible {
     margin: 0;
 }
 
+.exercise-title-section {
+    flex: 1;
+}
+
+.exercise-instructions {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+    line-height: 1.4;
+    max-width: 80%;
+}
+
+.exercise-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+
+.btn-change-exercise {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: var(--text);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.btn-change-exercise:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--primary);
+    color: var(--primary);
+    transform: translateY(-1px);
+}
+
+.btn-change-exercise svg {
+    transition: transform 0.3s ease;
+}
+
+.btn-change-exercise:hover svg {
+    transform: rotate(180deg);
+}
+
+@media (max-width: 640px) {
+    .btn-change-exercise span {
+        display: none;
+    }
+    
+    .btn-change-exercise {
+        padding: 0.75rem;
+    }
+    
+    .exercise-instructions {
+        max-width: 100%;
+    }
+}
+
 .btn-icon {
     background: none;
     border: none;
