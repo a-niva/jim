@@ -18,7 +18,9 @@ let currentWorkoutSession = {
     globalSetCount: 0,
     sessionFatigue: 3,
     completedSets: [],
-    type: 'free'
+    type: 'free',
+    totalRestTime: 0,       // Nouveau: temps total de repos
+    totalSetTime: 0         // Nouveau: temps total des séries
 };
 
 // ===== MACHINE D'ÉTAT SÉANCE =====
@@ -1599,20 +1601,19 @@ function finishExercise() {
 }
 
 function updateRestTimer(seconds) {
-    const minutes = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    const minutes = Math.floor(Math.abs(seconds) / 60);
+    const secs = Math.abs(seconds) % 60;
+    const sign = seconds < 0 ? '-' : '';
     document.getElementById('restTimer').textContent = 
-        `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        `${sign}${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
 function skipRest() {
-    if (confirm('Voulez-vous vraiment ignorer le temps de repos ?')) {
-        if (restTimer) {
-            clearInterval(restTimer);
-            restTimer = null;
-        }
-        completeRest();
+    if (restTimer) {
+        clearInterval(restTimer);
+        restTimer = null;
     }
+    completeRest();
 }
 
 function endRest() {
@@ -1680,103 +1681,67 @@ function showExerciseCompletion() {
     `);
 }
 
+// ===== GESTION DES TIMERS =====
 function startWorkoutTimer() {
-    // Éviter les timers multiples
-    if (workoutTimer) {
-        clearInterval(workoutTimer);
-    }
+    if (workoutTimer) clearInterval(workoutTimer);
     
     const startTime = new Date();
-    
     workoutTimer = setInterval(() => {
         const elapsed = new Date() - startTime;
         const minutes = Math.floor(elapsed / 60000);
         const seconds = Math.floor((elapsed % 60000) / 1000);
-        
         document.getElementById('workoutTimer').textContent = 
             `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     }, 1000);
 }
 
 function startSetTimer() {
-    // Réinitialiser à 00:00
-    const timerEl = document.getElementById('setTimer');
-    if (timerEl) {
-        timerEl.textContent = '00:00';
-    }
-    
-    // Arrêter tout timer existant
-    if (setTimer) {
-        clearInterval(setTimer);
-    }
+    if (setTimer) clearInterval(setTimer);
     
     const startTime = new Date();
-    
     setTimer = setInterval(() => {
         const elapsed = new Date() - startTime;
         const minutes = Math.floor(elapsed / 60000);
         const seconds = Math.floor((elapsed % 60000) / 1000);
-        
-        if (timerEl) {
-            timerEl.textContent = 
-                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        }
+        document.getElementById('setTimer').textContent = 
+            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     }, 1000);
 }
 
+// ===== FIN DE SÉANCE =====
 async function endWorkout() {
     if (!confirm('Êtes-vous sûr de vouloir terminer cette séance ?')) return;
     
     try {
-        await apiPut(`/api/workouts/${currentWorkout.id}/complete`);
+        // Arrêter tous les timers
+        if (workoutTimer) clearInterval(workoutTimer);
+        if (setTimer) clearInterval(setTimer);
+        if (restTimer) clearInterval(restTimer);
         
-        // Nettoyer tous les timers
-        if (workoutTimer) {
-            clearInterval(workoutTimer);
-            if (setTimer) {
-                clearInterval(setTimer);
-                setTimer = null;
-            }
-            workoutTimer = null;
-        }
-        if (restTimer) {
-            clearInterval(restTimer);
-            restTimer = null;
-        }
+        // Calculer le temps total
+        const totalDuration = currentWorkoutSession.totalSetTime + currentWorkoutSession.totalRestTime;
         
-        // Réinitialiser l'état de la séance MAIS PAS currentUser
+        // Enregistrer la séance comme terminée
+        await apiPut(`/api/workouts/${currentWorkout.id}/complete`, {
+            total_duration: totalDuration,
+            total_rest_time: currentWorkoutSession.totalRestTime
+        });
+        
+        // Réinitialiser l'état
         clearWorkoutState();
-        currentWorkout = null;
-        currentExercise = null;
-        currentSet = 1;
-        workoutState = {
-            current: WorkoutStates.IDLE,
-            exerciseStartTime: null,
-            setStartTime: null,
-            restStartTime: null,
-            pendingSetData: null
-        };
-        currentWorkoutSession = {
-            workout: null,
-            currentExercise: null,
-            currentSetNumber: 1,
-            exerciseOrder: 1,
-            globalSetCount: 0,
-            sessionFatigue: 3,
-            completedSets: [],
-            type: 'free'
-        };
-        // NE PAS TOUCHER À currentUser !
         
-        showToast('Séance terminée ! Bravo ! 🎉', 'success');
+        // Retour au dashboard
         showView('dashboard');
         loadDashboard();
+        showToast('Séance terminée ! Bravo ! 🎉', 'success');
         
     } catch (error) {
         console.error('Erreur fin de séance:', error);
         showToast('Erreur lors de la fin de séance', 'error');
     }
 }
+
+
 
 // ===== STATISTIQUES =====
 async function loadStats() {
@@ -2076,6 +2041,12 @@ function showToast(message, type = 'info') {
     setTimeout(() => {
         toast.remove();
     }, 3000);
+}
+
+function formatTime(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
 function formatDate(date) {
@@ -2465,11 +2436,28 @@ function loadWorkoutState() {
 }
 
 function clearWorkoutState() {
-    localStorage.removeItem('fitness_workout_state');
-    sessionStorage.removeItem('pausedWorkoutTime');
-    sessionStorage.removeItem('pausedSetTime');
-    sessionStorage.removeItem('availableWeights');
-    sessionStorage.removeItem('pendingExtraSet');
+    currentWorkout = null;
+    currentExercise = null;
+    currentSet = 1;
+    workoutState = {
+        current: WorkoutStates.IDLE,
+        exerciseStartTime: null,
+        setStartTime: null,
+        restStartTime: null,
+        pendingSetData: null
+    };
+    currentWorkoutSession = {
+        workout: null,
+        currentExercise: null,
+        currentSetNumber: 1,
+        exerciseOrder: 1,
+        globalSetCount: 0,
+        sessionFatigue: 3,
+        completedSets: [],
+        type: 'free',
+        totalRestTime: 0,
+        totalSetTime: 0
+    };
 }
 
 // ===== AMÉLIORATIONS DE L'INTERFACE =====
@@ -2725,32 +2713,32 @@ function adjustReps(delta) {
     repsElement.textContent = Math.max(1, current + delta);
 }
 
-function executeSet() {
-    // Éviter les double-clics
-    if (workoutState.current !== WorkoutStates.READY) {
-        return;
-    }
+// ===== EXÉCUTION D'UNE SÉRIE =====
+async function executeSet() {
     if (!validateSessionState()) return;
     
-    // ARRÊT DU TIMER DE SÉRIE
+    // Arrêter le timer de série et enregistrer sa durée
     if (setTimer) {
+        const setTime = getSetTimerSeconds();
+        currentWorkoutSession.totalSetTime += setTime;
         clearInterval(setTimer);
         setTimer = null;
     }
     
-    // Sauvegarder les valeurs de la série
-    const reps = parseInt(document.getElementById('setReps').textContent);
-    const weight = parseFloat(document.getElementById('setWeight').textContent);
-    workoutState.pendingSetData = { reps, weight };
-    
-    // Cacher le bouton ✅
-    document.getElementById('executeSetBtn').style.display = 'none';
-    
-    // Afficher le feedback
-    document.getElementById('setFeedback').style.display = 'block';
+    // Sauvegarder les données de la série
+    workoutState.pendingSetData = {
+        reps: parseInt(document.getElementById('setReps').textContent),
+        weight: parseFloat(document.getElementById('setWeight').textContent)
+    };
     
     // Transition vers FEEDBACK
     transitionTo(WorkoutStates.FEEDBACK);
+}
+
+function getSetTimerSeconds() {
+    const timerText = document.getElementById('setTimer').textContent;
+    const [minutes, seconds] = timerText.split(':').map(Number);
+    return minutes * 60 + seconds;
 }
 
 function selectFatigue(button, value) {
@@ -2795,51 +2783,38 @@ function selectEffort(button, value) {
     }
 }
 
+// ===== VALIDATION DU FEEDBACK =====
 async function validateAndStartRest() {
     const fatigue = document.querySelector('.emoji-btn[data-fatigue].selected')?.dataset.fatigue;
     const effort = document.querySelector('.emoji-btn[data-effort].selected')?.dataset.effort;
     
-    if (!fatigue || !effort) return;
+    if (!fatigue || !effort) {
+        showToast('Veuillez indiquer fatigue et effort', 'warning');
+        return;
+    }
     
     // Compléter les données de la série
     const setData = {
         ...workoutState.pendingSetData,
         exercise_id: currentExercise.id,
         set_number: currentSet,
-        base_rest_time_seconds: currentExercise.base_rest_time_seconds || 90,
         fatigue_level: parseInt(fatigue),
-        effort_level: parseInt(effort),
-        exercise_order_in_session: currentWorkoutSession.exerciseOrder,
-        set_order_in_session: currentWorkoutSession.globalSetCount + 1
+        effort_level: parseInt(effort)
     };
     
-    try {
-        // Enregistrer la série
-        await apiPost(`/api/workouts/${currentWorkout.id}/sets`, setData);
-        
-        currentWorkoutSession.completedSets.push(setData);
-        currentWorkoutSession.globalSetCount++;
-        currentWorkoutSession.currentSetEffort = parseInt(effort);
-        
-        // Cacher le feedback
-        document.getElementById('setFeedback').style.display = 'none';
-        
-        // Calculer le temps de repos adaptatif
-        const adaptiveRestTime = calculateAdaptiveRestTime(
-            currentExercise,
-            parseInt(fatigue),
-            parseInt(effort),
-            currentSet
-        );
-        
-        // LANCER LE REPOS AUTOMATIQUEMENT
-        transitionTo(WorkoutStates.RESTING);
-        startRestPeriod(adaptiveRestTime);
-        
-    } catch (error) {
-        console.error('Erreur enregistrement série:', error);
-        showToast('Erreur lors de l\'enregistrement', 'error');
-    }
+    // Enregistrer la série
+    await apiPost(`/api/workouts/${currentWorkout.id}/sets`, setData);
+    currentWorkoutSession.completedSets.push(setData);
+    currentWorkoutSession.globalSetCount++;
+    
+    // Mettre à jour l'historique
+    updateSetsHistory();
+    
+    // Transition vers RESTING
+    transitionTo(WorkoutStates.RESTING);
+    
+    // Démarrer le repos
+    startRestPeriod(currentExercise.base_rest_time_seconds);
 }
 
 function setFatigue(exerciseId, value) {
@@ -2908,93 +2883,65 @@ async function validateSet() {
     }
 }
 
-function startRestTimer(duration) {
+// ===== GESTION DU REPOS =====
+function startRestPeriod(duration) {
     let timeLeft = duration;
-    const initialTime = duration;
-    
-    // Mise à jour immédiate
     updateRestTimer(timeLeft);
-    document.getElementById('restProgressFill').style.width = '0%';
-    
-    // Préparer le texte de la prochaine série
-    const isLastSet = currentSet >= currentWorkoutSession.totalSets;
-    document.getElementById('nextSetInfo').textContent = isLastSet ? 
-        'Exercice suivant' : `Série ${currentSet + 1} - ${currentExercise.name}`;
-    
-    // Sons de début
-    playRestSound('start');
     
     restTimer = setInterval(() => {
         timeLeft--;
+        currentWorkoutSession.totalRestTime++;
         updateRestTimer(timeLeft);
         
-        // Barre de progression
-        const progress = ((initialTime - timeLeft) / initialTime) * 100;
-        document.getElementById('restProgressFill').style.width = `${progress}%`;
-        
-        // Alertes sonores
-        if (timeLeft === 10) {
-            playRestSound('warning');
-        }
-        
-        if (timeLeft <= 0) {
-            clearInterval(restTimer);
-            restTimer = null;
-            playRestSound('end');
-            completeRest();
+        // Mise à jour de la barre de progression
+        const progressFill = document.getElementById('restProgressFill');
+        if (progressFill) {
+            const progress = ((duration - timeLeft) / duration) * 100;
+            progressFill.style.width = `${progress}%`;
         }
     }, 1000);
 }
 
+// ===== FIN DE SÉRIE =====
 function completeRest() {
-    // 1. Arrêter le timer de repos
     if (restTimer) {
         clearInterval(restTimer);
         restTimer = null;
     }
     
-    // 2. Cacher le panneau de repos
-    document.getElementById('restPeriod').style.display = 'none';
-    
-    // 3. Cacher le feedback (au cas où il serait encore visible)
-    document.getElementById('setFeedback').style.display = 'none';
-    
-    // 4. Réinitialiser les emojis (une seule fois)
-    document.querySelectorAll('.emoji-btn').forEach(btn => {
-        btn.classList.remove('selected');
-        btn.style.backgroundColor = '';
-    });
-    
-    // 5. Vérifier si on continue ou on termine
+    // Transition vers COMPLETED après la dernière série
     if (currentSet >= currentWorkoutSession.totalSets) {
-        // Exercice terminé
         transitionTo(WorkoutStates.COMPLETED);
-        showExerciseCompletion();
+        showSetCompletionOptions();
     } else {
-        // Prochaine série
+        // Passage à la série suivante
         currentSet++;
         currentWorkoutSession.currentSetNumber = currentSet;
         updateSeriesDots();
-        
-        // Mettre à jour le compteur de séries
-        const setProgressEl = document.getElementById('setProgress');
-        if (setProgressEl) {
-            setProgressEl.textContent = `Série ${currentSet}/${currentWorkoutSession.totalSets}`;
-        }
-        
-        // Réafficher le bouton ✅
-        const executeBtn = document.getElementById('executeSetBtn');
-        if (executeBtn) {
-            executeBtn.style.display = 'block';
-            executeBtn.innerHTML = '✅';
-        }
-        
-        updateSetRecommendations();
-        transitionTo(WorkoutStates.READY);
-        
-        // Démarrer le timer de la nouvelle série
         startSetTimer();
+        transitionTo(WorkoutStates.READY);
     }
+}
+
+function showSetCompletionOptions() {
+    const modalContent = `
+        <div style="text-align: center;">
+            <p>${currentSet} séries de ${currentExercise.name} complétées</p>
+            <p>Temps de repos total: ${formatTime(currentWorkoutSession.totalRestTime)}</p>
+            <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; margin-top: 2rem;">
+                <button class="btn btn-secondary" onclick="handleExtraSet(); closeModal();">
+                    Série supplémentaire
+                </button>
+                <button class="btn btn-primary" onclick="finishExercise(); closeModal();">
+                    ${currentWorkout.type === 'free' ? 'Changer d\'exercice' : 'Exercice suivant'}
+                </button>
+                <button class="btn btn-danger" onclick="endWorkout(); closeModal();">
+                    Terminer la séance
+                </button>
+            </div>
+        </div>
+    `;
+    showModal('Exercice terminé', modalContent);
 }
 
 function addExtraSet() {
@@ -3011,45 +2958,25 @@ function addExtraSet() {
     updateSetNavigationButtons();
 }
 
+// ===== GESTION DES SÉRIES SUPPLEMENTAIRES =====
 function handleExtraSet() {
-    // Arrêter le timer de repos s'il tourne encore
-    if (restTimer) {
-        clearInterval(restTimer);
-        restTimer = null;
-    }
-    
-    // Cacher le repos
-    document.getElementById('restPeriod').style.display = 'none';
-    
-    // Ajouter la série supplémentaire
-    if (currentWorkoutSession.totalSets >= currentWorkoutSession.maxSets) {
-        showToast('Nombre maximum de séries atteint', 'warning');
-        return;
-    }
-    
     currentWorkoutSession.totalSets++;
-    currentSet++;
-    currentWorkoutSession.currentSetNumber = currentSet;
+    currentSet = currentWorkoutSession.totalSets;
     
     // Mettre à jour l'interface
     updateSeriesDots();
-    document.getElementById('setProgress').textContent = `Série ${currentSet}/${currentWorkoutSession.totalSets}`;
+    document.getElementById('setProgress').textContent = `Série ${currentSet}`;
     
     // Réinitialiser pour la nouvelle série
     document.getElementById('setFeedback').style.display = 'none';
     document.getElementById('executeSetBtn').style.display = 'block';
     document.querySelectorAll('.emoji-btn').forEach(btn => {
         btn.classList.remove('selected');
-        btn.style.backgroundColor = '';
     });
     
-    updateSetRecommendations();
-    transitionTo(WorkoutStates.READY);
-    
-    // IMPORTANT : Démarrer le timer de la nouvelle série
+    // Démarrer le timer de la nouvelle série
     startSetTimer();
-    
-    showToast(`Série ${currentSet} ajoutée !`, 'success');
+    transitionTo(WorkoutStates.READY);
 }
 
 function previousSet() {
@@ -3117,48 +3044,20 @@ function changeExercise() {
 function addRestTime(seconds) {
     if (!restTimer) return;
     
-    // Récupérer le temps actuel affiché
+    // Récupérer le temps actuel
     const timerEl = document.getElementById('restTimer');
-    if (!timerEl) return;
+    const [mins, secs] = timerEl.textContent.replace('-', '').split(':').map(Number);
+    let currentSeconds = mins * 60 + secs;
     
-    const [minutes, secs] = timerEl.textContent.split(':').map(Number);
-    let currentSeconds = minutes * 60 + secs;
-    
-    // Ajouter le temps
+    // Ajouter du temps
     currentSeconds += seconds;
     
-    // Arrêter le timer actuel
+    // Redémarrer le timer avec le nouveau temps
     clearInterval(restTimer);
-    
-    // Redémarrer avec le nouveau temps
-    let timeLeft = currentSeconds;
-    const initialTime = timeLeft;
-    
-    updateRestTimer(timeLeft);
-    
-    restTimer = setInterval(() => {
-        timeLeft--;
-        updateRestTimer(timeLeft);
-        
-        // Barre de progression
-        const progress = ((initialTime - timeLeft) / initialTime) * 100;
-        document.getElementById('restProgressFill').style.width = `${progress}%`;
-        
-        // Alertes sonores
-        if (timeLeft === 10) {
-            playRestSound('warning');
-        }
-        
-        if (timeLeft <= 0) {
-            clearInterval(restTimer);
-            restTimer = null;
-            playRestSound('end');
-            completeRest();
-        }
-    }, 1000);
-    
+    startRestPeriod(currentSeconds);
     showToast('+30 secondes ajoutées', 'info');
 }
+
 
 let isPaused = false;
 let pausedTime = null;
