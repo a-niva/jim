@@ -2,6 +2,7 @@
 // Version refactorisée simplifiée
 
 // ===== ÉTAT GLOBAL =====
+let setTimer = null; 
 let currentUser = null;
 let currentWorkout = null;
 let currentExercise = null;
@@ -1364,6 +1365,8 @@ async function selectExercise(exercise) {
     
     // Transition vers READY
     transitionTo(WorkoutStates.READY);
+    // Démarrer le timer de la première série
+    startSetTimer();
 }
 
 function updateSeriesDots() {
@@ -1662,6 +1665,32 @@ function startWorkoutTimer() {
     }, 1000);
 }
 
+function startSetTimer() {
+    // Réinitialiser à 00:00
+    const timerEl = document.getElementById('workoutTimer');
+    if (timerEl) {
+        timerEl.textContent = '00:00';
+    }
+    
+    // Arrêter tout timer existant
+    if (setTimer) {
+        clearInterval(setTimer);
+    }
+    
+    const startTime = new Date();
+    
+    setTimer = setInterval(() => {
+        const elapsed = new Date() - startTime;
+        const minutes = Math.floor(elapsed / 60000);
+        const seconds = Math.floor((elapsed % 60000) / 1000);
+        
+        if (timerEl) {
+            timerEl.textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+    }, 1000);
+}
+
 async function endWorkout() {
     if (!confirm('Êtes-vous sûr de vouloir terminer cette séance ?')) return;
     
@@ -1671,6 +1700,10 @@ async function endWorkout() {
         // Nettoyer tous les timers
         if (workoutTimer) {
             clearInterval(workoutTimer);
+            if (setTimer) {
+                clearInterval(setTimer);
+                setTimer = null;
+            }
             workoutTimer = null;
         }
         if (restTimer) {
@@ -2657,41 +2690,26 @@ function adjustReps(delta) {
 function executeSet() {
     if (!validateSessionState()) return;
     
-    // DÉBUT DU CHRONO D'EXERCICE - Dès le clic sur ✅
-    workoutState.setStartTime = new Date();
-    
-    // Arrêter le timer global temporairement
-    if (workoutTimer) {
-        clearInterval(workoutTimer);
-        const timerEl = document.getElementById('workoutTimer');
-        sessionStorage.setItem('pausedWorkoutTime', timerEl.textContent);
-        
-        // Récupérer le temps déjà écoulé
-        const [minutes, seconds] = timerEl.textContent.split(':').map(Number);
-        const elapsedSeconds = minutes * 60 + seconds;
-        const workoutStartTime = new Date() - (elapsedSeconds * 1000);
-        
-        // Continuer le timer même pendant l'exécution
-        workoutTimer = setInterval(() => {
-            const elapsed = new Date() - workoutStartTime;
-            const mins = Math.floor(elapsed / 60000);
-            const secs = Math.floor((elapsed % 60000) / 1000);
-            
-            document.getElementById('workoutTimer').textContent = 
-                `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-        }, 1000);
+    // ARRÊT DU TIMER DE SÉRIE
+    if (setTimer) {
+        clearInterval(setTimer);
+        setTimer = null;
     }
+    
+    // Sauvegarder le temps de la série
+    const timerEl = document.getElementById('workoutTimer');
+    const serieTime = timerEl ? timerEl.textContent : '00:00';
+    workoutState.setStartTime = serieTime; // Stocker le temps pour l'affichage
     
     // Sauvegarder les valeurs
     const reps = parseInt(document.getElementById('setReps').textContent);
     const weight = parseFloat(document.getElementById('setWeight').textContent);
     workoutState.pendingSetData = { reps, weight };
-  
     
-    // Afficher un indicateur visuel que le chrono tourne
+    // Afficher un indicateur visuel
     const executeBtn = document.getElementById('executeSetBtn');
     if (executeBtn) {
-        executeBtn.innerHTML = '⏱️ En cours...';
+        executeBtn.innerHTML = '⏱️ Terminé';
         executeBtn.disabled = true;
     }
     
@@ -2952,6 +2970,8 @@ function completeRest() {
         
         updateSetRecommendations();
         transitionTo(WorkoutStates.READY);
+        // Démarrer le timer de la nouvelle série
+        startSetTimer();
     }
 }
 
