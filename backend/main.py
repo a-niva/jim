@@ -151,8 +151,14 @@ def clear_user_history(user_id: int, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
     
-    # Supprimer toutes les séances et leurs sets
-    db.query(Workout).filter(Workout.user_id == user_id).delete()
+    # Supprimer d'abord les sets, puis les workouts (contrainte clé étrangère)
+    workout_ids = db.query(Workout.id).filter(Workout.user_id == user_id).all()
+    workout_ids = [w.id for w in workout_ids]
+    
+    if workout_ids:
+        db.query(WorkoutSet).filter(WorkoutSet.workout_id.in_(workout_ids)).delete(synchronize_session=False)
+        db.query(Workout).filter(Workout.user_id == user_id).delete(synchronize_session=False)
+    
     db.commit()
     return {"message": "Historique vidé avec succès"}
 
