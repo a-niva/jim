@@ -1376,6 +1376,7 @@ function setupProgramWorkout(program) {
     currentWorkoutSession.programExercises = {};
     currentWorkoutSession.completedExercisesCount = 0;
     currentWorkoutSession.type = 'program'; // Important pour les vérifications
+    currentWorkoutSession.exerciseOrder = 0; // Initialisé à 0, sera incrémenté à 1 lors de la sélection
     
     // Initialiser l'état de chaque exercice
     program.exercises.forEach((exerciseData, index) => {
@@ -1429,6 +1430,9 @@ async function selectExercise(exercise) {
     updateSeriesDots();
     await updateSetRecommendations();
     
+    // Mettre à jour les compteurs d'en-tête
+    updateHeaderProgress();
+    
     // Transition vers READY
     transitionTo(WorkoutStates.READY);
     // Démarrer le timer de la première série
@@ -1451,6 +1455,52 @@ function updateSeriesDots() {
             dot.classList.add('active');
         }
         dotsContainer.appendChild(dot);
+    }
+}
+
+function updateHeaderProgress() {
+    // Mettre à jour le compteur de série
+    const setProgressEl = document.getElementById('setProgress');
+    if (setProgressEl) {
+        setProgressEl.textContent = `Série ${currentSet}/${currentWorkoutSession.totalSets}`;
+    }
+    
+    // Mettre à jour le compteur d'exercice (pour le mode programme)
+    if (currentWorkoutSession.type === 'program' && currentWorkoutSession.program) {
+        const exerciseProgressEl = document.getElementById('exerciseProgress');
+        if (exerciseProgressEl) {
+            const totalExercises = currentWorkoutSession.program.exercises.length;
+            const currentExerciseIndex = currentWorkoutSession.exerciseOrder || 1;
+            exerciseProgressEl.textContent = `Exercice ${currentExerciseIndex}/${totalExercises}`;
+        }
+    }
+    
+    // Mettre à jour la liste du programme si visible
+    if (currentWorkoutSession.type === 'program') {
+        updateProgramExerciseProgress();
+    }
+}
+
+function updateProgramExerciseProgress() {
+    if (!currentWorkoutSession.programExercises) return;
+    
+    // Recharger simplement toute la liste pour mettre à jour les compteurs
+    loadProgramExercisesList();
+    
+    // Mettre à jour le compteur global
+    const programProgressText = document.getElementById('programProgressText');
+    if (programProgressText) {
+        const completedCount = Object.values(currentWorkoutSession.programExercises)
+            .filter(ex => ex.isCompleted).length;
+        const totalCount = Object.keys(currentWorkoutSession.programExercises).length;
+        programProgressText.textContent = `${completedCount}/${totalCount} exercices complétés`;
+        
+        // Mettre à jour la barre de progression
+        const progressFill = document.getElementById('programProgressFill');
+        if (progressFill) {
+            const percentage = (completedCount / totalCount) * 100;
+            progressFill.style.width = `${percentage}%`;
+        }
     }
 }
 
@@ -1651,7 +1701,18 @@ async function finishExercise() {
         currentExercise = null;
         currentSet = 1;
     } else {
-        // PROGRAMME: proposer le suivant
+        // PROGRAMME: retourner à la liste
+        document.getElementById('currentExercise').style.display = 'none';
+        currentExercise = null;
+        currentSet = 1;
+        
+        // Mettre à jour la progression
+        updateProgramExerciseProgress();
+        
+        // Afficher la liste des exercices
+        document.getElementById('programExercisesContainer').style.display = 'block';
+        
+        // Continuer avec la logique existante
         loadProgramExercisesList();
         
         // Trouver le prochain exercice non complété
@@ -1673,7 +1734,7 @@ async function finishExercise() {
                         <button class="btn btn-primary" onclick="selectProgramExercise(${nextExercise.exercise_id}); closeModal();">
                             Continuer
                         </button>
-                        <button class="btn btn-secondary" onclick="closeModal();">
+                        <button class="btn btn-secondary" onclick="closeModal(); showProgramExerciseList();">
                             Voir la liste
                         </button>
                     </div>
@@ -2523,7 +2584,12 @@ async function selectProgramExercise(exerciseId, isInitialLoad = false) {
         currentSet = exerciseState.completedSets + 1;
         currentWorkoutSession.currentSetNumber = currentSet;
         currentWorkoutSession.exerciseOrder = exerciseState.index + 1;
-        
+
+        // S'assurer que l'exerciseOrder est bien propagé
+        if (!currentWorkoutSession.exerciseOrder) {
+            currentWorkoutSession.exerciseOrder = 1;
+        }
+                
         // Utiliser la fonction selectExercise existante
         selectExercise(exerciseObj);
         
@@ -3221,6 +3287,14 @@ async function validateSet() {
             currentWorkoutSession.completedSets.push(workoutState.pendingSetData);
             currentWorkoutSession.globalSetCount++;
             
+            // Mettre à jour les compteurs immédiatement
+            updateHeaderProgress();
+
+            // Mettre à jour la progression du programme si applicable
+            if (currentWorkoutSession.type === 'program') {
+                updateProgramExerciseProgress();
+            }
+            
             // Cacher le feedback
             document.getElementById('setFeedback').style.display = 'none';
             
@@ -3291,6 +3365,13 @@ function completeRest() {
         currentWorkoutSession.currentSetNumber = currentSet;
         updateSeriesDots();
         
+        // Mettre à jour les compteurs d'en-tête
+        updateHeaderProgress();
+        // Mettre à jour la progression du programme si applicable
+        if (currentWorkoutSession.type === 'program') {
+            updateProgramExerciseProgress();
+        }
+            
         // Réafficher les inputs pour la nouvelle série
         const inputSection = document.querySelector('.input-section');
         if (inputSection) {
@@ -3537,6 +3618,13 @@ function abandonWorkout() {
     }
 }
 
+function showProgramExerciseList() {
+    if (currentWorkoutSession.type === 'program') {
+        document.getElementById('currentExercise').style.display = 'none';
+        document.getElementById('programExercisesContainer').style.display = 'block';
+        loadProgramExercisesList();
+    }
+}
 
 
 // ===== EXPOSITION GLOBALE =====
@@ -3587,3 +3675,9 @@ window.playRestSound = playRestSound;
 window.selectProgramExercise = selectProgramExercise;
 window.restartExercise = restartExercise;
 window.handleExerciseCardClick = handleExerciseCardClick;
+window.selectProgramExercise = selectProgramExercise;
+window.restartExercise = restartExercise;
+window.handleExerciseCardClick = handleExerciseCardClick;
+window.showProgramExerciseList = showProgramExerciseList;
+window.updateHeaderProgress = updateHeaderProgress;
+window.updateProgramExerciseProgress = updateProgramExerciseProgress;
