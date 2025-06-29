@@ -4,7 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, cast, text
+from sqlalchemy.dialects.postgresql import JSONB
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 from contextlib import asynccontextmanager
@@ -165,12 +166,11 @@ def get_exercises(
 ):
     """Récupérer les exercices disponibles, filtrés par équipement utilisateur"""
     query = db.query(Exercise)
-    
+        
     if muscle_group:
-        from sqlalchemy import text
         query = query.filter(
-            text("muscle_groups::jsonb @> :muscle_group")
-        ).params(muscle_group=json.dumps([muscle_group]))
+            cast(Exercise.muscle_groups, JSONB).contains([muscle_group])
+        )
     
     exercises = query.all()
     
@@ -245,9 +245,8 @@ def generate_program_exercises(user: User, program: ProgramCreate, db: Session) 
     # Récupérer exercices par zone focus
     all_exercises = []
     for focus_area in program.focus_areas:
-        from sqlalchemy import func
         muscle_exercises = db.query(Exercise).filter(
-            Exercise.muscle_groups.op('@>')([focus_area])
+            cast(Exercise.muscle_groups, JSONB).contains([focus_area])
         ).all()
         
         # Filtrer par équipement disponible et niveau d'expérience
