@@ -2433,6 +2433,10 @@ function loadWorkoutState() {
 
 function clearWorkoutState() {
     localStorage.removeItem('fitness_workout_state');
+    sessionStorage.removeItem('pausedWorkoutTime');
+    sessionStorage.removeItem('pausedSetTime');
+    sessionStorage.removeItem('availableWeights');
+    sessionStorage.removeItem('pendingExtraSet');
 }
 
 // ===== AMÉLIORATIONS DE L'INTERFACE =====
@@ -2688,6 +2692,10 @@ function adjustReps(delta) {
 }
 
 function executeSet() {
+    // Éviter les double-clics
+    if (workoutState.current !== WorkoutStates.READY) {
+        return;
+    }
     if (!validateSessionState()) return;
     
     // ARRÊT DU TIMER DE SÉRIE
@@ -3014,6 +3022,8 @@ function handleExtraSet() {
     
     updateSetRecommendations();
     transitionTo(WorkoutStates.READY);
+    // Démarrer le timer pour la nouvelle série
+    startSetTimer();
     showToast(`Série ${currentSet} ajoutée !`, 'success');
 }
 
@@ -3043,6 +3053,8 @@ function previousSet() {
     // Masquer le feedback et réafficher le bouton GO
     document.getElementById('setFeedback').style.display = 'none';
     document.getElementById('executeSetBtn').style.display = 'block';
+    // Redémarrer le timer pour cette série
+    startSetTimer();
 }
 
 function changeExercise() {
@@ -3057,6 +3069,11 @@ function changeExercise() {
     // Nettoyer les timers
     if (restTimer) {
         clearInterval(restTimer);
+        // Arrêter aussi le timer de série
+        if (setTimer) {
+            clearInterval(setTimer);
+            setTimer = null;
+        }
         restTimer = null;
     }
     
@@ -3130,9 +3147,15 @@ function pauseWorkout() {
             clearInterval(workoutTimer);
             workoutTimer = null;
         }
+        // AJOUTER : Pause du timer de série aussi
+        if (setTimer) {
+            clearInterval(setTimer);
+            setTimer = null;
+        }
         
         // Sauvegarder le temps actuel
         pausedTime = document.getElementById('workoutTimer').textContent;
+        sessionStorage.setItem('pausedSetTime', pausedTime); // Nouveau
         
         // Changer le bouton
         pauseBtn.textContent = '▶️ Reprendre';
@@ -3146,18 +3169,22 @@ function pauseWorkout() {
     } else {
         // Reprendre
         if (pausedTime) {
-            const [minutes, seconds] = pausedTime.split(':').map(Number);
-            const elapsedSeconds = minutes * 60 + seconds;
-            const startTime = new Date() - (elapsedSeconds * 1000);
-            
-            workoutTimer = setInterval(() => {
-                const elapsed = new Date() - startTime;
-                const mins = Math.floor(elapsed / 60000);
-                const secs = Math.floor((elapsed % 60000) / 1000);
+            // Si on est en train de faire une série, reprendre le timer de série
+            if (workoutState.current === WorkoutStates.READY || 
+                workoutState.current === WorkoutStates.EXECUTING) {
+                const [minutes, seconds] = pausedTime.split(':').map(Number);
+                const elapsedSeconds = minutes * 60 + seconds;
+                const startTime = new Date() - (elapsedSeconds * 1000);
                 
-                document.getElementById('workoutTimer').textContent = 
-                    `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-            }, 1000);
+                setTimer = setInterval(() => {
+                    const elapsed = new Date() - startTime;
+                    const mins = Math.floor(elapsed / 60000);
+                    const secs = Math.floor((elapsed % 60000) / 1000);
+                    
+                    document.getElementById('workoutTimer').textContent = 
+                        `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                }, 1000);
+            }
         }
         
         // Changer le bouton
