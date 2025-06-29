@@ -85,11 +85,22 @@ app.add_middleware(
 @app.post("/api/users", response_model=UserResponse)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
     """Créer un nouveau profil utilisateur"""
-    db_user = User(**user.dict())
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return db_user
+    try:
+        logger.info(f"📝 Tentative création user: {user.name}")
+        logger.info(f"🔍 User data: {user.dict()}")
+        
+        db_user = User(**user.dict())
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+        
+        logger.info(f"✅ User créé avec ID: {db_user.id}")
+        return db_user
+    except Exception as e:
+        logger.error(f"❌ Erreur création user: {str(e)}")
+        logger.error(f"🔍 Type erreur: {type(e).__name__}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/users", response_model=List[UserResponse])
 def get_all_users(db: Session = Depends(get_db)):
@@ -156,7 +167,10 @@ def get_exercises(
     query = db.query(Exercise)
     
     if muscle_group:
-        query = query.filter(Exercise.muscle_groups.contains([muscle_group]))
+        from sqlalchemy import text
+        query = query.filter(
+            text("muscle_groups::jsonb @> :muscle_group")
+        ).params(muscle_group=json.dumps([muscle_group]))
     
     exercises = query.all()
     
