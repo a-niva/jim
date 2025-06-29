@@ -372,10 +372,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     } else {
         showHomePage();
-        // Forcer un rechargement différé
-        setTimeout(() => {
+        // S'assurer que la page est complètement chargée avant de charger les profils
+        if (document.readyState === 'complete') {
             loadExistingProfiles();
-        }, 100);
+        } else {
+            window.addEventListener('load', loadExistingProfiles);
+        }
     }
     
     setupEventListeners();
@@ -494,15 +496,27 @@ function showHomePage() {
     
     // Charger les profils existants
     loadExistingProfiles();
+    // Appel de secours si le premier échoue
+    setTimeout(() => {
+        const container = document.getElementById('existingProfiles');
+        if (container && container.innerHTML.trim() === '') {
+            console.log('Rechargement des profils (tentative de secours)');
+            loadExistingProfiles();
+        }
+    }, 1000);
 }
 
 async function loadExistingProfiles() {
     const container = document.getElementById('existingProfiles');
     if (!container) {
         console.error('Container existingProfiles non trouvé !');
+        // Réessayer après un court délai si l'élément n'est pas encore dans le DOM
+        setTimeout(() => loadExistingProfiles(), 500);
         return;
     }
     
+    // S'assurer que le container est visible
+    container.style.display = 'block';
     container.innerHTML = '<p style="text-align: center;">Chargement des profils...</p>';
     
     try {
@@ -517,6 +531,7 @@ async function loadExistingProfiles() {
         container.innerHTML = ''; // Vider le message de chargement
         
         if (users.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: var(--text-muted);">Aucun profil existant</p>';
             return;
         }
         
@@ -526,7 +541,7 @@ async function loadExistingProfiles() {
         divider.textContent = 'ou continuez avec';
         container.appendChild(divider);
         
-        // Afficher chaque profil (sans attendre les stats)
+        // Afficher chaque profil
         for (const user of users) {
             const age = new Date().getFullYear() - new Date(user.birth_date).getFullYear();
             
@@ -567,7 +582,12 @@ async function loadExistingProfiles() {
         }
     } catch (error) {
         console.error('Erreur chargement des profils:', error);
-        container.innerHTML = '<p style="text-align: center; color: var(--danger);">Erreur de chargement des profils</p>';
+        container.innerHTML = `
+            <p style="text-align: center; color: var(--danger);">
+                Erreur de chargement des profils<br>
+                <button class="btn btn-sm btn-secondary" onclick="loadExistingProfiles()">Réessayer</button>
+            </p>
+        `;
     }
 }
 

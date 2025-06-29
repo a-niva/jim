@@ -95,6 +95,7 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
 def get_all_users(db: Session = Depends(get_db)):
     """Récupérer tous les profils utilisateurs"""
     users = db.query(User).all()
+    logger.info(f"Récupération de {len(users)} utilisateurs")  # Ajouter cette ligne
     return users
 
 @app.get("/api/users/{user_id}", response_model=UserResponse)
