@@ -1667,7 +1667,7 @@ function startWorkoutTimer() {
 
 function startSetTimer() {
     // Réinitialiser à 00:00
-    const timerEl = document.getElementById('workoutTimer');
+    const timerEl = document.getElementById('setTimer');
     if (timerEl) {
         timerEl.textContent = '00:00';
     }
@@ -2705,7 +2705,7 @@ function executeSet() {
     }
     
     // Sauvegarder le temps de la série
-    const timerEl = document.getElementById('workoutTimer');
+    const timerEl = document.getElementById('setTimer');
     const serieTime = timerEl ? timerEl.textContent : '00:00';
     workoutState.setStartTime = serieTime; // Stocker le temps pour l'affichage
     
@@ -3147,15 +3147,14 @@ function pauseWorkout() {
             clearInterval(workoutTimer);
             workoutTimer = null;
         }
-        // AJOUTER : Pause du timer de série aussi
         if (setTimer) {
             clearInterval(setTimer);
             setTimer = null;
         }
         
-        // Sauvegarder le temps actuel
-        pausedTime = document.getElementById('workoutTimer').textContent;
-        sessionStorage.setItem('pausedSetTime', pausedTime); // Nouveau
+        // Sauvegarder les deux temps actuels
+        sessionStorage.setItem('pausedWorkoutTime', document.getElementById('workoutTimer').textContent);
+        sessionStorage.setItem('pausedSetTime', document.getElementById('setTimer').textContent);
         
         // Changer le bouton
         pauseBtn.textContent = '▶️ Reprendre';
@@ -3168,20 +3167,39 @@ function pauseWorkout() {
         
     } else {
         // Reprendre
-        if (pausedTime) {
-            // Si on est en train de faire une série, reprendre le timer de série
-            if (workoutState.current === WorkoutStates.READY || 
-                workoutState.current === WorkoutStates.EXECUTING) {
-                const [minutes, seconds] = pausedTime.split(':').map(Number);
+        
+        // Reprendre le timer de séance
+        const pausedWorkoutTime = sessionStorage.getItem('pausedWorkoutTime');
+        if (pausedWorkoutTime) {
+            const [minutes, seconds] = pausedWorkoutTime.split(':').map(Number);
+            const elapsedSeconds = minutes * 60 + seconds;
+            const workoutStartTime = new Date() - (elapsedSeconds * 1000);
+            
+            workoutTimer = setInterval(() => {
+                const elapsed = new Date() - workoutStartTime;
+                const mins = Math.floor(elapsed / 60000);
+                const secs = Math.floor((elapsed % 60000) / 1000);
+                
+                document.getElementById('workoutTimer').textContent = 
+                    `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+        
+        // Reprendre le timer de série SI on est en train de faire une série
+        if (workoutState.current === WorkoutStates.READY || 
+            workoutState.current === WorkoutStates.EXECUTING) {
+            const pausedSetTime = sessionStorage.getItem('pausedSetTime');
+            if (pausedSetTime) {
+                const [minutes, seconds] = pausedSetTime.split(':').map(Number);
                 const elapsedSeconds = minutes * 60 + seconds;
-                const startTime = new Date() - (elapsedSeconds * 1000);
+                const setStartTime = new Date() - (elapsedSeconds * 1000);
                 
                 setTimer = setInterval(() => {
-                    const elapsed = new Date() - startTime;
+                    const elapsed = new Date() - setStartTime;
                     const mins = Math.floor(elapsed / 60000);
                     const secs = Math.floor((elapsed % 60000) / 1000);
                     
-                    document.getElementById('workoutTimer').textContent = 
+                    document.getElementById('setTimer').textContent = 
                         `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
                 }, 1000);
             }
