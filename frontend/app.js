@@ -1586,26 +1586,80 @@ function updateSetsHistoryWithDuration(lastSet) {
     }).join('');
 }
 
-function finishExercise() {
-    document.getElementById('currentExercise').style.display = 'none';
-    
-    if (currentWorkout.type === 'free') {
-        document.getElementById('exerciseSelection').style.display = 'block';
-    } else {
-        // Programme: passer à l'exercice suivant ou terminer
-        showToast('Exercice terminé ! Prêt pour le suivant ?', 'success');
+async function finishExercise() {
+    // Arrêter le timer de série
+    if (setTimer) {
+        clearInterval(setTimer);
+        setTimer = null;
     }
     
-    currentExercise = null;
-    currentSet = 1;
+    if (currentWorkout.type === 'free') {
+        document.getElementById('currentExercise').style.display = 'none';
+        document.getElementById('exerciseSelection').style.display = 'block';
+        currentExercise = null;
+        currentSet = 1;
+    } else {
+        // PROGRAMME: passer à l'exercice suivant
+        currentWorkoutSession.exerciseOrder++;
+        await loadNextProgramExercise();
+    }
+}
+
+async function loadNextProgramExercise() {
+    try {
+        const program = await apiGet(`/api/users/${currentUser.id}/programs/active`);
+        
+        if (!program || currentWorkoutSession.exerciseOrder > program.exercises.length) {
+            showToast('Félicitations, vous avez terminé le programme !', 'success');
+            endWorkout();
+            return;
+        }
+        
+        const nextExerciseData = program.exercises[currentWorkoutSession.exerciseOrder - 1];
+        const exercises = await apiGet(`/api/exercises?user_id=${currentUser.id}`);
+        const nextExercise = exercises.find(ex => ex.id === nextExerciseData.exercise_id);
+        
+        if (nextExercise) {
+            // Réinitialiser les états pour le nouvel exercice
+            currentSet = 1;
+            currentExercise = nextExercise;
+            currentWorkoutSession.currentSetNumber = 1;
+            currentWorkoutSession.totalSets = nextExercise.default_sets || 3;
+            
+            // Mettre à jour l'interface
+            document.getElementById('exerciseName').textContent = nextExercise.name;
+            document.getElementById('setProgress').textContent = 
+                `Exercice ${currentWorkoutSession.exerciseOrder}/${program.exercises.length} • Série ${currentSet}`;
+            
+            updateSeriesDots();
+            await updateSetRecommendations();
+            
+            // Démarrer le nouveau timer de série
+            startSetTimer();
+            transitionTo(WorkoutStates.READY);
+        }
+    } catch (error) {
+        console.error('Erreur chargement exercice suivant:', error);
+        showToast('Erreur lors du chargement du prochain exercice', 'error');
+    }
 }
 
 function updateRestTimer(seconds) {
-    const minutes = Math.floor(Math.abs(seconds) / 60);
-    const secs = Math.abs(seconds) % 60;
+    // Remplacer tout le contenu par :
+    const absSeconds = Math.abs(seconds);
+    const mins = Math.floor(absSeconds / 60);
+    const secs = absSeconds % 60;
     const sign = seconds < 0 ? '-' : '';
     document.getElementById('restTimer').textContent = 
-        `${sign}${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        `${sign}${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+function resetFeedbackSelection() {
+    // Désélectionner tous les boutons
+    document.querySelectorAll('.emoji-btn.selected').forEach(btn => {
+        btn.classList.remove('selected');
+        btn.style.backgroundColor = '';
+    });
 }
 
 function skipRest() {
@@ -1697,6 +1751,9 @@ function startWorkoutTimer() {
 
 function startSetTimer() {
     if (setTimer) clearInterval(setTimer);
+    
+    // Réinitialiser l'affichage à 00:00
+    document.getElementById('setTimer').textContent = '00:00';
     
     const startTime = new Date();
     setTimer = setInterval(() => {
@@ -2815,6 +2872,7 @@ async function validateAndStartRest() {
     
     // Démarrer le repos
     startRestPeriod(currentExercise.base_rest_time_seconds);
+    resetFeedbackSelection(); 
 }
 
 function setFatigue(exerciseId, value) {
@@ -2977,6 +3035,7 @@ function handleExtraSet() {
     // Démarrer le timer de la nouvelle série
     startSetTimer();
     transitionTo(WorkoutStates.READY);
+    resetFeedbackSelection();
 }
 
 function previousSet() {
