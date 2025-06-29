@@ -1383,6 +1383,7 @@ async function selectExercise(exercise) {
     document.getElementById('exerciseSelection').style.display = 'none';
     document.getElementById('currentExercise').style.display = 'block';
     document.getElementById('exerciseName').textContent = exercise.name;
+    document.getElementById('exerciseInstructions').textContent = exercise.instructions || 'Effectuez cet exercice avec une forme correcte';
 
     updateSeriesDots();
     await updateSetRecommendations();
@@ -2943,8 +2944,24 @@ async function validateSet() {
 
 // ===== GESTION DU REPOS =====
 function startRestPeriod(duration) {
-    let timeLeft = duration;
+    // Validation et fallback intelligent
+    let restDuration = duration;
+    if (!restDuration || isNaN(restDuration)) {
+        restDuration = currentExercise?.base_rest_time_seconds || 90;
+        console.warn('Durée de repos invalide, utilisation de la valeur par défaut:', restDuration);
+    }
+    
+    let timeLeft = restDuration;
     updateRestTimer(timeLeft);
+    
+    // Afficher le temps total de repos prévu
+    const restInfo = document.querySelector('.rest-info');
+    if (restInfo) {
+        restInfo.innerHTML = `
+            <p>Prochaine série : <span id="nextSetInfo">Série ${currentSet + 1} - ${currentExercise.name}</span></p>
+            <p class="rest-duration-info">Repos recommandé : ${restDuration}s</p>
+        `;
+    }
     
     restTimer = setInterval(() => {
         timeLeft--;
@@ -3069,10 +3086,19 @@ function previousSet() {
 }
 
 function changeExercise() {
+    // Ajouter une animation de sortie
+    const exerciseCard = document.querySelector('.workout-card');
+    if (exerciseCard) {
+        exerciseCard.style.animation = 'slideOut 0.3s ease forwards';
+    }
+    
     // Vérifier l'état actuel
     if (workoutState.current === WorkoutStates.EXECUTING || 
         workoutState.current === WorkoutStates.FEEDBACK) {
         if (!confirm('Une série est en cours. Voulez-vous vraiment changer d\'exercice ?')) {
+            if (exerciseCard) {
+                exerciseCard.style.animation = 'slideIn 0.3s ease forwards';
+            }
             return;
         }
     }

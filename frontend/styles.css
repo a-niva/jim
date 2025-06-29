@@ -1441,6 +1441,17 @@ textarea:focus {
     to { transform: rotate(360deg); }
 }
 
+@keyframes slideOut {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+}
+
 /* ===== FOCUS ACCESSIBILITY ===== */
 button:focus-visible,
 input:focus-visible,
