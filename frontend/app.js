@@ -1175,14 +1175,21 @@ function collectEquipmentConfig() {
 async function loadDashboard() {
     if (!currentUser) return;
     
+    // Supprimer toute bannière existante d'abord
+    const existingBanner = document.querySelector('.workout-resume-banner');
+    if (existingBanner) {
+        existingBanner.remove();
+    }
+
     // Vérifier s'il y a une séance active
     try {
         const activeWorkout = await apiGet(`/api/users/${currentUser.id}/workouts/active`);
-        if (activeWorkout) {
+        if (activeWorkout && activeWorkout.id) {
             showWorkoutResumeBanner(activeWorkout);
         }
     } catch (error) {
-        // Pas de séance active, c'est normal
+        // Pas de séance active, c'est normal - ne rien afficher
+        console.log('Pas de séance active');
     }
     
     // Message de bienvenue
@@ -1227,8 +1234,9 @@ function showWorkoutResumeBanner(workout) {
     
     const startedAt = new Date(workout.started_at);
     const elapsed = startedAt && !isNaN(startedAt) ? Math.floor((new Date() - startedAt) / 60000) : 0;
-    
+        
     banner.innerHTML = `
+        <button class="banner-close" onclick="this.parentElement.remove()" style="position: absolute; top: 0.5rem; right: 0.5rem; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">×</button>
         <h3>⏱️ Séance en cours</h3>
         <p>Démarrée il y a ${elapsed} minutes</p>
         <button class="btn" style="background: white; color: var(--warning); margin-top: 0.5rem;" 
@@ -2264,8 +2272,24 @@ async function clearHistory() {
     
     try {
         await apiDelete(`/api/users/${currentUser.id}/history`);
+        
+        // Réinitialiser les variables de séance en cours
+        currentWorkout = null;
+        currentExercise = null;
+        currentSet = 1;
+        currentWorkoutSession = null;
+        
+        // Supprimer la bannière si elle existe
+        const banner = document.querySelector('.workout-resume-banner');
+        if (banner) {
+            banner.remove();
+        }
+        
         showToast('Historique vidé avec succès', 'success');
-        loadDashboard();
+        
+        // Forcer le rechargement complet du dashboard
+        await loadDashboard();
+        
     } catch (error) {
         console.error('Erreur suppression historique:', error);
         showToast('Erreur lors de la suppression', 'error');
