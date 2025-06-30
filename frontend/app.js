@@ -3953,3 +3953,4 @@ window.showProgramExerciseList = showProgramExerciseList;
 window.updateHeaderProgress = updateHeaderProgress;
 window.updateProgramExerciseProgress = updateProgramExerciseProgress;
 window.abandonActiveWorkout = abandonActiveWorkout;
+window.finishExercise = finishExercise;
