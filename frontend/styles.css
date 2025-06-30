@@ -474,6 +474,10 @@ textarea:focus {
     color: var(--text);
 }
 
+
+/* ===== INDICATEURS MUSCULAIRES AMÉLIORÉS ===== */
+
+
 .muscle-readiness {
     display: grid;
     gap: 0.5rem;
@@ -483,11 +487,13 @@ textarea:focus {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: var(--bg-card);
-    padding: 0.75rem 1rem;
-    border-radius: var(--radius);
-    border-left: 3px solid;
-    transition: all 0.2s ease;
+    background: linear-gradient(135deg, var(--bg-card) 0%, #253545 100%);
+    padding: 1rem;
+    border-radius: 12px;
+    border-left: 4px solid; /* Pas de couleur fixe */
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
 }
 
 .muscle-item:hover {
@@ -495,6 +501,48 @@ textarea:focus {
 }
 
 
+.muscle-item {
+    background: linear-gradient(135deg, var(--bg-card) 0%, #253545 100%);
+    border-radius: 12px;
+    padding: 1rem;
+    border-left: 4px solid;  /* ← Couleur gérée par les classes spécifiques */
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.muscle-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 4px;
+    bottom: 0;
+    width: 2px;
+    background: currentColor;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.muscle-item:hover {
+    transform: translateX(4px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.muscle-item.ready {
+    color: var(--success);
+}
+
+.muscle-item.recovering {
+    color: var(--warning);
+}
+
+.muscle-item.fatigued {
+    color: var(--danger);
+}
+
+.muscle-item:hover::before {
+    opacity: 0.3;
+}
 
 .muscle-info h4 {
     margin: 0;
@@ -2602,53 +2650,6 @@ select:focus-visible {
 .workout-card.incomplete::before {
     background: linear-gradient(90deg, var(--warning), var(--accent-orange));
     opacity: 0.6;
-}
-
-/* ===== INDICATEURS MUSCULAIRES AMÉLIORÉS ===== */
-.muscle-item {
-    background: linear-gradient(135deg, var(--bg-card) 0%, #253545 100%);
-    border-radius: 12px;
-    padding: 1rem;
-    border-left: 4px solid var(--border);
-    position: relative;
-    overflow: hidden;
-    transition: all 0.3s ease;
-}
-
-.muscle-item::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 4px;
-    bottom: 0;
-    width: 2px;
-    background: currentColor;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.muscle-item:hover {
-    transform: translateX(4px);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-}
-
-.muscle-item.ready {
-    border-left-color: var(--success);
-    color: var(--success);
-}
-
-.muscle-item.recovering {
-    border-left-color: var(--warning);
-    color: var(--warning);
-}
-
-.muscle-item.fatigued {
-    border-left-color: var(--danger);
-    color: var(--danger);
-}
-
-.muscle-item:hover::before {
-    opacity: 0.3;
 }
 
 /* ===== INDICATEUR DOT AMÉLIORÉ ===== */
