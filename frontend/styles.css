@@ -509,7 +509,9 @@ textarea:focus {
 }
 
 .muscle-indicator {
-    display: none; /* Supprimer les indicateurs emoji */
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .recent-workouts {
@@ -700,73 +702,8 @@ textarea:focus {
     opacity: 0.8;
 }
 
-/* ===== BARRES DE DISTRIBUTION MUSCULAIRE ===== */
-.muscle-distribution {
-    margin-top: 0.75rem;
-}
-
-.distribution-label {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    margin-bottom: 0.3rem;
-}
-
-.distribution-bar {
-    height: 8px;
-    background: var(--bg-light);
-    border-radius: 4px;
-    overflow: hidden;
-    display: flex;
-    position: relative;
-}
-
-.muscle-segment {
-    height: 100%;
-    transition: all 0.2s ease;
-    position: relative;
-    min-width: 2px;
-}
-
-/* Utiliser les couleurs des muscles */
-.muscle-segment[data-muscle="dos"] { background: var(--muscle-dos); }
-.muscle-segment[data-muscle="pectoraux"] { background: var(--muscle-pectoraux); }
-.muscle-segment[data-muscle="jambes"] { background: var(--muscle-jambes); }
-.muscle-segment[data-muscle="epaules"] { background: var(--muscle-epaules); }
-.muscle-segment[data-muscle="bras"] { background: var(--muscle-bras); }
-.muscle-segment[data-muscle="abdominaux"] { background: var(--muscle-abdominaux); }
-
-/* Tooltip au hover */
-.muscle-segment:hover::after {
-    content: attr(data-muscle) ' ' attr(data-percentage);
-    position: absolute;
-    bottom: calc(100% + 4px);
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--bg);
-    color: var(--text);
-    padding: 0.2rem 0.4rem;
-    border-radius: 4px;
-    font-size: 0.7rem;
-    white-space: nowrap;
-    border: 1px solid var(--border);
-    z-index: 10;
-}
-
-.muscle-segment:hover {
-    opacity: 0.8;
-    filter: brightness(1.2);
-}
-
 
 /* ===== SÉANCE DÉTAILLÉE ===== */
-.workout-header {
-    background: var(--bg-card);
-    border-radius: var(--radius);
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    border: 1px solid var(--border);
-}
-
 .workout-header {
     background: var(--bg-card);
     border-radius: var(--radius);
@@ -2326,35 +2263,6 @@ select:focus-visible {
 }
 
 /* ===== COULEURS POUR LES CARTES PAR MUSCLE ===== */
-/* Padding commun pour toutes les cartes avec bordure */
-.exercise-card[data-muscle] {
-    padding-left: calc(1rem - 2px);
-}
-
-/* Bordures colorées - utilise les variables centralisées */
-.exercise-card[data-muscle="dos"] {
-    border-left: 3px solid var(--muscle-dos);
-}
-
-.exercise-card[data-muscle="pectoraux"] {
-    border-left: 3px solid var(--muscle-pectoraux);
-}
-
-.exercise-card[data-muscle="jambes"] {
-    border-left: 3px solid var(--muscle-jambes);
-}
-
-.exercise-card[data-muscle="epaules"] {
-    border-left: 3px solid var(--muscle-epaules);
-}
-
-.exercise-card[data-muscle="bras"] {
-    border-left: 3px solid var(--muscle-bras);
-}
-
-.exercise-card[data-muscle="abdominaux"] {
-    border-left: 3px solid var(--muscle-abdominaux);
-}
 
 .exercise-card:hover {
     border-color: var(--primary);
@@ -2421,10 +2329,6 @@ select:focus-visible {
     gap: 0.75rem;
     font-size: 0.75rem;
     color: var(--text-muted);
-}
-
-.muscle-groups {
-    flex: 1;
 }
 
 /* Progress */
@@ -2535,12 +2439,7 @@ select:focus-visible {
         font-size: 0.7rem;
         gap: 0.5rem;
     }
-    
-    .muscle-groups {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
+
 }
 
 /* Supprimer les anciens éléments */
@@ -2552,15 +2451,6 @@ select:focus-visible {
     display: none !important;
 }
 
-
-
-/* ===== INDICATEUR DE RECUPERATION MUSCULAIRE ===== */
-
-.muscle-indicator {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
 
 
 /* ===== PAGE SÉANCE LIBRE - DESIGN MODERNE ===== */
@@ -2587,100 +2477,9 @@ select:focus-visible {
     font-size: 1.1rem;
 }
 
-/* Groupes d'exercices par muscle */
-.muscle-groups-container {
-    display: grid;
-    gap: 2rem;
-}
-
-.muscle-group-section {
-    background: var(--bg-card);
-    border-radius: 16px;
-    padding: 1.5rem;
-    border: 1px solid var(--border);
-    transition: all 0.3s ease;
-}
-
-.muscle-group-section:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-}
-
-/* Header de chaque groupe avec couleur */
-.muscle-group-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1.25rem;
-    padding-bottom: 1rem;
-    border-bottom: 2px solid;
-}
-
-.muscle-group-header h3 {
-    font-size: 1.3rem;
-    font-weight: 600;
-    margin: 0;
-    color: var(--text);
-}
-
-.muscle-group-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-}
 
 /* Couleurs spécifiques par groupe - utilise les variables RGB centralisées */
-.muscle-group-dos .muscle-group-header {
-    border-bottom-color: var(--muscle-dos);
-}
-.muscle-group-dos .muscle-group-icon {
-    background: rgba(var(--muscle-dos-rgb), 0.15);
-    color: var(--muscle-dos);
-}
 
-.muscle-group-pectoraux .muscle-group-header {
-    border-bottom-color: var(--muscle-pectoraux);
-}
-.muscle-group-pectoraux .muscle-group-icon {
-    background: rgba(var(--muscle-pectoraux-rgb), 0.15);
-    color: var(--muscle-pectoraux);
-}
-
-.muscle-group-jambes .muscle-group-header {
-    border-bottom-color: var(--muscle-jambes);
-}
-.muscle-group-jambes .muscle-group-icon {
-    background: rgba(var(--muscle-jambes-rgb), 0.15);
-    color: var(--muscle-jambes);
-}
-
-.muscle-group-epaules .muscle-group-header {
-    border-bottom-color: var(--muscle-epaules);
-}
-.muscle-group-epaules .muscle-group-icon {
-    background: rgba(var(--muscle-epaules-rgb), 0.15);
-    color: var(--muscle-epaules);
-}
-
-.muscle-group-bras .muscle-group-header {
-    border-bottom-color: var(--muscle-bras);
-}
-.muscle-group-bras .muscle-group-icon {
-    background: rgba(var(--muscle-bras-rgb), 0.15);
-    color: var(--muscle-bras);
-}
-
-.muscle-group-abdominaux .muscle-group-header {
-    border-bottom-color: var(--muscle-abdominaux);
-}
-.muscle-group-abdominaux .muscle-group-icon {
-    background: rgba(var(--muscle-abdominaux-rgb), 0.15);
-    color: var(--muscle-abdominaux);
-}
 
 /* Liste d'exercices dans chaque groupe */
 .muscle-exercises-grid {
@@ -2853,13 +2652,22 @@ select:focus-visible {
 }
 
 /* ===== INDICATEUR DOT AMÉLIORÉ ===== */
+/* Définition unifiée de .indicator-dot */
 .indicator-dot {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: var(--border); /* Couleur neutre par défaut */
+    background: var(--border);
     transition: all 0.3s ease;
     position: relative;
+}
+
+/* États de récupération - garder les variations d'opacité */
+.muscle-item.recovering .indicator-dot { opacity: 0.6; }
+.muscle-item.fatigued .indicator-dot { opacity: 0.3; }
+.muscle-item.rested .indicator-dot { 
+    opacity: 1; 
+    box-shadow: 0 0 8px currentColor; 
 }
 
 .indicator-dot::before {
@@ -2874,13 +2682,6 @@ select:focus-visible {
     opacity: 0.2;
 }
 
-/* États de récupération - garder les variations d'opacité */
-.muscle-item.recovering .indicator-dot { opacity: 0.6; }
-.muscle-item.fatigued .indicator-dot { opacity: 0.3; }
-.muscle-item.rested .indicator-dot { 
-    opacity: 1; 
-    box-shadow: 0 0 8px currentColor; 
-}
 
 .muscle-item.ready .indicator-dot {
     background: var(--success);
