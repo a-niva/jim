@@ -3264,7 +3264,7 @@ function findClosestWeight(targetWeight, availableWeights) {
 }
 
 
-// ===== AMÉLIORATION DU TIMER DE REPOS =====
+// ===== TIMER DE REPOS =====
 function startRestPeriod(customTime = null) {
     // Afficher la période de repos
     document.getElementById('restPeriod').style.display = 'flex';
@@ -3590,41 +3590,6 @@ async function validateSet() {
             showToast('Erreur lors de l\'enregistrement', 'error');
         }
     }
-}
-
-// ===== GESTION DU REPOS =====
-function startRestPeriod(duration) {
-    // Validation et fallback intelligent
-    let restDuration = duration;
-    if (!restDuration || isNaN(restDuration)) {
-        restDuration = currentExercise?.base_rest_time_seconds || 90;
-        console.warn('Durée de repos invalide, utilisation de la valeur par défaut:', restDuration);
-    }
-    
-    let timeLeft = restDuration;
-    updateRestTimer(timeLeft);
-    
-    // Afficher le temps total de repos prévu
-    const restInfo = document.querySelector('.rest-info');
-    if (restInfo) {
-        restInfo.innerHTML = `
-            <p>Prochaine série : <span id="nextSetInfo">Série ${currentSet + 1} - ${currentExercise.name}</span></p>
-            <p class="rest-duration-info">Repos recommandé : ${restDuration}s</p>
-        `;
-    }
-    
-    restTimer = setInterval(() => {
-        timeLeft--;
-        currentWorkoutSession.totalRestTime++;
-        updateRestTimer(timeLeft);
-        
-        // Mise à jour de la barre de progression
-        const progressFill = document.getElementById('restProgressFill');
-        if (progressFill) {
-            const progress = ((duration - timeLeft) / duration) * 100;
-            progressFill.style.width = `${progress}%`;
-        }
-    }, 1000);
 }
 
 // ===== FIN DE SÉRIE =====
