@@ -1280,9 +1280,10 @@ async function resumeWorkout(workoutId) {
 async function abandonActiveWorkout(workoutId) {
     if (confirm('Êtes-vous sûr de vouloir abandonner cette séance ?')) {
         try {
-            // Supprimer la séance active côté serveur
-            await apiPost(`/api/workouts/${workoutId}/end`, {
-                ended_at: new Date().toISOString()
+            // Terminer la séance côté serveur avec la bonne API
+            await apiPut(`/api/workouts/${workoutId}/complete`, {
+                total_duration: 0,
+                total_rest_time: 0
             });
             
             // Nettoyer l'état local
@@ -1302,6 +1303,7 @@ async function abandonActiveWorkout(workoutId) {
             clearWorkoutState();
             const banner = document.querySelector('.workout-resume-banner');
             if (banner) banner.remove();
+            showToast('Séance abandonnée (hors ligne)', 'info');
         }
     }
 }
