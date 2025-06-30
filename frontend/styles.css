@@ -500,17 +500,6 @@ textarea:focus {
     transform: translateX(2px);
 }
 
-
-.muscle-item {
-    background: linear-gradient(135deg, var(--bg-card) 0%, #253545 100%);
-    border-radius: 12px;
-    padding: 1rem;
-    border-left: 4px solid;  /* ← Couleur gérée par les classes spécifiques */
-    position: relative;
-    overflow: hidden;
-    transition: all 0.3s ease;
-}
-
 .muscle-item::before {
     content: '';
     position: absolute;
