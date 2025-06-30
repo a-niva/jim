@@ -4148,3 +4148,9 @@ window.updateHeaderProgress = updateHeaderProgress;
 window.updateProgramExerciseProgress = updateProgramExerciseProgress;
 window.abandonActiveWorkout = abandonActiveWorkout;
 window.finishExercise = finishExercise;
+
+// ===== EXPORT DES FONCTIONS API MANQUANTES =====
+window.apiGet = apiGet;
+window.apiPost = apiPost;
+window.apiPut = apiPut;
+window.apiDelete = apiDelete;
