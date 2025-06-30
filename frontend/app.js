@@ -1536,27 +1536,7 @@ function loadRecentWorkouts(workouts) {
                         ${additionalMuscles}
                     </div>
                 ` : ''}
-                
-                <div class="workout-stats-row">
-                    <div class="stat-item">
-                        <span class="stat-icon">📊</span>
-                        <span class="stat-value">${volumeDisplay}</span>
-                        <span class="stat-label">Volume</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-icon">🔢</span>
-                        <span class="stat-value">${workout.total_sets || 0}</span>
-                        <span class="stat-label">Séries</span>
-                    </div>
-                    ${duration > 0 ? `
-                        <div class="stat-item">
-                            <span class="stat-icon">⚡</span>
-                            <span class="stat-value">${100 - restRatio}%</span>
-                            <span class="stat-label">Actif</span>
-                        </div>
-                    ` : ''}
-                </div>
-                
+                                
                 ${duration > 0 ? `
                     <div class="workout-progress-bar">
                         <div class="progress-segment active" style="width: ${100 - restRatio}%"></div>
