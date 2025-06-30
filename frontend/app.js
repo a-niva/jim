@@ -2451,35 +2451,19 @@ async function loadProgramExercisesList() {
         const completedCount = Object.values(currentWorkoutSession.programExercises)
             .filter(ex => ex.isCompleted).length;
         const totalCount = currentWorkoutSession.program.exercises.length;
+        const remainingTime = (totalCount - completedCount) * 8; // Estimation simple
         
-        // Trouver l'index de l'exercice actuel
-        let currentExerciseIndex = 0;
-        if (currentExercise) {
-            currentExerciseIndex = currentWorkoutSession.program.exercises
-                .findIndex(ex => ex.exercise_id === currentExercise.id);
-        }
-        
-        // Générer le nouveau HTML
+        // Générer le HTML
         container.innerHTML = `
             <div class="program-header">
-                <h3>Programme</h3>
-                <div class="quick-stats">
-                    <div class="quick-stat">
-                        <div class="stat-icon">${totalCount}</div>
-                        <span>exercices</span>
-                    </div>
-                    <div class="quick-stat">
-                        <div class="stat-icon">⚡</div>
-                        <span>~${totalCount * 8} min</span>
-                    </div>
-                    <div class="quick-stat">
-                        <div class="stat-icon">📊</div>
-                        <span>${Math.round((completedCount / totalCount) * 100)}% fait</span>
-                    </div>
+                <h3>Programme du jour</h3>
+                <div class="program-summary">
+                    <div class="progress-circle">${completedCount}/${totalCount}</div>
+                    <span>${completedCount} exercice${completedCount > 1 ? 's' : ''} complété${completedCount > 1 ? 's' : ''} • ~${remainingTime} min restantes</span>
                 </div>
             </div>
             
-            <div class="exercises-stack" id="exercisesStack">
+            <div class="exercises-list">
                 ${currentWorkoutSession.program.exercises.map((exerciseData, index) => {
                     const exercise = exercises.find(ex => ex.id === exerciseData.exercise_id);
                     if (!exercise) return '';
@@ -2487,68 +2471,46 @@ async function loadProgramExercisesList() {
                     const exerciseState = currentWorkoutSession.programExercises[exerciseData.exercise_id];
                     const isCurrentExercise = currentExercise && currentExercise.id === exerciseData.exercise_id;
                     
-                    // Calculer la position dans le stack
-                    let position = index - currentExerciseIndex;
-                    if (position < 0) position += totalCount; // Pour mettre les complétés à la fin
-                    
-                    // Classes d'état
-                    let stateClass = '';
-                    let badgeText = 'À faire';
-                    let badgeIcon = '○';
+                    // Classes et état
+                    let cardClass = 'exercise-card';
+                    let indexContent = index + 1;
+                    let actionIcon = '→';
                     
                     if (exerciseState.isCompleted) {
-                        stateClass = 'completed';
-                        badgeText = 'Terminé';
-                        badgeIcon = '✓';
+                        cardClass += ' completed';
+                        indexContent = '✓';
+                        actionIcon = '↻';
                     } else if (isCurrentExercise) {
-                        stateClass = 'current';
-                        badgeText = 'En cours';
-                        badgeIcon = '•';
+                        cardClass += ' current';
                     }
                     
-                    // Générer les blocs de séries
-                    let setsBlocks = '';
+                    // Générer les dots de progression
+                    let dotsHtml = '';
                     for (let i = 0; i < exerciseState.totalSets; i++) {
-                        setsBlocks += `<div class="set-block ${i < exerciseState.completedSets ? 'done' : ''}"></div>`;
+                        dotsHtml += `<div class="set-dot ${i < exerciseState.completedSets ? 'done' : ''}"></div>`;
                     }
                     
                     return `
-                        <div class="exercise-card-3d ${stateClass}" 
-                             data-position="${position}"
-                             onclick="handleExercise3DClick(${exerciseData.exercise_id})">
-                            <div class="card-top">
-                                <div class="card-badge">
-                                    <div class="card-badge-icon">${badgeIcon}</div>
-                                    ${badgeText}
+                        <div class="${cardClass}" onclick="handleExerciseCardSimpleClick(${exerciseData.exercise_id})">
+                            ${exerciseState.isCompleted ? '<div class="status-badge">✓ Terminé</div>' : ''}
+                            <div class="card-content">
+                                <div class="exercise-index">${indexContent}</div>
+                                <div class="exercise-info">
+                                    <div class="exercise-name">${exercise.name}</div>
+                                    <div class="exercise-details">
+                                        <span class="muscle-groups">${exercise.muscle_groups.join(' • ')}</span>
+                                        <span class="sets-indicator">${exerciseData.sets || 3}×${exerciseData.target_reps || exercise.default_reps_min}-${exerciseData.target_reps || exercise.default_reps_max}</span>
+                                    </div>
                                 </div>
-                                
-                                <div class="exercise-main">
-                                    <div class="exercise-number">${String(index + 1).padStart(2, '0')}</div>
-                                    <div class="exercise-card-name">${exercise.name}</div>
-                                    <div class="exercise-muscles">${exercise.muscle_groups.join(' • ')}</div>
+                                <div class="exercise-progress">
+                                    <div class="sets-counter">${exerciseState.completedSets}/${exerciseState.totalSets}</div>
+                                    <div class="sets-dots">${dotsHtml}</div>
                                 </div>
-                                
-                                <div class="sets-visual">
-                                    ${setsBlocks}
-                                </div>
-                            </div>
-                            
-                            <div class="card-footer">
-                                <div class="time-estimate">
-                                    <span>~${exerciseState.totalSets * 2} minutes</span>
-                                </div>
-                                <div class="action-arrow">${isCurrentExercise ? '→' : exerciseState.isCompleted ? '↻' : '→'}</div>
+                                <button class="action-btn" onclick="event.stopPropagation(); handleExerciseAction(${exerciseData.exercise_id})">${actionIcon}</button>
                             </div>
                         </div>
                     `;
                 }).join('')}
-            </div>
-            
-            <div class="stack-navigation">
-                ${currentWorkoutSession.program.exercises.map((_, index) => 
-                    `<div class="nav-dot ${index === currentExerciseIndex ? 'active' : ''}" 
-                          onclick="navigateToExercise(${index})"></div>`
-                ).join('')}
             </div>
         `;
         
@@ -2556,6 +2518,42 @@ async function loadProgramExercisesList() {
         console.error('Erreur chargement liste exercices programme:', error);
     }
 }
+
+function handleExerciseCardSimpleClick(exerciseId) {
+    const exerciseState = currentWorkoutSession.programExercises[exerciseId];
+    
+    if (currentExercise && currentExercise.id === exerciseId) {
+        // Déjà sur cet exercice
+        showToast('Vous êtes déjà sur cet exercice', 'info');
+        return;
+    }
+    
+    if (exerciseState.isCompleted) {
+        if (confirm('Cet exercice est déjà terminé. Voulez-vous le refaire ?')) {
+            restartExercise(exerciseId);
+        }
+    } else {
+        selectProgramExercise(exerciseId);
+    }
+}
+
+function handleExerciseAction(exerciseId) {
+    const exerciseState = currentWorkoutSession.programExercises[exerciseId];
+    
+    if (exerciseState.isCompleted) {
+        // Refaire l'exercice
+        if (confirm('Refaire cet exercice ?')) {
+            restartExercise(exerciseId);
+        }
+    } else {
+        // Commencer/continuer l'exercice
+        selectProgramExercise(exerciseId);
+    }
+}
+
+// Exposer les fonctions
+window.handleExerciseCardSimpleClick = handleExerciseCardSimpleClick;
+window.handleExerciseAction = handleExerciseAction;
 
 function handleExerciseCardClick(exerciseId) {
     const exerciseState = currentWorkoutSession.programExercises[exerciseId];
@@ -2573,34 +2571,6 @@ function handleExerciseCardClick(exerciseId) {
         selectProgramExercise(exerciseId);
     }
 }
-
-function handleExercise3DClick(exerciseId) {
-    const exerciseState = currentWorkoutSession.programExercises[exerciseId];
-    
-    if (currentExercise && currentExercise.id === exerciseId) {
-        // Déjà sur cet exercice, ne rien faire
-        return;
-    }
-    
-    if (exerciseState.isCompleted) {
-        if (confirm('Cet exercice est déjà terminé. Voulez-vous le refaire ?')) {
-            restartExercise(exerciseId);
-        }
-    } else {
-        selectProgramExercise(exerciseId);
-    }
-}
-
-function navigateToExercise(index) {
-    const exerciseData = currentWorkoutSession.program.exercises[index];
-    if (exerciseData) {
-        handleExercise3DClick(exerciseData.exercise_id);
-    }
-}
-
-// Exposer les nouvelles fonctions globalement
-window.handleExercise3DClick = handleExercise3DClick;
-window.navigateToExercise = navigateToExercise;
 
 async function selectProgramExercise(exerciseId, isInitialLoad = false) {
     if (!currentWorkoutSession.program) return;
