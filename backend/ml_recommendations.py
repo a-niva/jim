@@ -390,7 +390,9 @@ class FitnessRecommendationEngine:
     ) -> str:
         """Détermine si c'est une augmentation, diminution ou maintien"""
         
-        if baseline == 0:
+        # AVANT : if baseline == 0:
+        # APRÈS : Vérifier aussi None
+        if baseline is None or baseline == 0:
             return "same"
         
         change_ratio = abs(recommended - baseline) / baseline

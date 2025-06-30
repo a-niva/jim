@@ -1479,10 +1479,17 @@ function loadRecentWorkouts(workouts) {
 // ===== SÉANCES =====
 async function startFreeWorkout() {
     try {
+        // Nettoyer TOUT l'état avant de commencer
+        clearWorkoutState();
+        localStorage.removeItem('fitness_workout_state');
+        
         const workoutData = { type: 'free' };
         const response = await apiPost(`/api/users/${currentUser.id}/workouts`, workoutData);
         
         currentWorkout = response.workout;
+        // AJOUT : Initialiser le type de session
+        currentWorkoutSession.type = 'free';
+        
         showView('workout');
         setupFreeWorkout();
         
@@ -1571,23 +1578,23 @@ async function selectExercise(exercise) {
     currentWorkoutSession.currentSetNumber = 1;
     currentWorkoutSession.totalSets = exercise.default_sets || 3;
     currentWorkoutSession.maxSets = 6;
-    
+   
     // Enregistrer le début de l'exercice
     workoutState.exerciseStartTime = new Date();
-    
+   
     document.getElementById('exerciseSelection').style.display = 'none';
     document.getElementById('currentExercise').style.display = 'block';
     document.getElementById('exerciseName').textContent = exercise.name;
     document.getElementById('exerciseInstructions').textContent = exercise.instructions || 'Effectuez cet exercice avec une forme correcte';
-
+    
     // Gérer l'affichage du bouton "Changer d'exercice" selon le mode
     const changeExerciseBtn = document.querySelector('.btn-change-exercise');
     if (changeExerciseBtn) {
         changeExerciseBtn.style.display = currentWorkoutSession.type === 'program' ? 'none' : 'flex';
     }
-
-    updateSeriesDots();
     
+    updateSeriesDots();
+   
     // Appeler les recommandations dans un try-catch pour éviter les interruptions
     try {
         await updateSetRecommendations();
@@ -1595,12 +1602,13 @@ async function selectExercise(exercise) {
         console.error('Erreur recommandations:', error);
         // Continuer malgré l'erreur
     }
-    
+   
     // Mettre à jour les compteurs d'en-tête
     updateHeaderProgress();
-    
-    // Transition vers READY
+   
+    // Forcer la transition vers READY après sélection
     transitionTo(WorkoutStates.READY);
+    
     // Démarrer le timer de la première série
     startSetTimer();
 }
@@ -1850,6 +1858,10 @@ async function finishExercise() {
         document.getElementById('exerciseSelection').style.display = 'block';
         currentExercise = null;
         currentSet = 1;
+        
+        // AJOUT : Réinitialiser proprement l'état
+        transitionTo(WorkoutStates.IDLE);
+        
     } else {
         // PROGRAMME: retourner à la liste
         document.getElementById('currentExercise').style.display = 'none';
@@ -3167,9 +3179,29 @@ function loadWorkoutState() {
 }
 
 function clearWorkoutState() {
+    // Arrêter tous les timers actifs
+    if (setTimer) {
+        clearInterval(setTimer);
+        setTimer = null;
+    }
+    if (restTimer) {
+        clearInterval(restTimer);
+        restTimer = null;
+    }
+    if (workoutTimer) {
+        clearInterval(workoutTimer);
+        workoutTimer = null;
+    }
+    if (notificationTimeout) {
+        clearTimeout(notificationTimeout);
+        notificationTimeout = null;
+    }
+    
+    // Réinitialiser toutes les variables
     currentWorkout = null;
     currentExercise = null;
     currentSet = 1;
+    
     workoutState = {
         current: WorkoutStates.IDLE,
         exerciseStartTime: null,
@@ -3177,6 +3209,7 @@ function clearWorkoutState() {
         restStartTime: null,
         pendingSetData: null
     };
+    
     currentWorkoutSession = {
         workout: null,
         currentExercise: null,
@@ -3187,7 +3220,11 @@ function clearWorkoutState() {
         completedSets: [],
         type: 'free',
         totalRestTime: 0,
-        totalSetTime: 0
+        totalSetTime: 0,
+        // AJOUT : Nettoyer aussi les données programme
+        program: null,
+        programExercises: {},
+        completedExercisesCount: 0
     };
 }
 
@@ -3923,9 +3960,30 @@ function pauseWorkout() {
     }
 }
 
-function abandonWorkout() {
-    if (confirm('Êtes-vous sûr d\'abandonner cette séance ?')) {
-        endWorkout();
+async function abandonWorkout() {
+    if (!confirm('Êtes-vous sûr de vouloir abandonner cette séance ?')) return;
+    
+    try {
+        if (currentWorkout) {
+            await apiPut(`/api/workouts/${currentWorkout.id}/complete`);
+        }
+        
+        // AJOUT : Nettoyer complètement l'état
+        clearWorkoutState();
+        localStorage.removeItem('fitness_workout_state');
+        
+        // AJOUT : Forcer la transition vers IDLE
+        transitionTo(WorkoutStates.IDLE);
+        
+        showView('dashboard');
+        showToast('Séance abandonnée', 'info');
+    } catch (error) {
+        console.error('Erreur abandon séance:', error);
+        // AJOUT : Même en cas d'erreur, nettoyer l'état local
+        clearWorkoutState();
+        localStorage.removeItem('fitness_workout_state');
+        transitionTo(WorkoutStates.IDLE);
+        showView('dashboard');
     }
 }
 
