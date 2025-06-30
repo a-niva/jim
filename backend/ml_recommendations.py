@@ -32,6 +32,9 @@ class FitnessRecommendationEngine:
         set_order_global: int = 1,
         available_weights: List[float] = None
     ) -> Dict[str, any]:
+        # Assurer que exercise_order et set_order_global ne sont jamais None
+        exercise_order = exercise_order or 1
+        set_order_global = set_order_global or 1
         """
         Génère des recommandations de poids/reps pour la prochaine série
         
@@ -127,19 +130,26 @@ class FitnessRecommendationEngine:
     ) -> List[Dict]:
         """Récupère l'historique pertinent pour cet exercice dans des contextes similaires"""
         
-        # Récupérer les 30 dernières séries de cet exercice dans des conditions similaires
-        similar_sets = self.db.query(SetHistory).filter(
+        # Construction de la requête de base
+        query = self.db.query(SetHistory).filter(
             and_(
                 SetHistory.user_id == user.id,
                 SetHistory.exercise_id == exercise.id,
-                SetHistory.set_number_in_exercise == set_number,
-                # Position similaire dans la séance (±1)
+                SetHistory.set_number_in_exercise == set_number
+            )
+        )
+        
+        # Ajouter le filtre de position seulement si exercise_order est défini
+        if exercise_order is not None:
+            query = query.filter(
                 SetHistory.exercise_order_in_session.between(
                     max(1, exercise_order - 1), 
                     exercise_order + 1
                 )
             )
-        ).order_by(desc(SetHistory.date_performed)).limit(30).all()
+        
+        # Récupérer les 30 dernières séries
+        similar_sets = query.order_by(desc(SetHistory.date_performed)).limit(30).all()
         
         return [
             {

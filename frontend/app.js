@@ -1414,7 +1414,7 @@ async function loadMuscleReadiness() {
         
         // Générer le HTML
         container.innerHTML = muscleStates.map(muscle => `
-            <div class="muscle-item ${muscle.status}">
+            <div class="muscle-item ${muscle.status}" data-muscle="${muscle.key}">
                 <div class="muscle-info">
                     <h4>${muscle.name}</h4>
                     <p>${muscle.statusText}${muscle.lastTrained ? ` • ${muscle.lastTrained}` : ''}</p>
@@ -1579,7 +1579,14 @@ async function selectExercise(exercise) {
     }
 
     updateSeriesDots();
-    await updateSetRecommendations();
+    
+    // Appeler les recommandations dans un try-catch pour éviter les interruptions
+    try {
+        await updateSetRecommendations();
+    } catch (error) {
+        console.error('Erreur recommandations:', error);
+        // Continuer malgré l'erreur
+    }
     
     // Mettre à jour les compteurs d'en-tête
     updateHeaderProgress();

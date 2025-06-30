@@ -2612,3 +2612,67 @@ select:focus-visible {
         font-size: 2rem;
     }
 }
+
+/* Couleurs des muscles pour les cartes d'accueil */
+.muscle-item[data-muscle="dos"] {
+    border-left-color: var(--muscle-dos);
+}
+
+.muscle-item[data-muscle="pectoraux"] {
+    border-left-color: var(--muscle-pectoraux);
+}
+
+.muscle-item[data-muscle="jambes"] {
+    border-left-color: var(--muscle-jambes);
+}
+
+.muscle-item[data-muscle="epaules"] {
+    border-left-color: var(--muscle-epaules);
+}
+
+.muscle-item[data-muscle="bras"] {
+    border-left-color: var(--muscle-bras);
+}
+
+.muscle-item[data-muscle="abdominaux"] {
+    border-left-color: var(--muscle-abdominaux);
+}
+
+/* Ajuster les indicateurs avec les couleurs des muscles */
+.muscle-item[data-muscle="dos"] .indicator-dot {
+    background: var(--muscle-dos);
+}
+
+.muscle-item[data-muscle="pectoraux"] .indicator-dot {
+    background: var(--muscle-pectoraux);
+}
+
+.muscle-item[data-muscle="jambes"] .indicator-dot {
+    background: var(--muscle-jambes);
+}
+
+.muscle-item[data-muscle="epaules"] .indicator-dot {
+    background: var(--muscle-epaules);
+}
+
+.muscle-item[data-muscle="bras"] .indicator-dot {
+    background: var(--muscle-bras);
+}
+
+.muscle-item[data-muscle="abdominaux"] .indicator-dot {
+    background: var(--muscle-abdominaux);
+}
+
+/* Opacité réduite selon l'état */
+.muscle-item.recovering .indicator-dot {
+    opacity: 0.6;
+}
+
+.muscle-item.fatigued .indicator-dot {
+    opacity: 0.3;
+}
+
+.muscle-item.rested .indicator-dot {
+    opacity: 1;
+    box-shadow: 0 0 8px currentColor;
+}
