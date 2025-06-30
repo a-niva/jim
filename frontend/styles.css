@@ -1,22 +1,27 @@
 /* ===== VARIABLES CSS ===== */
 :root {
-    --primary: #3b82f6;
-    --primary-dark: #2563eb;
+    --primary: #6366f1;
+    --primary-dark: #4f46e5;
     --secondary: #64748b;
     --success: #10b981;
     --warning: #f59e0b;
     --danger: #ef4444;
+    
+    /* NOUVEAU SCHÉMA UNIFIÉ */
     --bg: #0f172a;
-    --border: #e5e7eb;
     --bg-light: #1e293b;
-    --bg-card: #334155;
-    --card-bg: #ffffff;
+    --bg-card: #1e293b;  /* ← CHANGEMENT: plus jamais de #334155 */
+    --card-bg: #1e293b;  /* ← CHANGEMENT: unifié avec bg-card */
+    
     --text: #f8fafc;
     --text-muted: #94a3b8;
-    --border: #475569;
+    --border: #334155;
     --radius: 12px;
-    /* Couleurs des groupes musculaires - cohérentes partout */
-    /* Voir muscle-colors.css pour la configuration complète */
+    
+    /* NOUVEAUX ACCENTS MODERNES */
+    --accent-purple: #8b5cf6;
+    --accent-emerald: #10b981;
+    --accent-orange: #f97316;
 }
 
 /* ===== RESET & BASE ===== */
@@ -1612,11 +1617,19 @@ select:focus-visible {
 
 /* Carte principale */
 .workout-card {
-    background: var(--bg-card);
-    border-radius: 20px;
-    padding: 2rem;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(135deg, var(--bg-card) 0%, #2d3748 100%);
+    border-radius: 16px; /* Plus moderne */
+    padding: 1.25rem;
+    border: 1px solid rgba(99, 102, 241, 0.2); /* Bordure subtile colorée */
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.workout-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.2);
+    border-color: var(--primary);
 }
 
 /* Points de progression */
