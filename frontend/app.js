@@ -2599,7 +2599,7 @@ async function loadProgramExercisesList() {
                     }
                     
                     return `
-                        <div class="${cardClass}" onclick="handleExerciseCardSimpleClick(${exerciseData.exercise_id})">
+                        <div class="${cardClass}" data-muscle="${exercise.muscle_groups[0].toLowerCase()}" onclick="handleExerciseCardSimpleClick(${exerciseData.exercise_id})">
                             ${exerciseState.isCompleted ? '<div class="status-badge">✓ Terminé</div>' : ''}
                             <div class="card-content">
                                 <div class="exercise-index">${indexContent}</div>
@@ -2829,18 +2829,74 @@ async function restartExercise(exerciseId) {
 async function loadAvailableExercises() {
     try {
         const exercises = await apiGet(`/api/exercises?user_id=${currentUser.id}`);
-        const container = document.getElementById('exerciseList');
         
-        container.innerHTML = exercises.map(exercise => `
-            <div class="exercise-item" onclick="selectExercise({id: ${exercise.id}, name: '${exercise.name.replace(/'/g, "\\'")}', instructions: '${(exercise.instructions || '').replace(/'/g, "\\'")}', base_rest_time_seconds: ${exercise.base_rest_time_seconds || 60}, default_reps_min: ${exercise.default_reps_min || 8}, default_reps_max: ${exercise.default_reps_max || 12}, default_sets: ${exercise.default_sets || 3}, intensity_factor: ${exercise.intensity_factor || 1.0}})">
-                <h4>${exercise.name}</h4>
-                <p>${exercise.muscle_groups.join(', ')} • ${exercise.difficulty}</p>
-                <div class="exercise-meta">
-                    <span>🎯 ${exercise.default_reps_min}-${exercise.default_reps_max} reps</span>
-                    <span>⏱️ ${Math.floor((exercise.base_rest_time_seconds || 60) / 60)}:${((exercise.base_rest_time_seconds || 60) % 60).toString().padStart(2, '0')}</span>
-                </div>
-            </div>
-        `).join('');
+        // Grouper les exercices par muscle
+        const exercisesByMuscle = {
+            dos: [],
+            pectoraux: [],
+            jambes: [],
+            epaules: [],
+            bras: [],
+            abdominaux: []
+        };
+        
+        // Icônes pour chaque groupe
+        const muscleIcons = {
+            dos: '🏋️',
+            pectoraux: '💪',
+            jambes: '🦵',
+            epaules: '🤸',
+            bras: '💪',
+            abdominaux: '🎯'
+        };
+        
+        // Classer les exercices
+        exercises.forEach(exercise => {
+            exercise.muscle_groups.forEach(muscle => {
+                const muscleLower = muscle.toLowerCase();
+                if (exercisesByMuscle[muscleLower]) {
+                    exercisesByMuscle[muscleLower].push(exercise);
+                }
+            });
+        });
+        
+        // Générer le HTML groupé
+        const muscleGroupsContainer = document.getElementById('muscleGroupsContainer');
+        if (muscleGroupsContainer) {
+            muscleGroupsContainer.innerHTML = Object.entries(exercisesByMuscle)
+                .filter(([muscle, exercises]) => exercises.length > 0)
+                .map(([muscle, muscleExercises]) => `
+                    <div class="muscle-group-section muscle-group-${muscle}">
+                        <div class="muscle-group-header">
+                            <div class="muscle-group-icon">${muscleIcons[muscle]}</div>
+                            <h3>${muscle.charAt(0).toUpperCase() + muscle.slice(1)}</h3>
+                        </div>
+                        <div class="muscle-exercises-grid">
+                            ${muscleExercises.map(exercise => `
+                                <div class="free-exercise-card" onclick="selectExercise({
+                                    id: ${exercise.id},
+                                    name: '${exercise.name.replace(/'/g, "\\'")}',
+                                    instructions: '${(exercise.instructions || '').replace(/'/g, "\\'")}',
+                                    base_rest_time_seconds: ${exercise.base_rest_time_seconds || 60},
+                                    default_reps_min: ${exercise.default_reps_min || 8},
+                                    default_reps_max: ${exercise.default_reps_max || 12},
+                                    default_sets: ${exercise.default_sets || 3},
+                                    intensity_factor: ${exercise.intensity_factor || 1.0}
+                                })">
+                                    <h4>${exercise.name}</h4>
+                                    <div class="free-exercise-meta">
+                                        <span class="difficulty-badge difficulty-${exercise.difficulty}">
+                                            ${exercise.difficulty}
+                                        </span>
+                                        <span>🎯 ${exercise.default_reps_min}-${exercise.default_reps_max} reps</span>
+                                        <span>⏱️ ${exercise.default_sets} séries</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('');
+        }
         
     } catch (error) {
         console.error('Erreur chargement exercices:', error);

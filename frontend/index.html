@@ -292,20 +292,15 @@
 
             <!-- Sélection exercice (mode libre) -->
             <div class="exercise-selection" id="exerciseSelection" style="display: none;">
-                <h3>Choisir un exercice</h3>
-                <div class="exercise-filters">
-                    <select id="muscleFilter">
-                        <option value="">Tous les muscles</option>
-                        <option value="dos">Dos</option>
-                        <option value="pectoraux">Pectoraux</option>
-                        <option value="bras">Bras</option>
-                        <option value="epaules">Épaules</option>
-                        <option value="jambes">Jambes</option>
-                        <option value="abdominaux">Abdominaux</option>
-                    </select>
-                </div>
-                <div class="exercise-list" id="exerciseList">
-                    <!-- Généré dynamiquement -->
+                <div class="free-workout-container">
+                    <div class="free-workout-header">
+                        <h2>Choisir un exercice</h2>
+                        <p>Sélectionnez un exercice pour commencer votre séance</p>
+                    </div>
+                    
+                    <div class="muscle-groups-container" id="muscleGroupsContainer">
+                        <!-- Généré dynamiquement avec les groupes musculaires -->
+                    </div>
                 </div>
             </div>
             

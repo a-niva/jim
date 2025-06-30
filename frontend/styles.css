@@ -13,6 +13,13 @@
     --text-muted: #94a3b8;
     --border: #475569;
     --radius: 12px;
+    /* Couleurs des groupes musculaires - cohérentes partout */
+    --muscle-dos: #3b82f6;        /* Bleu vif */
+    --muscle-pectoraux: #ec4899;  /* Rose/Magenta */
+    --muscle-jambes: #10b981;     /* Vert émeraude */
+    --muscle-epaules: #f59e0b;    /* Orange */
+    --muscle-bras: #8b5cf6;       /* Violet */
+    --muscle-abdominaux: #ef4444; /* Rouge */
 }
 
 /* ===== RESET & BASE ===== */
@@ -2110,6 +2117,38 @@ select:focus-visible {
     overflow: hidden;
 }
 
+/* ===== COULEURS SUPPLÉMENTAIRES POUR LES CARTES PAR MUSCLE ===== */
+/* Bordure gauche colorée selon le muscle principal */
+.exercise-card[data-muscle="dos"] {
+    border-left: 3px solid var(--muscle-dos);
+    padding-left: calc(1rem - 2px); /* Compenser la bordure */
+}
+
+.exercise-card[data-muscle="pectoraux"] {
+    border-left: 3px solid var(--muscle-pectoraux);
+    padding-left: calc(1rem - 2px);
+}
+
+.exercise-card[data-muscle="jambes"] {
+    border-left: 3px solid var(--muscle-jambes);
+    padding-left: calc(1rem - 2px);
+}
+
+.exercise-card[data-muscle="epaules"] {
+    border-left: 3px solid var(--muscle-epaules);
+    padding-left: calc(1rem - 2px);
+}
+
+.exercise-card[data-muscle="bras"] {
+    border-left: 3px solid var(--muscle-bras);
+    padding-left: calc(1rem - 2px);
+}
+
+.exercise-card[data-muscle="abdominaux"] {
+    border-left: 3px solid var(--muscle-abdominaux);
+    padding-left: calc(1rem - 2px);
+}
+
 .exercise-card:hover {
     border-color: var(--primary);
     transform: translateX(4px);
@@ -2375,4 +2414,201 @@ select:focus-visible {
 /* État "rested" (bien reposé) */
 .muscle-item.rested {
     border-left-color: var(--info);
+}
+
+/* ===== PAGE SÉANCE LIBRE - DESIGN MODERNE ===== */
+.free-workout-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+.free-workout-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.free-workout-header h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+}
+
+.free-workout-header p {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+}
+
+/* Groupes d'exercices par muscle */
+.muscle-groups-container {
+    display: grid;
+    gap: 2rem;
+}
+
+.muscle-group-section {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+    transition: all 0.3s ease;
+}
+
+.muscle-group-section:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* Header de chaque groupe avec couleur */
+.muscle-group-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid;
+}
+
+.muscle-group-header h3 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text);
+}
+
+.muscle-group-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+/* Couleurs spécifiques par groupe */
+.muscle-group-dos .muscle-group-header {
+    border-bottom-color: var(--muscle-dos);
+}
+.muscle-group-dos .muscle-group-icon {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--muscle-dos);
+}
+
+.muscle-group-pectoraux .muscle-group-header {
+    border-bottom-color: var(--muscle-pectoraux);
+}
+.muscle-group-pectoraux .muscle-group-icon {
+    background: rgba(236, 72, 153, 0.15);
+    color: var(--muscle-pectoraux);
+}
+
+.muscle-group-jambes .muscle-group-header {
+    border-bottom-color: var(--muscle-jambes);
+}
+.muscle-group-jambes .muscle-group-icon {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--muscle-jambes);
+}
+
+.muscle-group-epaules .muscle-group-header {
+    border-bottom-color: var(--muscle-epaules);
+}
+.muscle-group-epaules .muscle-group-icon {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--muscle-epaules);
+}
+
+.muscle-group-bras .muscle-group-header {
+    border-bottom-color: var(--muscle-bras);
+}
+.muscle-group-bras .muscle-group-icon {
+    background: rgba(139, 92, 246, 0.15);
+    color: var(--muscle-bras);
+}
+
+.muscle-group-abdominaux .muscle-group-header {
+    border-bottom-color: var(--muscle-abdominaux);
+}
+.muscle-group-abdominaux .muscle-group-icon {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--muscle-abdominaux);
+}
+
+/* Liste d'exercices dans chaque groupe */
+.muscle-exercises-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.free-exercise-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 1.25rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.free-exercise-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateX(4px);
+}
+
+.free-exercise-card h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+}
+
+.free-exercise-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.free-exercise-meta span {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+/* Indicateur de difficulté */
+.difficulty-badge {
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.difficulty-beginner {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+}
+
+.difficulty-intermediate {
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+}
+
+.difficulty-advanced {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .muscle-exercises-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .free-workout-header h2 {
+        font-size: 2rem;
+    }
 }
