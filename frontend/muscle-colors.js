@@ -101,7 +101,8 @@ export const MUSCLE_GROUP_MAPPING = {
     'deltoides-posterieurs': 'epaules',
     'biceps': 'bras',
     'triceps': 'bras',
-    'obliques': 'abdominaux'
+    'obliques': 'abdominaux',
+    'abdominaux': 'abdominaux'
 };
 
 /**
@@ -193,7 +194,7 @@ export function getMuscleClass(muscleOrGroup, type = 'color') {
         .replace(/[éè]/g, 'e')
         .replace(/\s+/g, '-');
     
-    const group = getMuscleGroup(normalized);
+    const group = MUSCLE_GROUP_MAPPING[normalized] || normalized;
     
     switch(type) {
         case 'color':

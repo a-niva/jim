@@ -39,7 +39,7 @@
     --muscle-triceps: #7c3aed;
     
     /* ===== MUSCLES SPÉCIFIQUES - ABDOMINAUX ===== */
-    --muscle-abdominaux-principaux: #f87171;
+    --muscle-abdominaux-muscle: #f87171;
     --muscle-obliques: #dc2626;
     
     /* ===== VARIANTES D'OPACITÉ ===== */
@@ -167,3 +167,40 @@
     border-left: 3px solid var(--muscle-abdominaux);
     background: linear-gradient(to right, rgba(239, 68, 68, 0.05), transparent);
 }
+
+/* Border classes pour muscles spécifiques */
+.muscle-border-trapezes { border-color: var(--muscle-trapezes); }
+.muscle-border-left-trapezes { border-left: 3px solid var(--muscle-trapezes); }
+.muscle-border-grand-dorsal { border-color: var(--muscle-grand-dorsal); }
+.muscle-border-left-grand-dorsal { border-left: 3px solid var(--muscle-grand-dorsal); }
+.muscle-border-lombaires { border-color: var(--muscle-lombaires); }
+.muscle-border-left-lombaires { border-left: 3px solid var(--muscle-lombaires); }
+
+.muscle-border-pectoraux-superieurs { border-color: var(--muscle-pectoraux-superieurs); }
+.muscle-border-left-pectoraux-superieurs { border-left: 3px solid var(--muscle-pectoraux-superieurs); }
+.muscle-border-pectoraux-inferieurs { border-color: var(--muscle-pectoraux-inferieurs); }
+.muscle-border-left-pectoraux-inferieurs { border-left: 3px solid var(--muscle-pectoraux-inferieurs); }
+
+.muscle-border-quadriceps { border-color: var(--muscle-quadriceps); }
+.muscle-border-left-quadriceps { border-left: 3px solid var(--muscle-quadriceps); }
+.muscle-border-ischio-jambiers { border-color: var(--muscle-ischio-jambiers); }
+.muscle-border-left-ischio-jambiers { border-left: 3px solid var(--muscle-ischio-jambiers); }
+.muscle-border-fessiers { border-color: var(--muscle-fessiers); }
+.muscle-border-left-fessiers { border-left: 3px solid var(--muscle-fessiers); }
+.muscle-border-mollets { border-color: var(--muscle-mollets); }
+.muscle-border-left-mollets { border-left: 3px solid var(--muscle-mollets); }
+
+.muscle-border-deltoides-anterieurs { border-color: var(--muscle-deltoides-anterieurs); }
+.muscle-border-left-deltoides-anterieurs { border-left: 3px solid var(--muscle-deltoides-anterieurs); }
+.muscle-border-deltoides-lateraux { border-color: var(--muscle-deltoides-lateraux); }
+.muscle-border-left-deltoides-lateraux { border-left: 3px solid var(--muscle-deltoides-lateraux); }
+.muscle-border-deltoides-posterieurs { border-color: var(--muscle-deltoides-posterieurs); }
+.muscle-border-left-deltoides-posterieurs { border-left: 3px solid var(--muscle-deltoides-posterieurs); }
+
+.muscle-border-biceps { border-color: var(--muscle-biceps); }
+.muscle-border-left-biceps { border-left: 3px solid var(--muscle-biceps); }
+.muscle-border-triceps { border-color: var(--muscle-triceps); }
+.muscle-border-left-triceps { border-left: 3px solid var(--muscle-triceps); }
+
+.muscle-border-obliques { border-color: var(--muscle-obliques); }
+.muscle-border-left-obliques { border-left: 3px solid var(--muscle-obliques); }
