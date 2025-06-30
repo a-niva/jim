@@ -86,6 +86,10 @@ function updateUIForState(state) {
     }
 }
 
+// Import du système de couleurs musculaires
+import { getMuscleColor, getChartColors, getMuscleClass, applyMuscleStyle } from './muscle-colors.js';
+
+
 // ===== CONFIGURATION =====
 const totalSteps = 4;
 
@@ -2889,7 +2893,9 @@ async function loadAvailableExercises() {
             bras: [],
             abdominaux: []
         };
-        
+        // Import des couleurs depuis le système centralisé
+        const chartColors = getChartColors();
+
         // Icônes pour chaque groupe
         const muscleIcons = {
             dos: '🏋️',

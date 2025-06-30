@@ -14,12 +14,7 @@
     --border: #475569;
     --radius: 12px;
     /* Couleurs des groupes musculaires - cohérentes partout */
-    --muscle-dos: #3b82f6;        /* Bleu vif */
-    --muscle-pectoraux: #ec4899;  /* Rose/Magenta */
-    --muscle-jambes: #10b981;     /* Vert émeraude */
-    --muscle-epaules: #f59e0b;    /* Orange */
-    --muscle-bras: #8b5cf6;       /* Violet */
-    --muscle-abdominaux: #ef4444; /* Rouge */
+    /* Voir muscle-colors.css pour la configuration complète */
 }
 
 /* ===== RESET & BASE ===== */
