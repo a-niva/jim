@@ -7,8 +7,10 @@
     --warning: #f59e0b;
     --danger: #ef4444;
     --bg: #0f172a;
+    --border: #e5e7eb;
     --bg-light: #1e293b;
     --bg-card: #334155;
+    --card-bg: #ffffff;
     --text: #f8fafc;
     --text-muted: #94a3b8;
     --border: #475569;
@@ -2669,4 +2671,228 @@ select:focus-visible {
 .muscle-item.rested .indicator-dot {
     opacity: 1;
     box-shadow: 0 0 8px currentColor;
+}
+
+
+/* ===== PAGE SÉANCES RÉCENTES - DESIGN MODERNE ===== */
+/* Container pour les séances récentes */
+.recent-workouts {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* État vide */
+.empty-workouts {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted);
+}
+
+.empty-workouts p {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Carte de séance */
+.workout-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 1rem;
+    border: 1px solid var(--border);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.workout-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: var(--primary);
+}
+
+.workout-card.incomplete {
+    opacity: 0.7;
+    border-style: dashed;
+}
+
+/* En-tête */
+.workout-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+}
+
+.workout-title {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.workout-title strong {
+    font-size: 1rem;
+    color: var(--text);
+}
+
+.time-ago {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+/* Durée */
+.workout-duration {
+    text-align: center;
+    background: var(--primary);
+    color: white;
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    min-width: 60px;
+}
+
+.duration-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    display: block;
+}
+
+.duration-unit {
+    font-size: 0.75rem;
+    opacity: 0.9;
+}
+
+.workout-incomplete {
+    text-align: center;
+}
+
+.incomplete-badge {
+    background: var(--warning);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+}
+
+/* Badges muscles */
+.muscle-badges-row {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+}
+
+.muscle-badge {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--primary);
+    padding: 0.25rem 0.5rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.muscle-badge.more {
+    background: rgba(107, 114, 128, 0.1);
+    color: var(--text-muted);
+}
+
+/* Stats */
+.workout-stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 0.5rem;
+    background: var(--bg);
+    border-radius: 8px;
+}
+
+.stat-icon {
+    display: block;
+    font-size: 1.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.125rem;
+}
+
+/* Barre de progression */
+.workout-progress-bar {
+    height: 8px;
+    background: var(--bg);
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex;
+    margin-bottom: 0.5rem;
+}
+
+.progress-segment {
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.progress-segment.active {
+    background: var(--success);
+}
+
+.progress-segment.rest {
+    background: var(--warning);
+}
+
+.progress-legend {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: var(--text-muted);
+}
+
+.legend-item.active {
+    color: var(--success);
+}
+
+.legend-item.rest {
+    color: var(--warning);
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+    .workout-card {
+        background: #1f2937;
+        border-color: #374151;
+    }
+    
+    .stat-item {
+        background: #111827;
+    }
+    
+    .muscle-badge {
+        background: rgba(59, 130, 246, 0.2);
+    }
+    
+    .workout-progress-bar {
+        background: #111827;
+    }
 }

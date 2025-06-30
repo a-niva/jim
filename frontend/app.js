@@ -1456,21 +1456,117 @@ function loadRecentWorkouts(workouts) {
     const container = document.getElementById('recentWorkouts');
     
     if (!workouts || workouts.length === 0) {
-        container.innerHTML = '<p class="text-center">Aucune séance récente</p>';
+        container.innerHTML = `
+            <div class="empty-workouts">
+                <p>Aucune séance récente</p>
+                <small>Commencez votre première séance !</small>
+            </div>
+        `;
         return;
     }
     
     container.innerHTML = workouts.slice(0, 3).map(workout => {
-        const date = new Date(workout.completed_at);
+        const date = new Date(workout.completed_at || workout.started_at);
         const duration = workout.total_duration_minutes || 0;
+        const restTime = workout.total_rest_time || 0;
+        const activeTime = Math.max(0, duration - restTime);
+        const restRatio = duration > 0 ? (restTime / duration * 100).toFixed(0) : 0;
+        
+        // Calculer le temps écoulé
+        const now = new Date();
+        const diffMs = now - date;
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        
+        let timeAgo = 'Aujourd\'hui';
+        if (diffDays > 0) {
+            timeAgo = diffDays === 1 ? 'Hier' : `Il y a ${diffDays} jours`;
+        } else if (diffHours > 0) {
+            timeAgo = `Il y a ${diffHours}h`;
+        }
+        
+        // Récupérer les muscles travaillés depuis les exercices
+        const musclesWorked = workout.exercises ? 
+            [...new Set(workout.exercises.flatMap(ex => ex.muscle_groups || []))] : [];
+        
+        // Créer les badges de muscles avec emojis
+        const muscleEmojis = {
+            'Pectoraux': '💪',
+            'Dos': '🔙', 
+            'Jambes': '🦵',
+            'Épaules': '🤷',
+            'Bras': '💪',
+            'Abdominaux': '🎯'
+        };
+        
+        const muscleBadges = musclesWorked.slice(0, 3).map(muscle => 
+            `<span class="muscle-badge">${muscleEmojis[muscle] || '💪'} ${muscle}</span>`
+        ).join('');
+        
+        const additionalMuscles = musclesWorked.length > 3 ? 
+            `<span class="muscle-badge more">+${musclesWorked.length - 3}</span>` : '';
+        
+        // Calculer le volume total
+        const totalVolume = workout.total_volume || 0;
+        const volumeDisplay = totalVolume > 1000 ? 
+            `${(totalVolume / 1000).toFixed(1)}t` : `${totalVolume}kg`;
         
         return `
-            <div class="workout-item">
-                <div class="workout-header">
-                    <strong>${workout.type === 'program' ? 'Programme' : 'Libre'}</strong>
-                    <div class="workout-date">${formatDate(date)}</div>
+            <div class="workout-card ${duration === 0 ? 'incomplete' : ''}">
+                <div class="workout-header-row">
+                    <div class="workout-title">
+                        <strong>${workout.type === 'program' ? '📋 Programme' : '🏋️ Séance libre'}</strong>
+                        <span class="time-ago">${timeAgo}</span>
+                    </div>
+                    ${duration > 0 ? `
+                        <div class="workout-duration">
+                            <span class="duration-value">${duration}</span>
+                            <span class="duration-unit">min</span>
+                        </div>
+                    ` : `
+                        <div class="workout-incomplete">
+                            <span class="incomplete-badge">⚠️ Incomplète</span>
+                        </div>
+                    `}
                 </div>
-                <div class="workout-duration">${duration} minutes</div>
+                
+                ${musclesWorked.length > 0 ? `
+                    <div class="muscle-badges-row">
+                        ${muscleBadges}
+                        ${additionalMuscles}
+                    </div>
+                ` : ''}
+                
+                <div class="workout-stats-row">
+                    <div class="stat-item">
+                        <span class="stat-icon">📊</span>
+                        <span class="stat-value">${volumeDisplay}</span>
+                        <span class="stat-label">Volume</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-icon">🔢</span>
+                        <span class="stat-value">${workout.total_sets || 0}</span>
+                        <span class="stat-label">Séries</span>
+                    </div>
+                    ${duration > 0 ? `
+                        <div class="stat-item">
+                            <span class="stat-icon">⚡</span>
+                            <span class="stat-value">${100 - restRatio}%</span>
+                            <span class="stat-label">Actif</span>
+                        </div>
+                    ` : ''}
+                </div>
+                
+                ${duration > 0 ? `
+                    <div class="workout-progress-bar">
+                        <div class="progress-segment active" style="width: ${100 - restRatio}%"></div>
+                        <div class="progress-segment rest" style="width: ${restRatio}%"></div>
+                    </div>
+                    <div class="progress-legend">
+                        <span class="legend-item active">⚡ ${activeTime}min actif</span>
+                        <span class="legend-item rest">😴 ${restTime}min repos</span>
+                    </div>
+                ` : ''}
             </div>
         `;
     }).join('');
