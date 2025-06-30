@@ -3298,6 +3298,8 @@ async function validateSet() {
             }
             // Mettre à jour les compteurs immédiatement
             updateHeaderProgress();
+            // Force la mise à jour immédiate de l'affichage
+            loadProgramExercisesList();
             // Mettre à jour la progression du programme si applicable
             if (currentWorkoutSession.type === 'program') {
                 updateProgramExerciseProgress();
