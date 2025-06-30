@@ -1515,7 +1515,7 @@ function loadRecentWorkouts(workouts) {
             <div class="workout-card ${duration === 0 ? 'incomplete' : ''}">
                 <div class="workout-header-row">
                     <div class="workout-title">
-                        <strong>${workout.type === 'program' ? '📋 Programme' : '🏋️ Séance libre'}</strong>
+                        <strong>${workout.type === 'program' ? '📋 Programme' : 'Séance libre'}</strong>
                         <span class="time-ago">${timeAgo}</span>
                     </div>
                     ${duration > 0 ? `
@@ -1563,14 +1563,52 @@ function loadRecentWorkouts(workouts) {
                         <div class="progress-segment rest" style="width: ${restRatio}%"></div>
                     </div>
                     <div class="progress-legend">
-                        <span class="legend-item active">⚡ ${activeTime}min actif</span>
-                        <span class="legend-item rest">😴 ${restTime}min repos</span>
+                        <span class="legend-item active">${activeTime}min actif</span>
+                        <span class="legend-item rest">${restTime}min repos</span>
+                    </div>
+                ` : ''}
+                
+                ${musclesWorked.length > 0 ? `
+                    <div class="muscle-distribution">
+                        <div class="distribution-label">Répartition musculaire</div>
+                        <div class="distribution-bar">
+                            ${generateMuscleDistribution(workout)}
+                        </div>
                     </div>
                 ` : ''}
             </div>
         `;
     }).join('');
 }
+
+function generateMuscleDistribution(workout) {
+    if (!workout.exercises || workout.exercises.length === 0) return '';
+    
+    const muscleVolumes = {};
+    let totalVolume = 0;
+    
+    // Calculer le volume par muscle
+    workout.exercises.forEach(ex => {
+        const volume = ex.sets * ex.reps * (ex.weight || 1);
+        (ex.muscle_groups || []).forEach(muscle => {
+            const key = muscle.toLowerCase();
+            muscleVolumes[key] = (muscleVolumes[key] || 0) + volume;
+            totalVolume += volume;
+        });
+    });
+    
+    // Générer les segments
+    return Object.entries(muscleVolumes)
+        .map(([muscle, volume]) => {
+            const percentage = Math.round((volume / totalVolume) * 100);
+            return `<div class="muscle-segment" 
+                         data-muscle="${muscle}" 
+                         data-percentage="${percentage}%" 
+                         style="width: ${percentage}%"></div>`;
+        })
+        .join('');
+}
+
 
 // ===== SÉANCES =====
 async function startFreeWorkout() {
