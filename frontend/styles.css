@@ -2142,7 +2142,6 @@ select:focus-visible {
 .exercise-card[data-muscle="abdominaux"] {
     border-left: 3px solid var(--muscle-abdominaux);
 }
-}
 
 .exercise-card:hover {
     border-color: var(--primary);
