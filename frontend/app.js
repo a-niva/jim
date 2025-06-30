@@ -1239,10 +1239,16 @@ function showWorkoutResumeBanner(workout) {
         <button class="banner-close" onclick="this.parentElement.remove()" style="position: absolute; top: 0.5rem; right: 0.5rem; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">×</button>
         <h3>⏱️ Séance en cours</h3>
         <p>Démarrée il y a ${elapsed} minutes</p>
-        <button class="btn" style="background: white; color: var(--warning); margin-top: 0.5rem;" 
-                onclick="resumeWorkout(${workout.id})">
-            Reprendre la séance
-        </button>
+        <div style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.5rem;">
+            <button class="btn" style="background: white; color: var(--warning);" 
+                    onclick="resumeWorkout(${workout.id})">
+                Reprendre la séance
+            </button>
+            <button class="btn" style="background: rgba(255,255,255,0.2); color: white;" 
+                    onclick="abandonActiveWorkout(${workout.id})">
+                Abandonner
+            </button>
+        </div>
     `;
     
     const welcomeMsg = document.getElementById('welcomeMessage');
@@ -1268,6 +1274,35 @@ async function resumeWorkout(workoutId) {
     } catch (error) {
         console.error('Erreur reprise séance:', error);
         showToast('Erreur lors de la reprise de séance', 'error');
+    }
+}
+
+async function abandonActiveWorkout(workoutId) {
+    if (confirm('Êtes-vous sûr de vouloir abandonner cette séance ?')) {
+        try {
+            // Supprimer la séance active côté serveur
+            await apiPost(`/api/workouts/${workoutId}/end`, {
+                ended_at: new Date().toISOString()
+            });
+            
+            // Nettoyer l'état local
+            localStorage.removeItem('fitness_workout_state');
+            clearWorkoutState();
+            
+            // Retirer la bannière
+            const banner = document.querySelector('.workout-resume-banner');
+            if (banner) banner.remove();
+            
+            showToast('Séance abandonnée', 'info');
+            
+        } catch (error) {
+            console.error('Erreur abandon séance:', error);
+            // En cas d'erreur API, au moins nettoyer localement
+            localStorage.removeItem('fitness_workout_state');
+            clearWorkoutState();
+            const banner = document.querySelector('.workout-resume-banner');
+            if (banner) banner.remove();
+        }
     }
 }
 
@@ -3902,3 +3937,4 @@ window.handleExerciseCardClick = handleExerciseCardClick;
 window.showProgramExerciseList = showProgramExerciseList;
 window.updateHeaderProgress = updateHeaderProgress;
 window.updateProgramExerciseProgress = updateProgramExerciseProgress;
+window.abandonActiveWorkout = abandonActiveWorkout;
