@@ -1,4 +1,4 @@
-/* ===== VARIABLES CSS ===== */
+/* ===== VARIABLES CSS AMÉLIORÉES ===== */
 :root {
     --primary: #6366f1;
     --primary-dark: #4f46e5;
@@ -6,22 +6,21 @@
     --success: #10b981;
     --warning: #f59e0b;
     --danger: #ef4444;
-    
-    /* NOUVEAU SCHÉMA UNIFIÉ */
     --bg: #0f172a;
     --bg-light: #1e293b;
-    --bg-card: #1e293b;  /* ← CHANGEMENT: plus jamais de #334155 */
-    --card-bg: #1e293b;  /* ← CHANGEMENT: unifié avec bg-card */
-    
+    --bg-card: #1e293b;       /* ← UNIFIÉ : plus jamais de #334155 */
+    --card-bg: #1e293b;       /* ← UNIFIÉ : cohérent avec bg-card */
     --text: #f8fafc;
     --text-muted: #94a3b8;
-    --border: #334155;
+    --border: #334155;        /* ← AMÉLIORÉ : meilleur contraste */
     --radius: 12px;
     
     /* NOUVEAUX ACCENTS MODERNES */
     --accent-purple: #8b5cf6;
     --accent-emerald: #10b981;
     --accent-orange: #f97316;
+    --glass-bg: rgba(30, 41, 59, 0.8);
+    --glass-border: rgba(99, 102, 241, 0.2);
 }
 
 /* ===== RESET & BASE ===== */
@@ -1615,23 +1614,6 @@ select:focus-visible {
     opacity: 1;
 }
 
-/* Carte principale */
-.workout-card {
-    background: linear-gradient(135deg, var(--bg-card) 0%, #2d3748 100%);
-    border-radius: 16px; /* Plus moderne */
-    padding: 1.25rem;
-    border: 1px solid rgba(99, 102, 241, 0.2); /* Bordure subtile colorée */
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.workout-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.2);
-    border-color: var(--primary);
-}
-
 /* Points de progression */
 .series-dots {
     display: flex;
@@ -2687,225 +2669,203 @@ select:focus-visible {
 }
 
 
-/* ===== PAGE SÉANCES RÉCENTES - DESIGN MODERNE ===== */
-/* Container pour les séances récentes */
-.recent-workouts {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-/* État vide */
-.empty-workouts {
-    text-align: center;
-    padding: 2rem;
-    color: var(--text-muted);
-}
-
-.empty-workouts p {
-    font-size: 1.1rem;
-    margin-bottom: 0.5rem;
-}
-
-/* Carte de séance */
+/* ===== CARTES DE SÉANCES MODERNES ===== */
 .workout-card {
-    background: var(--card-bg);
+    background: linear-gradient(135deg, var(--bg-card) 0%, #253545 100%);
+    border-radius: 16px;
+    padding: 1.25rem;
+    border: 1px solid var(--glass-border);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+}
+
+.workout-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--primary), var(--accent-purple), var(--accent-emerald));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.workout-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(99, 102, 241, 0.15);
+    border-color: var(--primary);
+}
+
+.workout-card:hover::before {
+    opacity: 1;
+}
+
+.workout-card.incomplete {
+    opacity: 0.8;
+    border-style: dashed;
+    border-color: var(--warning);
+}
+
+.workout-card.incomplete::before {
+    background: linear-gradient(90deg, var(--warning), var(--accent-orange));
+    opacity: 0.6;
+}
+
+/* ===== INDICATEURS MUSCULAIRES AMÉLIORÉS ===== */
+.muscle-item {
+    background: linear-gradient(135deg, var(--bg-card) 0%, #253545 100%);
     border-radius: 12px;
     padding: 1rem;
-    border: 1px solid var(--border);
+    border-left: 4px solid var(--border);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.muscle-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 4px;
+    bottom: 0;
+    width: 2px;
+    background: currentColor;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.muscle-item:hover {
+    transform: translateX(4px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.muscle-item.ready {
+    border-left-color: var(--success);
+    color: var(--success);
+}
+
+.muscle-item.recovering {
+    border-left-color: var(--warning);
+    color: var(--warning);
+}
+
+.muscle-item.fatigued {
+    border-left-color: var(--danger);
+    color: var(--danger);
+}
+
+.muscle-item:hover::before {
+    opacity: 0.3;
+}
+
+/* ===== INDICATEUR DOT AMÉLIORÉ ===== */
+.indicator-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.muscle-item.ready .indicator-dot {
+    background: var(--success);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
+}
+
+.muscle-item.recovering .indicator-dot {
+    background: var(--warning);
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+}
+
+.muscle-item.fatigued .indicator-dot {
+    background: var(--danger);
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+}
+
+/* ===== CARTES D'ACTIONS PRINCIPALES AMÉLIORÉES ===== */
+.action-card {
+    background: linear-gradient(135deg, var(--bg-card) 0%, #253545 100%);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
 }
 
-.workout-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+.action-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 1;
+}
+
+.action-card:hover {
     border-color: var(--primary);
+    transform: translateY(-6px);
+    box-shadow: 0 16px 48px rgba(99, 102, 241, 0.2);
 }
 
-.workout-card.incomplete {
-    opacity: 0.7;
-    border-style: dashed;
+.action-card:hover::after {
+    opacity: 1;
 }
 
-/* En-tête */
-.workout-header-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 0.75rem;
+.action-card > * {
+    position: relative;
+    z-index: 2;
 }
 
-.workout-title {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
-
-.workout-title strong {
-    font-size: 1rem;
-    color: var(--text);
-}
-
-.time-ago {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-}
-
-/* Durée */
-.workout-duration {
-    text-align: center;
-    background: var(--primary);
-    color: white;
-    border-radius: 8px;
-    padding: 0.5rem 0.75rem;
-    min-width: 60px;
-}
-
-.duration-value {
-    font-size: 1.5rem;
-    font-weight: 700;
-    display: block;
-}
-
-.duration-unit {
-    font-size: 0.75rem;
-    opacity: 0.9;
-}
-
-.workout-incomplete {
-    text-align: center;
-}
-
-.incomplete-badge {
-    background: var(--warning);
-    color: white;
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.85rem;
-}
-
-/* Badges muscles */
-.muscle-badges-row {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    margin-bottom: 0.75rem;
-}
-
-.muscle-badge {
-    background: rgba(59, 130, 246, 0.1);
-    color: var(--primary);
-    padding: 0.25rem 0.5rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 500;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-}
-
-.muscle-badge.more {
-    background: rgba(107, 114, 128, 0.1);
-    color: var(--text-muted);
-}
-
-/* Stats */
-.workout-stats-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
-}
-
+/* ===== STATS CARDS AMÉLIORÉES ===== */
 .stat-item {
+    background: linear-gradient(135deg, var(--bg) 0%, var(--bg-light) 100%);
+    border-radius: 12px;
+    padding: 0.75rem;
     text-align: center;
-    padding: 0.5rem;
-    background: var(--bg);
-    border-radius: 8px;
+    border: 1px solid rgba(99, 102, 241, 0.1);
+    transition: all 0.3s ease;
 }
 
-.stat-icon {
-    display: block;
-    font-size: 1.25rem;
-    margin-bottom: 0.25rem;
+.stat-item:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
 }
 
-.stat-value {
-    display: block;
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--text);
-}
-
-.stat-label {
-    display: block;
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    margin-top: 0.125rem;
-}
-
-/* Barre de progression */
-.workout-progress-bar {
-    height: 8px;
-    background: var(--bg);
-    border-radius: 4px;
+/* ===== WELCOME MESSAGE MODERNE ===== */
+.welcome-message {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 50%, var(--accent-purple) 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 20px;
+    margin-bottom: 2rem;
+    text-align: center;
+    position: relative;
     overflow: hidden;
-    display: flex;
-    margin-bottom: 0.5rem;
 }
 
-.progress-segment {
-    height: 100%;
-    transition: width 0.3s ease;
+.welcome-message::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+    opacity: 0.3;
+    z-index: 1;
 }
 
-.progress-segment.active {
-    background: var(--success);
-}
-
-.progress-segment.rest {
-    background: var(--warning);
-}
-
-.progress-legend {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.75rem;
-}
-
-.legend-item {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    color: var(--text-muted);
-}
-
-.legend-item.active {
-    color: var(--success);
-}
-
-.legend-item.rest {
-    color: var(--warning);
-}
-
-/* Dark mode adjustments */
-@media (prefers-color-scheme: dark) {
-    .workout-card {
-        background: #1f2937;
-        border-color: #374151;
-    }
-    
-    .stat-item {
-        background: #111827;
-    }
-    
-    .muscle-badge {
-        background: rgba(59, 130, 246, 0.2);
-    }
-    
-    .workout-progress-bar {
-        background: #111827;
-    }
+.welcome-message > * {
+    position: relative;
+    z-index: 2;
 }
