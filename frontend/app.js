@@ -1315,16 +1315,19 @@ async function abandonActiveWorkout(workoutId) {
 async function loadMuscleReadiness() {
     const container = document.getElementById('muscleReadiness');
     
-    // Groupes musculaires à surveiller
+    // Utiliser la configuration centralisée
     const muscleGroups = [
-        { key: 'dos', name: 'Dos' },
-        { key: 'pectoraux', name: 'Pectoraux' },
-        { key: 'bras', name: 'Bras' },
-        { key: 'epaules', name: 'Épaules' },
-        { key: 'jambes', name: 'Jambes' },
-        { key: 'abdominaux', name: 'Abdominaux' }
+        { name: 'Dos', key: 'dos' },
+        { name: 'Pectoraux', key: 'pectoraux' },
+        { name: 'Jambes', key: 'jambes' },
+        { name: 'Épaules', key: 'epaules' },
+        { name: 'Bras', key: 'bras' },
+        { name: 'Abdominaux', key: 'abdominaux' }
     ];
-    
+
+    // Pour obtenir les couleurs si besoin
+    // const color = window.MuscleColors.getMuscleColor(muscle.key);
+        
     try {
         // Utiliser l'endpoint stats qui existe
         const stats = await apiGet(`/api/users/${currentUser.id}/stats`);
@@ -2895,7 +2898,8 @@ async function loadAvailableExercises() {
         };
         // Import des couleurs depuis le système centralisé
         const chartColors = getChartColors();
-
+        backgroundColor: Object.values(chartColors)
+        
         // Icônes pour chaque groupe
         const muscleIcons = {
             dos: '🏋️',

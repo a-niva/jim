@@ -2112,36 +2112,36 @@ select:focus-visible {
     overflow: hidden;
 }
 
-/* ===== COULEURS SUPPLÉMENTAIRES POUR LES CARTES PAR MUSCLE ===== */
-/* Bordure gauche colorée selon le muscle principal */
+/* ===== COULEURS POUR LES CARTES PAR MUSCLE ===== */
+/* Padding commun pour toutes les cartes avec bordure */
+.exercise-card[data-muscle] {
+    padding-left: calc(1rem - 2px);
+}
+
+/* Bordures colorées - utilise les variables centralisées */
 .exercise-card[data-muscle="dos"] {
     border-left: 3px solid var(--muscle-dos);
-    padding-left: calc(1rem - 2px); /* Compenser la bordure */
 }
 
 .exercise-card[data-muscle="pectoraux"] {
     border-left: 3px solid var(--muscle-pectoraux);
-    padding-left: calc(1rem - 2px);
 }
 
 .exercise-card[data-muscle="jambes"] {
     border-left: 3px solid var(--muscle-jambes);
-    padding-left: calc(1rem - 2px);
 }
 
 .exercise-card[data-muscle="epaules"] {
     border-left: 3px solid var(--muscle-epaules);
-    padding-left: calc(1rem - 2px);
 }
 
 .exercise-card[data-muscle="bras"] {
     border-left: 3px solid var(--muscle-bras);
-    padding-left: calc(1rem - 2px);
 }
 
 .exercise-card[data-muscle="abdominaux"] {
     border-left: 3px solid var(--muscle-abdominaux);
-    padding-left: calc(1rem - 2px);
+}
 }
 
 .exercise-card:hover {
@@ -2481,12 +2481,12 @@ select:focus-visible {
     font-size: 1.5rem;
 }
 
-/* Couleurs spécifiques par groupe */
+/* Couleurs spécifiques par groupe - utilise les variables RGB centralisées */
 .muscle-group-dos .muscle-group-header {
     border-bottom-color: var(--muscle-dos);
 }
 .muscle-group-dos .muscle-group-icon {
-    background: rgba(59, 130, 246, 0.15);
+    background: rgba(var(--muscle-dos-rgb), 0.15);
     color: var(--muscle-dos);
 }
 
@@ -2494,7 +2494,7 @@ select:focus-visible {
     border-bottom-color: var(--muscle-pectoraux);
 }
 .muscle-group-pectoraux .muscle-group-icon {
-    background: rgba(236, 72, 153, 0.15);
+    background: rgba(var(--muscle-pectoraux-rgb), 0.15);
     color: var(--muscle-pectoraux);
 }
 
@@ -2502,7 +2502,7 @@ select:focus-visible {
     border-bottom-color: var(--muscle-jambes);
 }
 .muscle-group-jambes .muscle-group-icon {
-    background: rgba(16, 185, 129, 0.15);
+    background: rgba(var(--muscle-jambes-rgb), 0.15);
     color: var(--muscle-jambes);
 }
 
@@ -2510,7 +2510,7 @@ select:focus-visible {
     border-bottom-color: var(--muscle-epaules);
 }
 .muscle-group-epaules .muscle-group-icon {
-    background: rgba(245, 158, 11, 0.15);
+    background: rgba(var(--muscle-epaules-rgb), 0.15);
     color: var(--muscle-epaules);
 }
 
@@ -2518,7 +2518,7 @@ select:focus-visible {
     border-bottom-color: var(--muscle-bras);
 }
 .muscle-group-bras .muscle-group-icon {
-    background: rgba(139, 92, 246, 0.15);
+    background: rgba(var(--muscle-bras-rgb), 0.15);
     color: var(--muscle-bras);
 }
 
@@ -2526,7 +2526,7 @@ select:focus-visible {
     border-bottom-color: var(--muscle-abdominaux);
 }
 .muscle-group-abdominaux .muscle-group-icon {
-    background: rgba(239, 68, 68, 0.15);
+    background: rgba(var(--muscle-abdominaux-rgb), 0.15);
     color: var(--muscle-abdominaux);
 }
 

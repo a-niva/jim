@@ -2,11 +2,17 @@
 :root {
     /* ===== GROUPES MUSCULAIRES PRINCIPAUX ===== */
     --muscle-dos: #3b82f6;
+    --muscle-dos-rgb: 59, 130, 246;
     --muscle-pectoraux: #ec4899;
+    --muscle-pectoraux-rgb: 236, 72, 153;
     --muscle-jambes: #10b981;
+    --muscle-jambes-rgb: 16, 185, 129;
     --muscle-epaules: #f59e0b;
+    --muscle-epaules-rgb: 245, 158, 11;
     --muscle-bras: #8b5cf6;
+    --muscle-bras-rgb: 139, 92, 246;
     --muscle-abdominaux: #ef4444;
+    --muscle-abdominaux-rgb: 239, 68, 68;
     
     /* ===== MUSCLES SPÉCIFIQUES - DOS ===== */
     --muscle-trapezes: #5b95f8;
