@@ -16,6 +16,9 @@ from backend.ml_recommendations import FitnessRecommendationEngine
 from backend.database import engine, get_db, SessionLocal
 from backend.models import Base, User, Exercise, Program, Workout, WorkoutSet, SetHistory, UserCommitment, AdaptiveTargets
 from backend.schemas import UserCreate, UserResponse, ProgramCreate, WorkoutCreate, SetCreate, ExerciseResponse
+from sqlalchemy import extract, and_
+import calendar
+from collections import defaultdict
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -543,6 +546,582 @@ def get_progress_data(user_id: int, days: int = 30, db: Session = Depends(get_db
         "daily_volume": [{"date": str(dv.date), "volume": float(dv.volume or 0)} for dv in daily_volume],
         "exercise_records": [{"name": er.name, "max_weight": float(er.max_weight or 0), "max_reps": er.max_reps} for er in exercise_records]
     }
+
+@app.get("/api/users/{user_id}/stats/progression/{exercise_id}")
+def get_exercise_progression(
+    user_id: int,
+    exercise_id: int,
+    months: int = 6,
+    db: Session = Depends(get_db)
+):
+    """Graphique 1: Courbe de progression 1RM estimé"""
+    cutoff_date = datetime.utcnow() - timedelta(days=months * 30)
+    
+    sets = db.query(SetHistory).filter(
+        SetHistory.user_id == user_id,
+        SetHistory.exercise_id == exercise_id,
+        SetHistory.date_performed >= cutoff_date
+    ).order_by(SetHistory.date_performed).all()
+    
+    if not sets:
+        return {"data": [], "trend": None}
+    
+    # Calculer 1RM estimé (formule d'Epley)
+    progression_data = []
+    for s in sets:
+        if s.weight and s.actual_reps:
+            one_rm = s.weight * (1 + s.actual_reps / 30)
+            progression_data.append({
+                "date": s.date_performed.isoformat(),
+                "oneRM": round(one_rm, 1),
+                "weight": s.weight,
+                "reps": s.actual_reps,
+                "fatigue": s.fatigue_level
+            })
+    
+    # Calculer la tendance linéaire
+    if len(progression_data) >= 2:
+        x_values = list(range(len(progression_data)))
+        y_values = [p["oneRM"] for p in progression_data]
+        n = len(x_values)
+        
+        sum_x = sum(x_values)
+        sum_y = sum(y_values)
+        sum_xy = sum(x * y for x, y in zip(x_values, y_values))
+        sum_x2 = sum(x * x for x in x_values)
+        
+        slope = (n * sum_xy - sum_x * sum_y) / (n * sum_x2 - sum_x * sum_x) if n * sum_x2 - sum_x * sum_x != 0 else 0
+        intercept = (sum_y - slope * sum_x) / n
+        
+        trend = {
+            "slope": round(slope, 2),
+            "intercept": round(intercept, 2),
+            "progression_percent": round((slope / intercept * 100) if intercept else 0, 1)
+        }
+    else:
+        trend = None
+    
+    return {"data": progression_data, "trend": trend}
+
+
+@app.get("/api/users/{user_id}/stats/personal-records")
+def get_personal_records(user_id: int, db: Session = Depends(get_db)):
+    """Graphique 4: Records personnels avec contexte"""
+    # Sous-requête pour trouver le max weight par exercice
+    subquery = db.query(
+        SetHistory.exercise_id,
+        func.max(SetHistory.weight).label('max_weight')
+    ).filter(
+        SetHistory.user_id == user_id
+    ).group_by(SetHistory.exercise_id).subquery()
+    
+    # Jointure pour obtenir les détails complets
+    records = db.query(
+        SetHistory,
+        Exercise.name,
+        Exercise.muscle_groups,
+        Exercise.muscles
+    ).join(
+        Exercise, SetHistory.exercise_id == Exercise.id
+    ).join(
+        subquery,
+        and_(
+            SetHistory.exercise_id == subquery.c.exercise_id,
+            SetHistory.weight == subquery.c.max_weight
+        )
+    ).filter(
+        SetHistory.user_id == user_id
+    ).all()
+    
+    result = []
+    for record, ex_name, muscle_groups, muscles in records:
+        result.append({
+            "exercise": ex_name,
+            "muscleGroups": muscle_groups,
+            "muscles": muscles if muscles else [],
+            "weight": record.weight,
+            "reps": record.actual_reps,
+            "date": record.date_performed.isoformat(),
+            "fatigue": record.fatigue_level,
+            "effort": record.effort_level,
+            "daysAgo": (datetime.utcnow() - record.date_performed).days
+        })
+    
+    return sorted(result, key=lambda x: x["weight"], reverse=True)
+
+
+@app.get("/api/users/{user_id}/stats/attendance-calendar")
+def get_attendance_calendar(user_id: int, months: int = 6, db: Session = Depends(get_db)):
+    """Graphique 5: Calendrier d'assiduité avec séances manquées"""
+    cutoff_date = datetime.utcnow() - timedelta(days=months * 30)
+    
+    # Récupérer toutes les séances
+    workouts = db.query(Workout).filter(
+        Workout.user_id == user_id,
+        Workout.started_at >= cutoff_date
+    ).all()
+    
+    # Récupérer l'engagement utilisateur
+    commitment = db.query(UserCommitment).filter(
+        UserCommitment.user_id == user_id
+    ).first()
+    
+    target_per_week = commitment.sessions_per_week if commitment else 3
+    
+    # Organiser par date
+    calendar_data = defaultdict(lambda: {"workouts": 0, "volume": 0, "duration": 0})
+    
+    for workout in workouts:
+        date_key = workout.started_at.date().isoformat()
+        calendar_data[date_key]["workouts"] += 1
+        
+        if workout.total_duration_minutes:
+            calendar_data[date_key]["duration"] += workout.total_duration_minutes
+        
+        # Calculer le volume total
+        sets = db.query(WorkoutSet).filter(WorkoutSet.workout_id == workout.id).all()
+        volume = sum((s.weight or 0) * s.reps for s in sets)
+        calendar_data[date_key]["volume"] += volume
+    
+    # Identifier les semaines avec séances manquantes
+    weeks_analysis = []
+    current_date = datetime.utcnow().date()
+    
+    for week_offset in range(months * 4):
+        week_start = current_date - timedelta(days=current_date.weekday() + week_offset * 7)
+        week_end = week_start + timedelta(days=6)
+        
+        if week_start < cutoff_date.date():
+            break
+        
+        week_workouts = sum(
+            1 for date, data in calendar_data.items()
+            if week_start <= datetime.fromisoformat(date).date() <= week_end
+        )
+        
+        weeks_analysis.append({
+            "weekStart": week_start.isoformat(),
+            "workouts": week_workouts,
+            "target": target_per_week,
+            "missed": max(0, target_per_week - week_workouts) if week_end <= current_date else 0
+        })
+    
+    return {
+        "calendar": dict(calendar_data),
+        "weeksAnalysis": weeks_analysis,
+        "targetPerWeek": target_per_week
+    }
+
+
+@app.get("/api/users/{user_id}/stats/volume-burndown/{period}")
+def get_volume_burndown(
+    user_id: int,
+    period: str,  # week, month, quarter, year
+    db: Session = Depends(get_db)
+):
+    """Graphique 7: Burndown chart volume avec différentes périodes"""
+    now = datetime.utcnow()
+    
+    # Déterminer les dates selon la période
+    if period == "week":
+        start_date = now - timedelta(days=now.weekday())
+        end_date = start_date + timedelta(days=6)
+        days_in_period = 7
+    elif period == "month":
+        start_date = now.replace(day=1)
+        end_date = (start_date + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+        days_in_period = (end_date - start_date).days + 1
+    elif period == "quarter":
+        quarter = (now.month - 1) // 3
+        start_date = datetime(now.year, quarter * 3 + 1, 1)
+        end_date = (start_date + timedelta(days=93)).replace(day=1) - timedelta(days=1)
+        days_in_period = (end_date - start_date).days + 1
+    else:  # year
+        start_date = now.replace(month=1, day=1)
+        end_date = now.replace(month=12, day=31)
+        days_in_period = 365
+    
+    # Récupérer les targets adaptatifs
+    targets = db.query(AdaptiveTargets).filter(
+        AdaptiveTargets.user_id == user_id
+    ).all()
+    
+    total_target_volume = sum(t.target_volume for t in targets) * (days_in_period / 7)
+    
+    # Calculer le volume réalisé jour par jour
+    daily_volumes = []
+    cumulative_volume = 0
+    
+    current = start_date
+    while current <= min(end_date, now):
+        day_sets = db.query(WorkoutSet).join(Workout).filter(
+            Workout.user_id == user_id,
+            func.date(Workout.started_at) == current.date()
+        ).all()
+        
+        day_volume = sum((s.weight or 0) * s.reps for s in day_sets)
+        cumulative_volume += day_volume
+        
+        daily_volumes.append({
+            "date": current.date().isoformat(),
+            "dailyVolume": day_volume,
+            "cumulativeVolume": cumulative_volume,
+            "remainingTarget": max(0, total_target_volume - cumulative_volume),
+            "percentComplete": (cumulative_volume / total_target_volume * 100) if total_target_volume > 0 else 0
+        })
+        
+        current += timedelta(days=1)
+    
+    # Projection pour les jours restants
+    days_elapsed = (now - start_date).days + 1
+    days_remaining = max(1, days_in_period - days_elapsed)
+    daily_rate_needed = (total_target_volume - cumulative_volume) / days_remaining if days_remaining > 0 else 0
+    
+    return {
+        "period": period,
+        "startDate": start_date.isoformat(),
+        "endDate": end_date.isoformat(),
+        "targetVolume": round(total_target_volume),
+        "currentVolume": round(cumulative_volume),
+        "dailyVolumes": daily_volumes,
+        "projection": {
+            "dailyRateNeeded": round(daily_rate_needed),
+            "onTrack": cumulative_volume >= (total_target_volume * days_elapsed / days_in_period)
+        }
+    }
+
+
+@app.get("/api/users/{user_id}/stats/muscle-sunburst")
+def get_muscle_sunburst(user_id: int, days: int = 30, db: Session = Depends(get_db)):
+    """Graphique 9: Sunburst double couronne muscle_groups/muscles"""
+    cutoff_date = datetime.utcnow() - timedelta(days=days)
+    
+    # Récupérer tous les sets avec exercices
+    sets = db.query(
+        WorkoutSet,
+        Exercise.muscle_groups,
+        Exercise.muscles
+    ).join(
+        Exercise, WorkoutSet.exercise_id == Exercise.id
+    ).join(
+        Workout, WorkoutSet.workout_id == Workout.id
+    ).filter(
+        Workout.user_id == user_id,
+        Workout.started_at >= cutoff_date
+    ).all()
+    
+    # Organiser les données hiérarchiquement
+    muscle_data = defaultdict(lambda: {"volume": 0, "muscles": defaultdict(float)})
+    
+    for workout_set, muscle_groups, muscles in sets:
+        volume = (workout_set.weight or 0) * workout_set.reps
+        
+        # Distribuer le volume entre les groupes musculaires
+        if muscle_groups:
+            volume_per_group = volume / len(muscle_groups)
+            
+            for group in muscle_groups:
+                muscle_data[group]["volume"] += volume_per_group
+                
+                # Si des muscles spécifiques sont définis
+                if muscles:
+                    # Filtrer les muscles qui appartiennent à ce groupe
+                    group_muscles = [m for m in muscles if m in get_muscles_for_group(group)]
+                    if group_muscles:
+                        volume_per_muscle = volume_per_group / len(group_muscles)
+                        for muscle in group_muscles:
+                            muscle_data[group]["muscles"][muscle] += volume_per_muscle
+    
+    # Formatter pour le sunburst
+    result = {
+        "name": "Total",
+        "value": sum(data["volume"] for data in muscle_data.values()),
+        "children": []
+    }
+    
+    for group, data in muscle_data.items():
+        group_node = {
+            "name": group,
+            "value": data["volume"],
+            "children": []
+        }
+        
+        for muscle, volume in data["muscles"].items():
+            group_node["children"].append({
+                "name": muscle,
+                "value": volume
+            })
+        
+        result["children"].append(group_node)
+    
+    return result
+
+
+@app.get("/api/users/{user_id}/stats/recovery-gantt")
+def get_recovery_gantt(user_id: int, db: Session = Depends(get_db)):
+    """Graphique 10: Gantt de récupération musculaire"""
+    # Récupérer la dernière séance pour chaque groupe musculaire
+    subquery = db.query(
+        Exercise.muscle_groups,
+        func.max(Workout.started_at).label('last_workout')
+    ).select_from(WorkoutSet).join(
+        Exercise, WorkoutSet.exercise_id == Exercise.id
+    ).join(
+        Workout, WorkoutSet.workout_id == Workout.id
+    ).filter(
+        Workout.user_id == user_id
+    ).group_by(Exercise.muscle_groups).subquery()
+    
+    # Pour gérer les arrays JSON dans muscle_groups
+    muscle_recovery = {}
+    now = datetime.utcnow()
+    
+    # Récupérer tous les groupes musculaires possibles
+    all_muscle_groups = ["dos", "pectoraux", "jambes", "epaules", "bras", "abdominaux"]
+    
+    for muscle_group in all_muscle_groups:
+        # Trouver la dernière séance qui a travaillé ce muscle
+        last_workout = db.query(func.max(Workout.started_at)).select_from(
+            WorkoutSet
+        ).join(
+            Exercise, WorkoutSet.exercise_id == Exercise.id
+        ).join(
+            Workout, WorkoutSet.workout_id == Workout.id
+        ).filter(
+            Workout.user_id == user_id,
+            cast(Exercise.muscle_groups, JSONB).contains([muscle_group])
+        ).scalar()
+        
+        if last_workout:
+            hours_since = (now - last_workout).total_seconds() / 3600
+            recovery_percent = min(100, (hours_since / 72) * 100)  # 72h = récupération complète
+            
+            muscle_recovery[muscle_group] = {
+                "lastWorkout": last_workout.isoformat(),
+                "hoursSince": round(hours_since, 1),
+                "recoveryPercent": round(recovery_percent, 1),
+                "optimalRest": 72,  # heures
+                "status": "recovered" if recovery_percent >= 90 else "recovering" if recovery_percent >= 50 else "fatigued"
+            }
+        else:
+            # Pas d'historique
+            muscle_recovery[muscle_group] = {
+                "lastWorkout": None,
+                "hoursSince": None,
+                "recoveryPercent": 100,
+                "optimalRest": 72,
+                "status": "fresh"
+            }
+    
+    return muscle_recovery
+
+
+@app.get("/api/users/{user_id}/stats/muscle-balance")
+def get_muscle_balance(user_id: int, db: Session = Depends(get_db)):
+    """Graphique 11: Spider chart équilibre musculaire"""
+    # Récupérer les targets adaptatifs
+    targets = db.query(AdaptiveTargets).filter(
+        AdaptiveTargets.user_id == user_id
+    ).all()
+    
+    if not targets:
+        # Créer des targets par défaut si elles n'existent pas
+        return {
+            "muscles": ["dos", "pectoraux", "jambes", "epaules", "bras", "abdominaux"],
+            "targetVolumes": [5000] * 6,
+            "currentVolumes": [0] * 6,
+            "ratios": [0] * 6
+        }
+    
+    muscle_data = []
+    for target in targets:
+        ratio = (target.current_volume / target.target_volume * 100) if target.target_volume > 0 else 0
+        muscle_data.append({
+            "muscle": target.muscle_group,
+            "targetVolume": target.target_volume,
+            "currentVolume": target.current_volume,
+            "ratio": round(ratio, 1),
+            "recoveryDebt": target.recovery_debt
+        })
+    
+    # Trier par groupe musculaire pour consistency
+    muscle_order = ["dos", "pectoraux", "jambes", "epaules", "bras", "abdominaux"]
+    sorted_data = sorted(muscle_data, key=lambda x: muscle_order.index(x["muscle"]) if x["muscle"] in muscle_order else 99)
+    
+    return {
+        "muscles": [d["muscle"] for d in sorted_data],
+        "targetVolumes": [d["targetVolume"] for d in sorted_data],
+        "currentVolumes": [d["currentVolume"] for d in sorted_data],
+        "ratios": [d["ratio"] for d in sorted_data],
+        "recoveryDebts": [d["recoveryDebt"] for d in sorted_data]
+    }
+
+
+@app.get("/api/users/{user_id}/stats/ml-confidence")
+def get_ml_confidence_evolution(user_id: int, days: int = 60, db: Session = Depends(get_db)):
+    """Graphique 14: Evolution de la confiance ML"""
+    cutoff_date = datetime.utcnow() - timedelta(days=days)
+    
+    sets = db.query(WorkoutSet).join(Workout).filter(
+        Workout.user_id == user_id,
+        WorkoutSet.completed_at >= cutoff_date,
+        WorkoutSet.ml_confidence.isnot(None)
+    ).order_by(WorkoutSet.completed_at).all()
+    
+    if not sets:
+        return {"data": [], "averageConfidence": 0, "trend": "stable"}
+    
+    confidence_data = []
+    for s in sets:
+        confidence_data.append({
+            "date": s.completed_at.isoformat(),
+            "confidence": s.ml_confidence,
+            "followedWeight": s.user_followed_ml_weight,
+            "followedReps": s.user_followed_ml_reps,
+            "success": s.reps >= (s.target_reps or s.reps)
+        })
+    
+    # Calculer la tendance
+    recent_avg = sum(d["confidence"] for d in confidence_data[-10:]) / min(10, len(confidence_data))
+    older_avg = sum(d["confidence"] for d in confidence_data[:10]) / min(10, len(confidence_data))
+    
+    if recent_avg > older_avg * 1.1:
+        trend = "improving"
+    elif recent_avg < older_avg * 0.9:
+        trend = "declining"
+    else:
+        trend = "stable"
+    
+    return {
+        "data": confidence_data,
+        "averageConfidence": sum(d["confidence"] for d in confidence_data) / len(confidence_data),
+        "followRate": sum(1 for d in confidence_data if d["followedWeight"] and d["followedReps"]) / len(confidence_data),
+        "trend": trend
+    }
+
+
+@app.get("/api/users/{user_id}/stats/ml-adjustments-flow")
+def get_ml_adjustments_flow(user_id: int, days: int = 30, db: Session = Depends(get_db)):
+    """Graphique 15: Sankey des ajustements ML"""
+    cutoff_date = datetime.utcnow() - timedelta(days=days)
+    
+    sets = db.query(WorkoutSet).join(Workout).filter(
+        Workout.user_id == user_id,
+        WorkoutSet.completed_at >= cutoff_date,
+        WorkoutSet.ml_weight_suggestion.isnot(None)
+    ).all()
+    
+    if not sets:
+        return {"nodes": [], "links": []}
+    
+    # Analyser les flux
+    flows = {
+        "suggested_accepted": 0,
+        "suggested_modified_up": 0,
+        "suggested_modified_down": 0,
+        "accepted_success": 0,
+        "accepted_failure": 0,
+        "modified_success": 0,
+        "modified_failure": 0
+    }
+    
+    for s in sets:
+        if s.user_followed_ml_weight:
+            flows["suggested_accepted"] += 1
+            if s.reps >= (s.target_reps or s.reps):
+                flows["accepted_success"] += 1
+            else:
+                flows["accepted_failure"] += 1
+        else:
+            if s.weight > s.ml_weight_suggestion:
+                flows["suggested_modified_up"] += 1
+            else:
+                flows["suggested_modified_down"] += 1
+            
+            if s.reps >= (s.target_reps or s.reps):
+                flows["modified_success"] += 1
+            else:
+                flows["modified_failure"] += 1
+    
+    # Formatter pour Sankey
+    nodes = [
+        {"name": "Suggestions ML"},
+        {"name": "Acceptées"},
+        {"name": "Modifiées +"},
+        {"name": "Modifiées -"},
+        {"name": "Succès"},
+        {"name": "Échec"}
+    ]
+    
+    links = []
+    if flows["suggested_accepted"] > 0:
+        links.append({"source": 0, "target": 1, "value": flows["suggested_accepted"]})
+    if flows["suggested_modified_up"] > 0:
+        links.append({"source": 0, "target": 2, "value": flows["suggested_modified_up"]})
+    if flows["suggested_modified_down"] > 0:
+        links.append({"source": 0, "target": 3, "value": flows["suggested_modified_down"]})
+    if flows["accepted_success"] > 0:
+        links.append({"source": 1, "target": 4, "value": flows["accepted_success"]})
+    if flows["accepted_failure"] > 0:
+        links.append({"source": 1, "target": 5, "value": flows["accepted_failure"]})
+    if flows["modified_success"] > 0:
+        links.append({"source": 2, "target": 4, "value": flows["modified_success"] // 2})
+        links.append({"source": 3, "target": 4, "value": flows["modified_success"] // 2})
+    if flows["modified_failure"] > 0:
+        links.append({"source": 2, "target": 5, "value": flows["modified_failure"] // 2})
+        links.append({"source": 3, "target": 5, "value": flows["modified_failure"] // 2})
+    
+    return {"nodes": nodes, "links": links}
+
+
+@app.get("/api/users/{user_id}/stats/time-distribution")
+def get_time_distribution(user_id: int, sessions: int = 10, db: Session = Depends(get_db)):
+    """Graphique 18: Distribution du temps par séance"""
+    workouts = db.query(Workout).filter(
+        Workout.user_id == user_id,
+        Workout.status == "completed",
+        Workout.total_duration_minutes.isnot(None)
+    ).order_by(Workout.completed_at.desc()).limit(sessions).all()
+    
+    if not workouts:
+        return {"sessions": []}
+    
+    session_data = []
+    for workout in workouts:
+        sets = db.query(WorkoutSet).filter(
+            WorkoutSet.workout_id == workout.id
+        ).all()
+        
+        # Calculer les temps
+        total_exercise_time = sum(s.duration_seconds or 60 for s in sets)  # 60s par défaut par série
+        total_rest_time = sum(s.rest_after_seconds or 0 for s in sets)
+        total_duration_seconds = workout.total_duration_minutes * 60
+        transition_time = max(0, total_duration_seconds - total_exercise_time - total_rest_time)
+        
+        session_data.append({
+            "date": workout.started_at.isoformat(),
+            "totalMinutes": workout.total_duration_minutes,
+            "exerciseTime": round(total_exercise_time / 60, 1),
+            "restTime": round(total_rest_time / 60, 1),
+            "transitionTime": round(transition_time / 60, 1),
+            "setsCount": len(sets)
+        })
+    
+    return {"sessions": session_data}
+
+
+# Helper function à ajouter
+def get_muscles_for_group(muscle_group: str) -> List[str]:
+    """Retourne les muscles spécifiques d'un groupe musculaire"""
+    mapping = {
+        "dos": ["trapezes", "grand-dorsal", "lombaires"],
+        "pectoraux": ["pectoraux-superieurs", "pectoraux-inferieurs"],
+        "jambes": ["quadriceps", "ischio-jambiers", "fessiers", "mollets"],
+        "epaules": ["deltoides-anterieurs", "deltoides-lateraux", "deltoides-posterieurs"],
+        "bras": ["biceps", "triceps"],
+        "abdominaux": ["abdominaux", "obliques"]
+    }
+    return mapping.get(muscle_group, [])
 
 # ===== CALCULS POIDS DISPONIBLES =====
 

@@ -27,7 +27,8 @@ class Exercise(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
-    muscle_groups = Column(JSON, nullable=False)  # ["pectoraux", "triceps"]
+    muscle_groups = Column(JSON, nullable=False)  # ["bras", "dos"]
+    muscles = Column(JSON, nullable=True)  # ["triceps", "deltoides"]
     equipment_required = Column(JSON, nullable=False)  # ["dumbbells"] ou ["bodyweight"]
     difficulty = Column(String, nullable=False)  # beginner, intermediate, advanced
     default_sets = Column(Integer, default=3)
