@@ -1520,8 +1520,8 @@ function loadRecentWorkouts(workouts) {
                     </div>
                     ${duration > 0 ? `
                         <div class="workout-duration">
-                            <span class="duration-value">${duration}</span>
-                            <span class="duration-unit">min</span>
+                            <span class="duration-value">${duration === 0 ? 'Flash' : duration}</span>
+                            <span class="duration-unit">${duration === 0 ? '' : 'min'}</span>
                         </div>
                     ` : `
                         <div class="workout-incomplete">
