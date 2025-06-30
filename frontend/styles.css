@@ -490,7 +490,6 @@ textarea:focus {
     background: linear-gradient(135deg, var(--bg-card) 0%, #253545 100%);
     padding: 1rem;
     border-radius: 12px;
-    border-left: 4px solid; /* Pas de couleur fixe */
     position: relative;
     overflow: hidden;
     transition: all 0.3s ease;
@@ -660,10 +659,6 @@ textarea:focus {
 .progress-segment {
     height: 100%;
     transition: all 0.3s ease;
-}
-
-.progress-segment.active {
-    background: var(--success);
 }
 
 .progress-segment.rest {

@@ -1581,10 +1581,10 @@ function generateMuscleDistribution(workout) {
     return Object.entries(muscleVolumes)
         .map(([muscle, volume]) => {
             const percentage = Math.round((volume / totalVolume) * 100);
-            return `<div class="muscle-segment" 
-                         data-muscle="${muscle}" 
-                         data-percentage="${percentage}%" 
-                         style="width: ${percentage}%"></div>`;
+            return `<div class="muscle-segment"
+                        data-muscle="${muscle}"
+                        data-percentage="${percentage}%"
+                        style="width: ${percentage}%; background: ${window.MuscleColors.getMuscleColor(muscle)}"></div>`;
         })
         .join('');
 }
