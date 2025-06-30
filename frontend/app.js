@@ -1424,7 +1424,7 @@ async function loadMuscleReadiness() {
         container.innerHTML = muscleStates.map(muscle => `
             <div class="muscle-item ${muscle.status} muscle-border-left-${muscle.key}">
                 <div class="muscle-info">
-                    <h4>${muscle.name}</h4>
+                    <h4 class="muscle-color-${muscle.key}">${muscle.name}</h4>
                     <p>${muscle.statusText}${muscle.lastTrained ? ` • ${muscle.lastTrained}` : ''}</p>
                 </div>
                 <div class="muscle-indicator">
@@ -1441,7 +1441,7 @@ async function loadMuscleReadiness() {
         container.innerHTML = muscleGroups.map(muscle => `
             <div class="muscle-item ready muscle-border-left-${muscle.key}">
                 <div class="muscle-info">
-                    <h4>${muscle.name}</h4>
+                    <h4 class="muscle-color-${muscle.key}">${muscle.name}</h4>
                     <p>Prêt à l'entraînement</p>
                 </div>
                 <div class="muscle-indicator">
