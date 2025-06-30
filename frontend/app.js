@@ -1420,15 +1420,15 @@ async function loadMuscleReadiness() {
             };
         });
         
-        // Générer le HTML
+        // Générer le HTML avec classes centralisées
         container.innerHTML = muscleStates.map(muscle => `
-            <div class="muscle-item ${muscle.status}" data-muscle="${muscle.key}">
+            <div class="muscle-item ${muscle.status} muscle-border-left-${muscle.key}">
                 <div class="muscle-info">
                     <h4>${muscle.name}</h4>
                     <p>${muscle.statusText}${muscle.lastTrained ? ` • ${muscle.lastTrained}` : ''}</p>
                 </div>
                 <div class="muscle-indicator">
-                    <div class="indicator-dot"></div>
+                    <div class="indicator-dot muscle-bg-${muscle.key}"></div>
                     ${muscle.weeklyVolume > 0 ? `<span class="volume-badge">${muscle.weeklyVolume}</span>` : ''}
                 </div>
             </div>
@@ -1439,13 +1439,13 @@ async function loadMuscleReadiness() {
         
         // Si pas de données, afficher tous les muscles comme prêts
         container.innerHTML = muscleGroups.map(muscle => `
-            <div class="muscle-item ready">
+            <div class="muscle-item ready muscle-border-left-${muscle.key}">
                 <div class="muscle-info">
                     <h4>${muscle.name}</h4>
                     <p>Prêt à l'entraînement</p>
                 </div>
                 <div class="muscle-indicator">
-                    <div class="indicator-dot"></div>
+                    <div class="indicator-dot muscle-bg-${muscle.key}"></div>
                 </div>
             </div>
         `).join('');
