@@ -517,18 +517,6 @@ textarea:focus {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
-.muscle-item.ready {
-    color: var(--success);
-}
-
-.muscle-item.recovering {
-    color: var(--warning);
-}
-
-.muscle-item.fatigued {
-    color: var(--danger);
-}
-
 .muscle-item:hover::before {
     opacity: 0.3;
 }
