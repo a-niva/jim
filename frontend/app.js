@@ -1322,36 +1322,42 @@ async function loadMuscleReadiness() {
     ];
     
     try {
-        // Récupérer l'historique des 30 derniers jours
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        // Utiliser l'endpoint stats qui existe
+        const stats = await apiGet(`/api/users/${currentUser.id}/stats`);
         
-        const workouts = await apiGet(`/api/users/${currentUser.id}/workouts?start_date=${thirtyDaysAgo.toISOString()}`);
-        
-        // Analyser les séances pour déterminer le dernier entraînement par muscle
+        // Analyser les séances récentes pour déterminer l'état musculaire
         const muscleLastTrained = {};
-        const muscleVolume = {}; // Volume des 7 derniers jours
+        const muscleVolume = {};
         
-        for (const workout of workouts) {
-            if (workout.status === 'completed' && workout.sets) {
-                for (const set of workout.sets) {
-                    // Récupérer les infos de l'exercice pour connaître les muscles travaillés
-                    const exercise = await apiGet(`/api/exercises/${set.exercise_id}`);
-                    
-                    for (const muscle of exercise.muscle_groups) {
-                        const workoutDate = new Date(workout.completed_at || workout.started_at);
-                        
-                        // Enregistrer la dernière date d'entraînement
-                        if (!muscleLastTrained[muscle] || workoutDate > muscleLastTrained[muscle]) {
-                            muscleLastTrained[muscle] = workoutDate;
-                        }
-                        
-                        // Calculer le volume des 7 derniers jours
-                        const sevenDaysAgo = new Date();
-                        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-                        
-                        if (workoutDate >= sevenDaysAgo) {
-                            muscleVolume[muscle] = (muscleVolume[muscle] || 0) + 1;
+        if (stats.recent_workouts && stats.recent_workouts.length > 0) {
+            // Parcourir les séances récentes
+            for (const workout of stats.recent_workouts) {
+                if (workout.status === 'completed' && workout.sets) {
+                    for (const set of workout.sets) {
+                        try {
+                            // Récupérer l'exercice pour connaître les muscles
+                            const exercise = await apiGet(`/api/exercises/${set.exercise_id}`);
+                            
+                            for (const muscle of exercise.muscle_groups) {
+                                const workoutDate = new Date(workout.completed_at || workout.started_at);
+                                const muscleLower = muscle.toLowerCase();
+                                
+                                // Enregistrer la dernière date
+                                if (!muscleLastTrained[muscleLower] || workoutDate > muscleLastTrained[muscleLower]) {
+                                    muscleLastTrained[muscleLower] = workoutDate;
+                                }
+                                
+                                // Volume des 7 derniers jours
+                                const sevenDaysAgo = new Date();
+                                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                                
+                                if (workoutDate >= sevenDaysAgo) {
+                                    muscleVolume[muscleLower] = (muscleVolume[muscleLower] || 0) + 1;
+                                }
+                            }
+                        } catch (err) {
+                            // Ignorer l'erreur si l'exercice n'existe pas
+                            console.warn(`Exercice ${set.exercise_id} non trouvé`);
                         }
                     }
                 }
@@ -1372,7 +1378,7 @@ async function loadMuscleReadiness() {
                 const hoursSince = (now - lastTrained) / (1000 * 60 * 60);
                 daysSince = Math.floor(hoursSince / 24);
                 
-                // Logique de récupération basée sur le temps et le volume
+                // Logique de récupération
                 if (hoursSince < 24) {
                     status = 'fatigued';
                     statusText = 'En récupération aiguë';
@@ -1382,12 +1388,12 @@ async function loadMuscleReadiness() {
                 } else if (hoursSince < 72 && volume >= 3) {
                     status = 'recovering';
                     statusText = 'Volume élevé récent';
-                } else if (hoursSince > 168) { // Plus de 7 jours
+                } else if (hoursSince > 168) {
                     status = 'rested';
                     statusText = 'Bien reposé';
                 }
                 
-                // Format du temps écoulé
+                // Format du temps
                 if (daysSince === 0) {
                     daysSince = 'Aujourd\'hui';
                 } else if (daysSince === 1) {
@@ -1423,7 +1429,7 @@ async function loadMuscleReadiness() {
     } catch (error) {
         console.error('Erreur chargement état musculaire:', error);
         
-        // Fallback : tout est prêt
+        // Si pas de données, afficher tous les muscles comme prêts
         container.innerHTML = muscleGroups.map(muscle => `
             <div class="muscle-item ready">
                 <div class="muscle-info">
