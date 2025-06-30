@@ -1486,22 +1486,6 @@ function updateProgramExerciseProgress() {
     
     // Recharger simplement toute la liste pour mettre à jour les compteurs
     loadProgramExercisesList();
-    
-    // Mettre à jour le compteur global
-    const programProgressText = document.getElementById('programProgressText');
-    if (programProgressText) {
-        const completedCount = Object.values(currentWorkoutSession.programExercises)
-            .filter(ex => ex.isCompleted).length;
-        const totalCount = Object.keys(currentWorkoutSession.programExercises).length;
-        programProgressText.textContent = `${completedCount}/${totalCount} exercices complétés`;
-        
-        // Mettre à jour la barre de progression
-        const progressFill = document.getElementById('programProgressFill');
-        if (progressFill) {
-            const percentage = (completedCount / totalCount) * 100;
-            progressFill.style.width = `${percentage}%`;
-        }
-    }
 }
 
 function updateSetNavigationButtons() {
@@ -3343,11 +3327,11 @@ async function validateSet() {
             }
             // Mettre à jour les compteurs immédiatement
             updateHeaderProgress();
-            // Force la mise à jour immédiate de l'affichage
-            loadProgramExercisesList();
             // Mettre à jour la progression du programme si applicable
             if (currentWorkoutSession.type === 'program') {
                 updateProgramExerciseProgress();
+                // Forcer le rechargement de la liste pour mettre à jour les compteurs
+                loadProgramExercisesList();
             }
             
             // Cacher le feedback
@@ -3425,6 +3409,8 @@ function completeRest() {
         // Mettre à jour la progression du programme si applicable
         if (currentWorkoutSession.type === 'program') {
             updateProgramExerciseProgress();
+            // Forcer la mise à jour visuelle
+            loadProgramExercisesList();
         }
             
         // Réafficher les inputs pour la nouvelle série
