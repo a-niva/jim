@@ -2,7 +2,7 @@
 import logging
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 from backend.models import User, Exercise, Workout, WorkoutSet, AdaptiveTargets, UserCommitment
 import itertools
@@ -1526,6 +1526,8 @@ class SessionBuilder:
         
         return any(eq in available_equipment for eq in exercise_equipment)
     
+
+
     def _select_best_exercises(self, exercises: List[Exercise], 
                                 user: User, target_parts: List[str], 
                                 max_exercises: Optional[int] = None, exercise_rotation_offset: int = 0) -> List[Exercise]:
