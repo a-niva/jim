@@ -2441,69 +2441,116 @@ function apiDelete(url) {
 async function loadProgramExercisesList() {
     if (!currentWorkoutSession.program) return;
     
-    const timeline = document.getElementById('exercisesTimeline');
-    const progressText = document.getElementById('programProgressText');
-    const progressFill = document.getElementById('programProgressFill');
+    const container = document.getElementById('programExercisesContainer');
     
     try {
         // Récupérer les détails des exercices
         const exercises = await apiGet(`/api/exercises?user_id=${currentUser.id}`);
         
-        timeline.innerHTML = '';
-        
-        // Calculer la progression
+        // Calculer les stats
         const completedCount = Object.values(currentWorkoutSession.programExercises)
             .filter(ex => ex.isCompleted).length;
         const totalCount = currentWorkoutSession.program.exercises.length;
         
-        progressText.textContent = `${completedCount}/${totalCount} exercices complétés`;
-        progressFill.style.width = `${(completedCount / totalCount) * 100}%`;
+        // Trouver l'index de l'exercice actuel
+        let currentExerciseIndex = 0;
+        if (currentExercise) {
+            currentExerciseIndex = currentWorkoutSession.program.exercises
+                .findIndex(ex => ex.exercise_id === currentExercise.id);
+        }
         
-        // Créer les cartes d'exercices
-        currentWorkoutSession.program.exercises.forEach((exerciseData, index) => {
-            const exercise = exercises.find(ex => ex.id === exerciseData.exercise_id);
-            if (!exercise) return;
-            
-            const exerciseState = currentWorkoutSession.programExercises[exerciseData.exercise_id];
-            const isCurrentExercise = currentExercise && currentExercise.id === exerciseData.exercise_id;
-            
-            const item = document.createElement('div');
-            item.className = `exercise-timeline-item ${isCurrentExercise ? 'current' : ''} ${exerciseState.isCompleted ? 'completed' : ''}`;
-            item.style.animationDelay = `${index * 0.1}s`;
-            
-            item.innerHTML = `
-                <div class="timeline-connector">${index + 1}</div>
-                <div class="exercise-timeline-card" onclick="handleExerciseCardClick(${exerciseData.exercise_id})">
-                    ${exerciseState.isCompleted ? '<div class="completed-badge">Terminé</div>' : ''}
-                    <div class="exercise-card-content">
-                        <div class="exercise-card-top">
-                            <div class="exercise-card-info">
-                                <div class="exercise-card-name">${exercise.name}</div>
-                                <div class="exercise-card-muscles">
-                                    ${exercise.muscle_groups.map(muscle => 
-                                        `<span class="muscle-chip">${muscle}</span>`
-                                    ).join('')}
-                                </div>
-                            </div>
-                            <div class="exercise-card-stats">
-                                <div class="sets-progress">${exerciseState.completedSets}/${exerciseState.totalSets}</div>
-                                <div class="sets-label">séries</div>
-                            </div>
-                        </div>
-                        <div class="exercise-card-actions">
-                            ${isCurrentExercise ? 
-                                '<button class="exercise-action-btn primary" disabled>En cours</button>' :
-                                exerciseState.isCompleted ?
-                                '<button class="exercise-action-btn" onclick="event.stopPropagation(); restartExercise(' + exerciseData.exercise_id + ')">Refaire</button>' :
-                                '<button class="exercise-action-btn" onclick="event.stopPropagation(); selectProgramExercise(' + exerciseData.exercise_id + ')">Commencer</button>'
-                            }
-                        </div>
+        // Générer le nouveau HTML
+        container.innerHTML = `
+            <div class="program-header">
+                <h3>Programme</h3>
+                <div class="quick-stats">
+                    <div class="quick-stat">
+                        <div class="stat-icon">${totalCount}</div>
+                        <span>exercices</span>
+                    </div>
+                    <div class="quick-stat">
+                        <div class="stat-icon">⚡</div>
+                        <span>~${totalCount * 8} min</span>
+                    </div>
+                    <div class="quick-stat">
+                        <div class="stat-icon">📊</div>
+                        <span>${Math.round((completedCount / totalCount) * 100)}% fait</span>
                     </div>
                 </div>
-            `;
+            </div>
             
-            timeline.appendChild(item);
-        });
+            <div class="exercises-stack" id="exercisesStack">
+                ${currentWorkoutSession.program.exercises.map((exerciseData, index) => {
+                    const exercise = exercises.find(ex => ex.id === exerciseData.exercise_id);
+                    if (!exercise) return '';
+                    
+                    const exerciseState = currentWorkoutSession.programExercises[exerciseData.exercise_id];
+                    const isCurrentExercise = currentExercise && currentExercise.id === exerciseData.exercise_id;
+                    
+                    // Calculer la position dans le stack
+                    let position = index - currentExerciseIndex;
+                    if (position < 0) position += totalCount; // Pour mettre les complétés à la fin
+                    
+                    // Classes d'état
+                    let stateClass = '';
+                    let badgeText = 'À faire';
+                    let badgeIcon = '○';
+                    
+                    if (exerciseState.isCompleted) {
+                        stateClass = 'completed';
+                        badgeText = 'Terminé';
+                        badgeIcon = '✓';
+                    } else if (isCurrentExercise) {
+                        stateClass = 'current';
+                        badgeText = 'En cours';
+                        badgeIcon = '•';
+                    }
+                    
+                    // Générer les blocs de séries
+                    let setsBlocks = '';
+                    for (let i = 0; i < exerciseState.totalSets; i++) {
+                        setsBlocks += `<div class="set-block ${i < exerciseState.completedSets ? 'done' : ''}"></div>`;
+                    }
+                    
+                    return `
+                        <div class="exercise-card-3d ${stateClass}" 
+                             data-position="${position}"
+                             onclick="handleExercise3DClick(${exerciseData.exercise_id})">
+                            <div class="card-top">
+                                <div class="card-badge">
+                                    <div class="card-badge-icon">${badgeIcon}</div>
+                                    ${badgeText}
+                                </div>
+                                
+                                <div class="exercise-main">
+                                    <div class="exercise-number">${String(index + 1).padStart(2, '0')}</div>
+                                    <div class="exercise-card-name">${exercise.name}</div>
+                                    <div class="exercise-muscles">${exercise.muscle_groups.join(' • ')}</div>
+                                </div>
+                                
+                                <div class="sets-visual">
+                                    ${setsBlocks}
+                                </div>
+                            </div>
+                            
+                            <div class="card-footer">
+                                <div class="time-estimate">
+                                    <span>~${exerciseState.totalSets * 2} minutes</span>
+                                </div>
+                                <div class="action-arrow">${isCurrentExercise ? '→' : exerciseState.isCompleted ? '↻' : '→'}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+            
+            <div class="stack-navigation">
+                ${currentWorkoutSession.program.exercises.map((_, index) => 
+                    `<div class="nav-dot ${index === currentExerciseIndex ? 'active' : ''}" 
+                          onclick="navigateToExercise(${index})"></div>`
+                ).join('')}
+            </div>
+        `;
         
     } catch (error) {
         console.error('Erreur chargement liste exercices programme:', error);
@@ -2526,6 +2573,34 @@ function handleExerciseCardClick(exerciseId) {
         selectProgramExercise(exerciseId);
     }
 }
+
+function handleExercise3DClick(exerciseId) {
+    const exerciseState = currentWorkoutSession.programExercises[exerciseId];
+    
+    if (currentExercise && currentExercise.id === exerciseId) {
+        // Déjà sur cet exercice, ne rien faire
+        return;
+    }
+    
+    if (exerciseState.isCompleted) {
+        if (confirm('Cet exercice est déjà terminé. Voulez-vous le refaire ?')) {
+            restartExercise(exerciseId);
+        }
+    } else {
+        selectProgramExercise(exerciseId);
+    }
+}
+
+function navigateToExercise(index) {
+    const exerciseData = currentWorkoutSession.program.exercises[index];
+    if (exerciseData) {
+        handleExercise3DClick(exerciseData.exercise_id);
+    }
+}
+
+// Exposer les nouvelles fonctions globalement
+window.handleExercise3DClick = handleExercise3DClick;
+window.navigateToExercise = navigateToExercise;
 
 async function selectProgramExercise(exerciseId, isInitialLoad = false) {
     if (!currentWorkoutSession.program) return;
