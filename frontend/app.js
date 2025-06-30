@@ -9,6 +9,7 @@ let currentExercise = null;
 let currentSet = 1;
 let workoutTimer = null;
 let restTimer = null;
+let notificationTimeout = null;
 let currentStep = 1;
 let currentWorkoutSession = {
     workout: null,
@@ -1971,10 +1972,21 @@ function skipRest() {
         clearInterval(restTimer);
         restTimer = null;
     }
+    
+    // Annuler la notification programmée
+    if (notificationTimeout) {
+        clearTimeout(notificationTimeout);
+        notificationTimeout = null;
+    }
+    
     completeRest();
 }
 
 function endRest() {
+    if (notificationTimeout) {
+        clearTimeout(notificationTimeout);
+        notificationTimeout = null;
+    }
     document.getElementById('restPeriod').style.display = 'none';
     if (restTimer) {
         clearInterval(restTimer);
@@ -2078,6 +2090,12 @@ async function endWorkout() {
         if (workoutTimer) clearInterval(workoutTimer);
         if (setTimer) clearInterval(setTimer);
         if (restTimer) clearInterval(restTimer);
+        
+        // Annuler les notifications en attente
+        if (notificationTimeout) {
+            clearTimeout(notificationTimeout);
+            notificationTimeout = null;
+        }
         
         // Calculer le temps total
         const totalDuration = currentWorkoutSession.totalSetTime + currentWorkoutSession.totalRestTime;
@@ -2870,6 +2888,12 @@ function cleanupCurrentState() {
         restTimer = null;
     }
     
+    // Annuler les notifications en attente
+    if (notificationTimeout) {
+        clearTimeout(notificationTimeout);
+        notificationTimeout = null;
+    }
+    
     // Cacher les interfaces de feedback/repos
     document.getElementById('setFeedback').style.display = 'none';
     document.getElementById('restPeriod').style.display = 'none';
@@ -3306,10 +3330,9 @@ function startRestPeriod(customTime = null) {
     // Modifier le contenu pour inclure le feedback
     const restContent = document.querySelector('.rest-content');
 
-    
     // Utiliser le temps de repos de l'exercice ou par défaut 60s
     let timeLeft = customTime || 60;
-    const initialTime = timeLeft; // AJOUT : Déclarer initialTime
+    const initialTime = timeLeft;
     updateRestTimer(timeLeft);
     
     // Vibration si supportée
@@ -3317,13 +3340,20 @@ function startRestPeriod(customTime = null) {
         navigator.vibrate(200);
     }
     
-    // Notification de fin si supportée
+    // ❌ SUPPRIMER l'ancien setTimeout de notification
+    // ✅ NOUVEAU : Programmer la notification mais stocker le timeout pour pouvoir l'annuler
     if ('Notification' in window && Notification.permission === 'granted') {
-        setTimeout(() => {
+        // Annuler toute notification précédente
+        if (notificationTimeout) {
+            clearTimeout(notificationTimeout);
+        }
+        
+        notificationTimeout = setTimeout(() => {
             new Notification('Temps de repos terminé !', {
                 body: 'Prêt pour la série suivante ?',
                 icon: '/manifest.json'
             });
+            notificationTimeout = null; // Nettoyer la référence
         }, timeLeft * 1000);
     }
     
@@ -3342,24 +3372,20 @@ function startRestPeriod(customTime = null) {
             clearInterval(restTimer);
             restTimer = null;
             
+            // ✅ Annuler la notification programmée car le timer naturel s'est terminé
+            if (notificationTimeout) {
+                clearTimeout(notificationTimeout);
+                notificationTimeout = null;
+            }
+            
             // Auto-terminer le repos
             endRest();
             
-            // Notification
-            if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification('Temps de repos terminé !', {
-                    body: 'Prêt pour la prochaine série ?',
-                    icon: '/manifest.json'
-                });
-            }
-            
-            // Vibration
-            if (navigator.vibrate) {
-                navigator.vibrate([200, 100, 200]);
-            }
+            // ❌ SUPPRIMER cette deuxième notification (doublonnée)
+            // La notification a déjà été envoyée par le setTimeout ci-dessus
         }
     }, 1000);
-} 
+}
 
 // ===== DEMANDE DE PERMISSIONS =====
 async function requestNotificationPermission() {
@@ -3771,6 +3797,10 @@ function changeExercise() {
             setTimer = null;
         }
         restTimer = null;
+        if (notificationTimeout) {
+            clearTimeout(notificationTimeout);
+            notificationTimeout = null;
+        }
     }
     
     // Réinitialiser l'état
@@ -3796,6 +3826,12 @@ function addRestTime(seconds) {
     // Ajouter du temps
     currentSeconds += seconds;
     
+    // Annuler l'ancienne notification avant de redémarrer
+    if (notificationTimeout) {
+        clearTimeout(notificationTimeout);
+        notificationTimeout = null;
+    }
+    
     // Redémarrer le timer avec le nouveau temps
     clearInterval(restTimer);
     startRestPeriod(currentSeconds);
@@ -3819,7 +3855,11 @@ function pauseWorkout() {
             clearInterval(setTimer);
             setTimer = null;
         }
-        
+        // Annuler les notifications en attente pendant la pause
+        if (notificationTimeout) {
+            clearTimeout(notificationTimeout);
+            notificationTimeout = null;
+        }
         // Sauvegarder les deux temps actuels
         sessionStorage.setItem('pausedWorkoutTime', document.getElementById('workoutTimer').textContent);
         sessionStorage.setItem('pausedSetTime', document.getElementById('setTimer').textContent);

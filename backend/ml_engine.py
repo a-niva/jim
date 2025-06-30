@@ -1527,135 +1527,120 @@ class SessionBuilder:
         return any(eq in available_equipment for eq in exercise_equipment)
     
     def _select_best_exercises(self, exercises: List[Exercise], 
-                            user: User, muscle: str, max_exercises: int = 2) -> List[Exercise]:
-        """Sélectionne les meilleurs exercices selon plusieurs critères"""
+                                user: User, target_parts: List[str], 
+                                max_exercises: Optional[int] = None, exercise_rotation_offset: int = 0) -> List[Exercise]:
+        """Sélectionne les meilleurs exercices selon plusieurs critères et répartit sur gros/petits groupes
+        :param max_exercises: nombre max d'exos à retourner ; si None, déterminé par niveau d'expérience
+        """
         from datetime import datetime, timedelta
-        
-        # 1. Filtrer par niveau d'expérience approprié
-        suitable_exercises = [
-            ex for ex in exercises 
-            if self._is_suitable_level(ex.level, user.experience_level)
-        ]
-        
-        if not suitable_exercises:
-            suitable_exercises = exercises
-        
-        # 2. Analyser l'historique récent (derniers 14 jours)
-        recent_date = datetime.utcnow() - timedelta(days=14)
-        recent_sets = self.db.query(WorkoutSet).join(Workout).filter(
-            Workout.user_id == user.id,
-            Workout.completed_at >= recent_date,
-            WorkoutSet.exercise_id.in_([ex.id for ex in suitable_exercises])
-        ).all()
-        
-        # Calculer la fréquence d'utilisation récente par exercice
-        exercise_frequency = {}
-        exercise_performance = {}
-        
-        for set_record in recent_sets:
-            ex_id = set_record.exercise_id
-            
-            # Fréquence
-            exercise_frequency[ex_id] = exercise_frequency.get(ex_id, 0) + 1
-            
-            # Performance moyenne (ratio reps réalisées/cibles)
-            if ex_id not in exercise_performance:
-                exercise_performance[ex_id] = []
-            if set_record.target_reps > 0:
-                performance_ratio = set_record.reps / set_record.target_reps
-                exercise_performance[ex_id].append(performance_ratio)
-        
-        # 3. Calculer un score pour chaque exercice
-        scored_exercises = []
-        
-        for exercise in suitable_exercises:
-            score = 0
-            
-            # Bonus pour variété (moins utilisé récemment = meilleur score)
-            frequency = exercise_frequency.get(exercise.id, 0)
-            if frequency == 0:
-                score += 30  # Jamais fait récemment
-            elif frequency <= 2:
-                score += 20  # Peu utilisé
-            elif frequency <= 5:
-                score += 10  # Modérément utilisé
-            # Pas de bonus si très fréquent
-            
-            # Bonus pour bonne performance historique
-            if exercise.id in exercise_performance:
-                avg_performance = sum(exercise_performance[exercise.id]) / len(exercise_performance[exercise.id])
-                if avg_performance >= 1.0:  # Atteint ou dépasse les objectifs
-                    score += 15
-                elif avg_performance >= 0.9:  # Proche des objectifs
-                    score += 10
+
+        # --- 0. Déterminer max_exercises par niveau si pas forcé
+        if max_exercises is None:
+            lvl_map_count = {
+                'débutant': 2,
+                'intermédiaire': 3,
+                'avancé': 4,
+                'élite': 5,
+                'extrême': 5
+            }
+            max_exercises = lvl_map_count.get(user.experience_level, 2)
+
+        # --- 1. Filtrer par équipement disponible
+        suitable = exercises
+        if hasattr(user, 'available_equipment'):
+            avail = set(user.available_equipment or [])
+            filt = [ex for ex in suitable if any(eq in avail for eq in ex.equipment)]
+            suitable = filt or suitable
+
+        # --- 2. Filtrer par niveau d'expérience
+        suitable = [ex for ex in suitable if self._is_suitable_level(ex.level, user.experience_level)]
+        if not suitable:
+            suitable = exercises
+
+        # --- 3. Historique récent (14 jours) pour fréquence + performance
+        cutoff = datetime.utcnow() - timedelta(days=14)
+        recent = (self.db.query(WorkoutSet)
+                    .join(Workout)
+                    .filter(Workout.user_id == user.id,
+                            Workout.completed_at >= cutoff,
+                            WorkoutSet.exercise_id.in_([ex.id for ex in suitable]))
+                    .all())
+        freq, perf = {}, {}
+        for rec in recent:
+            freq[rec.exercise_id] = freq.get(rec.exercise_id, 0) + 1
+            if rec.target_reps:
+                perf.setdefault(rec.exercise_id, []).append(rec.reps / rec.target_reps)
+
+        # --- 4. Scoring (identique à l'original)
+        def score_ex(ex: Exercise) -> float:
+            s = 0
+            f = freq.get(ex.id, 0)
+            s += 30 if f == 0 else (20 if f <= 2 else (10 if f <= 5 else 0))
+            if ex.id in perf:
+                avg = sum(perf[ex.id]) / len(perf[ex.id])
+                s += 15 if avg >= 1.0 else (10 if avg >= 0.9 else 0)
             else:
-                # Pas d'historique = neutre, léger bonus pour découverte
-                score += 5
-            
-            # Bonus selon le type d'exercice et les objectifs
+                s += 5
             primary_goal = user.goals[0] if user.goals else "hypertrophie"
-            
-            # Estimation basée sur exercise_type
-            is_compound = exercise.exercise_type == "compound" if exercise.exercise_type else False
-            if is_compound:
-                if primary_goal in ["force", "hypertrophie"]:
-                    score += 20
-                else:
-                    score += 10
-            
-            # Estimation basée sur difficulty
-            difficulty_to_complexity = {"beginner": 1, "intermediate": 3, "advanced": 5}
-            skill_complexity = difficulty_to_complexity.get(exercise.difficulty, 3)
-            exp_level_num = {"débutant": 1, "intermédiaire": 2, "avancé": 3, "élite": 4, "extrême": 5}.get(user.experience_level, 2)
-            
-            # Favoriser les exercices adaptés au niveau technique
-            if abs(skill_complexity - exp_level_num) <= 1:
-                score += 10
-            elif skill_complexity > exp_level_num + 2:
-                score -= 20  # Trop complexe
-            
-            # Pénalité pour zones à risque si l'utilisateur a des antécédents
-            # (À implémenter si vous ajoutez un système de blessures)
-            
-            scored_exercises.append((exercise, score))
-        
-        # 4. Trier par score et diversifier la sélection
-        scored_exercises.sort(key=lambda x: x[1], reverse=True)
-        
+            if ex.exercise_type == "compound":
+                s += 20 if primary_goal in ["force", "hypertrophie"] else 10
+            diff_map = {"beginner":1, "intermediate":3, "advanced":5}
+            lvl_map = {"débutant":1, "intermédiaire":2, "avancé":3, "élite":4, "extrême":5}
+            comp = diff_map.get(ex.difficulty, 3)
+            lvl_num = lvl_map.get(user.experience_level, 2)
+            s += 10 if abs(comp - lvl_num) <= 1 else (-20 if comp > lvl_num + 2 else 0)
+            # pénalité blessures
+            if hasattr(user, 'injuries') and ex.risky_for and any(i in ex.risky_for for i in user.injuries):
+                s -= 30
+            return s
+
+        scored = sorted(suitable, key=lambda e: score_ex(e), reverse=True)
+
+        # --- 5. Répartition primaire/secondaire + rotation
         selected = []
-        selected_equipment_types = set()
-        
-        for exercise, score in scored_exercises:
-            if len(selected) >= max_exercises:
-                break
-            
-            # Diversifier les types d'équipement si possible
-            equipment_type = exercise.equipment[0] if exercise.equipment else "poids_du_corps"
-            
-            # Si on a déjà 2 exercices avec le même équipement, essayer de varier
-            if len(selected) > 0 and equipment_type in selected_equipment_types and len(scored_exercises) > max_exercises:
-                # Chercher une alternative avec un équipement différent dans les 5 prochains
-                for alt_exercise, alt_score in scored_exercises[len(selected):len(selected)+5]:
-                    alt_equipment = alt_exercise.equipment[0] if alt_exercise.equipment else "poids_du_corps"
-                    if alt_equipment not in selected_equipment_types and alt_score > score * 0.8:  # Score proche
-                        selected.append(alt_exercise)
-                        selected_equipment_types.add(alt_equipment)
+        remaining = max_exercises
+        primary_groups = [p for p in target_parts if p in ["Pectoraux", "Dos", "Jambes"]]
+        secondary_groups = [p for p in target_parts if p not in ["Pectoraux", "Dos", "Jambes"]]
+
+        def pick_from_group(parts, per_group):
+            nonlocal remaining
+            for part in parts:
+                if remaining <= 0:
+                    return
+                exos = [ex for ex in scored if part in ex.target_muscles]
+                if exercise_rotation_offset and len(exos) > 3:
+                    exos = exos[exercise_rotation_offset:] + exos[:exercise_rotation_offset]
+                exos = sorted(exos, key=lambda e: score_ex(e), reverse=True)
+                for ex in exos[:per_group]:
+                    if remaining <= 0:
                         break
-                else:
-                    # Pas d'alternative valable, prendre l'exercice original
-                    selected.append(exercise)
-                    selected_equipment_types.add(equipment_type)
-            else:
-                selected.append(exercise)
-                selected_equipment_types.add(equipment_type)
-        
-        # 5. Log pour debug
-        logger.info(f"Sélection pour {muscle}:")
-        for i, ex in enumerate(selected):
-            freq = exercise_frequency.get(ex.id, 0)
-            logger.info(f"  {i+1}. {ex.name_fr} (utilisé {freq}x récemment)")
-        
-        return selected
+                    selected.append(ex)
+                    remaining -= 1
+
+        total_parts = len(primary_groups) + len(secondary_groups)
+        if primary_groups:
+            per_primary = max(1, remaining // total_parts)
+            per_secondary = max(1, (remaining - len(primary_groups)*per_primary) // max(1, len(secondary_groups)))
+        else:
+            per_primary = 0
+            per_secondary = max(1, remaining // max(1, total_parts))
+
+        pick_from_group(primary_groups, per_primary)
+        pick_from_group(secondary_groups, per_secondary)
+
+        # --- 6. Fallback global jusqu'à un minimum de 3 ou max_exercises
+        min_required = min(3, max_exercises)
+        if len(selected) < min_required and remaining > 0:
+            all_available = [ex for ex in scored if ex not in selected]
+            for ex in all_available:
+                if remaining <= 0 or len(selected) >= max_exercises:
+                    break
+                selected.append(ex)
+                remaining -= 1
+
+        logger.info(f"Sélection {target_parts}: {[ex.name_fr for ex in selected]}")
+        return selected[:max_exercises]
+
     
     def _is_suitable_level(self, exercise_level: str, user_level: str) -> bool:
         """Vérifie si l'exercice convient au niveau de l'utilisateur"""
