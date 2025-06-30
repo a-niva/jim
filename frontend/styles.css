@@ -2305,3 +2305,74 @@ select:focus-visible {
 .program-progress-text {
     display: none !important;
 }
+
+
+
+/* ===== INDICATEUR DE RECUPERATION MUSCULAIRE ===== */
+
+.muscle-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.indicator-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--success);
+    position: relative;
+}
+
+.indicator-dot::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    right: -4px;
+    bottom: -4px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.2;
+}
+
+.muscle-item.recovering .indicator-dot {
+    background: var(--warning);
+}
+
+.muscle-item.fatigued .indicator-dot {
+    background: var(--danger);
+}
+
+.muscle-item.rested .indicator-dot {
+    background: var(--info);
+}
+
+/* Badge de volume */
+.volume-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.1rem 0.4rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: var(--text-muted);
+}
+
+/* Animation pulse pour les muscles fatigués */
+.muscle-item.fatigued .indicator-dot {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* État "rested" (bien reposé) */
+.muscle-item.rested {
+    border-left-color: var(--info);
+}

@@ -1263,34 +1263,134 @@ async function resumeWorkout(workoutId) {
     }
 }
 
-function loadMuscleReadiness() {
-    // Simulation simple de l'état musculaire basé sur les nouvelles zones
-    const muscles = [
-        { name: 'Dos', status: 'ready', lastTrained: null },
-        { name: 'Pectoraux', status: 'recovering', lastTrained: '2 jours' },
-        { name: 'Bras', status: 'ready', lastTrained: null },
-        { name: 'Épaules', status: 'fatigued', lastTrained: '1 jour' },
-        { name: 'Jambes', status: 'ready', lastTrained: null },
-        { name: 'Abdominaux', status: 'recovering', lastTrained: '1 jour' }
+async function loadMuscleReadiness() {
+    const container = document.getElementById('muscleReadiness');
+    
+    // Groupes musculaires à surveiller
+    const muscleGroups = [
+        { key: 'dos', name: 'Dos' },
+        { key: 'pectoraux', name: 'Pectoraux' },
+        { key: 'bras', name: 'Bras' },
+        { key: 'epaules', name: 'Épaules' },
+        { key: 'jambes', name: 'Jambes' },
+        { key: 'abdominaux', name: 'Abdominaux' }
     ];
     
-    const container = document.getElementById('muscleReadiness');
-    container.innerHTML = muscles.map(muscle => {
-        const statusText = {
-            ready: 'Prêt à l\'entraînement',
-            recovering: 'En récupération',
-            fatigued: 'Fatigué'
-        }[muscle.status];
+    try {
+        // Récupérer l'historique des 30 derniers jours
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         
-        return `
+        const workouts = await apiGet(`/api/users/${currentUser.id}/workouts?start_date=${thirtyDaysAgo.toISOString()}`);
+        
+        // Analyser les séances pour déterminer le dernier entraînement par muscle
+        const muscleLastTrained = {};
+        const muscleVolume = {}; // Volume des 7 derniers jours
+        
+        for (const workout of workouts) {
+            if (workout.status === 'completed' && workout.sets) {
+                for (const set of workout.sets) {
+                    // Récupérer les infos de l'exercice pour connaître les muscles travaillés
+                    const exercise = await apiGet(`/api/exercises/${set.exercise_id}`);
+                    
+                    for (const muscle of exercise.muscle_groups) {
+                        const workoutDate = new Date(workout.completed_at || workout.started_at);
+                        
+                        // Enregistrer la dernière date d'entraînement
+                        if (!muscleLastTrained[muscle] || workoutDate > muscleLastTrained[muscle]) {
+                            muscleLastTrained[muscle] = workoutDate;
+                        }
+                        
+                        // Calculer le volume des 7 derniers jours
+                        const sevenDaysAgo = new Date();
+                        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                        
+                        if (workoutDate >= sevenDaysAgo) {
+                            muscleVolume[muscle] = (muscleVolume[muscle] || 0) + 1;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Calculer l'état de chaque muscle
+        const now = new Date();
+        const muscleStates = muscleGroups.map(muscle => {
+            const lastTrained = muscleLastTrained[muscle.key];
+            const volume = muscleVolume[muscle.key] || 0;
+            
+            let status = 'ready';
+            let statusText = 'Prêt à l\'entraînement';
+            let daysSince = null;
+            
+            if (lastTrained) {
+                const hoursSince = (now - lastTrained) / (1000 * 60 * 60);
+                daysSince = Math.floor(hoursSince / 24);
+                
+                // Logique de récupération basée sur le temps et le volume
+                if (hoursSince < 24) {
+                    status = 'fatigued';
+                    statusText = 'En récupération aiguë';
+                } else if (hoursSince < 48) {
+                    status = 'recovering';
+                    statusText = 'En récupération';
+                } else if (hoursSince < 72 && volume >= 3) {
+                    status = 'recovering';
+                    statusText = 'Volume élevé récent';
+                } else if (hoursSince > 168) { // Plus de 7 jours
+                    status = 'rested';
+                    statusText = 'Bien reposé';
+                }
+                
+                // Format du temps écoulé
+                if (daysSince === 0) {
+                    daysSince = 'Aujourd\'hui';
+                } else if (daysSince === 1) {
+                    daysSince = 'Hier';
+                } else {
+                    daysSince = `Il y a ${daysSince} jours`;
+                }
+            }
+            
+            return {
+                ...muscle,
+                status,
+                statusText,
+                lastTrained: daysSince,
+                weeklyVolume: volume
+            };
+        });
+        
+        // Générer le HTML
+        container.innerHTML = muscleStates.map(muscle => `
             <div class="muscle-item ${muscle.status}">
                 <div class="muscle-info">
                     <h4>${muscle.name}</h4>
-                    <p>${statusText}${muscle.lastTrained ? ` • Dernier entraînement : ${muscle.lastTrained}` : ''}</p>
+                    <p>${muscle.statusText}${muscle.lastTrained ? ` • ${muscle.lastTrained}` : ''}</p>
+                </div>
+                <div class="muscle-indicator">
+                    <div class="indicator-dot"></div>
+                    ${muscle.weeklyVolume > 0 ? `<span class="volume-badge">${muscle.weeklyVolume}</span>` : ''}
                 </div>
             </div>
-        `;
-    }).join('');
+        `).join('');
+        
+    } catch (error) {
+        console.error('Erreur chargement état musculaire:', error);
+        
+        // Fallback : tout est prêt
+        container.innerHTML = muscleGroups.map(muscle => `
+            <div class="muscle-item ready">
+                <div class="muscle-info">
+                    <h4>${muscle.name}</h4>
+                    <p>Prêt à l'entraînement</p>
+                </div>
+                <div class="muscle-indicator">
+                    <div class="indicator-dot"></div>
+                </div>
+            </div>
+        `).join('');
+    }
 }
 
 function loadRecentWorkouts(workouts) {
