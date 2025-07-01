@@ -403,6 +403,19 @@ def add_set(workout_id: int, set_data: SetCreate, db: Session = Depends(get_db))
     
     return db_set
 
+@app.get("/api/workouts/{workout_id}/sets")
+def get_workout_sets(workout_id: int, db: Session = Depends(get_db)):
+    """Récupérer toutes les séries d'une séance"""
+    workout = db.query(Workout).filter(Workout.id == workout_id).first()
+    if not workout:
+        raise HTTPException(status_code=404, detail="Séance non trouvée")
+    
+    sets = db.query(WorkoutSet).filter(
+        WorkoutSet.workout_id == workout_id
+    ).order_by(WorkoutSet.id).all()
+    
+    return sets
+
 @app.post("/api/workouts/{workout_id}/recommendations")
 def get_set_recommendations(
     workout_id: int, 
