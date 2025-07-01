@@ -2882,8 +2882,15 @@ select:focus-visible {
     display: none;
 }
 
-.preference-card input[type="radio"]:checked + .preference-content {
+.preference-card:has(input[type="radio"]:checked) {
     border-color: var(--primary);
+    background: rgba(99, 102, 241, 0.1);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+}
+
+.preference-card input[type="radio"]:checked + .preference-content h3 {
+    color: var(--primary);
+    font-weight: 600;
 }
 
 .preference-content h3 {

@@ -24,6 +24,9 @@ let currentWorkoutSession = {
     totalSetTime: 0         // Nouveau: temps total des séries
 };
 
+// Référence au système audio global
+const workoutAudio = window.workoutAudio;
+
 // ===== MACHINE D'ÉTAT SÉANCE =====
 const WorkoutStates = {
     IDLE: 'idle',
@@ -2222,6 +2225,11 @@ function skipRest() {
         clearInterval(restTimer);
         restTimer = null;
     }
+
+    // Annuler les sons programmés
+    if (window.workoutAudio) {
+        workoutAudio.clearScheduledSounds();
+    }
     
     // Annuler la notification programmée
     if (notificationTimeout) {
@@ -2241,6 +2249,11 @@ function endRest() {
     if (restTimer) {
         clearInterval(restTimer);
         restTimer = null;
+    }
+
+    // Annuler les sons programmés
+    if (window.workoutAudio) {
+        workoutAudio.clearScheduledSounds();
     }
     
     // Reprendre le timer de séance
@@ -2262,11 +2275,10 @@ function endRest() {
     }
     
     // Vérifier si on doit passer à la série suivante
-    if (currentSet < currentWorkoutSession.totalSets) {
-        window.nextSet(); // Utiliser window.nextSet pour éviter l'erreur de référence
-    } else {
-        showExerciseCompletion();
-    }
+    // Masquer l'interface de repos
+    document.getElementById('restPeriod').style.display = 'none';
+    // Appeler la logique correcte de fin de repos
+    completeRest();
 }
 
 function showExerciseCompletion() {
@@ -2329,6 +2341,28 @@ function startSetTimer() {
         document.getElementById('setTimer').textContent = 
             `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     }, 1000);
+}
+
+// ===== CONTRÔLES AUDIO =====
+function toggleWorkoutAudio() {
+    if (window.workoutAudio) {
+        const isEnabled = workoutAudio.toggle();
+        showToast(isEnabled ? 'Sons activés' : 'Sons désactivés', 'info');
+        return isEnabled;
+    }
+}
+
+function setAudioVolume(volume) {
+    if (window.workoutAudio) {
+        workoutAudio.setVolume(volume);
+    }
+}
+
+function testWorkoutSounds() {
+    if (window.workoutAudio) {
+        workoutAudio.testAllSounds();
+        showToast('Test des sons en cours...', 'info');
+    }
 }
 
 // ===== FIN DE SÉANCE =====
@@ -3669,6 +3703,11 @@ function startRestPeriod(customTime = null) {
     // Vibration si supportée
     if (navigator.vibrate) {
         navigator.vibrate(200);
+    }
+    
+    // ✅ NOUVEAU : Notifications sonores programmées
+    if (window.workoutAudio) {
+        workoutAudio.scheduleRestNotifications(timeLeft);
     }
     
     // ❌ SUPPRIMER l'ancien setTimeout de notification
