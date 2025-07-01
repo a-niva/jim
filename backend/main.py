@@ -341,6 +341,125 @@ def create_program(user_id: int, program: ProgramCreate, db: Session = Depends(g
     db.refresh(db_program)
     return db_program
 
+
+@app.get("/api/users/{user_id}/program-status")
+def get_program_status(user_id: int, db: Session = Depends(get_db)):
+    """Obtenir le statut actuel du programme de l'utilisateur"""
+    from datetime import datetime, timedelta
+    from collections import defaultdict
+    
+    # Récupérer le programme actif
+    """Obtenir le statut actuel du programme de l'utilisateur"""
+    
+    # Récupérer le programme actif
+    program = db.query(Program).filter(
+        Program.user_id == user_id,
+        Program.is_active == True
+    ).first()
+    
+    if not program:
+        return None
+    
+    # Calculer la semaine actuelle (depuis la création du programme)
+    from datetime import datetime, timedelta
+    weeks_elapsed = (datetime.now() - program.created_at).days // 7
+    # Utiliser la durée réelle du programme si disponible, sinon 4 semaines
+    total_weeks = len(set(ex.get('week', 1) for ex in program.exercises)) if program.exercises else 4
+    current_week = min(weeks_elapsed + 1, total_weeks)
+    
+    # Compter les séances de cette semaine
+    start_of_week = datetime.now() - timedelta(days=datetime.now().weekday())
+    start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    sessions_this_week = db.query(Workout).filter(
+        Workout.user_id == user_id,
+        Workout.type == 'program',
+        Workout.created_at >= start_of_week
+    ).count()
+    
+    # Analyser la dernière séance pour les adaptations ML
+    last_workout = db.query(Workout).filter(
+        Workout.user_id == user_id,
+        Workout.type == 'program'
+    ).order_by(Workout.created_at.desc()).first()
+    
+    ml_adaptations = "Standard"
+    if last_workout:
+        # Calculer la tendance des dernières séances
+        recent_sets = db.query(WorkoutSet).join(Workout).filter(
+            Workout.user_id == user_id,
+            Workout.type == 'program',
+            WorkoutSet.completed_at >= datetime.now() - timedelta(days=7)
+        ).all()
+        
+        if recent_sets:
+            avg_effort = sum(s.effort_level or 3 for s in recent_sets) / len(recent_sets)
+            avg_fatigue = sum(s.fatigue_level or 3 for s in recent_sets) / len(recent_sets)
+            
+            if avg_effort > 4 and avg_fatigue < 3:
+                ml_adaptations = "Volume +5% (excellente forme)"
+            elif avg_fatigue > 4:
+                ml_adaptations = "Volume -10% (fatigue détectée)"
+            elif avg_effort < 3:
+                ml_adaptations = "Charge +2.5kg (marge de progression)"
+    
+    # Analyser les exercices du programme pour déterminer les muscles de la prochaine séance
+    # Créer des groupes de séances basés sur les exercices réels
+    from collections import defaultdict
+    
+    # Grouper les exercices par pattern de muscles
+    session_patterns = defaultdict(list)
+    if program.exercises:
+        for ex in program.exercises:
+            # Utiliser le nom de l'exercice et ses groupes musculaires
+            exercise_db = db.query(Exercise).filter(Exercise.id == ex.get('exercise_id')).first()
+            if exercise_db and exercise_db.muscle_groups:
+                # Créer une clé unique pour ce pattern de muscles
+                muscle_key = tuple(sorted(exercise_db.muscle_groups))
+                session_patterns[muscle_key].append(exercise_db.name)
+    
+    # Si on a des patterns, les utiliser pour déterminer la prochaine séance
+    if session_patterns:
+        patterns_list = list(session_patterns.keys())
+        total_program_sessions = db.query(Workout).filter(
+            Workout.user_id == user_id,
+            Workout.type == 'program',
+            Workout.program_id == program.id
+        ).count()
+        
+        pattern_index = total_program_sessions % len(patterns_list)
+        next_pattern = patterns_list[pattern_index]
+        
+        # Formater les muscles pour l'affichage
+        muscle_names = [m.capitalize() for m in next_pattern]
+        if len(muscle_names) > 2:
+            next_muscles = f"{', '.join(muscle_names[:2])} + autres"
+        else:
+            next_muscles = ' + '.join(muscle_names)
+        
+        # Compter les exercices pour cette séance
+        exercises_count = len(session_patterns[next_pattern])
+    else:
+        # Fallback si pas de patterns détectables
+        next_muscles = "Séance complète"
+        exercises_count = min(6, len(program.exercises) if program.exercises else 4)
+    
+    return {
+        "current_week": current_week,
+        "total_weeks": total_weeks,
+        "sessions_this_week": sessions_this_week,
+        "target_sessions": program.sessions_per_week,
+        "next_session_preview": {
+            "muscles": next_muscles,
+            "exercises_count": exercises_count,
+            "estimated_duration": program.session_duration_minutes,
+            "ml_adaptations": ml_adaptations
+        },
+        "on_track": sessions_this_week >= max(1, int(program.sessions_per_week * ((datetime.now().weekday() + 1) / 7))),
+        "program_name": program.name,
+        "created_weeks_ago": weeks_elapsed
+    }
+
 @app.get("/api/users/{user_id}/programs/active")
 def get_active_program(user_id: int, db: Session = Depends(get_db)):
     """Récupérer le programme actif d'un utilisateur"""

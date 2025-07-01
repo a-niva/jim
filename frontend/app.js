@@ -1213,25 +1213,173 @@ async function loadDashboard() {
     else if (hour < 18) greeting = 'Bon après-midi';
     
     welcomeMsg.innerHTML = `
-        <h2>${greeting} ${currentUser.name} ! 👋</h2>
-        <p>Prêt pour votre prochaine séance ?</p>
+        <h2>${greeting} ${currentUser.name} !</h2>
+        <p>Prêt pour votre séance ?</p>
     `;
     
-    // Charger l'état musculaire et l'historique
+    // Charger les statistiques
     try {
-        const [stats, availableWeights] = await Promise.all([
-            apiGet(`/api/users/${currentUser.id}/stats`),
-            apiGet(`/api/users/${currentUser.id}/available-weights`)
-        ]);
+        const stats = await apiGet(`/api/users/${currentUser.id}/stats`);
         
-        // Enrichir les workouts avec les données des exercices
-        const enrichedWorkouts = await enrichWorkoutsWithExercises(stats.recent_workouts);
+        document.getElementById('totalWorkouts').textContent = stats.total_workouts;
+        document.getElementById('totalVolume').textContent = `${stats.total_volume_kg}kg`;
+        document.getElementById('lastWorkout').textContent = 
+            stats.last_workout_date ? new Date(stats.last_workout_date).toLocaleDateString() : '-';
         
-        loadMuscleReadiness();
-        loadRecentWorkouts(enrichedWorkouts);
+        // NOUVEAU: Initialiser les graphiques
+        if (typeof initStatsCharts === 'function') {
+            await initStatsCharts(currentUser.id, currentUser);
+        }
         
     } catch (error) {
-        console.error('Erreur chargement dashboard:', error);
+        console.error('Erreur chargement stats:', error);
+    }
+    
+    // NOUVEAU: Conteneur pour le widget programme
+    const workoutSection = document.querySelector('.workout-options');
+    if (workoutSection) {
+        // Injecter le widget avant les boutons existants
+        const widgetContainer = document.createElement('div');
+        widgetContainer.id = 'programStatusWidget';
+        workoutSection.insertBefore(widgetContainer, workoutSection.firstChild);
+        
+        // Charger le statut du programme
+        await loadProgramStatus();
+    }
+}
+
+
+async function loadProgramStatus() {
+    try {
+        const status = await apiGet(`/api/users/${currentUser.id}/program-status`);
+        
+        if (!status) {
+            // Pas de programme actif, afficher le bouton classique
+            document.getElementById('programStatusWidget').innerHTML = `
+                <button class="btn btn-primary" onclick="showView('settings')">
+                    <i class="fas fa-plus"></i> Créer un programme
+                </button>
+            `;
+            return;
+        }
+        
+        // Calculer la progression de la semaine
+        const weekProgress = (status.sessions_this_week / status.target_sessions) * 100;
+        const isLate = status.sessions_this_week < Math.floor((new Date().getDay() / 7) * status.target_sessions);
+        
+        // Déterminer l'emoji et la couleur selon l'état
+        let statusEmoji = '📊';
+        let statusColor = 'var(--primary)';
+        let encouragement = '';
+        
+        if (status.on_track) {
+            statusEmoji = '✅';
+            statusColor = 'var(--success)';
+            encouragement = 'Vous êtes sur la bonne voie !';
+        } else if (isLate) {
+            statusEmoji = '⏰';
+            statusColor = 'var(--warning)';
+            encouragement = 'Il est temps de s\'y remettre !';
+        }
+        
+        if (status.sessions_this_week >= status.target_sessions) {
+            statusEmoji = '🎉';
+            statusColor = 'var(--success)';
+            encouragement = 'Objectif hebdomadaire atteint !';
+        }
+        
+        // Générer le HTML du widget
+        document.getElementById('programStatusWidget').innerHTML = `
+            <div class="program-status-card" style="
+                background: var(--card-bg);
+                border-radius: 12px;
+                padding: 1.5rem;
+                margin-bottom: 1.5rem;
+                border: 1px solid var(--border-color);
+                position: relative;
+                overflow: hidden;
+            ">
+                <!-- Header -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
+                        ${statusEmoji} ${status.program_name || 'Mon Programme'}
+                    </h3>
+                    <span style="color: var(--text-muted); font-size: 0.9rem;">
+                        Semaine ${status.current_week}/${status.total_weeks}
+                    </span>
+                </div>
+                
+                <!-- Progression de la semaine -->
+                <div style="margin-bottom: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span style="font-size: 0.9rem;">Séances cette semaine</span>
+                        <span style="font-weight: 600; color: ${statusColor};">
+                            ${status.sessions_this_week}/${status.target_sessions}
+                        </span>
+                    </div>
+                    <div style="
+                        background: var(--bg-secondary);
+                        height: 8px;
+                        border-radius: 4px;
+                        overflow: hidden;
+                    ">
+                        <div style="
+                            background: ${statusColor};
+                            height: 100%;
+                            width: ${Math.min(weekProgress, 100)}%;
+                            transition: width 0.3s ease;
+                        "></div>
+                    </div>
+                    ${encouragement ? `<p style="margin-top: 0.5rem; margin-bottom: 0; color: var(--text-muted); font-size: 0.85rem;">${encouragement}</p>` : ''}
+                </div>
+                
+                <!-- Prochaine séance -->
+                <div style="
+                    background: var(--bg-secondary);
+                    border-radius: 8px;
+                    padding: 1rem;
+                    margin-bottom: 1rem;
+                ">
+                    <h4 style="margin: 0 0 0.5rem 0; font-size: 0.9rem; color: var(--text-muted);">
+                        Prochaine séance
+                    </h4>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <i class="fas fa-dumbbell" style="color: var(--primary);"></i>
+                        <span style="font-weight: 500;">${status.next_session_preview.muscles}</span>
+                    </div>
+                    <div style="display: flex; gap: 1rem; font-size: 0.85rem; color: var(--text-muted);">
+                        <span><i class="fas fa-list"></i> ${status.next_session_preview.exercises_count} exercices</span>
+                        <span><i class="fas fa-clock"></i> ~${status.next_session_preview.estimated_duration}min</span>
+                    </div>
+                    ${status.next_session_preview.ml_adaptations !== 'Standard' ? `
+                        <div style="
+                            margin-top: 0.75rem;
+                            padding: 0.5rem;
+                            background: var(--primary-light);
+                            border-radius: 4px;
+                            font-size: 0.85rem;
+                            color: var(--primary);
+                        ">
+                            <i class="fas fa-brain"></i> ML: ${status.next_session_preview.ml_adaptations}
+                        </div>
+                    ` : ''}
+                </div>
+                
+                <!-- Bouton action -->
+                <button class="btn btn-primary" style="width: 100%;" onclick="startProgramWorkout()">
+                    <i class="fas fa-play"></i> Commencer la séance
+                </button>
+            </div>
+        `;
+        
+    } catch (error) {
+        console.error('Erreur chargement statut programme:', error);
+        // Fallback silencieux
+        document.getElementById('programStatusWidget').innerHTML = `
+            <button class="btn btn-primary btn-large" onclick="startProgramWorkout()">
+                <i class="fas fa-calendar-check"></i> Séance programme
+            </button>
+        `;
     }
 }
 
@@ -1735,17 +1883,187 @@ async function startFreeWorkout() {
 }
 
 async function startProgramWorkout() {
-    clearWorkoutState(); // Nettoyer tout état précédent
-    currentSet = 1; // Réinitialiser explicitement
+    clearWorkoutState();
+    currentSet = 1;
+    
     try {
-        // Récupérer le programme actif
-        const program = await apiGet(`/api/users/${currentUser.id}/programs/active`);
+        // Récupérer le programme actif et le statut
+        const [program, status] = await Promise.all([
+            apiGet(`/api/users/${currentUser.id}/programs/active`),
+            apiGet(`/api/users/${currentUser.id}/program-status`)
+        ]);
         
         if (!program) {
             showToast('Aucun programme actif trouvé', 'error');
             return;
         }
         
+        // Afficher le panneau de preview
+        await showProgramPreview(program, status);
+        
+    } catch (error) {
+        console.error('Erreur démarrage séance programme:', error);
+        showToast('Erreur lors du chargement du programme', 'error');
+    }
+}
+
+// Nouvelle fonction pour afficher le panneau de preview
+async function showProgramPreview(program, status) {
+    // Récupérer les détails des exercices si nécessaire
+    let exerciseDetails = [];
+    if (program.exercises && program.exercises.length > 0) {
+        // Si on a juste les IDs, récupérer les noms
+        for (let ex of program.exercises.slice(0, 5)) {
+            if (ex.exercise_name) {
+                exerciseDetails.push(ex.exercise_name);
+            } else if (ex.exercise_id) {
+                // Fallback : utiliser l'ID si pas de nom
+                try {
+                    const exercise = await apiGet(`/api/exercises/${ex.exercise_id}`);
+                    exerciseDetails.push(exercise.name || `Exercice #${ex.exercise_id}`);
+                } catch (e) {
+                    exerciseDetails.push(`Exercice #${ex.exercise_id}`);
+                }
+            }
+        }
+    }
+    
+    const exercisesList = exerciseDetails
+        .map(name => `<li style="margin-bottom: 0.25rem;">${name}</li>`)
+        .join('');
+    
+    const hasMore = program.exercises.length > 5 ? 
+        `<li style="color: var(--text-muted);">+${program.exercises.length - 5} autres exercices</li>` : '';
+    
+    // Analyser les changements depuis la dernière séance
+    let changes = [];
+    if (status && status.next_session_preview.ml_adaptations !== 'Standard') {
+        changes.push(`<i class="fas fa-brain"></i> ${status.next_session_preview.ml_adaptations}`);
+    }
+    
+    const modalContent = `
+        <div style="max-width: 500px; margin: 0 auto;">
+            <!-- Header avec progression -->
+            <div style="
+                background: var(--primary-light);
+                margin: -1rem -1.5rem 1.5rem;
+                padding: 1.5rem;
+                text-align: center;
+                border-radius: 8px 8px 0 0;
+            ">
+                <h2 style="margin: 0 0 0.5rem 0; color: var(--primary);">
+                    ${status ? status.next_session_preview.muscles : 'Séance Programme'}
+                </h2>
+                <p style="margin: 0; color: var(--primary-dark); opacity: 0.8;">
+                    Semaine ${status ? status.current_week : '1'} • Séance ${status ? status.sessions_this_week + 1 : '1'}
+                </p>
+            </div>
+            
+            <!-- Résumé de la séance -->
+            <div style="
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1rem;
+                margin-bottom: 1.5rem;
+                text-align: center;
+            ">
+                <div style="
+                    background: var(--bg-secondary);
+                    padding: 1rem;
+                    border-radius: 8px;
+                ">
+                    <i class="fas fa-dumbbell" style="font-size: 1.5rem; color: var(--primary); margin-bottom: 0.5rem; display: block;"></i>
+                    <div style="font-size: 1.25rem; font-weight: 600;">${program.exercises.length}</div>
+                    <div style="font-size: 0.85rem; color: var(--text-muted);">exercices</div>
+                </div>
+                <div style="
+                    background: var(--bg-secondary);
+                    padding: 1rem;
+                    border-radius: 8px;
+                ">
+                    <i class="fas fa-clock" style="font-size: 1.5rem; color: var(--primary); margin-bottom: 0.5rem; display: block;"></i>
+                    <div style="font-size: 1.25rem; font-weight: 600;">~${status ? status.next_session_preview.estimated_duration : '45'}</div>
+                    <div style="font-size: 0.85rem; color: var(--text-muted);">minutes</div>
+                </div>
+                <div style="
+                    background: var(--bg-secondary);
+                    padding: 1rem;
+                    border-radius: 8px;
+                ">
+                    <i class="fas fa-fire" style="font-size: 1.5rem; color: var(--warning); margin-bottom: 0.5rem; display: block;"></i>
+                    <div style="font-size: 1.25rem; font-weight: 600;">
+                        ${status ? status.next_session_preview.exercises_count * 3 : '~12'}
+                    </div>
+                    <div style="font-size: 0.85rem; color: var(--text-muted);">séries totales</div>
+                </div>
+            </div>
+            
+            <!-- Liste des exercices -->
+            <div style="margin-bottom: 1.5rem;">
+                <h4 style="margin: 0 0 0.75rem 0; font-size: 1rem;">Programme du jour :</h4>
+                <ul style="
+                    list-style: none;
+                    padding: 0;
+                    margin: 0;
+                    background: var(--bg-secondary);
+                    border-radius: 8px;
+                    padding: 1rem;
+                ">
+                    ${exercisesList}
+                    ${hasMore}
+                </ul>
+            </div>
+            
+            ${changes.length > 0 ? `
+                <!-- Adaptations ML -->
+                <div style="
+                    background: var(--info-light);
+                    border: 1px solid var(--info);
+                    border-radius: 8px;
+                    padding: 1rem;
+                    margin-bottom: 1.5rem;
+                ">
+                    <h4 style="margin: 0 0 0.5rem 0; font-size: 0.9rem; color: var(--info-dark);">
+                        <i class="fas fa-info-circle"></i> Adaptations intelligentes
+                    </h4>
+                    <div style="font-size: 0.85rem; color: var(--info-dark);">
+                        ${changes.join('<br>')}
+                    </div>
+                </div>
+            ` : ''}
+            
+            <!-- Actions -->
+            <div style="display: flex; gap: 1rem;">
+                <button class="btn btn-primary" style="flex: 1;" onclick="confirmStartProgramWorkout()">
+                    <i class="fas fa-play"></i> C'est parti !
+                </button>
+                <button class="btn btn-secondary" onclick="closeModal()">
+                    Annuler
+                </button>
+            </div>
+            
+            <!-- Option personnalisation -->
+            <p style="
+                text-align: center;
+                margin-top: 1rem;
+                margin-bottom: 0;
+                font-size: 0.85rem;
+                color: var(--text-muted);
+            ">
+                Vous pourrez ajuster les exercices pendant la séance
+            </p>
+        </div>
+    `;
+    
+    showModal('Aperçu de votre séance', modalContent);
+}
+
+// Nouvelle fonction pour confirmer et démarrer vraiment la séance
+async function confirmStartProgramWorkout() {
+    closeModal();
+    
+    try {
+        const program = await apiGet(`/api/users/${currentUser.id}/programs/active`);
         const workoutData = { type: 'program', program_id: program.id };
         const response = await apiPost(`/api/users/${currentUser.id}/workouts`, workoutData);
         
@@ -1754,8 +2072,8 @@ async function startProgramWorkout() {
         setupProgramWorkout(program);
         
     } catch (error) {
-        console.error('Erreur démarrage séance programme:', error);
-        showToast('Aucun programme disponible. Créez-en un dans les paramètres.', 'info');
+        console.error('Erreur démarrage séance:', error);
+        showToast('Erreur lors du démarrage de la séance', 'error');
     }
 }
 
