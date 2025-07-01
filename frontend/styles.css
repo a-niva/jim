@@ -752,22 +752,79 @@ textarea:focus {
     filter: brightness(1.2);
 }
 
-.muscle-segment::after {
-    content: attr(data-muscle) ' ' attr(data-percentage);
+.muscle-segment {
+    height: 100%;
+    transition: all 0.3s ease;
+    position: relative;
+    cursor: pointer;
+}
+
+.muscle-segment:hover {
+    filter: brightness(1.1);
+    transform: scaleY(1.1);
+}
+
+/* Tooltip moderne avec design soigné */
+.muscle-segment .muscle-tooltip {
     position: absolute;
-    bottom: 100%;
+    bottom: calc(100% + 12px);
     left: 50%;
-    transform: translateX(-50%);
-    background: var(--bg);
-    color: var(--text);
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.65rem;
+    transform: translateX(-50%) scale(0.9);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: var(--bg-dark);
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    font-size: 0.875rem;
     white-space: nowrap;
-    margin-bottom: 4px;
-    border: 1px solid var(--border);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
     opacity: 0;
     pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    text-align: center;
+    font-weight: 500;
+}
+
+.muscle-segment:hover .muscle-tooltip,
+.muscle-segment.active .muscle-tooltip {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+}
+
+/* Flèche du tooltip */
+.muscle-segment .muscle-tooltip::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 6px 6px 0 6px;
+    border-color: rgba(255, 255, 255, 0.95) transparent transparent transparent;
+}
+
+/* Emoji dans le tooltip */
+.muscle-tooltip .muscle-emoji {
+    font-size: 1.5rem;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+/* Nom du muscle */
+.muscle-tooltip .muscle-name {
+    display: block;
+    text-transform: capitalize;
+    color: #1a1a2e;
+    font-weight: 600;
+}
+
+/* Pourcentage */
+.muscle-tooltip .muscle-percentage {
+    color: #4a5568;
+    font-size: 0.875rem;
 }
 
 .muscle-segment:hover::after {

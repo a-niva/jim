@@ -1633,15 +1633,54 @@ function generateMuscleDistribution(workout) {
     });
     
     // Générer les segments
+    // Mapping des emojis pour chaque muscle
+    const muscleEmojis = {
+        'dos': '🔙',
+        'pectoraux': '💪',
+        'jambes': '🦵',
+        'épaules': '🤸',
+        'bras': '💪',
+        'abdominaux': '🎯'
+    };
+
+    // Générer les segments
     return Object.entries(muscleVolumes)
         .map(([muscle, volume]) => {
             const percentage = Math.round((volume / totalVolume) * 100);
+            const emoji = muscleEmojis[muscle] || '💪';
+            const muscleName = muscle.charAt(0).toUpperCase() + muscle.slice(1);
+            
             return `<div class="muscle-segment"
                         data-muscle="${muscle}"
                         data-percentage="${percentage}%"
-                        style="width: ${percentage}%; background: ${window.MuscleColors.getMuscleColor(muscle)}"></div>`;
+                        style="width: ${percentage}%; background: ${window.MuscleColors.getMuscleColor(muscle)}"
+                        onclick="toggleMuscleTooltip(this)">
+                        <div class="muscle-tooltip">
+                            <span class="muscle-emoji">${emoji}</span>
+                            <span class="muscle-name">${muscleName}</span>
+                            <span class="muscle-percentage">${percentage}%</span>
+                        </div>
+                    </div>`;
         })
         .join('');
+}
+
+// Fonction pour gérer le clic sur les segments
+function toggleMuscleTooltip(segment) {
+    // Retirer la classe active de tous les autres segments
+    document.querySelectorAll('.muscle-segment.active').forEach(s => {
+        if (s !== segment) s.classList.remove('active');
+    });
+    
+    // Toggle la classe active sur le segment cliqué
+    segment.classList.toggle('active');
+    
+    // Fermer automatiquement après 3 secondes
+    if (segment.classList.contains('active')) {
+        setTimeout(() => {
+            segment.classList.remove('active');
+        }, 3000);
+    }
 }
 
 
@@ -4235,3 +4274,4 @@ window.apiDelete = apiDelete;
 window.generateMuscleDistribution = generateMuscleDistribution;
 window.loadRecentWorkouts = loadRecentWorkouts;
 window.enrichWorkoutsWithExercises = enrichWorkoutsWithExercises;
+window.toggleMuscleTooltip = toggleMuscleTooltip;
