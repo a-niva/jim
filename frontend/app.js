@@ -357,12 +357,12 @@ const DEFAULT_RESISTANCE_COUNTS = {
 
 // Zones musculaires spécifiques
 const MUSCLE_GROUPS = {
-    dos: { name: 'Dos', icon: '🔙' },
-    pectoraux: { name: 'Pectoraux', icon: '💪' },
-    bras: { name: 'Bras', icon: '💪' },
+    dos: { name: 'Dos', icon: '🏋️' },
+    pectoraux: { name: 'Pectoraux', icon: '🫁' },
+    bras: { name: 'Bras', icon: '🦾' },
     epaules: { name: 'Épaules', icon: '🤷' },
     jambes: { name: 'Jambes', icon: '🦵' },
-    abdominaux: { name: 'Abdominaux', icon: '🎯' }
+    abdominaux: { name: 'Abdominaux', icon: '🩱' }
 };
 
 // ===== INITIALISATION =====
@@ -1543,12 +1543,12 @@ function loadRecentWorkouts(workouts) {
         
         // Créer les badges de muscles avec emojis
         const muscleEmojis = {
-            'Pectoraux': '💪',
-            'Dos': '🔙', 
+            'Pectoraux': '🫁',
+            'Dos': '🏋️', 
             'Jambes': '🦵',
             'Épaules': '🤷',
-            'Bras': '💪',
-            'Abdominaux': '🎯'
+            'Bras': '🦾',
+            'Abdominaux': '🩱'
         };
         
         const muscleBadges = musclesWorked.slice(0, 3).map(muscle => 
@@ -1635,12 +1635,12 @@ function generateMuscleDistribution(workout) {
     // Générer les segments
     // Mapping des emojis pour chaque muscle
     const muscleEmojis = {
-        'dos': '🔙',
-        'pectoraux': '💪',
+        'dos': '🏋️',
+        'pectoraux': '🫁',
         'jambes': '🦵',
-        'épaules': '🤸',
-        'bras': '💪',
-        'abdominaux': '🎯'
+        'épaules': '🤷',
+        'bras': '🦾',
+        'abdominaux': '🩱'
     };
 
     // Générer les segments
@@ -3172,11 +3172,11 @@ async function loadAvailableExercises() {
         // Icônes pour chaque groupe
         const muscleIcons = {
             dos: '🏋️',
-            pectoraux: '💪',
+            pectoraux: '🫁',
             jambes: '🦵',
-            epaules: '🤸',
-            bras: '💪',
-            abdominaux: '🎯'
+            epaules: '🤷',
+            bras: '🦾',
+            abdominaux: '🩱'
         };
         
         // Classer les exercices
