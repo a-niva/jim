@@ -13,6 +13,7 @@ class UserCreate(BaseModel):
     weight: float  # kg
     experience_level: str  # beginner, intermediate, advanced
     equipment_config: Dict[str, Any]
+    prefer_weight_changes_between_sets: bool = True
 
 
 class UserResponse(BaseModel):
@@ -23,11 +24,14 @@ class UserResponse(BaseModel):
     weight: float
     experience_level: str
     equipment_config: Dict[str, Any]
+    prefer_weight_changes_between_sets: bool
     created_at: datetime
     
     class Config:
         from_attributes = True
 
+class UserPreferenceUpdate(BaseModel):
+    prefer_weight_changes_between_sets: bool
 
 # ===== SCHEMAS EXERCICES =====
 
@@ -116,7 +120,7 @@ class SetCreate(BaseModel):
     # Position dans la séance
     exercise_order_in_session: Optional[int] = None
     set_order_in_session: Optional[int] = None
-
+    suggested_rest_seconds: Optional[int] = None  # Repos suggéré par le ML
 
 class SetResponse(BaseModel):
     id: int
@@ -138,6 +142,7 @@ class SetResponse(BaseModel):
     user_followed_ml_reps: Optional[bool]
     exercise_order_in_session: Optional[int]
     set_order_in_session: Optional[int]
+    suggested_rest_seconds: Optional[int]
     completed_at: datetime
     
     class Config:
@@ -158,12 +163,15 @@ class RecommendationRequest(BaseModel):
 class RecommendationResponse(BaseModel):
     weight_recommendation: Optional[float]
     reps_recommendation: int
+    rest_seconds_recommendation: Optional[int]  # NOUVEAU
+    rest_range: Optional[Dict[str, int]]  # NOUVEAU: {"min": 30, "max": 120}
     confidence: float
     reasoning: str
     weight_change: str  # "increase", "decrease", "same"
     reps_change: str
     baseline_weight: Optional[float]
     baseline_reps: int
+    adaptation_strategy: str  # NOUVEAU: "variable_weight" ou "fixed_weight"
 
 # ===== SCHEMAS POUR LA GÉNÉRATION DE PROGRAMMES =====
 

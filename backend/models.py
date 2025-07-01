@@ -1,5 +1,5 @@
 # ===== backend/models.py - VERSION REFACTORISÉE =====
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, JSON, Boolean, Text
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, JSON, Boolean, Text, Index
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from backend.database import Base
@@ -16,11 +16,13 @@ class User(Base):
     experience_level = Column(String, nullable=False)  # beginner, intermediate, advanced
     equipment_config = Column(JSON, nullable=False)  # Configuration complète équipement
     created_at = Column(DateTime, default=datetime.utcnow)
-    
+    prefer_weight_changes_between_sets = Column(Boolean, default=True)
+
     # Relations
     workouts = relationship("Workout", back_populates="user", cascade="all, delete-orphan")
     programs = relationship("Program", back_populates="user", cascade="all, delete-orphan")
-
+    adaptation_coefficients = relationship("UserAdaptationCoefficients", back_populates="user", cascade="all, delete-orphan")
+    performance_states = relationship("PerformanceStates", back_populates="user", cascade="all, delete-orphan")
 
 class Exercise(Base):
     __tablename__ = "exercises"
@@ -95,7 +97,8 @@ class WorkoutSet(Base):
     target_reps = Column(Integer, nullable=True)  # Reps prévues
     target_weight = Column(Float, nullable=True)  # Poids prévu
     base_rest_time_seconds = Column(Integer, nullable=True)  # Temps de repos effectué après cette série
-    
+    suggested_rest_seconds = Column(Integer, nullable=True)  # Repos suggéré par le ML
+
     # Feedback utilisateur pour le ML
     fatigue_level = Column(Integer, nullable=True)  # 1-5 (très facile à très difficile)
     effort_level = Column(Integer, nullable=True)  # 1-5 (réserve importante à échec total)
@@ -196,3 +199,55 @@ class AdaptiveTargets(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     user = relationship("User")
+
+class UserAdaptationCoefficients(Base):
+    """Coefficients d'adaptation personnalisés pour chaque utilisateur"""
+    __tablename__ = "user_adaptation_coefficients"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    exercise_id = Column(Integer, ForeignKey("exercises.id"), nullable=False)
+    
+    # Coefficients personnalisés
+    recovery_rate = Column(Float, default=1.0)  # Vitesse de récupération entre séries
+    fatigue_sensitivity = Column(Float, default=1.0)  # Sensibilité à la fatigue
+    volume_response = Column(Float, default=1.0)  # Réponse au volume d'entraînement
+    typical_progression_increment = Column(Float, default=2.5)  # Incrément de progression habituel
+    
+    last_updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relations
+    user = relationship("User")
+    exercise = relationship("Exercise")
+    
+    # Index unique pour éviter les doublons
+    __table_args__ = (
+        Index('idx_user_exercise_coefficients', 'user_id', 'exercise_id', unique=True),
+    )
+
+
+class PerformanceStates(Base):
+    """État de performance actuel pour chaque combinaison utilisateur-exercice"""
+    __tablename__ = "performance_states"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    exercise_id = Column(Integer, ForeignKey("exercises.id"), nullable=False)
+    
+    # État de performance
+    base_potential = Column(Float, default=0.0)  # Potentiel de base (moyenne mobile)
+    acute_fatigue = Column(Float, default=0.0)  # Fatigue aiguë de la séance
+    last_session_timestamp = Column(DateTime, nullable=True)
+    progression_pattern = Column(JSON, nullable=True)  # Patterns de progression observés
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relations
+    user = relationship("User")
+    exercise = relationship("Exercise")
+    
+    # Index unique
+    __table_args__ = (
+        Index('idx_user_exercise_performance', 'user_id', 'exercise_id', unique=True),
+    )
