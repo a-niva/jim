@@ -3319,45 +3319,67 @@ function showExerciseSelection() {
 }
 
 // ===== API AVEC GESTION D'ERREUR AMÉLIORÉE =====
-async function apiRequest(url, options = {}) {
+async function apiRequest(url, options = {}, retries = 3) {
     if (!isOnline && !url.includes('health')) {
         throw new Error('Aucune connexion internet');
     }
     
-    try {
-        const response = await fetch(url, {
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers
-            },
-            ...options
-        });
-        
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(
-                typeof errorData.detail === 'string' 
-                    ? errorData.detail 
-                    : JSON.stringify(errorData.detail) || `HTTP ${response.status}: ${response.statusText}`
-            );
+    for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+            const response = await fetch(url, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                },
+                ...options
+            });
+            
+            if (!response.ok) {
+                // Pour les erreurs 5xx (serveur), retry automatique
+                if (response.status >= 500 && attempt < retries) {
+                    const delay = Math.pow(2, attempt) * 1000; // Backoff exponentiel
+                    console.warn(`Erreur ${response.status}, retry ${attempt + 1}/${retries} dans ${delay}ms`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    continue;
+                }
+                
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(
+                    typeof errorData.detail === 'string' 
+                        ? errorData.detail 
+                        : JSON.stringify(errorData.detail) || `HTTP ${response.status}: ${response.statusText}`
+                );
+            }
+            
+            return await response.json();
+        } catch (error) {
+            // Si c'est la dernière tentative, propager l'erreur
+            if (attempt === retries) {
+                console.error('Erreur API finale:', error);
+                
+                if (error.message.includes('Failed to fetch')) {
+                    throw new Error('Problème de connexion au serveur');
+                }
+                if (error.message.includes('404')) {
+                    throw new Error('Ressource non trouvée');
+                }
+                if (error.message.includes('500') || error.message.includes('502')) {
+                    throw new Error('Serveur temporairement indisponible');
+                }
+                
+                throw error;
+            }
+            
+            // Pour les erreurs réseau, retry aussi
+            if (error.message.includes('Failed to fetch')) {
+                const delay = Math.pow(2, attempt) * 1000;
+                console.warn(`Erreur réseau, retry ${attempt + 1}/${retries} dans ${delay}ms`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                continue;
+            }
+            
+            throw error;
         }
-        
-        return await response.json();
-    } catch (error) {
-        console.error('Erreur API:', error);
-        
-        // Messages d'erreur plus explicites
-        if (error.message.includes('Failed to fetch')) {
-            throw new Error('Problème de connexion au serveur');
-        }
-        if (error.message.includes('404')) {
-            throw new Error('Ressource non trouvée');
-        }
-        if (error.message.includes('500')) {
-            throw new Error('Erreur interne du serveur');
-        }
-        
-        throw error;
     }
 }
 

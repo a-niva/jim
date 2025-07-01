@@ -39,13 +39,19 @@ class ExerciseResponse(BaseModel):
     id: int
     name: str
     muscle_groups: List[str]
+    muscles: Optional[List[str]]
     equipment_required: List[str]
     difficulty: str
     default_sets: int
     default_reps_min: int
     default_reps_max: int
     base_rest_time_seconds: int
-    instructions: Optional[str] = None
+    instructions: Optional[str]
+    exercise_type: Optional[str]
+    intensity_factor: Optional[float]
+    weight_type: str = "external"
+    base_weights_kg: Optional[Dict[str, Dict[str, float]]] = None
+    bodyweight_percentage: Optional[Dict[str, float]] = None
     
     class Config:
         from_attributes = True
@@ -104,7 +110,7 @@ class SetCreate(BaseModel):
     duration_seconds: Optional[int] = None
     base_rest_time_seconds: Optional[int] = None
     
-    # Nouveaux champs pour l'interface détaillée et le ML
+    # Champs pour l'interface détaillée et le ML
     target_reps: Optional[int] = None
     target_weight: Optional[float] = None
     fatigue_level: Optional[int] = None  # 1-5
@@ -172,6 +178,7 @@ class RecommendationResponse(BaseModel):
     baseline_weight: Optional[float]
     baseline_reps: int
     adaptation_strategy: str  # NOUVEAU: "variable_weight" ou "fixed_weight"
+    exercise_type: Optional[str] = None  # NOUVEAU: "external", "bodyweight", "hybrid"
 
 # ===== SCHEMAS POUR LA GÉNÉRATION DE PROGRAMMES =====
 

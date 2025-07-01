@@ -42,6 +42,11 @@ class Exercise(Base):
     # Métadonnées pour le ML
     exercise_type = Column(String)  # compound, isolation, cardio
     intensity_factor = Column(Float, default=1.0)  # Facteur d'intensité pour ajuster le repos
+    
+    # NOUVEAUX CHAMPS
+    weight_type = Column(String, default="external")  # "external", "bodyweight", "hybrid"
+    base_weights_kg = Column(JSON, nullable=True)  # Structure avec base + per_kg_bodyweight
+    bodyweight_percentage = Column(JSON, nullable=True)  # Pour exercices bodyweight/hybrid
 
 
 class Program(Base):

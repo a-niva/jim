@@ -48,30 +48,25 @@ async def load_exercises(db: Session):
                 
             for exercise_data in exercises_data:
                 # Vérifier si l'exercice existe déjà
-                existing = db.query(Exercise).filter(Exercise.name == exercise_data["name"]).first()
-                if existing:
-                    continue
-                    
-                exercise = Exercise(
-                    name=exercise_data["name"],
-                    muscle_groups=exercise_data["muscle_groups"],
-                    equipment_required=exercise_data["equipment_required"],
-                    difficulty=exercise_data["difficulty"],
-                    default_sets=exercise_data.get("default_sets", 3),
-                    default_reps_min=exercise_data.get("default_reps_min", 8),
-                    default_reps_max=exercise_data.get("default_reps_max", 12),
-                    base_rest_time_seconds=exercise_data.get("base_rest_time_seconds", 60),
-                    instructions=exercise_data.get("instructions", "")
-                )
-                db.add(exercise)
+                existing = db.query(Exercise).filter(
+                    Exercise.name == exercise_data["name"]
+                ).first()
+                
+                if not existing:
+                    exercise = Exercise(**exercise_data)
+                    db.add(exercise)
+                else:
+                    # Mettre à jour avec les nouveaux champs
+                    for key, value in exercise_data.items():
+                        setattr(existing, key, value)
             
             db.commit()
-            logger.info(f"✅ Chargé {len(exercises_data)} exercices")
+            logger.info(f"Chargé/mis à jour {len(exercises_data)} exercices")
         else:
-            logger.warning("❌ Fichier exercises.json non trouvé")
+            logger.warning(f"Fichier exercises.json non trouvé à {exercises_path}")
             
     except Exception as e:
-        logger.error(f"❌ Erreur lors du chargement des exercices: {e}")
+        logger.error(f"Erreur lors du chargement des exercices: {e}")
         db.rollback()
 
 app = FastAPI(title="Fitness Coach API", lifespan=lifespan)
@@ -727,12 +722,22 @@ def get_user_stats(user_id: int, db: Session = Depends(get_db)):
     ).order_by(desc(Workout.completed_at)).first()
     
     # Volume total (poids x reps)
-    total_volume = db.query(
-        func.sum(WorkoutSet.weight * WorkoutSet.reps)
-    ).join(Workout).filter(
-        Workout.user_id == user_id,
-        WorkoutSet.weight.isnot(None)
-    ).scalar() or 0
+    # Récupérer tous les sets avec leurs exercices
+    sets_with_exercises = db.query(WorkoutSet, Exercise).join(
+        Workout, WorkoutSet.workout_id == Workout.id
+    ).join(
+        Exercise, WorkoutSet.exercise_id == Exercise.id
+    ).filter(
+        Workout.user_id == user_id
+    ).all()
+
+    # Calculer le volume en tenant compte du type d'exercice
+    user = db.query(User).filter(User.id == user_id).first()
+    ml_engine = FitnessRecommendationEngine(db)
+    total_volume = sum(
+        ml_engine.calculate_exercise_volume(s.weight, s.reps, e, user) 
+        for s, e in sets_with_exercises
+    )
     
     # Historique récent (3 dernières séances)
     recent_workouts = db.query(Workout).filter(
@@ -752,29 +757,77 @@ def get_progress_data(user_id: int, days: int = 30, db: Session = Depends(get_db
     """Récupérer les données de progression"""
     cutoff_date = datetime.utcnow() - timedelta(days=days)
     
-    # Volume par jour
-    daily_volume = db.query(
-        func.date(Workout.completed_at).label('date'),
-        func.sum(WorkoutSet.weight * WorkoutSet.reps).label('volume')
-    ).join(WorkoutSet).filter(
-        Workout.user_id == user_id,
-        Workout.completed_at >= cutoff_date,
-        WorkoutSet.weight.isnot(None)
-    ).group_by(func.date(Workout.completed_at)).all()
+    # Récupérer l'utilisateur une fois
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
     
-    # Progression par exercice (records)
-    exercise_records = db.query(
-        Exercise.name,
-        func.max(WorkoutSet.weight).label('max_weight'),
-        func.max(WorkoutSet.reps).label('max_reps')
-    ).join(WorkoutSet).join(Workout).filter(
+    ml_engine = FitnessRecommendationEngine(db)
+    
+    # Volume par jour - récupérer les données brutes
+    workout_sets = db.query(
+        func.date(Workout.completed_at).label('date'),
+        WorkoutSet,
+        Exercise
+    ).join(
+        WorkoutSet, Workout.id == WorkoutSet.workout_id
+    ).join(
+        Exercise, WorkoutSet.exercise_id == Exercise.id
+    ).filter(
         Workout.user_id == user_id,
         Workout.completed_at >= cutoff_date
-    ).group_by(Exercise.id, Exercise.name).all()
+    ).all()
+    
+    # Calculer le volume par date
+    volume_by_date = defaultdict(float)
+    for date, workout_set, exercise in workout_sets:
+        volume = ml_engine.calculate_exercise_volume(
+            workout_set.weight, workout_set.reps, exercise, user
+        )
+        volume_by_date[date] += volume
+    
+    daily_volume = [
+        {"date": str(date), "volume": float(volume)} 
+        for date, volume in sorted(volume_by_date.items())
+    ]
+    
+    # Progression par exercice (records) - gérer les bodyweight
+    exercise_data = db.query(
+        Exercise,
+        func.max(WorkoutSet.weight).label('max_weight'),
+        func.max(WorkoutSet.reps).label('max_reps')
+    ).join(
+        WorkoutSet, Exercise.id == WorkoutSet.exercise_id
+    ).join(
+        Workout, WorkoutSet.workout_id == Workout.id
+    ).filter(
+        Workout.user_id == user_id,
+        Workout.completed_at >= cutoff_date
+    ).group_by(Exercise.id).all()
+    
+    exercise_records = []
+    for exercise, max_weight, max_reps in exercise_data:
+        record = {
+            "name": exercise.name,
+            "max_reps": max_reps or 0
+        }
+        
+        # Gérer le poids selon le type d'exercice
+        if exercise.weight_type == "bodyweight":
+            # Pour bodyweight, calculer le poids équivalent
+            percentage = exercise.bodyweight_percentage.get(user.experience_level, 65)
+            equivalent_weight = user.weight * (percentage / 100)
+            record["max_weight"] = float(equivalent_weight)
+            record["is_bodyweight"] = True
+        else:
+            record["max_weight"] = float(max_weight or 0)
+            record["is_bodyweight"] = False
+            
+        exercise_records.append(record)
     
     return {
-        "daily_volume": [{"date": str(dv.date), "volume": float(dv.volume or 0)} for dv in daily_volume],
-        "exercise_records": [{"name": er.name, "max_weight": float(er.max_weight or 0), "max_reps": er.max_reps} for er in exercise_records]
+        "daily_volume": daily_volume,
+        "exercise_records": exercise_records
     }
 
 @app.get("/api/users/{user_id}/stats/progression/{exercise_id}")
@@ -800,7 +853,16 @@ def get_exercise_progression(
     progression_data = []
     for s in sets:
         if s.weight and s.actual_reps:
-            one_rm = s.weight * (1 + s.actual_reps / 30)
+            # Récupérer l'exercice pour vérifier son type
+            exercise = db.query(Exercise).filter(Exercise.id == s.exercise_id).first()
+            if exercise and exercise.weight_type == "bodyweight":
+                # Pour bodyweight, utiliser le poids équivalent
+                user = db.query(User).filter(User.id == user_id).first()
+                percentage = exercise.bodyweight_percentage.get(user.experience_level, 65)
+                equivalent_weight = user.weight * (percentage / 100)
+                one_rm = equivalent_weight * (1 + s.actual_reps / 30)
+            else:
+                one_rm = s.weight * (1 + s.actual_reps / 30) if s.weight else 0
             progression_data.append({
                 "date": s.date_performed.isoformat(),
                 "oneRM": round(one_rm, 1),
@@ -911,7 +973,13 @@ def get_attendance_calendar(user_id: int, months: int = 6, db: Session = Depends
         
         # Calculer le volume total
         sets = db.query(WorkoutSet).filter(WorkoutSet.workout_id == workout.id).all()
-        volume = sum((s.weight or 0) * s.reps for s in sets)
+        ml_engine = FitnessRecommendationEngine(db)
+        volume = 0
+        for s in sets:
+            exercise = db.query(Exercise).filter(Exercise.id == s.exercise_id).first()
+            if exercise:
+                user = db.query(User).filter(User.id == user_id).first()
+                volume += ml_engine.calculate_exercise_volume(s.weight, s.reps, exercise, user)
         calendar_data[date_key]["volume"] += volume
     
     # Identifier les semaines avec séances manquantes
@@ -994,7 +1062,17 @@ def get_volume_burndown(
             func.date(Workout.started_at) == current.date()
         ).all()
         
-        day_volume = sum((s.weight or 0) * s.reps for s in day_sets)
+        ml_engine = FitnessRecommendationEngine(db)
+        day_volume = 0
+        for s in day_sets:
+            exercise = db.query(Exercise).filter(Exercise.id == s.exercise_id).first()
+            if exercise:
+                # Récupérer l'user depuis le workout
+                workout = db.query(Workout).filter(Workout.id == s.workout_id).first()
+                if workout:
+                    user = db.query(User).filter(User.id == workout.user_id).first()
+                    if user:
+                        day_volume += ml_engine.calculate_exercise_volume(s.weight, s.reps, exercise, user)
         cumulative_volume += day_volume
         
         daily_volumes.append({

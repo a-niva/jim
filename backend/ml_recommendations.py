@@ -23,7 +23,42 @@ class FitnessRecommendationEngine:
     
     def __init__(self, db: Session):
         self.db = db
+
+    def _calculate_performance_score(self, set_record, exercise_id: int = None) -> float:
+        """Calcule un score de performance unifié pour tous types d'exercices"""
+        # Si exercise_id n'est pas fourni, le récupérer depuis set_record
+        if exercise_id is None and hasattr(set_record, 'exercise_id'):
+            exercise_id = set_record.exercise_id
         
+        # Récupérer l'exercice depuis la DB
+        exercise = self.db.query(Exercise).filter(Exercise.id == exercise_id).first()
+        if not exercise:
+            # Fallback si exercice non trouvé
+            return set_record.weight * (1 + set_record.reps / 30) if hasattr(set_record, 'weight') and set_record.weight else 1
+        
+        # Récupérer l'utilisateur depuis le workout
+        if hasattr(set_record, 'workout_id'):
+            workout = self.db.query(Workout).filter(Workout.id == set_record.workout_id).first()
+            if workout:
+                user = self.db.query(User).filter(User.id == workout.user_id).first()
+            else:
+                # Fallback si pas de workout
+                return set_record.weight * (1 + set_record.reps / 30) if hasattr(set_record, 'weight') and set_record.weight else 1
+        else:
+            # Fallback si pas de workout_id
+            return set_record.weight * (1 + set_record.reps / 30) if hasattr(set_record, 'weight') and set_record.weight else 1
+        
+        # Calculer selon le type d'exercice
+        if exercise.weight_type == "bodyweight":
+            percentage = exercise.bodyweight_percentage.get(user.experience_level, 65) if exercise.bodyweight_percentage else 65
+            equivalent_weight = user.weight * (percentage / 100)
+            reps = set_record.reps if hasattr(set_record, 'reps') else set_record.actual_reps
+            return equivalent_weight * (1 + reps / 30)
+        else:
+            weight = set_record.weight if hasattr(set_record, 'weight') else 0
+            reps = set_record.reps if hasattr(set_record, 'reps') else set_record.actual_reps
+            return weight * (1 + reps / 30) if weight else 1
+    
     def get_set_recommendations(
         self, 
         user: User, 
@@ -54,6 +89,8 @@ class FitnessRecommendationEngine:
             performance_state = self._calculate_performance_state(
                 user, exercise, historical_data, current_fatigue
             )
+            if exercise.weight_type == "bodyweight":
+                performance_state['baseline_weight'] = None
             
             # 3. Récupérer ou créer les coefficients personnalisés
             coefficients = self._get_or_create_coefficients(user, exercise)
@@ -93,7 +130,7 @@ class FitnessRecommendationEngine:
             )
             
             return {
-                "weight_recommendation": round(recommendations['weight'], 1) if recommendations['weight'] else None,
+                "weight_recommendation": round(recommendations['weight'], 1) if recommendations['weight'] is not None else None,
                 "reps_recommendation": max(1, recommendations['reps']),
                 "rest_seconds_recommendation": rest_recommendation['seconds'],
                 "rest_range": rest_recommendation['range'],
@@ -103,7 +140,8 @@ class FitnessRecommendationEngine:
                 "reps_change": recommendations.get('reps_change', 'same'),
                 "baseline_weight": performance_state['baseline_weight'],
                 "baseline_reps": performance_state['baseline_reps'],
-                "adaptation_strategy": "variable_weight" if user.prefer_weight_changes_between_sets else "fixed_weight"
+                "adaptation_strategy": "variable_weight" if user.prefer_weight_changes_between_sets else "fixed_weight",
+                "exercise_type": exercise.weight_type  # NOUVEAU
             }
             
         except Exception as e:
@@ -277,7 +315,10 @@ class FitnessRecommendationEngine:
         set_factor = 1.0 - (set_number - 1) * 0.05 * coefficients.fatigue_sensitivity
         
         # Calculer les recommandations
-        recommended_weight = baseline_weight * fatigue_adjustment * effort_factor * set_factor
+        if exercise.weight_type == "bodyweight":
+            recommended_weight = None
+        else:
+            recommended_weight = baseline_weight * fatigue_adjustment * effort_factor * set_factor
         
         # Maintenir les reps proches de la cible
         reps_adjustment = 1.0 + (1.0 - fatigue_adjustment * effort_factor) * 0.2
@@ -561,6 +602,68 @@ class FitnessRecommendationEngine:
             return "decrease"
 
     def _estimate_initial_weight(self, user: User, exercise: Exercise) -> float:
+        """Estime un poids initial basé sur les profils de l'exercice"""
+        
+        # Pour exercices bodyweight purs
+        if exercise.weight_type == "bodyweight":
+            return None
+        
+        # Si pas de données de poids de base (anciens exercices)
+        if not exercise.base_weights_kg:
+            # Garder l'ancien système comme fallback
+            bodyweight = user.weight
+            
+            level_multipliers = {
+                "beginner": 0.3,
+                "intermediate": 0.5,
+                "advanced": 0.7
+            }
+            
+            exercise_factors = {
+                "curl": 0.15,
+                "lateral": 0.1,
+                "triceps": 0.2,
+                "chest": 0.4,
+                "press": 0.4,
+                "row": 0.3,
+                "squat": 0.8,
+                "deadlift": 0.9
+            }
+            
+            exercise_factor = 0.3
+            exercise_name_lower = exercise.name.lower()
+            
+            for keyword, factor in exercise_factors.items():
+                if keyword in exercise_name_lower:
+                    exercise_factor = factor
+                    break
+            
+            base_multiplier = level_multipliers.get(user.experience_level, 0.3)
+            estimated_weight = bodyweight * base_multiplier * exercise_factor
+            
+            return max(5.0, estimated_weight)
+        
+        # Nouveau système avec base_weights_kg
+        level_data = exercise.base_weights_kg.get(user.experience_level)
+        if not level_data:
+            # Fallback sur intermediate si niveau non trouvé
+            level_data = exercise.base_weights_kg.get("intermediate", {
+                "base": 20,
+                "per_kg_bodyweight": 0.3
+            })
+        
+        base = level_data.get("base", 20)
+        per_kg = level_data.get("per_kg_bodyweight", 0)
+        
+        # Calcul du poids estimé
+        estimated_weight = base + (per_kg * user.weight)
+        
+        # Limites de sécurité
+        return max(5.0, min(200.0, estimated_weight))
+
+    def _legacy_estimate_weight(self, user: User, exercise: Exercise) -> float:
+        """Ancien système pour compatibilité"""
+        # [Garder l'ancien code ici pour les exercices non migrés]
         """Estime un poids initial pour un nouvel exercice"""
         # Estimations basées sur le poids de corps et le niveau
         bodyweight = user.weight
@@ -596,6 +699,50 @@ class FitnessRecommendationEngine:
         estimated_weight = bodyweight * base_multiplier * exercise_factor
         
         return max(5.0, estimated_weight)  # Minimum 5kg
+    
+    def calculate_exercise_volume(
+        self,
+        weight: Optional[float],
+        reps: int,
+        exercise: Exercise,
+        user: User
+    ) -> float:
+        """Calcule le volume selon le type d'exercice"""
+        
+        # Exercices isométriques (planche, etc.)
+        if (exercise.weight_type == "bodyweight" and
+            exercise.bodyweight_percentage and
+            all(v == 0 for v in exercise.bodyweight_percentage.values())):
+            # Pour isométriques, reps = secondes tenues
+            return reps
+        
+        # Exercices bodyweight normaux
+        if exercise.weight_type == "bodyweight":
+            percentage_data = exercise.bodyweight_percentage or {
+                "beginner": 60,
+                "intermediate": 65,
+                "advanced": 70
+            }
+            percentage = percentage_data.get(user.experience_level, 65)
+            equivalent_weight = user.weight * (percentage / 100)
+            return equivalent_weight * reps
+        
+        # Exercices hybrides
+        elif exercise.weight_type == "hybrid":
+            if weight and weight > 0:
+                return weight * reps
+            else:
+                # Traiter comme bodyweight si pas de poids
+                percentage_data = exercise.bodyweight_percentage or {
+                    "intermediate": 65
+                }
+                percentage = percentage_data.get(user.experience_level, 65)
+                equivalent_weight = user.weight * (percentage / 100)
+                return equivalent_weight * reps
+        
+        # Exercices avec poids externe
+        else:
+            return (weight or 0) * reps
     
     def _calculate_fatigue_adjustment(
         self, 
@@ -790,7 +937,7 @@ class FitnessRecommendationEngine:
             performance_metrics = {
                 'rest_before_seconds': set_data.get('rest_before_seconds'),
                 'actual_performance': set_data['weight'] * (1 + set_data['actual_reps'] / 30),
-                'baseline_performance': history_record.weight * (1 + history_record.reps / 30) if history_record.weight else 1,
+                'baseline_performance': self._calculate_performance_score(history_record),
                 'set_number': set_data['set_number'],
                 'previous_performance': None  # À calculer depuis l'historique récent
             }
@@ -803,7 +950,7 @@ class FitnessRecommendationEngine:
             ).order_by(SetHistory.date_performed.desc()).first()
 
             if previous_set:
-                performance_metrics['previous_performance'] = previous_set.weight * (1 + previous_set.actual_reps / 30)
+                performance_metrics['previous_performance'] = self._calculate_performance_score(previous_set)
 
             self._update_user_coefficients(user_id, exercise_id, performance_metrics)
             
