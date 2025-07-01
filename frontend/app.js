@@ -1930,8 +1930,8 @@ async function startProgramWorkout() {
 
 // Nouvelle fonction pour afficher le panneau de preview
 async function showProgramPreview(program, status) {
-    // Récupérer les détails complets des exercices avec recommandations
-    let exerciseDetailsWithReco = [];
+    // Récupérer les détails des exercices SANS recommandations
+    let exerciseDetails = [];
     
     if (program.exercises && program.exercises.length > 0) {
         const exercises = await apiGet(`/api/exercises?user_id=${currentUser.id}`);
@@ -1941,38 +1941,23 @@ async function showProgramPreview(program, status) {
             const exerciseInfo = exercises.find(e => e.id === ex.exercise_id);
             
             if (exerciseInfo) {
-                try {
-                    // Simuler une recommandation pour le preview (première série)
-                    const reco = await apiPost(`/api/users/${currentUser.id}/exercises/${ex.exercise_id}/recommendation`, {
-                        set_number: 1,
-                        current_fatigue: 3,
-                        previous_effort: 3,
-                        exercise_order: i + 1
-                    });
-                    
-                    exerciseDetailsWithReco.push({
-                        name: exerciseInfo.name,
-                        sets: ex.sets || 3,
-                        reps: ex.reps_max || reco.reps_recommendation || 10,
-                        weight: reco.weight_recommendation || null
-                    });
-                } catch (e) {
-                    // Fallback sans recommandation
-                    exerciseDetailsWithReco.push({
-                        name: exerciseInfo.name,
-                        sets: ex.sets || 3,
-                        reps: ex.reps_max || 10,
-                        weight: null
-                    });
-                }
+                exerciseDetails.push({
+                    name: exerciseInfo.name,
+                    sets: ex.sets || 3,
+                    reps_min: ex.reps_min || exerciseInfo.default_reps_min || 8,
+                    reps_max: ex.reps_max || exerciseInfo.default_reps_max || 12
+                });
             }
         }
     }
     
-    // Créer la liste formatée
-    const exercisesList = exerciseDetailsWithReco
+    // Créer la liste formatée avec une fourchette de reps
+    const exercisesList = exerciseDetails
         .map(ex => {
-            const weightStr = ex.weight ? `@${ex.weight}kg` : '';
+            const repsStr = ex.reps_min === ex.reps_max ? 
+                `${ex.reps_min}` : 
+                `${ex.reps_min}-${ex.reps_max}`;
+            
             return `
                 <li style="
                     display: flex;
@@ -1988,7 +1973,7 @@ async function showProgramPreview(program, status) {
                         color: var(--primary);
                         font-weight: 600;
                         font-size: 0.9rem;
-                    ">${ex.sets}×${ex.reps} ${weightStr}</span>
+                    ">${ex.sets}×${repsStr}</span>
                 </li>`;
         }).join('');
     
@@ -2068,7 +2053,7 @@ async function showProgramPreview(program, status) {
             <!-- Liste des exercices -->
             <div style="margin-bottom: 1.5rem;">
                 <h3 style="margin: 0 0 1rem 0; font-size: 1rem;">
-                    Programme du jour (${exerciseDetailsWithReco.length} exercices)
+                    Programme du jour (${exerciseDetails.length} exercices)
                 </h3>
                 <ul style="list-style: none; padding: 0; margin: 0;">
                     ${exercisesList}
@@ -2079,6 +2064,20 @@ async function showProgramPreview(program, status) {
             <!-- Adaptations ML si présentes -->
             ${adaptationsHtml}
             
+            <!-- Note sur les recommandations -->
+            <div style="
+                background: var(--bg-light);
+                border-radius: 6px;
+                padding: 0.75rem;
+                margin-bottom: 1.5rem;
+                font-size: 0.85rem;
+                color: var(--text-muted);
+                text-align: center;
+            ">
+                <i class="fas fa-info-circle"></i> 
+                Les poids et répétitions exacts seront calculés par l'IA pendant la séance
+            </div>
+            
             <!-- Actions -->
             <div style="display: flex; gap: 1rem;">
                 <button class="btn btn-primary" style="flex: 1;" onclick="confirmStartProgramWorkout()">
@@ -2088,17 +2087,6 @@ async function showProgramPreview(program, status) {
                     Annuler
                 </button>
             </div>
-            
-            <!-- Note -->
-            <p style="
-                text-align: center;
-                margin-top: 1rem;
-                margin-bottom: 0;
-                font-size: 0.85rem;
-                color: var(--text-muted);
-            ">
-                Les poids et répétitions seront ajustés en temps réel pendant la séance
-            </p>
         </div>
     `;
     
