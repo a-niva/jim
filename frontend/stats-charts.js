@@ -349,15 +349,21 @@ async function loadAttendanceCalendar(userId) {
         // Headers des mois
         const monthsRow = document.createElement('div');
         monthsRow.className = 'calendar-months';
-        
+
         // Cellules du calendrier
         const cellsContainer = document.createElement('div');
         cellsContainer.className = 'calendar-cells';
-        
+
+        // Obtenir la date de création du profil
+        const userCreatedDate = new Date(currentUser.created_at);
+
         let currentMonth = -1;
         let monthStart = 0;
-        
+
         for (let d = new Date(startDate); d <= today; d.setDate(d.getDate() + 1)) {
+            // Ne pas afficher les dates avant la création du profil
+            if (d < userCreatedDate) continue;
+            
             const dateStr = d.toISOString().split('T')[0];
             const dayData = data.calendar[dateStr] || { workouts: 0, volume: 0 };
             
