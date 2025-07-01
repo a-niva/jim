@@ -1,4 +1,8 @@
 # ===== backend/ml_recommendations.py - MOTEUR ML RECOMMANDATIONS =====
+from backend.models import User, Exercise, WorkoutSet, SetHistory, Workout, UserAdaptationCoefficients, PerformanceStates
+import math
+import json
+from collections import defaultdict
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, desc
 from typing import Dict, List, Optional, Tuple
@@ -19,7 +23,7 @@ class FitnessRecommendationEngine:
     
     def __init__(self, db: Session):
         self.db = db
-    
+        
     def get_set_recommendations(
         self, 
         user: User, 
@@ -32,79 +36,74 @@ class FitnessRecommendationEngine:
         set_order_global: int = 1,
         available_weights: List[float] = None
     ) -> Dict[str, any]:
+        """
+        Génère des recommandations de poids/reps/repos pour la prochaine série
+        Utilise maintenant la préférence utilisateur pour la stratégie
+        """
         # Assurer que exercise_order et set_order_global ne sont jamais None
         exercise_order = exercise_order or 1
         set_order_global = set_order_global or 1
-        """
-        Génère des recommandations de poids/reps pour la prochaine série
-        
-        Returns:
-        {
-            "weight_recommendation": float,
-            "reps_recommendation": int, 
-            "confidence": float,
-            "reasoning": str,
-            "weight_change": str,  # "increase", "decrease", "same"
-            "reps_change": str     # "increase", "decrease", "same"
-        }
-        """
         
         try:
-            # 1. Récupérer l'historique pertinent
+            # 1. Récupérer l'historique et l'état de performance
             historical_data = self._get_historical_context(
                 user, exercise, set_number, exercise_order
             )
             
-            # 2. Calculer la baseline (performance "normale" attendue)
-            baseline_weight, baseline_reps = self._calculate_baseline(
-                user, exercise, historical_data
+            # 2. Calculer l'état de performance (nouveau modèle)
+            performance_state = self._calculate_performance_state(
+                user, exercise, historical_data, current_fatigue
             )
             
-            # 3. Ajustements basés sur la fatigue actuelle
-            fatigue_adjustment = self._calculate_fatigue_adjustment(
-                current_fatigue, exercise_order, set_order_global
-            )
+            # 3. Récupérer ou créer les coefficients personnalisés
+            coefficients = self._get_or_create_coefficients(user, exercise)
             
-            # 4. Ajustements basés sur l'effort de la série précédente
-            effort_adjustment = self._calculate_effort_adjustment(
-                current_effort, set_number
-            )
-            
-            # 5. Ajustements basés sur le repos précédent
-            rest_adjustment = self._calculate_rest_adjustment(
-                last_rest_duration, exercise.base_rest_time_seconds
-            )
-            
-            # 6. Appliquer les ajustements
-            recommended_weight = baseline_weight * fatigue_adjustment * effort_adjustment * rest_adjustment
-            recommended_reps = int(baseline_reps * (2 - fatigue_adjustment) * (2 - effort_adjustment))
-            
-            # 7. Valider avec les poids disponibles
-            if available_weights:
-                recommended_weight = self._find_closest_available_weight(
-                    recommended_weight, available_weights
+            # 4. Appliquer la stratégie selon la préférence utilisateur
+            if user.prefer_weight_changes_between_sets:
+                recommendations = self._apply_variable_weight_strategy(
+                    performance_state, exercise, set_number, 
+                    current_fatigue, current_effort, coefficients
+                )
+            else:
+                recommendations = self._apply_fixed_weight_strategy(
+                    performance_state, exercise, set_number, 
+                    current_fatigue, current_effort, coefficients, historical_data
                 )
             
-            # 8. Calculer la confiance et le raisonnement
+            # 5. Calculer le temps de repos optimal
+            rest_recommendation = self._calculate_optimal_rest(
+                exercise, current_fatigue, current_effort, 
+                set_number, coefficients, last_rest_duration
+            )
+            
+            # 6. Valider avec les poids disponibles
+            if available_weights and recommendations['weight']:
+                recommendations['weight'] = self._find_closest_available_weight(
+                    recommendations['weight'], available_weights
+                )
+            
+            # 7. Calculer la confiance
             confidence = self._calculate_confidence(historical_data, current_fatigue, current_effort)
+            
+            # 8. Générer le raisonnement
             reasoning = self._generate_reasoning(
-                fatigue_adjustment, effort_adjustment, rest_adjustment, 
+                performance_state['fatigue_adjustment'], 
+                current_effort, rest_recommendation['adjustment'],
                 current_fatigue, current_effort, set_number
             )
             
-            # 9. Déterminer les changements par rapport à la baseline
-            weight_change = self._determine_change(recommended_weight, baseline_weight, 0.05)
-            reps_change = self._determine_change(recommended_reps, baseline_reps, 0.1)
-            
             return {
-                "weight_recommendation": round(recommended_weight, 1),
-                "reps_recommendation": max(1, recommended_reps),
+                "weight_recommendation": round(recommendations['weight'], 1) if recommendations['weight'] else None,
+                "reps_recommendation": max(1, recommendations['reps']),
+                "rest_seconds_recommendation": rest_recommendation['seconds'],
+                "rest_range": rest_recommendation['range'],
                 "confidence": confidence,
                 "reasoning": reasoning,
-                "weight_change": weight_change,
-                "reps_change": reps_change,
-                "baseline_weight": baseline_weight,
-                "baseline_reps": baseline_reps
+                "weight_change": recommendations.get('weight_change', 'same'),
+                "reps_change": recommendations.get('reps_change', 'same'),
+                "baseline_weight": performance_state['baseline_weight'],
+                "baseline_reps": performance_state['baseline_reps'],
+                "adaptation_strategy": "variable_weight" if user.prefer_weight_changes_between_sets else "fixed_weight"
             }
             
         except Exception as e:
@@ -113,14 +112,17 @@ class FitnessRecommendationEngine:
             return {
                 "weight_recommendation": None,
                 "reps_recommendation": exercise.default_reps_min,
+                "rest_seconds_recommendation": exercise.base_rest_time_seconds,
+                "rest_range": {"min": 30, "max": 120},
                 "confidence": 0.0,
                 "reasoning": "Données insuffisantes pour une recommandation",
                 "weight_change": "same",
                 "reps_change": "same",
                 "baseline_weight": None,
-                "baseline_reps": exercise.default_reps_min
+                "baseline_reps": exercise.default_reps_min,
+                "adaptation_strategy": "variable_weight" if user.prefer_weight_changes_between_sets else "fixed_weight"
             }
-    
+
     def _get_historical_context(
         self, 
         user: User, 
@@ -163,48 +165,305 @@ class FitnessRecommendationEngine:
             } for s in similar_sets
         ]
     
-    def _calculate_baseline(
+    def _calculate_performance_state(
         self, 
         user: User, 
         exercise: Exercise, 
-        historical_data: List[Dict]
-    ) -> Tuple[float, int]:
-        """Calcule la performance baseline basée sur l'historique récent"""
+        historical_data: List[Dict],
+        current_fatigue: int
+    ) -> Dict[str, any]:
+        """Calcule l'état de performance avec le modèle Fitness-Fatigue simplifié"""
         
+        # Récupérer ou créer l'état de performance
+        perf_state = self.db.query(PerformanceStates).filter(
+            PerformanceStates.user_id == user.id,
+            PerformanceStates.exercise_id == exercise.id
+        ).first()
+        
+        if not perf_state:
+            perf_state = PerformanceStates(
+                user_id=user.id,
+                exercise_id=exercise.id,
+                base_potential=0.0,
+                acute_fatigue=0.0
+            )
+            self.db.add(perf_state)
+            self.db.commit()
+        
+        # Si pas d'historique, utiliser les valeurs par défaut
         if not historical_data:
-            # Pas d'historique : utiliser les valeurs par défaut de l'exercice
-            return self._estimate_initial_weight(user, exercise), exercise.default_reps_min
-        
-        # Filtrer les séries réussies des 14 derniers jours pour plus de pertinence
-        recent_cutoff = datetime.utcnow() - timedelta(days=14)
-        recent_successful = [
-            h for h in historical_data 
-            if h["success"] and h["date"] > recent_cutoff
-        ]
-        
-        if not recent_successful:
-            # Utiliser tout l'historique si pas assez de données récentes
-            recent_successful = [h for h in historical_data if h["success"]]
-        
-        if recent_successful:
-            # Moyenne pondérée (plus récent = plus important)
-            weights = []
-            reps = []
+            baseline_weight = self._estimate_initial_weight(user, exercise)
+            baseline_reps = exercise.default_reps_min
+            perf_state.base_potential = baseline_weight
+        else:
+            # Calculer le potentiel de base (moyenne mobile exponentielle)
+            recent_performances = []
+            for h in historical_data[:5]:  # 5 dernières performances
+                if h["success"]:
+                    # Calculer un score de performance (poids × reps)
+                    perf_score = h["weight"] * (1 + h["reps"] / 30)  # Formule d'Epley
+                    recent_performances.append(perf_score)
             
-            for i, h in enumerate(recent_successful):
-                # Pondération décroissante pour les données plus anciennes
-                weight_factor = 1.0 / (1 + i * 0.1)
-                weights.extend([h["weight"]] * int(weight_factor * 10))
-                reps.extend([h["reps"]] * int(weight_factor * 10))
-            
-            baseline_weight = statistics.median(weights)
-            baseline_reps = int(statistics.median(reps))
-            
-            return baseline_weight, baseline_reps
+            if recent_performances:
+                # Mise à jour avec moyenne mobile (α = 0.1)
+                new_performance = statistics.mean(recent_performances)
+                if perf_state.base_potential > 0:
+                    perf_state.base_potential = 0.9 * perf_state.base_potential + 0.1 * new_performance
+                else:
+                    perf_state.base_potential = new_performance
+                
+                # Extraire poids et reps de base depuis le potentiel
+                baseline_weight = perf_state.base_potential / 1.3  # Approximation inverse d'Epley
+                baseline_reps = int(statistics.median([h["reps"] for h in historical_data[:5] if h["success"]]))
+            else:
+                baseline_weight = self._estimate_initial_weight(user, exercise)
+                baseline_reps = exercise.default_reps_min
         
-        # Fallback
-        return self._estimate_initial_weight(user, exercise), exercise.default_reps_min
-    
+        # Calculer la fatigue aiguë
+        now = datetime.utcnow()
+        if perf_state.last_session_timestamp:
+            hours_since = (now - perf_state.last_session_timestamp).total_seconds() / 3600
+            # Décroissance exponentielle de la fatigue
+            perf_state.acute_fatigue *= math.exp(-hours_since / 24)  # Constante de temps = 24h
+        
+        # Ajouter la fatigue de la séance actuelle
+        fatigue_factor = (current_fatigue - 1) / 4  # Normaliser 1-5 vers 0-1
+        perf_state.acute_fatigue = min(1.0, perf_state.acute_fatigue + fatigue_factor * 0.2)
+        
+        # Sauvegarder l'état
+        perf_state.last_session_timestamp = now
+        self.db.commit()
+        
+        # Calculer l'ajustement de fatigue
+        fatigue_adjustment = 1.0 - perf_state.acute_fatigue * 0.3  # Max 30% de réduction
+        
+        return {
+            "baseline_weight": baseline_weight,
+            "baseline_reps": baseline_reps,
+            "base_potential": perf_state.base_potential,
+            "acute_fatigue": perf_state.acute_fatigue,
+            "fatigue_adjustment": fatigue_adjustment
+        }
+
+    def _apply_variable_weight_strategy(
+        self,
+        performance_state: Dict,
+        exercise: Exercise,
+        set_number: int,
+        current_fatigue: int,
+        current_effort: int,
+        coefficients: UserAdaptationCoefficients
+    ) -> Dict[str, any]:
+        """Stratégie avec poids variable : ajuste poids, reps et repos"""
+        
+        baseline_weight = performance_state['baseline_weight']
+        baseline_reps = performance_state['baseline_reps']
+        fatigue_adjustment = performance_state['fatigue_adjustment']
+        
+        # Ajustements basés sur la fatigue et l'effort
+        effort_factor = {
+            1: 1.1,   # Très facile
+            2: 1.05,  # Facile
+            3: 1.0,   # Modéré
+            4: 0.95,  # Difficile
+            5: 0.85   # Échec
+        }.get(current_effort, 1.0)
+        
+        # Ajustement progressif selon le numéro de série
+        set_factor = 1.0 - (set_number - 1) * 0.05 * coefficients.fatigue_sensitivity
+        
+        # Calculer les recommandations
+        recommended_weight = baseline_weight * fatigue_adjustment * effort_factor * set_factor
+        
+        # Maintenir les reps proches de la cible
+        reps_adjustment = 1.0 + (1.0 - fatigue_adjustment * effort_factor) * 0.2
+        recommended_reps = int(baseline_reps * reps_adjustment)
+        
+        # Déterminer les changements
+        weight_change = self._determine_change(recommended_weight, baseline_weight, 0.05)
+        reps_change = self._determine_change(recommended_reps, baseline_reps, 0.1)
+        
+        return {
+            'weight': recommended_weight,
+            'reps': recommended_reps,
+            'weight_change': weight_change,
+            'reps_change': reps_change
+        }
+
+    def _apply_fixed_weight_strategy(
+        self,
+        performance_state: Dict,
+        exercise: Exercise,
+        set_number: int,
+        current_fatigue: int,
+        current_effort: int,
+        coefficients: UserAdaptationCoefficients,
+        historical_data: List[Dict]
+    ) -> Dict[str, any]:
+        """Stratégie avec poids fixe : ajuste uniquement reps et repos"""
+        
+        baseline_weight = performance_state['baseline_weight']
+        baseline_reps = performance_state['baseline_reps']
+        
+        # Le poids reste constant sur toutes les séries
+        recommended_weight = baseline_weight
+        
+        # Calculer les RIR (Reps In Reserve) pour maintenir la qualité
+        total_fatigue = performance_state['acute_fatigue'] + (current_fatigue - 3) * 0.1
+        
+        # Plus de fatigue = plus de RIR pour maintenir la qualité
+        rir_target = min(3, int(total_fatigue * 3))  # 0-3 RIR
+        
+        # Ajuster les reps en fonction
+        if set_number == 1:
+            # Première série : viser proche du max avec RIR
+            recommended_reps = baseline_reps - rir_target
+        else:
+            # Séries suivantes : ajuster selon l'effort précédent
+            if current_effort >= 4:  # Série précédente difficile
+                recommended_reps = int(baseline_reps * 0.85)
+            else:
+                recommended_reps = baseline_reps - rir_target
+        
+        # S'assurer que les reps restent raisonnables
+        recommended_reps = max(exercise.default_reps_min - 2, 
+                            min(exercise.default_reps_max + 2, recommended_reps))
+        
+        return {
+            'weight': recommended_weight,
+            'reps': recommended_reps,
+            'weight_change': 'same',
+            'reps_change': self._determine_change(recommended_reps, baseline_reps, 0.1)
+        }
+
+    def _calculate_optimal_rest(
+        self,
+        exercise: Exercise,
+        current_fatigue: int,
+        current_effort: int,
+        set_number: int,
+        coefficients: UserAdaptationCoefficients,
+        last_rest_duration: Optional[int] = None
+    ) -> Dict[str, any]:
+        """Calcule le temps de repos optimal avec modèle de récupération exponentielle"""
+        
+        base_rest = exercise.base_rest_time_seconds or 60
+        
+        # Facteur d'intensité de l'exercice
+        intensity_factor = exercise.intensity_factor or 1.0
+        
+        # Ajustement selon la fatigue
+        fatigue_multiplier = {
+            1: 0.8,
+            2: 0.9,
+            3: 1.0,
+            4: 1.2,
+            5: 1.4
+        }[current_fatigue]
+        
+        # Ajustement selon l'effort
+        effort_multiplier = {
+            1: 0.8,
+            2: 0.9,
+            3: 1.0,
+            4: 1.3,
+            5: 1.5
+        }[current_effort]
+        
+        # Ajustement selon le numéro de série
+        set_multiplier = 1.0 + (set_number - 1) * 0.1
+        
+        # Appliquer le taux de récupération personnalisé
+        recovery_factor = 1.0 / coefficients.recovery_rate
+        
+        # Calculer le repos optimal
+        optimal_rest = base_rest * intensity_factor * fatigue_multiplier * effort_multiplier * set_multiplier * recovery_factor
+        
+        # Limites raisonnables
+        min_rest = 30
+        max_rest = 300
+        optimal_rest = max(min_rest, min(max_rest, int(optimal_rest)))
+        
+        # Si l'utilisateur a des poids fixes, potentiellement plus de repos
+        if not coefficients.user.prefer_weight_changes_between_sets and current_effort >= 4:
+            optimal_rest = int(optimal_rest * 1.2)
+        
+        return {
+            'seconds': optimal_rest,
+            'range': {
+                'min': max(min_rest, int(optimal_rest * 0.8)),
+                'max': min(max_rest, int(optimal_rest * 1.2))
+            },
+            'adjustment': optimal_rest / base_rest
+        }
+
+    def _get_or_create_coefficients(self, user: User, exercise: Exercise) -> UserAdaptationCoefficients:
+        """Récupère ou crée les coefficients personnalisés"""
+        
+        coefficients = self.db.query(UserAdaptationCoefficients).filter(
+            UserAdaptationCoefficients.user_id == user.id,
+            UserAdaptationCoefficients.exercise_id == exercise.id
+        ).first()
+        
+        if not coefficients:
+            coefficients = UserAdaptationCoefficients(
+                user_id=user.id,
+                exercise_id=exercise.id,
+                recovery_rate=1.0,
+                fatigue_sensitivity=1.0,
+                volume_response=1.0,
+                typical_progression_increment=2.5
+            )
+            self.db.add(coefficients)
+            self.db.commit()
+        
+        # Ajouter la relation user pour accéder à prefer_weight_changes_between_sets
+        coefficients.user = user
+        
+        return coefficients
+
+    def _update_user_coefficients(
+        self,
+        user_id: int,
+        exercise_id: int,
+        performance_data: Dict
+    ) -> None:
+        """Met à jour les coefficients basés sur la performance observée"""
+        
+        coefficients = self.db.query(UserAdaptationCoefficients).filter(
+            UserAdaptationCoefficients.user_id == user_id,
+            UserAdaptationCoefficients.exercise_id == exercise_id
+        ).first()
+        
+        if not coefficients:
+            return
+        
+        # Analyser la récupération
+        if performance_data.get('rest_before_seconds') and performance_data.get('previous_performance'):
+            expected_recovery = 1 - math.exp(-performance_data['rest_before_seconds'] / 60)
+            actual_recovery = performance_data['actual_performance'] / performance_data['previous_performance']
+            
+            if actual_recovery > expected_recovery * 1.1:
+                # Récupère mieux que prévu
+                coefficients.recovery_rate = min(1.5, coefficients.recovery_rate * 1.02)
+            elif actual_recovery < expected_recovery * 0.9:
+                # Récupère moins bien que prévu
+                coefficients.recovery_rate = max(0.5, coefficients.recovery_rate * 0.98)
+        
+        # Analyser la sensibilité à la fatigue
+        if performance_data.get('set_number') > 3:
+            fatigue_impact = 1.0 - performance_data['actual_performance'] / performance_data['baseline_performance']
+            expected_impact = (performance_data['set_number'] - 1) * 0.05
+            
+            if fatigue_impact < expected_impact * 0.8:
+                # Résiste mieux à la fatigue
+                coefficients.fatigue_sensitivity = max(0.5, coefficients.fatigue_sensitivity * 0.98)
+            elif fatigue_impact > expected_impact * 1.2:
+                # Plus sensible à la fatigue
+                coefficients.fatigue_sensitivity = min(1.5, coefficients.fatigue_sensitivity * 1.02)
+        
+        self.db.commit()
+
     def _estimate_initial_weight(self, user: User, exercise: Exercise) -> float:
         """Estime un poids initial pour un nouvel exercice"""
         # Estimations basées sur le poids de corps et le niveau
@@ -347,7 +606,7 @@ class FitnessRecommendationEngine:
             base_confidence += 0.1
         
         return min(1.0, base_confidence)
-    
+        
     def _generate_reasoning(
         self, 
         fatigue_adj: float, 
@@ -357,7 +616,7 @@ class FitnessRecommendationEngine:
         effort: int, 
         set_number: int
     ) -> str:
-        """Génère une explication textuelle de la recommandation"""
+        """Génère une explication textuelle de la recommandation incluant le repos"""
         
         reasons = []
         
@@ -373,9 +632,9 @@ class FitnessRecommendationEngine:
                 reasons.append(f"Série précédente facile (effort {effort})")
         
         if rest_adj < 0.98:
-            reasons.append("Repos insuffisant")
-        elif rest_adj > 1.02:
-            reasons.append("Repos prolongé")
+            reasons.append("Repos recommandé plus court")
+        elif rest_adj > 1.2:
+            reasons.append("Repos prolongé recommandé")
         
         if not reasons:
             return "Conditions normales"
@@ -431,6 +690,26 @@ class FitnessRecommendationEngine:
             
             self.db.add(history_record)
             self.db.commit()
+            # Mettre à jour les coefficients d'adaptation
+            performance_metrics = {
+                'rest_before_seconds': set_data.get('rest_before_seconds'),
+                'actual_performance': set_data['weight'] * (1 + set_data['actual_reps'] / 30),
+                'baseline_performance': history_record.weight * (1 + history_record.reps / 30) if history_record.weight else 1,
+                'set_number': set_data['set_number'],
+                'previous_performance': None  # À calculer depuis l'historique récent
+            }
+
+            # Récupérer la performance précédente si elle existe
+            previous_set = self.db.query(SetHistory).filter(
+                SetHistory.user_id == user_id,
+                SetHistory.exercise_id == exercise_id,
+                SetHistory.date_performed < history_record.date_performed
+            ).order_by(SetHistory.date_performed.desc()).first()
+
+            if previous_set:
+                performance_metrics['previous_performance'] = previous_set.weight * (1 + previous_set.actual_reps / 30)
+
+            self._update_user_coefficients(user_id, exercise_id, performance_metrics)
             
             logger.info(f"Performance enregistrée: user {user_id}, exercise {exercise_id}")
             
