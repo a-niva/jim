@@ -558,12 +558,6 @@ textarea:focus {
     gap: 0.5rem;
 }
 
-.muscle-indicator {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
 .recent-workouts {
     display: grid;
     gap: 1rem;
