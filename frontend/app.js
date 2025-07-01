@@ -1930,40 +1930,121 @@ async function startProgramWorkout() {
 
 // Nouvelle fonction pour afficher le panneau de preview
 async function showProgramPreview(program, status) {
-    // Récupérer les détails des exercices si nécessaire
-    let exerciseDetails = [];
+    // Récupérer les détails complets des exercices avec recommandations
+    let exerciseDetailsWithReco = [];
+    
     if (program.exercises && program.exercises.length > 0) {
-        // Si on a juste les IDs, récupérer les noms
-        for (let ex of program.exercises.slice(0, 5)) {
-            if (ex.exercise_name) {
-                exerciseDetails.push(ex.exercise_name);
-            } else if (ex.exercise_id) {
-                // Fallback : utiliser l'ID si pas de nom
+        const exercises = await apiGet(`/api/exercises?user_id=${currentUser.id}`);
+        
+        for (let i = 0; i < Math.min(program.exercises.length, 7); i++) {
+            const ex = program.exercises[i];
+            const exerciseInfo = exercises.find(e => e.id === ex.exercise_id);
+            
+            if (exerciseInfo) {
                 try {
-                    const exercise = await apiGet(`/api/exercises/${ex.exercise_id}`);
-                    exerciseDetails.push(exercise.name || `Exercice #${ex.exercise_id}`);
+                    // Simuler une recommandation pour le preview (première série)
+                    const reco = await apiPost(`/api/users/${currentUser.id}/exercises/${ex.exercise_id}/recommendation`, {
+                        set_number: 1,
+                        current_fatigue: 3,
+                        previous_effort: 3,
+                        exercise_order: i + 1
+                    });
+                    
+                    exerciseDetailsWithReco.push({
+                        name: exerciseInfo.name,
+                        sets: ex.sets || 3,
+                        reps: ex.reps_max || reco.reps_recommendation || 10,
+                        weight: reco.weight_recommendation || null
+                    });
                 } catch (e) {
-                    exerciseDetails.push(`Exercice #${ex.exercise_id}`);
+                    // Fallback sans recommandation
+                    exerciseDetailsWithReco.push({
+                        name: exerciseInfo.name,
+                        sets: ex.sets || 3,
+                        reps: ex.reps_max || 10,
+                        weight: null
+                    });
                 }
             }
         }
     }
     
-    const exercisesList = exerciseDetails
-        .map(name => `<li style="margin-bottom: 0.25rem;">${name}</li>`)
-        .join('');
+    // Créer la liste formatée
+    const exercisesList = exerciseDetailsWithReco
+        .map(ex => {
+            const weightStr = ex.weight ? `@${ex.weight}kg` : '';
+            return `
+                <li style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 0.75rem;
+                    background: var(--bg-secondary);
+                    border-radius: 6px;
+                    margin-bottom: 0.5rem;
+                ">
+                    <span style="font-weight: 500;">${ex.name}</span>
+                    <span style="
+                        color: var(--primary);
+                        font-weight: 600;
+                        font-size: 0.9rem;
+                    ">${ex.sets}×${ex.reps} ${weightStr}</span>
+                </li>`;
+        }).join('');
     
-    const hasMore = program.exercises.length > 5 ? 
-        `<li style="color: var(--text-muted);">+${program.exercises.length - 5} autres exercices</li>` : '';
+    const hasMore = program.exercises.length > 7 ? 
+        `<li style="
+            text-align: center;
+            color: var(--text-muted);
+            padding: 0.5rem;
+            font-style: italic;
+        ">+${program.exercises.length - 7} autres exercices</li>` : '';
     
-    // Analyser les changements depuis la dernière séance
-    let changes = [];
+    // Analyser les changements ML
+    let adaptationsHtml = '';
     if (status && status.next_session_preview.ml_adaptations !== 'Standard') {
-        changes.push(`<i class="fas fa-brain"></i> ${status.next_session_preview.ml_adaptations}`);
+        adaptationsHtml = `
+            <div style="
+                background: var(--info-light);
+                border: 1px solid var(--info);
+                border-radius: 8px;
+                padding: 1rem;
+                margin-bottom: 1.5rem;
+            ">
+                <h4 style="margin: 0 0 0.5rem 0; font-size: 0.9rem; color: var(--info-dark);">
+                    <i class="fas fa-brain"></i> Adaptations intelligentes
+                </h4>
+                <div style="font-size: 0.85rem; color: var(--info-dark);">
+                    ${status.next_session_preview.ml_adaptations}
+                </div>
+            </div>
+        `;
     }
     
+    // Toggle pour la préférence de poids
+    const weightToggleHtml = `
+        <div style="
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        ">
+            <span style="font-size: 0.9rem;">
+                <i class="fas fa-weight"></i> Variation des poids entre séries
+            </span>
+            <label class="toggle-switch" style="margin: 0;">
+                <input type="checkbox" id="tempWeightPreference"
+                       ${currentUser.prefer_weight_changes_between_sets ? 'checked' : ''}>
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+    `;
+    
     const modalContent = `
-        <div style="max-width: 500px; margin: 0 auto;">
+        <div style="max-width: 600px; margin: 0 auto;">
             <!-- Header avec progression -->
             <div style="
                 background: var(--primary-light);
@@ -1976,94 +2057,39 @@ async function showProgramPreview(program, status) {
                     ${status ? status.next_session_preview.muscles : 'Séance Programme'}
                 </h2>
                 <p style="margin: 0; color: var(--primary-dark); opacity: 0.8;">
-                    Semaine ${status ? status.current_week : '1'} • Séance ${status ? status.sessions_this_week + 1 : '1'}
+                    Semaine ${status ? status.current_week : '1'} • 
+                    ${status ? status.next_session_preview.estimated_duration : program.session_duration_minutes}min
                 </p>
             </div>
             
-            <!-- Résumé de la séance -->
-            <div style="
-                display: grid;
-                grid-template-columns: repeat(3, 1fr);
-                gap: 1rem;
-                margin-bottom: 1.5rem;
-                text-align: center;
-            ">
-                <div style="
-                    background: var(--bg-secondary);
-                    padding: 1rem;
-                    border-radius: 8px;
-                ">
-                    <i class="fas fa-dumbbell" style="font-size: 1.5rem; color: var(--primary); margin-bottom: 0.5rem; display: block;"></i>
-                    <div style="font-size: 1.25rem; font-weight: 600;">${program.exercises.length}</div>
-                    <div style="font-size: 0.85rem; color: var(--text-muted);">exercices</div>
-                </div>
-                <div style="
-                    background: var(--bg-secondary);
-                    padding: 1rem;
-                    border-radius: 8px;
-                ">
-                    <i class="fas fa-clock" style="font-size: 1.5rem; color: var(--primary); margin-bottom: 0.5rem; display: block;"></i>
-                    <div style="font-size: 1.25rem; font-weight: 600;">~${status ? status.next_session_preview.estimated_duration : '45'}</div>
-                    <div style="font-size: 0.85rem; color: var(--text-muted);">minutes</div>
-                </div>
-                <div style="
-                    background: var(--bg-secondary);
-                    padding: 1rem;
-                    border-radius: 8px;
-                ">
-                    <i class="fas fa-fire" style="font-size: 1.5rem; color: var(--warning); margin-bottom: 0.5rem; display: block;"></i>
-                    <div style="font-size: 1.25rem; font-weight: 600;">
-                        ${status ? status.next_session_preview.exercises_count * 3 : '~12'}
-                    </div>
-                    <div style="font-size: 0.85rem; color: var(--text-muted);">séries totales</div>
-                </div>
-            </div>
+            <!-- Toggle préférence de poids -->
+            ${weightToggleHtml}
             
             <!-- Liste des exercices -->
             <div style="margin-bottom: 1.5rem;">
-                <h4 style="margin: 0 0 0.75rem 0; font-size: 1rem;">Programme du jour :</h4>
-                <ul style="
-                    list-style: none;
-                    padding: 0;
-                    margin: 0;
-                    background: var(--bg-secondary);
-                    border-radius: 8px;
-                    padding: 1rem;
-                ">
+                <h3 style="margin: 0 0 1rem 0; font-size: 1rem;">
+                    Programme du jour (${exerciseDetailsWithReco.length} exercices)
+                </h3>
+                <ul style="list-style: none; padding: 0; margin: 0;">
                     ${exercisesList}
                     ${hasMore}
                 </ul>
             </div>
             
-            ${changes.length > 0 ? `
-                <!-- Adaptations ML -->
-                <div style="
-                    background: var(--info-light);
-                    border: 1px solid var(--info);
-                    border-radius: 8px;
-                    padding: 1rem;
-                    margin-bottom: 1.5rem;
-                ">
-                    <h4 style="margin: 0 0 0.5rem 0; font-size: 0.9rem; color: var(--info-dark);">
-                        <i class="fas fa-info-circle"></i> Adaptations intelligentes
-                    </h4>
-                    <div style="font-size: 0.85rem; color: var(--info-dark);">
-                        ${changes.join('<br>')}
-                    </div>
-                </div>
-            ` : ''}
+            <!-- Adaptations ML si présentes -->
+            ${adaptationsHtml}
             
             <!-- Actions -->
             <div style="display: flex; gap: 1rem;">
                 <button class="btn btn-primary" style="flex: 1;" onclick="confirmStartProgramWorkout()">
-                    <i class="fas fa-play"></i> C'est parti !
+                    <i class="fas fa-play"></i> Commencer
                 </button>
                 <button class="btn btn-secondary" onclick="closeModal()">
                     Annuler
                 </button>
             </div>
             
-            <!-- Option personnalisation -->
+            <!-- Note -->
             <p style="
                 text-align: center;
                 margin-top: 1rem;
@@ -2071,12 +2097,31 @@ async function showProgramPreview(program, status) {
                 font-size: 0.85rem;
                 color: var(--text-muted);
             ">
-                Vous pourrez ajuster les exercices pendant la séance
+                Les poids et répétitions seront ajustés en temps réel pendant la séance
             </p>
         </div>
     `;
     
     showModal('Aperçu de votre séance', modalContent);
+    
+    // Ajouter l'event listener pour le toggle temporaire
+    setTimeout(() => {
+        const tempToggle = document.getElementById('tempWeightPreference');
+        if (tempToggle) {
+            tempToggle.addEventListener('change', async (e) => {
+                try {
+                    await apiPut(`/api/users/${currentUser.id}/preferences`, {
+                        prefer_weight_changes_between_sets: e.target.checked
+                    });
+                    currentUser.prefer_weight_changes_between_sets = e.target.checked;
+                    showToast('Préférence mise à jour', 'success');
+                } catch (error) {
+                    e.target.checked = !e.target.checked;
+                    showToast('Erreur lors de la mise à jour', 'error');
+                }
+            });
+        }
+    }, 100);
 }
 
 // Nouvelle fonction pour confirmer et démarrer vraiment la séance
@@ -4776,3 +4821,4 @@ window.generateMuscleDistribution = generateMuscleDistribution;
 window.loadRecentWorkouts = loadRecentWorkouts;
 window.enrichWorkoutsWithExercises = enrichWorkoutsWithExercises;
 window.toggleMuscleTooltip = toggleMuscleTooltip;
+window.confirmStartProgramWorkout = confirmStartProgramWorkout;
