@@ -723,8 +723,11 @@ textarea:focus {
 }
 
 /* Barre de distribution musculaire */
+/* S'assurer que muscle-distribution permet aussi l'overflow */
 .muscle-distribution {
     margin-top: 0.75rem;
+    position: relative;
+    overflow: visible; /* Important */
 }
 
 .distribution-label {
@@ -737,7 +740,7 @@ textarea:focus {
     height: 12px;
     background: var(--bg-light);
     border-radius: 6px;
-    overflow: hidden;
+    overflow: visible; /* Important : changer de hidden à visible */
     display: flex;
     position: relative;
 }
@@ -773,7 +776,7 @@ textarea:focus {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    color: var(--bg-dark);
+    color: #1a1a2e;
     padding: 0.75rem 1rem;
     border-radius: 12px;
     font-size: 0.875rem;
@@ -784,7 +787,9 @@ textarea:focus {
     transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     text-align: center;
     font-weight: 500;
+    z-index: 1000;
 }
+
 
 .muscle-segment:hover .muscle-tooltip,
 .muscle-segment.active .muscle-tooltip {
@@ -816,11 +821,9 @@ textarea:focus {
 /* Nom du muscle */
 .muscle-tooltip .muscle-name {
     display: block;
-    text-transform: capitalize;
-    color: #1a1a2e;
     font-weight: 600;
+    margin-bottom: 0.125rem;
 }
-
 /* Pourcentage */
 .muscle-tooltip .muscle-percentage {
     color: #4a5568;
@@ -830,6 +833,9 @@ textarea:focus {
 .muscle-segment:hover::after {
     opacity: 1;
 }
+
+
+
 
 /* ===== SÉANCE DÉTAILLÉE ===== */
 .workout-header {
