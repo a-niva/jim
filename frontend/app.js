@@ -1908,7 +1908,7 @@ function updateSetNavigationButtons() {
 
 async function updateSetRecommendations() {
     if (!currentUser || !currentWorkout || !currentExercise) return;
-    
+
     try {
         // Obtenir les recommandations ML
         const recommendations = await apiPost(`/api/workouts/${currentWorkout.id}/recommendations`, {
@@ -1919,33 +1919,38 @@ async function updateSetRecommendations() {
             exercise_order: currentWorkoutSession.exerciseOrder,
             set_order_global: currentWorkoutSession.globalSetCount + 1
         });
-        
+
         // Obtenir les poids disponibles
         const weightsData = await apiGet(`/api/users/${currentUser.id}/available-weights`);
         const availableWeights = weightsData.available_weights.sort((a, b) => a - b);
-        
+
         // Stocker les poids disponibles pour navigation
         sessionStorage.setItem('availableWeights', JSON.stringify(availableWeights));
-        
+
         // Gérer le cas où pas de recommandation (première série)
         if (!recommendations.weight_recommendation) {
             recommendations.weight_recommendation = 20; // Poids par défaut sécurisé
             recommendations.reasoning = 'Première série - commencez prudemment';
         }
-        
+
+        // Ajouter l'info de repos dans le reasoning existant
+        if (recommendations.rest_seconds_recommendation) {
+            recommendations.reasoning += ` Repos suggéré : ${recommendations.rest_seconds_recommendation}s.`;
+        }
+
         // Trouver le poids disponible le plus proche
         const closestWeight = findClosestWeight(recommendations.weight_recommendation, availableWeights);
-        
+
         // Mettre à jour les hints IA
-        document.getElementById('weightHint').textContent = 
+        document.getElementById('weightHint').textContent =
             `IA: ${recommendations.weight_recommendation}kg`;
-        document.getElementById('repsHint').textContent = 
+        document.getElementById('repsHint').textContent =
             `IA: ${recommendations.reps_recommendation || 10}`;
-        
+
         // Pré-remplir avec les valeurs recommandées (ou les plus proches disponibles)
         document.getElementById('setWeight').textContent = closestWeight || recommendations.weight_recommendation;
         document.getElementById('setReps').textContent = recommendations.reps_recommendation || 10;
-        
+
         // Si les hints sont différents des valeurs affichées, les mettre en évidence
         if (Math.abs(closestWeight - recommendations.weight_recommendation) > 0.1) {
             document.getElementById('weightHint').style.color = 'var(--warning)';
@@ -1953,21 +1958,26 @@ async function updateSetRecommendations() {
             document.getElementById('weightHint').style.color = 'var(--primary)';
         }
 
-        // Ajouter l'affichage du temps de repos
-        if (recommendations.rest_seconds_recommendation) {
-            document.getElementById('restHint').textContent = 
-                `Repos: ${recommendations.rest_seconds_recommendation}s`;
+        // Afficher le temps de repos si l'élément existe
+        const restHintEl = document.getElementById('restHint');
+        if (restHintEl && recommendations.rest_seconds_recommendation) {
+            restHintEl.textContent = `Repos: ${recommendations.rest_seconds_recommendation}s`;
         }
 
-        // Indication visuelle de la stratégie
-        if (recommendations.adaptation_strategy === 'fixed_weight') {
-            document.getElementById('setWeight').classList.add('fixed-weight');
-            document.getElementById('weightHint').style.display = 'none';
-        } else {
-            document.getElementById('setWeight').classList.remove('fixed-weight');
-            document.getElementById('weightHint').style.display = 'block';
-        }
+        // Gérer l'affichage selon la stratégie d'adaptation
+        const weightHintEl = document.getElementById('weightHint');
+        const setWeightEl = document.getElementById('setWeight');
         
+        if (recommendations.adaptation_strategy === 'fixed_weight') {
+            // Mode poids fixe : masquer les hints de poids et désactiver visuellement
+            if (weightHintEl) weightHintEl.style.display = 'none';
+            if (setWeightEl) setWeightEl.classList.add('fixed-weight');
+        } else {
+            // Mode poids variable : afficher normalement
+            if (weightHintEl) weightHintEl.style.display = 'block';
+            if (setWeightEl) setWeightEl.classList.remove('fixed-weight');
+        }
+
         // Mettre à jour la confiance
         if (recommendations.confidence) {
             const confidenceEl = document.getElementById('recConfidence');
@@ -1975,7 +1985,7 @@ async function updateSetRecommendations() {
                 confidenceEl.textContent = Math.round(recommendations.confidence * 100);
             }
         }
-        
+
     } catch (error) {
         console.error('Erreur recommandations ML:', error);
         // Valeurs par défaut en cas d'erreur
