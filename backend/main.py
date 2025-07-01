@@ -14,8 +14,8 @@ import os
 import logging
 from backend.ml_recommendations import FitnessRecommendationEngine
 from backend.database import engine, get_db, SessionLocal
-from backend.models import Base, User, Exercise, Program, Workout, WorkoutSet, SetHistory, UserCommitment, AdaptiveTargets
-from backend.schemas import UserCreate, UserResponse, ProgramCreate, WorkoutCreate, SetCreate, ExerciseResponse
+from backend.models import Base, User, Exercise, Program, Workout, WorkoutSet, SetHistory, UserCommitment, AdaptiveTargets, UserPreferenceUpdate, UserAdaptationCoefficients, PerformanceStates
+from backend.schemas import UserCreate, UserResponse, ProgramCreate, WorkoutCreate, SetCreate, ExerciseResponse, UserPreferenceUpdate
 from sqlalchemy import extract, and_
 import calendar
 from collections import defaultdict
@@ -135,6 +135,98 @@ def update_user(user_id: int, user_data: Dict[str, Any], db: Session = Depends(g
     db.commit()
     db.refresh(user)
     return user
+
+@app.put("/api/users/{user_id}/preferences")
+def update_user_preferences(
+    user_id: int, 
+    preferences: UserPreferenceUpdate, 
+    db: Session = Depends(get_db)
+):
+    """Met à jour les préférences utilisateur (incluant la stratégie de poids)"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
+    # Mettre à jour uniquement les préférences spécifiées
+    user.prefer_weight_changes_between_sets = preferences.prefer_weight_changes_between_sets
+    
+    db.commit()
+    db.refresh(user)
+    
+    logger.info(f"Préférences mises à jour pour user {user_id}: poids variables = {preferences.prefer_weight_changes_between_sets}")
+    
+    return {
+        "message": "Préférences mises à jour avec succès",
+        "prefer_weight_changes_between_sets": user.prefer_weight_changes_between_sets
+    }
+
+@app.get("/api/users/{user_id}/progression-analysis/{exercise_id}")
+def get_progression_analysis(
+    user_id: int,
+    exercise_id: int,
+    db: Session = Depends(get_db)
+):
+    """Analyse détaillée de la progression pour un exercice"""
+    
+    # Vérifier que l'utilisateur et l'exercice existent
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
+    exercise = db.query(Exercise).filter(Exercise.id == exercise_id).first()
+    if not exercise:
+        raise HTTPException(status_code=404, detail="Exercice non trouvé")
+    
+    # Récupérer les coefficients personnalisés
+    coefficients = db.query(UserAdaptationCoefficients).filter(
+        UserAdaptationCoefficients.user_id == user_id,
+        UserAdaptationCoefficients.exercise_id == exercise_id
+    ).first()
+    
+    # Récupérer l'état de performance
+    perf_state = db.query(PerformanceStates).filter(
+        PerformanceStates.user_id == user_id,
+        PerformanceStates.exercise_id == exercise_id
+    ).first()
+    
+    # Utiliser le moteur ML pour détecter les patterns
+    ml_engine = FitnessRecommendationEngine(db)
+    patterns = ml_engine._detect_progression_patterns(user_id, exercise_id)
+    
+    # Générer des suggestions
+    suggestions = []
+    
+    if patterns["pattern_type"] == "linear":
+        suggestions.append(f"Progression régulière détectée. Continuez avec des augmentations de {patterns['typical_increment']}kg")
+    elif patterns["pattern_type"] == "accelerating":
+        suggestions.append("Progression accélérée détectée. Attention à ne pas brûler les étapes")
+    else:
+        suggestions.append("Progression variable détectée. Considérez une approche plus structurée")
+    
+    if coefficients and coefficients.recovery_rate < 0.8:
+        suggestions.append("Votre récupération semble lente. Envisagez des temps de repos plus longs")
+    elif coefficients and coefficients.recovery_rate > 1.2:
+        suggestions.append("Excellente récupération ! Vous pouvez réduire les temps de repos")
+    
+    if perf_state and perf_state.acute_fatigue > 0.7:
+        suggestions.append("Fatigue élevée détectée. Considérez une semaine de décharge")
+    
+    return {
+        "exercise_name": exercise.name,
+        "coefficients": {
+            "recovery_rate": coefficients.recovery_rate if coefficients else 1.0,
+            "fatigue_sensitivity": coefficients.fatigue_sensitivity if coefficients else 1.0,
+            "volume_response": coefficients.volume_response if coefficients else 1.0,
+            "typical_progression_increment": coefficients.typical_progression_increment if coefficients else 2.5
+        },
+        "performance_state": {
+            "base_potential": perf_state.base_potential if perf_state else 0,
+            "acute_fatigue": perf_state.acute_fatigue if perf_state else 0,
+            "last_session": perf_state.last_session_timestamp.isoformat() if perf_state and perf_state.last_session_timestamp else None
+        },
+        "progression_patterns": patterns,
+        "suggestions": suggestions
+    }
 
 @app.delete("/api/users/{user_id}")
 def delete_user(user_id: int, db: Session = Depends(get_db)):

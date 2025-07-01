@@ -233,6 +233,10 @@ class FitnessRecommendationEngine:
         # Sauvegarder l'état
         perf_state.last_session_timestamp = now
         self.db.commit()
+        # Détecter et stocker les patterns de progression
+        patterns = self._detect_progression_patterns(user.id, exercise.id)
+        perf_state.progression_pattern = patterns
+        self.db.commit()
         
         # Calculer l'ajustement de fatigue
         fatigue_adjustment = 1.0 - perf_state.acute_fatigue * 0.3  # Max 30% de réduction
@@ -463,6 +467,98 @@ class FitnessRecommendationEngine:
                 coefficients.fatigue_sensitivity = min(1.5, coefficients.fatigue_sensitivity * 1.02)
         
         self.db.commit()
+
+    def _detect_progression_patterns(
+        self,
+        user_id: int,
+        exercise_id: int
+    ) -> Dict[str, any]:
+        """Détecte les patterns de progression de l'utilisateur"""
+        
+        # Récupérer l'historique sur 3 mois
+        three_months_ago = datetime.utcnow() - timedelta(days=90)
+        history = self.db.query(SetHistory).filter(
+            SetHistory.user_id == user_id,
+            SetHistory.exercise_id == exercise_id,
+            SetHistory.date_performed >= three_months_ago
+        ).order_by(SetHistory.date_performed).all()
+        
+        if len(history) < 10:
+            return {
+                "typical_increment": 2.5,
+                "sessions_before_progression": 3,
+                "pattern_type": "default"
+            }
+        
+        # Analyser les augmentations de poids
+        weight_increases = []
+        sessions_between_increases = []
+        last_increase_session = 0
+        current_weight = history[0].weight
+        
+        for i, record in enumerate(history):
+            if record.weight > current_weight:
+                increase = record.weight - current_weight
+                weight_increases.append(increase)
+                
+                if last_increase_session > 0:
+                    sessions_between_increases.append(i - last_increase_session)
+                
+                last_increase_session = i
+                current_weight = record.weight
+        
+        # Calculer les patterns
+        if weight_increases:
+            typical_increment = statistics.median(weight_increases)
+            # Arrondir aux incréments standards (2.5, 5, 10)
+            if typical_increment <= 3.75:
+                typical_increment = 2.5
+            elif typical_increment <= 7.5:
+                typical_increment = 5.0
+            else:
+                typical_increment = 10.0
+        else:
+            typical_increment = 2.5
+        
+        sessions_before_progression = int(statistics.mean(sessions_between_increases)) if sessions_between_increases else 3
+        
+        # Détecter le type de pattern
+        if len(set(weight_increases)) == 1:
+            pattern_type = "linear"
+        elif all(inc >= prev for inc, prev in zip(weight_increases[1:], weight_increases)):
+            pattern_type = "accelerating"
+        else:
+            pattern_type = "variable"
+        
+        return {
+            "typical_increment": typical_increment,
+            "sessions_before_progression": sessions_before_progression,
+            "pattern_type": pattern_type,
+            "total_increases": len(weight_increases),
+            "average_increase": statistics.mean(weight_increases) if weight_increases else 0
+        }
+
+    def _determine_change(
+        self, 
+        recommended: float, 
+        baseline: float, 
+        threshold: float
+    ) -> str:
+        """Détermine si c'est une augmentation, diminution ou maintien"""
+        
+        # AVANT : if baseline == 0:
+        # APRÈS : Vérifier aussi None
+        if baseline is None or baseline == 0:
+            return "same"
+        
+        change_ratio = abs(recommended - baseline) / baseline
+        
+        if change_ratio < threshold:
+            return "same"
+        elif recommended > baseline:
+            return "increase"
+        else:
+            return "decrease"
 
     def _estimate_initial_weight(self, user: User, exercise: Exercise) -> float:
         """Estime un poids initial pour un nouvel exercice"""
