@@ -111,6 +111,47 @@
                 </div>
             </div>
 
+            <!-- Étape 3.5: Préférences ML -->
+            <div class="onboarding-step" id="step3_5">
+                <h2>Votre style d'entraînement 🎯</h2>
+                <p class="subtitle">Comment préférez-vous ajuster vos séries ?</p>
+                
+                <div class="preference-options">
+                    <label class="preference-card">
+                        <input type="radio" name="weightPreference" value="true" checked>
+                        <div class="preference-content">
+                            <h3>💪 Poids variable</h3>
+                            <p>L'app ajuste le poids entre chaque série selon votre fatigue</p>
+                            <ul>
+                                <li>✅ Progression optimale</li>
+                                <li>✅ Adaptation en temps réel</li>
+                                <li>⚠️ Changements de disques fréquents</li>
+                            </ul>
+                        </div>
+                    </label>
+                    
+                    <label class="preference-card">
+                        <input type="radio" name="weightPreference" value="false">
+                        <div class="preference-content">
+                            <h3>🔒 Poids fixe</h3>
+                            <p>Même poids pour toutes les séries d'un exercice</p>
+                            <ul>
+                                <li>✅ Simplicité maximale</li>
+                                <li>✅ Moins de manipulations</li>
+                                <li>⚠️ Ajustements via reps et repos uniquement</li>
+                            </ul>
+                        </div>
+                    </label>
+                </div>
+                
+                <p class="info-note">💡 Vous pourrez modifier ce choix à tout moment depuis votre profil</p>
+                
+                <div class="nav-buttons">
+                    <button class="btn btn-secondary" onclick="prevStep()">← Retour</button>
+                    <button class="btn btn-primary" onclick="nextStep()">Continuer →</button>
+                </div>
+            </div>
+
             <!-- Étape 4: Création programme -->
             <div class="onboarding-step" id="step4">
                 <h2>Votre programme 📋</h2>

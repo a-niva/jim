@@ -92,7 +92,7 @@ import { getMuscleColor, getChartColors, getMuscleClass, applyMuscleStyle } from
 
 
 // ===== CONFIGURATION =====
-const totalSteps = 4;
+const totalSteps = 5;
 
 // Configuration équipement disponible
 const EQUIPMENT_CONFIG = {
@@ -676,8 +676,12 @@ function validateCurrentStep() {
             
         case 3:
             return true; // Configuration détaillée optionnelle
+
+        case 4: // Nouveau case pour l'étape 3.5
+            // La validation est automatique car un radio est toujours sélectionné
+            return true;
             
-        case 4:
+        case 5:
             const focusAreas = document.querySelectorAll('input[type="checkbox"]:checked');
             if (focusAreas.length === 0) {
                 showToast('Sélectionnez au moins une zone à travailler', 'error');
@@ -1008,9 +1012,10 @@ async function completeOnboarding() {
             height: parseFloat(document.getElementById('height').value),
             weight: parseFloat(document.getElementById('weight').value),
             experience_level: document.querySelector('input[name="experience"]:checked').value,
-            equipment_config: collectEquipmentConfig()
+            equipment_config: collectEquipmentConfig(),
+            prefer_weight_changes_between_sets: document.querySelector('input[name="weightPreference"]:checked').value === 'true'
         };
-        
+                
         // Créer l'utilisateur
         currentUser = await apiPost('/api/users', userData);
         localStorage.setItem('fitness_user_id', currentUser.id);
@@ -1947,6 +1952,21 @@ async function updateSetRecommendations() {
         } else {
             document.getElementById('weightHint').style.color = 'var(--primary)';
         }
+
+        // Ajouter l'affichage du temps de repos
+        if (recommendations.rest_seconds_recommendation) {
+            document.getElementById('restHint').textContent = 
+                `Repos: ${recommendations.rest_seconds_recommendation}s`;
+        }
+
+        // Indication visuelle de la stratégie
+        if (recommendations.adaptation_strategy === 'fixed_weight') {
+            document.getElementById('setWeight').classList.add('fixed-weight');
+            document.getElementById('weightHint').style.display = 'none';
+        } else {
+            document.getElementById('setWeight').classList.remove('fixed-weight');
+            document.getElementById('weightHint').style.display = 'block';
+        }
         
         // Mettre à jour la confiance
         if (recommendations.confidence) {
@@ -2409,21 +2429,21 @@ async function loadStats() {
 // ===== PROFIL =====
 async function loadProfile() {
     console.log('loadProfile called, currentUser:', currentUser); // Debug
-    
+
     if (!currentUser) {
         console.error('Pas de currentUser !'); // Debug
         return;
     }
-    
+
     const profileInfo = document.getElementById('profileInfo');
     if (!profileInfo) {
         console.error('Element profileInfo non trouvé !'); // Debug
         return;
     }
-    
+
     const age = new Date().getFullYear() - new Date(currentUser.birth_date).getFullYear();
-    
-    document.getElementById('profileInfo').innerHTML = `
+
+    let profileHTML = `
         <div class="profile-item">
             <span class="profile-label">Nom</span>
             <span class="profile-value">${currentUser.name}</span>
@@ -2445,6 +2465,57 @@ async function loadProfile() {
             <span class="profile-value">${currentUser.experience_level}</span>
         </div>
     `;
+
+    // Add the new weight preference section
+    profileHTML += `
+        <div class="profile-field">
+            <span class="field-label">Préférence d'ajustement</span>
+            <div class="toggle-container">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="weightPreferenceToggle"
+                           ${currentUser.prefer_weight_changes_between_sets ? 'checked' : ''}>
+                    <span class="toggle-slider"></span>
+                </label>
+                <span id="weightPreferenceLabel">${currentUser.prefer_weight_changes_between_sets ? 'Poids variables' : 'Poids fixes'}</span>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('profileInfo').innerHTML = profileHTML;
+
+    // Add event listener for the toggle to update the label immediately
+    const weightPreferenceToggle = document.getElementById('weightPreferenceToggle');
+    if (weightPreferenceToggle) {
+        weightPreferenceToggle.addEventListener('change', (event) => {
+            const label = document.getElementById('weightPreferenceLabel');
+            if (label) {
+                label.textContent = event.target.checked ? 'Poids variables' : 'Poids fixes';
+            }
+            // Here you would typically call a function to save this preference to the backend
+            // For example: saveWeightPreference(event.target.checked);
+        });
+    }
+}
+
+async function toggleWeightPreference() {
+    const toggle = document.getElementById('weightPreferenceToggle');
+    const newPreference = toggle.checked;
+    
+    try {
+        // Utiliser apiPut au lieu de apiCall
+        const response = await apiPut(`/api/users/${currentUser.id}/preferences`, {
+            prefer_weight_changes_between_sets: newPreference
+        });
+        
+        currentUser.prefer_weight_changes_between_sets = newPreference;
+        document.getElementById('weightPreferenceLabel').textContent = 
+            newPreference ? 'Poids variables' : 'Poids fixes';
+        
+        showToast('Préférence mise à jour', 'success');
+    } catch (error) {
+        toggle.checked = !newPreference; // Revert on error
+        showToast('Erreur lors de la mise à jour', 'error');
+    }
 }
 
 function editEquipment() {
