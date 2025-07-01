@@ -867,6 +867,7 @@ def get_personal_records(user_id: int, db: Session = Depends(get_db)):
     for record, ex_name, muscle_groups, muscles in records:
         result.append({
             "exercise": ex_name,
+            "exerciseId": record.exercise_id,
             "muscleGroups": muscle_groups,
             "muscles": muscles if muscles else [],
             "weight": record.weight,

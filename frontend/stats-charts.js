@@ -147,14 +147,28 @@ async function checkUserHasData(userId) {
 
 async function loadExercisesList(userId) {
     try {
-        const exercises = await window.apiGet(`/api/exercises?user_id=${userId}`);
+        const records = await window.apiGet(`/api/users/${userId}/stats/personal-records`);
         const selector = document.getElementById('exerciseSelector');
         
         selector.innerHTML = '<option value="">Sélectionner un exercice...</option>';
-        exercises.forEach(ex => {
+        
+        if (records.length === 0) return;
+        
+        // Extraire et dédupliquer les exercices, puis trier alphabétiquement
+        const uniqueExercises = [...new Map(records.map(r => [r.exercise, r])).values()]
+            .sort((a, b) => a.exercise.localeCompare(b.exercise));
+        
+        uniqueExercises.forEach(record => {
             const option = document.createElement('option');
-            option.value = ex.id;
-            option.textContent = ex.name;
+            option.value = record.exerciseId;
+            
+            // Créer les pastilles de couleur pour les muscle_groups
+            const colorDots = record.muscleGroups.map(muscle => {
+                const color = window.MuscleColors?.getMuscleColor(muscle) || '#94a3b8';
+                return `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};margin-left:4px;"></span>`;
+            }).join('');
+            
+            option.innerHTML = `${record.exercise}${colorDots}`;
             selector.appendChild(option);
         });
     } catch (error) {
