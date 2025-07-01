@@ -1216,12 +1216,64 @@ async function loadDashboard() {
             apiGet(`/api/users/${currentUser.id}/available-weights`)
         ]);
         
+        // Enrichir les workouts avec les données des exercices
+        const enrichedWorkouts = await enrichWorkoutsWithExercises(stats.recent_workouts);
+        
         loadMuscleReadiness();
-        loadRecentWorkouts(stats.recent_workouts);
+        loadRecentWorkouts(enrichedWorkouts);
         
     } catch (error) {
         console.error('Erreur chargement dashboard:', error);
     }
+}
+
+async function enrichWorkoutsWithExercises(workouts) {
+    if (!workouts || workouts.length === 0) return [];
+    
+    const enrichedWorkouts = [];
+    
+    for (const workout of workouts) {
+        const enrichedWorkout = { ...workout };
+        
+        // Charger les sets de cette séance
+        try {
+            const sets = await apiGet(`/api/workouts/${workout.id}/sets`);
+            
+            // Grouper les sets par exercice
+            const exerciseMap = new Map();
+            
+            for (const set of sets) {
+                if (!exerciseMap.has(set.exercise_id)) {
+                    // Charger les infos de l'exercice
+                    const exercise = await apiGet(`/api/exercises/${set.exercise_id}`);
+                    exerciseMap.set(set.exercise_id, {
+                        id: exercise.id,
+                        name: exercise.name,
+                        muscle_groups: exercise.muscle_groups || [],
+                        sets: 0,
+                        reps: 0,
+                        weight: 0
+                    });
+                }
+                
+                const exerciseData = exerciseMap.get(set.exercise_id);
+                exerciseData.sets += 1;
+                exerciseData.reps += set.reps || 0;
+                exerciseData.weight = Math.max(exerciseData.weight, set.weight || 0);
+            }
+            
+            // Convertir en array d'exercices
+            enrichedWorkout.exercises = Array.from(exerciseMap.values());
+            
+        } catch (error) {
+            console.warn(`Impossible de charger les exercices pour la séance ${workout.id}`);
+            enrichedWorkout.exercises = [];
+        }
+        
+        enrichedWorkouts.push(enrichedWorkout);
+    }
+    
+    return enrichedWorkouts;
 }
 
 function showWorkoutResumeBanner(workout) {
@@ -4180,3 +4232,6 @@ window.apiGet = apiGet;
 window.apiPost = apiPost;
 window.apiPut = apiPut;
 window.apiDelete = apiDelete;
+window.generateMuscleDistribution = generateMuscleDistribution;
+window.loadRecentWorkouts = loadRecentWorkouts;
+window.enrichWorkoutsWithExercises = enrichWorkoutsWithExercises;
