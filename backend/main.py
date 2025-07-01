@@ -690,6 +690,10 @@ def get_attendance_calendar(user_id: int, months: int = 6, db: Session = Depends
     for week_offset in range(months * 4):
         week_start = current_date - timedelta(days=current_date.weekday() + week_offset * 7)
         week_end = week_start + timedelta(days=6)
+        # Ne pas compter les semaines avant la création du profil
+        user = db.query(User).filter(User.id == user_id).first()
+        if user and week_end.date() < user.created_at.date():
+            continue
         
         if week_start < cutoff_date.date():
             break
@@ -833,27 +837,37 @@ def get_muscle_sunburst(user_id: int, days: int = 30, db: Session = Depends(get_
                             muscle_data[group]["muscles"][muscle] += volume_per_muscle
     
     # Formatter pour le sunburst
-    result = {
-        "name": "Total",
-        "value": sum(data["volume"] for data in muscle_data.values()),
-        "children": []
-    }
-    
+    children = []
     for group, data in muscle_data.items():
-        group_node = {
-            "name": group,
-            "value": data["volume"],
-            "children": []
-        }
+        group_children = []
         
-        for muscle, volume in data["muscles"].items():
-            group_node["children"].append({
-                "name": muscle,
-                "value": volume
+        # Si des muscles spécifiques sont définis
+        if data["muscles"]:
+            for muscle, volume in data["muscles"].items():
+                if volume > 0:
+                    group_children.append({
+                        "name": muscle,
+                        "value": round(volume)
+                    })
+        
+        # Si pas de muscles spécifiques, utiliser le volume du groupe
+        if not group_children and data["volume"] > 0:
+            group_children.append({
+                "name": f"{group} (général)",
+                "value": round(data["volume"])
             })
         
-        result["children"].append(group_node)
-    
+        if group_children:
+            children.append({
+                "name": group,
+                "children": group_children
+            })
+
+    result = {
+        "name": "Total",
+        "children": children
+    }
+
     return result
 
 
