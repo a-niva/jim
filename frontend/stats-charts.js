@@ -1,7 +1,8 @@
 // ===== frontend/stats-charts.js - GESTION DES GRAPHIQUES STATS =====
 
 // Import des couleurs musculaires
-import { getMuscleColor, getMuscleBackground, getChartColors } from './muscle-colors.js';
+// Utiliser les fonctions depuis window car muscle-colors.js les expose globalement
+const { getMuscleColor, getMuscleBackground, getChartColors } = window.MuscleColors || {};
 
 // Variables globales pour les charts
 let charts = {

@@ -1570,10 +1570,10 @@ function generateMuscleDistribution(workout) {
     // Calculer le volume par muscle
     workout.exercises.forEach(ex => {
         const volume = ex.sets * ex.reps * (ex.weight || 1);
+        totalVolume += volume;  // Ajouter une seule fois par exercice
         (ex.muscle_groups || []).forEach(muscle => {
             const key = muscle.toLowerCase();
             muscleVolumes[key] = (muscleVolumes[key] || 0) + volume;
-            totalVolume += volume;
         });
     });
     
