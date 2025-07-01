@@ -42,9 +42,12 @@ class WorkoutAudioSystem {
 
     // Sons spécifiques pour chaque étape
     playRestStart() {
-        // Son grave et profond pour le début du repos
-        this.createTone(220, 0.5, 'sawtooth', 0.4);
-        setTimeout(() => this.createTone(165, 0.3, 'sawtooth', 0.3), 200);
+        // Mélodie motivante pour célébrer la série terminée (Do-Mi-Sol montant)
+        this.createTone(523, 0.2, 'sine', 0.35); // Do (C5)
+        setTimeout(() => this.createTone(659, 0.2, 'sine', 0.35), 150); // Mi (E5)
+        setTimeout(() => this.createTone(784, 0.3, 'sine', 0.4), 300); // Sol (G5)
+        // Petit accent final
+        setTimeout(() => this.createTone(1047, 0.15, 'sine', 0.3), 650); // Do octave (C6)
     }
 
     playOneMinuteWarning() {

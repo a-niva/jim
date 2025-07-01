@@ -2236,11 +2236,24 @@ function skipRest() {
         clearTimeout(notificationTimeout);
         notificationTimeout = null;
     }
-    
+    // Calculer et accumuler le temps de repos réel
+    if (workoutState.restStartTime) {
+        const actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
+        currentWorkoutSession.totalRestTime += actualRestTime;
+        console.log(`Repos ignoré après ${actualRestTime}s. Total: ${currentWorkoutSession.totalRestTime}s`);
+        workoutState.restStartTime = null;
+    }
     completeRest();
 }
 
 function endRest() {
+    // Calculer et accumuler le temps de repos réel
+    if (workoutState.restStartTime) {
+        const actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
+        currentWorkoutSession.totalRestTime += actualRestTime;
+        console.log(`Repos terminé (endRest) après ${actualRestTime}s. Total: ${currentWorkoutSession.totalRestTime}s`);
+        workoutState.restStartTime = null;
+    }
     if (notificationTimeout) {
         clearTimeout(notificationTimeout);
         notificationTimeout = null;
@@ -3698,6 +3711,9 @@ function startRestPeriod(customTime = null) {
     // Utiliser le temps de repos de l'exercice ou par défaut 60s
     let timeLeft = customTime || 60;
     const initialTime = timeLeft;
+    // Enregistrer le début du repos pour calcul ultérieur
+    workoutState.restStartTime = Date.now();
+    workoutState.plannedRestDuration = timeLeft;
     updateRestTimer(timeLeft);
     
     // Vibration si supportée
@@ -4015,6 +4031,13 @@ async function validateSet() {
 
 // ===== FIN DE SÉRIE =====
 function completeRest() {
+    // CORRECTION: Calculer et accumuler le temps de repos réel
+    if (workoutState.restStartTime) {
+        const actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
+        currentWorkoutSession.totalRestTime += actualRestTime;
+        console.log(`Repos terminé après ${actualRestTime}s. Total: ${currentWorkoutSession.totalRestTime}s`);
+        workoutState.restStartTime = null;
+    }
     if (restTimer) {
         clearInterval(restTimer);
         restTimer = null;
