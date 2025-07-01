@@ -2749,6 +2749,23 @@ select:focus-visible {
     position: relative;
 }
 
+.muscle-item.fatigued {
+    opacity: 0.6;
+}
+
+.muscle-item.recovering {
+    opacity: 0.8;
+}
+
+.recovery-badge {
+    font-size: 0.6rem;
+    background: var(--warning);
+    color: white;
+    padding: 2px 4px;
+    border-radius: 10px;
+    margin-left: 0.3rem;
+}
+
 /* États de récupération - garder les variations d'opacité */
 .muscle-item.recovering .indicator-dot { opacity: 0.6; }
 .muscle-item.fatigued .indicator-dot { opacity: 0.3; }

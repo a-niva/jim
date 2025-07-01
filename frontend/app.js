@@ -1385,114 +1385,66 @@ async function loadMuscleReadiness() {
         { name: 'Bras', key: 'bras' },
         { name: 'Abdominaux', key: 'abdominaux' }
     ];
-
-    // Pour obtenir les couleurs si besoin
-    // const color = window.MuscleColors.getMuscleColor(muscle.key);
         
     try {
-        // Utiliser l'endpoint stats qui existe
-        const stats = await apiGet(`/api/users/${currentUser.id}/stats`);
+        // Appeler l'API de récupération musculaire
+        const recoveryData = await apiGet(`/api/users/${currentUser.id}/stats/recovery-gantt`);
         
-        // Analyser les séances récentes pour déterminer l'état musculaire
-        const muscleLastTrained = {};
-        const muscleVolume = {};
-        
-        if (stats.recent_workouts && stats.recent_workouts.length > 0) {
-            // Parcourir les séances récentes
-            for (const workout of stats.recent_workouts) {
-                if (workout.status === 'completed' && workout.sets) {
-                    for (const set of workout.sets) {
-                        try {
-                            // Récupérer l'exercice pour connaître les muscles
-                            const exercise = await apiGet(`/api/exercises/${set.exercise_id}`);
-                            
-                            for (const muscle of exercise.muscle_groups) {
-                                const workoutDate = new Date(workout.completed_at || workout.started_at);
-                                const muscleLower = muscle.toLowerCase();
-                                
-                                // Enregistrer la dernière date
-                                if (!muscleLastTrained[muscleLower] || workoutDate > muscleLastTrained[muscleLower]) {
-                                    muscleLastTrained[muscleLower] = workoutDate;
-                                }
-                                
-                                // Volume des 7 derniers jours
-                                const sevenDaysAgo = new Date();
-                                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-                                
-                                if (workoutDate >= sevenDaysAgo) {
-                                    muscleVolume[muscleLower] = (muscleVolume[muscleLower] || 0) + 1;
-                                }
-                            }
-                        } catch (err) {
-                            // Ignorer l'erreur si l'exercice n'existe pas
-                            console.warn(`Exercice ${set.exercise_id} non trouvé`);
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Calculer l'état de chaque muscle
-        const now = new Date();
-        const muscleStates = muscleGroups.map(muscle => {
-            const lastTrained = muscleLastTrained[muscle.key];
-            const volume = muscleVolume[muscle.key] || 0;
+        container.innerHTML = muscleGroups.map(muscle => {
+            const recovery = recoveryData[muscle.key];
             
+            if (!recovery) {
+                // Pas de données = muscle frais
+                return `
+                    <div class="muscle-item ready muscle-border-left-${muscle.key}">
+                        <div class="muscle-info">
+                            <h4 class="muscle-color-${muscle.key}">${muscle.name}</h4>
+                            <p>Prêt à l'entraînement</p>
+                        </div>
+                        <div class="muscle-indicator">
+                            <div class="indicator-dot muscle-bg-${muscle.key}"></div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Déterminer l'état selon le pourcentage de récupération
             let status = 'ready';
             let statusText = 'Prêt à l\'entraînement';
-            let daysSince = null;
+            let statusClass = 'ready';
             
-            if (lastTrained) {
-                const hoursSince = (now - lastTrained) / (1000 * 60 * 60);
-                daysSince = Math.floor(hoursSince / 24);
-                
-                // Logique de récupération
-                if (hoursSince < 24) {
-                    status = 'fatigued';
-                    statusText = 'En récupération aiguë';
-                } else if (hoursSince < 48) {
-                    status = 'recovering';
-                    statusText = 'En récupération';
-                } else if (hoursSince < 72 && volume >= 3) {
-                    status = 'recovering';
-                    statusText = 'Volume élevé récent';
-                } else if (hoursSince > 168) {
-                    status = 'rested';
-                    statusText = 'Bien reposé';
-                }
-                
-                // Format du temps
-                if (daysSince === 0) {
-                    daysSince = 'Aujourd\'hui';
-                } else if (daysSince === 1) {
-                    daysSince = 'Hier';
-                } else {
-                    daysSince = `Il y a ${daysSince} jours`;
-                }
+            if (recovery.recoveryPercent < 50) {
+                status = 'fatigued';
+                statusText = `En récupération (${recovery.recoveryPercent}%)`;
+                statusClass = 'fatigued';
+            } else if (recovery.recoveryPercent < 90) {
+                status = 'recovering';
+                statusText = `Récupération avancée (${recovery.recoveryPercent}%)`;
+                statusClass = 'recovering';
             }
             
-            return {
-                ...muscle,
-                status,
-                statusText,
-                lastTrained: daysSince,
-                weeklyVolume: volume
-            };
-        });
-        
-        // Générer le HTML avec classes centralisées
-        container.innerHTML = muscleStates.map(muscle => `
-            <div class="muscle-item ${muscle.status} muscle-border-left-${muscle.key}">
-                <div class="muscle-info">
-                    <h4 class="muscle-color-${muscle.key}">${muscle.name}</h4>
-                    <p>${muscle.statusText}${muscle.lastTrained ? ` • ${muscle.lastTrained}` : ''}</p>
+            // Afficher le temps depuis la dernière séance
+            const timeInfo = recovery.hoursSince ? 
+                `Dernière séance: ${Math.round(recovery.hoursSince)}h` : 
+                'Jamais entraîné';
+            
+            return `
+                <div class="muscle-item ${statusClass} muscle-border-left-${muscle.key}">
+                    <div class="muscle-info">
+                        <h4 class="muscle-color-${muscle.key}">${muscle.name}</h4>
+                        <p>${statusText}</p>
+                        <small style="color: var(--text-muted); font-size: 0.75rem;">${timeInfo}</small>
+                    </div>
+                    <div class="muscle-indicator">
+                        <div class="indicator-dot muscle-bg-${muscle.key}"></div>
+                        ${recovery.recoveryPercent < 100 ? 
+                            `<span class="recovery-badge">${recovery.recoveryPercent}%</span>` : 
+                            ''
+                        }
+                    </div>
                 </div>
-                <div class="muscle-indicator">
-                    <div class="indicator-dot muscle-bg-${muscle.key}"></div>
-                    ${muscle.weeklyVolume > 0 ? `<span class="volume-badge">${muscle.weeklyVolume}</span>` : ''}
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
         
     } catch (error) {
         console.error('Erreur chargement état musculaire:', error);
