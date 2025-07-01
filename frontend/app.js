@@ -1395,11 +1395,15 @@ async function loadMuscleReadiness() {
             
             if (!recovery) {
                 // Pas de données = muscle frais
+                // Muscle prêt = 100% de couleur
+                const gradientStyle = `background: var(--muscle-${muscle.key});`;
+
                 return `
-                    <div class="muscle-item ready muscle-border-left-${muscle.key}">
+                    <div class="muscle-item ready muscle-border-left-${muscle.key}" 
+                        style="${gradientStyle}">
                         <div class="muscle-info">
-                            <h4 class="muscle-color-${muscle.key}">${muscle.name}</h4>
-                            <p>Prêt à l'entraînement</p>
+                            <h4 class="muscle-title-${muscle.key}">${muscle.name}</h4>
+                            <p class="muscle-status-text">Prêt à l'entraînement</p>
                         </div>
                         <div class="muscle-indicator">
                             <div class="indicator-dot muscle-bg-${muscle.key}"></div>
@@ -1428,12 +1432,21 @@ async function loadMuscleReadiness() {
                 `Dernière séance: ${Math.round(recovery.hoursSince)}h` : 
                 'Jamais entraîné';
             
+            // Calculer le pourcentage de couleur (inverse de la récupération)
+            const colorPercent = 100 - recovery.recoveryPercent;
+            const gradientStyle = `background: linear-gradient(to right, 
+                var(--muscle-${muscle.key}) 0%, 
+                var(--muscle-${muscle.key}) ${colorPercent}%, 
+                var(--bg) ${colorPercent}%, 
+                var(--bg) 100%);`;
+
             return `
-                <div class="muscle-item ${statusClass} muscle-border-left-${muscle.key}">
+                <div class="muscle-item ${statusClass} muscle-border-left-${muscle.key}" 
+                    style="${gradientStyle}">
                     <div class="muscle-info">
-                        <h4 class="muscle-color-${muscle.key}">${muscle.name}</h4>
-                        <p>${statusText}</p>
-                        <small style="color: var(--text-muted); font-size: 0.75rem;">${timeInfo}</small>
+                        <h4 class="muscle-title-${muscle.key}">${muscle.name}</h4>
+                        <p class="muscle-status-text">${statusText}</p>
+                        <small class="muscle-time-info">${timeInfo}</small>
                     </div>
                     <div class="muscle-indicator">
                         <div class="indicator-dot muscle-bg-${muscle.key}"></div>
@@ -1451,10 +1464,11 @@ async function loadMuscleReadiness() {
         
         // Si pas de données, afficher tous les muscles comme prêts
         container.innerHTML = muscleGroups.map(muscle => `
-            <div class="muscle-item ready muscle-border-left-${muscle.key}">
+            <div class="muscle-item ready muscle-border-left-${muscle.key}" 
+                style="background: var(--muscle-${muscle.key});">
                 <div class="muscle-info">
-                    <h4 class="muscle-color-${muscle.key}">${muscle.name}</h4>
-                    <p>Prêt à l'entraînement</p>
+                    <h4 class="muscle-title-${muscle.key}">${muscle.name}</h4>
+                    <p class="muscle-status-text">Prêt à l'entraînement</p>
                 </div>
                 <div class="muscle-indicator">
                     <div class="indicator-dot muscle-bg-${muscle.key}"></div>

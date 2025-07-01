@@ -514,14 +514,14 @@ async function loadVolumeBurndownChart(userId, period) {
                 datasets: [{
                     label: 'Volume réalisé',
                     data: cumulativeData,
-                    borderColor: 'var(--primary)',
+                    borderColor: '#3b82f6',
                     backgroundColor: 'rgba(59, 130, 246, 0.1)',
                     fill: true,
                     tension: 0.2
                 }, {
                     label: 'Objectif linéaire',
                     data: targetLine,
-                    borderColor: 'var(--secondary)',
+                    borderColor: '#6b7280',
                     borderDash: [5, 5],
                     fill: false,
                     pointRadius: 0
@@ -546,7 +546,7 @@ async function loadVolumeBurndownChart(userId, period) {
                                 type: 'line',
                                 yMin: data.targetVolume,
                                 yMax: data.targetVolume,
-                                borderColor: 'var(--success)',
+                                borderColor: '#10b981',
                                 borderWidth: 2,
                                 borderDash: [10, 5],
                                 label: {
@@ -771,7 +771,7 @@ async function loadMuscleBalanceChart(userId) {
                     label: 'Volume actuel (%)',
                     data: data.ratios,
                     backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                    borderColor: 'var(--primary)',
+                    borderColor: '#3b82f6',
                     pointBackgroundColor: borderColors,
                     pointBorderColor: borderColors,
                     pointRadius: 6,
@@ -780,7 +780,7 @@ async function loadMuscleBalanceChart(userId) {
                     label: 'Objectif (100%)',
                     data: new Array(data.muscles.length).fill(100),
                     backgroundColor: 'rgba(148, 163, 184, 0.1)',
-                    borderColor: 'var(--secondary)',
+                    borderColor: '#6b7280',
                     borderDash: [5, 5],
                     pointRadius: 0
                 }]
@@ -887,14 +887,14 @@ async function loadMLConfidenceChart(userId) {
                 datasets: [{
                     label: 'Confiance ML (%)',
                     data: confidenceData,
-                    borderColor: 'var(--primary)',
+                    borderColor: '#3b82f6',
                     backgroundColor: 'rgba(59, 130, 246, 0.1)',
                     tension: 0.2,
                     yAxisID: 'y'
                 }, {
                     label: 'Taux de réussite',
                     data: successData,
-                    borderColor: 'var(--success)',
+                    borderColor: '#10b981',
                     backgroundColor: 'rgba(16, 185, 129, 0.1)',
                     stepped: true,
                     yAxisID: 'y1'
@@ -1132,7 +1132,7 @@ async function loadTimeDistributionChart(userId) {
                         backgroundColor: 'rgba(0, 0, 0, 0.8)',
                         titleColor: '#fff',
                         bodyColor: '#fff',
-                        borderColor: 'var(--border)',
+                        borderColor: '#e5e7eb',
                         borderWidth: 1,
                         padding: 10,
                         displayColors: true,

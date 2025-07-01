@@ -477,59 +477,85 @@ textarea:focus {
 
 /* ===== INDICATEURS MUSCULAIRES AMÉLIORÉS ===== */
 
-
-.muscle-readiness {
-    display: grid;
-    gap: 0.5rem;
+.muscle-item h4[class*="muscle-color-"] {
+    color: unset !important;
 }
 
-.muscle-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: linear-gradient(135deg, var(--bg-card) 0%, #253545 100%);
-    padding: 1rem;
+/* Nouvelles classes pour titres avec contraste optimisé */
+.muscle-title-dos,
+.muscle-title-pectoraux,
+.muscle-title-jambes,
+.muscle-title-epaules,
+.muscle-title-bras,
+.muscle-title-abdominaux {
+    color: white !important;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    margin: 0;
+    font-size: 1rem;
+}
+
+/* Texte de statut avec contraste */
+.muscle-status-text {
+    color: rgba(255, 255, 255, 0.9) !important;
+    font-weight: 500;
+    margin: 0.25rem 0 0 0;
+    font-size: 0.85rem;
+}
+
+/* Informations temporelles */
+.muscle-time-info {
+    color: rgba(255, 255, 255, 0.7) !important;
+    font-size: 0.75rem !important;
+    margin-top: 0.25rem;
+    display: block;
+}
+
+/* Badges de récupération */
+.recovery-badge {
+    font-size: 0.6rem;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 3px 6px;
     border-radius: 12px;
+    margin-left: 0.3rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    font-weight: 600;
+}
+
+/* Amélioration de l'indicateur dot */
+.indicator-dot {
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Border-left renforcé */
+.muscle-item[class*="muscle-border-left-"] {
+    border-left-width: 4px !important;
+    border-left-style: solid !important;
     position: relative;
-    overflow: hidden;
-    transition: all 0.3s ease;
 }
 
-.muscle-item:hover {
-    transform: translateX(2px);
-}
-
-.muscle-item::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 4px;
-    bottom: 0;
-    width: 2px;
-    background: currentColor;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
+/* Effet au survol - UNE SEULE règle */
 .muscle-item:hover {
     transform: translateX(4px);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
-.muscle-item:hover::before {
-    opacity: 0.3;
+/* Contenu lisible */
+.muscle-info {
+    position: relative;
+    z-index: 2;
+    flex-grow: 1;
 }
 
-.muscle-info h4 {
-    margin: 0;
-    font-size: 0.95rem;
-    font-weight: 500;
-}
-
-.muscle-info p {
-    color: var(--text-muted);
-    font-size: 0.8rem;
-    margin: 0.2rem 0 0 0;
+/* Indicateurs - UNE SEULE FOIS */
+.muscle-indicator {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .muscle-indicator {
@@ -2749,13 +2775,6 @@ select:focus-visible {
     position: relative;
 }
 
-.muscle-item.fatigued {
-    opacity: 0.6;
-}
-
-.muscle-item.recovering {
-    opacity: 0.8;
-}
 
 .recovery-badge {
     font-size: 0.6rem;
