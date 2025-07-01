@@ -3021,3 +3021,51 @@ input:checked + .toggle-slider:before {
     opacity: 0.6;
     pointer-events: none;
 }
+
+
+/* ===== WIDGET PROGRAMME DASHBOARD ===== */
+
+/* Widget Programme Dashboard */
+.program-status-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.program-status-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Couleurs pour les états */
+:root {
+    --success: #10b981;
+    --success-light: #10b98120;
+    --warning: #f59e0b;
+    --warning-light: #f59e0b20;
+    --info: #3b82f6;
+    --info-light: #3b82f620;
+    --info-dark: #2563eb;
+    --primary-light: #7c3aed20;
+    --primary-dark: #5b21b6;
+}
+
+/* Animation de progression */
+@keyframes progressPulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.8; }
+    100% { opacity: 1; }
+}
+
+.program-status-card [style*="transition: width"] {
+    animation: progressPulse 2s ease-in-out infinite;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .program-status-card {
+        padding: 1rem !important;
+    }
+    
+    .program-status-card h3 {
+        font-size: 1rem !important;
+    }
+}
