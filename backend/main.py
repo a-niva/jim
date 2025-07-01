@@ -345,8 +345,6 @@ def create_program(user_id: int, program: ProgramCreate, db: Session = Depends(g
 @app.get("/api/users/{user_id}/program-status")
 def get_program_status(user_id: int, db: Session = Depends(get_db)):
     """Obtenir le statut actuel du programme de l'utilisateur"""
-    from datetime import datetime, timedelta
-    from collections import defaultdict
     
     # Récupérer le programme actif
     """Obtenir le statut actuel du programme de l'utilisateur"""
@@ -374,14 +372,14 @@ def get_program_status(user_id: int, db: Session = Depends(get_db)):
     sessions_this_week = db.query(Workout).filter(
         Workout.user_id == user_id,
         Workout.type == 'program',
-        Workout.created_at >= start_of_week
+        Workout.started_at >= start_of_week  # ✅ CORRIGÉ
     ).count()
     
     # Analyser la dernière séance pour les adaptations ML
     last_workout = db.query(Workout).filter(
         Workout.user_id == user_id,
         Workout.type == 'program'
-    ).order_by(Workout.created_at.desc()).first()
+    ).order_by(Workout.started_at.desc()).first()
     
     ml_adaptations = "Standard"
     if last_workout:
