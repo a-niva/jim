@@ -474,6 +474,24 @@ textarea:focus {
     color: var(--text);
 }
 
+/* ===== STRUCTURE DE BASE - ÉTAT MUSCULAIRE ===== */
+.muscle-readiness {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.muscle-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    /* Background sera appliqué via style inline */
+    min-height: 70px;
+}
 
 /* ===== INDICATEURS MUSCULAIRES AMÉLIORÉS ===== */
 
@@ -488,27 +506,32 @@ textarea:focus {
 .muscle-title-epaules,
 .muscle-title-bras,
 .muscle-title-abdominaux {
-    color: white !important;
+    color: var(--text) !important;
     font-weight: 600;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
     margin: 0;
     font-size: 1rem;
+    position: relative;
+    z-index: 2;
 }
 
 /* Texte de statut avec contraste */
 .muscle-status-text {
-    color: rgba(255, 255, 255, 0.9) !important;
+    color: var(--text-muted) !important;
     font-weight: 500;
     margin: 0.25rem 0 0 0;
     font-size: 0.85rem;
+    position: relative;
+    z-index: 2;
 }
 
 /* Informations temporelles */
 .muscle-time-info {
-    color: rgba(255, 255, 255, 0.7) !important;
+    color: var(--text-muted) !important;
     font-size: 0.75rem !important;
     margin-top: 0.25rem;
     display: block;
+    position: relative;
+    z-index: 2;
 }
 
 /* Badges de récupération */

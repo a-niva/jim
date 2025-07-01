@@ -1395,12 +1395,27 @@ async function loadMuscleReadiness() {
             
             if (!recovery) {
                 // Pas de données = muscle frais
-                // Muscle prêt = 100% de couleur
-                const gradientStyle = `background: var(--muscle-${muscle.key});`;
+                const gradientStyle = `
+                    background: var(--bg-card);
+                    border: 1px solid var(--border);
+                    position: relative;
+                `;
+
+                const overlayStyle = `
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: var(--muscle-${muscle.key});
+                    opacity: 0.15;
+                    z-index: 1;
+                `;
 
                 return `
                     <div class="muscle-item ready muscle-border-left-${muscle.key}" 
-                        style="${gradientStyle}">
+                         style="${gradientStyle}">
+                        <div style="${overlayStyle}"></div>
                         <div class="muscle-info">
                             <h4 class="muscle-title-${muscle.key}">${muscle.name}</h4>
                             <p class="muscle-status-text">Prêt à l'entraînement</p>
@@ -1434,15 +1449,33 @@ async function loadMuscleReadiness() {
             
             // Calculer le pourcentage de couleur (inverse de la récupération)
             const colorPercent = 100 - recovery.recoveryPercent;
-            const gradientStyle = `background: linear-gradient(to right, 
-                var(--muscle-${muscle.key}) 0%, 
-                var(--muscle-${muscle.key}) ${colorPercent}%, 
-                var(--bg) ${colorPercent}%, 
-                var(--bg) 100%);`;
+
+            // Background subtil avec overlay
+            const gradientStyle = `
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                position: relative;
+            `;
+
+            const overlayStyle = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: linear-gradient(to right, 
+                    var(--muscle-${muscle.key}) 0%, 
+                    var(--muscle-${muscle.key}) ${colorPercent}%, 
+                    transparent ${colorPercent}%, 
+                    transparent 100%);
+                opacity: 0.15;
+                z-index: 1;
+            `;
 
             return `
                 <div class="muscle-item ${statusClass} muscle-border-left-${muscle.key}" 
-                    style="${gradientStyle}">
+                     style="${gradientStyle}">
+                    <div style="${overlayStyle}"></div>
                     <div class="muscle-info">
                         <h4 class="muscle-title-${muscle.key}">${muscle.name}</h4>
                         <p class="muscle-status-text">${statusText}</p>
@@ -1463,18 +1496,38 @@ async function loadMuscleReadiness() {
         console.error('Erreur chargement état musculaire:', error);
         
         // Si pas de données, afficher tous les muscles comme prêts
-        container.innerHTML = muscleGroups.map(muscle => `
-            <div class="muscle-item ready muscle-border-left-${muscle.key}" 
-                style="background: var(--muscle-${muscle.key});">
-                <div class="muscle-info">
-                    <h4 class="muscle-title-${muscle.key}">${muscle.name}</h4>
-                    <p class="muscle-status-text">Prêt à l'entraînement</p>
+        container.innerHTML = muscleGroups.map(muscle => {
+            const gradientStyle = `
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                position: relative;
+            `;
+
+            const overlayStyle = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: var(--muscle-${muscle.key});
+                opacity: 0.15;
+                z-index: 1;
+            `;
+
+            return `
+                <div class="muscle-item ready muscle-border-left-${muscle.key}" 
+                     style="${gradientStyle}">
+                    <div style="${overlayStyle}"></div>
+                    <div class="muscle-info">
+                        <h4 class="muscle-title-${muscle.key}">${muscle.name}</h4>
+                        <p class="muscle-status-text">Prêt à l'entraînement</p>
+                    </div>
+                    <div class="muscle-indicator">
+                        <div class="indicator-dot muscle-bg-${muscle.key}"></div>
+                    </div>
                 </div>
-                <div class="muscle-indicator">
-                    <div class="indicator-dot muscle-bg-${muscle.key}"></div>
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 }
 
