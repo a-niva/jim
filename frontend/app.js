@@ -1185,6 +1185,7 @@ function collectEquipmentConfig() {
 }
 
 // ===== DASHBOARD =====
+
 async function loadDashboard() {
     if (!currentUser) return;
     
@@ -1226,6 +1227,14 @@ async function loadDashboard() {
         document.getElementById('lastWorkout').textContent = 
             stats.last_workout_date ? new Date(stats.last_workout_date).toLocaleDateString() : '-';
         
+        // AJOUT MANQUANT 1: Charger l'état musculaire
+        await loadMuscleReadiness();
+        
+        // AJOUT MANQUANT 2: Charger les séances récentes
+        if (stats.recent_workouts) {
+            loadRecentWorkouts(stats.recent_workouts);
+        }
+        
         // NOUVEAU: Initialiser les graphiques
         if (typeof initStatsCharts === 'function') {
             await initStatsCharts(currentUser.id, currentUser);
@@ -1233,6 +1242,9 @@ async function loadDashboard() {
         
     } catch (error) {
         console.error('Erreur chargement stats:', error);
+        // En cas d'erreur, appeler quand même les fonctions avec des valeurs par défaut
+        await loadMuscleReadiness();
+        loadRecentWorkouts([]);
     }
     
     // NOUVEAU: Conteneur pour le widget programme
@@ -1545,7 +1557,10 @@ async function loadMuscleReadiness() {
                 // Pas de données = muscle frais
                 const gradientStyle = `
                     background: var(--bg-card);
-                    border: 1px solid var(--border);
+                    border-top: 1px solid var(--border);
+                    border-right: 1px solid var(--border);
+                    border-bottom: 1px solid var(--border);
+                    border-left: 4px solid var(--muscle-${muscle.key});
                     position: relative;
                 `;
 
@@ -1601,7 +1616,10 @@ async function loadMuscleReadiness() {
             // Background subtil avec overlay
             const gradientStyle = `
                 background: var(--bg-card);
-                border: 1px solid var(--border);
+                border-top: 1px solid var(--border);
+                border-right: 1px solid var(--border);
+                border-bottom: 1px solid var(--border);
+                border-left: 4px solid var(--muscle-${muscle.key});
                 position: relative;
             `;
 
@@ -1647,7 +1665,10 @@ async function loadMuscleReadiness() {
         container.innerHTML = muscleGroups.map(muscle => {
             const gradientStyle = `
                 background: var(--bg-card);
-                border: 1px solid var(--border);
+                border-top: 1px solid var(--border);
+                border-right: 1px solid var(--border);
+                border-bottom: 1px solid var(--border);
+                border-left: 4px solid var(--muscle-${muscle.key});
                 position: relative;
             `;
 
