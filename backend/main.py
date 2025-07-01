@@ -948,37 +948,59 @@ def get_muscle_balance(user_id: int, db: Session = Depends(get_db)):
         AdaptiveTargets.user_id == user_id
     ).all()
     
+    # Si pas de targets, calculer les volumes actuels depuis les séances
     if not targets:
-        # Créer des targets par défaut si elles n'existent pas
+        # Calculer le volume par muscle sur les 30 derniers jours
+        cutoff_date = datetime.utcnow() - timedelta(days=30)
+        
+        muscle_volumes = defaultdict(float)
+        
+        # Récupérer tous les sets
+        sets = db.query(
+            WorkoutSet,
+            Exercise.muscle_groups
+        ).join(
+            Exercise, WorkoutSet.exercise_id == Exercise.id
+        ).join(
+            Workout, WorkoutSet.workout_id == Workout.id
+        ).filter(
+            Workout.user_id == user_id,
+            Workout.started_at >= cutoff_date,
+            Workout.status == "completed"
+        ).all()
+        
+        # Calculer le volume par muscle
+        for workout_set, muscle_groups in sets:
+            volume = (workout_set.weight or 0) * workout_set.reps
+            if muscle_groups:
+                volume_per_group = volume / len(muscle_groups)
+                for muscle in muscle_groups:
+                    muscle_volumes[muscle] += volume_per_group
+        
+        # Créer une réponse avec les vrais volumes
+        muscles = ["dos", "pectoraux", "jambes", "epaules", "bras", "abdominaux"]
+        current_volumes = [muscle_volumes.get(m, 0) for m in muscles]
+        
+        # Calculer un target "équilibré" basé sur la moyenne
+        total_volume = sum(current_volumes)
+        avg_volume = total_volume / 6 if total_volume > 0 else 5000
+        target_volumes = [avg_volume] * 6
+        
+        # Calculer les ratios
+        ratios = []
+        for current, target in zip(current_volumes, target_volumes):
+            if target > 0:
+                ratios.append(round((current / target) * 100, 1))
+            else:
+                ratios.append(0)
+        
         return {
-            "muscles": ["dos", "pectoraux", "jambes", "epaules", "bras", "abdominaux"],
-            "targetVolumes": [5000] * 6,
-            "currentVolumes": [0] * 6,
-            "ratios": [0] * 6
+            "muscles": muscles,
+            "targetVolumes": target_volumes,
+            "currentVolumes": current_volumes,
+            "ratios": ratios,
+            "recoveryDebts": [0] * 6
         }
-    
-    muscle_data = []
-    for target in targets:
-        ratio = (target.current_volume / target.target_volume * 100) if target.target_volume > 0 else 0
-        muscle_data.append({
-            "muscle": target.muscle_group,
-            "targetVolume": target.target_volume,
-            "currentVolume": target.current_volume,
-            "ratio": round(ratio, 1),
-            "recoveryDebt": target.recovery_debt
-        })
-    
-    # Trier par groupe musculaire pour consistency
-    muscle_order = ["dos", "pectoraux", "jambes", "epaules", "bras", "abdominaux"]
-    sorted_data = sorted(muscle_data, key=lambda x: muscle_order.index(x["muscle"]) if x["muscle"] in muscle_order else 99)
-    
-    return {
-        "muscles": [d["muscle"] for d in sorted_data],
-        "targetVolumes": [d["targetVolume"] for d in sorted_data],
-        "currentVolumes": [d["currentVolume"] for d in sorted_data],
-        "ratios": [d["ratio"] for d in sorted_data],
-        "recoveryDebts": [d["recoveryDebt"] for d in sorted_data]
-    }
 
 
 @app.get("/api/users/{user_id}/stats/ml-confidence")

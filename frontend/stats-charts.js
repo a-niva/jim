@@ -193,6 +193,17 @@ async function loadProgressionChart(userId, exerciseId) {
             }
         }
         
+// Créer un dégradé pour le fond
+const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+gradient.addColorStop(0, 'rgba(59, 130, 246, 0.4)');
+gradient.addColorStop(0.5, 'rgba(59, 130, 246, 0.2)');
+gradient.addColorStop(1, 'rgba(59, 130, 246, 0.05)');
+
+const fatigueGradient = ctx.createLinearGradient(0, 0, 0, 300);
+fatigueGradient.addColorStop(0, 'rgba(239, 68, 68, 0.3)');
+fatigueGradient.addColorStop(0.5, 'rgba(245, 158, 11, 0.2)');
+fatigueGradient.addColorStop(1, 'rgba(16, 185, 129, 0.1)');
+
         charts.progression = new window.Chart(ctx, {
             type: 'line',
             data: {
@@ -200,26 +211,46 @@ async function loadProgressionChart(userId, exerciseId) {
                 datasets: [{
                     label: '1RM Estimé',
                     data: oneRMData,
-                    borderColor: 'var(--primary)',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    tension: 0.2,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
+                    borderColor: '#3b82f6',
+                    backgroundColor: gradient,
+                    borderWidth: 3,
+                    tension: 0.4,
+                    pointRadius: 5,
+                    pointHoverRadius: 8,
+                    pointBackgroundColor: '#3b82f6',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#3b82f6',
+                    pointHoverBorderWidth: 3,
+                    fill: true
                 }, {
                     label: 'Tendance',
                     data: trendData,
-                    borderColor: 'var(--success)',
-                    borderDash: [5, 5],
+                    borderColor: '#10b981',
+                    borderDash: [8, 4],
+                    borderWidth: 2,
                     fill: false,
-                    pointRadius: 0
+                    pointRadius: 0,
+                    pointHoverRadius: 0
                 }, {
                     label: 'Fatigue',
                     data: fatigueData,
-                    borderColor: 'var(--warning)',
-                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    borderColor: '#f59e0b',
+                    backgroundColor: fatigueGradient,
+                    borderWidth: 2,
                     yAxisID: 'y1',
-                    tension: 0.2,
-                    pointRadius: 3
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointBackgroundColor: function(context) {
+                        const value = context.parsed.y;
+                        if (value >= 4) return '#ef4444';
+                        if (value >= 3) return '#f59e0b';
+                        return '#10b981';
+                    },
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    fill: true
                 }]
             },
             options: {
@@ -234,7 +265,18 @@ async function loadProgressionChart(userId, exerciseId) {
                         beginAtZero: false,
                         title: {
                             display: true,
-                            text: '1RM (kg)'
+                            text: '1RM (kg)',
+                            color: '#3b82f6',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(59, 130, 246, 0.1)'
+                        },
+                        ticks: {
+                            color: '#3b82f6'
                         }
                     },
                     y1: {
@@ -243,10 +285,23 @@ async function loadProgressionChart(userId, exerciseId) {
                         max: 5,
                         title: {
                             display: true,
-                            text: 'Fatigue'
+                            text: 'Fatigue',
+                            color: '#f59e0b',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
                         },
                         grid: {
                             drawOnChartArea: false
+                        },
+                        ticks: {
+                            color: '#f59e0b'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.05)'
                         }
                     }
                 },
@@ -1004,22 +1059,36 @@ async function loadTimeDistributionChart(userId) {
             new Date(s.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
         );
         
+        // Inverser l'ordre des sessions pour avoir chronologique
+        const reversedSessions = [...data.sessions].reverse();
+
         charts.timeDistribution = new window.Chart(ctx, {
             type: 'bar',
             data: {
-                labels: labels,
+                labels: reversedSessions.map(s => 
+                    new Date(s.date).toLocaleDateString('fr-FR', { 
+                        day: 'numeric', 
+                        month: 'short' 
+                    })
+                ),
                 datasets: [{
                     label: 'Exercice',
-                    data: data.sessions.map(s => s.exerciseTime),
-                    backgroundColor: 'var(--primary)'
+                    data: reversedSessions.map(s => s.exerciseTime),
+                    backgroundColor: '#3b82f6',
+                    barPercentage: 0.8,
+                    categoryPercentage: 0.9
                 }, {
                     label: 'Repos',
-                    data: data.sessions.map(s => s.restTime),
-                    backgroundColor: 'var(--warning)'
+                    data: reversedSessions.map(s => s.restTime),
+                    backgroundColor: '#f59e0b',
+                    barPercentage: 0.8,
+                    categoryPercentage: 0.9
                 }, {
                     label: 'Transition',
-                    data: data.sessions.map(s => s.transitionTime),
-                    backgroundColor: 'var(--secondary)'
+                    data: reversedSessions.map(s => s.transitionTime),
+                    backgroundColor: '#94a3b8',
+                    barPercentage: 0.8,
+                    categoryPercentage: 0.9
                 }]
             },
             options: {
@@ -1027,29 +1096,61 @@ async function loadTimeDistributionChart(userId) {
                 maintainAspectRatio: false,
                 scales: {
                     x: {
-                        stacked: true
+                        stacked: true,
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            autoSkip: true,
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
                     },
                     y: {
                         stacked: true,
+                        beginAtZero: true,
                         title: {
                             display: true,
                             text: 'Temps (minutes)'
+                        },
+                        ticks: {
+                            stepSize: 10
                         }
                     }
                 },
                 plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15
+                        }
+                    },
                     tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        borderColor: 'var(--border)',
+                        borderWidth: 1,
+                        padding: 10,
+                        displayColors: true,
                         callbacks: {
+                            afterTitle: function(tooltipItems) {
+                                const session = reversedSessions[tooltipItems[0].dataIndex];
+                                return `${session.setsCount} séries`;
+                            },
                             footer: function(tooltipItems) {
-                                const session = data.sessions[tooltipItems[0].dataIndex];
-                                return `Total: ${session.totalMinutes} min (${session.setsCount} séries)`;
+                                const session = reversedSessions[tooltipItems[0].dataIndex];
+                                return `\nTotal: ${session.totalMinutes} min`;
                             }
                         }
                     }
                 }
             }
         });
-        
+                
     } catch (error) {
         console.error('Erreur chargement distribution temps:', error);
     }
