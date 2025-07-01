@@ -14,7 +14,7 @@ import os
 import logging
 from backend.ml_recommendations import FitnessRecommendationEngine
 from backend.database import engine, get_db, SessionLocal
-from backend.models import Base, User, Exercise, Program, Workout, WorkoutSet, SetHistory, UserCommitment, AdaptiveTargets, UserPreferenceUpdate, UserAdaptationCoefficients, PerformanceStates
+from backend.models import Base, User, Exercise, Program, Workout, WorkoutSet, SetHistory, UserCommitment, AdaptiveTargets, UserAdaptationCoefficients, PerformanceStates
 from backend.schemas import UserCreate, UserResponse, ProgramCreate, WorkoutCreate, SetCreate, ExerciseResponse, UserPreferenceUpdate
 from sqlalchemy import extract, and_
 import calendar
