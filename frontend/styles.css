@@ -722,6 +722,57 @@ textarea:focus {
     opacity: 0.8;
 }
 
+/* Barre de distribution musculaire */
+.muscle-distribution {
+    margin-top: 0.75rem;
+}
+
+.distribution-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.distribution-bar {
+    height: 12px;
+    background: var(--bg-light);
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex;
+    position: relative;
+}
+
+.muscle-segment {
+    height: 100%;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.muscle-segment:hover {
+    filter: brightness(1.2);
+}
+
+.muscle-segment::after {
+    content: attr(data-muscle) ' ' attr(data-percentage);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg);
+    color: var(--text);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    white-space: nowrap;
+    margin-bottom: 4px;
+    border: 1px solid var(--border);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.muscle-segment:hover::after {
+    opacity: 1;
+}
 
 /* ===== SÉANCE DÉTAILLÉE ===== */
 .workout-header {
