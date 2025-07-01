@@ -2314,62 +2314,109 @@ async function updateSetRecommendations() {
             set_order_global: currentWorkoutSession.globalSetCount + 1
         });
 
-        // Obtenir les poids disponibles
-        const weightsData = await apiGet(`/api/users/${currentUser.id}/available-weights`);
-        const availableWeights = weightsData.available_weights.sort((a, b) => a - b);
+        // Déterminer si c'est un exercice isométrique
+        const isIsometric = currentExercise.exercise_type === 'isometric';
 
-        // Stocker les poids disponibles pour navigation
-        sessionStorage.setItem('availableWeights', JSON.stringify(availableWeights));
-
-        // Gérer le cas où pas de recommandation (première série)
-        if (!recommendations.weight_recommendation) {
-            recommendations.weight_recommendation = 20; // Poids par défaut sécurisé
-            recommendations.reasoning = 'Première série - commencez prudemment';
-        }
-
-        // Ajouter l'info de repos dans le reasoning existant
-        if (recommendations.rest_seconds_recommendation) {
-            recommendations.reasoning += ` Repos suggéré : ${recommendations.rest_seconds_recommendation}s.`;
-        }
-
-        // Trouver le poids disponible le plus proche
-        const closestWeight = findClosestWeight(recommendations.weight_recommendation, availableWeights);
-
-        // Mettre à jour les hints IA
-        document.getElementById('weightHint').textContent =
-            `IA: ${recommendations.weight_recommendation}kg`;
-        document.getElementById('repsHint').textContent =
-            `IA: ${recommendations.reps_recommendation || 10}`;
-
-        // Pré-remplir avec les valeurs recommandées (ou les plus proches disponibles)
-        document.getElementById('setWeight').textContent = closestWeight || recommendations.weight_recommendation;
-        document.getElementById('setReps').textContent = recommendations.reps_recommendation || 10;
-
-        // Si les hints sont différents des valeurs affichées, les mettre en évidence
-        if (Math.abs(closestWeight - recommendations.weight_recommendation) > 0.1) {
-            document.getElementById('weightHint').style.color = 'var(--warning)';
+        if (isIsometric) {
+            // Pour les exercices isométriques, afficher uniquement la durée
+            
+            // Masquer les éléments de poids
+            const weightContainer = document.querySelector('.weight-input-group');
+            if (weightContainer) {
+                weightContainer.style.display = 'none';
+            }
+            
+            // Modifier l'affichage des répétitions en durée
+            const repsLabel = document.querySelector('.reps-input-group label');
+            if (repsLabel) {
+                repsLabel.textContent = 'Durée (s)';
+            }
+            
+            // Mettre à jour le hint
+            document.getElementById('repsHint').textContent = 
+                `IA: ${recommendations.reps_recommendation || 30}s`;
+            
+            // Pré-remplir avec la durée recommandée
+            document.getElementById('setReps').textContent = recommendations.reps_recommendation || 30;
+            
+            // Masquer les hints de poids
+            const weightHintEl = document.getElementById('weightHint');
+            if (weightHintEl) {
+                weightHintEl.style.display = 'none';
+            }
+            
         } else {
-            document.getElementById('weightHint').style.color = 'var(--primary)';
+            // Pour les autres exercices (bodyweight et external)
+            
+            // S'assurer que les éléments de poids sont visibles
+            const weightContainer = document.querySelector('.weight-input-group');
+            if (weightContainer) {
+                weightContainer.style.display = 'block';
+            }
+            
+            // Remettre le label des répétitions
+            const repsLabel = document.querySelector('.reps-input-group label');
+            if (repsLabel) {
+                repsLabel.textContent = 'Répétitions';
+            }
+            
+            // Obtenir les poids disponibles
+            const weightsData = await apiGet(`/api/users/${currentUser.id}/available-weights`);
+            const availableWeights = weightsData.available_weights.sort((a, b) => a - b);
+
+            // Stocker les poids disponibles pour navigation
+            sessionStorage.setItem('availableWeights', JSON.stringify(availableWeights));
+
+            // Gérer le cas où pas de recommandation (première série)
+            if (!recommendations.weight_recommendation) {
+                recommendations.weight_recommendation = 20; // Poids par défaut sécurisé
+                recommendations.reasoning = 'Première série - commencez prudemment';
+            }
+
+            // Ajouter l'info de repos dans le reasoning existant
+            if (recommendations.rest_seconds_recommendation) {
+                recommendations.reasoning += ` Repos suggéré : ${recommendations.rest_seconds_recommendation}s.`;
+            }
+
+            // Trouver le poids disponible le plus proche
+            const closestWeight = findClosestWeight(recommendations.weight_recommendation, availableWeights);
+
+            // Mettre à jour les hints IA
+            document.getElementById('weightHint').textContent =
+                `IA: ${recommendations.weight_recommendation}kg`;
+            document.getElementById('repsHint').textContent =
+                `IA: ${recommendations.reps_recommendation || 10}`;
+
+            // Pré-remplir avec les valeurs recommandées
+            document.getElementById('setWeight').textContent = closestWeight || recommendations.weight_recommendation;
+            document.getElementById('setReps').textContent = recommendations.reps_recommendation || 10;
+
+            // Si les hints sont différents des valeurs affichées, les mettre en évidence
+            if (Math.abs(closestWeight - recommendations.weight_recommendation) > 0.1) {
+                document.getElementById('weightHint').style.color = 'var(--warning)';
+            } else {
+                document.getElementById('weightHint').style.color = 'var(--primary)';
+            }
+            
+            // Gérer l'affichage selon la stratégie d'adaptation
+            const weightHintEl = document.getElementById('weightHint');
+            const setWeightEl = document.getElementById('setWeight');
+            
+            if (recommendations.adaptation_strategy === 'fixed_weight') {
+                // Mode poids fixe : masquer les hints de poids et désactiver visuellement
+                if (weightHintEl) weightHintEl.style.display = 'none';
+                if (setWeightEl) setWeightEl.classList.add('fixed-weight');
+            } else {
+                // Mode poids variable : afficher normalement
+                if (weightHintEl) weightHintEl.style.display = 'block';
+                if (setWeightEl) setWeightEl.classList.remove('fixed-weight');
+            }
         }
 
         // Afficher le temps de repos si l'élément existe
         const restHintEl = document.getElementById('restHint');
         if (restHintEl && recommendations.rest_seconds_recommendation) {
             restHintEl.textContent = `Repos: ${recommendations.rest_seconds_recommendation}s`;
-        }
-
-        // Gérer l'affichage selon la stratégie d'adaptation
-        const weightHintEl = document.getElementById('weightHint');
-        const setWeightEl = document.getElementById('setWeight');
-        
-        if (recommendations.adaptation_strategy === 'fixed_weight') {
-            // Mode poids fixe : masquer les hints de poids et désactiver visuellement
-            if (weightHintEl) weightHintEl.style.display = 'none';
-            if (setWeightEl) setWeightEl.classList.add('fixed-weight');
-        } else {
-            // Mode poids variable : afficher normalement
-            if (weightHintEl) weightHintEl.style.display = 'block';
-            if (setWeightEl) setWeightEl.classList.remove('fixed-weight');
         }
 
         // Mettre à jour la confiance
@@ -2383,8 +2430,16 @@ async function updateSetRecommendations() {
     } catch (error) {
         console.error('Erreur recommandations ML:', error);
         // Valeurs par défaut en cas d'erreur
-        document.getElementById('setWeight').textContent = '';
-        document.getElementById('setReps').textContent = '';
+        const isIsometric = currentExercise.exercise_type === 'isometric';
+        
+        if (isIsometric) {
+            document.getElementById('setReps').textContent = '30';
+            const weightContainer = document.querySelector('.weight-input-group');
+            if (weightContainer) weightContainer.style.display = 'none';
+        } else {
+            document.getElementById('setWeight').textContent = '';
+            document.getElementById('setReps').textContent = '';
+        }
     }
 }
 
@@ -2436,10 +2491,14 @@ function updateSetsHistory() {
         s => s.exercise_id === currentExercise.id
     );
     
+    const isIsometric = currentExercise.exercise_type === 'isometric';
+    
     container.innerHTML = exerciseSets.map((set, index) => `
         <div class="set-history-item">
             <div class="set-number">${index + 1}</div>
-            <div class="set-details">${set.weight}kg × ${set.reps} reps</div>
+            <div class="set-details">
+                ${isIsometric ? `${set.duration_seconds || set.reps}s` : `${set.weight}kg × ${set.reps} reps`}
+            </div>
             <div class="set-feedback-summary">
                 ${set.fatigue_level ? `Fatigue: ${set.fatigue_level}/5` : ''}
             </div>
@@ -4250,7 +4309,18 @@ function adjustWeightDown() {
 function adjustReps(delta) {
     const repsElement = document.getElementById('setReps');
     const current = parseInt(repsElement.textContent);
-    repsElement.textContent = Math.max(1, current + delta);
+    
+    // Pour les exercices isométriques, ajuster par 5 secondes
+    const isIsometric = currentExercise?.exercise_type === 'isometric';
+    const increment = isIsometric ? delta * 5 : delta;
+    
+    repsElement.textContent = Math.max(1, current + increment);
+}
+
+function adjustDuration(delta) {
+    const durationElement = document.getElementById('setDuration');
+    const current = parseInt(durationElement.textContent);
+    durationElement.textContent = Math.max(1, current + delta);
 }
 
 // ===== EXÉCUTION D'UNE SÉRIE =====
@@ -4266,11 +4336,16 @@ async function executeSet() {
     }
     
     // Sauvegarder les données de la série
-    workoutState.pendingSetData = {
+    const isIsometric = currentExercise.exercise_type === 'isometric';
+    workoutState.pendingSetData = isIsometric ? {
+        duration_seconds: parseInt(document.getElementById('setReps').textContent), // On utilise setReps pour la durée
+        reps: parseInt(document.getElementById('setReps').textContent), // Pour compatibilité
+        weight: null
+    } : {
         reps: parseInt(document.getElementById('setReps').textContent),
         weight: parseFloat(document.getElementById('setWeight').textContent)
     };
-    
+        
     // Transition vers FEEDBACK
     transitionTo(WorkoutStates.FEEDBACK);
 }
@@ -4390,55 +4465,96 @@ async function validateSet() {
     const effort = document.querySelector('.emoji-btn[data-effort].selected')?.dataset.effort;
     
     if (!fatigue || !effort) {
-        showToast('Veuillez indiquer votre fatigue et effort', 'warning');
+        showToast('Veuillez indiquer fatigue et effort', 'warning');
         return;
     }
     
-    // Mettre à jour les données de la série avec le feedback
+    // Déterminer si c'est un exercice isométrique
+    const isIsometric = currentExercise.exercise_type === 'isometric';
+    
+    // Construire les données de la série selon le type d'exercice
+    let setData;
+    
+    if (isIsometric) {
+        // Pour les exercices isométriques
+        setData = {
+            exercise_id: currentExercise.id,
+            set_number: currentSet,
+            reps: workoutState.pendingSetData.reps, // La durée est stockée dans reps pour compatibilité
+            weight: null, // Pas de poids pour les isométriques
+            duration_seconds: workoutState.pendingSetData.duration_seconds || workoutState.pendingSetData.reps,
+            fatigue_level: parseInt(fatigue),
+            effort_level: parseInt(effort),
+            base_rest_time_seconds: currentExercise.base_rest_time_seconds || 60,
+            exercise_order_in_session: currentWorkoutSession.exerciseOrder,
+            set_order_in_session: currentWorkoutSession.globalSetCount + 1,
+            // Recommandations ML
+            ml_weight_suggestion: null,
+            ml_reps_suggestion: workoutState.currentRecommendation?.reps_recommendation,
+            ml_confidence: workoutState.currentRecommendation?.confidence,
+            user_followed_ml_weight: null,
+            user_followed_ml_reps: workoutState.pendingSetData.reps === workoutState.currentRecommendation?.reps_recommendation
+        };
+    } else {
+        // Pour les exercices standard (bodyweight ou external)
+        setData = {
+            exercise_id: currentExercise.id,
+            set_number: currentSet,
+            reps: workoutState.pendingSetData.reps,
+            weight: workoutState.pendingSetData.weight,
+            duration_seconds: null,
+            fatigue_level: parseInt(fatigue),
+            effort_level: parseInt(effort),
+            base_rest_time_seconds: currentExercise.base_rest_time_seconds || 90,
+            exercise_order_in_session: currentWorkoutSession.exerciseOrder,
+            set_order_in_session: currentWorkoutSession.globalSetCount + 1,
+            // Recommandations ML
+            ml_weight_suggestion: workoutState.currentRecommendation?.weight_recommendation,
+            ml_reps_suggestion: workoutState.currentRecommendation?.reps_recommendation,
+            ml_confidence: workoutState.currentRecommendation?.confidence,
+            user_followed_ml_weight: Math.abs((workoutState.pendingSetData.weight || 0) - (workoutState.currentRecommendation?.weight_recommendation || 0)) < 0.5,
+            user_followed_ml_reps: workoutState.pendingSetData.reps === workoutState.currentRecommendation?.reps_recommendation
+        };
+    }
+    
+    // Ajouter les données communes depuis pendingSetData si elles existent
     if (workoutState.pendingSetData) {
-        workoutState.pendingSetData.fatigue_level = parseInt(fatigue);
-        workoutState.pendingSetData.effort_level = parseInt(effort);
+        // Ces champs sont déjà ajoutés ci-dessus, mais on peut ajouter d'autres si nécessaire
+    }
+    
+    try {
+        // Enregistrer la série
+        await apiPost(`/api/workouts/${currentWorkout.id}/sets`, setData);
         
-        try {
-            // Enregistrer la série complète
-            await apiPost(`/api/workouts/${currentWorkout.id}/sets`, workoutState.pendingSetData);
-            
-            currentWorkoutSession.completedSets.push(workoutState.pendingSetData);
-            currentWorkoutSession.globalSetCount++;
-
-            // Mettre à jour le compteur de séries complétées pour cet exercice
-            if (currentWorkoutSession.type === 'program' && currentExercise) {
-                const exerciseState = currentWorkoutSession.programExercises[currentExercise.id];
-                if (exerciseState) {
-                    exerciseState.completedSets = currentWorkoutSession.completedSets.filter(
-                        s => s.exercise_id === currentExercise.id
-                    ).length;
-                }
-            }
-            // Mettre à jour les compteurs immédiatement
-            updateHeaderProgress();
-            // Mettre à jour la progression du programme si applicable
-            if (currentWorkoutSession.type === 'program') {
-                updateProgramExerciseProgress();
-                // Forcer le rechargement de la liste pour mettre à jour les compteurs
-                loadProgramExercisesList();
-            }
-            
-            // Cacher le feedback
-            document.getElementById('setFeedback').style.display = 'none';
-            
-            // Réinitialiser les emojis
-            document.querySelectorAll('.emoji-btn').forEach(btn => {
-                btn.classList.remove('selected');
-                btn.style.backgroundColor = '';
-            });
-            
-            showToast('Feedback enregistré !', 'success');
-            
-        } catch (error) {
-            console.error('Erreur enregistrement série:', error);
-            showToast('Erreur lors de l\'enregistrement', 'error');
-        }
+        // Ajouter aux séries complétées
+        currentWorkoutSession.completedSets.push(setData);
+        currentWorkoutSession.globalSetCount++;
+        
+        // Sauvegarder les niveaux de fatigue/effort pour la prochaine recommandation
+        currentWorkoutSession.currentSetFatigue = parseInt(fatigue);
+        currentWorkoutSession.currentSetEffort = parseInt(effort);
+        workoutState.lastEffort = parseInt(effort);
+        
+        // Mettre à jour l'historique visuel
+        updateSetsHistory();
+        
+        // Transition vers RESTING
+        transitionTo(WorkoutStates.RESTING);
+        
+        // Calculer le temps de repos optimal
+        const restTime = workoutState.currentRecommendation?.rest_seconds_recommendation || 
+                        currentExercise.base_rest_time_seconds || 
+                        (isIsometric ? 60 : 90);
+        
+        // Démarrer le repos
+        startRestPeriod(restTime);
+        
+        // Réinitialiser la sélection de feedback
+        resetFeedbackSelection();
+        
+    } catch (error) {
+        console.error('Erreur enregistrement série:', error);
+        showToast('Erreur lors de l\'enregistrement', 'error');
     }
 }
 
