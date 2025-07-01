@@ -3098,6 +3098,11 @@ async function loadAvailableExercises() {
             });
         });
         
+        // Trier chaque groupe alphabétiquement
+        Object.keys(exercisesByMuscle).forEach(muscle => {
+            exercisesByMuscle[muscle].sort((a, b) => a.name.localeCompare(b.name));
+        });
+        
         // Générer le HTML groupé
         const muscleGroupsContainer = document.getElementById('muscleGroupsContainer');
         if (muscleGroupsContainer) {

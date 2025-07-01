@@ -692,7 +692,7 @@ def get_attendance_calendar(user_id: int, months: int = 6, db: Session = Depends
         week_end = week_start + timedelta(days=6)
         # Ne pas compter les semaines avant la création du profil
         user = db.query(User).filter(User.id == user_id).first()
-        if user and week_end.date() < user.created_at.date():
+        if user and week_end < user.created_at.date():
             continue
         
         if week_start < cutoff_date.date():
@@ -824,17 +824,26 @@ def get_muscle_sunburst(user_id: int, days: int = 30, db: Session = Depends(get_
         if muscle_groups:
             volume_per_group = volume / len(muscle_groups)
             
-            for group in muscle_groups:
-                muscle_data[group]["volume"] += volume_per_group
+            # Dans la fonction get_muscle_sunburst, remplacer toute la logique de distribution par :
+            if muscle_groups:
+                volume_per_group = volume / len(muscle_groups)
                 
-                # Si des muscles spécifiques sont définis
-                if muscles:
-                    # Filtrer les muscles qui appartiennent à ce groupe
-                    group_muscles = [m for m in muscles if m in get_muscles_for_group(group)]
-                    if group_muscles:
-                        volume_per_muscle = volume_per_group / len(group_muscles)
-                        for muscle in group_muscles:
+                for group in muscle_groups:
+                    muscle_data[group]["volume"] += volume_per_group
+                    
+                    # Si des muscles spécifiques sont définis dans l'exercice
+                    if muscles and len(muscles) > 0:
+                        # Distribuer le volume aux muscles spécifiques de l'exercice
+                        volume_per_muscle = volume_per_group / len(muscles)
+                        for muscle in muscles:
                             muscle_data[group]["muscles"][muscle] += volume_per_muscle
+                    else:
+                        # Si pas de muscles spécifiques, utiliser ceux par défaut du groupe
+                        default_muscles = get_muscles_for_group(group)
+                        if default_muscles:
+                            volume_per_muscle = volume_per_group / len(default_muscles)
+                            for muscle in default_muscles:
+                                muscle_data[group]["muscles"][muscle] += volume_per_muscle
     
     # Formatter pour le sunburst
     children = []
@@ -850,14 +859,15 @@ def get_muscle_sunburst(user_id: int, days: int = 30, db: Session = Depends(get_
                         "value": round(volume)
                     })
         
-        # Si pas de muscles spécifiques, utiliser le volume du groupe
+        # Si pas de muscles spécifiques, utiliser le volume du groupe directement
         if not group_children and data["volume"] > 0:
-            group_children.append({
-                "name": f"{group} (général)",
+            # Ne pas créer d'enfant, mettre le volume directement sur le groupe
+            children.append({
+                "name": group,
                 "value": round(data["volume"])
             })
-        
-        if group_children:
+        elif group_children:
+            # Il y a des muscles spécifiques, créer la hiérarchie
             children.append({
                 "name": group,
                 "children": group_children
@@ -1108,7 +1118,7 @@ def get_time_distribution(user_id: int, sessions: int = 10, db: Session = Depend
         
         # Calculer les temps
         total_exercise_time = sum(s.duration_seconds or 60 for s in sets)  # 60s par défaut par série
-        total_rest_time = sum(s.rest_after_seconds or 0 for s in sets)
+        total_rest_time = sum(s.base_rest_time_seconds or 0 for s in sets)
         total_duration_seconds = workout.total_duration_minutes * 60
         transition_time = max(0, total_duration_seconds - total_exercise_time - total_rest_time)
         
