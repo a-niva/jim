@@ -2931,28 +2931,6 @@ function apiPut(url, data = {}) {
     });
 }
 
-async function apiPut(endpoint, data = null) {
-    const options = {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    };
-    
-    if (data) {
-        options.body = JSON.stringify(data);
-    }
-    
-    const response = await fetch(endpoint, options);
-    
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Erreur réseau');
-    }
-    
-    return response.json();
-}
-
 function apiDelete(url) {
     return apiRequest(url, {
         method: 'DELETE'
