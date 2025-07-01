@@ -1145,7 +1145,7 @@ def get_muscles_for_group(muscle_group: str) -> List[str]:
         "bras": ["biceps", "triceps"],
         "abdominaux": ["abdominaux", "obliques"]
     }
-    return mapping.get(muscle_group, [])
+    return mapping.get(muscle_group, []) 
 
 # ===== CALCULS POIDS DISPONIBLES =====
 

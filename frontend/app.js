@@ -3139,7 +3139,7 @@ async function loadAvailableExercises() {
                         </div>
                     </div>
                 `).join('');
-        }
+        } 
         
     } catch (error) {
         console.error('Erreur chargement exercices:', error);
