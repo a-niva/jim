@@ -4070,21 +4070,24 @@ async function loadAvailableExercises() {
                                     </svg>
                                 </div>
                                 <div class="muscle-exercises-grid expanded">
-                                    ${muscleExercises.map(exercise => `
-                                        <div class="free-exercise-card" data-exercise-name="${exercise.name.toLowerCase()}" 
-                                            data-muscle="${muscle}" data-difficulty="${exercise.difficulty}"
-                                            onclick="selectExercise({
-                                            id: ${exercise.id},
-                                            name: '${exercise.name.replace(/'/g, "\\'")}',
-                                            instructions: '${(exercise.instructions || '').replace(/'/g, "\\'")}',
-                                            muscle_groups: ${JSON.stringify(exercise.muscle_groups)},
-                                            equipment_required: ${JSON.stringify(exercise.equipment_required || [])},
-                                            difficulty: '${exercise.difficulty}',
-                                            default_sets: ${exercise.default_sets || 3},
-                                            default_reps_min: ${exercise.default_reps_min || 8},
-                                            default_reps_max: ${exercise.default_reps_max || 12},
-                                            base_rest_time_seconds: ${exercise.base_rest_time_seconds || 90}
-                                        })">
+                                    ${muscleExercises.map((exercise, index) => `
+                                        <div class="free-exercise-card" 
+                                            data-exercise-name="${exercise.name.toLowerCase()}" 
+                                            data-muscle="${muscle}" 
+                                            data-difficulty="${exercise.difficulty}"
+                                            data-exercise='${JSON.stringify({
+                                                id: exercise.id,
+                                                name: exercise.name,
+                                                instructions: exercise.instructions || '',
+                                                muscle_groups: exercise.muscle_groups,
+                                                equipment_required: exercise.equipment_required || [],
+                                                difficulty: exercise.difficulty,
+                                                default_sets: exercise.default_sets || 3,
+                                                default_reps_min: exercise.default_reps_min || 8,
+                                                default_reps_max: exercise.default_reps_max || 12,
+                                                base_rest_time_seconds: exercise.base_rest_time_seconds || 90
+                                            })}'
+                                            onclick="selectExerciseFromCard(this)">
                                             <div class="exercise-card-header">
                                                 <h4>${exercise.name}</h4>
                                                 <span class="difficulty-badge difficulty-${exercise.difficulty}">
@@ -4168,6 +4171,17 @@ function toggleMuscleGroup(muscle) {
     
     grid.classList.toggle('expanded');
     icon.classList.toggle('rotated');
+}
+
+// Fonction pour sélectionner un exercice depuis une carte
+function selectExerciseFromCard(element) {
+    try {
+        const exerciseData = JSON.parse(element.dataset.exercise);
+        selectExercise(exerciseData);
+    } catch (error) {
+        console.error('Erreur parsing exercice:', error);
+        showToast('Erreur lors de la sélection', 'error');
+    }
 }
 
 
@@ -5290,6 +5304,7 @@ window.enrichWorkoutsWithExercises = enrichWorkoutsWithExercises;
 window.toggleMuscleTooltip = toggleMuscleTooltip;
 window.confirmStartProgramWorkout = confirmStartProgramWorkout;
 
+window.selectExerciseFromCard = selectExerciseFromCard;
 window.searchExercises = searchExercises;
 window.filterByMuscleGroup = filterByMuscleGroup;
 window.toggleMuscleGroup = toggleMuscleGroup;

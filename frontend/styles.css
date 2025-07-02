@@ -2805,53 +2805,177 @@ select:focus-visible {
     display: flex;
     gap: 0.5rem;
     overflow-x: auto;
-    padding-bottom: 0.5rem;
+    padding: 0.5rem 0 1rem;
+    margin: 0 -1rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    position: relative; /* Ajouter cette ligne */
+    
+    /* Smooth scrolling */
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    
+    /* Hide scrollbar but keep functionality */
     scrollbar-width: none;
     -ms-overflow-style: none;
 }
 
+
 .muscle-tabs::-webkit-scrollbar {
     display: none;
+}
+
+/* Indicateur de scroll sur mobile */
+@media (max-width: 768px) {
+    .muscle-tabs::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 2rem;
+        background: linear-gradient(to right, transparent, var(--bg));
+        pointer-events: none;
+        z-index: 1;
+    }
+    
+    .exercise-filters {
+        position: relative;
+        margin: 0 -1rem;
+        padding: 0 1rem;
+    }
 }
 
 .muscle-tab {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.625rem 1rem;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
+    padding: 0.75rem 1.25rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid transparent;
+    border-radius: 25px;
     color: var(--text-muted);
-    font-size: 0.875rem;
-    font-weight: 500;
+    font-size: 0.9rem;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
     white-space: nowrap;
     flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Effet de brillance au survol */
+.muscle-tab::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    transform: scale(0);
+    transition: transform 0.5s ease;
+}
+
+.muscle-tab:hover::before {
+    transform: scale(1);
 }
 
 .muscle-tab:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: var(--primary);
-    color: var(--text);
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
 }
 
 .muscle-tab.active {
     background: var(--primary);
-    border-color: var(--primary);
     color: white;
+    font-weight: 700;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
 }
 
 .tab-icon {
-    font-size: 1.25rem;
+    font-size: 1.5rem;
+    filter: grayscale(0.5);
+    transition: filter 0.3s ease;
+}
+
+.muscle-tab.active .tab-icon {
+    filter: grayscale(0);
+}
+
+
+/* Amélioration mobile spécifique */
+@media (max-width: 480px) {
+    .muscle-tabs {
+        gap: 0.75rem;
+        padding-bottom: 1.5rem;
+    }
+    
+    .muscle-tab {
+        padding: 0.625rem 1rem;
+        font-size: 0.85rem;
+    }
+    
+    .tab-icon {
+        font-size: 1.25rem;
+    }
+    
+    /* Effet de snap scroll sur mobile */
+    .muscle-tabs {
+        scroll-snap-type: x mandatory;
+        scroll-padding: 1rem;
+    }
+    
+    .muscle-tab {
+        scroll-snap-align: center;
+    }
+    
+    /* Premier et dernier élément avec padding supplémentaire */
+    .muscle-tab:first-child {
+        margin-left: 0.5rem;
+    }
+    
+    .muscle-tab:last-child {
+        margin-right: 0.5rem;
+    }
+}
+
+/* Animation d'entrée pour les cartes sur mobile */
+@media (max-width: 768px) {
+    .free-exercise-card {
+        animation: slideIn 0.3s ease forwards;
+        opacity: 0;
+    }
+    
+    .free-exercise-card:nth-child(1) { animation-delay: 0.05s; }
+    .free-exercise-card:nth-child(2) { animation-delay: 0.1s; }
+    .free-exercise-card:nth-child(3) { animation-delay: 0.15s; }
+    .free-exercise-card:nth-child(4) { animation-delay: 0.2s; }
+    .free-exercise-card:nth-child(5) { animation-delay: 0.25s; }
+    
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
 }
 
 .tab-count {
-    padding: 0.125rem 0.5rem;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    font-size: 0.75rem;
+    padding: 0.2rem 0.6rem;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.muscle-tab.active .tab-count {
+    background: rgba(255, 255, 255, 0.25);
 }
 
 .muscle-tab.active .tab-count {
