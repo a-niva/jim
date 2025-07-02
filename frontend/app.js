@@ -2421,167 +2421,192 @@ async function updateSetRecommendations() {
         workoutState.currentRecommendation = recommendations;
 
         // Déterminer le type d'exercice
-        const isIsometric = currentExercise.exercise_type === 'isometric';
-        const isBodyweight = currentExercise.weight_type === 'bodyweight' && !isIsometric;
-
-        if (isIsometric) {
-            // Pour les exercices isométriques, afficher uniquement la durée
-            
-            // Masquer les éléments de poids
-            const weightContainer = document.querySelector('.weight-input-group');
-            if (weightContainer) {
-                weightContainer.style.display = 'none';
-            }
-            
-            // Modifier l'affichage des répétitions en durée
-            const repsLabel = document.querySelector('.reps-input-group label');
-            if (repsLabel) {
-                repsLabel.textContent = 'Durée (s)';
-            }
-            
-            // Mettre à jour le hint
-            document.getElementById('repsHint').textContent = 
-                `IA: ${recommendations.reps_recommendation || 30}s`;
-            
-            // Pré-remplir avec la durée recommandée
-            document.getElementById('setReps').textContent = recommendations.reps_recommendation || 30;
-            
-            // Masquer les hints de poids
-            const weightHintEl = document.getElementById('weightHint');
-            if (weightHintEl) {
-                weightHintEl.style.display = 'none';
-            }
-            
-        } else if (isBodyweight) {
-            // Pour les exercices bodyweight non-isométriques (pompes, tractions, etc.)
-            
-            // Masquer TOUS les éléments liés au poids
-            const weightContainer = document.querySelector('.weight-input-group');
-            if (weightContainer) {
-                weightContainer.style.display = 'none';
-            }
-            
-            const weightHintEl = document.getElementById('weightHint');
-            if (weightHintEl) {
-                weightHintEl.style.display = 'none';
-            }
-            
-            // S'assurer que setWeight est null pour éviter les erreurs
-            const setWeightEl = document.getElementById('setWeight');
-            if (setWeightEl) {
-                setWeightEl.textContent = '';
-            }
-            
-            // Afficher normalement les reps
-            const repsLabel = document.querySelector('.reps-input-group label');
-            if (repsLabel) {
-                repsLabel.textContent = 'Répétitions';
-            }
-            
-            document.getElementById('repsHint').textContent =
-                `IA: ${recommendations.reps_recommendation || 10}`;
-            document.getElementById('setReps').textContent = recommendations.reps_recommendation || 10;
-            
-        } else {
-            // Pour les exercices avec poids externe
-            
-            // S'assurer que les éléments de poids sont visibles
-            const weightContainer = document.querySelector('.weight-input-group');
-            if (weightContainer) {
-                weightContainer.style.display = 'flex';
-            }
-            
-            // Rétablir le label des reps
-            const repsLabel = document.querySelector('.reps-input-group label');
-            if (repsLabel) {
-                repsLabel.textContent = 'Répétitions';
-            }
-            
-            // Obtenir les poids disponibles
-            const weightsData = await apiGet(`/api/users/${currentUser.id}/available-weights`);
-            const availableWeights = weightsData.available_weights.sort((a, b) => a - b);
-
-            // Stocker les poids disponibles pour navigation
-            sessionStorage.setItem('availableWeights', JSON.stringify(availableWeights));
-
-            // Gérer le cas où pas de recommandation (première série)
-            if (!recommendations.weight_recommendation) {
-                recommendations.weight_recommendation = 20; // Poids par défaut sécurisé
-                recommendations.reasoning = 'Première série - commencez prudemment';
-            }
-
-            // Ajouter l'info de repos dans le reasoning existant
-            if (recommendations.rest_seconds_recommendation) {
-                recommendations.reasoning += ` Repos suggéré : ${recommendations.rest_seconds_recommendation}s.`;
-            }
-
-            // Trouver le poids disponible le plus proche
-            const closestWeight = findClosestWeight(recommendations.weight_recommendation, availableWeights);
-
-            // Mettre à jour les hints IA
-            document.getElementById('weightHint').textContent =
-                `IA: ${recommendations.weight_recommendation}kg`;
-            document.getElementById('repsHint').textContent =
-                `IA: ${recommendations.reps_recommendation || 10}`;
-
-            // Pré-remplir avec les valeurs recommandées (ou les plus proches disponibles)
-            document.getElementById('setWeight').textContent = closestWeight || recommendations.weight_recommendation;
-            document.getElementById('setReps').textContent = recommendations.reps_recommendation || 10;
-
-            // Si les hints sont différents des valeurs affichées, les mettre en évidence
-            if (Math.abs(closestWeight - recommendations.weight_recommendation) > 0.1) {
-                document.getElementById('weightHint').style.color = 'var(--warning)';
-            } else {
-                document.getElementById('weightHint').style.color = 'var(--primary)';
-            }
-
-            // Gérer l'affichage selon la stratégie d'adaptation
-            const weightHintEl = document.getElementById('weightHint');
-            const setWeightEl = document.getElementById('setWeight');
-            
-            if (recommendations.adaptation_strategy === 'fixed_weight') {
-                // Mode poids fixe : masquer les hints de poids et désactiver visuellement
-                if (weightHintEl) weightHintEl.style.display = 'none';
-                if (setWeightEl) setWeightEl.classList.add('fixed-weight');
-            } else {
-                // Mode poids variable : afficher normalement
-                if (weightHintEl) weightHintEl.style.display = 'block';
-                if (setWeightEl) setWeightEl.classList.remove('fixed-weight');
-            }
-        }
-
-        // Afficher le temps de repos si l'élément existe
-        const restHintEl = document.getElementById('restHint');
-        if (restHintEl && recommendations.rest_seconds_recommendation) {
-            restHintEl.textContent = `Repos: ${recommendations.rest_seconds_recommendation}s`;
-        }
-
-        // Mettre à jour la confiance
-        if (recommendations.confidence) {
-            const confidenceEl = document.getElementById('recConfidence');
-            if (confidenceEl) {
-                confidenceEl.textContent = Math.round(recommendations.confidence * 100);
-            }
-        }
+        const exerciseType = getExerciseType(currentExercise);
+        
+        // Appliquer la configuration UI selon le type
+        await configureUIForExerciseType(exerciseType, recommendations);
 
     } catch (error) {
         console.error('Erreur recommandations ML:', error);
         // Valeurs par défaut en cas d'erreur
-        const isIsometric = currentExercise.exercise_type === 'isometric';
-        const isBodyweight = currentExercise.weight_type === 'bodyweight';
-        
-        if (isIsometric) {
-            document.getElementById('setReps').textContent = '30';
-            const weightContainer = document.querySelector('.weight-input-group');
-            if (weightContainer) weightContainer.style.display = 'none';
-        } else if (isBodyweight) {
-            document.getElementById('setReps').textContent = '10';
-            const weightContainer = document.querySelector('.weight-input-group');
-            if (weightContainer) weightContainer.style.display = 'none';
-        } else {
-            document.getElementById('setWeight').textContent = '';
-            document.getElementById('setReps').textContent = '';
-        }
+        applyDefaultValues(currentExercise);
+    }
+}
+
+// Fonction helper pour déterminer le type d'exercice
+function getExerciseType(exercise) {
+    if (exercise.exercise_type === 'isometric') return 'isometric';
+    if (exercise.weight_type === 'bodyweight') return 'bodyweight';
+    return 'weighted';
+}
+
+// Configuration de l'UI selon le type d'exercice
+async function configureUIForExerciseType(type, recommendations) {
+    // Récupérer les éléments DOM une seule fois
+    const elements = {
+        weightRow: document.querySelector('.input-row:has(#setWeight)'),
+        repsRow: document.querySelector('.input-row:has(#setReps)'),
+        weightHint: document.getElementById('weightHint'),
+        repsHint: document.getElementById('repsHint'),
+        setWeight: document.getElementById('setWeight'),
+        setReps: document.getElementById('setReps'),
+        repsIcon: document.querySelector('.input-row:has(#setReps) .input-icon'),
+        repsUnit: document.querySelector('.input-row:has(#setReps) .unit')
+    };
+
+    switch (type) {
+        case 'isometric':
+            configureIsometric(elements, recommendations);
+            break;
+            
+        case 'bodyweight':
+            configureBodyweight(elements, recommendations);
+            break;
+            
+        case 'weighted':
+            await configureWeighted(elements, recommendations);
+            break;
+    }
+
+    // Afficher le temps de repos si recommandé (commun à tous les types)
+    updateRestRecommendation(recommendations);
+    updateConfidence(recommendations);
+}
+
+// Configuration pour exercices isométriques
+function configureIsometric(elements, recommendations) {
+    // Masquer la ligne de poids
+    if (elements.weightRow) {
+        elements.weightRow.setAttribute('data-hidden', 'true');
+    }
+    
+    // Adapter l'affichage pour la durée
+    if (elements.repsRow) {
+        elements.repsRow.classList.add('duration-display');
+    }
+    
+    // Changer l'icône et l'unité
+    if (elements.repsIcon) elements.repsIcon.textContent = '⏱️';
+    if (elements.repsUnit) elements.repsUnit.textContent = 's';
+    
+    // Mettre à jour les valeurs
+    const duration = recommendations.reps_recommendation || 30;
+    if (elements.setReps) elements.setReps.textContent = duration;
+    if (elements.repsHint) elements.repsHint.textContent = `IA: ${duration}s`;
+}
+
+// Configuration pour exercices bodyweight
+function configureBodyweight(elements, recommendations) {
+    // Masquer la ligne de poids
+    if (elements.weightRow) {
+        elements.weightRow.setAttribute('data-hidden', 'true');
+    }
+    
+    // S'assurer que l'affichage des reps est normal
+    if (elements.repsRow) {
+        elements.repsRow.classList.remove('duration-display');
+    }
+    
+    // Icône et unité normales
+    if (elements.repsIcon) elements.repsIcon.textContent = '🔢';
+    if (elements.repsUnit) elements.repsUnit.textContent = 'reps';
+    
+    // Mettre à jour les valeurs
+    const reps = recommendations.reps_recommendation || 10;
+    if (elements.setReps) elements.setReps.textContent = reps;
+    if (elements.repsHint) elements.repsHint.textContent = `IA: ${reps}`;
+}
+
+// Configuration pour exercices avec poids
+async function configureWeighted(elements, recommendations) {
+    // Afficher la ligne de poids
+    if (elements.weightRow) {
+        elements.weightRow.removeAttribute('data-hidden');
+    }
+    
+    // S'assurer que l'affichage est normal
+    if (elements.repsRow) {
+        elements.repsRow.classList.remove('duration-display');
+    }
+    
+    // Icônes et unités normales
+    if (elements.repsIcon) elements.repsIcon.textContent = '🔢';
+    if (elements.repsUnit) elements.repsUnit.textContent = 'reps';
+    
+    // Obtenir les poids disponibles
+    const weightsData = await apiGet(`/api/users/${currentUser.id}/available-weights`);
+    const availableWeights = weightsData.available_weights.sort((a, b) => a - b);
+    sessionStorage.setItem('availableWeights', JSON.stringify(availableWeights));
+    
+    // Gérer les recommandations de poids
+    const weightRec = recommendations.weight_recommendation || 20;
+    const closestWeight = findClosestWeight(weightRec, availableWeights);
+    
+    // Mettre à jour les valeurs de poids
+    if (elements.setWeight) elements.setWeight.textContent = closestWeight || weightRec;
+    if (elements.weightHint) {
+        elements.weightHint.textContent = `IA: ${weightRec}kg`;
+        // Indicateur visuel si le poids disponible est différent
+        elements.weightHint.style.color = Math.abs(closestWeight - weightRec) > 0.1 
+            ? 'var(--warning)' 
+            : 'var(--primary)';
+    }
+    
+    // Mettre à jour les reps
+    const reps = recommendations.reps_recommendation || 10;
+    if (elements.setReps) elements.setReps.textContent = reps;
+    if (elements.repsHint) elements.repsHint.textContent = `IA: ${reps}`;
+    
+    // Gérer le mode poids fixe
+    if (recommendations.adaptation_strategy === 'fixed_weight') {
+        if (elements.weightHint) elements.weightHint.style.opacity = '0.5';
+        if (elements.setWeight) elements.setWeight.classList.add('fixed-weight');
+    } else {
+        if (elements.weightHint) elements.weightHint.style.opacity = '1';
+        if (elements.setWeight) elements.setWeight.classList.remove('fixed-weight');
+    }
+}
+
+// Mise à jour des recommandations de repos
+function updateRestRecommendation(recommendations) {
+    const restHintEl = document.getElementById('restHint');
+    if (restHintEl && recommendations.rest_seconds_recommendation) {
+        restHintEl.textContent = `Repos: ${recommendations.rest_seconds_recommendation}s`;
+    }
+}
+
+// Mise à jour de la confiance
+function updateConfidence(recommendations) {
+    const confidenceEl = document.getElementById('recConfidence');
+    if (confidenceEl && recommendations.confidence) {
+        confidenceEl.textContent = Math.round(recommendations.confidence * 100);
+    }
+}
+
+// Valeurs par défaut en cas d'erreur
+function applyDefaultValues(exercise) {
+    const type = getExerciseType(exercise);
+    const elements = {
+        weightRow: document.querySelector('.input-row:has(#setWeight)'),
+        setWeight: document.getElementById('setWeight'),
+        setReps: document.getElementById('setReps')
+    };
+    
+    switch (type) {
+        case 'isometric':
+            if (elements.setReps) elements.setReps.textContent = '30';
+            if (elements.weightRow) elements.weightRow.setAttribute('data-hidden', 'true');
+            break;
+            
+        case 'bodyweight':
+            if (elements.setReps) elements.setReps.textContent = '10';
+            if (elements.weightRow) elements.weightRow.setAttribute('data-hidden', 'true');
+            break;
+            
+        default:
+            if (elements.setWeight) elements.setWeight.textContent = '20';
+            if (elements.setReps) elements.setReps.textContent = '10';
+            break;
     }
 }
 

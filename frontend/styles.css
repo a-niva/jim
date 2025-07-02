@@ -1978,6 +1978,34 @@ select:focus-visible {
     position: relative;
 }
 
+/* Masquage élégant des lignes */
+.input-row[data-hidden="true"] {
+    display: none !important;
+}
+
+/* Style spécial pour l'affichage de durée */
+.input-row.duration-display .value-display {
+    background: rgba(59, 130, 246, 0.1);
+    padding: 0.5rem 1rem;
+    border-radius: 12px;
+}
+
+.input-row.duration-display .value-display span:first-child {
+    font-size: 3rem;
+}
+
+/* Centrage automatique quand une seule ligne visible */
+.input-section:has(.input-row[data-hidden="true"]) .input-row:not([data-hidden]) {
+    max-width: 350px;
+    margin: 0 auto 1.5rem;
+}
+
+/* Indicateur de poids fixe */
+.fixed-weight {
+    opacity: 0.7;
+    font-style: italic;
+}
+
 .input-icon {
     font-size: 1.8rem;
     margin-right: 1rem;
