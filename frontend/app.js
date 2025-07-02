@@ -2461,6 +2461,22 @@ function updateSetNavigationButtons() {
 async function updateSetRecommendations() {
     if (!currentUser || !currentWorkout || !currentExercise) return;
 
+    // NETTOYAGE PRÉVENTIF : Supprimer tout timer isométrique résiduel
+    const existingTimer = document.getElementById('isometric-timer');
+    if (existingTimer) {
+        console.log('🧹 Nettoyage timer isométrique résiduel');
+        existingTimer.remove();
+    }
+    
+    // Restaurer executeSetBtn si masqué par erreur
+    const executeBtn = document.getElementById('executeSetBtn');
+    if (executeBtn && executeBtn.hasAttribute('data-isometric-disabled') && 
+        currentExercise.exercise_type !== 'isometric') {
+        console.log('🔧 Restauration executeSetBtn incorrectement masqué');
+        executeBtn.style.display = 'block';
+        executeBtn.removeAttribute('data-isometric-disabled');
+    }
+
     try {
         // Obtenir les recommandations ML
         const recommendations = await apiPost(`/api/workouts/${currentWorkout.id}/recommendations`, {
@@ -2490,13 +2506,30 @@ async function updateSetRecommendations() {
 
 // Fonction helper pour déterminer le type d'exercice
 function getExerciseType(exercise) {
-    if (exercise.exercise_type === 'isometric') return 'isometric';
-    if (exercise.weight_type === 'bodyweight') return 'bodyweight';
+    console.log('=== DEBUG getExerciseType ===');
+    console.log('Exercise:', exercise.name);
+    console.log('exercise_type:', exercise.exercise_type);
+    console.log('weight_type:', exercise.weight_type);
+    
+    if (exercise.exercise_type === 'isometric') {
+        console.log('→ Résultat: isometric');
+        return 'isometric';
+    }
+    if (exercise.weight_type === 'bodyweight') {
+        console.log('→ Résultat: bodyweight');
+        return 'bodyweight';
+    }
+    console.log('→ Résultat: weighted');
     return 'weighted';
 }
 
 // Configuration de l'UI selon le type d'exercice
 async function configureUIForExerciseType(type, recommendations) {
+    console.log('=== DEBUG configureUIForExerciseType ===');
+    console.log('Type déterminé:', type);
+    console.log('Exercice:', currentExercise?.name);
+    console.log('exercise_type:', currentExercise?.exercise_type);
+    console.log('weight_type:', currentExercise?.weight_type);
     // Récupérer les éléments DOM une seule fois
     const elements = {
         weightRow: document.querySelector('.input-row:has(#setWeight)'),
@@ -2530,6 +2563,19 @@ async function configureUIForExerciseType(type, recommendations) {
 
 // Configuration pour exercices isométriques
 function configureIsometric(elements, recommendations) {
+    console.log('=== DEBUG configureIsometric ===');
+    console.log('currentExercise:', currentExercise?.name);
+    console.log('exercise_type:', currentExercise?.exercise_type);
+    
+    // VÉRIFICATION STRICTE : Ne pas continuer si ce n'est PAS un isométrique
+    if (!currentExercise || currentExercise.exercise_type !== 'isometric') {
+        console.error('❌ configureIsometric appelé pour un exercice NON-isométrique !');
+        console.error('Exercice:', currentExercise?.name, 'Type:', currentExercise?.exercise_type);
+        return; // SORTIR IMMÉDIATEMENT
+    }
+    
+    console.log('✅ Exercice isométrique confirmé, configuration du timer...');
+    
     if (elements.weightRow) elements.weightRow.setAttribute('data-hidden', 'true');
     if (elements.repsRow) elements.repsRow.setAttribute('data-hidden', 'true');
     
@@ -2576,7 +2622,7 @@ function configureIsometric(elements, recommendations) {
     document.querySelector('.input-section').insertAdjacentHTML('beforeend', timerHtml);
     setupIsometricTimer(targetDuration);
     
-    console.log(`Timer isométrique configuré - Objectif: ${targetDuration}s`);
+    console.log(`✅ Timer isométrique configuré - Objectif: ${targetDuration}s`);
 }
 
 function setupIsometricTimer(targetDuration) {
