@@ -783,8 +783,8 @@ textarea:focus {
 .distribution-bar {
     height: 12px;
     background: var(--bg-light);
-    border-radius: 6px;
-    overflow: visible; /* Important : changer de hidden à visible */
+    border-radius: 8px; /* ← Changer de 6px à 8px */
+    overflow: visible;
     display: flex;
     position: relative;
 }
@@ -793,8 +793,9 @@ textarea:focus {
     height: 100%;
     transition: all 0.3s ease;
     position: relative;
+    cursor: pointer;
+    border-radius: 8px; /* ← AJOUTER cette ligne */
 }
-
 .muscle-segment:hover {
     filter: brightness(1.2);
 }
@@ -822,7 +823,7 @@ textarea:focus {
     -webkit-backdrop-filter: blur(10px);
     color: #1a1a2e;
     padding: 0.75rem 1rem;
-    border-radius: 12px;
+    border-radius: 16px;
     font-size: 0.875rem;
     white-space: nowrap;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
@@ -833,7 +834,6 @@ textarea:focus {
     font-weight: 500;
     z-index: 1000;
 }
-
 
 .muscle-segment:hover .muscle-tooltip,
 .muscle-segment.active .muscle-tooltip {
@@ -853,6 +853,16 @@ textarea:focus {
     border-style: solid;
     border-width: 6px 6px 0 6px;
     border-color: rgba(255, 255, 255, 0.95) transparent transparent transparent;
+}
+
+.muscle-segment:first-child {
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+}
+
+.muscle-segment:last-child {
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
 }
 
 /* Emoji dans le tooltip */
@@ -949,44 +959,48 @@ textarea:focus {
     color: var(--success);
 }
 
-/* Timer circulaire pour les durées isométriques */
+/* Timer circulaire pour exercices isométriques */
 .isometric-timer { 
     position: relative; 
-    max-width: 250px; 
+    max-width: 280px; 
     margin: 2rem auto; 
     text-align: center;
     padding: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .timer-svg { 
-    width: 100%; 
-    height: auto;
-    max-width: 200px;
+    width: 200px; 
+    height: 200px;
+    margin: 0 auto;
+    display: block;
     transform: rotate(-90deg); 
 }
 
 .timer-track { 
     fill: none; 
-    stroke: var(--border); 
-    stroke-width: 6; 
+    stroke: rgba(255, 255, 255, 0.1); 
+    stroke-width: 8; 
 }
 
 .timer-progress { 
     fill: none; 
-    stroke-width: 6; 
+    stroke-width: 8; 
     stroke-linecap: round; 
-    stroke-dasharray: 0 500; 
-    transition: stroke-dasharray 0.1s; 
+    stroke-dasharray: 0 502; 
+    transition: stroke-dasharray 0.1s ease; 
 }
 
 .timer-progress.target { 
-    stroke: var(--success); 
-    filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.5));
+    stroke: #10b981; 
+    filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.6));
 }
 
 .timer-progress.overflow { 
-    stroke: var(--danger); 
-    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.5));
+    stroke: #ef4444; 
+    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.6));
 }
 
 .timer-center { 
@@ -994,17 +1008,22 @@ textarea:focus {
     top: 50%; 
     left: 50%; 
     transform: translate(-50%, -50%); 
-    font-size: 1.8rem; 
-    font-weight: bold; 
+    pointer-events: none;
+    z-index: 10;
+}
+
+.timer-center #timer-display {
+    font-size: 2.2rem; 
+    font-weight: 700; 
     color: var(--text);
-    line-height: 1.2;
+    line-height: 1;
+    margin-bottom: 0.25rem;
 }
 
 .timer-target { 
     font-size: 0.9rem; 
     color: var(--text-muted); 
-    margin-top: 0.25rem; 
-    font-weight: normal;
+    font-weight: 500;
 }
 
 .timer-controls { 
@@ -1017,34 +1036,43 @@ textarea:focus {
     padding: 1rem 2rem; 
     font-size: 1.1rem; 
     font-weight: 600; 
-    min-width: 200px;
+    min-width: 220px;
     border-radius: 12px;
     border: none;
     cursor: pointer;
     transition: all 0.3s ease;
+    margin: 0 auto;
 }
 
 .btn-timer-start {
-    background: var(--success);
+    background: linear-gradient(135deg, #10b981, #059669);
     color: white;
-}
-
-.btn-timer-start:hover {
-    background: var(--success);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
 }
 
 .btn-timer-stop {
-    background: var(--danger);
+    background: linear-gradient(135deg, #ef4444, #dc2626);
     color: white;
+    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
+}
+
+.btn-timer-start:hover, .btn-timer-stop:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
 }
 
 .btn-timer-stop:hover {
-    background: var(--danger);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
 }
+
+.btn-timer-start:disabled, .btn-timer-stop:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+
+/*Progrès des workouts*/
 
 
 .workout-progress {

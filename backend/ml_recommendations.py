@@ -235,8 +235,16 @@ class FitnessRecommendationEngine:
             recent_performances = []
             for h in historical_data[:5]:  # 5 dernières performances
                 if h["success"]:
-                    # Calculer un score de performance (poids × reps)
-                    perf_score = h["weight"] * (1 + h["reps"] / 30)  # Formule d'Epley
+                    # Calculer un score de performance selon le type d'exercice
+                    if exercise.exercise_type == "isometric":
+                        # Pour isométriques : durée directe
+                        perf_score = h["reps"]  # reps = durée en secondes
+                    elif h["weight"] and h["weight"] > 0:
+                        # Pour exercices avec poids : formule d'Epley
+                        perf_score = h["weight"] * (1 + h["reps"] / 30)
+                    else:
+                        # Pour bodyweight : reps directes
+                        perf_score = h["reps"]
                     recent_performances.append(perf_score)
             
             if recent_performances:
@@ -249,10 +257,45 @@ class FitnessRecommendationEngine:
                 
                 # Extraire poids et reps de base depuis le potentiel
                 baseline_weight = perf_state.base_potential / 1.3  # Approximation inverse d'Epley
-                baseline_reps = int(statistics.median([h["reps"] for h in historical_data[:5] if h["success"]]))
+                # Calculer baseline_reps avec progression pour isométriques
+                recent_reps = [h["reps"] for h in historical_data[:5] if h["success"]]
+                if recent_reps:
+                    median_reps = int(statistics.median(recent_reps))
+                    
+                    if exercise.exercise_type == "isometric":
+                        # Pour isométriques : progression graduelle +5s si performance constante
+                        avg_reps = statistics.mean(recent_reps)
+                        if avg_reps > median_reps * 1.1:  # Dépassement constant de 10%
+                            baseline_reps = min(median_reps + 5, exercise.default_reps_max or 120)
+                        elif avg_reps < median_reps * 0.8:  # Sous-performance
+                            baseline_reps = max(median_reps - 5, exercise.default_reps_min or 15)
+                        else:
+                            baseline_reps = median_reps
+                    else:
+                        baseline_reps = median_reps
+                else:
+                    baseline_reps = exercise.default_reps_min
             else:
                 baseline_weight = self._estimate_initial_weight(user, exercise)
-                baseline_reps = exercise.default_reps_min
+                # Pour les isométriques sans historique, commencer par une valeur légèrement progressive
+                if exercise.exercise_type == "isometric":
+                    # Vérifier s'il y a un historique même limité pour cet exercice
+                    any_history = self.db.query(SetHistory).filter(
+                        SetHistory.user_id == user.id,
+                        SetHistory.exercise_id == exercise.id
+                    ).order_by(SetHistory.date_performed.desc()).limit(3).all()
+                    
+                    if any_history:
+                        last_durations = [s.actual_reps for s in any_history if s.actual_reps > 0]
+                        if last_durations:
+                            avg_last = statistics.mean(last_durations)
+                            baseline_reps = min(int(avg_last * 1.05), exercise.default_reps_max or 120)  # +5% progression
+                        else:
+                            baseline_reps = exercise.default_reps_min or 30
+                    else:
+                        baseline_reps = exercise.default_reps_min or 30
+                else:
+                    baseline_reps = exercise.default_reps_min
         
         # Calculer la fatigue aiguë
         now = datetime.utcnow()
@@ -718,8 +761,8 @@ class FitnessRecommendationEngine:
         
         # === 1. VOLUME DE BASE ===
         if exercise.exercise_type == "isometric":
-            # Calibrage : 1 seconde isométrique = 12 points d'effort
-            base_volume = reps * 12
+            # Calibrage : 1 seconde isométrique = 20 points d'effort
+            base_volume = reps * 20
             
         elif exercise.weight_type == "bodyweight":
             percentage_data = exercise.bodyweight_percentage or {"intermediate": 65}

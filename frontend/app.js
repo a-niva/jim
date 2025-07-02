@@ -67,9 +67,9 @@ function updateUIForState(state) {
     
     switch(state) {
         case WorkoutStates.READY:
-            // Vérifier si le bouton est masqué pour isométriques
             const executeBtn = document.getElementById('executeSetBtn');
-            if (executeBtn && !executeBtn.hasAttribute('data-isometric-hidden')) {
+            // Ne jamais afficher executeSetBtn pour isométriques
+            if (executeBtn && !executeBtn.hasAttribute('data-isometric-disabled')) {
                 executeBtn.style.display = 'block';
             }
             document.getElementById('setFeedback').style.display = 'none';
@@ -2533,14 +2533,25 @@ function configureIsometric(elements, recommendations) {
     if (elements.weightRow) elements.weightRow.setAttribute('data-hidden', 'true');
     if (elements.repsRow) elements.repsRow.setAttribute('data-hidden', 'true');
     
-    // IMPORTANT: Masquer définitivement le bouton d'exécution classique
+    // MASQUER COMPLÈTEMENT tous les boutons d'exécution
     const executeBtn = document.getElementById('executeSetBtn');
     if (executeBtn) {
-        executeBtn.style.display = 'none';
-        executeBtn.setAttribute('data-isometric-hidden', 'true');
+        executeBtn.style.display = 'none !important';
+        executeBtn.setAttribute('data-isometric-disabled', 'true');
+    }
+    
+    // Masquer aussi la section de feedback temporairement
+    const feedbackSection = document.getElementById('setFeedback');
+    if (feedbackSection) {
+        feedbackSection.style.display = 'none';
     }
     
     const targetDuration = Math.max(15, recommendations.reps_recommendation || 30);
+    
+    // Supprimer timer existant si présent
+    const existingTimer = document.getElementById('isometric-timer');
+    if (existingTimer) existingTimer.remove();
+    
     const timerHtml = `
         <div class="isometric-timer" id="isometric-timer">
             <svg class="timer-svg" viewBox="0 0 200 200">
@@ -2553,10 +2564,10 @@ function configureIsometric(elements, recommendations) {
                 <div class="timer-target">Objectif: ${targetDuration}s</div>
             </div>
             <div class="timer-controls">
-                <button class="btn btn-success btn-timer-start" id="start-timer">
+                <button class="btn-timer-start" id="start-timer">
                     🚀 Commencer la série
                 </button>
-                <button class="btn btn-danger btn-timer-stop" id="stop-timer" style="display:none">
+                <button class="btn-timer-stop" id="stop-timer" style="display:none">
                     ✋ Terminer la série
                 </button>
             </div>
@@ -2564,6 +2575,8 @@ function configureIsometric(elements, recommendations) {
     
     document.querySelector('.input-section').insertAdjacentHTML('beforeend', timerHtml);
     setupIsometricTimer(targetDuration);
+    
+    console.log(`Timer isométrique configuré - Objectif: ${targetDuration}s`);
 }
 
 function setupIsometricTimer(targetDuration) {
@@ -2672,18 +2685,27 @@ function setupIsometricTimer(targetDuration) {
 }
 
 function cleanupIsometricTimer() {
+    // Arrêter le timer si actif
+    if (window.currentIsometricTimer && window.currentIsometricTimer.interval) {
+        clearInterval(window.currentIsometricTimer.interval);
+        window.currentIsometricTimer.interval = null;
+    }
+    
+    // Supprimer le DOM
     const timer = document.getElementById('isometric-timer');
     if (timer) timer.remove();
     
-    // Restaurer le bouton d'exécution pour exercices suivants
+    // Restaurer le bouton d'exécution
     const executeBtn = document.getElementById('executeSetBtn');
     if (executeBtn) {
         executeBtn.style.display = 'block';
-        executeBtn.removeAttribute('data-isometric-hidden');
+        executeBtn.removeAttribute('data-isometric-disabled');
     }
     
-    // Reset feedback selection
-    resetFeedbackSelection();
+    // Nettoyer référence globale
+    window.currentIsometricTimer = null;
+    
+    console.log('Timer isométrique nettoyé');
 }
 
 // Configuration pour exercices bodyweight
