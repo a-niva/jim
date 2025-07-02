@@ -2597,7 +2597,7 @@ function configureIsometric(elements, recommendations) {
     // Supprimer timer existant si présent
     const existingTimer = document.getElementById('isometric-timer');
     if (existingTimer) existingTimer.remove();
-    
+        
     const timerHtml = `
         <div class="isometric-timer" id="isometric-timer">
             <svg class="timer-svg" viewBox="0 0 200 200">
@@ -2608,14 +2608,6 @@ function configureIsometric(elements, recommendations) {
             <div class="timer-center">
                 <div id="timer-display">0s</div>
                 <div class="timer-target">Objectif: ${targetDuration}s</div>
-            </div>
-            <div class="timer-controls">
-                <button class="btn-timer-start" id="start-timer">
-                    🚀 Commencer la série
-                </button>
-                <button class="btn-timer-stop" id="stop-timer" style="display:none">
-                    ✋ Terminer la série
-                </button>
             </div>
         </div>`;
     
@@ -2630,104 +2622,97 @@ function setupIsometricTimer(targetDuration) {
     const display = document.getElementById('timer-display');
     const progressTarget = document.getElementById('progress-target');
     const progressOverflow = document.getElementById('progress-overflow');
-    const startBtn = document.getElementById('start-timer');
-    const stopBtn = document.getElementById('stop-timer');
     
-    // Stocker référence globale pour nettoyage
-    window.currentIsometricTimer = { 
+    // Exposer les fonctions via l'objet global
+    window.currentIsometricTimer = {
         targetDuration, 
         currentTime: () => currentTime,
         interval: null,
+        
+        start: () => {
+            timerInterval = setInterval(() => {
+                currentTime++;
+                display.textContent = `${currentTime}s`;
+                
+                // Calcul progression visuelle (identique)
+                if (currentTime <= targetDuration) {
+                    const percent = (currentTime / targetDuration) * 100;
+                    const dashLength = (percent / 100) * 503;
+                    progressTarget.style.strokeDasharray = `${dashLength} 503`;
+                    progressOverflow.style.strokeDasharray = '0 503';
+                } else {
+                    progressTarget.style.strokeDasharray = '503 503';
+                    const overflowTime = currentTime - targetDuration;
+                    const overflowPercent = (overflowTime / targetDuration) * 100;
+                    const overflowDash = Math.min((overflowPercent / 100) * 503, 503);
+                    progressOverflow.style.strokeDasharray = `${overflowDash} 503`;
+                }
+                
+                // Notification objectif atteint
+                if (currentTime === targetDuration && !targetReached) {
+                    targetReached = true;
+                    showToast(`🎯 Objectif ${targetDuration}s atteint !`, 'success');
+                    if (window.workoutAudio) {
+                        window.workoutAudio.playSound('achievement');
+                    }
+                }
+            }, 1000);
+            
+            window.currentIsometricTimer.interval = timerInterval;
+        },
+        
         stop: () => {
-            if (timerInterval) {
-                clearInterval(timerInterval);
-                timerInterval = null;
-            }
+            clearInterval(timerInterval);
+            timerInterval = null;
+            window.currentIsometricTimer.interval = null;
+            
+            // Enregistrer les données
+            workoutState.pendingSetData = {
+                duration_seconds: currentTime,
+                reps: currentTime,
+                weight: null
+            };
+            
+            console.log(`Série isométrique terminée: ${currentTime}s (objectif: ${targetDuration}s)`);
         }
     };
-    
-    startBtn.onclick = () => {
-        // Empêcher double clic
-        startBtn.disabled = true;
-        
-        timerInterval = setInterval(() => {
-            currentTime++;
-            display.textContent = `${currentTime}s`;
-            
-            // Calcul progression visuelle
-            if (currentTime <= targetDuration) {
-                // Phase objectif (vert) - calcul du pourcentage
-                const percent = (currentTime / targetDuration) * 100;
-                const dashLength = (percent / 100) * 503; // 503 = circonférence approximative
-                progressTarget.style.strokeDasharray = `${dashLength} 503`;
-                progressOverflow.style.strokeDasharray = '0 503';
-            } else {
-                // Phase dépassement (rouge)
-                progressTarget.style.strokeDasharray = '503 503'; // Cercle complet vert
-                
-                // Calcul tours supplémentaires en rouge
-                const overflowTime = currentTime - targetDuration;
-                const overflowPercent = (overflowTime / targetDuration) * 100;
-                const overflowDash = Math.min((overflowPercent / 100) * 503, 503);
-                progressOverflow.style.strokeDasharray = `${overflowDash} 503`;
-            }
-            
-            // Notification objectif atteint (une seule fois)
-            if (currentTime === targetDuration && !targetReached) {
-                targetReached = true;
-                showToast(`🎯 Objectif ${targetDuration}s atteint !`, 'success');
-                if (window.workoutAudio) {
-                    window.workoutAudio.playSound('achievement');
-                }
-            }
-        }, 1000);
-        
-        // Stocker l'interval pour nettoyage
-        window.currentIsometricTimer.interval = timerInterval;
-        
-        // Basculer interface
-        startBtn.style.display = 'none';
-        stopBtn.style.display = 'block';
-        stopBtn.disabled = false;
-        
-        // Transition état
-        transitionTo(WorkoutStates.EXECUTING);
-    };
-    
-    stopBtn.onclick = () => {
-        // Empêcher double clic
-        stopBtn.disabled = true;
-        
-        // Arrêter le timer
-        clearInterval(timerInterval);
-        timerInterval = null;
-        window.currentIsometricTimer.interval = null;
-        
-        // Enregistrer les données de la série
-        workoutState.pendingSetData = {
-            duration_seconds: currentTime,
-            reps: currentTime, // Pour compatibilité avec système existant
-            weight: null
-        };
-        
-        // Masquer le timer et passer au feedback
-        document.getElementById('isometric-timer').style.display = 'none';
-        document.getElementById('setFeedback').style.display = 'block';
-        
-        // Transition vers feedback
-        transitionTo(WorkoutStates.FEEDBACK);
-        
-        console.log(`Série isométrique terminée: ${currentTime}s (objectif: ${targetDuration}s)`);
-    };
-    
-    // Réinitialiser les boutons
-    startBtn.disabled = false;
-    stopBtn.disabled = false;
     
     // Réinitialiser l'affichage
     display.textContent = '0s';
     progressTarget.style.strokeDasharray = '0 503';
     progressOverflow.style.strokeDasharray = '0 503';
+}
+
+function handleIsometricAction() {
+    const executeBtn = document.getElementById('executeSetBtn');
+    const mode = executeBtn.getAttribute('data-isometric-mode');
+    
+    if (mode === 'start') {
+        // Démarrer le timer
+        if (window.currentIsometricTimer && window.currentIsometricTimer.start) {
+            window.currentIsometricTimer.start();
+        }
+        
+        // Changer l'emoji en STOP
+        executeBtn.innerHTML = '<span class="go-emoji">⏹️</span>';
+        executeBtn.setAttribute('data-isometric-mode', 'stop');
+        executeBtn.classList.remove('btn-success');
+        executeBtn.classList.add('btn-danger');
+        
+        transitionTo(WorkoutStates.EXECUTING);
+    } else {
+        // Arrêter le timer
+        if (window.currentIsometricTimer && window.currentIsometricTimer.stop) {
+            window.currentIsometricTimer.stop();
+        }
+        
+        // Masquer l'emoji et passer au feedback
+        executeBtn.style.display = 'none';
+        document.getElementById('isometric-timer').style.display = 'none';
+        document.getElementById('setFeedback').style.display = 'block';
+        
+        transitionTo(WorkoutStates.FEEDBACK);
+    }
 }
 
 function cleanupIsometricTimer() {
@@ -2741,17 +2726,28 @@ function cleanupIsometricTimer() {
     const timer = document.getElementById('isometric-timer');
     if (timer) timer.remove();
     
-    // Restaurer le bouton d'exécution
+    // RESTAURER l'emoji vert CLASSIQUE (pas isométrique)
     const executeBtn = document.getElementById('executeSetBtn');
     if (executeBtn) {
         executeBtn.style.display = 'block';
+        executeBtn.innerHTML = '<span class="go-emoji">▶️</span>';
+        
+        // IMPORTANT: Supprimer tous les attributs isométriques
+        executeBtn.removeAttribute('data-isometric-mode');
         executeBtn.removeAttribute('data-isometric-disabled');
+        
+        // Restaurer les classes CSS normales
+        executeBtn.classList.remove('btn-danger');
+        executeBtn.classList.add('btn-success');
+        
+        // RESTAURER la fonction normale executeSet (PAS handleIsometricAction)
+        executeBtn.onclick = executeSet;
     }
     
     // Nettoyer référence globale
     window.currentIsometricTimer = null;
     
-    console.log('Timer isométrique nettoyé');
+    console.log('Timer isométrique nettoyé - Bouton restauré pour exercices classiques');
 }
 
 // Configuration pour exercices bodyweight
