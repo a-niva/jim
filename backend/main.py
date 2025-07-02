@@ -747,6 +747,9 @@ def complete_workout(workout_id: int, data: Dict[str, int] = {}, db: Session = D
     # Sauvegarder le temps de repos total s'il est fourni
     if "total_rest_time" in data:
         workout.total_rest_time_seconds = data["total_rest_time"]
+    
+    db.commit()  # AJOUT CRITIQUE !
+    return {"message": "Séance terminée", "workout": workout}
 
 @app.put("/api/sets/{set_id}/rest-duration")
 def update_set_rest_duration(set_id: int, data: Dict[str, int], db: Session = Depends(get_db)):
