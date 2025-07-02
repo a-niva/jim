@@ -2123,7 +2123,7 @@ async function confirmStartProgramWorkout() {
         
         currentWorkout = response.workout;
         showView('workout');
-        setupProgramWorkout(program);
+        await setupProgramWorkout(currentWorkoutSession.program);
         
     } catch (error) {
         console.error('Erreur démarrage séance:', error);
@@ -2140,7 +2140,7 @@ function setupFreeWorkout() {
     startWorkoutTimer();
 }
 
-function setupProgramWorkout(program) {
+async function setupProgramWorkout(program) {
     document.getElementById('workoutTitle').textContent = 'Séance programme';
     document.getElementById('exerciseSelection').style.display = 'none';
     
@@ -2172,14 +2172,26 @@ function setupProgramWorkout(program) {
     // Prendre le premier exercice non complété
     const firstExercise = program.exercises[0];
     if (firstExercise) {
-        selectProgramExercise(firstExercise.exercise_id, true);
+        // Attendre que la sélection soit terminée avant de continuer
+        await selectProgramExercise(firstExercise.exercise_id, true);
     }
     
     startWorkoutTimer();
 }
 
-async function selectExercise(exercise) {
-    if (!validateSessionState()) return;
+async function selectExercise(exercise, skipValidation = false) {
+    // Pour le setup initial, on peut skipper la validation
+    if (!skipValidation && !validateSessionState(true)) return;
+    
+    // Vérifier que l'exercice est valide
+    if (!exercise || !exercise.id) {
+        console.error('Exercice invalide:', exercise);
+        showToast('Erreur: exercice invalide', 'error');
+        return;
+    }
+    
+    currentExercise = exercise;
+    currentSet = currentSet || 1;
     
     // Récupérer les détails complets de l'exercice si nécessaire
     if (!exercise.weight_type) {
@@ -3699,16 +3711,10 @@ async function selectProgramExercise(exerciseId, isInitialLoad = false) {
         const exerciseState = currentWorkoutSession.programExercises[exerciseId];
         exerciseState.startTime = exerciseState.startTime || new Date();
         
-        // Préparer l'objet exercice avec toutes les propriétés nécessaires
+        // Utiliser l'objet complet avec tous les champs
         const exerciseObj = {
-            id: newExercise.id,
-            name: newExercise.name,
-            instructions: newExercise.instructions,
-            base_rest_time_seconds: newExercise.base_rest_time_seconds,
-            default_reps_min: newExercise.default_reps_min,
-            default_reps_max: newExercise.default_reps_max,
-            default_sets: exerciseState.totalSets,
-            intensity_factor: newExercise.intensity_factor
+            ...newExercise,  // Copier TOUS les champs de newExercise
+            default_sets: exerciseState.totalSets  // Surcharger uniquement le nombre de séries
         };
         
         // Mettre à jour le nombre de séries déjà complétées
@@ -3721,8 +3727,8 @@ async function selectProgramExercise(exerciseId, isInitialLoad = false) {
             currentWorkoutSession.exerciseOrder = 1;
         }
                 
-        // Utiliser la fonction selectExercise existante
-        selectExercise(exerciseObj);
+        // Utiliser la fonction selectExercise existante ET attendre qu'elle finisse
+        await selectExercise(exerciseObj);
         
         // Mettre à jour la liste des exercices
         loadProgramExercisesList();
@@ -4513,20 +4519,16 @@ function setEffort(setId, value) {
     console.log(`Effort set to ${value} for set ${setId}`);
 }
 
-function validateSessionState() {
+function validateSessionState(skipExerciseCheck = false) {
     if (!currentWorkout) {
-        console.error('Pas de séance active');
-        showToast('Erreur: Aucune séance active', 'error');
-        showView('dashboard');
+        showToast('Aucune séance active', 'error');
         return false;
     }
-    
-    if (!currentExercise) {
-        console.error('Pas d\'exercice sélectionné');
-        showToast('Erreur: Aucun exercice sélectionné', 'error');
+    // Pour certains flows (comme setupProgramWorkout), on n'a pas encore d'exercice
+    if (!skipExerciseCheck && !currentExercise) {
+        showToast('Pas d\'exercice sélectionné', 'error');
         return false;
     }
-    
     return true;
 }
 
