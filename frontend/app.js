@@ -1904,26 +1904,35 @@ async function startFreeWorkout() {
 }
 
 async function startProgramWorkout() {
-    clearWorkoutState();
-    currentSet = 1;
-    
     try {
-        // Récupérer le programme actif et le statut
-        const [program, status] = await Promise.all([
-            apiGet(`/api/users/${currentUser.id}/programs/active`),
-            apiGet(`/api/users/${currentUser.id}/program-status`)
-        ]);
+        // Récupérer le programme actif
+        const activeProgram = await apiGet(`/api/users/${currentUser.id}/programs/active`);
         
-        if (!program) {
-            showToast('Aucun programme actif trouvé', 'error');
+        if (!activeProgram) {
+            showToast('Aucun programme actif', 'error');
             return;
         }
         
-        // Afficher le panneau de preview
-        await showProgramPreview(program, status);
+        // Initialiser la session
+        currentWorkoutSession = {
+            type: 'program',
+            program: activeProgram,
+            exerciseOrder: 0,
+            globalSetCount: 0,
+            completedSets: [],
+            sessionFatigue: 3,
+            currentSetFatigue: null,
+            currentSetEffort: null,
+            totalWorkoutTime: 0,
+            totalRestTime: 0,
+            totalSetTime: 0
+        };
+        
+        // Afficher le modal de confirmation
+        showProgramStartModal(activeProgram);
         
     } catch (error) {
-        console.error('Erreur démarrage séance programme:', error);
+        console.error('Erreur chargement programme:', error);
         showToast('Erreur lors du chargement du programme', 'error');
     }
 }
@@ -2114,20 +2123,41 @@ async function showProgramPreview(program, status) {
 
 // Nouvelle fonction pour confirmer et démarrer vraiment la séance
 async function confirmStartProgramWorkout() {
-    closeModal();
+    console.log('1. confirmStartProgramWorkout - début');
+    console.log('2. currentWorkoutSession:', currentWorkoutSession);
+    console.log('3. currentWorkoutSession.program:', currentWorkoutSession?.program);
     
     try {
-        const program = await apiGet(`/api/users/${currentUser.id}/programs/active`);
-        const workoutData = { type: 'program', program_id: program.id };
-        const response = await apiPost(`/api/users/${currentUser.id}/workouts`, workoutData);
+        // Récupérer le programme actif si pas déjà chargé
+        if (!currentWorkoutSession.program) {
+            const activeProgram = await apiGet(`/api/users/${currentUser.id}/programs/active`);
+            if (!activeProgram) {
+                showToast('Aucun programme actif trouvé', 'error');
+                return;
+            }
+            currentWorkoutSession.program = activeProgram;
+        }
         
-        currentWorkout = response.workout;
-        showView('workout');
+        // Créer la séance
+        const workoutData = {
+            type: 'program',
+            program_id: currentWorkoutSession.program.id
+        };
+        
+        const workout = await apiPost(`/api/users/${currentUser.id}/workouts`, workoutData);
+        currentWorkout = workout;
+        
+        // Appeler setupProgramWorkout avec le programme
         await setupProgramWorkout(currentWorkoutSession.program);
+        
+        // Fermer le modal et passer à l'écran de séance
+        closeModal();
+        document.getElementById('homeScreen').style.display = 'none';
+        document.getElementById('workoutScreen').style.display = 'block';
         
     } catch (error) {
         console.error('Erreur démarrage séance:', error);
-        showToast('Erreur lors du démarrage de la séance', 'error');
+        showToast('Erreur lors du démarrage', 'error');
     }
 }
 
@@ -2141,6 +2171,13 @@ function setupFreeWorkout() {
 }
 
 async function setupProgramWorkout(program) {
+    // Vérification de sécurité
+    if (!program || !program.exercises) {
+        console.error('Programme invalide:', program);
+        showToast('Erreur : programme invalide', 'error');
+        return;
+    }
+    
     document.getElementById('workoutTitle').textContent = 'Séance programme';
     document.getElementById('exerciseSelection').style.display = 'none';
     
