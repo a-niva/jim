@@ -177,6 +177,7 @@ async function loadExercisesList(userId) {
 }
 
 // ===== GRAPHIQUE 1: PROGRESSION 1RM =====
+// ===== GRAPHIQUE 1: PROGRESSION 1RM =====
 async function loadProgressionChart(userId, exerciseId) {
     try {
         const data = await window.apiGet(`/api/users/${userId}/stats/progression/${exerciseId}`);
@@ -194,210 +195,51 @@ async function loadProgressionChart(userId, exerciseId) {
             charts.progression.destroy();
         }
         
-        // Préparer les données
-        async function loadProgressionChart(userId, exerciseId) {
-            try {
-                const data = await window.apiGet(`/api/users/${userId}/stats/progression/${exerciseId}`);
-                
-                if (!data.data || data.data.length === 0) {
-                    document.getElementById('progressionInfo').innerHTML = 
-                        '<p class="text-muted">Pas assez de données pour cet exercice</p>';
-                    return;
-                }
-                
-                const ctx = document.getElementById('progressionChart').getContext('2d');
-                
-                // Détruire le chart existant
-                if (charts.progression) {
-                    charts.progression.destroy();
-                }
-                
-                // Adapter l'affichage selon le type de métrique
-                const labels = data.data.map(d => new Date(d.date).toLocaleDateString());
-                const values = data.data.map(d => d.value);
-                const fatigueData = data.data.map(d => d.fatigue);
-                
-                // Configuration adaptative
-                let chartConfig = {
-                    label: '',
-                    yAxisTitle: '',
-                    tooltipCallback: null,
-                    color: '#3b82f6'
-                };
-                
-                switch (data.metric_name) {
-                    case 'duration':
-                        chartConfig.label = 'Durée maximale';
-                        chartConfig.yAxisTitle = 'Secondes';
-                        chartConfig.color = '#10b981'; // Vert pour la durée
-                        chartConfig.tooltipCallback = (value) => `${value}s`;
-                        break;
-                        
-                    case 'reps':
-                        chartConfig.label = 'Répétitions maximales';
-                        chartConfig.yAxisTitle = 'Répétitions';
-                        chartConfig.color = '#f59e0b'; // Orange pour les reps
-                        chartConfig.tooltipCallback = (value) => `${value} reps`;
-                        break;
-                        
-                    case '1rm':
-                        chartConfig.label = '1RM Estimé';
-                        chartConfig.yAxisTitle = 'Poids (kg)';
-                        chartConfig.color = '#3b82f6'; // Bleu pour le poids
-                        chartConfig.tooltipCallback = (value, context) => {
-                            const point = data.data[context.dataIndex];
-                            return [`${value}kg`, `${point.weight}kg × ${point.reps} reps`];
-                        };
-                        break;
-                }
-                
-                // Créer les gradients
-                const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-                const baseColor = chartConfig.color;
-                gradient.addColorStop(0, `${baseColor}66`); // 40% opacity
-                gradient.addColorStop(0.5, `${baseColor}33`); // 20% opacity
-                gradient.addColorStop(1, `${baseColor}0D`); // 5% opacity
-                
-                // Calculer la ligne de tendance
-                let trendData = [];
-                if (data.trend) {
-                    for (let i = 0; i < data.data.length; i++) {
-                        trendData.push(data.trend.intercept + data.trend.slope * i);
-                    }
-                }
-                
-                charts.progression = new window.Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: chartConfig.label,
-                            data: values,
-                            borderColor: chartConfig.color,
-                            backgroundColor: gradient,
-                            borderWidth: 3,
-                            tension: 0.4,
-                            pointRadius: 5,
-                            pointHoverRadius: 8,
-                            pointBackgroundColor: '#fff',
-                            pointBorderColor: chartConfig.color,
-                            pointBorderWidth: 2
-                        }, {
-                            label: 'Tendance',
-                            data: trendData,
-                            borderColor: chartConfig.color,
-                            borderWidth: 2,
-                            borderDash: [5, 5],
-                            pointRadius: 0,
-                            fill: false
-                        }, {
-                            label: 'Fatigue',
-                            data: fatigueData,
-                            borderColor: '#ef4444',
-                            backgroundColor: 'transparent',
-                            borderWidth: 2,
-                            yAxisID: 'y1',
-                            pointRadius: 4,
-                            tension: 0.4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        interaction: {
-                            mode: 'index',
-                            intersect: false
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: false,
-                                title: {
-                                    display: true,
-                                    text: chartConfig.yAxisTitle,
-                                    color: chartConfig.color,
-                                    font: {
-                                        size: 14,
-                                        weight: 'bold'
-                                    }
-                                },
-                                ticks: {
-                                    color: chartConfig.color,
-                                    callback: function(value) {
-                                        return chartConfig.tooltipCallback ? 
-                                            chartConfig.tooltipCallback(value) : value;
-                                    }
-                                }
-                            },
-                            y1: {
-                                position: 'right',
-                                beginAtZero: true,
-                                max: 5,
-                                title: {
-                                    display: true,
-                                    text: 'Fatigue',
-                                    color: '#ef4444'
-                                },
-                                grid: {
-                                    drawOnChartArea: false
-                                },
-                                ticks: {
-                                    color: '#ef4444',
-                                    stepSize: 1
-                                }
-                            }
-                        },
-                        plugins: {
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        if (context.datasetIndex === 0) {
-                                            if (typeof chartConfig.tooltipCallback === 'function') {
-                                                const result = chartConfig.tooltipCallback(
-                                                    context.parsed.y, 
-                                                    context
-                                                );
-                                                return Array.isArray(result) ? result : [result];
-                                            }
-                                        }
-                                        return context.dataset.label + ': ' + context.parsed.y;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-                
-                // Afficher les infos de progression adaptées
-                if (data.trend) {
-                    const progressionIcon = data.trend.progression_percent > 0 ? '📈' : '📉';
-                    const progressionText = `${progressionIcon} ${Math.abs(data.trend.progression_percent)}% `;
-                    
-                    let unitText = '';
-                    switch (data.metric_name) {
-                        case 'duration':
-                            unitText = `Moyenne: ${Math.round(data.trend.average_value)}s`;
-                            break;
-                        case 'reps':
-                            unitText = `Moyenne: ${Math.round(data.trend.average_value)} reps`;
-                            break;
-                        case '1rm':
-                            unitText = `Progression de force`;
-                            break;
-                    }
-                    
-                    document.getElementById('progressionInfo').innerHTML = `
-                        <div class="progression-summary">
-                            <p>${progressionText} ${unitText}</p>
-                            <p class="text-muted">Sur les ${data.data.length} dernières séances</p>
-                        </div>
-                    `;
-                }
-                
-            } catch (error) {
-                console.error('Erreur chargement progression:', error);
-            }
-        }
+        // Adapter l'affichage selon le type de métrique
+        const labels = data.data.map(d => new Date(d.date).toLocaleDateString());
+        const values = data.data.map(d => d.value);
         const fatigueData = data.data.map(d => d.fatigue);
+        
+        // Configuration adaptative
+        let chartConfig = {
+            label: '',
+            yAxisTitle: '',
+            tooltipCallback: null,
+            color: '#3b82f6'
+        };
+        
+        switch (data.metric_name) {
+            case 'duration':
+                chartConfig.label = 'Durée maximale';
+                chartConfig.yAxisTitle = 'Secondes';
+                chartConfig.color = '#10b981'; // Vert pour la durée
+                chartConfig.tooltipCallback = (value) => `${value}s`;
+                break;
+                
+            case 'reps':
+                chartConfig.label = 'Répétitions maximales';
+                chartConfig.yAxisTitle = 'Répétitions';
+                chartConfig.color = '#f59e0b'; // Orange pour les reps
+                chartConfig.tooltipCallback = (value) => `${value} reps`;
+                break;
+                
+            case '1rm':
+                chartConfig.label = '1RM Estimé';
+                chartConfig.yAxisTitle = 'Poids (kg)';
+                chartConfig.color = '#3b82f6'; // Bleu pour le poids
+                chartConfig.tooltipCallback = (value, context) => {
+                    const point = data.data[context.dataIndex];
+                    return [`${value}kg`, `${point.weight}kg × ${point.reps} reps`];
+                };
+                break;
+        }
+        
+        // Créer les gradients
+        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+        const baseColor = chartConfig.color;
+        gradient.addColorStop(0, `${baseColor}66`); // 40% opacity
+        gradient.addColorStop(0.5, `${baseColor}33`); // 20% opacity
+        gradient.addColorStop(1, `${baseColor}0D`); // 5% opacity
         
         // Calculer la ligne de tendance
         let trendData = [];
@@ -407,90 +249,71 @@ async function loadProgressionChart(userId, exerciseId) {
             }
         }
         
-// Créer un dégradé pour le fond
-const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-gradient.addColorStop(0, 'rgba(59, 130, 246, 0.4)');
-gradient.addColorStop(0.5, 'rgba(59, 130, 246, 0.2)');
-gradient.addColorStop(1, 'rgba(59, 130, 246, 0.05)');
-
-const fatigueGradient = ctx.createLinearGradient(0, 0, 0, 300);
-fatigueGradient.addColorStop(0, 'rgba(239, 68, 68, 0.3)');
-fatigueGradient.addColorStop(0.5, 'rgba(245, 158, 11, 0.2)');
-fatigueGradient.addColorStop(1, 'rgba(16, 185, 129, 0.1)');
-
         charts.progression = new window.Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
                 datasets: [{
-                    label: '1RM Estimé',
-                    data: oneRMData,
-                    borderColor: '#3b82f6',
+                    label: chartConfig.label,
+                    data: values,
+                    borderColor: chartConfig.color,
                     backgroundColor: gradient,
                     borderWidth: 3,
                     tension: 0.4,
                     pointRadius: 5,
                     pointHoverRadius: 8,
-                    pointBackgroundColor: '#3b82f6',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 2,
-                    pointHoverBackgroundColor: '#fff',
-                    pointHoverBorderColor: '#3b82f6',
-                    pointHoverBorderWidth: 3,
-                    fill: true
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: chartConfig.color,
+                    pointBorderWidth: 2
                 }, {
                     label: 'Tendance',
                     data: trendData,
-                    borderColor: '#10b981',
-                    borderDash: [8, 4],
+                    borderColor: chartConfig.color,
                     borderWidth: 2,
-                    fill: false,
+                    borderDash: [5, 5],
                     pointRadius: 0,
-                    pointHoverRadius: 0
+                    fill: false
                 }, {
                     label: 'Fatigue',
                     data: fatigueData,
-                    borderColor: '#f59e0b',
-                    backgroundColor: fatigueGradient,
+                    borderColor: '#ef4444',
+                    backgroundColor: 'transparent',
                     borderWidth: 2,
                     yAxisID: 'y1',
-                    tension: 0.4,
                     pointRadius: 4,
-                    pointBackgroundColor: function(context) {
-                        const value = context.parsed.y;
-                        if (value >= 4) return '#ef4444';
-                        if (value >= 3) return '#f59e0b';
-                        return '#10b981';
-                    },
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 2,
-                    fill: true
+                    tension: 0.4
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 interaction: {
-                    intersect: false,
-                    mode: 'index'
+                    mode: 'index',
+                    intersect: false
                 },
                 scales: {
                     y: {
                         beginAtZero: false,
                         title: {
                             display: true,
-                            text: '1RM (kg)',
-                            color: '#3b82f6',
+                            text: chartConfig.yAxisTitle,
+                            color: chartConfig.color,
                             font: {
                                 size: 14,
                                 weight: 'bold'
                             }
                         },
-                        grid: {
-                            color: 'rgba(59, 130, 246, 0.1)'
-                        },
                         ticks: {
-                            color: '#3b82f6'
+                            color: chartConfig.color,
+                            callback: function(value) {
+                                if (data.metric_name === 'duration') {
+                                    return value + 's';
+                                } else if (data.metric_name === 'reps') {
+                                    return value;
+                                } else {
+                                    return value + 'kg';
+                                }
+                            }
                         }
                     },
                     y1: {
@@ -500,7 +323,7 @@ fatigueGradient.addColorStop(1, 'rgba(16, 185, 129, 0.1)');
                         title: {
                             display: true,
                             text: 'Fatigue',
-                            color: '#f59e0b',
+                            color: '#ef4444',
                             font: {
                                 size: 14,
                                 weight: 'bold'
@@ -510,7 +333,8 @@ fatigueGradient.addColorStop(1, 'rgba(16, 185, 129, 0.1)');
                             drawOnChartArea: false
                         },
                         ticks: {
-                            color: '#f59e0b'
+                            color: '#ef4444',
+                            stepSize: 1
                         }
                     },
                     x: {
@@ -522,12 +346,25 @@ fatigueGradient.addColorStop(1, 'rgba(16, 185, 129, 0.1)');
                 plugins: {
                     tooltip: {
                         callbacks: {
-                            afterLabel: function(context) {
+                            label: function(context) {
                                 if (context.datasetIndex === 0) {
-                                    const point = data.data[context.dataIndex];
-                                    return `${point.weight}kg × ${point.reps} reps`;
+                                    if (data.metric_name === '1rm' && typeof chartConfig.tooltipCallback === 'function') {
+                                        const result = chartConfig.tooltipCallback(
+                                            context.parsed.y, 
+                                            context
+                                        );
+                                        return Array.isArray(result) ? result : [result];
+                                    } else {
+                                        return context.dataset.label + ': ' + context.parsed.y + (
+                                            data.metric_name === 'duration' ? 's' :
+                                            data.metric_name === 'reps' ? ' reps' :
+                                            'kg'
+                                        );
+                                    }
+                                } else if (context.datasetIndex === 2) {
+                                    return 'Fatigue: ' + context.parsed.y + '/5';
                                 }
-                                return '';
+                                return context.dataset.label + ': ' + context.parsed.y;
                             }
                         }
                     }
@@ -535,15 +372,27 @@ fatigueGradient.addColorStop(1, 'rgba(16, 185, 129, 0.1)');
             }
         });
         
-        // Afficher les infos de progression
+        // Afficher les infos de progression adaptées
         if (data.trend) {
-            const progressionText = data.trend.progression_percent > 0 
-                ? `📈 +${data.trend.progression_percent}% de progression`
-                : `📉 ${data.trend.progression_percent}% de régression`;
+            const progressionIcon = data.trend.progression_percent > 0 ? '📈' : '📉';
+            const progressionText = `${progressionIcon} ${Math.abs(data.trend.progression_percent)}% `;
+            
+            let unitText = '';
+            switch (data.metric_name) {
+                case 'duration':
+                    unitText = `Moyenne: ${Math.round(data.trend.average_value)}s`;
+                    break;
+                case 'reps':
+                    unitText = `Moyenne: ${Math.round(data.trend.average_value)} reps`;
+                    break;
+                case '1rm':
+                    unitText = `Progression de force`;
+                    break;
+            }
             
             document.getElementById('progressionInfo').innerHTML = `
                 <div class="progression-summary">
-                    <p>${progressionText}</p>
+                    <p>${progressionText} ${unitText}</p>
                     <p class="text-muted">Sur les ${data.data.length} dernières séances</p>
                 </div>
             `;
@@ -551,6 +400,8 @@ fatigueGradient.addColorStop(1, 'rgba(16, 185, 129, 0.1)');
         
     } catch (error) {
         console.error('Erreur chargement progression:', error);
+        document.getElementById('progressionInfo').innerHTML = 
+            '<p class="text-muted">Erreur lors du chargement des données</p>';
     }
 }
 
