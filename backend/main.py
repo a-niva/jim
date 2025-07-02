@@ -639,7 +639,21 @@ def add_set(workout_id: int, set_data: SetCreate, db: Session = Depends(get_db))
             performance_data
         )
     
-    return db_set
+    # Retourner l'objet avec tous les champs sérialisés
+    return {
+        "id": db_set.id,
+        "workout_id": db_set.workout_id,
+        "exercise_id": db_set.exercise_id,
+        "set_number": db_set.set_number,
+        "reps": db_set.reps,
+        "weight": db_set.weight,
+        "duration_seconds": db_set.duration_seconds,
+        "base_rest_time_seconds": db_set.base_rest_time_seconds,
+        "actual_rest_duration_seconds": db_set.actual_rest_duration_seconds,
+        "fatigue_level": db_set.fatigue_level,
+        "effort_level": db_set.effort_level,
+        "completed_at": db_set.completed_at.isoformat() if db_set.completed_at else None
+    }
 
 @app.get("/api/workouts/{workout_id}/sets")
 def get_workout_sets(workout_id: int, db: Session = Depends(get_db)):
@@ -793,8 +807,9 @@ def get_user_stats(user_id: int, db: Session = Depends(get_db)):
         # Calculer temps de repos total
         total_rest_seconds = sum(s.actual_rest_duration_seconds or s.base_rest_time_seconds or 0 for s in sets)
         
-        # Calculer temps d'exercice total
-        total_exercise_seconds = sum(s.duration_seconds or 30 for s in sets)  # 30s par défaut par série
+        # Utiliser la vraie durée de séance moins le repos
+        total_duration_seconds = (workout.total_duration_minutes or 0) * 60
+        total_exercise_seconds = max(0, total_duration_seconds - total_rest_seconds)
         
         # Convertir l'objet Workout en dict avec tous les temps
         workout_dict = {
