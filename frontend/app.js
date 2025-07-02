@@ -1937,6 +1937,50 @@ async function startProgramWorkout() {
     }
 }
 
+function showProgramStartModal(program) {
+    if (!program) {
+        console.error('Programme invalide pour le modal');
+        return;
+    }
+    
+    // Calculer la durée estimée et le nombre d'exercices
+    const exerciseCount = program.exercises.length;
+    const estimatedDuration = program.session_duration_minutes || 45;
+    
+    // Créer le contenu du modal
+    const modalContent = `
+        <div class="program-start-info">
+            <h3>${program.name}</h3>
+            <div class="program-details">
+                <p><strong>Exercices :</strong> ${exerciseCount}</p>
+                <p><strong>Durée estimée :</strong> ${estimatedDuration} min</p>
+                <p><strong>Focus :</strong> ${program.focus_areas.join(', ')}</p>
+            </div>
+            <div class="exercise-list" style="margin-top: 1rem; max-height: 200px; overflow-y: auto;">
+                <h4>Programme du jour :</h4>
+                <ul style="list-style: none; padding: 0;">
+                    ${program.exercises.map((ex, index) => `
+                        <li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+                            ${index + 1}. ${ex.name} - ${ex.sets || 3} séries
+                        </li>
+                    `).join('')}
+                </ul>
+            </div>
+            <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: center;">
+                <button onclick="confirmStartProgramWorkout()" class="btn btn-primary">
+                    🚀 Commencer
+                </button>
+                <button onclick="closeModal()" class="btn btn-secondary">
+                    Annuler
+                </button>
+            </div>
+        </div>
+    `;
+    
+    // Utiliser votre système de modal existant
+    showModal('Démarrer la séance programme', modalContent);
+}
+
 // Nouvelle fonction pour afficher le panneau de preview
 async function showProgramPreview(program, status) {
     // Récupérer les détails des exercices SANS recommandations
@@ -2128,17 +2172,14 @@ async function confirmStartProgramWorkout() {
     console.log('3. currentWorkoutSession.program:', currentWorkoutSession?.program);
     
     try {
-        // Récupérer le programme actif si pas déjà chargé
-        if (!currentWorkoutSession.program) {
-            const activeProgram = await apiGet(`/api/users/${currentUser.id}/programs/active`);
-            if (!activeProgram) {
-                showToast('Aucun programme actif trouvé', 'error');
-                return;
-            }
-            currentWorkoutSession.program = activeProgram;
+        // Vérifier que la session est bien initialisée
+        if (!currentWorkoutSession || !currentWorkoutSession.program) {
+            console.error('Session non initialisée:', currentWorkoutSession);
+            showToast('Erreur : session non initialisée', 'error');
+            return;
         }
         
-        // Créer la séance
+        // Créer la séance avec le programme de la session
         const workoutData = {
             type: 'program',
             program_id: currentWorkoutSession.program.id
@@ -2147,7 +2188,7 @@ async function confirmStartProgramWorkout() {
         const workout = await apiPost(`/api/users/${currentUser.id}/workouts`, workoutData);
         currentWorkout = workout;
         
-        // Appeler setupProgramWorkout avec le programme
+        // Appeler setupProgramWorkout avec le programme de la session
         await setupProgramWorkout(currentWorkoutSession.program);
         
         // Fermer le modal et passer à l'écran de séance
