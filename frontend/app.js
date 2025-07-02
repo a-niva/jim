@@ -1875,7 +1875,7 @@ function generateMuscleDistribution(workout) {
             return `<div class="muscle-segment"
                         data-muscle="${muscle}"
                         data-percentage="${percentage}%"
-                        style="width: ${percentage}%; background: ${getMuscleColor(muscle)}"
+                        style="width: ${percentage}%; background: ${window.MuscleColors.getMuscleColor(muscle)}"
                         onclick="toggleMuscleTooltip(this)">
                         <div class="muscle-tooltip">
                             <span class="muscle-emoji">${emoji}</span>
