@@ -1,5 +1,7 @@
 // ===== FITNESS COACH - APPLICATION PRINCIPALE =====
-// Version refactorisée simplifiée
+
+// Import du système de couleurs musculaires
+import { getMuscleColor, getChartColors, getMuscleClass, applyMuscleStyle } from './muscle-colors.js';
 
 // ===== ÉTAT GLOBAL =====
 let setTimer = null; 
@@ -89,9 +91,6 @@ function updateUIForState(state) {
             break;
     }
 }
-
-// Import du système de couleurs musculaires
-import { getMuscleColor, getChartColors, getMuscleClass, applyMuscleStyle } from './muscle-colors.js';
 
 
 // ===== CONFIGURATION =====
@@ -1724,23 +1723,31 @@ function loadRecentWorkouts(workouts) {
     }
     
     container.innerHTML = workouts.slice(0, 3).map(workout => {
-        const date = new Date(workout.completed_at || workout.started_at);
+        const date = new Date(workout.started_at || workout.completed_at);
         const duration = workout.total_duration_minutes || 0;
         const restTime = workout.total_rest_time || 0;
         const activeTime = Math.max(0, duration - restTime);
         const restRatio = duration > 0 ? (restTime / duration * 100).toFixed(0) : 0;
         
-        // Calculer le temps écoulé
+        // Calculer le temps écoulé en tenant compte du fuseau horaire local
         const now = new Date();
-        const diffMs = now - date;
+        const workoutDate = new Date(workout.started_at || workout.completed_at);
+
+        // S'assurer que les dates sont comparées dans le même timezone
+        const nowLocal = new Date(now.getTime() - (now.getTimezoneOffset() * 60000));
+        const workoutLocal = new Date(workoutDate.getTime() - (workoutDate.getTimezoneOffset() * 60000));
+
+        const diffMs = nowLocal - workoutLocal;
         const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
         const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-        
+
         let timeAgo = 'Aujourd\'hui';
         if (diffDays > 0) {
             timeAgo = diffDays === 1 ? 'Hier' : `Il y a ${diffDays} jours`;
         } else if (diffHours > 0) {
             timeAgo = `Il y a ${diffHours}h`;
+        } else {
+            timeAgo = 'À l\'instant';
         }
         
         // Récupérer les muscles travaillés depuis les exercices
@@ -1863,7 +1870,7 @@ function generateMuscleDistribution(workout) {
             return `<div class="muscle-segment"
                         data-muscle="${muscle}"
                         data-percentage="${percentage}%"
-                        style="width: ${percentage}%; background: ${window.MuscleColors.getMuscleColor(muscle)}"
+                        style="width: ${percentage}%; background: ${getMuscleColor(muscle)}"
                         onclick="toggleMuscleTooltip(this)">
                         <div class="muscle-tooltip">
                             <span class="muscle-emoji">${emoji}</span>
