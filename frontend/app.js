@@ -67,11 +67,10 @@ function updateUIForState(state) {
     
     switch(state) {
         case WorkoutStates.READY:
-            // Pour exercices isométriques, ne pas afficher executeSetBtn
-            if (currentExercise && currentExercise.exercise_type === 'isometric') {
-                document.getElementById('executeSetBtn').style.display = 'none';
-            } else {
-                document.getElementById('executeSetBtn').style.display = 'block';
+            // Vérifier si le bouton est masqué pour isométriques
+            const executeBtn = document.getElementById('executeSetBtn');
+            if (executeBtn && !executeBtn.hasAttribute('data-isometric-hidden')) {
+                executeBtn.style.display = 'block';
             }
             document.getElementById('setFeedback').style.display = 'none';
             document.getElementById('restPeriod').style.display = 'none';
@@ -1234,9 +1233,10 @@ async function loadDashboard() {
         // AJOUT MANQUANT 1: Charger l'état musculaire
         await loadMuscleReadiness();
         
-        // AJOUT MANQUANT 2: Charger les séances récentes
+        // AJOUT MANQUANT 2: Charger les séances récentes avec exercices enrichis
         if (stats.recent_workouts) {
-            loadRecentWorkouts(stats.recent_workouts);
+            const enrichedWorkouts = await enrichWorkoutsWithExercises(stats.recent_workouts);
+            loadRecentWorkouts(enrichedWorkouts);
         }
         
         // NOUVEAU: Initialiser les graphiques
@@ -2533,8 +2533,12 @@ function configureIsometric(elements, recommendations) {
     if (elements.weightRow) elements.weightRow.setAttribute('data-hidden', 'true');
     if (elements.repsRow) elements.repsRow.setAttribute('data-hidden', 'true');
     
-    // Masquer le bouton d'exécution classique
-    document.getElementById('executeSetBtn').style.display = 'none';
+    // IMPORTANT: Masquer définitivement le bouton d'exécution classique
+    const executeBtn = document.getElementById('executeSetBtn');
+    if (executeBtn) {
+        executeBtn.style.display = 'none';
+        executeBtn.setAttribute('data-isometric-hidden', 'true');
+    }
     
     const targetDuration = Math.max(15, recommendations.reps_recommendation || 30);
     const timerHtml = `
@@ -2546,11 +2550,15 @@ function configureIsometric(elements, recommendations) {
             </svg>
             <div class="timer-center">
                 <div id="timer-display">0s</div>
-                <div style="font-size:0.8rem;color:var(--text-muted)">Objectif: ${targetDuration}s</div>
+                <div class="timer-target">Objectif: ${targetDuration}s</div>
             </div>
             <div class="timer-controls">
-                <button class="btn btn-success btn-lg" id="start-timer">🚀 Commencer la série</button>
-                <button class="btn btn-danger btn-lg" id="stop-timer" style="display:none">✋ Terminer la série</button>
+                <button class="btn btn-success btn-timer-start" id="start-timer">
+                    🚀 Commencer la série
+                </button>
+                <button class="btn btn-danger btn-timer-stop" id="stop-timer" style="display:none">
+                    ✋ Terminer la série
+                </button>
             </div>
         </div>`;
     
@@ -2566,53 +2574,113 @@ function setupIsometricTimer(targetDuration) {
     const startBtn = document.getElementById('start-timer');
     const stopBtn = document.getElementById('stop-timer');
     
+    // Stocker référence globale pour nettoyage
+    window.currentIsometricTimer = { 
+        targetDuration, 
+        currentTime: () => currentTime,
+        interval: null,
+        stop: () => {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+    };
+    
     startBtn.onclick = () => {
+        // Empêcher double clic
+        startBtn.disabled = true;
+        
         timerInterval = setInterval(() => {
             currentTime++;
             display.textContent = `${currentTime}s`;
             
+            // Calcul progression visuelle
             if (currentTime <= targetDuration) {
+                // Phase objectif (vert) - calcul du pourcentage
                 const percent = (currentTime / targetDuration) * 100;
-                progressTarget.style.strokeDasharray = `${percent * 5.03} 500`;
-                progressOverflow.style.strokeDasharray = '0 500';
+                const dashLength = (percent / 100) * 503; // 503 = circonférence approximative
+                progressTarget.style.strokeDasharray = `${dashLength} 503`;
+                progressOverflow.style.strokeDasharray = '0 503';
             } else {
-                progressTarget.style.strokeDasharray = '503 500';
-                const overPercent = ((currentTime - targetDuration) / targetDuration) * 100;
-                progressOverflow.style.strokeDasharray = `${Math.min(overPercent * 5.03, 503)} 500`;
+                // Phase dépassement (rouge)
+                progressTarget.style.strokeDasharray = '503 503'; // Cercle complet vert
+                
+                // Calcul tours supplémentaires en rouge
+                const overflowTime = currentTime - targetDuration;
+                const overflowPercent = (overflowTime / targetDuration) * 100;
+                const overflowDash = Math.min((overflowPercent / 100) * 503, 503);
+                progressOverflow.style.strokeDasharray = `${overflowDash} 503`;
             }
             
+            // Notification objectif atteint (une seule fois)
             if (currentTime === targetDuration && !targetReached) {
                 targetReached = true;
                 showToast(`🎯 Objectif ${targetDuration}s atteint !`, 'success');
-                if (window.workoutAudio) window.workoutAudio.playSound('achievement');
+                if (window.workoutAudio) {
+                    window.workoutAudio.playSound('achievement');
+                }
             }
         }, 1000);
         
+        // Stocker l'interval pour nettoyage
+        window.currentIsometricTimer.interval = timerInterval;
+        
+        // Basculer interface
         startBtn.style.display = 'none';
         stopBtn.style.display = 'block';
+        stopBtn.disabled = false;
+        
+        // Transition état
         transitionTo(WorkoutStates.EXECUTING);
     };
     
     stopBtn.onclick = () => {
-        clearInterval(timerInterval);
+        // Empêcher double clic
+        stopBtn.disabled = true;
         
-        // Enregistrer directement les données
+        // Arrêter le timer
+        clearInterval(timerInterval);
+        timerInterval = null;
+        window.currentIsometricTimer.interval = null;
+        
+        // Enregistrer les données de la série
         workoutState.pendingSetData = {
             duration_seconds: currentTime,
-            reps: currentTime,
+            reps: currentTime, // Pour compatibilité avec système existant
             weight: null
         };
         
         // Masquer le timer et passer au feedback
         document.getElementById('isometric-timer').style.display = 'none';
         document.getElementById('setFeedback').style.display = 'block';
+        
+        // Transition vers feedback
         transitionTo(WorkoutStates.FEEDBACK);
+        
+        console.log(`Série isométrique terminée: ${currentTime}s (objectif: ${targetDuration}s)`);
     };
+    
+    // Réinitialiser les boutons
+    startBtn.disabled = false;
+    stopBtn.disabled = false;
+    
+    // Réinitialiser l'affichage
+    display.textContent = '0s';
+    progressTarget.style.strokeDasharray = '0 503';
+    progressOverflow.style.strokeDasharray = '0 503';
 }
 
 function cleanupIsometricTimer() {
     const timer = document.getElementById('isometric-timer');
     if (timer) timer.remove();
+    
+    // Restaurer le bouton d'exécution pour exercices suivants
+    const executeBtn = document.getElementById('executeSetBtn');
+    if (executeBtn) {
+        executeBtn.style.display = 'block';
+        executeBtn.removeAttribute('data-isometric-hidden');
+    }
     
     // Reset feedback selection
     resetFeedbackSelection();
