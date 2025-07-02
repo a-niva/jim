@@ -68,8 +68,8 @@ function updateUIForState(state) {
     switch(state) {
         case WorkoutStates.READY:
             const executeBtn = document.getElementById('executeSetBtn');
-            // Ne jamais afficher executeSetBtn pour isométriques
-            if (executeBtn && !executeBtn.hasAttribute('data-isometric-disabled')) {
+            // Toujours afficher executeSetBtn, même pour isométriques
+            if (executeBtn) {
                 executeBtn.style.display = 'block';
             }
             document.getElementById('setFeedback').style.display = 'none';
@@ -2579,11 +2579,15 @@ function configureIsometric(elements, recommendations) {
     if (elements.weightRow) elements.weightRow.setAttribute('data-hidden', 'true');
     if (elements.repsRow) elements.repsRow.setAttribute('data-hidden', 'true');
     
-    // MASQUER COMPLÈTEMENT tous les boutons d'exécution
+    // Adapter l'emoji vert pour les isométriques (ne PAS masquer)
     const executeBtn = document.getElementById('executeSetBtn');
     if (executeBtn) {
-        executeBtn.style.display = 'none !important';
-        executeBtn.setAttribute('data-isometric-disabled', 'true');
+        executeBtn.style.display = 'block';
+        executeBtn.innerHTML = '<span class="go-emoji">▶️</span>';
+        executeBtn.setAttribute('data-isometric-mode', 'start');
+        executeBtn.classList.remove('btn-danger');
+        executeBtn.classList.add('btn-success');
+        executeBtn.onclick = () => handleIsometricAction();
     }
     
     // Masquer aussi la section de feedback temporairement
