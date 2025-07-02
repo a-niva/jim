@@ -5293,3 +5293,5 @@ window.confirmStartProgramWorkout = confirmStartProgramWorkout;
 window.searchExercises = searchExercises;
 window.filterByMuscleGroup = filterByMuscleGroup;
 window.toggleMuscleGroup = toggleMuscleGroup;
+window.toggleWeightPreference = toggleWeightPreference;
+window.toggleSoundNotifications = toggleSoundNotifications;
