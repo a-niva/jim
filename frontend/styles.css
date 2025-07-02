@@ -949,6 +949,17 @@ textarea:focus {
     color: var(--success);
 }
 
+/* Timer circulaire pour les durées isométriques */
+.isometric-timer { position: relative; max-width: 200px; margin: 2rem auto; text-align: center; }
+.timer-svg { width: 100%; transform: rotate(-90deg); }
+.timer-track { fill: none; stroke: var(--border); stroke-width: 6; }
+.timer-progress { fill: none; stroke-width: 6; stroke-linecap: round; stroke-dasharray: 0 500; transition: stroke-dasharray 0.1s; }
+.timer-progress.target { stroke: var(--success); }
+.timer-progress.overflow { stroke: var(--danger); }
+.timer-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.8rem; font-weight: bold; }
+.timer-controls { margin-top: 1rem; display: flex; gap: 1rem; justify-content: center; }
+
+
 .workout-progress {
     display: flex;
     flex-direction: column;
