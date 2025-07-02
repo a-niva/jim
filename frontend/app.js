@@ -67,7 +67,12 @@ function updateUIForState(state) {
     
     switch(state) {
         case WorkoutStates.READY:
-            document.getElementById('executeSetBtn').style.display = 'block';
+            // Pour exercices isométriques, ne pas afficher executeSetBtn
+            if (currentExercise && currentExercise.exercise_type === 'isometric') {
+                document.getElementById('executeSetBtn').style.display = 'none';
+            } else {
+                document.getElementById('executeSetBtn').style.display = 'block';
+            }
             document.getElementById('setFeedback').style.display = 'none';
             document.getElementById('restPeriod').style.display = 'none';
             if (inputSection) inputSection.style.display = 'block';
@@ -2528,6 +2533,9 @@ function configureIsometric(elements, recommendations) {
     if (elements.weightRow) elements.weightRow.setAttribute('data-hidden', 'true');
     if (elements.repsRow) elements.repsRow.setAttribute('data-hidden', 'true');
     
+    // Masquer le bouton d'exécution classique
+    document.getElementById('executeSetBtn').style.display = 'none';
+    
     const targetDuration = Math.max(15, recommendations.reps_recommendation || 30);
     const timerHtml = `
         <div class="isometric-timer" id="isometric-timer">
@@ -2538,11 +2546,11 @@ function configureIsometric(elements, recommendations) {
             </svg>
             <div class="timer-center">
                 <div id="timer-display">0s</div>
-                <div style="font-size:0.8rem;color:var(--text-muted)">/${targetDuration}s</div>
+                <div style="font-size:0.8rem;color:var(--text-muted)">Objectif: ${targetDuration}s</div>
             </div>
             <div class="timer-controls">
-                <button class="btn btn-success" id="start-timer">Démarrer</button>
-                <button class="btn btn-danger" id="stop-timer" style="display:none">Arrêter</button>
+                <button class="btn btn-success btn-lg" id="start-timer">🚀 Commencer la série</button>
+                <button class="btn btn-danger btn-lg" id="stop-timer" style="display:none">✋ Terminer la série</button>
             </div>
         </div>`;
     
@@ -2557,8 +2565,6 @@ function setupIsometricTimer(targetDuration) {
     const progressOverflow = document.getElementById('progress-overflow');
     const startBtn = document.getElementById('start-timer');
     const stopBtn = document.getElementById('stop-timer');
-    
-    window.currentIsometricTimer = { targetDuration, currentTime: () => currentTime };
     
     startBtn.onclick = () => {
         timerInterval = setInterval(() => {
@@ -2577,26 +2583,39 @@ function setupIsometricTimer(targetDuration) {
             
             if (currentTime === targetDuration && !targetReached) {
                 targetReached = true;
-                showToast(`Objectif ${targetDuration}s atteint ! 🎯`, 'success');
+                showToast(`🎯 Objectif ${targetDuration}s atteint !`, 'success');
                 if (window.workoutAudio) window.workoutAudio.playSound('achievement');
             }
         }, 1000);
+        
         startBtn.style.display = 'none';
         stopBtn.style.display = 'block';
+        transitionTo(WorkoutStates.EXECUTING);
     };
     
     stopBtn.onclick = () => {
         clearInterval(timerInterval);
-        workoutState.pendingSetData = { duration_seconds: currentTime, reps: currentTime, weight: null };
-        document.getElementById('executeSetBtn').style.display = 'none';
+        
+        // Enregistrer directement les données
+        workoutState.pendingSetData = {
+            duration_seconds: currentTime,
+            reps: currentTime,
+            weight: null
+        };
+        
+        // Masquer le timer et passer au feedback
+        document.getElementById('isometric-timer').style.display = 'none';
         document.getElementById('setFeedback').style.display = 'block';
+        transitionTo(WorkoutStates.FEEDBACK);
     };
 }
 
 function cleanupIsometricTimer() {
     const timer = document.getElementById('isometric-timer');
     if (timer) timer.remove();
-    window.currentIsometricTimer = null;
+    
+    // Reset feedback selection
+    resetFeedbackSelection();
 }
 
 // Configuration pour exercices bodyweight
@@ -3030,7 +3049,7 @@ function showExerciseCompletion() {
         clearInterval(setTimer);
         setTimer = null;
     }
-    
+
     cleanupIsometricTimer();
 
     // Réinitialiser l'interface
@@ -4941,13 +4960,44 @@ async function validateAndStartRest() {
     
     // Mettre à jour l'historique
     updateSetsHistory();
-    
-    // Transition vers RESTING
-    transitionTo(WorkoutStates.RESTING);
-    
-    // Démarrer le repos
-    startRestPeriod(currentExercise.base_rest_time_seconds || 60);
-    resetFeedbackSelection(); 
+
+    // Pour les exercices isométriques, pas de repos automatique
+    if (currentExercise.exercise_type === 'isometric') {
+        // Masquer le feedback et nettoyer le timer
+        document.getElementById('setFeedback').style.display = 'none';
+        cleanupIsometricTimer();
+        
+        // Vérifier si fin d'exercice ou série suivante
+        if (currentSet >= currentWorkoutSession.totalSets) {
+            transitionTo(WorkoutStates.COMPLETED);
+            showSetCompletionOptions();
+        } else {
+            // Série suivante directement
+            currentSet++;
+            currentWorkoutSession.currentSetNumber = currentSet;
+            updateSeriesDots();
+            updateHeaderProgress();
+            
+            if (currentWorkoutSession.type === 'program') {
+                updateProgramExerciseProgress();
+                loadProgramExercisesList();
+            }
+            
+            // Reconfigurer pour la série suivante
+            const inputSection = document.querySelector('.input-section');
+            if (inputSection) inputSection.style.display = 'block';
+            
+            updateSetRecommendations();
+            startSetTimer();
+            transitionTo(WorkoutStates.READY);
+        }
+    } else {
+        // Workflow classique pour autres exercices
+        transitionTo(WorkoutStates.RESTING);
+        startRestPeriod(currentExercise.base_rest_time_seconds || 60);
+    }
+
+    resetFeedbackSelection();
 }
 
 function setFatigue(exerciseId, value) {
