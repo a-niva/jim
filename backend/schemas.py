@@ -14,6 +14,7 @@ class UserCreate(BaseModel):
     experience_level: str  # beginner, intermediate, advanced
     equipment_config: Dict[str, Any]
     prefer_weight_changes_between_sets: bool = True
+    sound_notifications_enabled: bool = True
 
 
 class UserResponse(BaseModel):
@@ -26,12 +27,14 @@ class UserResponse(BaseModel):
     equipment_config: Dict[str, Any]
     prefer_weight_changes_between_sets: bool
     created_at: datetime
-    
+    sound_notifications_enabled: bool
+
     class Config:
         from_attributes = True
 
 class UserPreferenceUpdate(BaseModel):
     prefer_weight_changes_between_sets: bool
+    sound_notifications_enabled: Optional[bool] = None
 
 # ===== SCHEMAS EXERCICES =====
 

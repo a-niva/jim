@@ -17,6 +17,7 @@ class User(Base):
     equipment_config = Column(JSON, nullable=False)  # Configuration complète équipement
     created_at = Column(DateTime, default=datetime.utcnow)
     prefer_weight_changes_between_sets = Column(Boolean, default=True)
+    sound_notifications_enabled = Column(Boolean, default=True)
 
     # Relations
     workouts = relationship("Workout", back_populates="user", cascade="all, delete-orphan")

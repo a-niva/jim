@@ -133,8 +133,8 @@ def update_user(user_id: int, user_data: Dict[str, Any], db: Session = Depends(g
 
 @app.put("/api/users/{user_id}/preferences")
 def update_user_preferences(
-    user_id: int, 
-    preferences: UserPreferenceUpdate, 
+    user_id: int,
+    preferences: UserPreferenceUpdate,
     db: Session = Depends(get_db)
 ):
     """Met à jour les préférences utilisateur (incluant la stratégie de poids)"""
@@ -143,16 +143,21 @@ def update_user_preferences(
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
     
     # Mettre à jour uniquement les préférences spécifiées
-    user.prefer_weight_changes_between_sets = preferences.prefer_weight_changes_between_sets
+    if preferences.prefer_weight_changes_between_sets is not None:
+        user.prefer_weight_changes_between_sets = preferences.prefer_weight_changes_between_sets
+    
+    if preferences.sound_notifications_enabled is not None:
+        user.sound_notifications_enabled = preferences.sound_notifications_enabled
     
     db.commit()
     db.refresh(user)
     
-    logger.info(f"Préférences mises à jour pour user {user_id}: poids variables = {preferences.prefer_weight_changes_between_sets}")
+    logger.info(f"Préférences mises à jour pour user {user_id}: poids variables = {user.prefer_weight_changes_between_sets}, sons = {user.sound_notifications_enabled}")
     
     return {
         "message": "Préférences mises à jour avec succès",
-        "prefer_weight_changes_between_sets": user.prefer_weight_changes_between_sets
+        "prefer_weight_changes_between_sets": user.prefer_weight_changes_between_sets,
+        "sound_notifications_enabled": user.sound_notifications_enabled
     }
 
 @app.get("/api/users/{user_id}/progression-analysis/{exercise_id}")

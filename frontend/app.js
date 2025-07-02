@@ -3159,20 +3159,39 @@ async function loadProfile() {
             </div>
         </div>
     `;
+    // Ajouter le toggle pour les sons
+    profileHTML += `
+        <div class="profile-field">
+            <span class="field-label">Sons de notification</span>
+            <div class="toggle-container">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="soundNotificationsToggle"
+                        ${currentUser.sound_notifications_enabled ? 'checked' : ''}
+                        onchange="toggleSoundNotifications()">
+                    <span class="toggle-slider"></span>
+                </label>
+                <span id="soundNotificationsLabel">${currentUser.sound_notifications_enabled ? 'Sons activés' : 'Sons désactivés'}</span>
+            </div>
+        </div>
+    `;
 
     document.getElementById('profileInfo').innerHTML = profileHTML;
 
     // Add event listener for the toggle to update the label immediately
     const weightPreferenceToggle = document.getElementById('weightPreferenceToggle');
     if (weightPreferenceToggle) {
-        weightPreferenceToggle.addEventListener('change', (event) => {
+        weightPreferenceToggle.addEventListener('change', async (event) => {
             const label = document.getElementById('weightPreferenceLabel');
             if (label) {
                 label.textContent = event.target.checked ? 'Poids variables' : 'Poids fixes';
             }
-            // Here you would typically call a function to save this preference to the backend
-            // For example: saveWeightPreference(event.target.checked);
+            // Appeler la fonction existante
+            await toggleWeightPreference();
         });
+    }
+    // Initialiser l'état du système audio selon les préférences
+    if (window.workoutAudio && currentUser) {
+        workoutAudio.isEnabled = currentUser.sound_notifications_enabled ?? true;
     }
 }
 
@@ -3189,6 +3208,35 @@ async function toggleWeightPreference() {
         currentUser.prefer_weight_changes_between_sets = newPreference;
         document.getElementById('weightPreferenceLabel').textContent = 
             newPreference ? 'Poids variables' : 'Poids fixes';
+        
+        showToast('Préférence mise à jour', 'success');
+    } catch (error) {
+        toggle.checked = !newPreference; // Revert on error
+        showToast('Erreur lors de la mise à jour', 'error');
+    }
+}
+
+async function toggleSoundNotifications() {
+    const toggle = document.getElementById('soundNotificationsToggle');
+    const newPreference = toggle.checked;
+    
+    try {
+        // Mettre à jour dans la base de données
+        const response = await apiPut(`/api/users/${currentUser.id}/preferences`, {
+            sound_notifications_enabled: newPreference
+        });
+        
+        // Mettre à jour l'objet utilisateur local
+        currentUser.sound_notifications_enabled = newPreference;
+        
+        // Mettre à jour le label
+        document.getElementById('soundNotificationsLabel').textContent = 
+            newPreference ? 'Sons activés' : 'Sons désactivés';
+        
+        // Mettre à jour le système audio
+        if (window.workoutAudio) {
+            workoutAudio.isEnabled = newPreference;
+        }
         
         showToast('Préférence mise à jour', 'success');
     } catch (error) {
@@ -3984,19 +4032,19 @@ async function loadAvailableExercises() {
                             <path d="m21 21-4.35-4.35"/>
                         </svg>
                         <input type="text" id="exerciseSearch" placeholder="Rechercher un exercice..." 
-                            oninput="filterExercises(this.value)">
+                            oninput="searchExercises(this.value)">
                     </div>
                     
                     <!-- Onglets de filtrage par muscle -->
                     <div class="muscle-tabs">
-                        <button class="muscle-tab active" data-muscle="all" onclick="filterByMuscle('all')">
+                        <button class="muscle-tab active" data-muscle="all" onclick="filterByMuscleGroup('all')">
                             <span class="tab-icon">💪</span>
                             <span>Tous</span>
                         </button>
                         ${Object.entries(exercisesByMuscle)
                             .filter(([muscle, exercises]) => exercises.length > 0)
                             .map(([muscle, exercises]) => `
-                                <button class="muscle-tab" data-muscle="${muscle}" onclick="filterByMuscle('${muscle}')">
+                                <button class="muscle-tab" data-muscle="${muscle}" onclick="filterByMuscleGroup('${muscle}')">
                                     <span class="tab-icon">${muscleIcons[muscle]}</span>
                                     <span>${muscle.charAt(0).toUpperCase() + muscle.slice(1)}</span>
                                     <span class="tab-count">${exercises.length}</span>
@@ -4066,7 +4114,7 @@ async function loadAvailableExercises() {
 }
 
 // Fonction de recherche d'exercices
-function filterExercises(searchTerm) {
+function searchExercises(searchTerm) {
     const normalizedSearch = searchTerm.toLowerCase().trim();
     const exerciseCards = document.querySelectorAll('.free-exercise-card');
     const muscleGroups = document.querySelectorAll('.muscle-group-section');
@@ -4091,7 +4139,7 @@ function filterExercises(searchTerm) {
 }
 
 // Fonction de filtrage par muscle
-function filterByMuscle(muscle) {
+function filterByMuscleGroup(muscle) {
     // Mettre à jour l'onglet actif
     document.querySelectorAll('.muscle-tab').forEach(tab => {
         tab.classList.toggle('active', tab.dataset.muscle === muscle);
@@ -5242,6 +5290,6 @@ window.enrichWorkoutsWithExercises = enrichWorkoutsWithExercises;
 window.toggleMuscleTooltip = toggleMuscleTooltip;
 window.confirmStartProgramWorkout = confirmStartProgramWorkout;
 
-window.filterExercises = filterExercises;
-window.filterByMuscle = filterByMuscle;
+window.searchExercises = searchExercises;
+window.filterByMuscleGroup = filterByMuscleGroup;
 window.toggleMuscleGroup = toggleMuscleGroup;
