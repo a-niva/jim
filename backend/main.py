@@ -736,17 +736,17 @@ def complete_workout(workout_id: int, data: Dict[str, int] = {}, db: Session = D
     workout.status = "completed"
     workout.completed_at = datetime.utcnow()
     
-    # Calculer la durée totale
-    if workout.started_at:
+    # Utiliser la durée fournie par le frontend (en secondes) si disponible
+    if "total_duration" in data:
+        workout.total_duration_minutes = int(data["total_duration"] / 60)
+    elif workout.started_at:
+        # Fallback: calculer depuis les timestamps
         duration = workout.completed_at - workout.started_at
         workout.total_duration_minutes = int(duration.total_seconds() / 60)
     
     # Sauvegarder le temps de repos total s'il est fourni
     if "total_rest_time" in data:
         workout.total_rest_time_seconds = data["total_rest_time"]
-    
-    db.commit()
-    return {"message": "Séance terminée", "workout": workout}
 
 @app.put("/api/sets/{set_id}/rest-duration")
 def update_set_rest_duration(set_id: int, data: Dict[str, int], db: Session = Depends(get_db)):
@@ -1600,7 +1600,7 @@ def get_time_distribution(user_id: int, sessions: int = 10, db: Session = Depend
         ).all()
         
         # Calculer les temps
-        total_exercise_time = sum(s.duration_seconds or 60 for s in sets)  # 60s par défaut par série
+        total_exercise_time = sum(s.duration_seconds or 0 for s in sets)
         total_rest_time = sum(s.actual_rest_duration_seconds or s.base_rest_time_seconds or 0 for s in sets)
         total_duration_seconds = workout.total_duration_minutes * 60
         transition_time = max(0, total_duration_seconds - total_exercise_time - total_rest_time)

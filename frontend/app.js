@@ -2943,27 +2943,6 @@ function updateSetsHistory() {
     }
 }
 
-function updateSetsHistoryWithDuration(lastSet) {
-    const container = document.getElementById('setsHistory');
-    if (!container) return;
-    
-    const exerciseSets = currentWorkoutSession.completedSets.filter(
-        s => s.exercise_id === currentExercise.id
-    );
-    
-    container.innerHTML = exerciseSets.map((set, index) => {
-        const duration = set.duration_seconds ? 
-            `${Math.floor(set.duration_seconds / 60)}:${(set.duration_seconds % 60).toString().padStart(2, '0')}` : 
-            '--:--';
-            
-        return `
-            <div class="set-done">
-                ${set.weight}kg × ${set.reps} • ${duration} • 💪${set.effort_level}/5
-            </div>
-        `;
-    }).join('');
-}
-
 async function finishExercise() {
     // Sauvegarder l'état final si programme
     if (currentExercise && currentWorkoutSession.type === 'program') {
@@ -4997,8 +4976,9 @@ async function executeSet() {
     if (!validateSessionState()) return;
     
     // Arrêter le timer de série et enregistrer sa durée
+    let setTime = 0;
     if (setTimer) {
-        const setTime = getSetTimerSeconds();
+        setTime = getSetTimerSeconds();
         currentWorkoutSession.totalSetTime += setTime;
         clearInterval(setTimer);
         setTimer = null;
@@ -5016,12 +4996,14 @@ async function executeSet() {
         };
     } else if (isBodyweight) {
         workoutState.pendingSetData = {
+            duration_seconds: setTime,  // durée réelle chronométrée
             reps: parseInt(document.getElementById('setReps').textContent),
             weight: null
         };
     } else {
         const weightValue = document.getElementById('setWeight').textContent;
         workoutState.pendingSetData = {
+            duration_seconds: setTime,  // durée réelle chronométrée
             reps: parseInt(document.getElementById('setReps').textContent),
             weight: weightValue ? parseFloat(weightValue) : null
         };
@@ -5166,104 +5148,6 @@ function validateSessionState(skipExerciseCheck = false) {
         return false;
     }
     return true;
-}
-
-async function validateSet() {
-    const fatigue = document.querySelector('.emoji-btn[data-fatigue].selected')?.dataset.fatigue;
-    const effort = document.querySelector('.emoji-btn[data-effort].selected')?.dataset.effort;
-    
-    if (!fatigue || !effort) {
-        showToast('Veuillez indiquer fatigue et effort', 'warning');
-        return;
-    }
-    
-    // Déterminer si c'est un exercice isométrique
-    const isIsometric = currentExercise.exercise_type === 'isometric';
-    
-    // Construire les données de la série selon le type d'exercice
-    let setData;
-    
-    if (isIsometric) {
-        // Pour les exercices isométriques
-        setData = {
-            exercise_id: currentExercise.id,
-            set_number: currentSet,
-            reps: workoutState.pendingSetData.reps, // La durée est stockée dans reps pour compatibilité
-            weight: null, // Pas de poids pour les isométriques
-            duration_seconds: workoutState.pendingSetData.duration_seconds || workoutState.pendingSetData.reps,
-            fatigue_level: parseInt(fatigue),
-            effort_level: parseInt(effort),
-            base_rest_time_seconds: currentExercise.base_rest_time_seconds || 60,
-            exercise_order_in_session: currentWorkoutSession.exerciseOrder,
-            set_order_in_session: currentWorkoutSession.globalSetCount + 1,
-            // Recommandations ML
-            ml_weight_suggestion: null,
-            ml_reps_suggestion: workoutState.currentRecommendation?.reps_recommendation,
-            ml_confidence: workoutState.currentRecommendation?.confidence,
-            user_followed_ml_weight: null,
-            user_followed_ml_reps: workoutState.pendingSetData.reps === workoutState.currentRecommendation?.reps_recommendation
-        };
-    } else {
-        // Pour les exercices standard (bodyweight ou external)
-        setData = {
-            exercise_id: currentExercise.id,
-            set_number: currentSet,
-            reps: workoutState.pendingSetData.reps,
-            weight: workoutState.pendingSetData.weight,
-            duration_seconds: null,
-            fatigue_level: parseInt(fatigue),
-            effort_level: parseInt(effort),
-            base_rest_time_seconds: currentExercise.base_rest_time_seconds || 90,
-            exercise_order_in_session: currentWorkoutSession.exerciseOrder,
-            set_order_in_session: currentWorkoutSession.globalSetCount + 1,
-            // Recommandations ML
-            ml_weight_suggestion: workoutState.currentRecommendation?.weight_recommendation,
-            ml_reps_suggestion: workoutState.currentRecommendation?.reps_recommendation,
-            ml_confidence: workoutState.currentRecommendation?.confidence,
-            user_followed_ml_weight: Math.abs((workoutState.pendingSetData.weight || 0) - (workoutState.currentRecommendation?.weight_recommendation || 0)) < 0.5,
-            user_followed_ml_reps: workoutState.pendingSetData.reps === workoutState.currentRecommendation?.reps_recommendation
-        };
-    }
-    
-    // Ajouter les données communes depuis pendingSetData si elles existent
-    if (workoutState.pendingSetData) {
-        // Ces champs sont déjà ajoutés ci-dessus, mais on peut ajouter d'autres si nécessaire
-    }
-    
-    try {
-        // Enregistrer la série
-        const savedSet = await apiPost(`/api/workouts/${currentWorkout.id}/sets`, setData);
-        
-        // Ajouter aux séries complétées avec l'ID retourné
-        currentWorkoutSession.completedSets.push({ ...setData, id: savedSet.id });
-        currentWorkoutSession.globalSetCount++;
-        
-        // Sauvegarder les niveaux de fatigue/effort pour la prochaine recommandation
-        currentWorkoutSession.currentSetFatigue = parseInt(fatigue);
-        currentWorkoutSession.currentSetEffort = parseInt(effort);
-        workoutState.lastEffort = parseInt(effort);
-        
-        // Mettre à jour l'historique visuel
-        updateSetsHistory();
-        
-        // Transition vers RESTING
-        transitionTo(WorkoutStates.RESTING);
-        
-        // Calculer le temps de repos optimal
-        const restTime = workoutState.currentRecommendation?.rest_seconds_recommendation || 
-                        currentExercise.base_rest_time_seconds || 
-                        (isIsometric ? 60 : 90);
-        
-        // Démarrer le repos
-        startRestPeriod(restTime);
-        
-        // Réinitialiser la sélection de feedback
-        resetFeedbackSelection();
-        
-    } catch (error) {
-        console.error('Erreur enregistrement série:', error);
-        showToast('Erreur lors de l\'enregistrement', 'error');
-    }
 }
 
 // ===== FIN DE SÉRIE =====
@@ -5646,7 +5530,6 @@ window.adjustReps = adjustReps;
 window.executeSet = executeSet;
 window.setFatigue = setFatigue;
 window.setEffort = setEffort;
-window.validateSet = validateSet;
 window.previousSet = previousSet;
 window.changeExercise = changeExercise;
 window.skipRest = skipRest;
