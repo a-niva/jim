@@ -2525,24 +2525,78 @@ async function configureUIForExerciseType(type, recommendations) {
 
 // Configuration pour exercices isométriques
 function configureIsometric(elements, recommendations) {
-    // Masquer la ligne de poids
-    if (elements.weightRow) {
-        elements.weightRow.setAttribute('data-hidden', 'true');
-    }
+    if (elements.weightRow) elements.weightRow.setAttribute('data-hidden', 'true');
+    if (elements.repsRow) elements.repsRow.setAttribute('data-hidden', 'true');
     
-    // Adapter l'affichage pour la durée
-    if (elements.repsRow) {
-        elements.repsRow.classList.add('duration-display');
-    }
+    const targetDuration = Math.max(15, recommendations.reps_recommendation || 30);
+    const timerHtml = `
+        <div class="isometric-timer" id="isometric-timer">
+            <svg class="timer-svg" viewBox="0 0 200 200">
+                <circle class="timer-track" cx="100" cy="100" r="80"/>
+                <circle class="timer-progress target" cx="100" cy="100" r="80" id="progress-target"/>
+                <circle class="timer-progress overflow" cx="100" cy="100" r="80" id="progress-overflow"/>
+            </svg>
+            <div class="timer-center">
+                <div id="timer-display">0s</div>
+                <div style="font-size:0.8rem;color:var(--text-muted)">/${targetDuration}s</div>
+            </div>
+            <div class="timer-controls">
+                <button class="btn btn-success" id="start-timer">Démarrer</button>
+                <button class="btn btn-danger" id="stop-timer" style="display:none">Arrêter</button>
+            </div>
+        </div>`;
     
-    // Changer l'icône et l'unité
-    if (elements.repsIcon) elements.repsIcon.textContent = '⏱️';
-    if (elements.repsUnit) elements.repsUnit.textContent = 's';
+    document.querySelector('.input-section').insertAdjacentHTML('beforeend', timerHtml);
+    setupIsometricTimer(targetDuration);
+}
+
+function setupIsometricTimer(targetDuration) {
+    let currentTime = 0, timerInterval = null, targetReached = false;
+    const display = document.getElementById('timer-display');
+    const progressTarget = document.getElementById('progress-target');
+    const progressOverflow = document.getElementById('progress-overflow');
+    const startBtn = document.getElementById('start-timer');
+    const stopBtn = document.getElementById('stop-timer');
     
-    // Mettre à jour les valeurs
-    const duration = recommendations.reps_recommendation || 30;
-    if (elements.setReps) elements.setReps.textContent = duration;
-    if (elements.repsHint) elements.repsHint.textContent = `IA: ${duration}s`;
+    window.currentIsometricTimer = { targetDuration, currentTime: () => currentTime };
+    
+    startBtn.onclick = () => {
+        timerInterval = setInterval(() => {
+            currentTime++;
+            display.textContent = `${currentTime}s`;
+            
+            if (currentTime <= targetDuration) {
+                const percent = (currentTime / targetDuration) * 100;
+                progressTarget.style.strokeDasharray = `${percent * 5.03} 500`;
+                progressOverflow.style.strokeDasharray = '0 500';
+            } else {
+                progressTarget.style.strokeDasharray = '503 500';
+                const overPercent = ((currentTime - targetDuration) / targetDuration) * 100;
+                progressOverflow.style.strokeDasharray = `${Math.min(overPercent * 5.03, 503)} 500`;
+            }
+            
+            if (currentTime === targetDuration && !targetReached) {
+                targetReached = true;
+                showToast(`Objectif ${targetDuration}s atteint ! 🎯`, 'success');
+                if (window.workoutAudio) window.workoutAudio.playSound('achievement');
+            }
+        }, 1000);
+        startBtn.style.display = 'none';
+        stopBtn.style.display = 'block';
+    };
+    
+    stopBtn.onclick = () => {
+        clearInterval(timerInterval);
+        workoutState.pendingSetData = { duration_seconds: currentTime, reps: currentTime, weight: null };
+        document.getElementById('executeSetBtn').style.display = 'none';
+        document.getElementById('setFeedback').style.display = 'block';
+    };
+}
+
+function cleanupIsometricTimer() {
+    const timer = document.getElementById('isometric-timer');
+    if (timer) timer.remove();
+    window.currentIsometricTimer = null;
 }
 
 // Configuration pour exercices bodyweight
@@ -2977,6 +3031,8 @@ function showExerciseCompletion() {
         setTimer = null;
     }
     
+    cleanupIsometricTimer();
+
     // Réinitialiser l'interface
     document.getElementById('executeSetBtn').style.display = 'block';
     document.getElementById('setFeedback').style.display = 'none';

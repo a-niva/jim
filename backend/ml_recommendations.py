@@ -368,8 +368,13 @@ class FitnessRecommendationEngine:
                 recommended_reps = baseline_reps - rir_target
         
         # S'assurer que les reps restent raisonnables
-        recommended_reps = max(exercise.default_reps_min - 2, 
-                            min(exercise.default_reps_max + 2, recommended_reps))
+        if exercise.exercise_type == 'isometric':
+            min_duration = exercise.default_reps_min or 15
+            max_duration = exercise.default_reps_max or 120
+            recommended_reps = max(min_duration, min(max_duration, recommended_reps))
+        else:
+            recommended_reps = max(exercise.default_reps_min - 2, 
+                                min(exercise.default_reps_max + 2, recommended_reps))
         
         return {
             'weight': recommended_weight,
@@ -598,12 +603,16 @@ class FitnessRecommendationEngine:
         else:
             return "decrease"
 
-    def _estimate_initial_weight(self, user: User, exercise: Exercise) -> float:
+    def _estimate_initial_weight(self, user: User, exercise: Exercise) -> Optional[float]:
         """Estime un poids initial basé sur les profils de l'exercice"""
         
         # Pour exercices bodyweight purs
         if exercise.weight_type == "bodyweight":
             return None
+        
+        # AJOUT : Pour exercices hybrid sans base_weights_kg (comme Tractions)
+        if exercise.weight_type == "hybrid" and not exercise.base_weights_kg:
+            return None  # Seront gérés comme bodyweight pur
         
         # Si pas de données de poids de base (anciens exercices)
         if not exercise.base_weights_kg:
