@@ -599,9 +599,10 @@ textarea:focus {
     transform: translateY(-1px);
 }
 
-.workout-card.incomplete {
-    opacity: 0.8;
-    border-style: dashed;
+.workout-status-emojis {
+    font-size: 1.2rem;
+    display: flex;
+    gap: 0.2rem;
 }
 
 .workout-header-row {

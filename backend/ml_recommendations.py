@@ -25,39 +25,36 @@ class FitnessRecommendationEngine:
         self.db = db
 
     def _calculate_performance_score(self, set_record, exercise_id: int = None) -> float:
-        """Calcule un score de performance unifié pour tous types d'exercices"""
-        # Si exercise_id n'est pas fourni, le récupérer depuis set_record
+        """Version corrigée qui utilise calculate_exercise_volume"""
+        
         if exercise_id is None and hasattr(set_record, 'exercise_id'):
             exercise_id = set_record.exercise_id
         
-        # Récupérer l'exercice depuis la DB
         exercise = self.db.query(Exercise).filter(Exercise.id == exercise_id).first()
         if not exercise:
-            # Fallback si exercice non trouvé
-            return set_record.weight * (1 + set_record.reps / 30) if hasattr(set_record, 'weight') and set_record.weight else 1
+            return 1  # Fallback
         
-        # Récupérer l'utilisateur depuis le workout
+        # Récupérer l'utilisateur
         if hasattr(set_record, 'workout_id'):
             workout = self.db.query(Workout).filter(Workout.id == set_record.workout_id).first()
             if workout:
                 user = self.db.query(User).filter(User.id == workout.user_id).first()
             else:
-                # Fallback si pas de workout
-                return set_record.weight * (1 + set_record.reps / 30) if hasattr(set_record, 'weight') and set_record.weight else 1
+                return 1
         else:
-            # Fallback si pas de workout_id
-            return set_record.weight * (1 + set_record.reps / 30) if hasattr(set_record, 'weight') and set_record.weight else 1
+            return 1
         
-        # Calculer selon le type d'exercice
-        if exercise.weight_type == "bodyweight":
-            percentage = exercise.bodyweight_percentage.get(user.experience_level, 65) if exercise.bodyweight_percentage else 65
-            equivalent_weight = user.weight * (percentage / 100)
-            reps = set_record.reps if hasattr(set_record, 'reps') else set_record.actual_reps
-            return equivalent_weight * (1 + reps / 30)
-        else:
-            weight = set_record.weight if hasattr(set_record, 'weight') else 0
-            reps = set_record.reps if hasattr(set_record, 'reps') else set_record.actual_reps
-            return weight * (1 + reps / 30) if weight else 1
+        if not user:
+            return 1
+        
+        # === UTILISER LA FONCTION CORRIGÉE ===
+        return self.calculate_exercise_volume(
+            weight=getattr(set_record, 'weight', None),
+            reps=getattr(set_record, 'reps', 1),
+            exercise=exercise,
+            user=user,
+            effort_level=getattr(set_record, 'effort_level', None)
+        )
     
     def get_set_recommendations(
         self, 
@@ -699,50 +696,51 @@ class FitnessRecommendationEngine:
         estimated_weight = bodyweight * base_multiplier * exercise_factor
         
         return max(5.0, estimated_weight)  # Minimum 5kg
-    
+        
     def calculate_exercise_volume(
         self,
         weight: Optional[float],
         reps: int,
         exercise: Exercise,
-        user: User
+        user: User,
+        effort_level: Optional[int] = None
     ) -> float:
-        """Calcule le volume selon le type d'exercice"""
+        """Calcule des points d'effort normalisés - VERSION CORRIGÉE"""
         
-        # Exercices isométriques (planche, etc.)
-        if (exercise.weight_type == "bodyweight" and
-            exercise.bodyweight_percentage and
-            all(v == 0 for v in exercise.bodyweight_percentage.values())):
-            # Pour isométriques, reps = secondes tenues
-            return reps
-        
-        # Exercices bodyweight normaux
-        if exercise.weight_type == "bodyweight":
-            percentage_data = exercise.bodyweight_percentage or {
-                "beginner": 60,
-                "intermediate": 65,
-                "advanced": 70
-            }
+        # === 1. VOLUME DE BASE ===
+        if exercise.exercise_type == "isometric":
+            # Calibrage : 1 seconde isométrique = 12 points d'effort
+            base_volume = reps * 12
+            
+        elif exercise.weight_type == "bodyweight":
+            percentage_data = exercise.bodyweight_percentage or {"intermediate": 65}
             percentage = percentage_data.get(user.experience_level, 65)
             equivalent_weight = user.weight * (percentage / 100)
-            return equivalent_weight * reps
-        
-        # Exercices hybrides
+            base_volume = equivalent_weight * reps
+            
         elif exercise.weight_type == "hybrid":
             if weight and weight > 0:
-                return weight * reps
+                base_volume = weight * reps
             else:
-                # Traiter comme bodyweight si pas de poids
-                percentage_data = exercise.bodyweight_percentage or {
-                    "intermediate": 65
-                }
+                percentage_data = exercise.bodyweight_percentage or {"intermediate": 65}
                 percentage = percentage_data.get(user.experience_level, 65)
                 equivalent_weight = user.weight * (percentage / 100)
-                return equivalent_weight * reps
+                base_volume = equivalent_weight * reps
+                
+        else:  # external
+            base_volume = (weight or 0) * reps
         
-        # Exercices avec poids externe
+        # === 2. INTENSITY_FACTOR PARTOUT ===
+        intensity_adjusted = base_volume * (exercise.intensity_factor or 1.0)
+        
+        # === 3. EFFORT UTILISATEUR (optionnel) ===
+        if effort_level:
+            effort_multipliers = {1: 0.7, 2: 0.85, 3: 1.0, 4: 1.15, 5: 1.3}
+            final_volume = intensity_adjusted * effort_multipliers.get(effort_level, 1.0)
         else:
-            return (weight or 0) * reps
+            final_volume = intensity_adjusted
+        
+        return round(final_volume, 1)
     
     def _calculate_fatigue_adjustment(
         self, 

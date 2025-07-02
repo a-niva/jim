@@ -1700,6 +1700,16 @@ async function loadMuscleReadiness() {
     }
 }
 
+function isWorkoutComplete(workout) {
+    // Pour les séances programme, vérifier si tous les exercices et séries ont été complétés
+    if (workout.type !== 'program' || !workout.program_data) return false;
+    
+    const expectedSets = workout.program_data.exercises.reduce((total, ex) => total + (ex.sets || 3), 0);
+    const completedSets = workout.total_sets || 0;
+    
+    return completedSets >= expectedSets;
+}
+
 function loadRecentWorkouts(workouts) {
     const container = document.getElementById('recentWorkouts');
     
@@ -1768,14 +1778,18 @@ function loadRecentWorkouts(workouts) {
                     </div>
                     ${duration > 0 ? `
                         <div class="workout-duration">
-                            <span class="duration-value">${duration === 0 ? 'Flash' : duration}</span>
-                            <span class="duration-unit">${duration === 0 ? '' : 'min'}</span>
+                            <span class="duration-value">${duration}</span>
+                            <span class="duration-unit">min</span>
                         </div>
                     ` : `
                         <div class="workout-incomplete">
                             <span class="incomplete-badge">⚠️ Incomplète</span>
                         </div>
                     `}
+                    <div class="workout-status-emojis">
+                        ${workout.type === 'free' ? '⛓️‍💥' : '🔗'}
+                        ${workout.type === 'program' && isWorkoutComplete(workout) ? '👑' : ''}
+                    </div>
                 </div>
                 
                 ${musclesWorked.length > 0 ? `

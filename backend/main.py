@@ -761,7 +761,7 @@ def get_user_stats(user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     ml_engine = FitnessRecommendationEngine(db)
     total_volume = sum(
-        ml_engine.calculate_exercise_volume(s.weight, s.reps, e, user) 
+        ml_engine.calculate_exercise_volume(s.weight, s.reps, e, user, s.effort_level) 
         for s, e in sets_with_exercises
     )
     
