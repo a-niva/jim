@@ -859,81 +859,133 @@ def get_exercise_progression(
     db: Session = Depends(get_db)
 ):
     """Progression adaptée selon le type d'exercice"""
-    cutoff_date = datetime.utcnow() - timedelta(days=months * 30)
-    
-    # Récupérer l'exercice pour connaître son type
-    exercise = db.query(Exercise).filter(Exercise.id == exercise_id).first()
-    if not exercise:
-        raise HTTPException(status_code=404, detail="Exercice non trouvé")
-    
-    sets = db.query(SetHistory).filter(
-        SetHistory.user_id == user_id,
-        SetHistory.exercise_id == exercise_id,
-        SetHistory.date_performed >= cutoff_date
-    ).order_by(SetHistory.date_performed).all()
-    
-    if not sets:
-        return {"data": [], "trend": None, "exercise_type": exercise.exercise_type, "weight_type": exercise.weight_type}
-    
-    progression_data = []
-    
-    # Adapter le calcul selon le type d'exercice
-    if exercise.exercise_type == 'isometric':
-        # Pour les isométriques : progression de durée
-        for s in sets:
-            duration = s.duration_seconds or (s.actual_reps if s.actual_reps else 0)
-            progression_data.append({
-                "date": s.date_performed.isoformat(),
-                "value": duration,
-                "unit": "seconds",
-                "fatigue": s.fatigue_level,
-                "effort": s.effort_level
-            })
-        metric_name = "duration"
+    try:
+        cutoff_date = datetime.utcnow() - timedelta(days=months * 30)
         
-    elif exercise.weight_type == 'bodyweight':
-        # Pour bodyweight : progression du nombre de reps
-        for s in sets:
-            progression_data.append({
-                "date": s.date_performed.isoformat(),
-                "value": s.actual_reps or 0,
-                "unit": "reps",
-                "fatigue": s.fatigue_level,
-                "effort": s.effort_level,
-                "difficulty_score": (s.actual_reps or 0) * (6 - s.fatigue_level) # Score combiné
-            })
-        metric_name = "reps"
+        # Récupérer l'exercice pour connaître son type
+        exercise = db.query(Exercise).filter(Exercise.id == exercise_id).first()
+        if not exercise:
+            raise HTTPException(status_code=404, detail="Exercice non trouvé")
         
+        # Utiliser WorkoutSet au lieu de SetHistory si SetHistory n'existe pas
+        sets = db.query(WorkoutSet).join(
+            Workout, WorkoutSet.workout_id == Workout.id
+        ).filter(
+            Workout.user_id == user_id,
+            WorkoutSet.exercise_id == exercise_id,
+            WorkoutSet.completed_at >= cutoff_date
+        ).order_by(WorkoutSet.completed_at).all()
+        
+        if not sets:
+            return {
+                "data": [], 
+                "trend": None, 
+                "exercise_type": exercise.exercise_type, 
+                "weight_type": exercise.weight_type,
+                "metric_name": "none"
+            }
+        
+        progression_data = []
+        
+        # Adapter le calcul selon le type d'exercice
+        if exercise.exercise_type == 'isometric':
+            # Pour les isométriques : progression de durée
+            for s in sets:
+                # Utiliser duration_seconds si disponible, sinon reps
+                duration = s.duration_seconds if hasattr(s, 'duration_seconds') and s.duration_seconds else (s.reps or 0)
+                if duration > 0:  # Ignorer les valeurs nulles
+                    progression_data.append({
+                        "date": s.completed_at.isoformat(),
+                        "value": duration,
+                        "unit": "seconds",
+                        "fatigue": s.fatigue_level or 3,
+                        "effort": s.effort_level or 3
+                    })
+            metric_name = "duration"
+            
+        elif exercise.weight_type == 'bodyweight':
+            # Pour bodyweight : progression du nombre de reps
+            for s in sets:
+                if s.reps and s.reps > 0:  # Ignorer les valeurs nulles
+                    progression_data.append({
+                        "date": s.completed_at.isoformat(),
+                        "value": s.reps,
+                        "unit": "reps",
+                        "fatigue": s.fatigue_level or 3,
+                        "effort": s.effort_level or 3
+                    })
+            metric_name = "reps"
+            
+        else:
+            # Pour les exercices avec poids : 1RM classique
+            for s in sets:
+                if s.weight and s.reps and s.weight > 0 and s.reps > 0:
+                    one_rm = s.weight * (1 + s.reps / 30)
+                    progression_data.append({
+                        "date": s.completed_at.isoformat(),
+                        "value": round(one_rm, 1),
+                        "unit": "kg",
+                        "weight": s.weight,
+                        "reps": s.reps,
+                        "fatigue": s.fatigue_level or 3
+                    })
+            metric_name = "1rm"
+        
+        # Calculer la tendance seulement s'il y a des données
+        trend = None
+        if len(progression_data) >= 2:
+            values = [p["value"] for p in progression_data]
+            trend = calculate_trend(values)
+            if trend:
+                trend["metric_name"] = metric_name
+        
+        return {
+            "data": progression_data,
+            "trend": trend,
+            "exercise_type": exercise.exercise_type,
+            "weight_type": exercise.weight_type,
+            "metric_name": metric_name
+        }
+        
+    except Exception as e:
+        # Logger l'erreur pour debug
+        print(f"Erreur dans get_exercise_progression: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+def calculate_trend(values):
+    """Calcule la tendance linéaire d'une série de valeurs"""
+    if len(values) < 2:
+        return None
+        
+    x_values = list(range(len(values)))
+    n = len(x_values)
+    
+    sum_x = sum(x_values)
+    sum_y = sum(values)
+    sum_xy = sum(x * y for x, y in zip(x_values, values))
+    sum_x2 = sum(x * x for x in x_values)
+    
+    # Éviter la division par zéro
+    denominator = n * sum_x2 - sum_x * sum_x
+    if denominator == 0:
+        return None
+    
+    slope = (n * sum_xy - sum_x * sum_y) / denominator
+    intercept = (sum_y - slope * sum_x) / n
+    
+    # Calculer le pourcentage de progression
+    if values[0] != 0:
+        progression_percent = ((values[-1] - values[0]) / values[0]) * 100
     else:
-        # Pour les exercices avec poids : 1RM classique
-        user = db.query(User).filter(User.id == user_id).first()
-        for s in sets:
-            if s.weight and s.actual_reps:
-                one_rm = s.weight * (1 + s.actual_reps / 30)
-                progression_data.append({
-                    "date": s.date_performed.isoformat(),
-                    "value": round(one_rm, 1),
-                    "unit": "kg",
-                    "weight": s.weight,
-                    "reps": s.actual_reps,
-                    "fatigue": s.fatigue_level
-                })
-        metric_name = "1rm"
-    
-    # Calculer la tendance
-    trend = None
-    if len(progression_data) >= 2:
-        values = [p["value"] for p in progression_data]
-        trend = calculate_trend(values)
-        trend["metric_name"] = metric_name
+        progression_percent = 0
     
     return {
-        "data": progression_data,
-        "trend": trend,
-        "exercise_type": exercise.exercise_type,
-        "weight_type": exercise.weight_type,
-        "metric_name": metric_name
+        "slope": slope,
+        "intercept": intercept,
+        "progression_percent": round(progression_percent, 1),
+        "average_value": sum(values) / len(values)
     }
+
 
 
 @app.get("/api/users/{user_id}/stats/personal-records")
