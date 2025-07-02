@@ -77,6 +77,7 @@ class Workout(Base):
     started_at = Column(DateTime, default=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
     total_duration_minutes = Column(Integer, nullable=True)
+    total_rest_time_seconds = Column(Integer, nullable=True)
     
     # Métadonnées de séance pour le ML
     session_notes = Column(Text, nullable=True)

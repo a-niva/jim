@@ -1730,9 +1730,11 @@ function loadRecentWorkouts(workouts) {
     container.innerHTML = workouts.slice(0, 3).map(workout => {
         const date = new Date(workout.started_at || workout.completed_at);
         const duration = workout.total_duration_minutes || 0;
-        const restTime = workout.total_rest_time || 0;
-        const activeTime = Math.max(0, duration - restTime);
-        const restRatio = duration > 0 ? (restTime / duration * 100).toFixed(0) : 0;
+        const restTimeSeconds = workout.total_rest_time_seconds || 0;
+        const restTimeMinutes = Math.round(restTimeSeconds / 60);
+        const activeTime = Math.max(0, duration - restTimeMinutes);
+        const restRatio = duration > 0 ?
+            (restTimeMinutes / duration * 100).toFixed(0) : 0;
         
         // Calculer le temps écoulé en tenant compte du fuseau horaire local
         const now = new Date();
@@ -1818,7 +1820,7 @@ function loadRecentWorkouts(workouts) {
                     </div>
                     <div class="progress-legend">
                         <span class="legend-item active">${activeTime}min actif</span>
-                        <span class="legend-item rest">${restTime}min repos</span>
+                        <span class="legend-item rest">${restTimeSeconds < 60 ? restTimeSeconds + 's' : restTimeMinutes + 'min'} repos</span>
                     </div>
                 ` : ''}
                 

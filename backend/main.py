@@ -713,7 +713,7 @@ def update_workout_fatigue(
     return {"message": "Fatigue mise à jour", "workout": workout}
 
 @app.put("/api/workouts/{workout_id}/complete")
-def complete_workout(workout_id: int, db: Session = Depends(get_db)):
+def complete_workout(workout_id: int, data: Dict[str, int] = {}, db: Session = Depends(get_db)):
     """Terminer une séance"""
     workout = db.query(Workout).filter(Workout.id == workout_id).first()
     if not workout:
@@ -726,6 +726,10 @@ def complete_workout(workout_id: int, db: Session = Depends(get_db)):
     if workout.started_at:
         duration = workout.completed_at - workout.started_at
         workout.total_duration_minutes = int(duration.total_seconds() / 60)
+    
+    # Sauvegarder le temps de repos total s'il est fourni
+    if "total_rest_time" in data:
+        workout.total_rest_time_seconds = data["total_rest_time"]
     
     db.commit()
     return {"message": "Séance terminée", "workout": workout}
@@ -776,11 +780,31 @@ def get_user_stats(user_id: int, db: Session = Depends(get_db)):
         for s, e in sets_with_exercises
     )
     
-    # Historique récent (3 dernières séances)
-    recent_workouts = db.query(Workout).filter(
+    # Historique récent (3 dernières séances) avec temps de repos calculés
+    recent_workouts_raw = db.query(Workout).filter(
         Workout.user_id == user_id,
         Workout.status == "completed"
     ).order_by(desc(Workout.completed_at)).limit(3).all()
+    
+    # Enrichir avec les temps de repos calculés à la volée
+    recent_workouts = []
+    for workout in recent_workouts_raw:
+        sets = db.query(WorkoutSet).filter(WorkoutSet.workout_id == workout.id).all()
+        total_rest_seconds = sum(s.actual_rest_duration_seconds or s.base_rest_time_seconds or 0 for s in sets)
+        
+        # Convertir l'objet Workout en dict et ajouter le temps de repos
+        workout_dict = {
+            "id": workout.id,
+            "user_id": workout.user_id,
+            "type": workout.type,
+            "program_id": workout.program_id,
+            "status": workout.status,
+            "started_at": workout.started_at,
+            "completed_at": workout.completed_at,
+            "total_duration_minutes": workout.total_duration_minutes,
+            "total_rest_time_seconds": total_rest_seconds
+        }
+        recent_workouts.append(workout_dict)
     
     return {
         "total_workouts": total_workouts,
