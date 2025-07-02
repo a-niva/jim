@@ -1749,12 +1749,12 @@ function loadRecentWorkouts(workouts) {
         
         // Créer les badges de muscles avec emojis
         const muscleEmojis = {
-            'Pectoraux': '💪',
-            'Dos': '🔙', 
+            'Pectoraux': '🫁',
+            'Dos': '🏋🏻‍♂️', 
             'Jambes': '🦵',
             'Épaules': '🤷',
-            'Bras': '💪',
-            'Abdominaux': '🎯'
+            'Bras': '🦾',
+            'Abdominaux': '🍫'
         };
         
         const muscleBadges = musclesWorked.slice(0, 3).map(muscle => 
@@ -1773,7 +1773,7 @@ function loadRecentWorkouts(workouts) {
             <div class="workout-card ${duration === 0 ? 'incomplete' : ''}">
                 <div class="workout-header-row">
                     <div class="workout-title">
-                        <strong>${workout.type === 'program' ? '📋 Programme' : 'Séance libre'}</strong>
+                        <strong>${workout.type === 'program' ? '📋 Programme' : '🕊️ Séance libre'}</strong>
                         <span class="time-ago">${timeAgo}</span>
                     </div>
                     ${duration > 0 ? `
@@ -1787,7 +1787,7 @@ function loadRecentWorkouts(workouts) {
                         </div>
                     `}
                     <div class="workout-status-emojis">
-                        ${workout.type === 'free' ? '⛓️‍💥' : '🔗'}
+                        ${workout.type === 'free' ? '🕊️' : '📋'}
                         ${workout.type === 'program' && isWorkoutComplete(workout) ? '👑' : ''}
                     </div>
                 </div>
@@ -1845,12 +1845,12 @@ function generateMuscleDistribution(workout) {
     // Générer les segments
     // Mapping des emojis pour chaque muscle
     const muscleEmojis = {
-        'dos': '🔙',
-        'pectoraux': '💪',
+        'dos': '🏋🏻‍♂️',
+        'pectoraux': '🫁',
         'jambes': '🦵',
-        'épaules': '🤸',
-        'bras': '💪',
-        'abdominaux': '🎯'
+        'epaules': '🤷🏻',
+        'bras': '🦾',
+        'abdominaux': '🍫'
     };
 
     // Générer les segments
@@ -2216,7 +2216,7 @@ async function confirmStartProgramWorkout() {
 }
 
 function setupFreeWorkout() {
-    document.getElementById('workoutTitle').textContent = 'Séance libre';
+    document.getElementById('workoutTitle').textContent = '🕊️ Séance libre';
     document.getElementById('exerciseSelection').style.display = 'block';
     document.getElementById('currentExercise').style.display = 'none';
     
@@ -4028,12 +4028,12 @@ async function loadAvailableExercises() {
         
         // Icônes pour chaque groupe
         const muscleIcons = {
-            dos: '🏋️',
-            pectoraux: '💪',
+            dos: '🏋🏻‍♂️',
+            pectoraux: '🫁',
             jambes: '🦵',
-            epaules: '🤸',
-            bras: '💪',
-            abdominaux: '🎯'
+            epaules: '🤷🏻',
+            bras: '🦾',
+            abdominaux: '🍫'
         };
         
         // Classer les exercices
