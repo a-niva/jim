@@ -1731,10 +1731,12 @@ function loadRecentWorkouts(workouts) {
         const date = new Date(workout.started_at || workout.completed_at);
         const duration = workout.total_duration_minutes || 0;
         const restTimeSeconds = workout.total_rest_time_seconds || 0;
+        const exerciseTimeSeconds = workout.total_exercise_time_seconds || 0;
+        const exerciseTimeMinutes = Math.ceil(exerciseTimeSeconds / 60);
+        const displayDuration = Math.max(duration, Math.ceil((restTimeSeconds + exerciseTimeSeconds) / 60));
         const restTimeMinutes = Math.round(restTimeSeconds / 60);
-        const activeTime = Math.max(0, duration - restTimeMinutes);
-        const restRatio = duration > 0 ?
-            (restTimeMinutes / duration * 100).toFixed(0) : 0;
+        const restRatio = displayDuration > 0 ? 
+            Math.min((restTimeMinutes / displayDuration * 100), 100).toFixed(0) : 0;
         
         // Calculer le temps écoulé en tenant compte du fuseau horaire local
         const now = new Date();
@@ -1784,22 +1786,16 @@ function loadRecentWorkouts(workouts) {
             `${(totalVolume / 1000).toFixed(1)}t` : `${totalVolume}kg`;
         
         return `
-            <div class="workout-card ${duration === 0 ? 'incomplete' : ''}">
+            <div class="workout-card">
                 <div class="workout-header-row">
                     <div class="workout-title">
                         <strong>${workout.type === 'program' ? '📋 Programme' : '🕊️ Séance libre'}</strong>
                         <span class="time-ago">${timeAgo}</span>
                     </div>
-                    ${duration > 0 ? `
-                        <div class="workout-duration">
-                            <span class="duration-value">${duration}</span>
-                            <span class="duration-unit">min</span>
-                        </div>
-                    ` : `
-                        <div class="workout-incomplete">
-                            <span class="incomplete-badge">⚠️ Incomplète</span>
-                        </div>
-                    `}
+                    <div class="workout-duration">
+                        <span class="duration-value">${displayDuration}</span>
+                        <span class="duration-unit">min</span>
+                    </div>
                     <div class="workout-status-emojis">
                         ${workout.type === 'free' ? '🕊️' : '📋'}
                         ${workout.type === 'program' && isWorkoutComplete(workout) ? '👑' : ''}
@@ -1813,16 +1809,14 @@ function loadRecentWorkouts(workouts) {
                     </div>
                 ` : ''}
                                 
-                ${duration > 0 ? `
-                    <div class="workout-progress-bar">
-                        <div class="progress-segment active" style="width: ${100 - restRatio}%"></div>
-                        <div class="progress-segment rest" style="width: ${restRatio}%"></div>
-                    </div>
-                    <div class="progress-legend">
-                        <span class="legend-item active">${activeTime}min actif</span>
-                        <span class="legend-item rest">${restTimeSeconds < 60 ? restTimeSeconds + 's' : restTimeMinutes + 'min'} repos</span>
-                    </div>
-                ` : ''}
+                <div class="workout-progress-bar">
+                    <div class="progress-segment active" style="width: ${100 - restRatio}%"></div>
+                    <div class="progress-segment rest" style="width: ${restRatio}%"></div>
+                </div>
+                <div class="progress-legend">
+                    <span class="legend-item active">${exerciseTimeMinutes}min exercice</span>
+                    <span class="legend-item rest">${restTimeSeconds < 60 ? restTimeSeconds + 's' : restTimeMinutes + 'min'} repos</span>
+                </div>
                 
                 ${musclesWorked.length > 0 ? `
                     <div class="muscle-distribution">

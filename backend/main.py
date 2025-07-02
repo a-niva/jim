@@ -746,7 +746,6 @@ def update_set_rest_duration(set_id: int, data: Dict[str, int], db: Session = De
     return {"message": "Durée de repos mise à jour"}
 
 # ===== ENDPOINTS STATISTIQUES =====
-
 @app.get("/api/users/{user_id}/stats")
 def get_user_stats(user_id: int, db: Session = Depends(get_db)):
     """Récupérer les statistiques de l'utilisateur"""
@@ -780,19 +779,24 @@ def get_user_stats(user_id: int, db: Session = Depends(get_db)):
         for s, e in sets_with_exercises
     )
     
-    # Historique récent (3 dernières séances) avec temps de repos calculés
+    # Historique récent (3 dernières séances) avec temps calculés
     recent_workouts_raw = db.query(Workout).filter(
         Workout.user_id == user_id,
         Workout.status == "completed"
     ).order_by(desc(Workout.completed_at)).limit(3).all()
     
-    # Enrichir avec les temps de repos calculés à la volée
+    # Enrichir avec les temps calculés à la volée
     recent_workouts = []
     for workout in recent_workouts_raw:
         sets = db.query(WorkoutSet).filter(WorkoutSet.workout_id == workout.id).all()
+        
+        # Calculer temps de repos total
         total_rest_seconds = sum(s.actual_rest_duration_seconds or s.base_rest_time_seconds or 0 for s in sets)
         
-        # Convertir l'objet Workout en dict et ajouter le temps de repos
+        # Calculer temps d'exercice total
+        total_exercise_seconds = sum(s.duration_seconds or 30 for s in sets)  # 30s par défaut par série
+        
+        # Convertir l'objet Workout en dict avec tous les temps
         workout_dict = {
             "id": workout.id,
             "user_id": workout.user_id,
@@ -802,7 +806,8 @@ def get_user_stats(user_id: int, db: Session = Depends(get_db)):
             "started_at": workout.started_at,
             "completed_at": workout.completed_at,
             "total_duration_minutes": workout.total_duration_minutes,
-            "total_rest_time_seconds": total_rest_seconds
+            "total_rest_time_seconds": total_rest_seconds,
+            "total_exercise_time_seconds": total_exercise_seconds
         }
         recent_workouts.append(workout_dict)
     
