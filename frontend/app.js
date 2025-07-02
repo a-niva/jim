@@ -1961,7 +1961,7 @@ function showProgramStartModal(program) {
                 <ul style="list-style: none; padding: 0;">
                     ${program.exercises.map((ex, index) => `
                         <li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
-                            ${index + 1}. ${ex.name} - ${ex.sets || 3} séries
+                            ${index + 1}. ${ex.exercise_name} - ${ex.sets || 3} séries
                         </li>
                     `).join('')}
                 </ul>

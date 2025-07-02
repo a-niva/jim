@@ -471,6 +471,20 @@ def get_active_program(user_id: int, db: Session = Depends(get_db)):
     if not program:
         return None
     
+    # CORRECTION : Enrichir les exercices avec leurs noms si nécessaire
+    if program.exercises:
+        for ex in program.exercises:
+            # Vérifier si le nom de l'exercice est manquant
+            if 'exercise_name' not in ex and 'exercise_id' in ex:
+                # Récupérer l'exercice depuis la base de données
+                exercise_db = db.query(Exercise).filter(Exercise.id == ex['exercise_id']).first()
+                if exercise_db:
+                    ex['exercise_name'] = exercise_db.name
+                else:
+                    # Si l'exercice n'existe pas dans la base, mettre un nom par défaut
+                    ex['exercise_name'] = f"Exercice ID {ex['exercise_id']}"
+                    logger.warning(f"Exercice ID {ex['exercise_id']} non trouvé dans la base")
+    
     return program
 
 def generate_program_exercises(user: User, program: ProgramCreate, db: Session) -> List[Dict[str, Any]]:
