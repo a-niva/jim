@@ -2179,7 +2179,21 @@ function setupProgramWorkout(program) {
 }
 
 async function selectExercise(exercise) {
-    currentExercise = exercise;
+    if (!validateSessionState()) return;
+    
+    // Récupérer les détails complets de l'exercice si nécessaire
+    if (!exercise.weight_type) {
+        try {
+            const fullExercise = await apiGet(`/api/exercises/${exercise.id}`);
+            currentExercise = fullExercise;
+        } catch (error) {
+            console.error('Erreur chargement exercice complet:', error);
+            currentExercise = exercise;
+        }
+    } else {
+        currentExercise = exercise;
+    }
+    
     currentSet = 1;
     currentWorkoutSession.currentExercise = exercise;
     currentWorkoutSession.currentSetNumber = 1;
@@ -2314,8 +2328,12 @@ async function updateSetRecommendations() {
             set_order_global: currentWorkoutSession.globalSetCount + 1
         });
 
-        // Déterminer si c'est un exercice isométrique
+        // Stocker les recommandations pour executeSet
+        workoutState.currentRecommendation = recommendations;
+
+        // Déterminer le type d'exercice
         const isIsometric = currentExercise.exercise_type === 'isometric';
+        const isBodyweight = currentExercise.weight_type === 'bodyweight' && !isIsometric;
 
         if (isIsometric) {
             // Pour les exercices isométriques, afficher uniquement la durée
@@ -2345,16 +2363,46 @@ async function updateSetRecommendations() {
                 weightHintEl.style.display = 'none';
             }
             
+        } else if (isBodyweight) {
+            // Pour les exercices bodyweight non-isométriques (pompes, tractions, etc.)
+            
+            // Masquer TOUS les éléments liés au poids
+            const weightContainer = document.querySelector('.weight-input-group');
+            if (weightContainer) {
+                weightContainer.style.display = 'none';
+            }
+            
+            const weightHintEl = document.getElementById('weightHint');
+            if (weightHintEl) {
+                weightHintEl.style.display = 'none';
+            }
+            
+            // S'assurer que setWeight est null pour éviter les erreurs
+            const setWeightEl = document.getElementById('setWeight');
+            if (setWeightEl) {
+                setWeightEl.textContent = '';
+            }
+            
+            // Afficher normalement les reps
+            const repsLabel = document.querySelector('.reps-input-group label');
+            if (repsLabel) {
+                repsLabel.textContent = 'Répétitions';
+            }
+            
+            document.getElementById('repsHint').textContent =
+                `IA: ${recommendations.reps_recommendation || 10}`;
+            document.getElementById('setReps').textContent = recommendations.reps_recommendation || 10;
+            
         } else {
-            // Pour les autres exercices (bodyweight et external)
+            // Pour les exercices avec poids externe
             
             // S'assurer que les éléments de poids sont visibles
             const weightContainer = document.querySelector('.weight-input-group');
             if (weightContainer) {
-                weightContainer.style.display = 'block';
+                weightContainer.style.display = 'flex';
             }
             
-            // Remettre le label des répétitions
+            // Rétablir le label des reps
             const repsLabel = document.querySelector('.reps-input-group label');
             if (repsLabel) {
                 repsLabel.textContent = 'Répétitions';
@@ -2387,7 +2435,7 @@ async function updateSetRecommendations() {
             document.getElementById('repsHint').textContent =
                 `IA: ${recommendations.reps_recommendation || 10}`;
 
-            // Pré-remplir avec les valeurs recommandées
+            // Pré-remplir avec les valeurs recommandées (ou les plus proches disponibles)
             document.getElementById('setWeight').textContent = closestWeight || recommendations.weight_recommendation;
             document.getElementById('setReps').textContent = recommendations.reps_recommendation || 10;
 
@@ -2397,7 +2445,7 @@ async function updateSetRecommendations() {
             } else {
                 document.getElementById('weightHint').style.color = 'var(--primary)';
             }
-            
+
             // Gérer l'affichage selon la stratégie d'adaptation
             const weightHintEl = document.getElementById('weightHint');
             const setWeightEl = document.getElementById('setWeight');
@@ -2431,9 +2479,14 @@ async function updateSetRecommendations() {
         console.error('Erreur recommandations ML:', error);
         // Valeurs par défaut en cas d'erreur
         const isIsometric = currentExercise.exercise_type === 'isometric';
+        const isBodyweight = currentExercise.weight_type === 'bodyweight';
         
         if (isIsometric) {
             document.getElementById('setReps').textContent = '30';
+            const weightContainer = document.querySelector('.weight-input-group');
+            if (weightContainer) weightContainer.style.display = 'none';
+        } else if (isBodyweight) {
+            document.getElementById('setReps').textContent = '10';
             const weightContainer = document.querySelector('.weight-input-group');
             if (weightContainer) weightContainer.style.display = 'none';
         } else {
@@ -2456,6 +2509,8 @@ async function completeSet(setNumber) {
         const setData = {
             exercise_id: currentExercise.id,
             set_number: setNumber,
+            reps: parseInt(reps),
+            weight: (currentExercise.weight_type === 'bodyweight') ? null : (weight ? parseFloat(weight) : null),
             reps: parseInt(reps),
             weight: weight ? parseFloat(weight) : null,
             base_rest_time_seconds: currentExercise.base_rest_time_seconds || 90,
@@ -2492,12 +2547,15 @@ function updateSetsHistory() {
     );
     
     const isIsometric = currentExercise.exercise_type === 'isometric';
+    const isBodyweight = currentExercise.weight_type === 'bodyweight';
     
     container.innerHTML = exerciseSets.map((set, index) => `
         <div class="set-history-item">
             <div class="set-number">${index + 1}</div>
             <div class="set-details">
-                ${isIsometric ? `${set.duration_seconds || set.reps}s` : `${set.weight}kg × ${set.reps} reps`}
+                ${isIsometric ? `${set.duration_seconds || set.reps}s` : 
+                  isBodyweight ? `${set.reps} reps` :
+                  `${set.weight || 0}kg × ${set.reps} reps`}
             </div>
             <div class="set-feedback-summary">
                 ${set.fatigue_level ? `Fatigue: ${set.fatigue_level}/5` : ''}
@@ -4337,14 +4395,26 @@ async function executeSet() {
     
     // Sauvegarder les données de la série
     const isIsometric = currentExercise.exercise_type === 'isometric';
-    workoutState.pendingSetData = isIsometric ? {
-        duration_seconds: parseInt(document.getElementById('setReps').textContent), // On utilise setReps pour la durée
-        reps: parseInt(document.getElementById('setReps').textContent), // Pour compatibilité
-        weight: null
-    } : {
-        reps: parseInt(document.getElementById('setReps').textContent),
-        weight: parseFloat(document.getElementById('setWeight').textContent)
-    };
+    const isBodyweight = currentExercise.weight_type === 'bodyweight';
+
+    if (isIsometric) {
+        workoutState.pendingSetData = {
+            duration_seconds: parseInt(document.getElementById('setReps').textContent),
+            reps: parseInt(document.getElementById('setReps').textContent),
+            weight: null
+        };
+    } else if (isBodyweight) {
+        workoutState.pendingSetData = {
+            reps: parseInt(document.getElementById('setReps').textContent),
+            weight: null
+        };
+    } else {
+        const weightValue = document.getElementById('setWeight').textContent;
+        workoutState.pendingSetData = {
+            reps: parseInt(document.getElementById('setReps').textContent),
+            weight: weightValue ? parseFloat(weightValue) : null
+        };
+    }
         
     // Transition vers FEEDBACK
     transitionTo(WorkoutStates.FEEDBACK);

@@ -277,6 +277,13 @@ def get_exercises(
     
     exercises = query.all()
     
+    # AJOUT TEMPORAIRE - Log pour debug
+    if exercises:
+        first_exercise = exercises[0]
+        logger.info(f"Premier exercice: {first_exercise.name}")
+        logger.info(f"weight_type: {getattr(first_exercise, 'weight_type', 'NON DÉFINI')}")
+        logger.info(f"bodyweight_percentage: {getattr(first_exercise, 'bodyweight_percentage', 'NON DÉFINI')}")
+    
     # Filtrer par équipement disponible si user_id fourni
     if user_id:
         user = db.query(User).filter(User.id == user_id).first()
