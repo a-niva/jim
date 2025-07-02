@@ -2185,9 +2185,9 @@ async function confirmStartProgramWorkout() {
             program_id: currentWorkoutSession.program.id
         };
         
-        const workout = await apiPost(`/api/users/${currentUser.id}/workouts`, workoutData);
-        currentWorkout = workout;
-        
+        const response = await apiPost(`/api/users/${currentUser.id}/workouts`, workoutData);
+        currentWorkout = response.workout;  // L'API retourne {message: "...", workout: {...}}
+                
         // Appeler setupProgramWorkout avec le programme de la session
         await setupProgramWorkout(currentWorkoutSession.program);
         
