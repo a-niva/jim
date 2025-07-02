@@ -2892,9 +2892,12 @@ async function completeSet(setNumber) {
             set_order_in_session: currentWorkoutSession.globalSetCount + 1
         };
         
-        await apiPost(`/api/workouts/${currentWorkout.id}/sets`, setData);
+        // Enregistrer la série
+        const savedSet = await apiPost(`/api/workouts/${currentWorkout.id}/sets`, setData);
         
-        currentWorkoutSession.completedSets.push(setData);
+        // Ajouter aux séries complétées avec l'ID retourné
+        const setWithId = { ...setData, id: savedSet.id };
+        currentWorkoutSession.completedSets.push(setWithId);
         currentWorkoutSession.globalSetCount++;
         
         // Mettre à jour l'historique visuel
@@ -3122,6 +3125,10 @@ function skipRest() {
         const actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
         currentWorkoutSession.totalRestTime += actualRestTime;
         console.log(`Repos ignoré après ${actualRestTime}s. Total: ${currentWorkoutSession.totalRestTime}s`);
+        
+        // NOUVEAU : Sauvegarder la durée réelle en base
+        updateLastSetRestDuration(actualRestTime);
+        
         workoutState.restStartTime = null;
     }
     completeRest();
@@ -3133,6 +3140,10 @@ function endRest() {
         const actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
         currentWorkoutSession.totalRestTime += actualRestTime;
         console.log(`Repos terminé (endRest) après ${actualRestTime}s. Total: ${currentWorkoutSession.totalRestTime}s`);
+        
+        // NOUVEAU : Sauvegarder la durée réelle en base
+        updateLastSetRestDuration(actualRestTime);
+        
         workoutState.restStartTime = null;
     }
     if (notificationTimeout) {
@@ -5263,7 +5274,17 @@ function completeRest() {
     if (workoutState.restStartTime) {
         const actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
         currentWorkoutSession.totalRestTime += actualRestTime;
-        console.log(`Repos terminé après ${actualRestTime}s. Total: ${currentWorkoutSession.totalRestTime}s`);
+        
+        // NOUVEAU : Mettre à jour la dernière série sauvegardée avec la durée réelle
+        if (currentWorkoutSession.completedSets.length > 0) {
+            const lastSetId = currentWorkoutSession.completedSets[currentWorkoutSession.completedSets.length - 1].id;
+            if (lastSetId) {
+                apiPut(`/api/sets/${lastSetId}/rest-duration`, {
+                    actual_rest_duration_seconds: actualRestTime
+                }).catch(error => console.error('Erreur mise à jour repos:', error));
+            }
+        }
+        
         workoutState.restStartTime = null;
     }
     if (restTimer) {
@@ -5301,6 +5322,27 @@ function completeRest() {
         
         startSetTimer();
         transitionTo(WorkoutStates.READY);
+    }
+}
+
+// ===== MISE À JOUR DURÉE DE REPOS =====
+async function updateLastSetRestDuration(actualRestTime) {
+    try {
+        if (currentWorkoutSession.completedSets.length > 0) {
+            const lastSet = currentWorkoutSession.completedSets[currentWorkoutSession.completedSets.length - 1];
+            if (lastSet.id) {
+                await apiPut(`/api/sets/${lastSet.id}/rest-duration`, {
+                    actual_rest_duration_seconds: actualRestTime
+                });
+                
+                // Mettre à jour localement aussi
+                lastSet.actual_rest_duration_seconds = actualRestTime;
+                
+                console.log(`Durée de repos mise à jour: ${actualRestTime}s pour la série ${lastSet.id}`);
+            }
+        }
+    } catch (error) {
+        console.error('Erreur mise à jour durée de repos:', error);
     }
 }
 
@@ -5636,6 +5678,7 @@ window.updateHeaderProgress = updateHeaderProgress;
 window.updateProgramExerciseProgress = updateProgramExerciseProgress;
 window.abandonActiveWorkout = abandonActiveWorkout;
 window.finishExercise = finishExercise;
+window.updateLastSetRestDuration = updateLastSetRestDuration;
 
 // ===== EXPORT DES FONCTIONS API MANQUANTES =====
 window.apiGet = apiGet;

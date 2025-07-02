@@ -104,6 +104,8 @@ class WorkoutSet(Base):
     target_weight = Column(Float, nullable=True)  # Poids prévu
     base_rest_time_seconds = Column(Integer, nullable=True)  # Temps de repos effectué après cette série
     suggested_rest_seconds = Column(Integer, nullable=True)  # Repos suggéré par le ML
+    actual_rest_duration_seconds = Column(Integer, nullable=True)  # Temps de repos réellement écoulé
+
 
     # Feedback utilisateur pour le ML
     fatigue_level = Column(Integer, nullable=True)  # 1-5 (très facile à très difficile)

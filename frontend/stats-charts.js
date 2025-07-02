@@ -2,8 +2,8 @@
 
 // Import des couleurs musculaires
 // Utiliser les fonctions depuis window car muscle-colors.js les expose globalement
-const getMuscleColor = () => window.MuscleColors?.getMuscleColor;
-const getMuscleBackground = () => window.MuscleColors?.getMuscleBackground;
+const getMuscleColor = (muscle) => window.MuscleColors?.getMuscleColor?.(muscle) || '#94a3b8';
+const getMuscleBackground = (muscle, opacity) => window.MuscleColors?.getMuscleBackground?.(muscle, opacity) || `rgba(148, 163, 184, ${opacity || 0.15})`;
 const getChartColors = () => window.MuscleColors?.getChartColors;
 
 // Variables globales pour les charts

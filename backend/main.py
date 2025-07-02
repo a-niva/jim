@@ -730,6 +730,17 @@ def complete_workout(workout_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "Séance terminée", "workout": workout}
 
+@app.put("/api/sets/{set_id}/rest-duration")
+def update_set_rest_duration(set_id: int, data: Dict[str, int], db: Session = Depends(get_db)):
+    """Mettre à jour la durée de repos réelle d'une série"""
+    workout_set = db.query(WorkoutSet).filter(WorkoutSet.id == set_id).first()
+    if not workout_set:
+        raise HTTPException(status_code=404, detail="Série non trouvée")
+    
+    workout_set.actual_rest_duration_seconds = data.get("actual_rest_duration_seconds")
+    db.commit()
+    return {"message": "Durée de repos mise à jour"}
+
 # ===== ENDPOINTS STATISTIQUES =====
 
 @app.get("/api/users/{user_id}/stats")
@@ -1546,7 +1557,7 @@ def get_time_distribution(user_id: int, sessions: int = 10, db: Session = Depend
         
         # Calculer les temps
         total_exercise_time = sum(s.duration_seconds or 60 for s in sets)  # 60s par défaut par série
-        total_rest_time = sum(s.base_rest_time_seconds or 0 for s in sets)
+        total_rest_time = sum(s.actual_rest_duration_seconds or s.base_rest_time_seconds or 0 for s in sets)
         total_duration_seconds = workout.total_duration_minutes * 60
         transition_time = max(0, total_duration_seconds - total_exercise_time - total_rest_time)
         
