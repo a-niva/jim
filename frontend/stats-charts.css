@@ -623,3 +623,36 @@
         padding: 0.2rem 0.5rem;
     }
 }
+
+/* Indicateur de type d'exercice dans le sélecteur */
+#exerciseSelector option {
+    padding: 0.5rem;
+}
+
+/* Légende adaptative */
+.progression-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 8px;
+    margin-top: 1rem;
+}
+
+.progression-summary p {
+    margin: 0;
+}
+
+/* Couleurs par type de métrique */
+.metric-duration {
+    color: #10b981;
+}
+
+.metric-reps {
+    color: #f59e0b;
+}
+
+.metric-weight {
+    color: #3b82f6;
+}
