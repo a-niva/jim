@@ -80,7 +80,20 @@ class WorkoutAudioSystem {
         setTimeout(() => this.createTone(659, 0.2, 'sine', 0.4), 150); // Mi
         setTimeout(() => this.createTone(784, 0.3, 'sine', 0.4), 300); // Sol
     }
-
+    // Son générique pour différents événements
+    playSound(type) {
+        if (!this.audioContext || !this.isEnabled) return;
+        
+        switch(type) {
+            case 'achievement':
+                // Son d'accomplissement énergique
+                this.createTone(880, 0.2, 'sine', 0.4); // La
+                setTimeout(() => this.createTone(1047, 0.3, 'sine', 0.4), 150); // Do
+                break;
+            default:
+                console.warn(`Type de son non reconnu: ${type}`);
+        }
+    }
     // Programmer toutes les notifications pour une période de repos
     scheduleRestNotifications(totalSeconds) {
         this.clearScheduledSounds();

@@ -5236,10 +5236,10 @@ async function validateSet() {
     
     try {
         // Enregistrer la série
-        await apiPost(`/api/workouts/${currentWorkout.id}/sets`, setData);
+        const savedSet = await apiPost(`/api/workouts/${currentWorkout.id}/sets`, setData);
         
-        // Ajouter aux séries complétées
-        currentWorkoutSession.completedSets.push(setData);
+        // Ajouter aux séries complétées avec l'ID retourné
+        currentWorkoutSession.completedSets.push({ ...setData, id: savedSet.id });
         currentWorkoutSession.globalSetCount++;
         
         // Sauvegarder les niveaux de fatigue/effort pour la prochaine recommandation
