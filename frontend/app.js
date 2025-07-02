@@ -3955,54 +3955,173 @@ async function loadAvailableExercises() {
             });
         });
         
-        // Trier chaque groupe alphabétiquement
+        // Trier chaque groupe : d'abord par niveau, puis alphabétiquement
         Object.keys(exercisesByMuscle).forEach(muscle => {
-            exercisesByMuscle[muscle].sort((a, b) => a.name.localeCompare(b.name));
+            exercisesByMuscle[muscle].sort((a, b) => {
+                // Ordre des niveaux : beginner < intermediate < advanced
+                const levelOrder = { 'beginner': 1, 'intermediate': 2, 'advanced': 3 };
+                const levelA = levelOrder[a.difficulty] || 2;
+                const levelB = levelOrder[b.difficulty] || 2;
+                
+                if (levelA !== levelB) {
+                    return levelA - levelB;
+                }
+                // Si même niveau, trier alphabétiquement
+                return a.name.localeCompare(b.name);
+            });
         });
-        
-        // Générer le HTML groupé
+
+        // Générer le HTML avec un nouveau design
         const muscleGroupsContainer = document.getElementById('muscleGroupsContainer');
         if (muscleGroupsContainer) {
-            muscleGroupsContainer.innerHTML = Object.entries(exercisesByMuscle)
-                .filter(([muscle, exercises]) => exercises.length > 0)
-                .map(([muscle, muscleExercises]) => `
-                    <div class="muscle-group-section muscle-group-${muscle}">
-                        <div class="muscle-group-header">
-                            <div class="muscle-group-icon">${muscleIcons[muscle]}</div>
-                            <h3>${muscle.charAt(0).toUpperCase() + muscle.slice(1)}</h3>
-                        </div>
-                        <div class="muscle-exercises-grid">
-                            ${muscleExercises.map(exercise => `
-                                <div class="free-exercise-card" onclick="selectExercise({
-                                    id: ${exercise.id},
-                                    name: '${exercise.name.replace(/'/g, "\\'")}',
-                                    instructions: '${(exercise.instructions || '').replace(/'/g, "\\'")}',
-                                    base_rest_time_seconds: ${exercise.base_rest_time_seconds || 60},
-                                    default_reps_min: ${exercise.default_reps_min || 8},
-                                    default_reps_max: ${exercise.default_reps_max || 12},
-                                    default_sets: ${exercise.default_sets || 3},
-                                    intensity_factor: ${exercise.intensity_factor || 1.0}
-                                })">
-                                    <h4>${exercise.name}</h4>
-                                    <div class="free-exercise-meta">
-                                        <span class="difficulty-badge difficulty-${exercise.difficulty}">
-                                            ${exercise.difficulty}
-                                        </span>
-                                        <span>🎯 ${exercise.default_reps_min}-${exercise.default_reps_max} reps</span>
-                                        <span>⏱️ ${exercise.default_sets} séries</span>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
+            // Créer la barre de recherche et les onglets
+            muscleGroupsContainer.innerHTML = `
+                <!-- Barre de recherche et filtres -->
+                <div class="exercise-filters">
+                    <div class="search-container">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="m21 21-4.35-4.35"/>
+                        </svg>
+                        <input type="text" id="exerciseSearch" placeholder="Rechercher un exercice..." 
+                            oninput="filterExercises(this.value)">
                     </div>
-                `).join('');
-        } 
+                    
+                    <!-- Onglets de filtrage par muscle -->
+                    <div class="muscle-tabs">
+                        <button class="muscle-tab active" data-muscle="all" onclick="filterByMuscle('all')">
+                            <span class="tab-icon">💪</span>
+                            <span>Tous</span>
+                        </button>
+                        ${Object.entries(exercisesByMuscle)
+                            .filter(([muscle, exercises]) => exercises.length > 0)
+                            .map(([muscle, exercises]) => `
+                                <button class="muscle-tab" data-muscle="${muscle}" onclick="filterByMuscle('${muscle}')">
+                                    <span class="tab-icon">${muscleIcons[muscle]}</span>
+                                    <span>${muscle.charAt(0).toUpperCase() + muscle.slice(1)}</span>
+                                    <span class="tab-count">${exercises.length}</span>
+                                </button>
+                            `).join('')}
+                    </div>
+                </div>
+                
+                <!-- Liste des exercices -->
+                <div class="exercises-results" id="exercisesResults">
+                    ${Object.entries(exercisesByMuscle)
+                        .filter(([muscle, exercises]) => exercises.length > 0)
+                        .map(([muscle, muscleExercises]) => `
+                            <div class="muscle-group-section muscle-group-${muscle}" data-muscle="${muscle}">
+                                <div class="muscle-group-header collapsible" onclick="toggleMuscleGroup('${muscle}')">
+                                    <div class="header-left">
+                                        <div class="muscle-group-icon">${muscleIcons[muscle]}</div>
+                                        <h3>${muscle.charAt(0).toUpperCase() + muscle.slice(1)}</h3>
+                                        <span class="exercise-count">${muscleExercises.length} exercices</span>
+                                    </div>
+                                    <svg class="collapse-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="6 9 12 15 18 9"></polyline>
+                                    </svg>
+                                </div>
+                                <div class="muscle-exercises-grid expanded">
+                                    ${muscleExercises.map(exercise => `
+                                        <div class="free-exercise-card" data-exercise-name="${exercise.name.toLowerCase()}" 
+                                            data-muscle="${muscle}" data-difficulty="${exercise.difficulty}"
+                                            onclick="selectExercise({
+                                            id: ${exercise.id},
+                                            name: '${exercise.name.replace(/'/g, "\\'")}',
+                                            instructions: '${(exercise.instructions || '').replace(/'/g, "\\'")}',
+                                            muscle_groups: ${JSON.stringify(exercise.muscle_groups)},
+                                            equipment_required: ${JSON.stringify(exercise.equipment_required || [])},
+                                            difficulty: '${exercise.difficulty}',
+                                            default_sets: ${exercise.default_sets || 3},
+                                            default_reps_min: ${exercise.default_reps_min || 8},
+                                            default_reps_max: ${exercise.default_reps_max || 12},
+                                            base_rest_time_seconds: ${exercise.base_rest_time_seconds || 90}
+                                        })">
+                                            <div class="exercise-card-header">
+                                                <h4>${exercise.name}</h4>
+                                                <span class="difficulty-badge difficulty-${exercise.difficulty}">
+                                                    ${exercise.difficulty === 'beginner' ? 'Débutant' : 
+                                                    exercise.difficulty === 'intermediate' ? 'Intermédiaire' : 'Avancé'}
+                                                </span>
+                                            </div>
+                                            <div class="free-exercise-meta">
+                                                ${exercise.equipment_required && exercise.equipment_required.length > 0 ? 
+                                                    `<span>🏋️ ${exercise.equipment_required.join(', ')}</span>` : 
+                                                    '<span>💪 Poids du corps</span>'}
+                                                <span>📊 ${exercise.default_sets}×${exercise.default_reps_min}-${exercise.default_reps_max}</span>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `).join('')}
+                </div>
+            `;
+        }
         
     } catch (error) {
         console.error('Erreur chargement exercices:', error);
         showToast('Erreur chargement des exercices', 'error');
     }
 }
+
+// Fonction de recherche d'exercices
+function filterExercises(searchTerm) {
+    const normalizedSearch = searchTerm.toLowerCase().trim();
+    const exerciseCards = document.querySelectorAll('.free-exercise-card');
+    const muscleGroups = document.querySelectorAll('.muscle-group-section');
+    
+    exerciseCards.forEach(card => {
+        const exerciseName = card.dataset.exerciseName;
+        const isMatch = exerciseName.includes(normalizedSearch);
+        card.style.display = isMatch ? 'block' : 'none';
+    });
+    
+    // Cacher les groupes sans résultats
+    muscleGroups.forEach(group => {
+        const visibleCards = group.querySelectorAll('.free-exercise-card[style="display: block;"], .free-exercise-card:not([style])');
+        group.style.display = visibleCards.length > 0 ? 'block' : 'none';
+    });
+    
+    // Si recherche vide, tout afficher
+    if (!normalizedSearch) {
+        exerciseCards.forEach(card => card.style.display = 'block');
+        muscleGroups.forEach(group => group.style.display = 'block');
+    }
+}
+
+// Fonction de filtrage par muscle
+function filterByMuscle(muscle) {
+    // Mettre à jour l'onglet actif
+    document.querySelectorAll('.muscle-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.muscle === muscle);
+    });
+    
+    // Filtrer les sections
+    const muscleGroups = document.querySelectorAll('.muscle-group-section');
+    muscleGroups.forEach(group => {
+        if (muscle === 'all') {
+            group.style.display = 'block';
+        } else {
+            group.style.display = group.dataset.muscle === muscle ? 'block' : 'none';
+        }
+    });
+    
+    // Réinitialiser la recherche
+    const searchInput = document.getElementById('exerciseSearch');
+    if (searchInput) searchInput.value = '';
+}
+
+// Fonction pour replier/déplier un groupe musculaire
+function toggleMuscleGroup(muscle) {
+    const section = document.querySelector(`.muscle-group-${muscle}`);
+    const grid = section.querySelector('.muscle-exercises-grid');
+    const icon = section.querySelector('.collapse-icon');
+    
+    grid.classList.toggle('expanded');
+    icon.classList.toggle('rotated');
+}
+
 
 // ===== GESTION AVANCÉE DU REPOS =====
 function calculateAdaptiveRestTime(exercise, fatigue, effort, setNumber) {
@@ -5122,3 +5241,7 @@ window.loadRecentWorkouts = loadRecentWorkouts;
 window.enrichWorkoutsWithExercises = enrichWorkoutsWithExercises;
 window.toggleMuscleTooltip = toggleMuscleTooltip;
 window.confirmStartProgramWorkout = confirmStartProgramWorkout;
+
+window.filterExercises = filterExercises;
+window.filterByMuscle = filterByMuscle;
+window.toggleMuscleGroup = toggleMuscleGroup;

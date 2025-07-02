@@ -2764,6 +2764,193 @@ select:focus-visible {
     }
 }
 
+/* ===== FILTRES ET RECHERCHE SÉANCE LIBRE ===== */
+.exercise-filters {
+    margin-bottom: 2rem;
+    padding: 0 1rem;
+}
+
+.search-container {
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+
+.search-container svg {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+}
+
+.search-container input {
+    width: 100%;
+    padding: 0.875rem 1rem 0.875rem 3rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+.search-container input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Onglets de filtrage */
+.muscle-tabs {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.muscle-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.muscle-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.muscle-tab:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--primary);
+    color: var(--text);
+}
+
+.muscle-tab.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+.tab-icon {
+    font-size: 1.25rem;
+}
+
+.tab-count {
+    padding: 0.125rem 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    font-size: 0.75rem;
+}
+
+.muscle-tab.active .tab-count {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Section groupe musculaire améliorée */
+.muscle-group-section {
+    margin-bottom: 2rem;
+    transition: all 0.3s ease;
+}
+
+.muscle-group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.muscle-group-header.collapsible:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.muscle-group-icon {
+    font-size: 1.5rem;
+}
+
+.exercise-count {
+    padding: 0.25rem 0.75rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.collapse-icon {
+    transition: transform 0.3s ease;
+}
+
+.collapse-icon.rotated {
+    transform: rotate(180deg);
+}
+
+/* Grid d'exercices avec animation */
+.muscle-exercises-grid {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.muscle-exercises-grid.expanded {
+    max-height: 2000px;
+}
+
+/* Carte d'exercice améliorée */
+.free-exercise-card {
+    animation: fadeIn 0.3s ease;
+}
+
+.exercise-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive amélioré */
+@media (max-width: 768px) {
+    .muscle-tabs {
+        padding: 0 0.5rem 0.5rem;
+    }
+    
+    .muscle-tab {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+    }
+    
+    .tab-icon {
+        font-size: 1rem;
+    }
+}
+
 /* ===== CARTES DE SÉANCES MODERNES ===== */
 .workout-card {
     background: linear-gradient(135deg, var(--bg-card) 0%, #253545 100%);
