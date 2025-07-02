@@ -2686,88 +2686,35 @@ select:focus-visible {
 /* Couleurs spécifiques par groupe - utilise les variables RGB centralisées */
 
 
-/* Liste d'exercices dans chaque groupe */
-.muscle-exercises-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1rem;
+/* ===== PAGE SÉANCE LIBRE - DESIGN MODERNE ===== */
+.free-workout-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
 }
 
-.free-exercise-card {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    padding: 1.25rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    position: relative;
-    overflow: hidden;
+.free-workout-header {
+    text-align: center;
+    margin-bottom: 3rem;
 }
 
-.free-exercise-card:hover {
-    background: rgba(255, 255, 255, 0.08);
-    transform: translateX(4px);
-}
-
-.free-exercise-card h4 {
-    font-size: 1rem;
-    font-weight: 600;
+.free-workout-header h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
     color: var(--text);
     margin-bottom: 0.5rem;
 }
 
-.free-exercise-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    font-size: 0.85rem;
+.free-workout-header p {
     color: var(--text-muted);
-}
-
-.free-exercise-meta span {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-}
-
-/* Indicateur de difficulté */
-.difficulty-badge {
-    padding: 0.2rem 0.6rem;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    font-weight: 500;
-}
-
-.difficulty-beginner {
-    background: rgba(16, 185, 129, 0.2);
-    color: #10b981;
-}
-
-.difficulty-intermediate {
-    background: rgba(245, 158, 11, 0.2);
-    color: #f59e0b;
-}
-
-.difficulty-advanced {
-    background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .muscle-exercises-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .free-workout-header h2 {
-        font-size: 2rem;
-    }
+    font-size: 1.1rem;
 }
 
 /* ===== FILTRES ET RECHERCHE SÉANCE LIBRE ===== */
 .exercise-filters {
     margin-bottom: 2rem;
     padding: 0 1rem;
+    position: relative; /* Pour les indicateurs PC */
 }
 
 .search-container {
@@ -2800,7 +2747,7 @@ select:focus-visible {
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-/* Onglets de filtrage */
+/* ===== ONGLETS DE FILTRAGE MUSCULAIRE ===== */
 .muscle-tabs {
     display: flex;
     gap: 0.5rem;
@@ -2809,7 +2756,7 @@ select:focus-visible {
     margin: 0 -1rem;
     padding-left: 1rem;
     padding-right: 1rem;
-    position: relative; /* Ajouter cette ligne */
+    position: relative;
     
     /* Smooth scrolling */
     scroll-behavior: smooth;
@@ -2818,34 +2765,26 @@ select:focus-visible {
     /* Hide scrollbar but keep functionality */
     scrollbar-width: none;
     -ms-overflow-style: none;
+    
+    /* Permettre le défilement avec la souris */
+    user-select: none;
+    -webkit-user-select: none;
 }
-
 
 .muscle-tabs::-webkit-scrollbar {
     display: none;
 }
 
-/* Indicateur de scroll sur mobile */
-@media (max-width: 768px) {
-    .muscle-tabs::after {
-        content: '';
-        position: absolute;
-        right: 0;
-        top: 0;
-        bottom: 0;
-        width: 2rem;
-        background: linear-gradient(to right, transparent, var(--bg));
-        pointer-events: none;
-        z-index: 1;
-    }
-    
-    .exercise-filters {
-        position: relative;
-        margin: 0 -1rem;
-        padding: 0 1rem;
-    }
+/* Curseur sur PC pour indiquer qu'on peut défiler */
+.muscle-tabs:hover {
+    cursor: grab;
 }
 
+.muscle-tabs:active {
+    cursor: grabbing;
+}
+
+/* Style des onglets */
 .muscle-tab {
     display: flex;
     align-items: center;
@@ -2887,6 +2826,7 @@ select:focus-visible {
     transform: translateY(-2px);
 }
 
+/* État actif */
 .muscle-tab.active {
     background: var(--primary);
     color: white;
@@ -2894,6 +2834,7 @@ select:focus-visible {
     box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
 }
 
+/* Icône de l'onglet */
 .tab-icon {
     font-size: 1.5rem;
     filter: grayscale(0.5);
@@ -2904,68 +2845,7 @@ select:focus-visible {
     filter: grayscale(0);
 }
 
-
-/* Amélioration mobile spécifique */
-@media (max-width: 480px) {
-    .muscle-tabs {
-        gap: 0.75rem;
-        padding-bottom: 1.5rem;
-    }
-    
-    .muscle-tab {
-        padding: 0.625rem 1rem;
-        font-size: 0.85rem;
-    }
-    
-    .tab-icon {
-        font-size: 1.25rem;
-    }
-    
-    /* Effet de snap scroll sur mobile */
-    .muscle-tabs {
-        scroll-snap-type: x mandatory;
-        scroll-padding: 1rem;
-    }
-    
-    .muscle-tab {
-        scroll-snap-align: center;
-    }
-    
-    /* Premier et dernier élément avec padding supplémentaire */
-    .muscle-tab:first-child {
-        margin-left: 0.5rem;
-    }
-    
-    .muscle-tab:last-child {
-        margin-right: 0.5rem;
-    }
-}
-
-/* Animation d'entrée pour les cartes sur mobile */
-@media (max-width: 768px) {
-    .free-exercise-card {
-        animation: slideIn 0.3s ease forwards;
-        opacity: 0;
-    }
-    
-    .free-exercise-card:nth-child(1) { animation-delay: 0.05s; }
-    .free-exercise-card:nth-child(2) { animation-delay: 0.1s; }
-    .free-exercise-card:nth-child(3) { animation-delay: 0.15s; }
-    .free-exercise-card:nth-child(4) { animation-delay: 0.2s; }
-    .free-exercise-card:nth-child(5) { animation-delay: 0.25s; }
-    
-    @keyframes slideIn {
-        from {
-            opacity: 0;
-            transform: translateX(-20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateX(0);
-        }
-    }
-}
-
+/* Compteur */
 .tab-count {
     padding: 0.2rem 0.6rem;
     background: rgba(255, 255, 255, 0.15);
@@ -2978,11 +2858,7 @@ select:focus-visible {
     background: rgba(255, 255, 255, 0.25);
 }
 
-.muscle-tab.active .tab-count {
-    background: rgba(255, 255, 255, 0.2);
-}
-
-/* Section groupe musculaire améliorée */
+/* ===== SECTIONS DE GROUPES MUSCULAIRES ===== */
 .muscle-group-section {
     margin-bottom: 2rem;
     transition: all 0.3s ease;
@@ -3030,8 +2906,11 @@ select:focus-visible {
     transform: rotate(180deg);
 }
 
-/* Grid d'exercices avec animation */
+/* ===== GRILLE D'EXERCICES ===== */
 .muscle-exercises-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
     max-height: 0;
     overflow: hidden;
     transition: max-height 0.3s ease;
@@ -3041,9 +2920,22 @@ select:focus-visible {
     max-height: 2000px;
 }
 
-/* Carte d'exercice améliorée */
+/* ===== CARTES D'EXERCICES ===== */
 .free-exercise-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 1.25rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
     animation: fadeIn 0.3s ease;
+}
+
+.free-exercise-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateX(4px);
 }
 
 .exercise-card-header {
@@ -3054,13 +2946,105 @@ select:focus-visible {
     margin-bottom: 0.75rem;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+.free-exercise-card h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.5rem;
 }
 
-/* Responsive amélioré */
+.free-exercise-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.free-exercise-meta span {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+/* ===== BADGES DE DIFFICULTÉ ===== */
+.difficulty-badge {
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.difficulty-beginner {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+}
+
+.difficulty-intermediate {
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+}
+
+.difficulty-advanced {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(10px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* ===== RESPONSIVE MOBILE ===== */
 @media (max-width: 768px) {
+    /* Header responsive */
+    .free-workout-header h2 {
+        font-size: 2rem;
+    }
+    
+    /* Grille d'exercices mobile */
+    .muscle-exercises-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Indicateur de scroll mobile */
+    .muscle-tabs::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 2rem;
+        background: linear-gradient(to right, transparent, var(--bg));
+        pointer-events: none;
+        z-index: 1;
+    }
+    
+    /* Ajustements de layout */
+    .exercise-filters {
+        margin: 0 -1rem;
+        padding: 0 1rem;
+    }
+    
+    /* Tailles adaptatives */
     .muscle-tabs {
         padding: 0 0.5rem 0.5rem;
     }
@@ -3073,9 +3057,81 @@ select:focus-visible {
     .tab-icon {
         font-size: 1rem;
     }
+    
+    /* Animation des cartes sur mobile */
+    .free-exercise-card {
+        animation: slideIn 0.3s ease forwards;
+        opacity: 0;
+    }
+    
+    .free-exercise-card:nth-child(1) { animation-delay: 0.05s; }
+    .free-exercise-card:nth-child(2) { animation-delay: 0.1s; }
+    .free-exercise-card:nth-child(3) { animation-delay: 0.15s; }
+    .free-exercise-card:nth-child(4) { animation-delay: 0.2s; }
+    .free-exercise-card:nth-child(5) { animation-delay: 0.25s; }
+    .free-exercise-card:nth-child(n+6) { animation-delay: 0.3s; }
 }
 
-/* ===== CARTES DE SÉANCES MODERNES ===== */
+/* ===== RESPONSIVE TRÈS PETIT MOBILE ===== */
+@media (max-width: 480px) {
+    .muscle-tabs {
+        gap: 0.75rem;
+        padding-bottom: 1.5rem;
+        /* Effet de snap scroll sur mobile */
+        scroll-snap-type: x mandatory;
+        scroll-padding: 1rem;
+    }
+    
+    .muscle-tab {
+        padding: 0.625rem 1rem;
+        font-size: 0.85rem;
+        scroll-snap-align: center;
+    }
+    
+    .muscle-tab:first-child {
+        margin-left: 0.5rem;
+    }
+    
+    .muscle-tab:last-child {
+        margin-right: 0.5rem;
+    }
+    
+    .tab-icon {
+        font-size: 1.25rem;
+    }
+}
+
+/* ===== INDICATEURS DE DÉFILEMENT PC ===== */
+@media (min-width: 769px) {
+    .muscle-tabs {
+        padding-bottom: 0.5rem;
+    }
+    
+    .exercise-filters::before,
+    .exercise-filters::after {
+        content: '';
+        position: absolute;
+        top: 50px;
+        width: 30px;
+        height: 40px;
+        pointer-events: none;
+        z-index: 2;
+        transition: opacity 0.3s ease;
+    }
+    
+    .exercise-filters::before {
+        left: 0;
+        background: linear-gradient(to right, var(--bg), transparent);
+    }
+    
+    .exercise-filters::after {
+        right: 0;
+        background: linear-gradient(to left, var(--bg), transparent);
+    }
+}
+
+/* ===== STYLES SUPPLÉMENTAIRES CONSERVÉS ===== */
+/* Cartes de séances modernes */
 .workout-card {
     background: linear-gradient(135deg, var(--bg-card) 0%, #253545 100%);
     border-radius: 16px;
@@ -3120,8 +3176,7 @@ select:focus-visible {
     opacity: 0.6;
 }
 
-/* ===== INDICATEUR DOT AMÉLIORÉ ===== */
-/* Définition unifiée de .indicator-dot */
+/* Indicateur dot amélioré */
 .indicator-dot {
     width: 10px;
     height: 10px;
@@ -3129,24 +3184,6 @@ select:focus-visible {
     background: var(--border);
     transition: all 0.3s ease;
     position: relative;
-}
-
-
-.recovery-badge {
-    font-size: 0.6rem;
-    background: var(--warning);
-    color: white;
-    padding: 2px 4px;
-    border-radius: 10px;
-    margin-left: 0.3rem;
-}
-
-/* États de récupération - garder les variations d'opacité */
-.muscle-item.recovering .indicator-dot { opacity: 0.6; }
-.muscle-item.fatigued .indicator-dot { opacity: 0.3; }
-.muscle-item.rested .indicator-dot { 
-    opacity: 1; 
-    box-shadow: 0 0 8px currentColor; 
 }
 
 .indicator-dot::before {
@@ -3161,23 +3198,36 @@ select:focus-visible {
     opacity: 0.2;
 }
 
-
-.muscle-item.ready .indicator-dot {
-    background: var(--success);
-    box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
+.recovery-badge {
+    font-size: 0.6rem;
+    background: var(--warning);
+    color: white;
+    padding: 2px 4px;
+    border-radius: 10px;
+    margin-left: 0.3rem;
 }
 
-.muscle-item.recovering .indicator-dot {
+/* États de récupération */
+.muscle-item.recovering .indicator-dot { 
+    opacity: 0.6;
     background: var(--warning);
     box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
 }
 
-.muscle-item.fatigued .indicator-dot {
+.muscle-item.fatigued .indicator-dot { 
+    opacity: 0.3;
     background: var(--danger);
     box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
 }
 
-/* ===== CARTES D'ACTIONS PRINCIPALES AMÉLIORÉES ===== */
+.muscle-item.rested .indicator-dot,
+.muscle-item.ready .indicator-dot {
+    opacity: 1;
+    background: var(--success);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
+}
+
+/* Cartes d'actions principales améliorées */
 .action-card {
     background: linear-gradient(135deg, var(--bg-card) 0%, #253545 100%);
     border: 1px solid var(--glass-border);
@@ -3218,8 +3268,7 @@ select:focus-visible {
     z-index: 2;
 }
 
-
-/* ===== WELCOME MESSAGE MODERNE ===== */
+/* Welcome message moderne */
 .welcome-message {
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 50%, var(--accent-purple) 100%);
     color: white;
@@ -3248,7 +3297,6 @@ select:focus-visible {
     z-index: 2;
 }
 
-/* ===== PREFERENCES ML ===== */
 /* Préférences ML */
 .preference-options {
     display: grid;
@@ -3361,9 +3409,6 @@ input:checked + .toggle-slider:before {
     pointer-events: none;
 }
 
-
-/* ===== WIDGET PROGRAMME DASHBOARD ===== */
-
 /* Widget Programme Dashboard */
 .program-status-card {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -3372,19 +3417,6 @@ input:checked + .toggle-slider:before {
 .program-status-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-/* Couleurs pour les états */
-:root {
-    --success: #10b981;
-    --success-light: #10b98120;
-    --warning: #f59e0b;
-    --warning-light: #f59e0b20;
-    --info: #3b82f6;
-    --info-light: #3b82f620;
-    --info-dark: #2563eb;
-    --primary-light: #7c3aed20;
-    --primary-dark: #5b21b6;
 }
 
 /* Animation de progression */
@@ -3398,7 +3430,7 @@ input:checked + .toggle-slider:before {
     animation: progressPulse 2s ease-in-out infinite;
 }
 
-/* Responsive */
+/* Responsive programme */
 @media (max-width: 768px) {
     .program-status-card {
         padding: 1rem !important;

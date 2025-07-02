@@ -2207,6 +2207,7 @@ function setupFreeWorkout() {
     document.getElementById('currentExercise').style.display = 'none';
     
     loadAvailableExercises();
+    enableHorizontalScroll();
     startWorkoutTimer();
 }
 
@@ -2255,6 +2256,34 @@ async function setupProgramWorkout(program) {
     
     startWorkoutTimer();
 }
+
+// Fonction pour sélectionner un exercice par ID
+async function selectExerciseById(exerciseId) {
+    try {
+        // Récupérer l'exercice depuis l'API
+        const exercises = await apiGet(`/api/exercises?user_id=${currentUser.id}`);
+        const exercise = exercises.find(ex => ex.id === exerciseId);
+        
+        if (exercise) {
+            selectExercise({
+                id: exercise.id,
+                name: exercise.name,
+                instructions: exercise.instructions || '',
+                muscle_groups: exercise.muscle_groups,
+                equipment_required: exercise.equipment_required || [],
+                difficulty: exercise.difficulty,
+                default_sets: exercise.default_sets || 3,
+                default_reps_min: exercise.default_reps_min || 8,
+                default_reps_max: exercise.default_reps_max || 12,
+                base_rest_time_seconds: exercise.base_rest_time_seconds || 90
+            });
+        }
+    } catch (error) {
+        console.error('Erreur sélection exercice:', error);
+        showToast('Erreur lors de la sélection', 'error');
+    }
+}
+
 
 async function selectExercise(exercise, skipValidation = false) {
     // Pour le setup initial, on peut skipper la validation
@@ -4070,39 +4099,44 @@ async function loadAvailableExercises() {
                                     </svg>
                                 </div>
                                 <div class="muscle-exercises-grid expanded">
-                                    ${muscleExercises.map((exercise, index) => `
-                                        <div class="free-exercise-card" 
-                                            data-exercise-name="${exercise.name.toLowerCase()}" 
-                                            data-muscle="${muscle}" 
-                                            data-difficulty="${exercise.difficulty}"
-                                            data-exercise='${JSON.stringify({
-                                                id: exercise.id,
-                                                name: exercise.name,
-                                                instructions: exercise.instructions || '',
-                                                muscle_groups: exercise.muscle_groups,
-                                                equipment_required: exercise.equipment_required || [],
-                                                difficulty: exercise.difficulty,
-                                                default_sets: exercise.default_sets || 3,
-                                                default_reps_min: exercise.default_reps_min || 8,
-                                                default_reps_max: exercise.default_reps_max || 12,
-                                                base_rest_time_seconds: exercise.base_rest_time_seconds || 90
-                                            })}'
-                                            onclick="selectExerciseFromCard(this)">
-                                            <div class="exercise-card-header">
-                                                <h4>${exercise.name}</h4>
-                                                <span class="difficulty-badge difficulty-${exercise.difficulty}">
-                                                    ${exercise.difficulty === 'beginner' ? 'Débutant' : 
-                                                    exercise.difficulty === 'intermediate' ? 'Intermédiaire' : 'Avancé'}
-                                                </span>
+                                    ${muscleExercises.map((exercise, index) => {
+                                        // Échapper les caractères problématiques
+                                        const safeExerciseData = {
+                                            id: exercise.id,
+                                            name: exercise.name,
+                                            instructions: (exercise.instructions || '').replace(/'/g, "''").replace(/"/g, '\\"'),
+                                            muscle_groups: exercise.muscle_groups,
+                                            equipment_required: exercise.equipment_required || [],
+                                            difficulty: exercise.difficulty,
+                                            default_sets: exercise.default_sets || 3,
+                                            default_reps_min: exercise.default_reps_min || 8,
+                                            default_reps_max: exercise.default_reps_max || 12,
+                                            base_rest_time_seconds: exercise.base_rest_time_seconds || 90
+                                        };
+                                        
+                                        return `
+                                            <div class="free-exercise-card" 
+                                                data-exercise-name="${exercise.name.toLowerCase()}" 
+                                                data-muscle="${muscle}" 
+                                                data-difficulty="${exercise.difficulty}"
+                                                data-exercise-id="${exercise.id}"
+                                                onclick="selectExerciseById(${exercise.id})">
+                                                <div class="exercise-card-header">
+                                                    <h4>${exercise.name}</h4>
+                                                    <span class="difficulty-badge difficulty-${exercise.difficulty}">
+                                                        ${exercise.difficulty === 'beginner' ? 'Débutant' : 
+                                                        exercise.difficulty === 'intermediate' ? 'Intermédiaire' : 'Avancé'}
+                                                    </span>
+                                                </div>
+                                                <div class="free-exercise-meta">
+                                                    ${exercise.equipment_required && exercise.equipment_required.length > 0 ? 
+                                                        `<span>🏋️ ${exercise.equipment_required.join(', ')}</span>` : 
+                                                        '<span>💪 Poids du corps</span>'}
+                                                    <span>📊 ${exercise.default_sets}×${exercise.default_reps_min}-${exercise.default_reps_max}</span>
+                                                </div>
                                             </div>
-                                            <div class="free-exercise-meta">
-                                                ${exercise.equipment_required && exercise.equipment_required.length > 0 ? 
-                                                    `<span>🏋️ ${exercise.equipment_required.join(', ')}</span>` : 
-                                                    '<span>💪 Poids du corps</span>'}
-                                                <span>📊 ${exercise.default_sets}×${exercise.default_reps_min}-${exercise.default_reps_max}</span>
-                                            </div>
-                                        </div>
-                                    `).join('')}
+                                        `;
+                                    }).join('')}
                                 </div>
                             </div>
                         `).join('')}
@@ -4171,6 +4205,53 @@ function toggleMuscleGroup(muscle) {
     
     grid.classList.toggle('expanded');
     icon.classList.toggle('rotated');
+}
+
+// Ajouter après la fonction toggleMuscleGroup()
+function enableHorizontalScroll() {
+    const muscleTabsContainer = document.querySelector('.muscle-tabs');
+    if (!muscleTabsContainer) return;
+    
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+    
+    // Défilement avec clic maintenu
+    muscleTabsContainer.addEventListener('mousedown', (e) => {
+        // Ne pas interférer avec les clics sur les boutons
+        if (e.target.classList.contains('muscle-tab')) return;
+        
+        isDown = true;
+        muscleTabsContainer.style.cursor = 'grabbing';
+        startX = e.pageX - muscleTabsContainer.offsetLeft;
+        scrollLeft = muscleTabsContainer.scrollLeft;
+    });
+    
+    muscleTabsContainer.addEventListener('mouseleave', () => {
+        isDown = false;
+        muscleTabsContainer.style.cursor = 'grab';
+    });
+    
+    muscleTabsContainer.addEventListener('mouseup', () => {
+        isDown = false;
+        muscleTabsContainer.style.cursor = 'grab';
+    });
+    
+    muscleTabsContainer.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const x = e.pageX - muscleTabsContainer.offsetLeft;
+        const walk = (x - startX) * 2;
+        muscleTabsContainer.scrollLeft = scrollLeft - walk;
+    });
+    
+    // Défilement horizontal avec Shift + molette
+    muscleTabsContainer.addEventListener('wheel', (e) => {
+        if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+            e.preventDefault();
+            muscleTabsContainer.scrollLeft += e.deltaY || e.deltaX;
+        }
+    });
 }
 
 // Fonction pour sélectionner un exercice depuis une carte
@@ -5305,7 +5386,9 @@ window.toggleMuscleTooltip = toggleMuscleTooltip;
 window.confirmStartProgramWorkout = confirmStartProgramWorkout;
 
 window.selectExerciseFromCard = selectExerciseFromCard;
+window.selectExerciseById = selectExerciseById;
 window.searchExercises = searchExercises;
+window.enableHorizontalScroll = enableHorizontalScroll;
 window.filterByMuscleGroup = filterByMuscleGroup;
 window.toggleMuscleGroup = toggleMuscleGroup;
 window.toggleWeightPreference = toggleWeightPreference;
