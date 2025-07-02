@@ -22,6 +22,15 @@ let currentBurndownPeriod = 'week';
 let currentUser = null;
 
 // ===== INITIALISATION =====
+// Helper pour accès sécurisé aux couleurs musculaires
+function getSafeMuscleColor(muscle) {
+    if (!window.MuscleColors || !window.MuscleColors.getMuscleColor) {
+        console.warn('MuscleColors module not loaded, using default color');
+        return '#94a3b8';
+    }
+    return window.MuscleColors.getMuscleColor(muscle) || '#94a3b8';
+}
+
 export async function initStatsCharts(userId, user) {
     if (!userId) return;
     
@@ -166,7 +175,7 @@ async function loadExercisesList(userId) {
             
             // Créer les pastilles de couleur pour les muscle_groups
             const colorDots = record.muscleGroups.map(muscle => {
-                const color = window.MuscleColors?.getMuscleColor(muscle) || '#94a3b8';
+                const color = getSafeMuscleColor(muscle);
                 return `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};margin-left:4px;"></span>`;
             }).join('');
             
@@ -420,7 +429,7 @@ async function loadRecordsWaterfall(userId) {
         
         // Créer le waterfall
         container.innerHTML = records.slice(0, 10).map((record, index) => {
-            const muscleColor = getMuscleColor(record.muscleGroups[0] || 'default');
+            const muscleColor = getSafeMuscleColor(record.muscleGroups[0] || 'default');
             const fatigueEmoji = ['💪', '😊', '😐', '😓', '😵'][record.fatigue - 1] || '😐';
             
             return `
@@ -436,11 +445,11 @@ async function loadRecordsWaterfall(userId) {
                             <span>${fatigueEmoji} Fatigue: ${record.fatigue}/5</span>
                             <span>📅 Il y a ${record.daysAgo}j</span>
                         </div>
-                        <div class="waterfall-muscles">
-                            ${record.muscles.map(m => 
-                                `<span class="muscle-tag" style="background: ${getMuscleBackground(m, 0.2)}; color: ${getMuscleColor(m)}">${m}</span>`
-                            ).join('')}
-                        </div>
+                            <div class="waterfall-muscles">
+                                ${record.muscleGroups.map(muscle => 
+                                    `<span class="muscle-tag" style="background-color: ${getSafeMuscleColor(muscle)}">${muscle}</span>`
+                                ).join('')}
+                            </div>
                     </div>
                 </div>
             `;

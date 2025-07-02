@@ -194,16 +194,19 @@
 }
 
 .waterfall-muscles {
+    margin-top: 4px;
     display: flex;
-    gap: 0.5rem;
     flex-wrap: wrap;
+    gap: 4px;
 }
 
 .muscle-tag {
-    padding: 0.25rem 0.75rem;
-    border-radius: 1rem;
-    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-size: 10px;
+    color: white;
     font-weight: 500;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
 /* ===== GRAPHIQUE 5: CALENDRIER ===== */
