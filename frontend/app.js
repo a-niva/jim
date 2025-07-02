@@ -1731,9 +1731,11 @@ function loadRecentWorkouts(workouts) {
         const date = new Date(workout.started_at || workout.completed_at);
         const duration = workout.total_duration_minutes || 0;
         const restTimeSeconds = workout.total_rest_time_seconds || 0;
-        const exerciseTimeSeconds = workout.total_exercise_time_seconds || 0;
-        const exerciseTimeMinutes = Math.ceil(exerciseTimeSeconds / 60);
-        const displayDuration = Math.max(duration, Math.ceil((restTimeSeconds + exerciseTimeSeconds) / 60));
+        // Vraies valeurs : durée chronométrée et repos réels
+        const realDurationSeconds = duration * 60;
+        const exerciseTimeSeconds = Math.max(0, realDurationSeconds - restTimeSeconds);
+        const exerciseTimeMinutes = duration > 0 ? Math.ceil(exerciseTimeSeconds / 60) : 0;
+        const displayDuration = duration; // Vraie durée chronométrée
         const restTimeMinutes = Math.round(restTimeSeconds / 60);
         const restRatio = displayDuration > 0 ? 
             Math.min((restTimeMinutes / displayDuration * 100), 100).toFixed(0) : 0;
