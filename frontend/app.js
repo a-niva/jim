@@ -2193,8 +2193,7 @@ async function confirmStartProgramWorkout() {
         
         // Fermer le modal et passer à l'écran de séance
         closeModal();
-        document.getElementById('homeScreen').style.display = 'none';
-        document.getElementById('workoutScreen').style.display = 'block';
+        showView('workout');
         
     } catch (error) {
         console.error('Erreur démarrage séance:', error);
