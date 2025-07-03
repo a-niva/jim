@@ -633,6 +633,23 @@ textarea:focus {
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
+    min-width: 40px; /* Largeur minimale pour afficher le texte */
+}
+
+.time-segment:hover .segment-time,
+.time-segment[style*="width: 100%"] .segment-time,
+.time-segment[style*="width: 9"] .segment-time,
+.time-segment[style*="width: 8"] .segment-time,
+.time-segment[style*="width: 7"] .segment-time,
+.time-segment[style*="width: 6"] .segment-time,
+.time-segment[style*="width: 5"] .segment-time,
+.time-segment[style*="width: 4"] .segment-time,
+.time-segment[style*="width: 3"] .segment-time {
+    display: inline; /* Afficher si assez large ou au hover */
+}
+
+.time-segment .segment-time {
+    display: none; /* Masqué par défaut */
 }
 
 .time-segment.exercise {

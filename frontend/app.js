@@ -1842,15 +1842,15 @@ function loadRecentWorkouts(workouts) {
                     <div class="time-bar-container">
                         <div class="time-segment exercise" style="width: ${exercisePercent}%">
                             <span class="segment-emoji">💪</span>
-                            <span class="segment-time">${Math.round(exerciseSeconds/60)}min</span>
+                            <span class="segment-time">${Math.round(exerciseSeconds)}s</span>
                         </div>
                         <div class="time-segment rest" style="width: ${restPercent}%">
                             <span class="segment-emoji">😮‍💨</span>
-                            <span class="segment-time">${Math.round(restSeconds/60)}min</span>
+                            <span class="segment-time">${Math.round(restSeconds)}s</span>
                         </div>
                         <div class="time-segment transition" style="width: ${transitionPercent}%">
-                            <span class="segment-emoji">🚶</span>
-                            <span class="segment-time">${Math.round(transitionSeconds/60)}min</span>
+                            <span class="segment-emoji">⚙️</span>
+                            <span class="segment-time">${Math.round(transitionSeconds)}s</span>
                         </div>
                     </div>
                 </div>
@@ -1872,15 +1872,15 @@ function loadRecentWorkouts(workouts) {
                 <div class="workout-stats-line">
                     <span class="stat-item">
                         <span class="stat-icon">📊</span>
-                        ${workout.total_sets || 0} séries
+                        ${workout.sets ? workout.sets.length : 0} séries
                     </span>
                     <span class="stat-item">
                         <span class="stat-icon">⚖️</span>
-                        ${volumeDisplay}
+                        ${totalVolume > 0 ? volumeDisplay : '0kg'}
                     </span>
                     <span class="stat-item">
                         <span class="stat-icon">🏋️</span>
-                        ${workout.exercises ? workout.exercises.length : 0} exercices
+                        ${workout.total_exercises || (workout.exercises ? workout.exercises.length : 0)} exercices
                     </span>
                 </div>
             </div>
