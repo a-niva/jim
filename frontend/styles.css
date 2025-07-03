@@ -599,17 +599,6 @@ textarea:focus {
     transform: translateY(-1px);
 }
 
-.workout-status-emojis {
-    font-size: 1.2rem;
-    display: flex;
-    gap: 0.2rem;
-}
-
-.time-ago {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-}
-
 /* Container vide */
 .empty-workouts {
     text-align: center;
@@ -625,7 +614,6 @@ textarea:focus {
     font-size: 0.8rem;
     opacity: 0.8;
 }
-
 
 /*============ HISTORIQUE RECENT, NOUVEAU DESIGN ============*/
 
@@ -689,22 +677,21 @@ textarea:focus {
     transition: all 0.3s ease;
     position: relative;
     cursor: pointer;
-    border-radius: 8px; /* ← AJOUTER cette ligne */
 }
+
 .muscle-segment:hover {
     filter: brightness(1.2);
 }
 
-.muscle-segment {
-    height: 100%;
-    transition: all 0.3s ease;
-    position: relative;
-    cursor: pointer;
+/* OPTIONNEL - À garder seulement si vous voulez des coins arrondis sur la barre de distribution musculaire */
+.muscle-segment:first-child {
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
 }
 
-.muscle-segment:hover {
-    filter: brightness(1.1);
-    transform: scaleY(1.1);
+.muscle-segment:last-child {
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
 }
 
 /* Layout empilé - Ligne 1 Header */
