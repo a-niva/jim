@@ -1745,11 +1745,6 @@ function loadRecentWorkouts(workouts) {
         // Calculer le temps écoulé en tenant compte du fuseau horaire local
         const now = new Date();
         const workoutDate = new Date(workout.started_at || workout.completed_at);
-
-        // S'assurer que les dates sont comparées dans le même timezone
-        const nowLocal = new Date(now.getTime() - (now.getTimezoneOffset() * 60000));
-        const workoutLocal = new Date(workoutDate.getTime() - (workoutDate.getTimezoneOffset() * 60000));
-
         const diffMs = now - workoutDate;
         const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
         const diffHours = Math.floor(diffMs / (1000 * 60 * 60));

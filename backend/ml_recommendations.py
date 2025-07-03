@@ -298,7 +298,7 @@ class FitnessRecommendationEngine:
                     baseline_reps = exercise.default_reps_min
         
         # Calculer la fatigue aiguë
-        now = datetime.now(timezone.utc)()
+        now = datetime.now(timezone.utc)
         if perf_state.last_session_timestamp:
             hours_since = (now - perf_state.last_session_timestamp).total_seconds() / 3600
             # Décroissance exponentielle de la fatigue
@@ -562,7 +562,7 @@ class FitnessRecommendationEngine:
         """Détecte les patterns de progression de l'utilisateur"""
         
         # Récupérer l'historique sur 3 mois
-        three_months_ago = datetime.now(timezone.utc)() - timedelta(days=90)
+        three_months_ago = datetime.now(timezone.utc) - timedelta(days=90)
         history = self.db.query(SetHistory).filter(
             SetHistory.user_id == user_id,
             SetHistory.exercise_id == exercise_id,
