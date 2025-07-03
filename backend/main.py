@@ -773,108 +773,105 @@ def update_set_rest_duration(set_id: int, data: Dict[str, int], db: Session = De
 # ===== ENDPOINTS STATISTIQUES =====
 @app.get("/api/users/{user_id}/stats")
 def get_user_stats(user_id: int, db: Session = Depends(get_db)):
-    """Récupérer les statistiques de l'utilisateur"""
-    # Séances totales
-    total_workouts = db.query(func.count(Workout.id)).filter(
-        Workout.user_id == user_id,
-        Workout.status == "completed"
-    ).scalar()
+    """Récupère les statistiques générales d'un utilisateur - VERSION OPTIMISÉE"""
+    from sqlalchemy import func
+    from sqlalchemy.orm import joinedload
     
-    # Dernière séance
-    last_workout = db.query(Workout).filter(
-        Workout.user_id == user_id,
-        Workout.status == "completed"
-    ).order_by(desc(Workout.completed_at)).first()
-    
-    # Volume total (poids x reps)
-    # Récupérer tous les sets avec leurs exercices
-    sets_with_exercises = db.query(WorkoutSet, Exercise).join(
-        Workout, WorkoutSet.workout_id == Workout.id
-    ).join(
-        Exercise, WorkoutSet.exercise_id == Exercise.id
-    ).filter(
-        Workout.user_id == user_id
-    ).all()
-
-    # Calculer le volume en tenant compte du type d'exercice
+    # Vérifier que l'utilisateur existe
     user = db.query(User).filter(User.id == user_id).first()
-    ml_engine = FitnessRecommendationEngine(db)
-    total_volume = sum(
-        ml_engine.calculate_exercise_volume(s.weight, s.reps, e, user, s.effort_level) 
-        for s, e in sets_with_exercises
-    )
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
     
-    # Historique récent (3 dernières séances) avec temps calculés
-    recent_workouts_raw = db.query(Workout).filter(
+    # 1. Stats globales en une seule requête
+    stats = db.query(
+        func.count(Workout.id).label('total_workouts'),
+        func.sum(WorkoutSet.weight * WorkoutSet.reps).label('total_volume')
+    ).select_from(Workout).join(WorkoutSet).filter(
         Workout.user_id == user_id,
         Workout.status == "completed"
-    ).order_by(desc(Workout.completed_at)).limit(3).all()
+    ).first()
     
-    # Enrichir avec les temps calculés à la volée ET les muscles travaillés
-    recent_workouts = []
-    for workout in recent_workouts_raw:
-        sets = db.query(WorkoutSet).filter(WorkoutSet.workout_id == workout.id).all()
+    total_workouts = stats.total_workouts or 0
+    total_volume = float(stats.total_volume or 0)
+    
+    # 2. Récupérer les workouts récents avec tous leurs sets et exercices en UNE SEULE requête
+    recent_workouts = db.query(Workout).options(
+        joinedload(Workout.sets).joinedload(WorkoutSet.exercise)
+    ).filter(
+        Workout.user_id == user_id,
+        Workout.status == "completed"
+    ).order_by(Workout.completed_at.desc()).limit(3).all()
+    
+    # 3. Transformer les données (pas de requêtes supplémentaires !)
+    recent_workouts_with_stats = []
+    for workout in recent_workouts:
+        # Les sets sont déjà chargés grâce à joinedload
+        sets = workout.sets
         
-        # Récupérer les muscles travaillés
+        # Calculs en mémoire (rapide)
+        total_sets = len(sets)
+        total_volume_workout = sum((s.weight or 0) * (s.reps or 0) for s in sets)
+        
+        # Exercices uniques
+        unique_exercises = set()
         muscle_distribution = {}
-        for s in sets:
-            exercise = db.query(Exercise).filter(Exercise.id == s.exercise_id).first()
-            if exercise and exercise.muscle_groups:
-                for muscle_group in exercise.muscle_groups:
-                    muscle_distribution[muscle_group] = muscle_distribution.get(muscle_group, 0) + 1
         
-        # Calculer les pourcentages
-        total_sets = len(sets) if sets else 1
-        muscle_percentages = {
-            muscle: (count / total_sets * 100) 
-            for muscle, count in muscle_distribution.items()
-        }
+        for workout_set in sets:
+            # L'exercice est déjà chargé grâce à joinedload
+            exercise = workout_set.exercise
+            unique_exercises.add(exercise.id)
+            
+            if exercise.muscle_groups:
+                muscle_count = len(exercise.muscle_groups)
+                for muscle in exercise.muscle_groups:
+                    if muscle not in muscle_distribution:
+                        muscle_distribution[muscle] = 0
+                    muscle_distribution[muscle] += 1 / muscle_count
         
-        # ✅ CALCULER SEULEMENT LES TEMPS RÉELLEMENT MESURÉS
-        total_exercise_seconds = sum(s.duration_seconds or 0 for s in sets)
-        total_rest_seconds = sum(s.actual_rest_duration_seconds or 0 for s in sets)
-
-        # Calculer le temps de transition
+        # Convertir en pourcentages
+        if muscle_distribution:
+            total_muscle_work = sum(muscle_distribution.values())
+            muscle_distribution = {
+                muscle: round((count / total_muscle_work) * 100)
+                for muscle, count in muscle_distribution.items()
+            }
+        
+        # Calculer les temps
+        total_exercise_time = sum(s.duration_seconds or 0 for s in sets)
+        total_rest_time = workout.total_rest_time_seconds or 0
         total_duration_seconds = (workout.total_duration_minutes or 0) * 60
-        transition_time_seconds = max(0, total_duration_seconds - total_exercise_seconds - total_rest_seconds)
-
-        # ✅ AJOUTER DEBUG POUR IDENTIFIER LE PROBLÈME
-        print(f"DEBUG Workout {workout.id}:")
-        print(f"  Duration in DB: {workout.total_duration_minutes}min = {(workout.total_duration_minutes or 0) * 60}s")
-        print(f"  Sets count: {len(sets)}")
-        print(f"  Exercise seconds: {total_exercise_seconds}")
-        print(f"  Rest seconds: {total_rest_seconds}")
-        for i, s in enumerate(sets):
-            print(f"    Set {i+1}: duration_seconds={s.duration_seconds}, actual_rest={s.actual_rest_duration_seconds}, base_rest={s.base_rest_time_seconds}")
-
-        # Si pas de duration_seconds, estimer depuis la durée totale
-        if total_exercise_seconds == 0 and workout.total_duration_minutes:
-            total_duration_seconds = workout.total_duration_minutes * 60
-            total_exercise_seconds = max(0, total_duration_seconds - total_rest_seconds)
-            print(f"WARNING: Estimated exercise time: {total_exercise_seconds}s")
+        total_transition_time = max(0, total_duration_seconds - total_exercise_time - total_rest_time)
         
-        # Convertir l'objet Workout en dict avec tous les temps
         workout_dict = {
             "id": workout.id,
             "user_id": workout.user_id,
             "type": workout.type,
             "program_id": workout.program_id,
             "status": workout.status,
-            "started_at": workout.started_at,
-            "completed_at": workout.completed_at,
+            "started_at": workout.started_at.isoformat() if workout.started_at else None,
+            "completed_at": workout.completed_at.isoformat() if workout.completed_at else None,
             "total_duration_minutes": workout.total_duration_minutes,
-            "total_rest_time_seconds": total_rest_seconds,
-            "total_exercise_time_seconds": total_exercise_seconds,
-            "total_transition_time_seconds": transition_time_seconds,
-            "muscle_distribution": muscle_percentages  # AJOUTER
+            "total_rest_time_seconds": total_rest_time,
+            "total_exercise_time_seconds": total_exercise_time,
+            "total_transition_time_seconds": total_transition_time,
+            "total_sets": total_sets,
+            "total_volume": total_volume_workout,
+            "total_exercises": len(unique_exercises),
+            "muscle_distribution": muscle_distribution
         }
-        recent_workouts.append(workout_dict)
+        recent_workouts_with_stats.append(workout_dict)
+    
+    # Date du dernier workout (on l'a déjà dans recent_workouts)
+    last_workout_date = recent_workouts[0].completed_at.isoformat() if recent_workouts else None
     
     return {
         "total_workouts": total_workouts,
-        "last_workout_date": last_workout.completed_at if last_workout else None,
         "total_volume_kg": round(total_volume, 1),
-        "recent_workouts": recent_workouts
+        "last_workout_date": last_workout_date,
+        "recent_workouts": recent_workouts_with_stats,
+        "average_workout_duration": round(
+            sum(w["total_duration_minutes"] for w in recent_workouts_with_stats) / len(recent_workouts_with_stats)
+        ) if recent_workouts_with_stats else 0
     }
 
 @app.get("/api/users/{user_id}/progress")
