@@ -5080,7 +5080,8 @@ async function validateAndStartRest() {
         exercise_id: currentExercise.id,
         set_number: currentSet,
         fatigue_level: parseInt(fatigue),
-        effort_level: parseInt(effort)
+        effort_level: parseInt(effort),
+        base_rest_time_seconds: currentExercise.base_rest_time_seconds || 90
     };
     
     // Enregistrer la série
