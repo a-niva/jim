@@ -1838,12 +1838,6 @@ function loadRecentWorkouts(workouts) {
                     </div>
                 </div>
                 
-                ${musclesWorked.length > 0 ? `
-                    <div class="muscle-badges-row">
-                        ${muscleBadges}
-                        ${additionalMuscles}
-                    </div>
-                ` : ''}
                 ${workout.muscle_distribution && Object.keys(workout.muscle_distribution).length > 0 ? `
                     <div class="muscle-distribution">
                         <div class="distribution-bar">
