@@ -814,15 +814,24 @@ def get_user_stats(user_id: int, db: Session = Depends(get_db)):
     for workout in recent_workouts_raw:
         sets = db.query(WorkoutSet).filter(WorkoutSet.workout_id == workout.id).all()
         
-        # Calculer temps de repos total
-        # Calculer temps d'exercice AVANT temps de repos
+        # ✅ CALCULER SEULEMENT LES TEMPS RÉELLEMENT MESURÉS
         total_exercise_seconds = sum(s.duration_seconds or 0 for s in sets)
-        total_rest_seconds = sum(s.actual_rest_duration_seconds or s.base_rest_time_seconds or 0 for s in sets)
+        total_rest_seconds = sum(s.actual_rest_duration_seconds or 0 for s in sets)  # ✅ SUPPRIMER base_rest_time_seconds
+
+        # ✅ AJOUTER DEBUG POUR IDENTIFIER LE PROBLÈME
+        print(f"DEBUG Workout {workout.id}:")
+        print(f"  Duration in DB: {workout.total_duration_minutes}min = {(workout.total_duration_minutes or 0) * 60}s")
+        print(f"  Sets count: {len(sets)}")
+        print(f"  Exercise seconds: {total_exercise_seconds}")
+        print(f"  Rest seconds: {total_rest_seconds}")
+        for i, s in enumerate(sets):
+            print(f"    Set {i+1}: duration_seconds={s.duration_seconds}, actual_rest={s.actual_rest_duration_seconds}, base_rest={s.base_rest_time_seconds}")
 
         # Si pas de duration_seconds, estimer depuis la durée totale
         if total_exercise_seconds == 0 and workout.total_duration_minutes:
             total_duration_seconds = workout.total_duration_minutes * 60
             total_exercise_seconds = max(0, total_duration_seconds - total_rest_seconds)
+            print(f"WARNING: Estimated exercise time: {total_exercise_seconds}s")
         
         # Convertir l'objet Workout en dict avec tous les temps
         workout_dict = {

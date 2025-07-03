@@ -1736,11 +1736,17 @@ function loadRecentWorkouts(workouts) {
         // Vraies valeurs : durée chronométrée et repos réels
         const realDurationSeconds = duration * 60;
         const exerciseTimeSeconds = Math.max(0, realDurationSeconds - restTimeSeconds);
-        const exerciseTimeMinutes = duration > 0 ? Math.ceil(exerciseTimeSeconds / 60) : 0;
+        // ✅ DEBUG - Garder les valeurs en secondes et ajouter logs
+        const totalSeconds = duration * 60;
+        console.log(`DEBUG Workout ${workout.id}:`);
+        console.log(`  Total: ${totalSeconds}s (${duration}min)`);
+        console.log(`  Exercise: ${exerciseTimeSeconds}s`);
+        console.log(`  Rest: ${restTimeSeconds}s`);
+        console.log(`  Sum: ${exerciseTimeSeconds + restTimeSeconds}s`);
+
         const displayDuration = duration; // Vraie durée chronométrée
-        const restTimeMinutes = Math.round(restTimeSeconds / 60);
         const restRatio = displayDuration > 0 ? 
-            Math.min((restTimeMinutes / displayDuration * 100), 100).toFixed(0) : 0;
+            Math.min((restTimeSeconds / (totalSeconds) * 100), 100).toFixed(0) : 0;
         
         // Calculer le temps écoulé en tenant compte du fuseau horaire local
         const now = new Date();
@@ -1813,8 +1819,11 @@ function loadRecentWorkouts(workouts) {
                     <div class="progress-segment rest" style="width: ${restRatio}%"></div>
                 </div>
                 <div class="progress-legend">
-                    <span class="legend-item active">${exerciseTimeMinutes}min exercice</span>
-                    <span class="legend-item rest">${restTimeSeconds < 60 ? restTimeSeconds + 's' : restTimeMinutes + 'min'} repos</span>
+                    <div style="font-size: 0.8em; color: #666; margin-bottom: 0.5rem;">
+                        📊 Total: ${totalSeconds}s | ⏱️ Ex: ${exerciseTimeSeconds}s | 😮‍💨 Repos: ${restTimeSeconds}s | 🧮 Somme: ${exerciseTimeSeconds + restTimeSeconds}s
+                    </div>
+                    <span class="legend-item active">${exerciseTimeSeconds}s exercice</span>
+                    <span class="legend-item rest">${restTimeSeconds}s repos</span>
                 </div>
                 
                 ${musclesWorked.length > 0 ? `
