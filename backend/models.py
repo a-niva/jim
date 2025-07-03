@@ -1,7 +1,7 @@
 # ===== backend/models.py - VERSION REFACTORISÉE =====
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, JSON, Boolean, Text, Index
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 from backend.database import Base
 
 
@@ -15,7 +15,7 @@ class User(Base):
     weight = Column(Float, nullable=False)  # kg
     experience_level = Column(String, nullable=False)  # beginner, intermediate, advanced
     equipment_config = Column(JSON, nullable=False)  # Configuration complète équipement
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
     prefer_weight_changes_between_sets = Column(Boolean, default=True)
     sound_notifications_enabled = Column(Boolean, default=True)
 
@@ -60,7 +60,7 @@ class Program(Base):
     session_duration_minutes = Column(Integer, nullable=False)
     focus_areas = Column(JSON, nullable=False)  # ["upper_body", "core"]
     exercises = Column(JSON, nullable=False)  # Liste ordonnée des exercices avec sets/reps
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
     is_active = Column(Boolean, default=True)
     
     user = relationship("User", back_populates="programs")
@@ -74,7 +74,7 @@ class Workout(Base):
     type = Column(String, nullable=False)  # "free" ou "program"
     program_id = Column(Integer, ForeignKey("programs.id"), nullable=True)
     status = Column(String, default="active")  # active, completed, abandoned
-    started_at = Column(DateTime, default=datetime.utcnow)
+    started_at = Column(DateTime, default=datetime.now(timezone.utc))
     completed_at = Column(DateTime, nullable=True)
     total_duration_minutes = Column(Integer, nullable=True)
     total_rest_time_seconds = Column(Integer, nullable=True)
@@ -123,7 +123,7 @@ class WorkoutSet(Base):
     exercise_order_in_session = Column(Integer, nullable=True)  # 1er, 2ème, 3ème exercice...
     set_order_in_session = Column(Integer, nullable=True)  # 1ère, 2ème, 3ème série globale...
     
-    completed_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, default=datetime.now(timezone.utc))
     
     workout = relationship("Workout", back_populates="sets")
     exercise = relationship("Exercise")
@@ -156,7 +156,7 @@ class SetHistory(Base):
     success = Column(Boolean, nullable=False)  # L'utilisateur a-t-il réussi la série comme prévu
     actual_reps = Column(Integer, nullable=False)  # Reps réellement effectuées
     
-    date_performed = Column(DateTime, default=datetime.utcnow)
+    date_performed = Column(DateTime, default=datetime.now(timezone.utc))
     
     user = relationship("User")
     exercise = relationship("Exercise")
@@ -179,8 +179,8 @@ class UserCommitment(Base):
     preferred_days = Column(JSON, nullable=True)  # ["lundi", "mercredi", "vendredi"]
     preferred_time = Column(String, nullable=True)  # "morning", "afternoon", "evening"
     
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     
     user = relationship("User")
 
@@ -204,8 +204,8 @@ class AdaptiveTargets(Base):
     # Adaptation
     adaptation_rate = Column(Float, default=1.0)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     
     user = relationship("User")
 
@@ -223,7 +223,7 @@ class UserAdaptationCoefficients(Base):
     volume_response = Column(Float, default=1.0)  # Réponse au volume d'entraînement
     typical_progression_increment = Column(Float, default=2.5)  # Incrément de progression habituel
     
-    last_updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_updated = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     
     # Relations
     user = relationship("User")
@@ -249,8 +249,8 @@ class PerformanceStates(Base):
     last_session_timestamp = Column(DateTime, nullable=True)
     progression_pattern = Column(JSON, nullable=True)  # Patterns de progression observés
     
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     
     # Relations
     user = relationship("User")

@@ -3,7 +3,7 @@ import logging
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from backend.models import User, Exercise, Workout, WorkoutSet, AdaptiveTargets, UserCommitment
 import itertools
 
@@ -877,7 +877,7 @@ class FitnessMLEngine:
                 "session_metadata": {
                     "muscle_priorities": dict(sorted_muscles[:5]),
                     "volume_deficits": volume_deficits,
-                    "generation_timestamp": datetime.utcnow().isoformat()
+                    "generation_timestamp": datetime.now(timezone.utc)().isoformat()
                 }
             }
             
@@ -1109,7 +1109,7 @@ class FitnessMLEngine:
         # Récupérer l'historique récent
         recent_workouts = self.db.query(Workout).filter(
             Workout.user_id == user.id,
-            Workout.created_at >= datetime.utcnow() - timedelta(days=14)
+            Workout.created_at >= datetime.now(timezone.utc)() - timedelta(days=14)
         ).all()
         
         risk_factors = []
@@ -1231,7 +1231,7 @@ class RecoveryTracker:
         if not target or not target.last_trained:
             return 1.0  # Muscle frais
         
-        hours_since = (datetime.utcnow() - target.last_trained).total_seconds() / 3600
+        hours_since = (datetime.now(timezone.utc)() - target.last_trained).total_seconds() / 3600
         
         # Récupération basée sur le temps (48-72h optimal)
         if hours_since < 24:
@@ -1534,7 +1534,6 @@ class SessionBuilder:
         """Sélectionne les meilleurs exercices selon plusieurs critères et répartit sur gros/petits groupes
         :param max_exercises: nombre max d'exos à retourner ; si None, déterminé par niveau d'expérience
         """
-        from datetime import datetime, timedelta
 
         # --- 0. Déterminer max_exercises par niveau si pas forcé
         if max_exercises is None:
@@ -1560,7 +1559,7 @@ class SessionBuilder:
             suitable = exercises
 
         # --- 3. Historique récent (14 jours) pour fréquence + performance
-        cutoff = datetime.utcnow() - timedelta(days=14)
+        cutoff = datetime.now(timezone.utc)() - timedelta(days=14)
         recent = (self.db.query(WorkoutSet)
                     .join(Workout)
                     .filter(Workout.user_id == user.id,
@@ -1688,7 +1687,7 @@ class ProgressionAnalyzer:
         # Calculer les métriques sur 7 jours glissants
         sessions_last_7d = self.db.query(Workout).filter(
             Workout.user_id == user.id,
-            Workout.created_at > datetime.utcnow() - timedelta(days=7),
+            Workout.created_at > datetime.now(timezone.utc)() - timedelta(days=7),
             Workout.status == "completed"
         ).count()
         
@@ -1723,7 +1722,7 @@ class ProgressionAnalyzer:
         """Calcule le volume total par muscle sur X jours"""
         from sqlalchemy import and_
         
-        cutoff_date = datetime.utcnow() - timedelta(days=days)
+        cutoff_date = datetime.now(timezone.utc)() - timedelta(days=days)
         
         # Requête pour obtenir le volume
         results = self.db.query(
@@ -1757,7 +1756,7 @@ class ProgressionAnalyzer:
         # Compter les séances complétées
         workouts_count = self.db.query(Workout).filter(
             Workout.user_id == user.id,
-            Workout.created_at > datetime.utcnow() - timedelta(days=days),
+            Workout.created_at > datetime.now(timezone.utc)() - timedelta(days=days),
             Workout.status == "completed"
         ).count()
         
@@ -1928,7 +1927,7 @@ class RealTimeAdapter:
             if target:
                 # Recalculer sur fenêtre de 7 jours
                 target.current_volume = self._calculate_7day_volume(workout.user_id, muscle)
-                target.last_trained = workout.completed_at or datetime.utcnow()
+                target.last_trained = workout.completed_at or datetime.now(timezone.utc)()
                 
                 # Mettre à jour la dette de récupération
                 avg_fatigue = sum(s.fatigue_level for s in workout.sets) / len(workout.sets)
@@ -1938,7 +1937,7 @@ class RealTimeAdapter:
     
     def _calculate_7day_volume(self, user_id: int, muscle: str) -> float:
         """Calcule le volume sur 7 jours glissants"""
-        cutoff = datetime.utcnow() - timedelta(days=7)
+        cutoff = datetime.now(timezone.utc)() - timedelta(days=7)
         
         result = self.db.query(func.sum(WorkoutSet.reps * WorkoutSet.weight)).join(
             Workout
@@ -1960,7 +1959,7 @@ class RealTimeAdapter:
             Workout
         ).filter(
             Workout.user_id == user.id,
-            Workout.created_at > datetime.utcnow() - timedelta(days=7)
+            Workout.created_at > datetime.now(timezone.utc)() - timedelta(days=7)
         ).scalar()
         
         return avg_fatigue and avg_fatigue > 4.0
@@ -2003,7 +2002,7 @@ class RealTimeAdapter:
     def analyze_program_performance(self, user_id: int, program_id: int) -> dict:
         """Analyse les performances sur un programme"""
         # Récupérer les 2 dernières semaines de données
-        two_weeks_ago = datetime.utcnow() - timedelta(days=14)
+        two_weeks_ago = datetime.now(timezone.utc)() - timedelta(days=14)
         
         recent_workouts = self.db.query(Workout).filter(
             Workout.user_id == user_id,

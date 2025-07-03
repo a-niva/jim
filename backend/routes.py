@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 from backend.database import get_db
@@ -95,7 +95,7 @@ async def create_user_commitment(
         # Mettre à jour
         for key, value in commitment.dict().items():
             setattr(existing, key, value)
-        existing.updated_at = datetime.utcnow()
+        existing.updated_at = datetime.now(timezone.utc)()
     else:
         # Créer nouveau
         new_commitment = UserCommitment(
@@ -249,7 +249,7 @@ async def complete_adaptive_workout(
     
     # Marquer comme complété
     workout.status = "completed"
-    workout.completed_at = datetime.utcnow()
+    workout.completed_at = datetime.now(timezone.utc)()
     db.commit()
     
     # Adapter en temps réel

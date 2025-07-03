@@ -1,7 +1,7 @@
 # ===== backend/schemas.py - VERSION REFACTORISÉE =====
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 # ===== SCHEMAS UTILISATEUR =====

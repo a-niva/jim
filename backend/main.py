@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, cast, text
 from sqlalchemy.dialects.postgresql import JSONB
 from typing import List, Optional, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from contextlib import asynccontextmanager
 import json
 import os
@@ -366,7 +366,7 @@ def get_program_status(user_id: int, db: Session = Depends(get_db)):
         return None
     
     # Calculer la semaine actuelle (depuis la création du programme)
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
     weeks_elapsed = (datetime.now() - program.created_at).days // 7
     # Utiliser la durée réelle du programme si disponible, sinon 4 semaines
     total_weeks = len(set(ex.get('week', 1) for ex in program.exercises)) if program.exercises else 4
@@ -734,7 +734,7 @@ def complete_workout(workout_id: int, data: Dict[str, int] = {}, db: Session = D
         raise HTTPException(status_code=404, detail="Séance non trouvée")
     
     workout.status = "completed"
-    workout.completed_at = datetime.utcnow()
+    workout.completed_at = datetime.now(timezone.utc)
     
     # Utiliser la durée fournie par le frontend (en secondes) si disponible
     if "total_duration" in data:
@@ -839,7 +839,7 @@ def get_user_stats(user_id: int, db: Session = Depends(get_db)):
 @app.get("/api/users/{user_id}/progress")
 def get_progress_data(user_id: int, days: int = 30, db: Session = Depends(get_db)):
     """Récupérer les données de progression"""
-    cutoff_date = datetime.utcnow() - timedelta(days=days)
+    cutoff_date = datetime.now(timezone.utc)() - timedelta(days=days)
     
     # Récupérer l'utilisateur une fois
     user = db.query(User).filter(User.id == user_id).first()
@@ -923,7 +923,7 @@ def get_exercise_progression(
 ):
     """Progression adaptée selon le type d'exercice"""
     try:
-        cutoff_date = datetime.utcnow() - timedelta(days=months * 30)
+        cutoff_date = datetime.now(timezone.utc)() - timedelta(days=months * 30)
         
         # Récupérer l'exercice pour connaître son type
         exercise = db.query(Exercise).filter(Exercise.id == exercise_id).first()
@@ -1092,7 +1092,7 @@ def get_personal_records(user_id: int, db: Session = Depends(get_db)):
             "date": record.date_performed.isoformat(),
             "fatigue": record.fatigue_level,
             "effort": record.effort_level,
-            "daysAgo": (datetime.utcnow() - record.date_performed).days
+            "daysAgo": (datetime.now(timezone.utc)() - record.date_performed).days
         })
     
     return sorted(result, key=lambda x: x["weight"], reverse=True)
@@ -1101,7 +1101,7 @@ def get_personal_records(user_id: int, db: Session = Depends(get_db)):
 @app.get("/api/users/{user_id}/stats/attendance-calendar")
 def get_attendance_calendar(user_id: int, months: int = 6, db: Session = Depends(get_db)):
     """Graphique 5: Calendrier d'assiduité avec séances manquées"""
-    cutoff_date = datetime.utcnow() - timedelta(days=months * 30)
+    cutoff_date = datetime.now(timezone.utc)() - timedelta(days=months * 30)
     
     # Récupérer toutes les séances
     workouts = db.query(Workout).filter(
@@ -1139,7 +1139,7 @@ def get_attendance_calendar(user_id: int, months: int = 6, db: Session = Depends
     
     # Identifier les semaines avec séances manquantes
     weeks_analysis = []
-    current_date = datetime.utcnow().date()
+    current_date = datetime.now(timezone.utc)().date()
     
     for week_offset in range(months * 4):
         week_start = current_date - timedelta(days=current_date.weekday() + week_offset * 7)
@@ -1178,7 +1178,7 @@ def get_volume_burndown(
     db: Session = Depends(get_db)
 ):
     """Graphique 7: Burndown chart volume avec différentes périodes"""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)()
     
     # Déterminer les dates selon la période
     if period == "week":
@@ -1262,7 +1262,7 @@ def get_volume_burndown(
 @app.get("/api/users/{user_id}/stats/muscle-sunburst")
 def get_muscle_sunburst(user_id: int, days: int = 30, db: Session = Depends(get_db)):
     """Graphique 9: Sunburst double couronne muscle_groups/muscles"""
-    cutoff_date = datetime.utcnow() - timedelta(days=days)
+    cutoff_date = datetime.now(timezone.utc)() - timedelta(days=days)
     
     # Récupérer tous les sets avec exercices
     sets = db.query(
@@ -1362,7 +1362,7 @@ def get_recovery_gantt(user_id: int, db: Session = Depends(get_db)):
     
     # Pour gérer les arrays JSON dans muscle_groups
     muscle_recovery = {}
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)()
     
     # Récupérer tous les groupes musculaires possibles
     all_muscle_groups = ["dos", "pectoraux", "jambes", "epaules", "bras", "abdominaux"]
@@ -1415,7 +1415,7 @@ def get_muscle_balance(user_id: int, db: Session = Depends(get_db)):
     # Si pas de targets, calculer les volumes actuels depuis les séances
     if not targets:
         # Calculer le volume par muscle sur les 30 derniers jours
-        cutoff_date = datetime.utcnow() - timedelta(days=30)
+        cutoff_date = datetime.now(timezone.utc)() - timedelta(days=30)
         
         muscle_volumes = defaultdict(float)
         
@@ -1470,7 +1470,7 @@ def get_muscle_balance(user_id: int, db: Session = Depends(get_db)):
 @app.get("/api/users/{user_id}/stats/ml-confidence")
 def get_ml_confidence_evolution(user_id: int, days: int = 60, db: Session = Depends(get_db)):
     """Graphique 14: Evolution de la confiance ML"""
-    cutoff_date = datetime.utcnow() - timedelta(days=days)
+    cutoff_date = datetime.now(timezone.utc)() - timedelta(days=days)
     
     sets = db.query(WorkoutSet).join(Workout).filter(
         Workout.user_id == user_id,
@@ -1513,7 +1513,7 @@ def get_ml_confidence_evolution(user_id: int, days: int = 60, db: Session = Depe
 @app.get("/api/users/{user_id}/stats/ml-adjustments-flow")
 def get_ml_adjustments_flow(user_id: int, days: int = 30, db: Session = Depends(get_db)):
     """Graphique 15: Sankey des ajustements ML"""
-    cutoff_date = datetime.utcnow() - timedelta(days=days)
+    cutoff_date = datetime.now(timezone.utc)() - timedelta(days=days)
     
     sets = db.query(WorkoutSet).join(Workout).filter(
         Workout.user_id == user_id,

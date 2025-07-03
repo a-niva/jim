@@ -1750,7 +1750,7 @@ function loadRecentWorkouts(workouts) {
         const nowLocal = new Date(now.getTime() - (now.getTimezoneOffset() * 60000));
         const workoutLocal = new Date(workoutDate.getTime() - (workoutDate.getTimezoneOffset() * 60000));
 
-        const diffMs = nowLocal - workoutLocal;
+        const diffMs = now - workoutDate;
         const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
         const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
 
@@ -3214,6 +3214,9 @@ function startWorkoutTimer() {
 
 function startSetTimer() {
     if (setTimer) clearInterval(setTimer);
+    
+    // Stocker le timestamp de début
+    window.currentSetStartTime = Date.now();
     
     // Réinitialiser l'affichage à 00:00
     document.getElementById('setTimer').textContent = '00:00';
@@ -4977,15 +4980,21 @@ function adjustDuration(delta) {
 async function executeSet() {
     if (!validateSessionState()) return;
     
-    // Arrêter le timer de série et enregistrer sa durée
+    // Calculer la durée réelle avec timestamps précis
     let setTime = 0;
     if (setTimer) {
-        setTime = getSetTimerSeconds();
+        // Utiliser le timestamp de début stocké globalement
+        const setStartTime = window.currentSetStartTime || Date.now();
+        setTime = Math.round((Date.now() - setStartTime) / 1000);
+        
+        // Durée minimale de 10 secondes pour éviter les clics trop rapides
+        setTime = Math.max(setTime, 10);
+        
         currentWorkoutSession.totalSetTime += setTime;
         clearInterval(setTimer);
         setTimer = null;
     }
-    
+        
     // Sauvegarder les données de la série
     const isIsometric = currentExercise.exercise_type === 'isometric';
     const isBodyweight = currentExercise.weight_type === 'bodyweight';
