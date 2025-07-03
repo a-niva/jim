@@ -3274,9 +3274,19 @@ async function endWorkout() {
             notificationTimeout = null;
         }
         
-        // Calculer le temps total
-        const totalDuration = currentWorkoutSession.totalSetTime + currentWorkoutSession.totalRestTime;
-        
+        // Calculer le temps total avec fallback
+        let totalDuration = currentWorkoutSession.totalSetTime + currentWorkoutSession.totalRestTime;
+
+        // ✅ FALLBACK : Si les temps accumulés sont 0, utiliser la durée réelle
+        if (totalDuration === 0 && currentWorkout.started_at) {
+            const startTime = new Date(currentWorkout.started_at);
+            const endTime = new Date();
+            totalDuration = Math.round((endTime - startTime) / 1000);
+            console.log(`Fallback durée totale: ${totalDuration}s depuis timestamps`);
+        }
+
+        console.log(`Fin séance - Total: ${totalDuration}s, Sets: ${currentWorkoutSession.totalSetTime}s, Repos: ${currentWorkoutSession.totalRestTime}s`);
+
         // Enregistrer la séance comme terminée
         await apiPut(`/api/workouts/${currentWorkout.id}/complete`, {
             total_duration: totalDuration,
@@ -5098,9 +5108,12 @@ async function validateAndStartRest() {
     };
     
     // Enregistrer la série
-    await apiPost(`/api/workouts/${currentWorkout.id}/sets`, setData);
+    const savedSet = await apiPost(`/api/workouts/${currentWorkout.id}/sets`, setData);
+    setData.id = savedSet.id;  // AJOUTER L'ID REÇU DE L'API
     currentWorkoutSession.completedSets.push(setData);
     currentWorkoutSession.globalSetCount++;
+
+    console.log(`Set sauvegardé avec ID: ${savedSet.id}`);  
     
     // Mettre à jour l'historique
     updateSetsHistory();
@@ -5110,6 +5123,13 @@ async function validateAndStartRest() {
         // Masquer le feedback et nettoyer le timer
         document.getElementById('setFeedback').style.display = 'none';
         cleanupIsometricTimer();
+        
+        // ✅ FORCER L'ACCUMULATION D'UN TEMPS DE TRANSITION MINIMAL
+        if (currentSet < currentWorkoutSession.totalSets) {
+            const transitionTime = 5; // 5s de transition entre séries
+            currentWorkoutSession.totalRestTime += transitionTime;
+            console.log(`Transition isométrique: +${transitionTime}s. Total repos: ${currentWorkoutSession.totalRestTime}s`);
+        }
         
         // Vérifier si fin d'exercice ou série suivante
         if (currentSet >= currentWorkoutSession.totalSets) {
@@ -5227,8 +5247,13 @@ function completeRest() {
 // ===== MISE À JOUR DURÉE DE REPOS =====
 async function updateLastSetRestDuration(actualRestTime) {
     try {
+        console.log(`Tentative mise à jour repos: ${actualRestTime}s`);
+        console.log(`Sets complétés: ${currentWorkoutSession.completedSets.length}`);
+        
         if (currentWorkoutSession.completedSets.length > 0) {
             const lastSet = currentWorkoutSession.completedSets[currentWorkoutSession.completedSets.length - 1];
+            console.log(`Dernier set:`, lastSet);
+            
             if (lastSet.id) {
                 await apiPut(`/api/sets/${lastSet.id}/rest-duration`, {
                     actual_rest_duration_seconds: actualRestTime
@@ -5237,8 +5262,12 @@ async function updateLastSetRestDuration(actualRestTime) {
                 // Mettre à jour localement aussi
                 lastSet.actual_rest_duration_seconds = actualRestTime;
                 
-                console.log(`Durée de repos mise à jour: ${actualRestTime}s pour la série ${lastSet.id}`);
+                console.log(`✅ Durée de repos mise à jour: ${actualRestTime}s pour la série ${lastSet.id}`);
+            } else {
+                console.error(`❌ Pas d'ID pour le dernier set:`, lastSet);
             }
+        } else {
+            console.error(`❌ Aucun set complété pour mise à jour repos`);
         }
     } catch (error) {
         console.error('Erreur mise à jour durée de repos:', error);
