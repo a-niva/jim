@@ -1790,6 +1790,21 @@ function loadRecentWorkouts(workouts) {
         const volumeDisplay = totalVolume > 1000 ? 
             `${(totalVolume / 1000).toFixed(1)}t` : `${totalVolume}kg`;
         
+        // Calculer les temps de manière plus robuste
+        const totalDurationSeconds = (workout.total_duration_minutes || 0) * 60;
+        const exerciseSeconds = workout.total_exercise_time_seconds || 0;
+        const restSeconds = workout.total_rest_time_seconds || 0;
+        const transitionSeconds = workout.total_transition_time_seconds || 
+            Math.max(0, totalDurationSeconds - exerciseSeconds - restSeconds);
+
+        // Calculer les pourcentages pour la barre
+        const exercisePercent = totalDurationSeconds > 0 ? 
+            (exerciseSeconds / totalDurationSeconds * 100).toFixed(1) : 0;
+        const restPercent = totalDurationSeconds > 0 ? 
+            (restSeconds / totalDurationSeconds * 100).toFixed(1) : 0;
+        const transitionPercent = totalDurationSeconds > 0 ? 
+            (transitionSeconds / totalDurationSeconds * 100).toFixed(1) : 0;
+
         return `
             <div class="workout-card">
                 <div class="workout-header-row">
@@ -1797,43 +1812,23 @@ function loadRecentWorkouts(workouts) {
                         <strong>${workout.type === 'program' ? '📋 Programme' : '🕊️ Séance libre'}</strong>
                         <span class="time-ago">${timeAgo}</span>
                     </div>
-                    <div class="workout-duration">
-                        <span class="duration-value">${displayDuration}</span>
-                        <span class="duration-unit">min</span>
-                    </div>
-                    <div class="workout-status-emojis">
-                        ${workout.type === 'free' ? '🕊️' : '📋'}
-                        ${workout.type === 'program' && isWorkoutComplete(workout) ? '👑' : ''}
-                    </div>
                 </div>
                 
-                ${musclesWorked.length > 0 ? `
-                    <div class="muscle-badges-row">
-                        ${muscleBadges}
-                        ${additionalMuscles}
-                    </div>
-                ` : ''}
-                                
-                <div class="workout-progress-bar">
-                    <div class="progress-segment active" style="width: ${100 - restRatio}%"></div>
-                    <div class="progress-segment rest" style="width: ${restRatio}%"></div>
-                </div>
-                <div class="progress-legend">
-                    <div style="font-size: 0.8em; color: #666; margin-bottom: 0.5rem;">
-                        📊 Total: ${totalSeconds}s | ⏱️ Ex: ${exerciseTimeSeconds}s | 😮‍💨 Repos: ${restTimeSeconds}s | 🧮 Somme: ${exerciseTimeSeconds + restTimeSeconds}s
-                    </div>
-                    <span class="legend-item active">${exerciseTimeSeconds}s exercice</span>
-                    <span class="legend-item rest">${restTimeSeconds}s repos</span>
+                <div class="workout-duration-display">
+                    <span class="duration-total">${displayDuration} min</span>
                 </div>
                 
-                ${musclesWorked.length > 0 ? `
-                    <div class="muscle-distribution">
-                        <div class="distribution-label">Répartition musculaire</div>
-                        <div class="distribution-bar">
-                            ${generateMuscleDistribution(workout)}
-                        </div>
-                    </div>
-                ` : ''}
+                <div class="workout-time-bar">
+                    <div class="time-segment exercise" 
+                        style="width: ${exercisePercent}%" 
+                        data-time="${Math.round(exerciseSeconds/60)}min exercice"></div>
+                    <div class="time-segment rest" 
+                        style="width: ${restPercent}%" 
+                        data-time="${Math.round(restSeconds/60)}min repos"></div>
+                    <div class="time-segment transition" 
+                        style="width: ${transitionPercent}%" 
+                        data-time="${Math.round(transitionSeconds/60)}min transition"></div>
+                </div>
             </div>
         `;
     }).join('');

@@ -745,7 +745,8 @@ def complete_workout(workout_id: int, data: Dict[str, int] = {}, db: Session = D
     
     # Utiliser la durée fournie par le frontend (en secondes) si disponible
     if "total_duration" in data:
-        workout.total_duration_minutes = int(data["total_duration"] / 60)
+        # Arrondir correctement au lieu de tronquer
+        workout.total_duration_minutes = max(1, round(data["total_duration"] / 60))
     elif workout.started_at:
         # Fallback: calculer depuis les timestamps
         duration = workout.completed_at - workout.started_at
@@ -816,7 +817,11 @@ def get_user_stats(user_id: int, db: Session = Depends(get_db)):
         
         # ✅ CALCULER SEULEMENT LES TEMPS RÉELLEMENT MESURÉS
         total_exercise_seconds = sum(s.duration_seconds or 0 for s in sets)
-        total_rest_seconds = sum(s.actual_rest_duration_seconds or 0 for s in sets)  # ✅ SUPPRIMER base_rest_time_seconds
+        total_rest_seconds = sum(s.actual_rest_duration_seconds or 0 for s in sets)
+
+        # Calculer le temps de transition
+        total_duration_seconds = (workout.total_duration_minutes or 0) * 60
+        transition_time_seconds = max(0, total_duration_seconds - total_exercise_seconds - total_rest_seconds)
 
         # ✅ AJOUTER DEBUG POUR IDENTIFIER LE PROBLÈME
         print(f"DEBUG Workout {workout.id}:")
@@ -844,7 +849,8 @@ def get_user_stats(user_id: int, db: Session = Depends(get_db)):
             "completed_at": workout.completed_at,
             "total_duration_minutes": workout.total_duration_minutes,
             "total_rest_time_seconds": total_rest_seconds,
-            "total_exercise_time_seconds": total_exercise_seconds
+            "total_exercise_time_seconds": total_exercise_seconds,
+            "total_transition_time_seconds": transition_time_seconds
         }
         recent_workouts.append(workout_dict)
     
