@@ -1738,11 +1738,6 @@ function loadRecentWorkouts(workouts) {
         const exerciseTimeSeconds = Math.max(0, realDurationSeconds - restTimeSeconds);
         // ✅ DEBUG - Garder les valeurs en secondes et ajouter logs
         const totalSeconds = duration * 60;
-        console.log(`DEBUG Workout ${workout.id}:`);
-        console.log(`  Total: ${totalSeconds}s (${duration}min)`);
-        console.log(`  Exercise: ${exerciseTimeSeconds}s`);
-        console.log(`  Rest: ${restTimeSeconds}s`);
-        console.log(`  Sum: ${exerciseTimeSeconds + restTimeSeconds}s`);
 
         const displayDuration = duration; // Vraie durée chronométrée
         const restRatio = displayDuration > 0 ? 
@@ -1818,17 +1813,37 @@ function loadRecentWorkouts(workouts) {
                     <span class="duration-total">${displayDuration} min</span>
                 </div>
                 
-                <div class="workout-time-bar">
-                    <div class="time-segment exercise" 
-                        style="width: ${exercisePercent}%" 
-                        data-time="${Math.round(exerciseSeconds/60)}min exercice"></div>
-                    <div class="time-segment rest" 
-                        style="width: ${restPercent}%" 
-                        data-time="${Math.round(restSeconds/60)}min repos"></div>
-                    <div class="time-segment transition" 
-                        style="width: ${transitionPercent}%" 
-                        data-time="${Math.round(transitionSeconds/60)}min transition"></div>
+                <div class="workout-time-container">
+                    <div class="time-emojis">
+                        ${exercisePercent > 5 ? `<span class="emoji exercise" style="left: ${exercisePercent/2}%">💪</span>` : ''}
+                        ${restPercent > 5 ? `<span class="emoji rest" style="left: ${parseFloat(exercisePercent) + parseFloat(restPercent)/2}%">😮‍💨</span>` : ''}
+                        ${transitionPercent > 5 ? `<span class="emoji transition" style="left: ${parseFloat(exercisePercent) + parseFloat(restPercent) + parseFloat(transitionPercent)/2}%">🚶</span>` : ''}
+                    </div>
+                    <div class="workout-time-bar">
+                        <div class="time-segment exercise" 
+                            style="width: ${exercisePercent}%" 
+                            title="${Math.round(exerciseSeconds/60)} min d'exercice">
+                            <span class="segment-tooltip">${Math.round(exerciseSeconds/60)} min</span>
+                        </div>
+                        <div class="time-segment rest" 
+                            style="width: ${restPercent}%" 
+                            title="${Math.round(restSeconds/60)} min de repos">
+                            <span class="segment-tooltip">${Math.round(restSeconds/60)} min</span>
+                        </div>
+                        <div class="time-segment transition" 
+                            style="width: ${transitionPercent}%" 
+                            title="${Math.round(transitionSeconds/60)} min de transition">
+                            <span class="segment-tooltip">${Math.round(transitionSeconds/60)} min</span>
+                        </div>
+                    </div>
                 </div>
+                
+                ${musclesWorked.length > 0 ? `
+                    <div class="muscle-badges-row">
+                        ${muscleBadges}
+                        ${additionalMuscles}
+                    </div>
+                ` : ''}
             </div>
         `;
     }).join('');
