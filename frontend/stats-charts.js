@@ -719,8 +719,12 @@ async function loadMuscleSunburst(userId) {
             .style("stroke", "var(--bg)")
             .style("stroke-width", 2)
             .style("cursor", "pointer")
-            .on("click", clicked);
-        
+            .on("click", clicked)
+            .on("dblclick", (event) => {
+                event.stopPropagation();
+                clicked(event, root);
+            });
+                    
         // Ajouter les labels
         const labels = g.selectAll("text")
             .data(root.descendants().filter(d => d.depth && (d.x1 - d.x0) > 0.1))
@@ -761,6 +765,12 @@ async function loadMuscleSunburst(userId) {
                 })
                 .style("opacity", d => (d.x1 - d.x0) > 0.1 ? 1 : 0);
         }
+        // Ajouter un listener sur le svg pour dézoomer avec double-clic
+        svg.on("dblclick", (event) => {
+            if (event.target === svg.node()) {
+                clicked(event, root);
+            }
+        });
         
     } catch (error) {
         console.error('Erreur chargement sunburst:', error);

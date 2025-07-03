@@ -1221,24 +1221,45 @@ def get_volume_burndown(
     """Graphique 7: Burndown chart volume avec différentes périodes"""
     now = datetime.now(timezone.utc)
     
+    # Récupérer l'utilisateur pour avoir sa date de création
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
     # Déterminer les dates selon la période
     if period == "week":
         start_date = now - timedelta(days=now.weekday())
         end_date = start_date + timedelta(days=6)
         days_in_period = 7
     elif period == "month":
-        start_date = now.replace(day=1)
-        end_date = (start_date + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+        start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        # Calculer le dernier jour du mois
+        if now.month == 12:
+            end_date = now.replace(year=now.year + 1, month=1, day=1) - timedelta(days=1)
+        else:
+            end_date = now.replace(month=now.month + 1, day=1) - timedelta(days=1)
+        end_date = end_date.replace(hour=23, minute=59, second=59)
         days_in_period = (end_date - start_date).days + 1
     elif period == "quarter":
         quarter = (now.month - 1) // 3
-        start_date = datetime(now.year, quarter * 3 + 1, 1)
-        end_date = (start_date + timedelta(days=93)).replace(day=1) - timedelta(days=1)
+        start_date = datetime(now.year, quarter * 3 + 1, 1, tzinfo=timezone.utc)
+        # Calcul plus précis de la fin du trimestre
+        if quarter < 3:
+            end_date = datetime(now.year, (quarter + 1) * 3 + 1, 1, tzinfo=timezone.utc) - timedelta(days=1)
+        else:
+            end_date = datetime(now.year, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
         days_in_period = (end_date - start_date).days + 1
     else:  # year
-        start_date = now.replace(month=1, day=1)
-        end_date = now.replace(month=12, day=31)
+        start_date = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        end_date = now.replace(month=12, day=31, hour=23, minute=59, second=59)
         days_in_period = 365
+    
+    # Ajuster start_date si l'utilisateur a été créé après
+    user_created_date = user.created_at.replace(hour=0, minute=0, second=0, microsecond=0)
+    if user_created_date > start_date:
+        start_date = user_created_date
+        # Recalculer days_in_period
+        days_in_period = (end_date - start_date).days + 1
     
     # Récupérer les targets adaptatifs
     targets = db.query(AdaptiveTargets).filter(
