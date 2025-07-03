@@ -373,7 +373,8 @@ def get_program_status(user_id: int, db: Session = Depends(get_db)):
     current_week = min(weeks_elapsed + 1, total_weeks)
     
     # Compter les séances de cette semaine
-    start_of_week = datetime.now(timezone.utc) - timedelta(days=datetime.now(timezone.utc).weekday())
+    now = datetime.now(timezone.utc)
+    start_of_week = now - timedelta(days=now.weekday())
     start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
     
     sessions_this_week = db.query(Workout).filter(
@@ -1092,7 +1093,7 @@ def get_personal_records(user_id: int, db: Session = Depends(get_db)):
             "date": record.date_performed.isoformat(),
             "fatigue": record.fatigue_level,
             "effort": record.effort_level,
-            "daysAgo": (datetime.now(timezone.utc) - record.date_performed).days
+            "daysAgo": (datetime.now(timezone.utc) - record.date_performed.replace(tzinfo=timezone.utc) if record.date_performed.tzinfo is None else datetime.now(timezone.utc) - record.date_performed).days
         })
     
     return sorted(result, key=lambda x: x["weight"], reverse=True)
