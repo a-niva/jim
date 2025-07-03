@@ -1762,6 +1762,26 @@ function loadRecentWorkouts(workouts) {
         // Récupérer les muscles travaillés depuis les exercices
         const musclesWorked = workout.exercises ? 
             [...new Set(workout.exercises.flatMap(ex => ex.muscle_groups || []))] : [];
+
+        // Calculer la distribution musculaire corrigée
+        const muscleDistribution = {};
+        if (workout.exercises) {
+            workout.exercises.forEach(ex => {
+                const muscleCount = ex.muscle_groups ? ex.muscle_groups.length : 0;
+                if (muscleCount > 0) {
+                    ex.muscle_groups.forEach(muscle => {
+                        muscleDistribution[muscle] = (muscleDistribution[muscle] || 0) + (1 / muscleCount);
+                    });
+                }
+            });
+        }
+
+        // Convertir en pourcentages
+        const totalExercises = Object.values(muscleDistribution).reduce((a, b) => a + b, 0);
+        const musclePercentages = {};
+        Object.entries(muscleDistribution).forEach(([muscle, count]) => {
+            musclePercentages[muscle] = Math.round((count / totalExercises) * 100);
+        });
         
         // Créer les badges de muscles avec emojis
         const muscleEmojis = {
@@ -1802,79 +1822,67 @@ function loadRecentWorkouts(workouts) {
 
         return `
             <div class="workout-card">
-                <div class="workout-header-row">
-                    <div class="workout-title">
-                        <strong>${workout.type === 'program' ? '📋 Programme' : '🕊️ Séance libre'}</strong>
+                <!-- Ligne 1: Header -->
+                <div class="workout-header-line">
+                    <div class="workout-type">
+                        <span class="type-emoji">${workout.type === 'program' ? '📋' : '🕊️'}</span>
+                        <span class="type-text">${workout.type === 'program' ? 'Programme' : 'Séance libre'}</span>
+                    </div>
+                    <div class="workout-meta">
                         <span class="time-ago">${timeAgo}</span>
                     </div>
-                </div>
-                
-                <div class="workout-duration-display">
-                    <span class="duration-total">${displayDuration} min</span>
-                </div>
-                
-                <div class="workout-time-container">
-                    <div class="time-emojis">
-                        ${exercisePercent > 5 ? `<span class="emoji exercise" style="left: ${exercisePercent/2}%">💪</span>` : ''}
-                        ${restPercent > 5 ? `<span class="emoji rest" style="left: ${parseFloat(exercisePercent) + parseFloat(restPercent)/2}%">😮‍💨</span>` : ''}
-                        ${transitionPercent > 5 ? `<span class="emoji transition" style="left: ${parseFloat(exercisePercent) + parseFloat(restPercent) + parseFloat(transitionPercent)/2}%">🚶</span>` : ''}
+                    <div class="workout-duration-main">
+                        <span class="duration-value">${displayDuration}</span>
+                        <span class="duration-unit">min</span>
                     </div>
-                    <div class="workout-time-bar">
-                        <div class="time-segment exercise" 
-                            style="width: ${exercisePercent}%" 
-                            title="${Math.round(exerciseSeconds/60)} min d'exercice">
-                            <span class="segment-tooltip">${Math.round(exerciseSeconds/60)} min</span>
+                </div>
+                
+                <!-- Ligne 2: Barre de temps segmentée -->
+                <div class="time-distribution-line">
+                    <div class="time-bar-container">
+                        <div class="time-segment exercise" style="width: ${exercisePercent}%">
+                            <span class="segment-emoji">💪</span>
+                            <span class="segment-time">${Math.round(exerciseSeconds/60)}min</span>
                         </div>
-                        <div class="time-segment rest" 
-                            style="width: ${restPercent}%" 
-                            title="${Math.round(restSeconds/60)} min de repos">
-                            <span class="segment-tooltip">${Math.round(restSeconds/60)} min</span>
+                        <div class="time-segment rest" style="width: ${restPercent}%">
+                            <span class="segment-emoji">😮‍💨</span>
+                            <span class="segment-time">${Math.round(restSeconds/60)}min</span>
                         </div>
-                        <div class="time-segment transition" 
-                            style="width: ${transitionPercent}%" 
-                            title="${Math.round(transitionSeconds/60)} min de transition">
-                            <span class="segment-tooltip">${Math.round(transitionSeconds/60)} min</span>
+                        <div class="time-segment transition" style="width: ${transitionPercent}%">
+                            <span class="segment-emoji">🚶</span>
+                            <span class="segment-time">${Math.round(transitionSeconds/60)}min</span>
                         </div>
                     </div>
                 </div>
                 
-                ${workout.muscle_distribution && Object.keys(workout.muscle_distribution).length > 0 ? `
-                    <div class="muscle-distribution">
-                        <div class="distribution-bar">
-                            ${Object.entries(workout.muscle_distribution)
-                                .sort((a, b) => b[1] - a[1])
-                                .map(([muscle, percentage]) => {
-                                    const muscleColors = {
-                                        'dos': '#3b82f6',
-                                        'pectoraux': '#ec4899',
-                                        'jambes': '#10b981',
-                                        'epaules': '#f59e0b',
-                                        'bras': '#8b5cf6',
-                                        'abdominaux': '#ef4444'
-                                    };
-                                    const color = muscleColors[muscle] || '#6b7280';
-                                    const muscleEmojis = {
-                                        'dos': '🏋🏻‍♂️',
-                                        'pectoraux': '🫁',
-                                        'jambes': '🦵',
-                                        'epaules': '🤷',
-                                        'bras': '🦾',
-                                        'abdominaux': '🍫'
-                                    };
-                                    return `
-                                        <div class="muscle-segment" 
-                                            style="width: ${percentage}%; background-color: ${color};">
-                                            <div class="muscle-tooltip">
-                                                <span class="muscle-emoji">${muscleEmojis[muscle] || '💪'}</span>
-                                                <span class="muscle-name">${muscle.charAt(0).toUpperCase() + muscle.slice(1)}</span>
-                                                <span class="muscle-percentage">${Math.round(percentage)}%</span>
-                                            </div>
-                                        </div>
-                                    `;
-                                }).join('')}
-                        </div>
-                    </div>
-                ` : ''}
+                <!-- Ligne 3: Distribution musculaire -->
+                <div class="muscle-distribution-line">
+                    ${Object.entries(musclePercentages)
+                        .sort(([,a], [,b]) => b - a)
+                        .map(([muscle, percent]) => `
+                            <div class="muscle-badge-proportional" style="flex: ${percent}">
+                                <span class="muscle-emoji">${muscleEmojis[muscle] || '💪'}</span>
+                                <span class="muscle-name">${muscle}</span>
+                                <span class="muscle-percent">${percent}%</span>
+                            </div>
+                        `).join('')}
+                </div>
+                
+                <!-- Ligne 4: Stats discrètes -->
+                <div class="workout-stats-line">
+                    <span class="stat-item">
+                        <span class="stat-icon">📊</span>
+                        ${workout.total_sets || 0} séries
+                    </span>
+                    <span class="stat-item">
+                        <span class="stat-icon">⚖️</span>
+                        ${volumeDisplay}
+                    </span>
+                    <span class="stat-item">
+                        <span class="stat-icon">🏋️</span>
+                        ${workout.exercises ? workout.exercises.length : 0} exercices
+                    </span>
+                </div>
             </div>
         `;
     }).join('');

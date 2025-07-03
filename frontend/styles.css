@@ -790,51 +790,6 @@ textarea:focus {
 
 /*============ HISTORIQUE RECENT, NOUVEAU DESIGN ============*/
 
-/* Nouveau design épuré des cartes */
-.workout-duration-display {
-    text-align: center;
-    margin: 1rem 0;
-}
-
-.duration-total {
-    font-size: 2rem;
-    font-weight: bold;
-    color: var(--primary);
-}
-
-/* Container pour la barre et les emojis */
-.workout-time-container {
-    position: relative;
-    margin-top: 1.5rem;
-}
-
-/* Emojis au-dessus de la barre */
-.time-emojis {
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    height: 20px;
-    pointer-events: none;
-    z-index: 10; /* Au-dessus de la barre */
-    transform: translateY(-50%);
-}
-
-.time-emojis .emoji {
-    position: absolute;
-    transform: translate(-50%, -50%);
-    font-size: 1.2rem;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)); /* Ombre pour ressortir */
-    background: rgba(0, 0, 0, 0.6);
-    border-radius: 50%;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-}
-
 /* Barre de temps */
 .workout-time-bar {
     height: 12px;
@@ -957,27 +912,7 @@ textarea:focus {
 }
 
 /* Tooltip moderne avec design soigné */
-.muscle-segment .muscle-tooltip {
-    position: absolute;
-    bottom: calc(100% + 12px);
-    left: 50%;
-    transform: translateX(-50%) scale(0.9);
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    color: #1a1a2e;
-    padding: 0.75rem 1rem;
-    border-radius: 16px;
-    font-size: 0.875rem;
-    white-space: nowrap;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
-    opacity: 0;
-    pointer-events: none;
-    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-    text-align: center;
-    font-weight: 500;
-    z-index: 1000;
-}
+
 
 .muscle-segment:hover .muscle-tooltip,
 .muscle-segment.active .muscle-tooltip {
@@ -1033,7 +968,148 @@ textarea:focus {
 }
 
 
+/* Layout empilé - Ligne 1 Header */
+.workout-header-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
 
+.workout-type {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.type-emoji {
+    font-size: 1.2rem;
+}
+
+.type-text {
+    font-weight: 600;
+    color: var(--text);
+}
+
+.workout-meta {
+    flex: 1;
+    text-align: center;
+}
+
+.time-ago {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.workout-duration-main {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+}
+
+.workout-duration-main .duration-value {
+    font-size: 1.75rem;
+    font-weight: bold;
+    color: var(--primary);
+}
+
+.workout-duration-main .duration-unit {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+/* Ligne 2 - Barre de temps améliorée */
+.time-distribution-line {
+    margin-bottom: 0.75rem;
+}
+
+.time-bar-container {
+    display: flex;
+    height: 24px;
+    background: var(--bg-light);
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+}
+
+.time-bar-container .time-segment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    position: relative;
+    min-width: 0;
+}
+
+.time-segment .segment-emoji {
+    font-size: 0.875rem;
+}
+
+.time-segment .segment-time {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+/* Ligne 3 - Badges musculaires proportionnels */
+.muscle-distribution-line {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.muscle-badge-proportional {
+    background: var(--bg-light);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    min-width: 0;
+    flex-shrink: 1;
+}
+
+.muscle-badge-proportional .muscle-emoji {
+    font-size: 1rem;
+}
+
+.muscle-badge-proportional .muscle-name {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.muscle-badge-proportional .muscle-percent {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+/* Ligne 4 - Stats compactes */
+.workout-stats-line {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border);
+}
+
+.workout-stats-line .stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.workout-stats-line .stat-icon {
+    font-size: 0.875rem;
+}
 
 /* ===== SÉANCE DÉTAILLÉE ===== */
 .workout-header {
@@ -3439,6 +3515,8 @@ select:focus-visible {
 .workout-card:hover::before {
     opacity: 1;
 }
+
+
 
 .workout-card.incomplete {
     opacity: 0.8;
