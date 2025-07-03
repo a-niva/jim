@@ -3274,22 +3274,37 @@ async function endWorkout() {
             notificationTimeout = null;
         }
         
-        // Calculer le temps total avec fallback
-        let totalDuration = currentWorkoutSession.totalSetTime + currentWorkoutSession.totalRestTime;
-
-        // ✅ FALLBACK : Si les temps accumulés sont 0, utiliser la durée réelle
-        if (totalDuration === 0 && currentWorkout.started_at) {
+        // ✅ MÉTHODE ROBUSTE : Utiliser le timer d'affichage en priorité
+        let totalDurationSeconds = 0;
+        
+        const workoutTimerDisplay = document.getElementById('workoutTimer').textContent;
+        if (workoutTimerDisplay && workoutTimerDisplay !== '00:00') {
+            // Parser l'affichage du timer : "MM:SS"
+            const [minutes, seconds] = workoutTimerDisplay.split(':').map(Number);
+            totalDurationSeconds = (minutes * 60) + seconds;
+            console.log(`Durée depuis workoutTimer: ${totalDurationSeconds}s (${workoutTimerDisplay})`);
+        } else {
+            // ✅ FALLBACK : Utiliser timestamps BDD
             const startTime = new Date(currentWorkout.started_at);
             const endTime = new Date();
-            totalDuration = Math.round((endTime - startTime) / 1000);
-            console.log(`Fallback durée totale: ${totalDuration}s depuis timestamps`);
+            totalDurationSeconds = Math.round((endTime - startTime) / 1000);
+            console.log(`Durée depuis timestamps: ${totalDurationSeconds}s`);
         }
-
-        console.log(`Fin séance - Total: ${totalDuration}s, Sets: ${currentWorkoutSession.totalSetTime}s, Repos: ${currentWorkoutSession.totalRestTime}s`);
-
+        
+        // ✅ DEBUG DÉCOMPOSITION COMPLÈTE
+        const exerciseTime = currentWorkoutSession.totalSetTime;
+        const restTime = currentWorkoutSession.totalRestTime;
+        const transitionTime = Math.max(0, totalDurationSeconds - exerciseTime - restTime);
+        
+        console.log(`📊 DÉCOMPOSITION FINALE:`);
+        console.log(`  Total: ${totalDurationSeconds}s`);
+        console.log(`  Exercice: ${exerciseTime}s`);
+        console.log(`  Repos: ${restTime}s`);
+        console.log(`  Transitions: ${transitionTime}s`);
+        
         // Enregistrer la séance comme terminée
         await apiPut(`/api/workouts/${currentWorkout.id}/complete`, {
-            total_duration: totalDuration,
+            total_duration: totalDurationSeconds,  // ✅ DURÉE RÉELLE
             total_rest_time: currentWorkoutSession.totalRestTime
         });
         
