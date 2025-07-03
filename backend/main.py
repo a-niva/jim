@@ -26,6 +26,12 @@ logger = logging.getLogger(__name__)
 # Créer les tables
 Base.metadata.create_all(bind=engine)
 
+def safe_timedelta_hours(dt_aware, dt_maybe_naive):
+    """Calcule la différence en heures en gérant les timezones"""
+    if dt_maybe_naive.tzinfo is None:
+        dt_maybe_naive = dt_maybe_naive.replace(tzinfo=timezone.utc)
+    return (dt_aware - dt_maybe_naive).total_seconds() / 3600
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Charger les exercices si nécessaire
@@ -809,11 +815,15 @@ def get_user_stats(user_id: int, db: Session = Depends(get_db)):
         sets = db.query(WorkoutSet).filter(WorkoutSet.workout_id == workout.id).all()
         
         # Calculer temps de repos total
+        # Calculer temps d'exercice AVANT temps de repos
+        total_exercise_seconds = sum(s.duration_seconds or 0 for s in sets)
         total_rest_seconds = sum(s.actual_rest_duration_seconds or s.base_rest_time_seconds or 0 for s in sets)
-        
-        # Utiliser la vraie durée de séance moins le repos
-        total_duration_seconds = (workout.total_duration_minutes or 0) * 60
-        total_exercise_seconds = max(0, total_duration_seconds - total_rest_seconds)
+
+        # Si pas de duration_seconds, estimer depuis la durée totale
+        if total_exercise_seconds == 0 and workout.total_duration_minutes:
+            total_duration_seconds = workout.total_duration_minutes * 60
+            total_exercise_seconds = max(0, total_duration_seconds - total_rest_seconds)
+            total_exercise_seconds = max(0, total_duration_seconds - total_rest_seconds)
         
         # Convertir l'objet Workout en dict avec tous les temps
         workout_dict = {
@@ -1093,7 +1103,7 @@ def get_personal_records(user_id: int, db: Session = Depends(get_db)):
             "date": record.date_performed.isoformat(),
             "fatigue": record.fatigue_level,
             "effort": record.effort_level,
-            "daysAgo": (datetime.now(timezone.utc) - record.date_performed.replace(tzinfo=timezone.utc) if record.date_performed.tzinfo is None else datetime.now(timezone.utc) - record.date_performed).days
+            "daysAgo": int(safe_timedelta_hours(datetime.now(timezone.utc), record.date_performed) / 24)
         })
     
     return sorted(result, key=lambda x: x["weight"], reverse=True)
@@ -1382,8 +1392,8 @@ def get_recovery_gantt(user_id: int, db: Session = Depends(get_db)):
         ).scalar()
         
         if last_workout:
-            hours_since = (now - last_workout).total_seconds() / 3600
-            recovery_percent = min(100, (hours_since / 72) * 100)  # 72h = récupération complète
+            hours_since = safe_timedelta_hours(now, last_workout)
+            recovery_percent = min(100, (hours_since / 72) * 100)
             
             muscle_recovery[muscle_group] = {
                 "lastWorkout": last_workout.isoformat(),
