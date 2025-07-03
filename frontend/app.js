@@ -1718,7 +1718,7 @@ function isWorkoutComplete(workout) {
 
 function loadRecentWorkouts(workouts) {
     const container = document.getElementById('recentWorkouts');
-    
+
     if (!workouts || workouts.length === 0) {
         container.innerHTML = `
             <div class="empty-workouts">
@@ -1730,20 +1730,22 @@ function loadRecentWorkouts(workouts) {
     }
     
     container.innerHTML = workouts.slice(0, 3).map(workout => {
+        // Toutes les variables doivent être déclarées ICI, à l'intérieur du map
         const date = new Date(workout.started_at || workout.completed_at);
         const duration = workout.total_duration_minutes || 0;
         const restTimeSeconds = workout.total_rest_time_seconds || 0;
-        // Vraies valeurs : durée chronométrée et repos réels
         const realDurationSeconds = duration * 60;
         const exerciseTimeSeconds = Math.max(0, realDurationSeconds - restTimeSeconds);
-        // ✅ DEBUG - Garder les valeurs en secondes et ajouter logs
         const totalSeconds = duration * 60;
-
-        const displayDuration = duration; // Vraie durée chronométrée
-        const restRatio = displayDuration > 0 ? 
-            Math.min((restTimeSeconds / (totalSeconds) * 100), 100).toFixed(0) : 0;
         
-        // Calculer le temps écoulé en tenant compte du fuseau horaire local
+        // Variables pour les stats - DÉCLARER ICI
+        const totalSets = workout.total_sets || 0;
+
+        const displayDuration = duration;
+        const restRatio = displayDuration > 0 ? 
+            Math.min((restTimeSeconds / totalSeconds * 100), 100).toFixed(0) : 0;
+        
+        // Calcul du temps écoulé
         const now = new Date();
         const workoutDate = new Date(workout.started_at || workout.completed_at);
         const diffMs = now - workoutDate;
@@ -1759,7 +1761,7 @@ function loadRecentWorkouts(workouts) {
             timeAgo = 'À l\'instant';
         }
         
-        // Récupérer les muscles travaillés depuis les exercices
+        // Récupérer les muscles travaillés
         const musclesWorked = workout.exercises ? 
             [...new Set(workout.exercises.flatMap(ex => ex.muscle_groups || []))] : [];
 
@@ -1788,8 +1790,8 @@ function loadRecentWorkouts(workouts) {
             'Pectoraux': '🫁',
             'Dos': '🏋🏻‍♂️', 
             'Jambes': '🦵',
-            'Épaules': '🤷',  // Avec accent
-            'Epaules': '🤷',  // Sans accent
+            'Épaules': '🤷',
+            'Epaules': '🤷',
             'Bras': '🦾',
             'Abdominaux': '🍫'
         };
@@ -1855,19 +1857,19 @@ function loadRecentWorkouts(workouts) {
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Ligne 3: Distribution musculaire -->
                 <div class="muscle-distribution-line">
                     ${Object.entries(musclePercentages)
                         .sort(([,a], [,b]) => b - a)
                         .map(([muscle, percent]) => {
-                            // Normaliser le nom du muscle pour correspondre aux clés du mapping
-                            const normalizedMuscle = muscle.charAt(0).toUpperCase() + muscle.slice(1).toLowerCase();
-                            const emoji = muscleEmojis[normalizedMuscle] || muscleEmojis[muscle] || '💪';
+                            // Normaliser avec majuscule
+                            const muscleName = muscle.charAt(0).toUpperCase() + muscle.slice(1).toLowerCase();
+                            const emoji = muscleEmojis[muscleName] || muscleEmojis[muscle] || '💪';
                             return `
                                 <div class="muscle-badge-proportional" style="flex: ${percent}">
                                     <span class="muscle-emoji">${emoji}</span>
-                                    <span class="muscle-name">${muscle}</span>
+                                    <span class="muscle-name">${muscleName}</span>
                                     <span class="muscle-percent">${percent}%</span>
                                 </div>
                             `;
@@ -1877,14 +1879,11 @@ function loadRecentWorkouts(workouts) {
                 <div class="workout-stats-line">
                     <span class="stat-item">
                         <span class="stat-icon">📊</span>
-                        ${(() => {
-                            const count = workout.sets ? workout.sets.length : 0;
-                            return `${count} ${count <= 1 ? 'série' : 'séries'}`;
-                        })()}
+                        ${totalSets} ${totalSets <= 1 ? 'série' : 'séries'}
                     </span>
                     <span class="stat-item">
                         <span class="stat-icon">⚖️</span>
-                        ${totalVolume > 0 ? volumeDisplay : '0kg'}
+                        ${volumeDisplay}
                     </span>
                     <span class="stat-item">
                         <span class="stat-icon">🏋️</span>

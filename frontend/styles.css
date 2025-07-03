@@ -813,19 +813,36 @@ textarea:focus {
     gap: 0.25rem;
     min-width: 0;
     flex-shrink: 1;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.muscle-badge-proportional:hover {
+    background: rgba(99, 102, 241, 0.1);
+    border-color: var(--primary);
 }
 
 .muscle-badge-proportional .muscle-emoji {
     font-size: 1rem;
+    transition: opacity 0.2s ease;
 }
 
 .muscle-badge-proportional .muscle-name {
+    position: absolute;
     font-size: 0.75rem;
     font-weight: 500;
     color: var(--text);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.muscle-badge-proportional:hover .muscle-emoji {
+    opacity: 0;
+}
+
+.muscle-badge-proportional:hover .muscle-name {
+    opacity: 1;
 }
 
 .muscle-badge-proportional .muscle-percent {
