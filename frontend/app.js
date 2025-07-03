@@ -1844,6 +1844,43 @@ function loadRecentWorkouts(workouts) {
                         ${additionalMuscles}
                     </div>
                 ` : ''}
+                ${workout.muscle_distribution && Object.keys(workout.muscle_distribution).length > 0 ? `
+                    <div class="muscle-distribution">
+                        <div class="distribution-bar">
+                            ${Object.entries(workout.muscle_distribution)
+                                .sort((a, b) => b[1] - a[1])
+                                .map(([muscle, percentage]) => {
+                                    const muscleColors = {
+                                        'dos': '#3b82f6',
+                                        'pectoraux': '#ec4899',
+                                        'jambes': '#10b981',
+                                        'epaules': '#f59e0b',
+                                        'bras': '#8b5cf6',
+                                        'abdominaux': '#ef4444'
+                                    };
+                                    const color = muscleColors[muscle] || '#6b7280';
+                                    const muscleEmojis = {
+                                        'dos': '🏋🏻‍♂️',
+                                        'pectoraux': '🫁',
+                                        'jambes': '🦵',
+                                        'epaules': '🤷',
+                                        'bras': '🦾',
+                                        'abdominaux': '🍫'
+                                    };
+                                    return `
+                                        <div class="muscle-segment" 
+                                            style="width: ${percentage}%; background-color: ${color};">
+                                            <div class="muscle-tooltip">
+                                                <span class="muscle-emoji">${muscleEmojis[muscle] || '💪'}</span>
+                                                <span class="muscle-name">${muscle.charAt(0).toUpperCase() + muscle.slice(1)}</span>
+                                                <span class="muscle-percentage">${Math.round(percentage)}%</span>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                        </div>
+                    </div>
+                ` : ''}
             </div>
         `;
     }).join('');

@@ -811,17 +811,28 @@ textarea:focus {
 /* Emojis au-dessus de la barre */
 .time-emojis {
     position: absolute;
-    top: -25px;
+    top: 50%;
     left: 0;
     right: 0;
     height: 20px;
     pointer-events: none;
+    z-index: 10; /* Au-dessus de la barre */
+    transform: translateY(-50%);
 }
 
 .time-emojis .emoji {
     position: absolute;
-    transform: translateX(-50%);
+    transform: translate(-50%, -50%);
     font-size: 1.2rem;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)); /* Ombre pour ressortir */
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
 }
 
 /* Barre de temps */
@@ -869,7 +880,7 @@ textarea:focus {
     margin-bottom: 8px;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.2s ease;
+    transition: opacity 0.1s ease; /* Plus rapide */
 }
 
 .segment-tooltip::after {

@@ -810,10 +810,25 @@ def get_user_stats(user_id: int, db: Session = Depends(get_db)):
         Workout.status == "completed"
     ).order_by(desc(Workout.completed_at)).limit(3).all()
     
-    # Enrichir avec les temps calculés à la volée
+    # Enrichir avec les temps calculés à la volée ET les muscles travaillés
     recent_workouts = []
     for workout in recent_workouts_raw:
         sets = db.query(WorkoutSet).filter(WorkoutSet.workout_id == workout.id).all()
+        
+        # Récupérer les muscles travaillés
+        muscle_distribution = {}
+        for s in sets:
+            exercise = db.query(Exercise).filter(Exercise.id == s.exercise_id).first()
+            if exercise and exercise.muscle_groups:
+                for muscle_group in exercise.muscle_groups:
+                    muscle_distribution[muscle_group] = muscle_distribution.get(muscle_group, 0) + 1
+        
+        # Calculer les pourcentages
+        total_sets = len(sets) if sets else 1
+        muscle_percentages = {
+            muscle: (count / total_sets * 100) 
+            for muscle, count in muscle_distribution.items()
+        }
         
         # ✅ CALCULER SEULEMENT LES TEMPS RÉELLEMENT MESURÉS
         total_exercise_seconds = sum(s.duration_seconds or 0 for s in sets)
@@ -850,7 +865,8 @@ def get_user_stats(user_id: int, db: Session = Depends(get_db)):
             "total_duration_minutes": workout.total_duration_minutes,
             "total_rest_time_seconds": total_rest_seconds,
             "total_exercise_time_seconds": total_exercise_seconds,
-            "total_transition_time_seconds": transition_time_seconds
+            "total_transition_time_seconds": transition_time_seconds,
+            "muscle_distribution": muscle_percentages  # AJOUTER
         }
         recent_workouts.append(workout_dict)
     
