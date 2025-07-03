@@ -823,7 +823,6 @@ def get_user_stats(user_id: int, db: Session = Depends(get_db)):
         if total_exercise_seconds == 0 and workout.total_duration_minutes:
             total_duration_seconds = workout.total_duration_minutes * 60
             total_exercise_seconds = max(0, total_duration_seconds - total_rest_seconds)
-            total_exercise_seconds = max(0, total_duration_seconds - total_rest_seconds)
         
         # Convertir l'objet Workout en dict avec tous les temps
         workout_dict = {
