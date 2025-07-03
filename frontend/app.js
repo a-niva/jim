@@ -1461,8 +1461,10 @@ function showWorkoutResumeBanner(workout) {
         cursor: pointer;
     `;
     
-    const startedAt = new Date(workout.started_at);
-    const elapsed = startedAt && !isNaN(startedAt) ? Math.floor((new Date() - startedAt) / 60000) : 0;
+    // Forcer l'interprétation UTC de la date de démarrage
+    const startedAt = new Date(workout.started_at + (workout.started_at.includes('Z') ? '' : 'Z'));
+    const elapsed = startedAt && !isNaN(startedAt) ?
+        Math.floor((new Date() - startedAt) / 60000) : 0;
         
     banner.innerHTML = `
         <button class="banner-close" onclick="this.parentElement.remove()" style="position: absolute; top: 0.5rem; right: 0.5rem; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">×</button>
@@ -4427,6 +4429,7 @@ function toggleMuscleGroup(muscle) {
     icon.classList.toggle('rotated');
 }
 
+// Ajouter après la fonction toggleMuscleGroup()
 // Ajouter après la fonction toggleMuscleGroup()
 function enableHorizontalScroll() {
     const muscleTabsContainer = document.querySelector('.muscle-tabs');
