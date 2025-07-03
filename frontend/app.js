@@ -3099,17 +3099,16 @@ function skipRest() {
         clearTimeout(notificationTimeout);
         notificationTimeout = null;
     }
-    // Calculer et accumuler le temps de repos réel
-    if (workoutState.restStartTime) {
-        const actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
-        currentWorkoutSession.totalRestTime += actualRestTime;
-        console.log(`Repos ignoré après ${actualRestTime}s. Total: ${currentWorkoutSession.totalRestTime}s`);
-        
-        // NOUVEAU : Sauvegarder la durée réelle en base
-        updateLastSetRestDuration(actualRestTime);
-        
-        workoutState.restStartTime = null;
-    }
+    // Calculer et accumuler le temps de repos réel - CORRECTION
+    const currentTime = Date.now();
+    const restStartTime = currentTime - (parseInt(document.getElementById('restTimer').textContent.split(':')[0]) * 60 + parseInt(document.getElementById('restTimer').textContent.split(':')[1])) * 1000;
+    const actualRestTime = Math.round((currentTime - restStartTime) / 1000);
+
+    currentWorkoutSession.totalRestTime += actualRestTime;
+    console.log(`Repos ignoré après ${actualRestTime}s. Total: ${currentWorkoutSession.totalRestTime}s`);
+
+    // CORRECTION : Appeler updateLastSetRestDuration directement
+    updateLastSetRestDuration(actualRestTime);
     completeRest();
 }
 
