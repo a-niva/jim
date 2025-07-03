@@ -1788,7 +1788,8 @@ function loadRecentWorkouts(workouts) {
             'Pectoraux': '🫁',
             'Dos': '🏋🏻‍♂️', 
             'Jambes': '🦵',
-            'Épaules': '🤷',
+            'Épaules': '🤷',  // Avec accent
+            'Epaules': '🤷',  // Sans accent
             'Bras': '🦾',
             'Abdominaux': '🍫'
         };
@@ -1859,20 +1860,27 @@ function loadRecentWorkouts(workouts) {
                 <div class="muscle-distribution-line">
                     ${Object.entries(musclePercentages)
                         .sort(([,a], [,b]) => b - a)
-                        .map(([muscle, percent]) => `
-                            <div class="muscle-badge-proportional" style="flex: ${percent}">
-                                <span class="muscle-emoji">${muscleEmojis[muscle] || '💪'}</span>
-                                <span class="muscle-name">${muscle}</span>
-                                <span class="muscle-percent">${percent}%</span>
-                            </div>
-                        `).join('')}
+                        .map(([muscle, percent]) => {
+                            // Normaliser le nom du muscle pour correspondre aux clés du mapping
+                            const normalizedMuscle = muscle.charAt(0).toUpperCase() + muscle.slice(1).toLowerCase();
+                            const emoji = muscleEmojis[normalizedMuscle] || muscleEmojis[muscle] || '💪';
+                            return `
+                                <div class="muscle-badge-proportional" style="flex: ${percent}">
+                                    <span class="muscle-emoji">${emoji}</span>
+                                    <span class="muscle-name">${muscle}</span>
+                                    <span class="muscle-percent">${percent}%</span>
+                                </div>
+                            `;
+                        }).join('')}
                 </div>
-                
-                <!-- Ligne 4: Stats discrètes -->
+                                
                 <div class="workout-stats-line">
                     <span class="stat-item">
                         <span class="stat-icon">📊</span>
-                        ${workout.sets ? workout.sets.length : 0} séries
+                        ${(() => {
+                            const count = workout.sets ? workout.sets.length : 0;
+                            return `${count} ${count <= 1 ? 'série' : 'séries'}`;
+                        })()}
                     </span>
                     <span class="stat-item">
                         <span class="stat-icon">⚖️</span>
@@ -1880,7 +1888,10 @@ function loadRecentWorkouts(workouts) {
                     </span>
                     <span class="stat-item">
                         <span class="stat-icon">🏋️</span>
-                        ${workout.total_exercises || (workout.exercises ? workout.exercises.length : 0)} exercices
+                        ${(() => {
+                            const count = workout.total_exercises || (workout.exercises ? workout.exercises.length : 0);
+                            return `${count} ${count <= 1 ? 'exercice' : 'exercices'}`;
+                        })()}
                     </span>
                 </div>
             </div>
