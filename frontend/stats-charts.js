@@ -112,7 +112,7 @@ async function loadTabCharts(userId, tabName) {
         case 'performance':
             await Promise.all([
                 loadRecordsWaterfall(userId),
-                loadTimeDistributionChart(userId)
+                loadIntensityRecoveryChart(userId)
             ]);
             // Charger la progression si un exercice est sélectionné
             const selectedExercise = document.getElementById('exerciseSelector').value;
@@ -706,7 +706,6 @@ async function loadMuscleSunburst(userId) {
             .innerRadius(d => d.y0)
             .outerRadius(d => d.y1);
         
-        // Créer les segments
         const paths = g.selectAll("path")
             .data(root.descendants())
             .enter().append("path")
@@ -719,12 +718,7 @@ async function loadMuscleSunburst(userId) {
             .style("stroke", "var(--bg)")
             .style("stroke-width", 2)
             .style("cursor", "pointer")
-            .on("click", clicked)
-            .on("dblclick", (event) => event.stopPropagation())
-            .on("dblclick", (event) => {
-                event.stopPropagation();
-                clicked(event, root);
-            });
+            .on("click", clicked);
                     
         // Ajouter les labels
         const labels = g.selectAll("text")
@@ -766,7 +760,7 @@ async function loadMuscleSunburst(userId) {
                 })
                 .style("opacity", d => (d.x1 - d.x0) > 0.1 ? 1 : 0);
         }
-        // Ajouter un listener sur le conteneur pour dézoomer avec double-clic
+        // Ajouter un listener sur le svg pour dézoomer avec double-clic
         svg.on("dblclick", (event) => {
             clicked(event, root);
         });
@@ -1120,124 +1114,6 @@ async function loadMLSankeyDiagram(userId) {
         
     } catch (error) {
         console.error('Erreur chargement Sankey:', error);
-    }
-}
-
-// ===== GRAPHIQUE 18: DISTRIBUTION DU TEMPS =====
-async function loadTimeDistributionChart(userId) {
-    try {
-        const data = await window.apiGet(`/api/users/${userId}/stats/time-distribution`);
-        
-        if (!data.sessions || data.sessions.length === 0) {
-            return;
-        }
-        
-        const ctx = document.getElementById('timeDistributionChart').getContext('2d');
-        
-        // Détruire le chart existant
-        if (charts.timeDistribution) {
-            charts.timeDistribution.destroy();
-        }
-        
-        // Préparer les données
-        const labels = data.sessions.map(s => 
-            new Date(s.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
-        );
-        
-        // Inverser l'ordre des sessions pour avoir chronologique
-        const reversedSessions = [...data.sessions].reverse();
-
-        charts.timeDistribution = new window.Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: reversedSessions.map(s => 
-                    new Date(s.date).toLocaleDateString('fr-FR', { 
-                        day: 'numeric', 
-                        month: 'short' 
-                    })
-                ),
-                datasets: [{
-                    label: 'Exercice',
-                    data: reversedSessions.map(s => s.exerciseTime),
-                    backgroundColor: '#3b82f6',
-                    barPercentage: 0.8,
-                    categoryPercentage: 0.9
-                }, {
-                    label: 'Repos',
-                    data: reversedSessions.map(s => s.restTime),
-                    backgroundColor: '#f59e0b',
-                    barPercentage: 0.8,
-                    categoryPercentage: 0.9
-                }, {
-                    label: 'Transition',
-                    data: reversedSessions.map(s => s.transitionTime),
-                    backgroundColor: '#94a3b8',
-                    barPercentage: 0.8,
-                    categoryPercentage: 0.9
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: {
-                        stacked: true,
-                        grid: {
-                            display: false
-                        },
-                        ticks: {
-                            autoSkip: true,
-                            maxRotation: 45,
-                            minRotation: 45
-                        }
-                    },
-                    y: {
-                        stacked: true,
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Temps (minutes)'
-                        },
-                        ticks: {
-                            stepSize: 10
-                        }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        position: 'top',
-                        labels: {
-                            usePointStyle: true,
-                            padding: 15
-                        }
-                    },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                        titleColor: '#fff',
-                        bodyColor: '#fff',
-                        borderColor: '#e5e7eb',
-                        borderWidth: 1,
-                        padding: 10,
-                        displayColors: true,
-                        callbacks: {
-                            afterTitle: function(tooltipItems) {
-                                const session = reversedSessions[tooltipItems[0].dataIndex];
-                                return `${session.setsCount} séries`;
-                            },
-                            footer: function(tooltipItems) {
-                                const session = reversedSessions[tooltipItems[0].dataIndex];
-                                return `\nTotal: ${session.totalMinutes} min`;
-                            }
-                        }
-                    }
-                }
-            }
-        });
-                
-    } catch (error) {
-        console.error('Erreur chargement distribution temps:', error);
     }
 }
 
