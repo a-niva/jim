@@ -720,6 +720,7 @@ async function loadMuscleSunburst(userId) {
             .style("stroke-width", 2)
             .style("cursor", "pointer")
             .on("click", clicked)
+            .on("dblclick", (event) => event.stopPropagation())
             .on("dblclick", (event) => {
                 event.stopPropagation();
                 clicked(event, root);
@@ -765,11 +766,9 @@ async function loadMuscleSunburst(userId) {
                 })
                 .style("opacity", d => (d.x1 - d.x0) > 0.1 ? 1 : 0);
         }
-        // Ajouter un listener sur le svg pour dézoomer avec double-clic
+        // Ajouter un listener sur le conteneur pour dézoomer avec double-clic
         svg.on("dblclick", (event) => {
-            if (event.target === svg.node()) {
-                clicked(event, root);
-            }
+            clicked(event, root);
         });
         
     } catch (error) {
@@ -1239,6 +1238,109 @@ async function loadTimeDistributionChart(userId) {
                 
     } catch (error) {
         console.error('Erreur chargement distribution temps:', error);
+    }
+}
+
+// ===== GRAPHIQUE INTENSITÉ/RÉCUPÉRATION =====
+async function loadIntensityRecoveryChart(userId) {
+    try {
+        const data = await window.apiGet(`/api/users/${userId}/stats/workout-intensity-recovery`);
+        
+        if (!data.sessions || data.sessions.length === 0) {
+            return;
+        }
+        
+        const ctx = document.getElementById('intensityRecoveryChart').getContext('2d');
+        
+        if (charts.intensityRecovery) {
+            charts.intensityRecovery.destroy();
+        }
+        
+        // Couleur par ancienneté (gradient du rouge au vert)
+        const sessions = data.sessions.map(s => ({
+            x: s.charge,
+            y: s.ratio,
+            color: `hsl(${Math.max(0, 120 - s.days_ago * 2)}, 70%, 50%)`,
+            ...s
+        }));
+        
+        charts.intensityRecovery = new window.Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Séances',
+                    data: sessions,
+                    backgroundColor: sessions.map(s => s.color),
+                    borderColor: sessions.map(s => s.color),
+                    pointRadius: 8,
+                    pointHoverRadius: 12
+                }, {
+                    // Ligne médiane verticale
+                    type: 'line',
+                    label: 'Médiane Charge',
+                    data: [
+                        {x: data.medians.charge, y: Math.min(...sessions.map(s => s.y))},
+                        {x: data.medians.charge, y: Math.max(...sessions.map(s => s.y))}
+                    ],
+                    borderColor: '#94a3b8',
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    showLine: true
+                }, {
+                    // Ligne médiane horizontale  
+                    type: 'line',
+                    label: 'Médiane Récupération',
+                    data: [
+                        {x: Math.min(...sessions.map(s => s.x)), y: data.medians.ratio},
+                        {x: Math.max(...sessions.map(s => s.x)), y: data.medians.ratio}
+                    ],
+                    borderColor: '#94a3b8',
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    showLine: true
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '⚡ Profil Intensité/Récupération par Séance'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => {
+                                const session = context.raw;
+                                return [
+                                    `Date: ${new Date(session.date).toLocaleDateString()}`,
+                                    `Charge: ${session.charge} vol/min`,
+                                    `Récupération: ${session.ratio} sec/vol`,
+                                    `Volume: ${session.total_volume}`,
+                                    `Durée: ${session.total_duration_minutes}min`
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Charge (Volume/min)'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Ratio Récupération (sec repos/volume)'
+                        }
+                    }
+                }
+            }
+        });
+        
+    } catch (error) {
+        console.error('Erreur chargement graphique intensité/récupération:', error);
     }
 }
 

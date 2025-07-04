@@ -1745,9 +1745,11 @@ function loadRecentWorkouts(workouts) {
         const restRatio = displayDuration > 0 ? 
             Math.min((restTimeSeconds / totalSeconds * 100), 100).toFixed(0) : 0;
         
-        // Calcul du temps écoulé
+        // Calcul du temps écoulé - CORRECTION FUSEAU HORAIRE
         const now = new Date();
-        const workoutDate = new Date(workout.started_at || workout.completed_at);
+        const workoutDateStr = workout.started_at || workout.completed_at;
+        // Forcer l'interprétation UTC si pas de timezone explicite
+        const workoutDate = new Date(workoutDateStr + (workoutDateStr.includes('Z') ? '' : 'Z'));
         const diffMs = now - workoutDate;
         const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
         const diffHours = Math.floor(diffMs / (1000 * 60 * 60));

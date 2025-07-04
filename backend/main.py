@@ -1341,13 +1341,9 @@ def get_muscle_sunburst(user_id: int, days: int = 30, db: Session = Depends(get_
     muscle_data = defaultdict(lambda: {"volume": 0, "muscles": defaultdict(float)})
     
     for workout_set, muscle_groups, muscles in sets:
-        volume = (workout_set.weight or 0) * workout_set.reps
-        
-        # Distribuer le volume entre les groupes musculaires
-        if muscle_groups:
-            volume_per_group = volume / len(muscle_groups)
+            volume = (workout_set.weight or 0) * workout_set.reps
             
-            # Dans la fonction get_muscle_sunburst, remplacer toute la logique de distribution par :
+            # Distribuer le volume entre les groupes musculaires
             if muscle_groups:
                 volume_per_group = volume / len(muscle_groups)
                 
@@ -1678,6 +1674,97 @@ def get_time_distribution(user_id: int, sessions: int = 10, db: Session = Depend
     
     return {"sessions": session_data}
 
+@app.get("/api/users/{user_id}/stats/workout-intensity-recovery")
+def get_workout_intensity_recovery(user_id: int, sessions: int = 50, db: Session = Depends(get_db)):
+    """Version optimisée avec calculs SQL directs"""
+    
+    # Requête SQL optimisée qui fait tout en une fois
+    query = """
+    WITH session_stats AS (
+        SELECT 
+            w.id,
+            w.completed_at,
+            w.total_duration_minutes,
+            -- Volume total calculé directement en SQL
+            SUM(
+                CASE 
+                    WHEN e.exercise_type = 'isometric' THEN 
+                        COALESCE(ws.reps, 0) * 20 * COALESCE(e.intensity_factor, 1.0)
+                    WHEN e.weight_type = 'bodyweight' THEN 
+                        :user_weight * 0.65 * COALESCE(ws.reps, 0) * COALESCE(e.intensity_factor, 1.0)
+                    ELSE 
+                        COALESCE(ws.weight, 0) * COALESCE(ws.reps, 0) * COALESCE(e.intensity_factor, 1.0)
+                END
+            ) as total_volume,
+            -- Temps de repos total
+            SUM(COALESCE(ws.actual_rest_duration_seconds, ws.base_rest_time_seconds, 0)) as total_rest_time
+        FROM workouts w
+        JOIN workout_sets ws ON w.id = ws.workout_id
+        JOIN exercises e ON ws.exercise_id = e.id
+        WHERE w.user_id = :user_id 
+            AND w.status = 'completed'
+            AND w.total_duration_minutes IS NOT NULL
+        GROUP BY w.id, w.completed_at, w.total_duration_minutes
+        HAVING total_volume > 0
+        ORDER BY w.completed_at DESC
+        LIMIT :limit_sessions
+    )
+    SELECT 
+        *,
+        (total_volume / total_duration_minutes) as charge,
+        (total_rest_time::float / total_volume) as ratio,
+        EXTRACT(DAYS FROM (NOW() - completed_at)) as days_ago
+    FROM session_stats
+    """
+    
+    # Récupérer le poids utilisateur une seule fois
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
+    # Exécuter la requête optimisée
+    result = db.execute(text(query), {
+        "user_id": user_id, 
+        "user_weight": user.weight,
+        "limit_sessions": sessions
+    }).fetchall()
+    
+    if not result:
+        return {"sessions": []}
+    
+    # Conversion simple des résultats
+    sessions_data = []
+    charges = []
+    ratios = []
+    
+    for row in result:
+        charge = round(row.charge, 2)
+        ratio = round(row.ratio, 2)
+        
+        charges.append(charge)
+        ratios.append(ratio)
+        
+        sessions_data.append({
+            "date": row.completed_at.isoformat(),
+            "charge": charge,
+            "ratio": ratio,
+            "total_volume": round(row.total_volume, 1),
+            "total_duration_minutes": row.total_duration_minutes,
+            "total_rest_minutes": round(row.total_rest_time / 60, 1),
+            "days_ago": int(row.days_ago)
+        })
+    
+    # Médianes calculées en Python (plus rapide que SQL pour ce cas)
+    median_charge = sorted(charges)[len(charges) // 2] if charges else 0
+    median_ratio = sorted(ratios)[len(ratios) // 2] if ratios else 0
+    
+    return {
+        "sessions": sessions_data,
+        "medians": {
+            "charge": round(median_charge, 2),
+            "ratio": round(median_ratio, 2)
+        }
+    }
 
 # Helper function à ajouter
 def get_muscles_for_group(muscle_group: str) -> List[str]:
