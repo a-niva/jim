@@ -1676,9 +1676,9 @@ def get_time_distribution(user_id: int, sessions: int = 10, db: Session = Depend
 
 @app.get("/api/users/{user_id}/stats/workout-intensity-recovery")
 def get_workout_intensity_recovery(user_id: int, sessions: int = 50, db: Session = Depends(get_db)):
-    """Version optimisée avec calculs SQL directs"""
+    """Version optimisée avec calculs SQL directs - CORRIGÉE"""
     
-    # Requête SQL optimisée qui fait tout en une fois
+    # Requête SQL corrigée - déplacer le HAVING vers la requête externe
     query = """
     WITH session_stats AS (
         SELECT 
@@ -1705,7 +1705,6 @@ def get_workout_intensity_recovery(user_id: int, sessions: int = 50, db: Session
             AND w.status = 'completed'
             AND w.total_duration_minutes IS NOT NULL
         GROUP BY w.id, w.completed_at, w.total_duration_minutes
-        HAVING total_volume > 0
         ORDER BY w.completed_at DESC
         LIMIT :limit_sessions
     )
@@ -1715,6 +1714,7 @@ def get_workout_intensity_recovery(user_id: int, sessions: int = 50, db: Session
         (total_rest_time::float / total_volume) as ratio,
         EXTRACT(DAYS FROM (NOW() - completed_at)) as days_ago
     FROM session_stats
+    WHERE total_volume > 0
     """
     
     # Récupérer le poids utilisateur une seule fois
