@@ -1117,7 +1117,7 @@ async function loadMLSankeyDiagram(userId) {
     }
 }
 
-// ===== GRAPHIQUE INTENSITÉ/RÉCUPÉRATION =====
+// ===== GRAPHIQUE PROFIL SÉANCES =====
 async function loadIntensityRecoveryChart(userId) {
     try {
         const data = await window.apiGet(`/api/users/${userId}/stats/workout-intensity-recovery`);
@@ -1132,11 +1132,32 @@ async function loadIntensityRecoveryChart(userId) {
             charts.intensityRecovery.destroy();
         }
         
-        // Couleur par ancienneté (gradient du rouge au vert)
+        // Calculer les extremums pour le gradient
+        const maxDays = Math.max(...data.sessions.map(s => s.days_ago));
+        const minDays = Math.min(...data.sessions.map(s => s.days_ago));
+        
+        // Fonction pour calculer la couleur en gradient continu
+        function getColorFromAge(daysAgo) {
+            // Normaliser entre 0 et 1
+            const normalized = (daysAgo - minDays) / (maxDays - minDays || 1);
+            
+            // Gradient HSL : Vert (120°) → Jaune (60°) → Rouge (0°)
+            const hue = 120 * (1 - normalized); // 120 pour récent, 0 pour ancien
+            const saturation = 70; // Saturation constante
+            const lightness = 50; // Luminosité constante
+            
+            return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+        }
+        
+        // Préparer les données avec couleurs graduelles
         const sessions = data.sessions.map(s => ({
             x: s.charge,
             y: s.ratio,
-            color: `hsl(${Math.max(0, 120 - s.days_ago * 2)}, 70%, 50%)`,
+            backgroundColor: getColorFromAge(s.days_ago),
+            borderColor: getColorFromAge(s.days_ago),
+            pointRadius: 12,
+            pointHoverRadius: 16,
+            borderWidth: 2,
             ...s
         }));
         
@@ -1146,53 +1167,59 @@ async function loadIntensityRecoveryChart(userId) {
                 datasets: [{
                     label: 'Séances',
                     data: sessions,
-                    backgroundColor: sessions.map(s => s.color),
-                    borderColor: sessions.map(s => s.color),
-                    pointRadius: 8,
-                    pointHoverRadius: 12
-                }, {
-                    // Ligne médiane verticale
-                    type: 'line',
-                    label: 'Médiane Charge',
-                    data: [
-                        {x: data.medians.charge, y: Math.min(...sessions.map(s => s.y))},
-                        {x: data.medians.charge, y: Math.max(...sessions.map(s => s.y))}
-                    ],
-                    borderColor: '#94a3b8',
-                    borderDash: [5, 5],
-                    pointRadius: 0,
-                    showLine: true
-                }, {
-                    // Ligne médiane horizontale  
-                    type: 'line',
-                    label: 'Médiane Récupération',
-                    data: [
-                        {x: Math.min(...sessions.map(s => s.x)), y: data.medians.ratio},
-                        {x: Math.max(...sessions.map(s => s.x)), y: data.medians.ratio}
-                    ],
-                    borderColor: '#94a3b8',
-                    borderDash: [5, 5],
-                    pointRadius: 0,
-                    showLine: true
+                    backgroundColor: sessions.map(s => s.backgroundColor),
+                    borderColor: sessions.map(s => s.borderColor),
+                    pointRadius: sessions.map(s => s.pointRadius),
+                    pointHoverRadius: sessions.map(s => s.pointHoverRadius),
+                    borderWidth: 2
                 }]
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: false, // CRITIQUE : permet au graphique de remplir le container
+                interaction: {
+                    intersect: false,
+                    mode: 'nearest'
+                },
+                layout: {
+                    padding: {
+                        top: 20,
+                        right: 20,
+                        bottom: 20,
+                        left: 20
+                    }
+                },
                 plugins: {
                     title: {
                         display: true,
-                        text: '⚡ Profil Intensité/Récupération par Séance'
+                        text: '🎯 Profil de Vos Séances',
+                        font: { size: 18, weight: 'bold' },
+                        color: 'var(--text)',
+                        padding: 25
+                    },
+                    legend: {
+                        display: false
                     },
                     tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        padding: 12,
+                        cornerRadius: 8,
                         callbacks: {
+                            title: () => 'Détails de la séance',
                             label: (context) => {
                                 const session = context.raw;
+                                const date = new Date(session.date).toLocaleDateString('fr-FR');
+                                const category = getSessionCategory(session.charge, session.ratio, data.medians);
+                                
                                 return [
-                                    `Date: ${new Date(session.date).toLocaleDateString()}`,
-                                    `Charge: ${session.charge} vol/min`,
-                                    `Récupération: ${session.ratio} sec/vol`,
-                                    `Volume: ${session.total_volume}`,
-                                    `Durée: ${session.total_duration_minutes}min`
+                                    `📅 ${date} (il y a ${session.days_ago} jours)`,
+                                    `⚡ Densité: ${session.charge} points/min`,
+                                    `⏱️ Récup: ${session.ratio} sec/point`,
+                                    `💪 Volume: ${session.total_volume} points`,
+                                    `⏳ Durée: ${session.total_duration_minutes}min`,
+                                    `🎯 Type: ${category}`
                                 ];
                             }
                         }
@@ -1202,23 +1229,129 @@ async function loadIntensityRecoveryChart(userId) {
                     x: {
                         title: {
                             display: true,
-                            text: 'Charge (Volume/min)'
+                            text: '⚡ Densité d\'Effort (points de volume par minute)',
+                            font: { size: 14, weight: 'bold' },
+                            color: 'var(--text)',
+                            padding: 10
+                        },
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.2)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: 'var(--text-secondary)',
+                            padding: 8
                         }
                     },
                     y: {
                         title: {
                             display: true,
-                            text: 'Ratio Récupération (sec repos/volume)'
+                            text: '⏱️ Besoin de Récupération (secondes de repos par point d\'effort)',
+                            font: { size: 14, weight: 'bold' },
+                            color: 'var(--text)',
+                            padding: 10
+                        },
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.2)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: 'var(--text-secondary)',
+                            padding: 8
                         }
                     }
+                },
+                onHover: (event, elements) => {
+                    event.native.target.style.cursor = elements.length > 0 ? 'pointer' : 'default';
                 }
-            }
+            },
+            plugins: [{
+                id: 'backgroundZones',
+                beforeDraw: (chart) => {
+                    const ctx = chart.ctx;
+                    const chartArea = chart.chartArea;
+                    const xScale = chart.scales.x;
+                    const yScale = chart.scales.y;
+                    
+                    // Calculer les positions des médianes
+                    const medianX = xScale.getPixelForValue(data.medians.charge);
+                    const medianY = yScale.getPixelForValue(data.medians.ratio);
+                    
+                    ctx.save();
+                    
+                    // Zone 1: Faible densité + Forte récup = "Séances Récupératives"
+                    ctx.fillStyle = 'rgba(16, 185, 129, 0.08)';
+                    ctx.fillRect(chartArea.left, chartArea.top, medianX - chartArea.left, medianY - chartArea.top);
+                    
+                    // Zone 2: Forte densité + Forte récup = "Séances Exigeantes"
+                    ctx.fillStyle = 'rgba(245, 158, 11, 0.08)';
+                    ctx.fillRect(medianX, chartArea.top, chartArea.right - medianX, medianY - chartArea.top);
+                    
+                    // Zone 3: Faible densité + Faible récup = "Séances Légères"
+                    ctx.fillStyle = 'rgba(59, 130, 246, 0.08)';
+                    ctx.fillRect(chartArea.left, medianY, medianX - chartArea.left, chartArea.bottom - medianY);
+                    
+                    // Zone 4: Forte densité + Faible récup = "Séances Intenses"
+                    ctx.fillStyle = 'rgba(239, 68, 68, 0.08)';
+                    ctx.fillRect(medianX, medianY, chartArea.right - medianX, chartArea.bottom - medianY);
+                    
+                    // Lignes de séparation plus subtiles
+                    ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)';
+                    ctx.setLineDash([8, 4]);
+                    ctx.lineWidth = 1.5;
+                    
+                    // Ligne verticale (médiane densité)
+                    ctx.beginPath();
+                    ctx.moveTo(medianX, chartArea.top);
+                    ctx.lineTo(medianX, chartArea.bottom);
+                    ctx.stroke();
+                    
+                    // Ligne horizontale (médiane récupération)
+                    ctx.beginPath();
+                    ctx.moveTo(chartArea.left, medianY);
+                    ctx.lineTo(chartArea.right, medianY);
+                    ctx.stroke();
+                    
+                    // Labels des zones
+                    ctx.setLineDash([]);
+                    ctx.fillStyle = 'var(--text-secondary)';
+                    ctx.font = 'bold 11px Inter, sans-serif';
+                    ctx.textAlign = 'center';
+                    
+                    // Positions des labels
+                    const leftX = chartArea.left + (medianX - chartArea.left) / 2;
+                    const rightX = medianX + (chartArea.right - medianX) / 2;
+                    const topY = chartArea.top + 25;
+                    const bottomY = chartArea.bottom - 15;
+                    
+                    ctx.fillText('🌱 Récupératives', leftX, topY);
+                    ctx.fillText('🔥 Exigeantes', rightX, topY);
+                    ctx.fillText('😌 Légères', leftX, bottomY);
+                    ctx.fillText('⚡ Intenses', rightX, bottomY);
+                    
+                    ctx.restore();
+                }
+            }]
         });
         
     } catch (error) {
-        console.error('Erreur chargement graphique intensité/récupération:', error);
+        console.error('Erreur chargement graphique profil séances:', error);
     }
 }
+
+// Fonction helper pour catégoriser les séances
+function getSessionCategory(charge, ratio, medians) {
+    const highDensity = charge > medians.charge;
+    const highRecovery = ratio > medians.ratio;
+    
+    if (!highDensity && highRecovery) return 'Récupérative 🌱';
+    if (highDensity && highRecovery) return 'Exigeante 🔥';
+    if (!highDensity && !highRecovery) return 'Légère 😌';
+    if (highDensity && !highRecovery) return 'Intense ⚡';
+    
+    return 'Non catégorisée';
+}
+
 
 // Export des fonctions pour app.js
 window.initStatsCharts = initStatsCharts;
