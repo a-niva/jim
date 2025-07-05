@@ -1448,7 +1448,17 @@ async function enrichWorkoutsWithExercises(workouts) {
     return enrichedWorkouts;
 }
 
-function showWorkoutResumeBanner(workout) {
+async function showWorkoutResumeBanner(workout) {
+    if (!currentUser || !document.getElementById('dashboard')) {
+        console.log('Dashboard non disponible, banner ignoré');
+        return;
+    }
+    
+    // Supprimer toute bannière existante
+    const existingBanner = document.querySelector('.workout-resume-banner');
+    if (existingBanner) {
+        existingBanner.remove();
+    }
     const banner = document.createElement('div');
     banner.className = 'workout-resume-banner';
     banner.style.cssText = `
@@ -1488,23 +1498,47 @@ function showWorkoutResumeBanner(workout) {
 
 async function resumeWorkout(workoutId) {
     try {
-        currentWorkout = await apiGet(`/api/workouts/${workoutId}`);
-        showView('workout');
-        
-        // Déterminer le type de séance et configurer l'interface
-        if (currentWorkout.type === 'free') {
-            setupFreeWorkout();
-        } else {
-            // Pour une séance programme, récupérer le programme
-            const program = await apiGet(`/api/users/${currentUser.id}/programs/active`);
-            setupProgramWorkout(program);
+        // Vérifier que l'ID est valide
+        if (!workoutId || workoutId === 'undefined') {
+            throw new Error('ID de séance invalide');
         }
         
-        showToast('Séance reprise', 'success');
+        // Récupérer les données de la séance
+        const response = await fetch(`/api/workouts/${workoutId}`, {
+            headers: { 'Accept': 'application/json' }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Séance non trouvée (${response.status})`);
+        }
+        
+        const workout = await response.json();
+        currentWorkout = workout;
+        
+        // Configurer l'interface selon le type
+        if (workout.type === 'program') {
+            // Récupérer le programme associé
+            const program = await apiGet(`/api/users/${currentUser.id}/programs/active`);
+            if (program) {
+                await setupProgramWorkout(program);
+            } else {
+                throw new Error('Programme associé non trouvé');
+            }
+        } else {
+            setupFreeWorkout();
+        }
+        
+        showView('workout');
+        showToast('Séance reprise avec succès', 'success');
         
     } catch (error) {
         console.error('Erreur reprise séance:', error);
-        showToast('Erreur lors de la reprise de séance', 'error');
+        showToast(`Impossible de reprendre la séance: ${error.message}`, 'error');
+        
+        // Nettoyer l'état en cas d'erreur
+        localStorage.removeItem('fitness_workout_state');
+        const banner = document.querySelector('.workout-resume-banner');
+        if (banner) banner.remove();
     }
 }
 
@@ -3274,7 +3308,19 @@ async function configureUIForExerciseType(type, recommendations) {
             await configureWeighted(elements, recommendations);
             break;
     }
-
+    // Créer bouton GO seulement quand nécessaire
+    const executeBtn = document.getElementById('executeSetBtn');
+    if (!executeBtn) {
+        const buttonContainer = document.querySelector('.input-section') || document.querySelector('.workout-interface');
+        if (buttonContainer) {
+            const goButton = document.createElement('button');
+            goButton.id = 'executeSetBtn';
+            goButton.className = 'btn btn-primary btn-go';
+            goButton.innerHTML = '✅';
+            goButton.onclick = executeSet;
+            buttonContainer.appendChild(goButton);
+        }
+    }
     // Afficher le temps de repos si recommandé (commun à tous les types)
     updateRestRecommendation(recommendations);
     updateConfidence(recommendations);

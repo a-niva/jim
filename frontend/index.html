@@ -397,7 +397,6 @@
                             <div class="value-display">
                                 <span id="setWeight" class="value">20</span>
                                 <span class="unit">kg</span>
-                                <div class="ai-hint" id="weightHint">IA: 20kg</div>
                             </div>
                             <button class="stepper-modern" onclick="adjustWeightUp()">+</button>
                         </div>
@@ -405,13 +404,12 @@
                         <!-- Répétitions -->
                         <div class="input-row">
                             <span class="input-icon">🔢</span>
-                            <button class="stepper-modern" onclick="adjustRepsDown()">−</button>
+                            <button class="stepper-modern" onclick="adjustReps(-1)">−</button>
                             <div class="value-display">
                                 <span id="setReps" class="value">10</span>
                                 <span class="unit">reps</span>
-                                <div class="ai-hint" id="repsHint">IA: 10</div>
                             </div>
-                            <button class="stepper-modern" onclick="adjustRepsUp()">+</button>
+                            <button class="stepper-modern" onclick="adjustReps(1)">+</button>
                         </div>
                     </div>
                     
@@ -471,94 +469,30 @@
                 <div class="program-exercises-container" id="programExercisesContainer" style="display: none;">
                     <!-- Tout le contenu sera généré dynamiquement par JavaScript -->
                 </div>
-            </div>
-                <div class="value-display">
-                    <span id="setWeight">20</span>
-                    <span class="unit">kg</span>
-                </div>
-                <button class="stepper-modern" onclick="adjustWeightUp()">+</button>
-                <div class="ai-hint" id="weightHint">IA: 22.5kg</div>
-            </div>
-            
-            <!-- Reps -->
-            <div class="input-row">
-                <span class="input-icon">🔢</span>
-                <button class="stepper-modern" onclick="adjustReps(-1)">−</button>
-                <div class="value-display">
-                    <span id="setReps">10</span>
-                    <span class="unit">reps</span>
-                </div>
-                <button class="stepper-modern" onclick="adjustReps(1)">+</button>
-                <div class="ai-hint" id="repsHint">IA: 12</div>
-            </div>
-        </div>
-        
-        <!-- Bouton GO simplifié -->
-        <button class="go-button" onclick="executeSet()" id="executeSetBtn">✅</button>
-        
-        <!-- Container pour l'explication ML -->
-        <div id="mlExplanationContainer" class="ml-explanation-wrapper"></div>
-        
-        <!-- Container pour l'historique ML -->
-        <div id="mlHistoryContainer" class="ml-history-wrapper"></div>
-        
-        <!-- Zone de feedback (cachée initialement) -->
-        <div class="feedback-zone" id="setFeedback" style="display: none;">
-            <div class="feedback-row">
-                <span class="feedback-label">Fatigue</span>
-                <div class="emoji-buttons">
-                    <button class="emoji-btn" data-fatigue="1" onclick="selectFatigue(this, 1)">😄</button>
-                    <button class="emoji-btn" data-fatigue="2" onclick="selectFatigue(this, 2)">🙂</button>
-                    <button class="emoji-btn" data-fatigue="3" onclick="selectFatigue(this, 3)">😐</button>
-                    <button class="emoji-btn" data-fatigue="4" onclick="selectFatigue(this, 4)">😓</button>
-                    <button class="emoji-btn" data-fatigue="5" onclick="selectFatigue(this, 5)">😵</button>
-                </div>
-            </div>
-            <div class="feedback-row">
-                <span class="feedback-label">Effort</span>
-                <div class="emoji-buttons">
-                    <button class="emoji-btn" data-effort="1" onclick="selectEffort(this, 1)">🚶</button>
-                    <button class="emoji-btn" data-effort="2" onclick="selectEffort(this, 2)">🏃</button>
-                    <button class="emoji-btn" data-effort="3" onclick="selectEffort(this, 3)">🏋️</button>
-                    <button class="emoji-btn" data-effort="4" onclick="selectEffort(this, 4)">🔥</button>
-                    <button class="emoji-btn" data-effort="5" onclick="selectEffort(this, 5)">🌋</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-<!-- Historique minimaliste -->
-    <div class="history-minimal" id="setsHistory"></div>
-    
-    <!-- Liste des exercices programmés (visible seulement en mode programme) -->
-    <div class="program-exercises-container" id="programExercisesContainer" style="display: none;">
-        <!-- Tout le contenu sera généré dynamiquement par JavaScript -->
-    </div>
-</div>
-
-            <!-- Période de repos -->
-            <div class="rest-period" id="restPeriod" style="display: none;">
-                <div class="rest-content">
-                    <h3>Temps de repos</h3>
-                    <div class="rest-timer" id="restTimer">01:30</div>
-                    <div class="rest-progress">
-                        <div class="rest-progress-bar">
-                            <div class="rest-progress-fill" id="restProgressFill"></div>
+                
+                <!-- Période de repos -->
+                <div class="rest-period" id="restPeriod" style="display: none;">
+                    <div class="rest-content">
+                        <h3>Temps de repos</h3>
+                        <div class="rest-timer" id="restTimer">01:30</div>
+                        <div class="rest-progress">
+                            <div class="rest-progress-bar">
+                                <div class="rest-progress-fill" id="restProgressFill"></div>
+                            </div>
+                        </div>
+                        <div class="rest-info">
+                            <p>Prochaine série : <span id="nextSetInfo">Série 2 - Même exercice</span></p>
+                        </div>
+                        <div class="rest-actions">
+                            <button class="btn btn-secondary" onclick="skipRest()">⏭️ Ignorer le repos</button>
+                            <button class="btn btn-warning" onclick="addRestTime(30)">⏱️ +30s</button>
                         </div>
                     </div>
-                    <div class="rest-info">
-                        <p>Prochaine série : <span id="nextSetInfo">Série 2 - Même exercice</span></p>
-                    </div>
-                    <div class="rest-actions">
-                        <button class="btn btn-secondary" onclick="skipRest()">⏭️ Ignorer le repos</button>
-                        <button class="btn btn-warning" onclick="addRestTime(30)">⏱️ +30s</button>
-                    </div>
                 </div>
             </div>
-            </div>
+        </div>
 
-
-<!-- STATISTIQUES -->
+        <!-- STATISTIQUES -->
 
 <div class="view" id="stats">
     <h2>📊 Vos statistiques</h2>
