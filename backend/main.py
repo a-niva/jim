@@ -1679,16 +1679,22 @@ def get_time_distribution(user_id: int, sessions: int = 10, db: Session = Depend
 
 @app.get("/api/users/{user_id}/stats/workout-intensity-recovery")
 def get_workout_intensity_recovery(user_id: int, sessions: int = 50, db: Session = Depends(get_db)):
-    """Version optimisée avec calculs SQL directs - CORRIGÉE"""
+    """Version corrigée - TOUT EN SECONDES"""
     
-    # Requête SQL corrigée - déplacer le HAVING vers la requête externe
+    # Requête SQL - tout en secondes
     query = """
     WITH session_stats AS (
         SELECT 
             w.id,
             w.completed_at,
-            w.total_duration_minutes,
-            -- Volume total calculé directement en SQL
+            -- Durée totale en secondes
+            COALESCE(w.total_duration_minutes * 60, 0) as total_duration_seconds,
+            -- Repos total en secondes
+            COALESCE(w.total_rest_time_seconds, 0) as stored_rest_seconds,
+            -- Calculer les temps réels à partir des sets
+            SUM(COALESCE(ws.duration_seconds, 0)) as exercise_seconds,
+            SUM(COALESCE(ws.actual_rest_duration_seconds, ws.base_rest_time_seconds, 0)) as calculated_rest_seconds,
+            -- Volume total
             SUM(
                 CASE 
                     WHEN e.exercise_type = 'isometric' THEN 
@@ -1698,34 +1704,40 @@ def get_workout_intensity_recovery(user_id: int, sessions: int = 50, db: Session
                     ELSE 
                         COALESCE(ws.weight, 0) * COALESCE(ws.reps, 0) * COALESCE(e.intensity_factor, 1.0)
                 END
-            ) as total_volume,
-            -- Temps de repos total
-            SUM(COALESCE(ws.actual_rest_duration_seconds, ws.base_rest_time_seconds, 0)) as total_rest_time
+            ) as total_volume
         FROM workouts w
         JOIN workout_sets ws ON w.id = ws.workout_id
         JOIN exercises e ON ws.exercise_id = e.id
         WHERE w.user_id = :user_id 
             AND w.status = 'completed'
             AND w.total_duration_minutes IS NOT NULL
-        GROUP BY w.id, w.completed_at, w.total_duration_minutes
+        GROUP BY w.id, w.completed_at, w.total_duration_minutes, w.total_rest_time_seconds
         ORDER BY w.completed_at DESC
         LIMIT :limit_sessions
     )
     SELECT 
         *,
-        (total_volume / total_duration_minutes) as charge,
-        (total_rest_time::float / total_volume) as ratio,
+        -- Durée effective en secondes (priorité aux données calculées si plus fiables)
+        CASE 
+            WHEN total_duration_seconds > 0 THEN total_duration_seconds
+            ELSE GREATEST(60, exercise_seconds + calculated_rest_seconds)
+        END as effective_duration_seconds,
+        -- Repos effectif en secondes
+        CASE 
+            WHEN stored_rest_seconds > 0 THEN stored_rest_seconds
+            ELSE calculated_rest_seconds
+        END as effective_rest_seconds,
         EXTRACT(DAYS FROM (NOW() - completed_at)) as days_ago
     FROM session_stats
     WHERE total_volume > 0
     """
     
-    # Récupérer le poids utilisateur une seule fois
+    # Récupérer le poids utilisateur
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
     
-    # Exécuter la requête optimisée
+    # Exécuter la requête
     result = db.execute(text(query), {
         "user_id": user_id, 
         "user_weight": user.weight,
@@ -1735,37 +1747,51 @@ def get_workout_intensity_recovery(user_id: int, sessions: int = 50, db: Session
     if not result:
         return {"sessions": []}
     
-    # Conversion simple des résultats
+    # Calculs TOUT EN SECONDES
     sessions_data = []
     charges = []
     ratios = []
     
     for row in result:
-        charge = round(row.charge, 2)
-        ratio = round(row.ratio, 2)
+        duration_sec = row.effective_duration_seconds
+        rest_sec = row.effective_rest_seconds
+        volume = row.total_volume
+        
+        # Charge = points de volume par SECONDE
+        charge = round(volume / max(1, duration_sec), 4)
+        
+        # Ratio = secondes de repos par point de volume
+        ratio = round(rest_sec / max(1, volume), 6)
         
         charges.append(charge)
         ratios.append(ratio)
         
         sessions_data.append({
             "date": row.completed_at.isoformat(),
-            "charge": charge,
-            "ratio": ratio,
-            "total_volume": round(row.total_volume, 1),
-            "total_duration_minutes": row.total_duration_minutes,
-            "total_rest_minutes": round(row.total_rest_time / 60, 1),
-            "days_ago": int(row.days_ago)
+            "charge": charge,  # points/seconde
+            "ratio": ratio,    # secondes_repos/point
+            "total_volume": round(volume, 1),
+            "total_duration_minutes": round(duration_sec / 60, 1),  # Juste pour affichage
+            "total_rest_minutes": round(rest_sec / 60, 1),          # Juste pour affichage
+            "days_ago": int(row.days_ago),
+            # Debug en secondes
+            "debug_seconds": {
+                "duration_sec": duration_sec,
+                "rest_sec": rest_sec,
+                "exercise_sec": row.exercise_seconds,
+                "original_duration_sec": row.total_duration_seconds
+            }
         })
     
-    # Médianes calculées en Python (plus rapide que SQL pour ce cas)
+    # Médianes
     median_charge = sorted(charges)[len(charges) // 2] if charges else 0
     median_ratio = sorted(ratios)[len(ratios) // 2] if ratios else 0
     
     return {
         "sessions": sessions_data,
         "medians": {
-            "charge": round(median_charge, 2),
-            "ratio": round(median_ratio, 2)
+            "charge": round(median_charge, 4),
+            "ratio": round(median_ratio, 6)
         }
     }
 

@@ -1249,7 +1249,7 @@ async function loadIntensityRecoveryChart(userId) {
                     x: {
                         title: {
                             display: true,
-                            text: '⚡ Densité d\'Effort (points de volume par minute)',
+                            text: '⚡ Densité d\'Effort (points de volume par seconde)',
                             font: { size: 14, weight: 'bold' },
                             color: '#e2e8f0',
                             padding: 10
