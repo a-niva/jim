@@ -2032,76 +2032,57 @@ async function startProgramWorkout() {
             await setupProgramWorkout(activeProgram);
         }
         
+        // Format v2.0 avec sélection intelligente
         if (isNewFormat) {
-            // NOUVEAU FORMAT - Sélection ML obligatoire
             console.log('🎯 Utilisation sélection ML (nouveau format)...');
             
             try {
                 const intelligentSession = await apiGet(`/api/users/${currentUser.id}/programs/next-session`);
+                console.log('Réponse ML reçue:', intelligentSession);
                 
-                // Adapter les exercices sélectionnés au format attendu par le frontend
-                activeProgram = {
-                    ...activeProgram,
-                    exercises: intelligentSession.exercises.map(ex => ({
-                        exercise_id: ex.exercise_id,
-                        exercise_name: ex.exercise_name,
-                        sets: ex.sets,
-                        reps_min: ex.target_reps,
-                        reps_max: ex.target_reps,
-                        ml_selected: true,
-                        priority_score: ex.priority_score,
-                        selection_reason: ex.selection_reason
-                    }))
-                };
-                
-                console.log('✅ Sélection ML réussie:', intelligentSession.exercises.length, 'exercices');
-                intelligentSession.exercises.forEach((ex, i) => {
-                    console.log(`   ${i+1}. ${ex.exercise_name} (score: ${ex.priority_score.toFixed(3)})`);
-                });
-                
-            } catch (mlError) {
-                console.error('❌ Sélection ML échouée pour nouveau format:', mlError);
-                showToast('Erreur sélection intelligente', 'error');
-                return; // Échec critique pour nouveau format
-            }
-            
-        } else {
-            // ANCIEN FORMAT - ML avec fallback
-            console.log('🔄 Tentative sélection ML (ancien format)...');
-            
-            try {
-                const intelligentSession = await apiGet(`/api/users/${currentUser.id}/programs/next-session`);
-                
-                // Créer une copie modifiée du programme avec les exercices ML
-                activeProgram = {
-                    ...activeProgram,
-                    exercises: intelligentSession.exercises.map(ex => ({
-                        exercise_id: ex.exercise_id,
-                        exercise_name: ex.exercise_name,
-                        sets: ex.sets,
-                        reps_min: ex.target_reps,
-                        reps_max: ex.target_reps,
-                        ml_selected: true,
-                        priority_score: ex.priority_score,
-                        selection_reason: ex.selection_reason
-                    }))
-                };
-                
-                console.log('✅ Sélection ML réussie (ancien format):', intelligentSession.exercises.length, 'exercices');
-                showToast('Sélection intelligente activée', 'success');
-                
-            } catch (mlError) {
-                console.warn('❌ Sélection ML échouée, fallback sur format original:', mlError);
-                showToast('Mode hors-ligne activé', 'warning');
-                // activeProgram reste inchangé - utilise la liste originale
-                
-                // Marquer les exercices comme non-ML pour le tracking
-                if (Array.isArray(activeProgram.exercises)) {
-                    activeProgram.exercises = activeProgram.exercises.map(ex => ({
-                        ...ex,
-                        ml_selected: false
-                    }));
+                // CORRECTION ICI : utiliser selected_exercises au lieu de exercises
+                if (!intelligentSession.selected_exercises) {
+                    throw new Error('Pas d\'exercices sélectionnés dans la réponse');
                 }
+                
+                // Enrichir les exercices sélectionnés
+                const enrichedExercises = intelligentSession.selected_exercises.map(ex => ({
+                    exercise_id: ex.exercise_id,
+                    exercise_name: ex.exercise_name || ex.name,
+                    sets: ex.sets || 3,
+                    reps: ex.reps || 10,
+                    rest_seconds: ex.rest_seconds || 90,
+                    muscle_groups: ex.muscle_groups,
+                    score: ex.score,
+                    selection_reason: ex.selection_reason
+                }));
+                
+                // Remplacer les exercices du programme par la sélection ML
+                activeProgram.exercises = enrichedExercises;
+                console.log(`✅ ${enrichedExercises.length} exercices sélectionnés par ML`);
+                
+                // Si on a des métadonnées de session, les afficher
+                if (intelligentSession.session_metadata) {
+                    console.log('Métadonnées ML:', intelligentSession.session_metadata);
+                    // Optionnel : afficher un preview
+                    if (window.showSessionPreview) {
+                        showSessionPreview(intelligentSession.session_metadata);
+                    }
+                }
+                
+            } catch (error) {
+                console.error('❌ Sélection ML échouée:', error);
+                showToast('Mode hors-ligne activé - sélection statique', 'warning');
+                
+                // Fallback : utiliser les premiers exercices du pool
+                const pool = activeProgram.exercises.exercise_pool || [];
+                activeProgram.exercises = pool.slice(0, 6).map(ex => ({
+                    exercise_id: ex.exercise_id,
+                    exercise_name: ex.name,
+                    sets: ex.sets || 3,
+                    reps: ex.reps || 10,
+                    rest_seconds: ex.rest_seconds || 90
+                }));
             }
         }
         
