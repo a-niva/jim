@@ -2225,6 +2225,24 @@ select:focus-visible {
     justify-content: space-around;
 }
 
+/* Correction pour les boutons de feedback */
+.feedback-options {
+    display: flex;
+    gap: 0.5rem;
+    flex: 1;
+    justify-content: space-around;
+}
+
+.feedback-section {
+    margin-bottom: 1.5rem;
+}
+
+.feedback-section h4 {
+    margin-bottom: 0.75rem;
+    text-align: center;
+    font-size: 1rem;
+}
+
 .emoji-btn {
     background: none;
     border: none;
