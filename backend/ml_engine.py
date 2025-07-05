@@ -719,12 +719,14 @@ class FitnessMLEngine:
             # Grouper par partie du corps
             logger.info(f"DEBUG: Groupage de {len(available_exercises)} exercices")
             body_parts = {}
+            from backend.constants import normalize_muscle_group
             for ex in available_exercises:
                 # Utiliser le premier muscle group comme catégorie principale
-                primary_muscle = ex.muscle_groups[0] if ex.muscle_groups else "Général"
-                if primary_muscle not in body_parts:
-                    body_parts[primary_muscle] = []
-                body_parts[primary_muscle].append(ex)
+                primary_muscle = ex.muscle_groups[0] if ex.muscle_groups else "general"
+                normalized_muscle = normalize_muscle_group(primary_muscle)
+                if normalized_muscle not in body_parts:
+                    body_parts[normalized_muscle] = []
+                body_parts[normalized_muscle].append(ex)
 
             # AJOUTER CE LOG
             logger.error(f"DEBUG: Body parts trouvés: {list(body_parts.keys())}")
@@ -988,14 +990,14 @@ class FitnessMLEngine:
         
         # Mapping des groupes musculaires
         muscle_mapping = {
-            "Pectoraux/Triceps": ["Pectoraux", "Bras"],
-            "Dos/Biceps": ["Dos", "Bras"],  # CHANGÉ : Simplifié pour correspondre à la DB - ### TODO_later
-            "Jambes": ["Jambes"],
-            "Épaules/Abdos": ["Deltoïdes", "Abdominaux"],
-            "Haut du corps": ["Pectoraux", "Dos", "Deltoïdes"],
-            "Bas du corps": ["Jambes"],
-            "Full body": ["Pectoraux", "Dos", "Jambes", "Deltoïdes"],
-            "Bras": ["Bras"],
+            "Pectoraux/Triceps": ["pectoraux", "bras"],
+            "Dos/Biceps": ["dos", "bras"],
+            "Jambes": ["jambes"],
+            "Épaules/Abdos": ["epaules", "abdominaux"],
+            "Haut du corps": ["pectoraux", "dos", "epaules"],
+            "Bas du corps": ["jambes"],
+            "Full body": ["pectoraux", "dos", "jambes", "epaules"],
+            "Bras": ["bras"],
         }
         
         target_parts = muscle_mapping.get(muscle_group, [muscle_group])
