@@ -1251,7 +1251,7 @@ async function loadIntensityRecoveryChart(userId) {
                             display: true,
                             text: '⚡ Densité d\'Effort (points de volume par minute)',
                             font: { size: 14, weight: 'bold' },
-                            color: '#e2e8f0', // Couleur claire
+                            color: '#e2e8f0',
                             padding: 10
                         },
                         grid: {
@@ -1259,7 +1259,7 @@ async function loadIntensityRecoveryChart(userId) {
                             drawBorder: false
                         },
                         ticks: {
-                            color: '#cbd5e1', // Couleur claire pour les ticks
+                            color: '#cbd5e1',
                             padding: 8
                         }
                     },
@@ -1268,7 +1268,7 @@ async function loadIntensityRecoveryChart(userId) {
                             display: true,
                             text: '⏱️ Besoin de Récupération (secondes de repos par point d\'effort)',
                             font: { size: 14, weight: 'bold' },
-                            color: '#e2e8f0', // Couleur claire
+                            color: '#e2e8f0',
                             padding: 10
                         },
                         grid: {
@@ -1276,9 +1276,16 @@ async function loadIntensityRecoveryChart(userId) {
                             drawBorder: false
                         },
                         ticks: {
-                            color: '#cbd5e1', // Couleur claire pour les ticks
-                            padding: 8
-                        }
+                            color: '#cbd5e1',
+                            padding: 8,
+                            // Améliorer l'affichage des petites valeurs
+                            callback: function(value) {
+                                return value.toFixed(3);
+                            }
+                        },
+                        // Forcer un min/max pour mieux étaler les points
+                        suggestedMin: 0,
+                        suggestedMax: Math.max(...data.sessions.map(s => s.ratio)) * 1.2
                     }
                 },
                 onHover: (event, elements) => {
