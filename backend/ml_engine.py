@@ -1841,7 +1841,6 @@ class ProgressionAnalyzer:
 
     def get_exercise_staleness(self, user_id: int, exercise_id: int) -> float:
         """Retourne 0.0 (très récent) à 1.0 (pas fait depuis longtemps)"""
-        # Chercher la dernière fois que cet exercice a été fait
         latest_set = self.db.query(WorkoutSet).join(Workout).filter(
             Workout.user_id == user_id,
             WorkoutSet.exercise_id == exercise_id,
@@ -1851,10 +1850,15 @@ class ProgressionAnalyzer:
         if not latest_set:
             return 1.0  # Jamais fait = maximum staleness
         
-        # Calculer les jours depuis la dernière utilisation
-        days_since = (datetime.now(timezone.utc) - latest_set.workout.completed_at).days
+        # Correction timezone : gérer les datetime avec et sans timezone
+        completed_at = latest_set.workout.completed_at
+        now = datetime.now(timezone.utc)
         
-        # Transformer en score 0-1 (plus de jours = plus de staleness)
+        # Si completed_at n'a pas de timezone, lui ajouter UTC
+        if completed_at.tzinfo is None:
+            completed_at = completed_at.replace(tzinfo=timezone.utc)
+        
+        days_since = (now - completed_at).days
         staleness = min(1.0, days_since / 7.0)
         return staleness
 
