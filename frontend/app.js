@@ -1573,6 +1573,41 @@ async function abandonActiveWorkout(workoutId) {
     }
 }
 
+// ===== GESTION ÉTATS BOUTON PRINCIPAL =====
+function updateExecuteButtonState(state = 'ready') {
+    const executeBtn = document.getElementById('executeSetBtn');
+    if (!executeBtn) return;
+    
+    // Nettoyer toutes les classes d'état
+    executeBtn.classList.remove('ready', 'btn-danger', 'btn-success');
+    
+    switch (state) {
+        case 'ready':
+            executeBtn.classList.add('ready', 'btn-success');
+            executeBtn.innerHTML = '✅';
+            executeBtn.onclick = executeSet;
+            break;
+            
+        case 'isometric-start':
+            executeBtn.classList.add('btn-success');
+            executeBtn.innerHTML = '▶️';
+            executeBtn.onclick = () => handleIsometricAction();
+            break;
+            
+        case 'isometric-stop':
+            executeBtn.classList.add('btn-danger');
+            executeBtn.innerHTML = '⏹️';
+            executeBtn.onclick = () => handleIsometricAction();
+            break;
+            
+        case 'disabled':
+            executeBtn.classList.remove('ready');
+            executeBtn.style.opacity = '0.5';
+            executeBtn.style.cursor = 'not-allowed';
+            break;
+    }
+}
+
 async function loadMuscleReadiness() {
     const container = document.getElementById('muscleReadiness');
     
@@ -2647,7 +2682,7 @@ function setupFreeWorkout() {
     document.getElementById('exerciseSelection').style.display = 'block';
     document.getElementById('currentExercise').style.display = 'none';
     document.getElementById('programExercisesContainer').style.display = 'none';
-    
+
     loadAvailableExercises();
     enableHorizontalScroll();
     startWorkoutTimer();
@@ -3311,16 +3346,8 @@ async function configureUIForExerciseType(type, recommendations) {
     }
     // Créer bouton GO seulement quand nécessaire
     const executeBtn = document.getElementById('executeSetBtn');
-    if (!executeBtn) {
-        const buttonContainer = document.querySelector('.input-section') || document.querySelector('.workout-interface');
-        if (buttonContainer) {
-            const goButton = document.createElement('button');
-            goButton.id = 'executeSetBtn';
-            goButton.className = 'btn btn-primary btn-go';
-            goButton.innerHTML = '✅';
-            goButton.onclick = executeSet;
-            buttonContainer.appendChild(goButton);
-        }
+    if (executeBtn) {
+        updateExecuteButtonState('ready');
     }
     // Afficher le temps de repos si recommandé (commun à tous les types)
     updateRestRecommendation(recommendations);
@@ -3383,6 +3410,7 @@ function configureIsometric(elements, recommendations) {
     
     document.querySelector('.input-section').insertAdjacentHTML('beforeend', timerHtml);
     setupIsometricTimer(targetDuration);
+    updateExecuteButtonState('isometric-start');
     
     console.log(`✅ Timer isométrique configuré - Objectif: ${targetDuration}s`);
 }
@@ -3516,7 +3544,8 @@ function cleanupIsometricTimer() {
     
     // Nettoyer référence globale
     window.currentIsometricTimer = null;
-    
+    updateExecuteButtonState('ready');
+
     console.log('Timer isométrique nettoyé - Bouton restauré pour exercices classiques');
 }
 
