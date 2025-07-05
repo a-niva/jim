@@ -1212,20 +1212,26 @@ def complete_workout(workout_id: int, data: Dict[str, int] = {}, db: Session = D
     workout.status = "completed"
     workout.completed_at = datetime.now(timezone.utc)
 
-    # Mettre à jour les stats d'exercices après complétion
-    exercise_ids = db.query(distinct(WorkoutSet.exercise_id)).filter(
-        WorkoutSet.workout_id == workout_id
-    ).all()
-    for (exercise_id,) in exercise_ids:
-        update_exercise_stats_for_user(db, workout.user_id, exercise_id)
+    # CORRECTION : Gestion robuste des erreurs lors de la mise à jour des stats
+    try:
+        exercise_ids = db.query(distinct(WorkoutSet.exercise_id)).filter(
+            WorkoutSet.workout_id == workout_id
+        ).all()
+        for (exercise_id,) in exercise_ids:
+            try:
+                update_exercise_stats_for_user(db, workout.user_id, exercise_id)
+            except Exception as stats_error:
+                logger.warning(f"Erreur mise à jour stats pour exercise {exercise_id}: {stats_error}")
+                # Continuer même si une stat échoue
+                continue
+    except Exception as global_error:
+        logger.error(f"Erreur lors de la mise à jour des stats workout {workout_id}: {global_error}")
+        # Ne pas faire crasher l'endpoint, juste logger l'erreur
     
-    # Utiliser la durée fournie par le frontend (en secondes) si disponible
+    # Continuer avec le reste de la logique...
     if "total_duration" in data:
-        # Arrondir correctement au lieu de tronquer
         workout.total_duration_minutes = max(1, round(data["total_duration"] / 60))
     elif workout.started_at:
-        # Fallback: calculer depuis les timestamps
-        # Assurer la compatibilité des timezones
         started_at = workout.started_at
         if started_at.tzinfo is None:
             started_at = started_at.replace(tzinfo=timezone.utc)
@@ -1233,7 +1239,6 @@ def complete_workout(workout_id: int, data: Dict[str, int] = {}, db: Session = D
         duration = workout.completed_at - started_at
         workout.total_duration_minutes = int(duration.total_seconds() / 60)
     
-    # Sauvegarder le temps de repos total s'il est fourni
     if "total_rest_time" in data:
         workout.total_rest_time_seconds = data["total_rest_time"]
     
