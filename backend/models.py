@@ -111,13 +111,15 @@ class WorkoutSet(Base):
     # Feedback utilisateur pour le ML
     fatigue_level = Column(Integer, nullable=True)  # 1-5 (très facile à très difficile)
     effort_level = Column(Integer, nullable=True)  # 1-5 (réserve importante à échec total)
-    
-    # Métadonnées pour les recommandations ML
-    ml_weight_suggestion = Column(Float, nullable=True)  # Poids suggéré par le ML
-    ml_reps_suggestion = Column(Integer, nullable=True)  # Reps suggérées par le ML
-    ml_confidence = Column(Float, nullable=True)  # Confiance de la recommandation (0-1)
-    user_followed_ml_weight = Column(Boolean, nullable=True)  # L'utilisateur a-t-il suivi la suggestion de poids
-    user_followed_ml_reps = Column(Boolean, nullable=True)  # L'utilisateur a-t-il suivi la suggestion de reps
+        
+    # ML recommendations tracking
+    ml_weight_suggestion = Column(Float, nullable=True)
+    ml_reps_suggestion = Column(Integer, nullable=True)
+    ml_confidence = Column(Float, nullable=True)
+    user_followed_ml_weight = Column(Boolean, nullable=True)
+    user_followed_ml_reps = Column(Boolean, nullable=True)
+    #État du toggle ML au moment de la série
+    ml_adjustment_enabled = Column(Boolean, nullable=True)  # Toggle ML actif ou non
     
     # Position dans la séance pour le ML
     exercise_order_in_session = Column(Integer, nullable=True)  # 1er, 2ème, 3ème exercice...

@@ -2732,7 +2732,30 @@ async function selectExercise(exercise, skipValidation = false) {
     document.getElementById('currentExercise').style.display = 'block';
     document.getElementById('exerciseName').textContent = exercise.name;
     document.getElementById('exerciseInstructions').textContent = exercise.instructions || 'Effectuez cet exercice avec une forme correcte';
-    
+
+    // AJOUT : Initialiser les settings ML pour cet exercice
+    if (!currentWorkoutSession.mlSettings) {
+        currentWorkoutSession.mlSettings = {};
+    }
+    if (!currentWorkoutSession.mlSettings[exercise.id]) {
+        currentWorkoutSession.mlSettings[exercise.id] = {
+            autoAdjust: currentUser.prefer_weight_changes_between_sets,
+            lastManualWeight: null,
+            lastMLWeight: null,
+            confidence: null
+        };
+    }
+
+    // AJOUT : Afficher le toggle ML si exercice avec poids
+    if (exercise.weight_type !== 'bodyweight' && exercise.exercise_type !== 'isometric') {
+        const mlToggleHtml = renderMLToggle(exercise.id);
+        const exerciseHeader = document.querySelector('#currentExercise .exercise-header');
+        if (exerciseHeader) {
+            const existingToggle = exerciseHeader.querySelector('.ml-toggle-container');
+            if (existingToggle) existingToggle.remove();
+            exerciseHeader.insertAdjacentHTML('beforeend', mlToggleHtml);
+        }
+    }
     // Gérer l'affichage du bouton "Changer d'exercice" selon le mode
     const changeExerciseBtn = document.querySelector('.btn-change-exercise');
     if (changeExerciseBtn) {
@@ -2757,6 +2780,55 @@ async function selectExercise(exercise, skipValidation = false) {
     
     // Démarrer le timer de la première série
     startSetTimer();
+}
+
+// Nouvelle fonction pour le rendu du toggle ML
+function renderMLToggle(exerciseId) {
+    const isEnabled = currentWorkoutSession.mlSettings[exerciseId]?.autoAdjust ?? 
+                     currentUser.prefer_weight_changes_between_sets;
+    
+    return `
+        <div class="ml-toggle-container">
+            <label class="toggle-switch">
+                <input type="checkbox" 
+                       id="mlToggle-${exerciseId}"
+                       ${isEnabled ? 'checked' : ''}
+                       onchange="toggleMLAdjustment(${exerciseId})">
+                <span class="toggle-slider"></span>
+            </label>
+            <span class="toggle-label">
+                <i class="fas fa-brain"></i> Ajustement IA
+                ${isEnabled ? '(Actif)' : '(Manuel)'}
+            </span>
+        </div>
+    `;
+}
+
+// Nouvelle fonction pour gérer le toggle
+function toggleMLAdjustment(exerciseId) {
+    const newState = !currentWorkoutSession.mlSettings[exerciseId].autoAdjust;
+    currentWorkoutSession.mlSettings[exerciseId].autoAdjust = newState;
+    
+    if (!newState) {
+        // Sauvegarder le dernier poids pour le mode manuel
+        const currentWeight = parseFloat(document.getElementById('setWeight')?.value) || null;
+        currentWorkoutSession.mlSettings[exerciseId].lastManualWeight = currentWeight;
+    }
+    
+    // Mettre à jour le label
+    const label = document.querySelector(`#mlToggle-${exerciseId}`).closest('.ml-toggle-container').querySelector('.toggle-label');
+    if (label) {
+        label.innerHTML = `<i class="fas fa-brain"></i> Ajustement IA ${newState ? '(Actif)' : '(Manuel)'}`;
+    }
+    
+    // Sauvegarder la préférence localement
+    const key = `ml_preferences_${currentUser.id}_${exerciseId}`;
+    localStorage.setItem(key, JSON.stringify(newState));
+    
+    // Rafraîchir les recommandations
+    updateSetRecommendations();
+    
+    showToast(`Ajustement IA ${newState ? 'activé' : 'désactivé'} pour cet exercice`, 'info');
 }
 
 function updateSeriesDots() {
@@ -2872,9 +2944,23 @@ async function updateSetRecommendations() {
         // Stocker les recommandations pour executeSet
         workoutState.currentRecommendation = recommendations;
 
+        // Vérifier si ML est désactivé pour cet exercice
+        if (!currentWorkoutSession.mlSettings[currentExercise.id]?.autoAdjust) {
+            // Mode manuel : utiliser les valeurs précédentes ou par défaut
+            const lastSet = currentWorkoutSession.completedSets?.slice(-1)[0];
+            const lastWeight = lastSet?.weight || 
+                            currentWorkoutSession.mlSettings[currentExercise.id]?.lastManualWeight ||
+                            recommendations.baseline_weight;
+            
+            recommendations.weight_recommendation = lastWeight;
+            recommendations.reasoning = "Mode manuel activé - Ajustements IA désactivés";
+            recommendations.confidence = 1.0;
+            recommendations.weight_change = "same";
+        }
+
         // Déterminer le type d'exercice
         const exerciseType = getExerciseType(currentExercise);
-        
+
         // Appliquer la configuration UI selon le type
         await configureUIForExerciseType(exerciseType, recommendations);
 

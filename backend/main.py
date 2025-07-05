@@ -1081,7 +1081,8 @@ def add_set(workout_id: int, set_data: SetCreate, db: Session = Depends(get_db))
         user_followed_ml_weight=set_data.user_followed_ml_weight,
         user_followed_ml_reps=set_data.user_followed_ml_reps,
         exercise_order_in_session=set_data.exercise_order_in_session,
-        set_order_in_session=set_data.set_order_in_session
+        set_order_in_session=set_data.set_order_in_session,
+        ml_adjustment_enabled=set_data.ml_adjustment_enabled
     )
     
     db.add(db_set)

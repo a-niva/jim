@@ -131,6 +131,9 @@ class SetCreate(BaseModel):
     set_order_in_session: Optional[int] = None
     suggested_rest_seconds: Optional[int] = None  # Repos suggéré par le ML
 
+    # Tracking du toggle ML
+    ml_adjustment_enabled: Optional[bool] = None  # Si l'utilisateur a activé les ajustements ML
+
 class SetResponse(BaseModel):
     id: int
     workout_id: int
