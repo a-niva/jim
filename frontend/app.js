@@ -3154,8 +3154,8 @@ async function updateSetRecommendations() {
                         addToMLHistory(currentExercise.id, currentSet, recommendations);
                         
                         // Animation d'apparition
-                        if (mlExplanationContainer.firstChild) {
-                            mlExplanationContainer.firstChild.style.animation = 'slideInFade 0.3s ease-out';
+                        if (mlExplanationContainer.firstElementChild) {
+                            mlExplanationContainer.firstElementChild.style.animation = 'slideInFade 0.3s ease-out';
                         }
                     } else {
                         mlExplanationContainer.innerHTML = '';

@@ -10,18 +10,18 @@ class EquipmentService:
     # Mapping unifié des équipements
     EQUIPMENT_MAPPING = {
         'dumbbells': 'dumbbells',
-        'barbell_athletic': 'barbell',
-        'barbell_ez': 'ez_curl', 
-        'barbell_short_pair': 'dumbbells',  # Équivalence clé
+        'barbell_athletic': 'barbell',  # ← Mapping vers terme générique
+        'barbell_ez': 'barbell',       # ← Aussi vers terme générique pour exercises.json
+        'barbell_short_pair': 'dumbbells',
         'weight_plates': 'plates',
         'kettlebells': 'kettlebells',
         'resistance_bands': 'resistance_bands',
         'pull_up_bar': 'pull_up_bar',
         'dip_bar': 'dip_bar',
-        'bench': 'bench',  # Unifié
+        'bench': 'bench_flat',
         'cable_machine': 'cable_machine',
         'leg_press': 'leg_press',
-        'lat_pulldown': 'lat_pulldown',
+        'lat_pulldown': 'lat_pulldown', 
         'chest_press': 'chest_press'
     }
         
@@ -62,30 +62,6 @@ class EquipmentService:
         return sorted(list(combinations))
 
     @classmethod
-    def get_available_equipment_types(cls, config: dict) -> Set[str]:
-        """Retourne les types d'équipement disponibles selon la config"""
-        available = set(['bodyweight'])  # Toujours disponible
-        
-        if not config:
-            return available
-            
-        for equipment_key, equipment_data in config.items():
-            if equipment_data.get('available', False):
-                mapped_type = cls.EQUIPMENT_MAPPING.get(equipment_key)
-                if mapped_type:
-                    available.add(mapped_type)
-        
-        # Logique d'équivalence : barres courtes + disques = dumbbells
-        if (config.get('barbell_short_pair', {}).get('available', False) and 
-            config.get('barbell_short_pair', {}).get('count', 0) >= 2 and
-            config.get('weight_plates', {}).get('available', False) and
-            'dumbbells' not in available):
-            available.add('dumbbells')
-            logger.info("✅ Équivalence activée: barres courtes + disques = dumbbells")
-        
-        return available
-
-    @classmethod
     def get_available_bench_types(cls, config: dict) -> List[str]:
         """Retourne les types de banc disponibles selon la configuration"""
         bench_types = []
@@ -123,7 +99,9 @@ class EquipmentService:
                     mapped_type = cls.EQUIPMENT_MAPPING.get(equipment_key)
                     if mapped_type:
                         available.add(mapped_type)
-        
+        #Ajout du mapping barbell générique
+        if any(config.get(key, {}).get('available', False) for key in ['barbell_athletic', 'barbell_ez']):
+            available.add('barbell')  # Ajout explicite pour exercises.json
         # Logique d'équivalence : barres courtes + disques = dumbbells
         if (config.get('barbell_short_pair', {}).get('available', False) and 
             config.get('barbell_short_pair', {}).get('count', 0) >= 2 and
