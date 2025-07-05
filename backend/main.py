@@ -493,15 +493,29 @@ def get_active_program(user_id: int, db: Session = Depends(get_db)):
     if not program:
         return None
     
-    # Enrichir les exercices avec leurs noms si nécessaire
-    if program.exercises:
-        for ex in program.exercises:
-            if 'exercise_name' not in ex and 'exercise_id' in ex:
-                exercise_db = db.query(Exercise).filter(Exercise.id == ex['exercise_id']).first()
-                if exercise_db:
-                    ex['exercise_name'] = exercise_db.name
+    # Détecter le format du programme
+    program_data = dict(program.__dict__)
     
-    return program
+    # Nouveau format (v2.0) avec exercise_pool
+    if isinstance(program.exercises, dict) and program.exercises.get('version') == '2.0':
+        program_data['format'] = 'dynamic'
+        program_data['exercise_pool'] = program.exercises.get('exercise_pool', [])
+        program_data['session_templates'] = program.exercises.get('session_templates', {})
+        logger.info(f"Programme v2.0 détecté: {len(program_data['exercise_pool'])} exercices dans pool")
+    
+    # Ancien format (liste d'exercices)
+    else:
+        program_data['format'] = 'static'
+        # Enrichir les exercices avec leurs noms si nécessaire (compatibilité)
+        if program.exercises and isinstance(program.exercises, list):
+            for ex in program.exercises:
+                if 'exercise_name' not in ex and 'exercise_id' in ex:
+                    exercise_db = db.query(Exercise).filter(Exercise.id == ex['exercise_id']).first()
+                    if exercise_db:
+                        ex['exercise_name'] = exercise_db.name
+        logger.info(f"Programme v1.0 détecté: {len(program.exercises) if program.exercises else 0} exercices statiques")
+    
+    return program_data
 
 @app.get("/api/users/{user_id}/programs/next-session")
 def get_next_intelligent_session(user_id: int, db: Session = Depends(get_db)):
@@ -673,32 +687,52 @@ def generate_program_exercises(user: User, program: ProgramCreate, db: Session) 
         selected_exercises = selected_exercises[:max_total]
         logger.info(f"Limité à {max_total} exercices pour {program.session_duration_minutes}min")
     
-    # 8. Construire la structure de programme
-    program_exercises = []
-    exercises_per_session = max(1, len(selected_exercises) // program.sessions_per_week)
+    # 8. Construire la nouvelle structure flexible
+    exercise_pool = []
     
-    for session_num in range(1, program.sessions_per_week + 1):
-        start_idx = (session_num - 1) * exercises_per_session
-        end_idx = min(start_idx + exercises_per_session, len(selected_exercises))
-        session_exercises = selected_exercises[start_idx:end_idx]
+    for ex in selected_exercises:
+        # Calculer priorité basée sur focus areas
+        priority = 3  # Neutre par défaut
+        if program.focus_areas and ex.muscle_groups:
+            for muscle in ex.muscle_groups:
+                if muscle.lower() in [fa.lower() for fa in program.focus_areas]:
+                    priority = 5  # Haute priorité pour focus areas
+                    break
         
-        # Si dernière session, ajouter exercices restants
-        if session_num == program.sessions_per_week:
-            session_exercises.extend(selected_exercises[end_idx:])
-        
-        for ex in session_exercises:
-            program_exercises.append({
-                "exercise_id": ex.id,
-                "exercise_name": ex.name,
-                "session_number": session_num,
-                "sets": ex.default_sets,
-                "reps_min": ex.default_reps_min,
-                "reps_max": ex.default_reps_max,
-                "rest_seconds": ex.base_rest_time_seconds
-            })
+        exercise_pool.append({
+            "exercise_id": ex.id,
+            "exercise_name": ex.name,
+            "priority": priority,
+            "constraints": {
+                "min_recovery_hours": 48,  # Standard pour tous
+                "max_frequency_per_week": 2,
+                "required_equipment": ex.equipment_required or []
+            },
+            "default_sets": ex.default_sets,
+            "default_reps_range": [ex.default_reps_min, ex.default_reps_max],
+            "rest_seconds": ex.base_rest_time_seconds
+        })
     
-    logger.info(f"Programme final: {len(program_exercises)} exercices sur {program.sessions_per_week} sessions")
-    return program_exercises
+    # Détecter rotation basée sur focus areas
+    rotation_pattern = ["full_body"]  # Défaut
+    if len(program.focus_areas) >= 2:
+        if "upper_body" in program.focus_areas and "legs" in program.focus_areas:
+            rotation_pattern = ["upper", "lower"]
+        elif len(program.focus_areas) >= 3:
+            rotation_pattern = ["push", "pull", "legs"]
+    
+    program_structure = {
+        "version": "2.0",  # Marquer nouveau format
+        "exercise_pool": exercise_pool,
+        "session_templates": {
+            "rotation": rotation_pattern,
+            "exercises_per_session": min(6, program.session_duration_minutes // 10),
+            "target_duration": program.session_duration_minutes
+        }
+    }
+    
+    logger.info(f"Nouveau format: {len(exercise_pool)} exercices dans pool, rotation {rotation_pattern}")
+    return program_structure
 
 
 # ===== ENDPOINTS SÉANCES =====

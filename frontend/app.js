@@ -2004,27 +2004,53 @@ async function startProgramWorkout() {
             return;
         }
         
-        // Essayer la sélection intelligente
-        try {
-            const intelligentSession = await apiGet(`/api/users/${currentUser.id}/programs/next-session`);
+        // Détecter le format du programme et agir en conséquence
+        if (activeProgram.format === 'dynamic') {
+            // Nouveau format → TOUJOURS utiliser sélection ML
+            console.log('🎯 Programme dynamique détecté → Sélection ML obligatoire');
             
-            // Créer une copie modifiée du programme avec les exercices sélectionnés
-            activeProgram = {
-                ...activeProgram,
-                exercises: intelligentSession.exercises.map(ex => ({
+            try {
+                const intelligentSession = await apiGet(`/api/users/${currentUser.id}/programs/next-session`);
+                
+                activeProgram.exercises = intelligentSession.exercises.map(ex => ({
                     exercise_id: ex.exercise_id,
                     exercise_name: ex.exercise_name,
                     sets: ex.sets,
                     reps_min: ex.target_reps,
                     reps_max: ex.target_reps
-                }))
-            };
+                }));
+                
+                console.log('✅ Sélection ML v2.0:', intelligentSession.exercises.length, 'exercices');
+                showToast('🧠 Séance personnalisée par IA', 'info');
+                
+            } catch (mlError) {
+                console.error('❌ Sélection ML obligatoire échouée:', mlError);
+                showToast('Erreur sélection intelligente', 'error');
+                return;
+            }
             
-            console.log('✅ Sélection ML réussie:', intelligentSession.exercises.length, 'exercices');
+        } else {
+            // Ancien format → Sélection ML optionnelle avec fallback
+            console.log('📋 Programme statique détecté → Sélection ML optionnelle');
             
-        } catch (mlError) {
-            console.warn('❌ Sélection ML échouée, fallback:', mlError);
-            showToast('Mode hors-ligne activé', 'warning');
+            try {
+                const intelligentSession = await apiGet(`/api/users/${currentUser.id}/programs/next-session`);
+                
+                activeProgram.exercises = intelligentSession.exercises.map(ex => ({
+                    exercise_id: ex.exercise_id,
+                    exercise_name: ex.exercise_name,
+                    sets: ex.sets,
+                    reps_min: ex.target_reps,
+                    reps_max: ex.target_reps
+                }));
+                
+                console.log('✅ Sélection ML v1.0:', intelligentSession.exercises.length, 'exercices');
+                
+            } catch (mlError) {
+                console.warn('⚠️ Sélection ML échouée, fallback programme statique:', mlError);
+                showToast('Mode programme classique', 'warning');
+                // Garder activeProgram.exercises tel quel (ancien format)
+            }
         }
         
         // Initialiser la session (code inchangé)
