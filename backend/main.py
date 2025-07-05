@@ -983,7 +983,12 @@ def complete_workout(workout_id: int, data: Dict[str, int] = {}, db: Session = D
         workout.total_duration_minutes = max(1, round(data["total_duration"] / 60))
     elif workout.started_at:
         # Fallback: calculer depuis les timestamps
-        duration = workout.completed_at - workout.started_at
+        # Assurer la compatibilité des timezones
+        started_at = workout.started_at
+        if started_at.tzinfo is None:
+            started_at = started_at.replace(tzinfo=timezone.utc)
+        
+        duration = workout.completed_at - started_at
         workout.total_duration_minutes = int(duration.total_seconds() / 60)
     
     # Sauvegarder le temps de repos total s'il est fourni
