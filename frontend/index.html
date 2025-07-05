@@ -418,35 +418,72 @@
                         ✅
                     </button>
                     
-                    <!-- Feedback après série -->
-                    <div id="setFeedback" class="set-feedback" style="display: none;">
-                        <h3>Comment s'est passée cette série ?</h3>
-                        
-                        <!-- Fatigue -->
-                        <div class="feedback-section">
-                            <h4>💧 Fatigue ressentie</h4>
-                            <div class="feedback-options">
-                                <button class="emoji-btn" data-fatigue="1" onclick="selectFatigue(this, 1)">😎</button>
-                                <button class="emoji-btn" data-fatigue="2" onclick="selectFatigue(this, 2)">🙂</button>
-                                <button class="emoji-btn" data-fatigue="3" onclick="selectFatigue(this, 3)">😐</button>
-                                <button class="emoji-btn" data-fatigue="4" onclick="selectFatigue(this, 4)">😓</button>
-                                <button class="emoji-btn" data-fatigue="5" onclick="selectFatigue(this, 5)">🥵</button>
-                            </div>
-                        </div>
-                        
-                        <!-- Effort -->
-                        <div class="feedback-section">
-                            <h4>🎯 Effort fourni</h4>
-                            <div class="feedback-options">
-                                <button class="emoji-btn" data-effort="1" onclick="selectEffort(this, 1)">💤</button>
-                                <button class="emoji-btn" data-effort="2" onclick="selectEffort(this, 2)">😌</button>
-                                <button class="emoji-btn" data-effort="3" onclick="selectEffort(this, 3)">💪</button>
-                                <button class="emoji-btn" data-effort="4" onclick="selectEffort(this, 4)">🔥</button>
-                                <button class="emoji-btn" data-effort="5" onclick="selectEffort(this, 5)">🌋</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+<!-- Feedback après série -->
+<div id="setFeedback" class="set-feedback-modern" style="display: none;">
+    <!-- Toggle IA compact -->
+    <div class="ai-toggle-compact" onclick="toggleAIDetails()">
+        <div class="ai-toggle-main">
+            <div class="ai-toggle-icon">🤖</div>
+            <div>
+                <div class="ai-toggle-text">Ajustement IA</div>
+                <div class="ai-toggle-status" id="aiToggleStatus">Actif • Confiance 78%</div>
+            </div>
+        </div>
+        <button class="ai-expand-btn" id="aiExpandBtn">ⓘ</button>
+    </div>
+
+    <!-- Détails IA expansibles -->
+    <div class="ai-details" id="aiDetails">
+        <div class="ai-detail-item">
+            <span class="ai-detail-label">Prochaine recommandation</span>
+            <span class="ai-detail-value" id="aiNextRec">Calculer...</span>
+        </div>
+        <div class="ai-detail-item">
+            <span class="ai-detail-label">Raison</span>
+            <span class="ai-detail-value" id="aiReason">Analyse en cours</span>
+        </div>
+        <div class="ai-detail-item">
+            <span class="ai-detail-label">Historique</span>
+            <span class="ai-detail-value" id="aiHistory">-- séries</span>
+        </div>
+    </div>
+
+    <!-- Section Fatigue -->
+    <div class="feedback-section-modern">
+        <div class="feedback-header">
+            <div class="feedback-emoji-icon">💧</div>
+            <h4 class="feedback-title">Fatigue ressentie</h4>
+        </div>
+        <div class="feedback-options-modern">
+            <button class="emoji-btn-modern" data-fatigue="1" onclick="selectFatigue(this, 1)">😎</button>
+            <button class="emoji-btn-modern" data-fatigue="2" onclick="selectFatigue(this, 2)">🙂</button>
+            <button class="emoji-btn-modern" data-fatigue="3" onclick="selectFatigue(this, 3)">😐</button>
+            <button class="emoji-btn-modern" data-fatigue="4" onclick="selectFatigue(this, 4)">😓</button>
+            <button class="emoji-btn-modern" data-fatigue="5" onclick="selectFatigue(this, 5)">🥵</button>
+        </div>
+    </div>
+
+    <!-- Section Effort -->
+    <div class="feedback-section-modern">
+        <div class="feedback-header">
+            <div class="feedback-emoji-icon">🎯</div>
+            <h4 class="feedback-title">Effort fourni</h4>
+        </div>
+        <div class="feedback-options-modern">
+            <button class="emoji-btn-modern" data-effort="1" onclick="selectEffort(this, 1)">💤</button>
+            <button class="emoji-btn-modern" data-effort="2" onclick="selectEffort(this, 2)">😌</button>
+            <button class="emoji-btn-modern" data-effort="3" onclick="selectEffort(this, 3)">💪</button>
+            <button class="emoji-btn-modern" data-effort="4" onclick="selectEffort(this, 4)">🔥</button>
+            <button class="emoji-btn-modern" data-effort="5" onclick="selectEffort(this, 5)">🌋</button>
+        </div>
+    </div>
+
+    <!-- Indicateur de progression -->
+    <div class="feedback-progress">
+        <div class="progress-dot" id="fatigueProgress"></div>
+        <div class="progress-dot" id="effortProgress"></div>
+    </div>
+</div>
                 
                 <!-- PHASE 2.2 : Historique ML -->
                 <div id="mlHistoryContainer" style="display: none;">

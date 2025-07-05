@@ -5865,50 +5865,71 @@ function getSetTimerSeconds() {
 
 function selectFatigue(button, value) {
     // Désélectionner tous les boutons de fatigue
-    document.querySelectorAll('.emoji-btn[data-fatigue]').forEach(btn => {
+    document.querySelectorAll('.emoji-btn-modern[data-fatigue]').forEach(btn => {
         btn.classList.remove('selected');
-        btn.style.backgroundColor = '';
     });
     
     // Sélectionner le bouton cliqué
     button.classList.add('selected');
     currentWorkoutSession.currentSetFatigue = value;
     
-    // Coloration selon le niveau
-    const colors = ['#10b981', '#84cc16', '#eab308', '#f97316', '#ef4444'];
-    button.style.backgroundColor = colors[value - 1];
+    // Mettre à jour la progression
+    document.getElementById('fatigueProgress').classList.add('completed');
     
-    // Si les deux feedbacks sont donnés, lancer automatiquement la validation
-    if (document.querySelector('.emoji-btn[data-effort].selected')) {
-        validateAndStartRest();
+    // Auto-validation si les deux sont sélectionnés
+    if (document.querySelector('.emoji-btn-modern[data-effort].selected')) {
+        showAutoValidation();
+        setTimeout(() => validateAndStartRest(), 1500);
     }
 }
 
 function selectEffort(button, value) {
     // Désélectionner tous les boutons d'effort
-    document.querySelectorAll('.emoji-btn[data-effort]').forEach(btn => {
+    document.querySelectorAll('.emoji-btn-modern[data-effort]').forEach(btn => {
         btn.classList.remove('selected');
-        btn.style.backgroundColor = '';
     });
     
     // Sélectionner le bouton cliqué
     button.classList.add('selected');
     currentWorkoutSession.currentSetEffort = value;
     
-    // Coloration selon l'intensité
-    const colors = ['#3b82f6', '#06b6d4', '#10b981', '#f97316', '#dc2626'];
-    button.style.backgroundColor = colors[value - 1];
+    // Mettre à jour la progression
+    document.getElementById('effortProgress').classList.add('completed');
     
-    // Si les deux feedbacks sont donnés, lancer automatiquement la validation
-    if (document.querySelector('.emoji-btn[data-fatigue].selected')) {
-        validateAndStartRest();
+    // Auto-validation si les deux sont sélectionnés
+    if (document.querySelector('.emoji-btn-modern[data-fatigue].selected')) {
+        showAutoValidation();
+        setTimeout(() => validateAndStartRest(), 1500);
     }
+}
+
+
+function toggleAIDetails() {
+    const details = document.getElementById('aiDetails');
+    const btn = document.getElementById('aiExpandBtn');
+    
+    details.classList.toggle('expanded');
+    btn.textContent = details.classList.contains('expanded') ? '✕' : 'ⓘ';
+}
+
+function showAutoValidation() {
+    const indicator = document.createElement('div');
+    indicator.className = 'auto-validation';
+    indicator.textContent = 'Validation automatique...';
+    document.querySelector('.set-feedback-modern').style.position = 'relative';
+    document.querySelector('.set-feedback-modern').appendChild(indicator);
+    
+    setTimeout(() => {
+        if (indicator.parentNode) {
+            indicator.remove();
+        }
+    }, 2000);
 }
 
 // ===== VALIDATION DU FEEDBACK =====
 async function validateAndStartRest() {
-    const fatigue = document.querySelector('.emoji-btn[data-fatigue].selected')?.dataset.fatigue;
-    const effort = document.querySelector('.emoji-btn[data-effort].selected')?.dataset.effort;
+    const fatigue = document.querySelector('.emoji-btn-modern[data-fatigue].selected')?.dataset.fatigue;
+    const effort = document.querySelector('.emoji-btn-modern[data-effort].selected')?.dataset.effort;
     
     if (!fatigue || !effort) {
         showToast('Veuillez indiquer fatigue et effort', 'warning');
@@ -6333,30 +6354,30 @@ function pauseWorkout() {
 }
 
 async function abandonWorkout() {
-    if (!confirm('Êtes-vous sûr de vouloir abandonner cette séance ?')) return;
+    if (!confirm('Êtes-vous sûr de vouloir abandonner cette séance ?')) 
+        return;
     
     try {
+        // CORRECTION : Tentative API avec fallback immédiat sur erreur
         if (currentWorkout) {
-            await apiPut(`/api/workouts/${currentWorkout.id}/complete`);
+            try {
+                await apiPut(`/api/workouts/${currentWorkout.id}/complete`);
+            } catch (apiError) {
+                console.warn('API /complete échouée, nettoyage local forcé:', apiError);
+                // Continuer sans faire crasher
+            }
         }
-        
-        // AJOUT : Nettoyer complètement l'état
-        clearWorkoutState();
-        localStorage.removeItem('fitness_workout_state');
-        
-        // AJOUT : Forcer la transition vers IDLE
-        transitionTo(WorkoutStates.IDLE);
-        
-        showView('dashboard');
-        showToast('Séance abandonnée', 'info');
-    } catch (error) {
-        console.error('Erreur abandon séance:', error);
-        // AJOUT : Même en cas d'erreur, nettoyer l'état local
-        clearWorkoutState();
-        localStorage.removeItem('fitness_workout_state');
-        transitionTo(WorkoutStates.IDLE);
-        showView('dashboard');
+    } catch (outerError) {
+        console.warn('Erreur globale abandon, nettoyage forcé:', outerError);
     }
+    
+    // TOUJOURS nettoyer l'état local même si API échoue
+    clearWorkoutState();
+    localStorage.removeItem('fitness_workout_state');
+    transitionTo(WorkoutStates.IDLE);
+    
+    showView('dashboard');
+    showToast('Séance abandonnée', 'info');
 }
 
 function showProgramExerciseList() {
@@ -6406,6 +6427,8 @@ window.addExtraSet = addExtraSet;
 window.updateSetNavigationButtons = updateSetNavigationButtons;
 window.selectFatigue = selectFatigue;
 window.selectEffort = selectEffort;
+window.toggleAIDetails = toggleAIDetails;
+window.showAutoValidation = showAutoValidation;
 window.adjustWeightUp = adjustWeightUp;
 window.adjustWeightDown = adjustWeightDown;
 window.updateSeriesDots = updateSeriesDots;

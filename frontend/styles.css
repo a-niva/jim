@@ -3906,3 +3906,264 @@ input:checked + .toggle-slider:before {
         padding-left: 0.75rem;
     }
 }
+
+
+/* ===== INTERFACE DE FEEDBACK MODERNE ===== */
+
+.set-feedback-modern {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+    margin-top: 1.5rem;
+}
+
+/* Toggle IA compact */
+.ai-toggle-compact {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-light);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.ai-toggle-compact:hover {
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.ai-toggle-main {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.ai-toggle-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.ai-toggle-text {
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.ai-toggle-status {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.ai-expand-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.ai-expand-btn:hover {
+    background: var(--bg-main);
+    color: var(--text);
+}
+
+/* Détails IA expansibles */
+.ai-details {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    background: var(--bg-main);
+    border-radius: 8px;
+    margin-top: 0.5rem;
+}
+
+.ai-details.expanded {
+    max-height: 200px;
+    padding: 1rem;
+}
+
+.ai-detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.ai-detail-item:last-child {
+    border-bottom: none;
+}
+
+.ai-detail-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.ai-detail-value {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--primary);
+}
+
+/* Sections de feedback épurées */
+.feedback-section-modern {
+    margin-bottom: 2rem;
+}
+
+.feedback-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.feedback-emoji-icon {
+    width: 36px;
+    height: 36px;
+    background: var(--bg-main);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.feedback-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text);
+}
+
+/* Boutons emoji modernisés */
+.feedback-options-modern {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: space-between;
+}
+
+.emoji-btn-modern {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--bg-main);
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.emoji-btn-modern::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: currentColor;
+    opacity: 0;
+    transition: all 0.3s ease;
+    border-radius: 50%;
+}
+
+.emoji-btn-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.emoji-btn-modern:hover::before {
+    opacity: 0.1;
+}
+
+.emoji-btn-modern.selected {
+    transform: scale(1.1);
+    border-color: currentColor;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+}
+
+.emoji-btn-modern.selected::before {
+    opacity: 0.15;
+}
+
+/* Couleurs harmonieuses pour fatigue */
+.emoji-btn-modern[data-fatigue="1"] { color: #10b981; }
+.emoji-btn-modern[data-fatigue="2"] { color: #84cc16; }
+.emoji-btn-modern[data-fatigue="3"] { color: #eab308; }
+.emoji-btn-modern[data-fatigue="4"] { color: #f97316; }
+.emoji-btn-modern[data-fatigue="5"] { color: #ef4444; }
+
+/* Couleurs harmonieuses pour effort */
+.emoji-btn-modern[data-effort="1"] { color: #3b82f6; }
+.emoji-btn-modern[data-effort="2"] { color: #06b6d4; }
+.emoji-btn-modern[data-effort="3"] { color: #10b981; }
+.emoji-btn-modern[data-effort="4"] { color: #f97316; }
+.emoji-btn-modern[data-effort="5"] { color: #dc2626; }
+
+/* Animation de sélection */
+@keyframes selectPulse {
+    0% { transform: scale(1.1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1.1); }
+}
+
+.emoji-btn-modern.selected {
+    animation: selectPulse 0.4s ease-out;
+}
+
+/* Indicateur de progression */
+.feedback-progress {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-top: 1.5rem;
+}
+
+.progress-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: all 0.3s ease;
+}
+
+.progress-dot.completed {
+    background: var(--primary);
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+}
+
+/* Animation d'auto-validation */
+.auto-validation {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(59, 130, 246, 0.9);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    opacity: 0;
+    animation: autoValidationFade 2s ease-in-out;
+    pointer-events: none;
+    z-index: 100;
+}
+
+@keyframes autoValidationFade {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 1; }
+}
