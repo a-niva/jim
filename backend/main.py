@@ -13,6 +13,7 @@ import json
 import os
 import logging
 from backend.ml_recommendations import FitnessRecommendationEngine
+from backend.ml_engine import RecoveryTracker, VolumeOptimizer, ProgressionAnalyzer
 from backend.constants import normalize_muscle_group 
 from backend.database import engine, get_db, SessionLocal
 from backend.models import Base, User, Exercise, Program, Workout, WorkoutSet, SetHistory, UserCommitment, AdaptiveTargets, UserAdaptationCoefficients, PerformanceStates
@@ -518,14 +519,22 @@ def get_next_intelligent_session(user_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Aucun programme actif")
     
     try:
-        from backend.ml_engine import RecoveryTracker, VolumeOptimizer, ProgressionAnalyzer
-        
         recovery_tracker = RecoveryTracker(db)
         volume_optimizer = VolumeOptimizer(db)
         progression_analyzer = ProgressionAnalyzer(db)
         
-        muscle_readiness = recovery_tracker.get_muscle_readiness(user)
-        volume_deficit = volume_optimizer.get_volume_deficit(user)
+        # Appels ML avec fallbacks
+        try:
+            muscle_readiness = recovery_tracker.get_muscle_readiness(user)
+        except Exception as e:
+            logger.warning(f"Recovery tracker failed: {e}")
+            muscle_readiness = {}  # Fallback vide
+            
+        try:
+            volume_deficit = volume_optimizer.get_volume_deficit(user)
+        except Exception as e:
+            logger.warning(f"Volume optimizer failed: {e}")
+            volume_deficit = {}  # Fallback vide
         
         all_exercises = db.query(Exercise).all()
         available_equipment = get_available_equipment(user.equipment_config)
@@ -590,7 +599,9 @@ def get_next_intelligent_session(user_id: int, db: Session = Depends(get_db)):
         
     except Exception as e:
         logger.error(f"Erreur sélection ML: {e}")
-        raise HTTPException(status_code=500, detail="Erreur sélection intelligente")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Erreur ML: {str(e)}")
 
 def generate_program_exercises(user: User, program: ProgramCreate, db: Session) -> List[Dict[str, Any]]:
     """Génère une liste d'exercices pour le programme basé sur les zones focus"""
