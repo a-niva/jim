@@ -718,7 +718,11 @@ async function loadMuscleSunburst(userId) {
             .style("stroke", "var(--bg)")
             .style("stroke-width", 2)
             .style("cursor", "pointer")
-            .on("click", clicked);
+            .on("click", clicked)
+            .on("dblclick", (event, d) => {
+                event.stopPropagation();
+                clicked(event, root);
+            });
                     
         // Ajouter les labels
         const labels = g.selectAll("text")
@@ -760,10 +764,6 @@ async function loadMuscleSunburst(userId) {
                 })
                 .style("opacity", d => (d.x1 - d.x0) > 0.1 ? 1 : 0);
         }
-        // Ajouter un listener sur le svg pour dézoomer avec double-clic
-        svg.on("dblclick", (event) => {
-            clicked(event, root);
-        });
         
     } catch (error) {
         console.error('Erreur chargement sunburst:', error);
@@ -1126,6 +1126,15 @@ async function loadIntensityRecoveryChart(userId) {
             return;
         }
         
+        // 🔍 DEBUG - Vérifier les valeurs des sessions
+        console.log('📊 DEBUG Sessions data:', data.sessions.map(s => ({
+            date: s.date,
+            charge: s.charge,
+            ratio: s.ratio,
+            volume: s.total_volume,
+            duration: s.total_duration_minutes
+        })));
+        
         const ctx = document.getElementById('intensityRecoveryChart').getContext('2d');
         
         if (charts.intensityRecovery) {
@@ -1136,17 +1145,26 @@ async function loadIntensityRecoveryChart(userId) {
         const maxDays = Math.max(...data.sessions.map(s => s.days_ago));
         const minDays = Math.min(...data.sessions.map(s => s.days_ago));
         
-        // Fonction pour calculer la couleur en gradient continu
+        // Nouveau gradient plus esthétique : Bleu → Vert → Jaune → Rouge
         function getColorFromAge(daysAgo) {
-            // Normaliser entre 0 et 1
             const normalized = (daysAgo - minDays) / (maxDays - minDays || 1);
             
-            // Gradient HSL : Vert (120°) → Jaune (60°) → Rouge (0°)
-            const hue = 120 * (1 - normalized); // 120 pour récent, 0 pour ancien
-            const saturation = 70; // Saturation constante
-            const lightness = 50; // Luminosité constante
-            
-            return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+            if (normalized <= 0.33) {
+                // Récent : Bleu → Vert
+                const localNorm = normalized / 0.33;
+                const hue = 240 - (localNorm * 60); // 240° (bleu) → 180° (cyan) → 120° (vert)
+                return `hsl(${hue}, 80%, 55%)`;
+            } else if (normalized <= 0.66) {
+                // Moyen : Vert → Jaune
+                const localNorm = (normalized - 0.33) / 0.33;
+                const hue = 120 - (localNorm * 60); // 120° (vert) → 60° (jaune)
+                return `hsl(${hue}, 75%, 50%)`;
+            } else {
+                // Ancien : Jaune → Rouge
+                const localNorm = (normalized - 0.66) / 0.34;
+                const hue = 60 - (localNorm * 60); // 60° (jaune) → 0° (rouge)
+                return `hsl(${hue}, 85%, 45%)`;
+            }
         }
         
         // Préparer les données avec couleurs graduelles
@@ -1176,7 +1194,7 @@ async function loadIntensityRecoveryChart(userId) {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false, // CRITIQUE : permet au graphique de remplir le container
+                maintainAspectRatio: false,
                 interaction: {
                     intersect: false,
                     mode: 'nearest'
@@ -1194,16 +1212,18 @@ async function loadIntensityRecoveryChart(userId) {
                         display: true,
                         text: '🎯 Profil de Vos Séances',
                         font: { size: 18, weight: 'bold' },
-                        color: 'var(--text)',
+                        color: '#e2e8f0', // Couleur claire pour contraste
                         padding: 25
                     },
                     legend: {
                         display: false
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        backgroundColor: 'rgba(0, 0, 0, 0.9)',
                         titleColor: '#fff',
-                        bodyColor: '#fff',
+                        bodyColor: '#e2e8f0',
+                        borderColor: '#475569',
+                        borderWidth: 1,
                         padding: 12,
                         cornerRadius: 8,
                         callbacks: {
@@ -1231,7 +1251,7 @@ async function loadIntensityRecoveryChart(userId) {
                             display: true,
                             text: '⚡ Densité d\'Effort (points de volume par minute)',
                             font: { size: 14, weight: 'bold' },
-                            color: 'var(--text)',
+                            color: '#e2e8f0', // Couleur claire
                             padding: 10
                         },
                         grid: {
@@ -1239,7 +1259,7 @@ async function loadIntensityRecoveryChart(userId) {
                             drawBorder: false
                         },
                         ticks: {
-                            color: 'var(--text-secondary)',
+                            color: '#cbd5e1', // Couleur claire pour les ticks
                             padding: 8
                         }
                     },
@@ -1248,7 +1268,7 @@ async function loadIntensityRecoveryChart(userId) {
                             display: true,
                             text: '⏱️ Besoin de Récupération (secondes de repos par point d\'effort)',
                             font: { size: 14, weight: 'bold' },
-                            color: 'var(--text)',
+                            color: '#e2e8f0', // Couleur claire
                             padding: 10
                         },
                         grid: {
@@ -1256,7 +1276,7 @@ async function loadIntensityRecoveryChart(userId) {
                             drawBorder: false
                         },
                         ticks: {
-                            color: 'var(--text-secondary)',
+                            color: '#cbd5e1', // Couleur claire pour les ticks
                             padding: 8
                         }
                     }
@@ -1279,24 +1299,24 @@ async function loadIntensityRecoveryChart(userId) {
                     
                     ctx.save();
                     
-                    // Zone 1: Faible densité + Forte récup = "Séances Récupératives"
-                    ctx.fillStyle = 'rgba(16, 185, 129, 0.08)';
+                    // Zone 1: Faible densité + Forte récup = "Séances Récupératives" (Vert)
+                    ctx.fillStyle = 'rgba(34, 197, 94, 0.12)';
                     ctx.fillRect(chartArea.left, chartArea.top, medianX - chartArea.left, medianY - chartArea.top);
                     
-                    // Zone 2: Forte densité + Forte récup = "Séances Exigeantes"
-                    ctx.fillStyle = 'rgba(245, 158, 11, 0.08)';
+                    // Zone 2: Forte densité + Forte récup = "Séances Exigeantes" (Orange)
+                    ctx.fillStyle = 'rgba(249, 115, 22, 0.12)';
                     ctx.fillRect(medianX, chartArea.top, chartArea.right - medianX, medianY - chartArea.top);
                     
-                    // Zone 3: Faible densité + Faible récup = "Séances Légères"
-                    ctx.fillStyle = 'rgba(59, 130, 246, 0.08)';
+                    // Zone 3: Faible densité + Faible récup = "Séances Légères" (Bleu)
+                    ctx.fillStyle = 'rgba(59, 130, 246, 0.12)';
                     ctx.fillRect(chartArea.left, medianY, medianX - chartArea.left, chartArea.bottom - medianY);
                     
-                    // Zone 4: Forte densité + Faible récup = "Séances Intenses"
-                    ctx.fillStyle = 'rgba(239, 68, 68, 0.08)';
+                    // Zone 4: Forte densité + Faible récup = "Séances Intenses" (Rouge)
+                    ctx.fillStyle = 'rgba(239, 68, 68, 0.12)';
                     ctx.fillRect(medianX, medianY, chartArea.right - medianX, chartArea.bottom - medianY);
                     
-                    // Lignes de séparation plus subtiles
-                    ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)';
+                    // Lignes de séparation plus visibles
+                    ctx.strokeStyle = 'rgba(203, 213, 225, 0.6)';
                     ctx.setLineDash([8, 4]);
                     ctx.lineWidth = 1.5;
                     
@@ -1312,9 +1332,9 @@ async function loadIntensityRecoveryChart(userId) {
                     ctx.lineTo(chartArea.right, medianY);
                     ctx.stroke();
                     
-                    // Labels des zones
+                    // Labels des zones avec couleur claire
                     ctx.setLineDash([]);
-                    ctx.fillStyle = 'var(--text-secondary)';
+                    ctx.fillStyle = '#e2e8f0';
                     ctx.font = 'bold 11px Inter, sans-serif';
                     ctx.textAlign = 'center';
                     
@@ -1338,7 +1358,6 @@ async function loadIntensityRecoveryChart(userId) {
         console.error('Erreur chargement graphique profil séances:', error);
     }
 }
-
 // Fonction helper pour catégoriser les séances
 function getSessionCategory(charge, ratio, medians) {
     const highDensity = charge > medians.charge;
