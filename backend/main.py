@@ -506,9 +506,12 @@ def generate_program_exercises(user: User, program: ProgramCreate, db: Session) 
     # Récupérer exercices par zone focus
     all_exercises = []
     for focus_area in program.focus_areas:
-        muscle_exercises = db.query(Exercise).filter(
-            cast(Exercise.muscle_groups, JSONB).contains([focus_area])
-        ).all()
+        # Récupérer tous les exercices et filtrer en Python pour être sûr
+        all_exercises = db.query(Exercise).all()
+        muscle_exercises = [
+            ex for ex in all_exercises 
+            if ex.muscle_groups and focus_area in ex.muscle_groups
+        ]
         
         # Filtrer par équipement disponible et niveau d'expérience
         available_exercises = []
