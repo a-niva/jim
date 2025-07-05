@@ -161,6 +161,43 @@ class SetHistory(Base):
     user = relationship("User")
     exercise = relationship("Exercise")
 
+class ExerciseCompletionStats(Base):
+    """Table de cache pour les statistiques d'exercices - Alternative à la vue matérialisée"""
+    __tablename__ = "exercise_completion_stats"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    exercise_id = Column(Integer, ForeignKey("exercises.id"), nullable=False, index=True)
+    
+    # Statistiques agrégées
+    total_sessions = Column(Integer, default=0)
+    total_sets = Column(Integer, default=0)
+    sessions_last_7d = Column(Integer, default=0)
+    sets_last_7d = Column(Integer, default=0)
+    sessions_last_30d = Column(Integer, default=0)
+    avg_weight_last_30d = Column(Float, nullable=True)
+    
+    # Dernière utilisation
+    last_performed = Column(DateTime, nullable=True, index=True)
+    
+    # Performance
+    avg_weight_all_time = Column(Float, nullable=True)
+    max_weight_all_time = Column(Float, nullable=True)
+    avg_fatigue_level = Column(Float, nullable=True)
+    
+    # Métadonnées
+    last_updated = Column(DateTime, default=datetime.now(timezone.utc))
+    
+    # Index composé pour les requêtes fréquentes
+    __table_args__ = (
+        Index('idx_user_exercise_stats', 'user_id', 'exercise_id'),
+        Index('idx_user_last_performed', 'user_id', 'last_performed'),
+    )
+    
+    # Relations
+    user = relationship("User")
+    exercise = relationship("Exercise")
+
 class UserCommitment(Base):
     """Engagement et objectifs de l'utilisateur"""
     __tablename__ = "user_commitments"

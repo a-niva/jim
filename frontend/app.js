@@ -2010,10 +2010,27 @@ async function startProgramWorkout() {
         
         // Détecter le format du programme
         const isNewFormat = activeProgram.exercises && 
-                           typeof activeProgram.exercises === 'object' && 
-                           activeProgram.exercises.exercise_pool;
-        
-        console.log('Format détecté:', isNewFormat ? 'Nouveau (pool)' : 'Ancien (liste)');
+                        typeof activeProgram.exercises === 'object' && 
+                        activeProgram.exercises.exercise_pool;
+
+        console.log('Format détecté:', isNewFormat ? 'v2.0 (dynamique)' : 'v1.0 (statique)');
+
+        // Utiliser la sélection intelligente pour le nouveau format
+        if (isNewFormat) {
+            try {
+                showToast('Préparation de votre séance personnalisée...', 'info');
+                const session = await apiGet(`/api/users/${currentUser.id}/programs/next-session`);
+                await setupProgramWorkoutWithSelection(activeProgram, session);
+            } catch (error) {
+                console.error('Sélection intelligente échouée:', error);
+                showToast('Mode hors-ligne activé', 'warning');
+                // Fallback sur comportement statique
+                await setupProgramWorkout(activeProgram);
+            }
+        } else {
+            // Ancien format - comportement actuel
+            await setupProgramWorkout(activeProgram);
+        }
         
         if (isNewFormat) {
             // NOUVEAU FORMAT - Sélection ML obligatoire
@@ -2134,6 +2151,120 @@ async function startProgramWorkout() {
     } catch (error) {
         console.error('Erreur chargement programme:', error);
         showToast('Erreur lors du chargement du programme', 'error');
+    }
+}
+
+async function setupProgramWorkoutWithSelection(program, sessionData) {
+    // Vérification de sécurité
+    if (!program || !sessionData || !sessionData.selected_exercises) {
+        console.error('Données de session invalides:', sessionData);
+        showToast('Erreur : données de session invalides', 'error');
+        return;
+    }
+    
+    document.getElementById('workoutTitle').textContent = 'Séance programme';
+    document.getElementById('exerciseSelection').style.display = 'none';
+    
+    // Stocker le programme et la sélection ML dans la session
+    currentWorkoutSession.program = program;
+    currentWorkoutSession.mlSelection = sessionData;
+    currentWorkoutSession.programExercises = {};
+    currentWorkoutSession.completedExercisesCount = 0;
+    currentWorkoutSession.type = 'program';
+    currentWorkoutSession.exerciseOrder = 0;
+    
+    // Initialiser l'état de chaque exercice sélectionné par le ML
+    sessionData.selected_exercises.forEach((exerciseData, index) => {
+        currentWorkoutSession.programExercises[exerciseData.exercise_id] = {
+            ...exerciseData,
+            completedSets: 0,
+            totalSets: exerciseData.sets || 3,
+            isCompleted: false,
+            isSkipped: false,
+            index: index,
+            startTime: null,
+            endTime: null,
+            mlReason: exerciseData.selection_reason || null,
+            mlScore: exerciseData.score || null
+        };
+    });
+    
+    // Remplacer les exercices du programme par ceux sélectionnés
+    program.exercises = sessionData.selected_exercises;
+    
+    // Afficher la liste des exercices
+    document.getElementById('programExercisesContainer').style.display = 'block';
+    loadProgramExercisesList();
+    
+    // Afficher un aperçu de la session si des données sont disponibles
+    if (sessionData.session_metadata) {
+        showSessionPreview(sessionData.session_metadata);
+    }
+    
+    // Prendre le premier exercice
+    const firstExercise = sessionData.selected_exercises[0];
+    if (firstExercise) {
+        setTimeout(() => selectProgramExercise(firstExercise.exercise_id, true), 500);
+    }
+    
+    enableHorizontalScroll();
+    startWorkoutTimer();
+}
+
+function showSessionPreview(metadata) {
+    if (!metadata) return;
+    
+    const previewHTML = `
+        <div class="session-preview">
+            <div class="preview-header">
+                <h4>📊 Aperçu de votre séance personnalisée</h4>
+                ${metadata.ml_confidence ? `<span class="ml-confidence">Confiance ML: ${Math.round(metadata.ml_confidence * 100)}%</span>` : ''}
+            </div>
+            <div class="preview-content">
+                ${metadata.muscle_distribution ? `
+                    <div class="muscle-distribution">
+                        <h5>Répartition musculaire</h5>
+                        <div class="distribution-bar">
+                            ${generateMuscleDistribution(metadata.muscle_distribution)}
+                        </div>
+                    </div>
+                ` : ''}
+                ${metadata.estimated_duration ? `
+                    <p><i class="fas fa-clock"></i> Durée estimée: ${metadata.estimated_duration} min</p>
+                ` : ''}
+                ${metadata.warnings && metadata.warnings.length > 0 ? `
+                    <div class="session-warnings">
+                        ${metadata.warnings.map(w => `<p class="warning"><i class="fas fa-exclamation-triangle"></i> ${w}</p>`).join('')}
+                    </div>
+                ` : ''}
+            </div>
+            <button class="btn-secondary" onclick="regenerateSession()">
+                <i class="fas fa-sync"></i> Régénérer la sélection
+            </button>
+        </div>
+    `;
+    
+    // Afficher le preview dans un toast ou modal temporaire
+    showToast(previewHTML, 'info', 5000);
+}
+async function regenerateSession() {
+    if (!currentWorkoutSession.program) return;
+    
+    try {
+        showToast('Génération d\'une nouvelle sélection...', 'info');
+        const session = await apiGet(`/api/users/${currentUser.id}/programs/next-session`);
+        
+        // Réinitialiser avec la nouvelle sélection
+        currentWorkoutSession.programExercises = {};
+        currentWorkoutSession.completedExercisesCount = 0;
+        currentWorkoutSession.exerciseOrder = 0;
+        
+        await setupProgramWorkoutWithSelection(currentWorkoutSession.program, session);
+        showToast('Nouvelle sélection générée !', 'success');
+        
+    } catch (error) {
+        console.error('Erreur régénération:', error);
+        showToast('Impossible de régénérer la sélection', 'error');
     }
 }
 
@@ -4268,6 +4399,9 @@ async function loadProgramExercisesList() {
                                 <div class="exercise-index">${indexContent}</div>
                                 <div class="exercise-info">
                                     <div class="exercise-name">${exercise.name}</div>
+                                    ${exercise.mlReason ? `<span class="ml-badge" title="${exercise.mlReason}">
+                                        <i class="fas fa-brain"></i> ${exercise.mlScore ? Math.round(exercise.mlScore * 100) + '%' : 'ML'}
+                                    </span>` : ''}
                                     <div class="exercise-details">
                                         <span class="muscle-groups">${exercise.muscle_groups.join(' • ')}</span>
                                         <span class="sets-indicator">${exerciseData.sets || 3}×${exerciseData.target_reps || exercise.default_reps_min}-${exerciseData.target_reps || exercise.default_reps_max}</span>
@@ -5881,3 +6015,7 @@ window.filterByMuscleGroup = filterByMuscleGroup;
 window.toggleMuscleGroup = toggleMuscleGroup;
 window.toggleWeightPreference = toggleWeightPreference;
 window.toggleSoundNotifications = toggleSoundNotifications;
+
+window.setupProgramWorkoutWithSelection = setupProgramWorkoutWithSelection;
+window.showSessionPreview = showSessionPreview;
+window.regenerateSession = regenerateSession;
