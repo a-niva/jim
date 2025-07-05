@@ -10,18 +10,18 @@ class EquipmentService:
     # Mapping unifié des équipements
     EQUIPMENT_MAPPING = {
         'dumbbells': 'dumbbells',
-        'barbell_athletic': 'barbell',  # ← Mapping vers terme générique
-        'barbell_ez': 'barbell',       # ← Aussi vers terme générique pour exercises.json
+        'barbell_athletic': 'barbell',  # ← CHANGÉ 
+        'barbell_ez': 'barbell',       # ← CHANGÉ (était 'ez_curl')
         'barbell_short_pair': 'dumbbells',
         'weight_plates': 'plates',
         'kettlebells': 'kettlebells',
         'resistance_bands': 'resistance_bands',
         'pull_up_bar': 'pull_up_bar',
-        'dip_bar': 'dip_bar',
-        'bench': 'bench_flat',
+        'dip_bar': 'dip_bar', 
+        'bench': 'bench_flat',         # ← CHANGÉ
         'cable_machine': 'cable_machine',
         'leg_press': 'leg_press',
-        'lat_pulldown': 'lat_pulldown', 
+        'lat_pulldown': 'lat_pulldown',
         'chest_press': 'chest_press'
     }
         
@@ -100,8 +100,12 @@ class EquipmentService:
                     if mapped_type:
                         available.add(mapped_type)
         #Ajout du mapping barbell générique
+        # FORCE barbell si configuré
         if any(config.get(key, {}).get('available', False) for key in ['barbell_athletic', 'barbell_ez']):
-            available.add('barbell')  # Ajout explicite pour exercises.json
+            available.add('barbell')
+        # FORCE dumbbells si configuré 
+        if config.get('dumbbells', {}).get('available', False):
+            available.add('dumbbells')
         # Logique d'équivalence : barres courtes + disques = dumbbells
         if (config.get('barbell_short_pair', {}).get('available', False) and 
             config.get('barbell_short_pair', {}).get('count', 0) >= 2 and
@@ -229,29 +233,24 @@ class EquipmentService:
         return sorted(list(combinations))
         
     @classmethod
-    def can_perform_exercise(cls, exercise_equipment: List[str], user_config: dict) -> bool:
-        """Version améliorée avec gestion fine des bancs"""
-        if not exercise_equipment:
-            return True  # Poids du corps
-            
-        available_types = cls.get_available_equipment_types(user_config)
+    def can_perform_exercise(exercise: Exercise, available_equipment: List[str]) -> bool:
+        """Vérifier si un exercice peut être effectué avec l'équipement disponible"""
+        if not exercise.equipment_required:
+            return True  # Pas d'équipement requis = toujours possible
         
-        # Gestion spéciale pour les exercices nécessitant un type de banc spécifique
-        bench_mapping = {
-            'bench_flat': 'bench_flat',
-            'bench_incline': 'bench_incline', 
-            'bench_decline': 'bench_decline',
-            'bench': 'bench_flat'  # Mapping par défaut vers plat
-        }
+        # NOUVEAU : Utiliser EquipmentService pour cohérence
+        from backend.equipment_service import EquipmentService
         
-        for required_equipment in exercise_equipment:
-            # Si c'est un type de banc spécifique, vérifier la position
-            if required_equipment in bench_mapping:
-                bench_type_needed = bench_mapping[required_equipment]
-                if bench_type_needed in available_types:
-                    return True
-            # Sinon, vérification standard
-            elif required_equipment in available_types:
+        # Convertir la liste en set pour performance
+        available_set = set(available_equipment)
+        
+        # Vérifier qu'au moins un équipement requis est disponible
+        for eq in exercise.equipment_required:
+            if eq in available_set:
+                return True
+                
+            # Mapping spécial banc
+            if eq.startswith('bench_') and 'bench_flat' in available_set:
                 return True
         
         return False

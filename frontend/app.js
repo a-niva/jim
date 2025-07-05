@@ -3168,6 +3168,7 @@ async function updateSetRecommendations() {
             } catch (error) {
                 console.error('Erreur recommandations ML:', error);
             }
+
 }
 
 // Fonction helper pour déterminer le type d'exercice
