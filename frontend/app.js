@@ -6111,3 +6111,5 @@ window.toggleSoundNotifications = toggleSoundNotifications;
 window.setupProgramWorkoutWithSelection = setupProgramWorkoutWithSelection;
 window.showSessionPreview = showSessionPreview;
 window.regenerateSession = regenerateSession;
+window.renderMLToggle = renderMLToggle;
+window.toggleMLAdjustment = toggleMLAdjustment;
