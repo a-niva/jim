@@ -2646,6 +2646,7 @@ function setupFreeWorkout() {
     document.getElementById('workoutTitle').textContent = '🕊️ Séance libre';
     document.getElementById('exerciseSelection').style.display = 'block';
     document.getElementById('currentExercise').style.display = 'none';
+    document.getElementById('programExercisesContainer').style.display = 'none';
     
     loadAvailableExercises();
     enableHorizontalScroll();
