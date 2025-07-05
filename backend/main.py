@@ -431,12 +431,7 @@ def can_perform_exercise(exercise: Exercise, available_equipment: List[str]) -> 
     """Vérifier si un exercice peut être effectué avec l'équipement disponible"""
     if not exercise.equipment_required:
         return True
-    
-    # Utiliser EquipmentService pour cohérence
-    from backend.equipment_service import EquipmentService
-    return EquipmentService.can_perform_exercise(exercise.equipment_required, {
-        equipment: {'available': True} for equipment in available_equipment
-    })
+    return EquipmentService.can_perform_exercise(exercise, available_equipment)
 
 # ===== ENDPOINTS PROGRAMMES =====
 
