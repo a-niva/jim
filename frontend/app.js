@@ -2008,126 +2008,151 @@ async function startProgramWorkout() {
         
         console.log('Programme récupéré:', activeProgram.name);
         
-        // Détecter le format du programme
-        const isNewFormat = activeProgram.exercises && 
-                        typeof activeProgram.exercises === 'object' && 
-                        activeProgram.exercises.exercise_pool;
-
-        console.log('Format détecté:', isNewFormat ? 'v2.0 (dynamique)' : 'v1.0 (statique)');
-
-        // Utiliser la sélection intelligente pour le nouveau format
-        if (isNewFormat) {
-            try {
-                showToast('Préparation de votre séance personnalisée...', 'info');
-                const session = await apiGet(`/api/users/${currentUser.id}/programs/next-session`);
-                await setupProgramWorkoutWithSelection(activeProgram, session);
-            } catch (error) {
-                console.error('Sélection intelligente échouée:', error);
-                showToast('Mode hors-ligne activé', 'warning');
-                // Fallback sur comportement statique
-                await setupProgramWorkout(activeProgram);
-            }
-        } else {
-            // Ancien format - comportement actuel
-            await setupProgramWorkout(activeProgram);
-        }
+        // SIMPLIFICATION : On force tout en v2.0 avec ML
+        // Si vous recréez la BDD, assurez-vous que tous les programmes ont le format exercise_pool
         
-        // Format v2.0 avec sélection intelligente
-        if (isNewFormat) {
-            console.log('🎯 Utilisation sélection ML (nouveau format)...');
+        try {
+            showToast('Préparation de votre séance personnalisée...', 'info');
             
-            try {
-                const intelligentSession = await apiGet(`/api/users/${currentUser.id}/programs/next-session`);
-                console.log('Réponse ML reçue:', intelligentSession);
+            // Toujours utiliser la sélection ML
+            const mlSession = await apiGet(`/api/users/${currentUser.id}/programs/next-session`);
+            console.log('Réponse ML reçue:', mlSession);
+            
+            // Vérifier la structure de la réponse
+            if (!mlSession.selected_exercises || !Array.isArray(mlSession.selected_exercises)) {
+                throw new Error('Format de réponse invalide - pas de selected_exercises');
+            }
+            
+            // Enrichir le programme avec la sélection ML
+            const enrichedExercises = mlSession.selected_exercises.map(ex => ({
+                exercise_id: ex.exercise_id,
+                exercise_name: ex.exercise_name || ex.name,
+                sets: ex.sets || 3,
+                reps: ex.reps || 10,
+                rest_seconds: ex.rest_seconds || 90,
+                muscle_groups: ex.muscle_groups || [],
+                score: ex.score || 0,
+                selection_reason: ex.selection_reason || 'Sélection standard',
+                ml_selected: true
+            }));
+            
+            // Initialiser la session complète avec toutes les métadonnées
+            currentWorkoutSession = {
+                type: 'program',
+                program: {
+                    ...activeProgram,
+                    exercises: enrichedExercises  // Remplacer par la sélection ML
+                },
+                exerciseOrder: 0,
+                globalSetCount: 0,
+                completedSets: [],
+                sessionFatigue: 3,
+                currentSetFatigue: null,
+                currentSetEffort: null,
+                totalWorkoutTime: 0,
+                totalRestTime: 0,
+                totalSetTime: 0,
                 
-                // CORRECTION ICI : utiliser selected_exercises au lieu de exercises
-                if (!intelligentSession.selected_exercises) {
-                    throw new Error('Pas d\'exercices sélectionnés dans la réponse');
-                }
+                // Métadonnées ML
+                mlSelection: mlSession,
+                formatUsed: 'pool',
+                mlSelectionUsed: true,
+                sessionMetadata: {
+                    totalExercises: enrichedExercises.length,
+                    averageScore: (enrichedExercises.reduce((sum, ex) => sum + (ex.score || 0), 0) / enrichedExercises.length).toFixed(3),
+                    selectionMethod: 'ML Intelligence',
+                    mlConfidence: mlSession.session_metadata?.ml_confidence || 0,
+                    muscleDistribution: mlSession.session_metadata?.muscle_distribution || {},
+                    warnings: mlSession.session_metadata?.warnings || []
+                },
                 
-                // Enrichir les exercices sélectionnés
-                const enrichedExercises = intelligentSession.selected_exercises.map(ex => ({
+                // Pour la phase 1.4
+                programExercises: {},
+                completedExercisesCount: 0
+            };
+            
+            // Initialiser l'état de chaque exercice pour la UI
+            enrichedExercises.forEach((exerciseData, index) => {
+                currentWorkoutSession.programExercises[exerciseData.exercise_id] = {
+                    ...exerciseData,
+                    completedSets: 0,
+                    totalSets: exerciseData.sets || 3,
+                    isCompleted: false,
+                    isSkipped: false,
+                    index: index,
+                    startTime: null,
+                    endTime: null,
+                    mlReason: exerciseData.selection_reason,
+                    mlScore: exerciseData.score
+                };
+            });
+            
+            console.log('📊 Session ML configurée:');
+            console.log('   Exercices:', currentWorkoutSession.sessionMetadata.totalExercises);
+            console.log('   Score moyen:', currentWorkoutSession.sessionMetadata.averageScore);
+            console.log('   Confiance ML:', currentWorkoutSession.sessionMetadata.mlConfidence);
+            console.log('   Distribution:', currentWorkoutSession.sessionMetadata.muscleDistribution);
+            
+            // Si des warnings ML, les afficher
+            if (currentWorkoutSession.sessionMetadata.warnings.length > 0) {
+                currentWorkoutSession.sessionMetadata.warnings.forEach(warning => {
+                    showToast(warning, 'warning', 3000);
+                });
+            }
+            
+            // Afficher un aperçu de la session si disponible
+            if (mlSession.session_metadata && window.showSessionPreview) {
+                showSessionPreview(mlSession.session_metadata);
+            }
+            
+            // Afficher le modal de confirmation enrichi
+            showProgramStartModal(currentWorkoutSession.program);
+            
+        } catch (error) {
+            console.error('❌ Erreur sélection ML:', error);
+            
+            // FALLBACK SIMPLE : Si le ML échoue, on prend juste les premiers exercices du pool
+            if (activeProgram.exercises?.exercise_pool && activeProgram.exercises.exercise_pool.length > 0) {
+                showToast('Sélection ML indisponible - Mode basique', 'warning');
+                
+                const fallbackExercises = activeProgram.exercises.exercise_pool.slice(0, 6).map((ex, index) => ({
                     exercise_id: ex.exercise_id,
-                    exercise_name: ex.exercise_name || ex.name,
+                    exercise_name: ex.name || `Exercice ${index + 1}`,
                     sets: ex.sets || 3,
                     reps: ex.reps || 10,
                     rest_seconds: ex.rest_seconds || 90,
-                    muscle_groups: ex.muscle_groups,
-                    score: ex.score,
-                    selection_reason: ex.selection_reason
+                    muscle_groups: ex.muscle_groups || [],
+                    score: 0,
+                    selection_reason: 'Sélection de secours',
+                    ml_selected: false
                 }));
                 
-                // Remplacer les exercices du programme par la sélection ML
-                activeProgram.exercises = enrichedExercises;
-                console.log(`✅ ${enrichedExercises.length} exercices sélectionnés par ML`);
-                
-                // Si on a des métadonnées de session, les afficher
-                if (intelligentSession.session_metadata) {
-                    console.log('Métadonnées ML:', intelligentSession.session_metadata);
-                    // Optionnel : afficher un preview
-                    if (window.showSessionPreview) {
-                        showSessionPreview(intelligentSession.session_metadata);
+                // Initialiser avec le fallback
+                currentWorkoutSession = {
+                    type: 'program',
+                    program: {
+                        ...activeProgram,
+                        exercises: fallbackExercises
+                    },
+                    exerciseOrder: 0,
+                    globalSetCount: 0,
+                    completedSets: [],
+                    sessionFatigue: 3,
+                    formatUsed: 'fallback',
+                    mlSelectionUsed: false,
+                    sessionMetadata: {
+                        totalExercises: fallbackExercises.length,
+                        selectionMethod: 'Fallback (ML indisponible)'
                     }
-                }
+                };
                 
-            } catch (error) {
-                console.error('❌ Sélection ML échouée:', error);
-                showToast('Mode hors-ligne activé - sélection statique', 'warning');
+                showProgramStartModal(currentWorkoutSession.program);
                 
-                // Fallback : utiliser les premiers exercices du pool
-                const pool = activeProgram.exercises.exercise_pool || [];
-                activeProgram.exercises = pool.slice(0, 6).map(ex => ({
-                    exercise_id: ex.exercise_id,
-                    exercise_name: ex.name,
-                    sets: ex.sets || 3,
-                    reps: ex.reps || 10,
-                    rest_seconds: ex.rest_seconds || 90
-                }));
+            } else {
+                showToast('Erreur : Format de programme incompatible', 'error');
+                console.error('Programme sans exercise_pool:', activeProgram);
             }
         }
-        
-        // Vérification finale de la structure
-        if (!activeProgram.exercises || activeProgram.exercises.length === 0) {
-            showToast('Aucun exercice disponible', 'error');
-            return;
-        }
-        
-        // Initialiser la session de workout
-        currentWorkoutSession = {
-            type: 'program',
-            program: activeProgram,
-            exerciseOrder: 0,
-            globalSetCount: 0,
-            completedSets: [],
-            sessionFatigue: 3,
-            currentSetFatigue: null,
-            currentSetEffort: null,
-            totalWorkoutTime: 0,
-            totalRestTime: 0,
-            totalSetTime: 0,
-            // Nouvelles propriétés Phase 1.2
-            formatUsed: isNewFormat ? 'pool' : 'list',
-            mlSelectionUsed: activeProgram.exercises[0]?.ml_selected || false,
-            sessionMetadata: {
-                totalExercises: activeProgram.exercises.length,
-                averageScore: isNewFormat ? 
-                    (activeProgram.exercises.reduce((sum, ex) => sum + (ex.priority_score || 0), 0) / activeProgram.exercises.length).toFixed(3) : 
-                    null,
-                selectionMethod: isNewFormat ? 'ML Pool' : (activeProgram.exercises[0]?.ml_selected ? 'ML Fallback' : 'Static List')
-            }
-        };
-        
-        console.log('📊 Session configurée:');
-        console.log('   Format:', currentWorkoutSession.formatUsed);
-        console.log('   ML utilisé:', currentWorkoutSession.mlSelectionUsed);
-        console.log('   Méthode:', currentWorkoutSession.sessionMetadata.selectionMethod);
-        console.log('   Exercices:', currentWorkoutSession.sessionMetadata.totalExercises);
-        if (currentWorkoutSession.sessionMetadata.averageScore) {
-            console.log('   Score moyen:', currentWorkoutSession.sessionMetadata.averageScore);
-        }
-        
-        // Afficher le modal de confirmation avec informations enrichies
-        showProgramStartModal(activeProgram);
         
     } catch (error) {
         console.error('Erreur chargement programme:', error);
