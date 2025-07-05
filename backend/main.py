@@ -2289,7 +2289,7 @@ def get_available_weights(user_id: int, db: Session = Depends(get_db)):
     from backend.equipment_service import EquipmentService
     
     try:
-        weights = EquipmentService.get_available_weights(db, user_id)
+        weights = EquipmentService.get_available_weights(db, user_id, None)  # ← AJOUT du None
         return {"available_weights": weights}
     except Exception as e:
         logger.error(f"Erreur calcul poids user {user_id}: {e}")
