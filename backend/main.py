@@ -551,11 +551,25 @@ def get_next_intelligent_session(user_id: int, db: Session = Depends(get_db)):
             volume_deficit = {}  # Fallback vide
         
         all_exercises = db.query(Exercise).all()
-        available_equipment = get_available_equipment(user.equipment_config)
+        # Utiliser le pool d'exercices du programme si nouveau format
+        if hasattr(program.exercises, 'get') and 'exercise_pool' in program.exercises:
+            # Nouveau format - utiliser le pool
+            pool_exercises = []
+            for pool_ex in program.exercises['exercise_pool']:
+                exercise = db.query(Exercise).filter(Exercise.id == pool_ex['exercise_id']).first()
+                if exercise:
+                    exercise.pool_priority = pool_ex['priority']
+                    exercise.pool_constraints = pool_ex['constraints']
+                    pool_exercises.append(exercise)
+            candidate_exercises = pool_exercises
+        else:
+            # Ancien format - utiliser tous les exercices
+            candidate_exercises = db.query(Exercise).all()
         
+        available_equipment = get_available_equipment(user.equipment_config)
         scored_exercises = []
         
-        for exercise in all_exercises:
+        for exercise in candidate_exercises:
             if not can_perform_exercise(exercise, available_equipment):
                 continue
                 
@@ -574,17 +588,25 @@ def get_next_intelligent_session(user_id: int, db: Session = Depends(get_db)):
                 deficit_score /= len(exercise.muscle_groups)
             
             focus_score = 0.0
+            priority_bonus = 0.0
+            
+            # Score focus areas
             if program.focus_areas and exercise.muscle_groups:
                 for muscle in exercise.muscle_groups:
                     if muscle.lower() in [fa.lower() for fa in program.focus_areas]:
                         focus_score = 1.0
                         break
             
+            # Bonus priorité du pool (nouveau format uniquement)
+            if hasattr(exercise, 'pool_priority'):
+                priority_bonus = (exercise.pool_priority - 3) / 2  # Normaliser -1 à 1
+            
             total_score = (
-                muscle_score * 0.4 +
-                staleness * 0.3 +
-                deficit_score * 0.2 +
-                focus_score * 0.1
+                muscle_score * 0.35 +
+                staleness * 0.25 +
+                deficit_score * 0.20 +
+                focus_score * 0.10 +
+                priority_bonus * 0.10
             )
             
             scored_exercises.append((exercise, total_score))
@@ -687,16 +709,15 @@ def generate_program_exercises(user: User, program: ProgramCreate, db: Session) 
         selected_exercises = selected_exercises[:max_total]
         logger.info(f"Limité à {max_total} exercices pour {program.session_duration_minutes}min")
     
-    # 8. Construire la nouvelle structure flexible
+    # Construire le pool d'exercices avec métadonnées ML
     exercise_pool = []
-    
     for ex in selected_exercises:
         # Calculer priorité basée sur focus areas
-        priority = 3  # Neutre par défaut
-        if program.focus_areas and ex.muscle_groups:
+        priority = 3  # neutre par défaut
+        if ex.muscle_groups:
             for muscle in ex.muscle_groups:
                 if muscle.lower() in [fa.lower() for fa in program.focus_areas]:
-                    priority = 5  # Haute priorité pour focus areas
+                    priority = 5  # prioritaire
                     break
         
         exercise_pool.append({
@@ -704,14 +725,36 @@ def generate_program_exercises(user: User, program: ProgramCreate, db: Session) 
             "exercise_name": ex.name,
             "priority": priority,
             "constraints": {
-                "min_recovery_hours": 48,  # Standard pour tous
+                "min_recovery_hours": 48,
                 "max_frequency_per_week": 2,
                 "required_equipment": ex.equipment_required or []
             },
             "default_sets": ex.default_sets,
             "default_reps_range": [ex.default_reps_min, ex.default_reps_max],
-            "rest_seconds": ex.base_rest_time_seconds
+            "muscle_groups": ex.muscle_groups
         })
+    
+    # Structure du nouveau format
+    return {
+        "exercise_pool": exercise_pool,
+        "session_templates": {
+            "rotation": determine_rotation_pattern(program.focus_areas),
+            "exercises_per_session": min(6, program.session_duration_minutes // 10),
+            "target_duration": program.session_duration_minutes
+        }
+    }
+
+def determine_rotation_pattern(focus_areas: List[str]) -> List[str]:
+    """Détermine le pattern de rotation optimal"""
+    if set(focus_areas) & {"upper_body", "arms", "shoulders"}:
+        if set(focus_areas) & {"legs", "core"}:
+            return ["upper_body", "lower_body"]
+        else:
+            return ["push", "pull", "full_body"]
+    elif "legs" in focus_areas and len(focus_areas) > 1:
+        return ["upper_body", "lower_body"]
+    else:
+        return ["full_body"]
     
     # Détecter rotation basée sur focus areas
     rotation_pattern = ["full_body"]  # Défaut

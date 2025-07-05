@@ -1995,65 +1995,106 @@ async function startFreeWorkout() {
 }
 
 async function startProgramWorkout() {
+    console.log('Démarrage séance programme...');
+    
     try {
         // Récupérer le programme actif
         let activeProgram = await apiGet(`/api/users/${currentUser.id}/programs/active`);
         
         if (!activeProgram) {
-            showToast('Aucun programme actif', 'error');
+            showToast('Aucun programme actif trouvé', 'error');
             return;
         }
         
-        // Détecter le format du programme et agir en conséquence
-        if (activeProgram.format === 'dynamic') {
-            // Nouveau format → TOUJOURS utiliser sélection ML
-            console.log('🎯 Programme dynamique détecté → Sélection ML obligatoire');
+        console.log('Programme récupéré:', activeProgram.name);
+        
+        // Détecter le format du programme
+        const isNewFormat = activeProgram.exercises && 
+                           typeof activeProgram.exercises === 'object' && 
+                           activeProgram.exercises.exercise_pool;
+        
+        console.log('Format détecté:', isNewFormat ? 'Nouveau (pool)' : 'Ancien (liste)');
+        
+        if (isNewFormat) {
+            // NOUVEAU FORMAT - Sélection ML obligatoire
+            console.log('🎯 Utilisation sélection ML (nouveau format)...');
             
             try {
                 const intelligentSession = await apiGet(`/api/users/${currentUser.id}/programs/next-session`);
                 
-                activeProgram.exercises = intelligentSession.exercises.map(ex => ({
-                    exercise_id: ex.exercise_id,
-                    exercise_name: ex.exercise_name,
-                    sets: ex.sets,
-                    reps_min: ex.target_reps,
-                    reps_max: ex.target_reps
-                }));
+                // Adapter les exercices sélectionnés au format attendu par le frontend
+                activeProgram = {
+                    ...activeProgram,
+                    exercises: intelligentSession.exercises.map(ex => ({
+                        exercise_id: ex.exercise_id,
+                        exercise_name: ex.exercise_name,
+                        sets: ex.sets,
+                        reps_min: ex.target_reps,
+                        reps_max: ex.target_reps,
+                        ml_selected: true,
+                        priority_score: ex.priority_score,
+                        selection_reason: ex.selection_reason
+                    }))
+                };
                 
-                console.log('✅ Sélection ML v2.0:', intelligentSession.exercises.length, 'exercices');
-                showToast('🧠 Séance personnalisée par IA', 'info');
+                console.log('✅ Sélection ML réussie:', intelligentSession.exercises.length, 'exercices');
+                intelligentSession.exercises.forEach((ex, i) => {
+                    console.log(`   ${i+1}. ${ex.exercise_name} (score: ${ex.priority_score.toFixed(3)})`);
+                });
                 
             } catch (mlError) {
-                console.error('❌ Sélection ML obligatoire échouée:', mlError);
+                console.error('❌ Sélection ML échouée pour nouveau format:', mlError);
                 showToast('Erreur sélection intelligente', 'error');
-                return;
+                return; // Échec critique pour nouveau format
             }
             
         } else {
-            // Ancien format → Sélection ML optionnelle avec fallback
-            console.log('📋 Programme statique détecté → Sélection ML optionnelle');
+            // ANCIEN FORMAT - ML avec fallback
+            console.log('🔄 Tentative sélection ML (ancien format)...');
             
             try {
                 const intelligentSession = await apiGet(`/api/users/${currentUser.id}/programs/next-session`);
                 
-                activeProgram.exercises = intelligentSession.exercises.map(ex => ({
-                    exercise_id: ex.exercise_id,
-                    exercise_name: ex.exercise_name,
-                    sets: ex.sets,
-                    reps_min: ex.target_reps,
-                    reps_max: ex.target_reps
-                }));
+                // Créer une copie modifiée du programme avec les exercices ML
+                activeProgram = {
+                    ...activeProgram,
+                    exercises: intelligentSession.exercises.map(ex => ({
+                        exercise_id: ex.exercise_id,
+                        exercise_name: ex.exercise_name,
+                        sets: ex.sets,
+                        reps_min: ex.target_reps,
+                        reps_max: ex.target_reps,
+                        ml_selected: true,
+                        priority_score: ex.priority_score,
+                        selection_reason: ex.selection_reason
+                    }))
+                };
                 
-                console.log('✅ Sélection ML v1.0:', intelligentSession.exercises.length, 'exercices');
+                console.log('✅ Sélection ML réussie (ancien format):', intelligentSession.exercises.length, 'exercices');
+                showToast('Sélection intelligente activée', 'success');
                 
             } catch (mlError) {
-                console.warn('⚠️ Sélection ML échouée, fallback programme statique:', mlError);
-                showToast('Mode programme classique', 'warning');
-                // Garder activeProgram.exercises tel quel (ancien format)
+                console.warn('❌ Sélection ML échouée, fallback sur format original:', mlError);
+                showToast('Mode hors-ligne activé', 'warning');
+                // activeProgram reste inchangé - utilise la liste originale
+                
+                // Marquer les exercices comme non-ML pour le tracking
+                if (Array.isArray(activeProgram.exercises)) {
+                    activeProgram.exercises = activeProgram.exercises.map(ex => ({
+                        ...ex,
+                        ml_selected: false
+                    }));
+                }
             }
         }
         
-        // Initialiser la session (code inchangé)
+        // Vérification finale de la structure
+        if (!activeProgram.exercises || activeProgram.exercises.length === 0) {
+            showToast('Aucun exercice disponible', 'error');
+            return;
+        }
+        
+        // Initialiser la session de workout
         currentWorkoutSession = {
             type: 'program',
             program: activeProgram,
@@ -2065,10 +2106,29 @@ async function startProgramWorkout() {
             currentSetEffort: null,
             totalWorkoutTime: 0,
             totalRestTime: 0,
-            totalSetTime: 0
+            totalSetTime: 0,
+            // Nouvelles propriétés Phase 1.2
+            formatUsed: isNewFormat ? 'pool' : 'list',
+            mlSelectionUsed: activeProgram.exercises[0]?.ml_selected || false,
+            sessionMetadata: {
+                totalExercises: activeProgram.exercises.length,
+                averageScore: isNewFormat ? 
+                    (activeProgram.exercises.reduce((sum, ex) => sum + (ex.priority_score || 0), 0) / activeProgram.exercises.length).toFixed(3) : 
+                    null,
+                selectionMethod: isNewFormat ? 'ML Pool' : (activeProgram.exercises[0]?.ml_selected ? 'ML Fallback' : 'Static List')
+            }
         };
         
-        // Afficher le modal de confirmation
+        console.log('📊 Session configurée:');
+        console.log('   Format:', currentWorkoutSession.formatUsed);
+        console.log('   ML utilisé:', currentWorkoutSession.mlSelectionUsed);
+        console.log('   Méthode:', currentWorkoutSession.sessionMetadata.selectionMethod);
+        console.log('   Exercices:', currentWorkoutSession.sessionMetadata.totalExercises);
+        if (currentWorkoutSession.sessionMetadata.averageScore) {
+            console.log('   Score moyen:', currentWorkoutSession.sessionMetadata.averageScore);
+        }
+        
+        // Afficher le modal de confirmation avec informations enrichies
         showProgramStartModal(activeProgram);
         
     } catch (error) {
@@ -2077,6 +2137,7 @@ async function startProgramWorkout() {
     }
 }
 
+// Fonction helper pour enrichir le modal de démarrage
 function showProgramStartModal(program) {
     if (!program) {
         console.error('Programme invalide pour le modal');
@@ -2086,39 +2147,90 @@ function showProgramStartModal(program) {
     // Calculer la durée estimée et le nombre d'exercices
     const exerciseCount = program.exercises.length;
     const estimatedDuration = program.session_duration_minutes || 45;
+    const isMLSelected = program.exercises[0]?.ml_selected || false;
+    const formatType = currentWorkoutSession?.formatUsed || 'unknown';
     
-    // Créer le contenu du modal
+    // Créer le contenu du modal enrichi
     const modalContent = `
         <div class="program-start-info">
             <h3>${program.name}</h3>
             <div class="program-details">
                 <p><strong>Exercices :</strong> ${exerciseCount}</p>
                 <p><strong>Durée estimée :</strong> ${estimatedDuration} min</p>
-                <p><strong>Focus :</strong> ${program.focus_areas.join(', ')}</p>
+                <p><strong>Focus :</strong> ${program.focus_areas?.join(', ') || 'Non spécifié'}</p>
+                ${isMLSelected ? `
+                    <p><strong>🧠 Sélection :</strong> Intelligence ML activée</p>
+                ` : `
+                    <p><strong>📋 Sélection :</strong> Programme standard</p>
+                `}
+                <p><strong>Format :</strong> ${formatType === 'pool' ? 'Pool dynamique' : 'Liste statique'}</p>
             </div>
+            
+            ${isMLSelected ? `
+                <div class="ml-info" style="
+                    background: var(--primary-light); 
+                    border-radius: 8px; 
+                    padding: 1rem; 
+                    margin: 1rem 0;
+                    border-left: 4px solid var(--primary);
+                ">
+                    <h4 style="margin: 0 0 0.5rem 0; color: var(--primary);">
+                        🎯 Exercices sélectionnés intelligemment
+                    </h4>
+                    <p style="margin: 0; font-size: 0.9rem; color: var(--text-muted);">
+                        Basé sur votre récupération musculaire, historique et objectifs
+                    </p>
+                </div>
+            ` : ''}
+            
             <div class="exercise-list" style="margin-top: 1rem; max-height: 200px; overflow-y: auto;">
                 <h4>Programme du jour :</h4>
                 <ul style="list-style: none; padding: 0;">
                     ${program.exercises.map((ex, index) => `
-                        <li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
-                            ${index + 1}. ${ex.exercise_name} - ${ex.sets || 3} séries
+                        <li style="
+                            padding: 0.5rem 0; 
+                            border-bottom: 1px solid var(--border);
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                        ">
+                            <span>
+                                ${index + 1}. ${ex.exercise_name} 
+                                <small style="color: var(--text-muted);">
+                                    (${ex.sets || 3}×${ex.reps_min || 10}-${ex.reps_max || 12})
+                                </small>
+                            </span>
+                            ${ex.ml_selected && ex.priority_score ? `
+                                <small style="
+                                    background: var(--primary-light);
+                                    color: var(--primary);
+                                    padding: 0.2rem 0.4rem;
+                                    border-radius: 4px;
+                                    font-weight: 500;
+                                ">
+                                    ${ex.priority_score.toFixed(2)}
+                                </small>
+                            ` : ''}
                         </li>
                     `).join('')}
                 </ul>
             </div>
-            <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: center;">
-                <button onclick="confirmStartProgramWorkout()" class="btn btn-primary">
-                    🚀 Commencer
-                </button>
-                <button onclick="closeModal()" class="btn btn-secondary">
-                    Annuler
-                </button>
-            </div>
+        </div>
+        
+        <div class="modal-actions" style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+            <button class="btn btn-secondary" onclick="closeModal()" style="flex: 1;">
+                Annuler
+            </button>
+            <button class="btn btn-primary" onclick="confirmStartProgramWorkout()" style="flex: 2;">
+                🚀 Commencer la séance
+            </button>
         </div>
     `;
     
-    // Utiliser votre système de modal existant
-    showModal('Démarrer la séance programme', modalContent);
+    // Afficher le modal
+    document.getElementById('modalTitle').textContent = 'Démarrage séance programme';
+    document.getElementById('modalContent').innerHTML = modalContent;
+    document.getElementById('modal').style.display = 'flex';
 }
 
 // Nouvelle fonction pour afficher le panneau de preview
