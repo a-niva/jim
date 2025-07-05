@@ -481,6 +481,26 @@ def get_program_status(user_id: int, db: Session = Depends(get_db)):
         "created_weeks_ago": weeks_elapsed
     }
 
+@app.get("/api/users/{user_id}/programs/active")
+def get_active_program(user_id: int, db: Session = Depends(get_db)):
+    """Récupérer le programme actif d'un utilisateur"""
+    program = db.query(Program).filter(
+        Program.user_id == user_id,
+        Program.is_active == True
+    ).first()
+    
+    if not program:
+        return None
+    
+    # Enrichir les exercices avec leurs noms si nécessaire
+    if program.exercises:
+        for ex in program.exercises:
+            if 'exercise_name' not in ex and 'exercise_id' in ex:
+                exercise_db = db.query(Exercise).filter(Exercise.id == ex['exercise_id']).first()
+                if exercise_db:
+                    ex['exercise_name'] = exercise_db.name
+    
+    return program
 
 @app.get("/api/users/{user_id}/programs/next-session")
 def get_next_intelligent_session(user_id: int, db: Session = Depends(get_db)):
