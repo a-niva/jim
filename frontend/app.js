@@ -2782,14 +2782,6 @@ async function selectExercise(exercise, skipValidation = false) {
     startSetTimer();
 }
 
-// Mettre à jour l'affichage de l'historique
-function updateMLHistoryDisplay() {
-    const historyContainer = document.getElementById('mlHistoryContainer');
-    if (historyContainer && currentExercise?.id) {
-        historyContainer.innerHTML = renderMLHistory(currentExercise.id);
-    }
-}
-
 // Nouvelle fonction pour le rendu du toggle ML
 function renderMLToggle(exerciseId) {
     const isEnabled = currentWorkoutSession.mlSettings[exerciseId]?.autoAdjust ?? 
