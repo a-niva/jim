@@ -13,6 +13,7 @@ import json
 import os
 import logging
 from backend.ml_recommendations import FitnessRecommendationEngine
+from backend.constants import normalize_muscle_group 
 from backend.database import engine, get_db, SessionLocal
 from backend.models import Base, User, Exercise, Program, Workout, WorkoutSet, SetHistory, UserCommitment, AdaptiveTargets, UserAdaptationCoefficients, PerformanceStates
 from backend.schemas import UserCreate, UserResponse, ProgramCreate, WorkoutCreate, SetCreate, ExerciseResponse, UserPreferenceUpdate
@@ -313,16 +314,24 @@ def get_exercise(exercise_id: int, db: Session = Depends(get_db)):
     return exercise
 
 def get_available_equipment(equipment_config: Dict[str, Any]) -> List[str]:
-    """Utilise le service d'équipement unifié"""
-    from backend.equipment_service import EquipmentService
-    return list(EquipmentService.get_available_equipment_types(equipment_config))
+    """Extraire la liste d'équipement disponible depuis la config utilisateur"""
+    available = []
+    
+    for equipment_type, config in equipment_config.items():
+        if isinstance(config, dict) and config.get('available', False):
+            available.append(equipment_type)
+        elif config is True:  # Format simplifié
+            available.append(equipment_type)
+    
+    return available
 
 def can_perform_exercise(exercise: Exercise, available_equipment: List[str]) -> bool:
-    """Utilise le service d'équipement unifié"""
-    from backend.equipment_service import EquipmentService
-    # Simuler une config depuis la liste disponible
-    mock_config = {eq: {'available': True} for eq in available_equipment}
-    return EquipmentService.can_perform_exercise(exercise.equipment_required, mock_config)
+    """Vérifier si un exercice peut être effectué avec l'équipement disponible"""
+    if not exercise.equipment_required:
+        return True  # Pas d'équipement requis = toujours possible
+    
+    # Vérifier qu'au moins un équipement requis est disponible
+    return any(eq in available_equipment for eq in exercise.equipment_required)
 
 # ===== ENDPOINTS PROGRAMMES =====
 
@@ -499,60 +508,103 @@ def get_active_program(user_id: int, db: Session = Depends(get_db)):
     
     return program
 
+
+
 def generate_program_exercises(user: User, program: ProgramCreate, db: Session) -> List[Dict[str, Any]]:
     """Génère une liste d'exercices pour le programme basé sur les zones focus"""
-    available_equipment = get_available_equipment(user.equipment_config)
+    import logging
+    logger = logging.getLogger(__name__)
     
-    # Récupérer exercices par zone focus
-    all_exercises = []
+    # 1. Récupérer TOUS les exercices une seule fois
+    all_exercises = db.query(Exercise).all()
+    logger.info(f"Total exercices en DB: {len(all_exercises)}")
+    
+    # 2. Obtenir équipement disponible
+    available_equipment = get_available_equipment(user.equipment_config)
+    logger.info(f"Équipement disponible: {available_equipment}")
+    
+    # 3. Filtrer par niveau d'expérience
+    level_mapping = {
+        'beginner': ['beginner', 'intermediate'],
+        'intermediate': ['beginner', 'intermediate', 'advanced'], 
+        'advanced': ['beginner', 'intermediate', 'advanced']
+    }
+    allowed_difficulties = level_mapping.get(user.experience_level, ['beginner'])
+    
+    level_filtered = [
+        ex for ex in all_exercises 
+        if ex.difficulty in allowed_difficulties
+    ]
+    logger.info(f"Après filtre niveau {user.experience_level}: {len(level_filtered)} exercices")
+    
+    # 4. Filtrer par équipement disponible
+    equipment_filtered = []
+    for ex in level_filtered:
+        if can_perform_exercise(ex, available_equipment):
+            equipment_filtered.append(ex)
+    
+    logger.info(f"Après filtre équipement: {len(equipment_filtered)} exercices")
+    
+    # 5. Grouper par focus_areas
+    exercises_by_focus = {}
     for focus_area in program.focus_areas:
-        # Récupérer tous les exercices et filtrer en Python pour être sûr
-        all_exercises = db.query(Exercise).all()
-        muscle_exercises = [
-            ex for ex in all_exercises 
+        matching_exercises = [
+            ex for ex in equipment_filtered
             if ex.muscle_groups and focus_area in ex.muscle_groups
         ]
-        
-        # Filtrer par équipement disponible et niveau d'expérience
-        available_exercises = []
-        for ex in muscle_exercises:
-            if can_perform_exercise(ex, available_equipment):
-                # Adapter selon le niveau d'expérience
-                if user.experience_level == 'beginner' and ex.difficulty in ['beginner', 'intermediate']:
-                    available_exercises.append(ex)
-                elif user.experience_level == 'intermediate' and ex.difficulty in ['beginner', 'intermediate', 'advanced']:
-                    available_exercises.append(ex)
-                elif user.experience_level == 'advanced':
-                    available_exercises.append(ex)
-        
-        # Prendre 1-2 exercices par zone selon la fréquence
-        max_exercises = 2 if program.sessions_per_week <= 3 else 1
-        all_exercises.extend(available_exercises[:max_exercises])
+        exercises_by_focus[focus_area] = matching_exercises
+        logger.info(f"Focus '{focus_area}': {len(matching_exercises)} exercices")
     
-    # Organiser en sessions de façon équilibrée
-    exercises_per_session = max(1, len(all_exercises) // program.sessions_per_week)
+    # 6. Sélectionner exercices par focus area
+    selected_exercises = []
+    max_exercises_per_focus = 2  # Maximum 2 exercices par focus area
     
+    for focus_area, exercises in exercises_by_focus.items():
+        if exercises:
+            # Prendre les premiers exercices (pourrait être randomisé)
+            selected = exercises[:max_exercises_per_focus]
+            selected_exercises.extend(selected)
+            logger.info(f"Sélectionné {len(selected)} exercices pour '{focus_area}'")
+    
+    # 7. Limiter le nombre total d'exercices selon la durée
+    duration_limits = {
+        15: 2,   # 15min = max 2 exercices
+        30: 4,   # 30min = max 4 exercices  
+        45: 6,   # 45min = max 6 exercices
+        60: 8,   # 60min = max 8 exercices
+        90: 10   # 90min = max 10 exercices
+    }
+    
+    max_total = duration_limits.get(program.session_duration_minutes, 6)
+    if len(selected_exercises) > max_total:
+        selected_exercises = selected_exercises[:max_total]
+        logger.info(f"Limité à {max_total} exercices pour {program.session_duration_minutes}min")
+    
+    # 8. Construire la structure de programme
     program_exercises = []
-    for session in range(program.sessions_per_week):
-        start_idx = session * exercises_per_session
-        end_idx = min(start_idx + exercises_per_session, len(all_exercises))
-        session_exercises = all_exercises[start_idx:end_idx]
+    exercises_per_session = max(1, len(selected_exercises) // program.sessions_per_week)
+    
+    for session_num in range(1, program.sessions_per_week + 1):
+        start_idx = (session_num - 1) * exercises_per_session
+        end_idx = min(start_idx + exercises_per_session, len(selected_exercises))
+        session_exercises = selected_exercises[start_idx:end_idx]
         
-        # Si dernière session, ajouter les exercices restants
-        if session == program.sessions_per_week - 1:
-            session_exercises.extend(all_exercises[end_idx:])
+        # Si dernière session, ajouter exercices restants
+        if session_num == program.sessions_per_week:
+            session_exercises.extend(selected_exercises[end_idx:])
         
-        for exercise in session_exercises:
+        for ex in session_exercises:
             program_exercises.append({
-                "exercise_id": exercise.id,
-                "exercise_name": exercise.name,
-                "session_number": session + 1,
-                "sets": exercise.default_sets,
-                "reps_min": exercise.default_reps_min,
-                "reps_max": exercise.default_reps_max,
-                "rest_seconds": exercise.base_rest_time_seconds
+                "exercise_id": ex.id,
+                "exercise_name": ex.name,
+                "session_number": session_num,
+                "sets": ex.default_sets,
+                "reps_min": ex.default_reps_min,
+                "reps_max": ex.default_reps_max,
+                "rest_seconds": ex.base_rest_time_seconds
             })
     
+    logger.info(f"Programme final: {len(program_exercises)} exercices sur {program.sessions_per_week} sessions")
     return program_exercises
 
 # ===== ENDPOINTS SÉANCES =====
