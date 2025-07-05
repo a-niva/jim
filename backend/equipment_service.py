@@ -1,7 +1,7 @@
 from typing import List, Dict, Set
 import logging
 from sqlalchemy.orm import Session
-from .models import User
+from .models import User, Exercise  
 
 logger = logging.getLogger(__name__)
 
