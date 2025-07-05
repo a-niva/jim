@@ -2150,12 +2150,30 @@ function showProgramStartModal(program) {
     const isMLSelected = program.exercises[0]?.ml_selected || false;
     const formatType = currentWorkoutSession?.formatUsed || 'unknown';
     
-    // Créer le contenu du modal enrichi
-    const modalContent = `
+    // Vérifier si les éléments modal existent
+    const modalElement = document.getElementById('modal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalContent = document.getElementById('modalContent');
+    
+    if (!modalElement || !modalTitle || !modalContent) {
+        // Fallback : utiliser confirm() temporaire
+        const message = `🚀 Démarrer "${program.name}" ?\n\n` +
+                       `📊 ${exerciseCount} exercices (${estimatedDuration}min)\n` +
+                       `${isMLSelected ? '🧠 Sélection ML activée' : '📋 Programme standard'}\n` +
+                       `🎯 Format: ${formatType === 'pool' ? 'Pool dynamique' : 'Liste statique'}`;
+        
+        if (confirm(message)) {
+            confirmStartProgramWorkout();
+        }
+        return;
+    }
+    
+    // Créer le contenu du modal enrichi (code existant...)
+    const modalContentHTML = `
         <div class="program-start-info">
             <h3>${program.name}</h3>
             <div class="program-details">
-                <p><strong>Exercices :</strong> ${exerciseCount}</p>
+                <p><strong>Exercices :</strong> ${exerciceCount}</p>
                 <p><strong>Durée estimée :</strong> ${estimatedDuration} min</p>
                 <p><strong>Focus :</strong> ${program.focus_areas?.join(', ') || 'Non spécifié'}</p>
                 ${isMLSelected ? `
@@ -2228,9 +2246,9 @@ function showProgramStartModal(program) {
     `;
     
     // Afficher le modal
-    document.getElementById('modalTitle').textContent = 'Démarrage séance programme';
-    document.getElementById('modalContent').innerHTML = modalContent;
-    document.getElementById('modal').style.display = 'flex';
+    modalTitle.textContent = 'Démarrage séance programme';
+    modalContent.innerHTML = modalContentHTML;
+    modalElement.style.display = 'flex';
 }
 
 // Nouvelle fonction pour afficher le panneau de preview
