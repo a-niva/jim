@@ -2168,12 +2168,12 @@ function showProgramStartModal(program) {
         return;
     }
     
-    // Créer le contenu du modal enrichi (code existant...)
+    // Créer le contenu du modal enrichi
     const modalContentHTML = `
         <div class="program-start-info">
             <h3>${program.name}</h3>
             <div class="program-details">
-                <p><strong>Exercices :</strong> ${exerciceCount}</p>
+                <p><strong>Exercices :</strong> ${exerciseCount}</p>
                 <p><strong>Durée estimée :</strong> ${estimatedDuration} min</p>
                 <p><strong>Focus :</strong> ${program.focus_areas?.join(', ') || 'Non spécifié'}</p>
                 ${isMLSelected ? `
