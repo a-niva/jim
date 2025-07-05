@@ -2153,9 +2153,9 @@ function showProgramStartModal(program) {
     // Vérifier si les éléments modal existent
     const modalElement = document.getElementById('modal');
     const modalTitle = document.getElementById('modalTitle');
-    const modalContent = document.getElementById('modalContent');
+    const modalBody = document.getElementById('modalBody');
     
-    if (!modalElement || !modalTitle || !modalContent) {
+    if (!modalElement || !modalTitle || !modalBody) {
         // Fallback : utiliser confirm() temporaire
         const message = `🚀 Démarrer "${program.name}" ?\n\n` +
                        `📊 ${exerciseCount} exercices (${estimatedDuration}min)\n` +
@@ -2247,7 +2247,7 @@ function showProgramStartModal(program) {
     
     // Afficher le modal
     modalTitle.textContent = 'Démarrage séance programme';
-    modalContent.innerHTML = modalContentHTML;
+    modalBody.innerHTML = modalContentHTML;
     modalElement.style.display = 'flex';
 }
 
