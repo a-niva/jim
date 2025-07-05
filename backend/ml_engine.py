@@ -823,11 +823,9 @@ class FitnessMLEngine:
             
             # 2. Déterminer quels muscles entraîner
             muscle_readiness = {}
-            all_muscles = ["Pectoraux", "Dos", "Deltoïdes", "Jambes", "Bras", "Abdominaux"]
-            
+            all_muscles = ["dos", "pectoraux", "jambes", "epaules", "bras", "abdominaux"]
             for muscle in all_muscles:
-                readiness = recovery_tracker.get_muscle_readiness(muscle, user)
-                muscle_readiness[muscle] = readiness
+                muscle_readiness[muscle] = recovery_tracker.get_muscle_readiness(muscle, user)
                 logger.info(f"Readiness {muscle}: {readiness:.2f}")
             
             # 3. Sélectionner les muscles prioritaires
@@ -1850,20 +1848,10 @@ class ProgressionAnalyzer:
         if not latest_set:
             return 1.0  # Jamais fait = maximum staleness
         
-        # Correction timezone : gérer les datetime avec et sans timezone
+        # Correction timezone: uniformiser les datetime
         completed_at = latest_set.workout.completed_at
-        now = datetime.now(timezone.utc)
-        
-        # Si completed_at n'a pas de timezone, lui ajouter UTC
         if completed_at.tzinfo is None:
             completed_at = completed_at.replace(tzinfo=timezone.utc)
-        
-        # Gérer les timezones de façon compatible
-        if latest_set.workout.completed_at.tzinfo is None:
-            # Si la DB datetime est naive, la rendre aware UTC
-            completed_at = latest_set.workout.completed_at.replace(tzinfo=timezone.utc)
-        else:
-            completed_at = latest_set.workout.completed_at
             
         days_since = (datetime.now(timezone.utc) - completed_at).days
         staleness = min(1.0, days_since / 7.0)

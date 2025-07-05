@@ -539,13 +539,21 @@ def get_next_intelligent_session(user_id: int, db: Session = Depends(get_db)):
         
         # Appels ML avec fallbacks
         try:
-            muscle_readiness = recovery_tracker.get_muscle_readiness(user.id)
+            muscle_readiness = {}
+            all_muscles = ["pectoraux", "dos", "deltoïdes", "jambes", "bras", "abdominaux"]
+            for muscle in all_muscles:
+                try:
+                    readiness = recovery_tracker.get_muscle_readiness(muscle, user)
+                    muscle_readiness[muscle] = readiness
+                except Exception as e:
+                    logger.warning(f"Recovery tracker failed for muscle {muscle}: {e}")
+                    muscle_readiness[muscle] = 0.5  # Fallback
         except Exception as e:
             logger.warning(f"Recovery tracker failed: {e}")
             muscle_readiness = {}  # Fallback vide
             
         try:
-            volume_deficit = volume_optimizer.get_volume_deficit(user.id)
+            volume_deficit = volume_optimizer.get_volume_deficit(user)
         except Exception as e:
             logger.warning(f"Volume optimizer failed: {e}")
             volume_deficit = {}  # Fallback vide
@@ -982,7 +990,7 @@ def complete_workout(workout_id: int, data: Dict[str, int] = {}, db: Session = D
     if "total_rest_time" in data:
         workout.total_rest_time_seconds = data["total_rest_time"]
     
-    db.commit()  # AJOUT CRITIQUE !
+    db.commit()
     return {"message": "Séance terminée", "workout": workout}
 
 @app.put("/api/sets/{set_id}/rest-duration")
