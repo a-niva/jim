@@ -1997,14 +1997,37 @@ async function startFreeWorkout() {
 async function startProgramWorkout() {
     try {
         // Récupérer le programme actif
-        const activeProgram = await apiGet(`/api/users/${currentUser.id}/programs/active`);
+        let activeProgram = await apiGet(`/api/users/${currentUser.id}/programs/active`);
         
         if (!activeProgram) {
             showToast('Aucun programme actif', 'error');
             return;
         }
         
-        // Initialiser la session
+        // Essayer la sélection intelligente
+        try {
+            const intelligentSession = await apiGet(`/api/users/${currentUser.id}/programs/next-session`);
+            
+            // Créer une copie modifiée du programme avec les exercices sélectionnés
+            activeProgram = {
+                ...activeProgram,
+                exercises: intelligentSession.exercises.map(ex => ({
+                    exercise_id: ex.exercise_id,
+                    exercise_name: ex.exercise_name,
+                    sets: ex.sets,
+                    reps_min: ex.target_reps,
+                    reps_max: ex.target_reps
+                }))
+            };
+            
+            console.log('✅ Sélection ML réussie:', intelligentSession.exercises.length, 'exercices');
+            
+        } catch (mlError) {
+            console.warn('❌ Sélection ML échouée, fallback:', mlError);
+            showToast('Mode hors-ligne activé', 'warning');
+        }
+        
+        // Initialiser la session (code inchangé)
         currentWorkoutSession = {
             type: 'program',
             program: activeProgram,

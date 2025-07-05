@@ -481,34 +481,96 @@ def get_program_status(user_id: int, db: Session = Depends(get_db)):
         "created_weeks_ago": weeks_elapsed
     }
 
-@app.get("/api/users/{user_id}/programs/active")
-def get_active_program(user_id: int, db: Session = Depends(get_db)):
-    """Récupérer le programme actif d'un utilisateur"""
+
+@app.get("/api/users/{user_id}/programs/next-session")
+def get_next_intelligent_session(user_id: int, db: Session = Depends(get_db)):
+    """Sélection intelligente d'exercices via ML complet"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
     program = db.query(Program).filter(
         Program.user_id == user_id,
         Program.is_active == True
     ).first()
     
     if not program:
-        return None
+        raise HTTPException(status_code=404, detail="Aucun programme actif")
     
-    # CORRECTION : Enrichir les exercices avec leurs noms si nécessaire
-    if program.exercises:
-        for ex in program.exercises:
-            # Vérifier si le nom de l'exercice est manquant
-            if 'exercise_name' not in ex and 'exercise_id' in ex:
-                # Récupérer l'exercice depuis la base de données
-                exercise_db = db.query(Exercise).filter(Exercise.id == ex['exercise_id']).first()
-                if exercise_db:
-                    ex['exercise_name'] = exercise_db.name
-                else:
-                    # Si l'exercice n'existe pas dans la base, mettre un nom par défaut
-                    ex['exercise_name'] = f"Exercice ID {ex['exercise_id']}"
-                    logger.warning(f"Exercice ID {ex['exercise_id']} non trouvé dans la base")
-    
-    return program
-
-
+    try:
+        from backend.ml_engine import RecoveryTracker, VolumeOptimizer, ProgressionAnalyzer
+        
+        recovery_tracker = RecoveryTracker(db)
+        volume_optimizer = VolumeOptimizer(db)
+        progression_analyzer = ProgressionAnalyzer(db)
+        
+        muscle_readiness = recovery_tracker.get_muscle_readiness(user)
+        volume_deficit = volume_optimizer.get_volume_deficit(user)
+        
+        all_exercises = db.query(Exercise).all()
+        available_equipment = get_available_equipment(user.equipment_config)
+        
+        scored_exercises = []
+        
+        for exercise in all_exercises:
+            if not can_perform_exercise(exercise, available_equipment):
+                continue
+                
+            muscle_score = 0.0
+            if exercise.muscle_groups:
+                for muscle in exercise.muscle_groups:
+                    muscle_score += muscle_readiness.get(muscle, 0.5)
+                muscle_score /= len(exercise.muscle_groups)
+            
+            staleness = progression_analyzer.get_exercise_staleness(user.id, exercise.id)
+            
+            deficit_score = 0.0
+            if exercise.muscle_groups:
+                for muscle in exercise.muscle_groups:
+                    deficit_score += volume_deficit.get(muscle, 0.0)
+                deficit_score /= len(exercise.muscle_groups)
+            
+            focus_score = 0.0
+            if program.focus_areas and exercise.muscle_groups:
+                for muscle in exercise.muscle_groups:
+                    if muscle.lower() in [fa.lower() for fa in program.focus_areas]:
+                        focus_score = 1.0
+                        break
+            
+            total_score = (
+                muscle_score * 0.4 +
+                staleness * 0.3 +
+                deficit_score * 0.2 +
+                focus_score * 0.1
+            )
+            
+            scored_exercises.append((exercise, total_score))
+        
+        scored_exercises.sort(key=lambda x: x[1], reverse=True)
+        max_exercises = min(6, program.session_duration_minutes // 10)
+        selected = scored_exercises[:max_exercises]
+        
+        return {
+            "session_number": len(db.query(Workout).filter(Workout.user_id == user_id).all()) + 1,
+            "exercises": [
+                {
+                    "exercise_id": ex.id,
+                    "exercise_name": ex.name,
+                    "sets": 3,
+                    "target_reps": 10,
+                    "predicted_weight": 20.0,
+                    "selection_reason": f"Score: {score:.2f}",
+                    "priority_score": score
+                }
+                for ex, score in selected
+            ],
+            "estimated_duration": program.session_duration_minutes,
+            "warnings": []
+        }
+        
+    except Exception as e:
+        logger.error(f"Erreur sélection ML: {e}")
+        raise HTTPException(status_code=500, detail="Erreur sélection intelligente")
 
 def generate_program_exercises(user: User, program: ProgramCreate, db: Session) -> List[Dict[str, Any]]:
     """Génère une liste d'exercices pour le programme basé sur les zones focus"""
@@ -606,6 +668,7 @@ def generate_program_exercises(user: User, program: ProgramCreate, db: Session) 
     
     logger.info(f"Programme final: {len(program_exercises)} exercices sur {program.sessions_per_week} sessions")
     return program_exercises
+
 
 # ===== ENDPOINTS SÉANCES =====
 

@@ -1839,6 +1839,25 @@ class ProgressionAnalyzer:
         
         return insights[:3]  # Max 3 insights
 
+    def get_exercise_staleness(self, user_id: int, exercise_id: int) -> float:
+        """Retourne 0.0 (très récent) à 1.0 (pas fait depuis longtemps)"""
+        # Chercher la dernière fois que cet exercice a été fait
+        latest_set = self.db.query(WorkoutSet).join(Workout).filter(
+            Workout.user_id == user_id,
+            WorkoutSet.exercise_id == exercise_id,
+            Workout.status == "completed"
+        ).order_by(Workout.completed_at.desc()).first()
+        
+        if not latest_set:
+            return 1.0  # Jamais fait = maximum staleness
+        
+        # Calculer les jours depuis la dernière utilisation
+        days_since = (datetime.now(timezone.utc) - latest_set.workout.completed_at).days
+        
+        # Transformer en score 0-1 (plus de jours = plus de staleness)
+        staleness = min(1.0, days_since / 7.0)
+        return staleness
+
 # ========== ADAPTATEUR TEMPS RÉEL ==========
 
 class RealTimeAdapter:
