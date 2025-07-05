@@ -18,6 +18,7 @@ from backend.constants import normalize_muscle_group
 from backend.database import engine, get_db, SessionLocal
 from backend.models import Base, User, Exercise, Program, Workout, WorkoutSet, SetHistory, UserCommitment, AdaptiveTargets, UserAdaptationCoefficients, PerformanceStates, ExerciseCompletionStats
 from backend.schemas import UserCreate, UserResponse, ProgramCreate, WorkoutCreate, SetCreate, ExerciseResponse, UserPreferenceUpdate
+from backend.equipment_service import EquipmentService
 from sqlalchemy import extract, and_
 import calendar
 from collections import defaultdict
@@ -422,24 +423,20 @@ def get_exercise(exercise_id: int, db: Session = Depends(get_db)):
     return exercise
 
 def get_available_equipment(equipment_config: Dict[str, Any]) -> List[str]:
-    """Extraire la liste d'équipement disponible depuis la config utilisateur"""
-    available = []
-    
-    for equipment_type, config in equipment_config.items():
-        if isinstance(config, dict) and config.get('available', False):
-            available.append(equipment_type)
-        elif config is True:  # Format simplifié
-            available.append(equipment_type)
-    
-    return available
+    """Utiliser EquipmentService pour cohérence"""
+    available_types = EquipmentService.get_available_equipment_types(equipment_config)
+    return list(available_types)
 
 def can_perform_exercise(exercise: Exercise, available_equipment: List[str]) -> bool:
     """Vérifier si un exercice peut être effectué avec l'équipement disponible"""
     if not exercise.equipment_required:
-        return True  # Pas d'équipement requis = toujours possible
+        return True
     
-    # Vérifier qu'au moins un équipement requis est disponible
-    return any(eq in available_equipment for eq in exercise.equipment_required)
+    # Utiliser EquipmentService pour cohérence
+    from backend.equipment_service import EquipmentService
+    return EquipmentService.can_perform_exercise(exercise.equipment_required, {
+        equipment: {'available': True} for equipment in available_equipment
+    })
 
 # ===== ENDPOINTS PROGRAMMES =====
 

@@ -2804,6 +2804,22 @@ function renderMLToggle(exerciseId) {
     `;
 }
 
+// PHASE 2.2 : Indicateurs de confiance
+// Confiance ML
+function renderMLConfidence(confidence) {
+    if (!confidence || confidence === 1.0) return '';
+    
+    const level = confidence >= 0.8 ? 'high' : confidence >= 0.6 ? 'medium' : 'low';
+    const icon = { 'high': '🟢', 'medium': '🟡', 'low': '🔴' }[level];
+    const text = { 'high': 'Confiance élevée', 'medium': 'Confiance modérée', 'low': 'Confiance faible' }[level];
+    
+    return `
+        <div class="ml-confidence" title="${text}: ${Math.round(confidence * 100)}%">
+            ${icon} ${Math.round(confidence * 100)}%
+        </div>
+    `;
+}
+
 // Nouvelle fonction pour gérer le toggle
 function toggleMLAdjustment(exerciseId) {
     const newState = !currentWorkoutSession.mlSettings[exerciseId].autoAdjust;
@@ -2873,8 +2889,9 @@ function renderMLExplanation(recommendation) {
     `;
 }
 
-// Ajouter à l'historique ML
-function addToMLHistory(exerciseId, setNumber, recommendation, accepted = null) {
+
+// Historique ML
+function addToMLHistory(exerciseId, recommendation) {
     if (!currentWorkoutSession.mlHistory) {
         currentWorkoutSession.mlHistory = {};
     }
@@ -2883,21 +2900,14 @@ function addToMLHistory(exerciseId, setNumber, recommendation, accepted = null) 
         currentWorkoutSession.mlHistory[exerciseId] = [];
     }
     
-    // Limiter l'historique à 10 entrées pour performance
-    const history = currentWorkoutSession.mlHistory[exerciseId];
-    if (history.length >= 10) {
-        history.shift(); // Supprimer la plus ancienne
-    }
-    
-    history.push({
-        setNumber,
-        timestamp: new Date().toISOString(),
-        weight: recommendation.weight_recommendation,
-        reps: recommendation.reps_recommendation,
-        change: recommendation.weight_change,
-        reason: recommendation.reasoning,
-        confidence: recommendation.confidence,
-        accepted: accepted  // null = pas encore validé, true/false après
+    currentWorkoutSession.mlHistory[exerciseId].push({
+        setNumber: currentSet,
+        timestamp: new Date(),
+        weight: recommendation.weight_recommendation || recommendation.weight,
+        reps: recommendation.reps_recommendation || recommendation.reps,
+        confidence: recommendation.confidence || 0,
+        reasoning: recommendation.reasoning || "Recommandation standard",
+        accepted: null
     });
 }
 
@@ -2965,49 +2975,71 @@ function getConfidenceIcon(confidence) {
     return '🔴';
 }
 
+// Toggle historique ML
 function toggleMLHistory() {
     const timeline = document.getElementById('mlHistoryTimeline');
-    const icon = document.querySelector('.ml-history-header .toggle-icon');
+    const icon = document.querySelector('.toggle-icon');
     
     if (timeline.style.display === 'none') {
         timeline.style.display = 'block';
-        icon.classList.add('rotated');
+        icon.textContent = '▲';
+        updateMLHistoryDisplay();
     } else {
         timeline.style.display = 'none';
-        icon.classList.remove('rotated');
+        icon.textContent = '▼';
     }
 }
 
-// Enregistrer la décision de l'utilisateur
+// Enregistrer décision ML
 function recordMLDecision(exerciseId, setNumber, accepted) {
-    const history = currentWorkoutSession.mlHistory?.[exerciseId];
-    if (!history) return;
+    if (!currentWorkoutSession.mlHistory?.[exerciseId]) return;
     
-    // Trouver l'entrée correspondante
-    const entry = history.find(h => h.setNumber === setNumber);
-    if (entry) {
-        entry.accepted = accepted;
+    const history = currentWorkoutSession.mlHistory[exerciseId];
+    const lastEntry = history[history.length - 1];
+    if (lastEntry) {
+        lastEntry.accepted = accepted;
     }
     
-    // Optionnel : Envoyer au backend pour apprentissage
-    if (window.navigator.onLine) {
-        apiPost('/api/ml/feedback', {
-            user_id: currentUser.id,
-            exercise_id: exerciseId,
-            set_number: setNumber,
-            recommendation_accepted: accepted,
-            ml_confidence: entry?.confidence,
-            reason: entry?.reason
-        }).catch(err => console.log('Feedback ML non envoyé:', err));
-    }
+    // Optionnel : envoyer au backend pour apprentissage
+    apiPost(`/api/ml/feedback`, {
+        exercise_id: exerciseId,
+        set_number: setNumber,
+        recommendation: lastEntry,
+        accepted: accepted
+    }).catch(err => console.warn('ML feedback failed:', err));
 }
 
-// Mettre à jour l'affichage de l'historique
+// Mettre à jour l'affichage de l'historique ML
 function updateMLHistoryDisplay() {
-    const historyContainer = document.getElementById('mlHistoryContainer');
-    if (historyContainer && currentExercise?.id) {
-        historyContainer.innerHTML = renderMLHistory(currentExercise.id);
+    const timeline = document.getElementById('mlHistoryTimeline');
+    const countSpan = document.querySelector('.history-count');
+    
+    if (!currentWorkoutSession.mlHistory?.[currentExercise.id]) {
+        timeline.innerHTML = '<p class="history-more">Aucun ajustement IA pour cet exercice</p>';
+        countSpan.textContent = '(0)';
+        return;
     }
+    
+    const history = currentWorkoutSession.mlHistory[currentExercise.id];
+    countSpan.textContent = `(${history.length})`;
+    
+    timeline.innerHTML = history.map(item => `
+        <div class="ml-history-item ${item.accepted === null ? 'pending' : item.accepted ? 'accepted' : 'modified'}">
+            <div class="history-header">
+                <span class="set-num">Série ${item.setNumber}</span>
+                <span class="history-time">À l'instant</span>
+            </div>
+            <div class="history-content">
+                <span class="history-weight">${item.weight}kg</span>
+                <span class="history-reps">× ${item.reps}</span>
+                <span class="history-confidence" title="Confiance: ${Math.round(item.confidence * 100)}%">
+                    ${item.confidence >= 0.8 ? '🟢' : item.confidence >= 0.6 ? '🟡' : '🔴'}
+                </span>
+            </div>
+            <div class="history-reason">${item.reasoning}</div>
+            ${item.accepted === false ? '<div class="override-badge">Modifié</div>' : ''}
+        </div>
+    `).join('');
 }
 
 function updateSeriesDots() {
@@ -3123,7 +3155,7 @@ async function updateSetRecommendations() {
         // Stocker les recommandations pour executeSet
         workoutState.currentRecommendation = recommendations;
 
-        // Vérifier si ML est désactivé pour cet exercice
+        // PHASE 2.2 : Vérifier si ML est désactivé pour cet exercice
         if (!currentWorkoutSession.mlSettings[currentExercise.id]?.autoAdjust) {
             // Mode manuel : utiliser les valeurs précédentes ou par défaut
             const lastSet = currentWorkoutSession.completedSets?.slice(-1)[0];
@@ -3137,38 +3169,58 @@ async function updateSetRecommendations() {
             recommendations.weight_change = "same";
         }
 
+        // PHASE 2.2 : Ajouter à l'historique ML
+        addToMLHistory(currentExercise.id, recommendations);
+
         // Déterminer le type d'exercice
         const exerciseType = getExerciseType(currentExercise);
 
         // Appliquer la configuration UI selon le type
-                await configureUIForExerciseType(exerciseType, recommendations);
+        await configureUIForExerciseType(exerciseType, recommendations);
 
-                // AJOUT PHASE 2.2 : Afficher l'explication ML si présente
-                const mlExplanationContainer = document.getElementById('mlExplanationContainer');
-                if (mlExplanationContainer) {
-                    // Ne montrer que si ML actif pour cet exercice
-                    if (currentWorkoutSession.mlSettings?.[currentExercise.id]?.autoAdjust !== false) {
-                        mlExplanationContainer.innerHTML = renderMLExplanation(recommendations);
-                        
-                        // Ajouter à l'historique
-                        addToMLHistory(currentExercise.id, currentSet, recommendations);
-                        
-                        // Animation d'apparition
-                        if (mlExplanationContainer.firstElementChild) {
-                            mlExplanationContainer.firstElementChild.style.animation = 'slideInFade 0.3s ease-out';
-                        }
-                    } else {
-                        mlExplanationContainer.innerHTML = '';
-                    }
-                }
+        // PHASE 2.2 : Afficher l'explication ML
+        const mlExplanationContainer = document.getElementById('mlExplanationContainer');
+        if (mlExplanationContainer && recommendations.reasoning && 
+            recommendations.reasoning !== "Conditions normales" && 
+            recommendations.reasoning !== "Mode manuel activé") {
+            mlExplanationContainer.innerHTML = renderMLExplanation(recommendations);
+            mlExplanationContainer.style.display = 'block';
+        } else if (mlExplanationContainer) {
+            mlExplanationContainer.style.display = 'none';
+        }
 
-                // Mettre à jour l'historique si visible
-                updateMLHistoryDisplay();
+        // PHASE 2.2 : Afficher toggle ML
+        const mlToggleContainer = document.getElementById('mlToggleContainer');
+        if (mlToggleContainer) {
+            mlToggleContainer.innerHTML = renderMLToggle(currentExercise.id);
+            mlToggleContainer.style.display = 'block';
+        }
 
-            } catch (error) {
-                console.error('Erreur recommandations ML:', error);
-            }
+        // PHASE 2.2 : Afficher indicateur de confiance
+        const mlConfidenceContainer = document.getElementById('mlConfidenceContainer');
+        if (mlConfidenceContainer && recommendations.confidence < 0.95) {
+            mlConfidenceContainer.innerHTML = renderMLConfidence(recommendations.confidence);
+            mlConfidenceContainer.style.display = 'block';
+        } else if (mlConfidenceContainer) {
+            mlConfidenceContainer.style.display = 'none';
+        }
 
+        // PHASE 2.2 : Mettre à jour l'historique ML si affiché
+        updateMLHistoryDisplay();
+
+    } catch (error) {
+        console.error('Erreur recommandations ML:', error);
+        
+        // Fallback sur valeurs par défaut
+        const exerciseType = getExerciseType(currentExercise);
+        applyDefaultValues(currentExercise);
+        
+        // Masquer les composants ML en cas d'erreur
+        ['mlExplanationContainer', 'mlToggleContainer', 'mlConfidenceContainer'].forEach(id => {
+            const container = document.getElementById(id);
+            if (container) container.style.display = 'none';
+        });
+    }
 }
 
 // Fonction helper pour déterminer le type d'exercice

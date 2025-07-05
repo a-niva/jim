@@ -353,38 +353,125 @@
             </div>
             
             <!-- Exercice en cours -->                
-<div class="current-exercise" id="currentExercise" style="display: none;">
-    <!-- Header minimaliste -->
-    <div class="exercise-header-modern">
-        <div class="exercise-title-section">
-            <h2 id="exerciseName">Nom de l'exercice</h2>
-            <p class="exercise-instructions" id="exerciseInstructions"></p>
-        </div>
-        <div class="exercise-actions">
-            <button class="btn-change-exercise" onclick="changeExercise()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 3v6h-6M3 21v-6h6M15 3a9 9 0 00-9 9M9 21a9 9 0 009-9"/>
-                </svg>
-                <span>Changer d'exercice</span>
-            </button>
-        </div>
-    </div>
-    
-    <!-- Carte principale unifiée -->
-    <div class="workout-card">
-        <!-- Progression des séries -->
-        <div class="series-dots">
-            <span class="dot active"></span>
-            <span class="dot"></span>
-            <span class="dot"></span>
-        </div>
-        
-        <!-- Zone d'input moderne avec IA intégrée -->
-        <div class="input-section">
-            <!-- Poids -->
-            <div class="input-row">
-                <span class="input-icon">💪</span>
-                <button class="stepper-modern" onclick="adjustWeightDown()">−</button>
+            <div class="current-exercise" id="currentExercise" style="display: none;">
+                <!-- Header minimaliste -->
+                <div class="exercise-header-modern">
+                    <div class="exercise-title-section">
+                        <h2 id="exerciseName">Nom de l'exercice</h2>
+                        <p class="exercise-instructions" id="exerciseInstructions"></p>
+                    </div>
+                    <div class="exercise-actions">
+                        <button class="btn-change-exercise" onclick="changeExercise()">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 3v6h-6M3 21v-6h6M15 3a9 9 0 00-9 9M9 21a9 9 0 009-9"/>
+                            </svg>
+                            <span>Changer d'exercice</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- PHASE 2.2 : Toggle ML -->
+                <div id="mlToggleContainer" style="display: none;"></div>
+                
+                <!-- PHASE 2.2 : Explication ML -->
+                <div id="mlExplanationContainer" style="display: none;"></div>
+                
+                <!-- Carte principale unifiée -->
+                <div class="workout-card">
+                    <!-- Progression des séries -->
+                    <div class="series-dots">
+                        <span class="dot active"></span>
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                    </div>
+                    
+                    <!-- PHASE 2.2 : Indicateur de confiance -->
+                    <div id="mlConfidenceContainer" style="display: none;"></div>
+                    
+                    <!-- Zone d'input moderne avec IA intégrée -->
+                    <div class="input-section">
+                        <!-- Poids -->
+                        <div class="input-row">
+                            <span class="input-icon">💪</span>
+                            <button class="stepper-modern" onclick="adjustWeightDown()">−</button>
+                            <div class="value-display">
+                                <span id="setWeight" class="value">20</span>
+                                <span class="unit">kg</span>
+                                <div class="ai-hint" id="weightHint">IA: 20kg</div>
+                            </div>
+                            <button class="stepper-modern" onclick="adjustWeightUp()">+</button>
+                        </div>
+                        
+                        <!-- Répétitions -->
+                        <div class="input-row">
+                            <span class="input-icon">🔢</span>
+                            <button class="stepper-modern" onclick="adjustRepsDown()">−</button>
+                            <div class="value-display">
+                                <span id="setReps" class="value">10</span>
+                                <span class="unit">reps</span>
+                                <div class="ai-hint" id="repsHint">IA: 10</div>
+                            </div>
+                            <button class="stepper-modern" onclick="adjustRepsUp()">+</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Action principale -->
+                    <button id="executeSetBtn" class="action-btn" onclick="executeSet()">
+                        <span class="btn-content">
+                            <span class="btn-icon">🚀</span>
+                            <span class="btn-text">GO!</span>
+                        </span>
+                    </button>
+                    
+                    <!-- Feedback après série -->
+                    <div id="setFeedback" class="set-feedback" style="display: none;">
+                        <h3>Comment s'est passée cette série ?</h3>
+                        
+                        <!-- Fatigue -->
+                        <div class="feedback-section">
+                            <h4>💧 Fatigue ressentie</h4>
+                            <div class="feedback-options">
+                                <button class="emoji-btn" data-fatigue="1" onclick="selectFatigue(this, 1)">😎</button>
+                                <button class="emoji-btn" data-fatigue="2" onclick="selectFatigue(this, 2)">🙂</button>
+                                <button class="emoji-btn" data-fatigue="3" onclick="selectFatigue(this, 3)">😐</button>
+                                <button class="emoji-btn" data-fatigue="4" onclick="selectFatigue(this, 4)">😓</button>
+                                <button class="emoji-btn" data-fatigue="5" onclick="selectFatigue(this, 5)">🥵</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Effort -->
+                        <div class="feedback-section">
+                            <h4>🎯 Effort fourni</h4>
+                            <div class="feedback-options">
+                                <button class="emoji-btn" data-effort="1" onclick="selectEffort(this, 1)">💤</button>
+                                <button class="emoji-btn" data-effort="2" onclick="selectEffort(this, 2)">😌</button>
+                                <button class="emoji-btn" data-effort="3" onclick="selectEffort(this, 3)">💪</button>
+                                <button class="emoji-btn" data-effort="4" onclick="selectEffort(this, 4)">🔥</button>
+                                <button class="emoji-btn" data-effort="5" onclick="selectEffort(this, 5)">🌋</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- PHASE 2.2 : Historique ML -->
+                <div id="mlHistoryContainer" style="display: none;">
+                    <div class="ml-history-container">
+                        <div class="ml-history-header" onclick="toggleMLHistory()">
+                            <h4>Historique IA <span class="history-count">(0)</span></h4>
+                            <span class="toggle-icon">▼</span>
+                        </div>
+                        <div id="mlHistoryTimeline" class="ml-history-timeline" style="display: none;"></div>
+                    </div>
+                </div>
+                
+                <!-- Historique minimaliste -->
+                <div class="history-minimal" id="setsHistory"></div>
+                
+                <!-- Liste des exercices programmés (visible seulement en mode programme) -->
+                <div class="program-exercises-container" id="programExercisesContainer" style="display: none;">
+                    <!-- Tout le contenu sera généré dynamiquement par JavaScript -->
+                </div>
+            </div>
                 <div class="value-display">
                     <span id="setWeight">20</span>
                     <span class="unit">kg</span>
