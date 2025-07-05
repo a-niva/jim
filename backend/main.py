@@ -431,7 +431,20 @@ def can_perform_exercise(exercise: Exercise, available_equipment: List[str]) -> 
     """Vérifier si un exercice peut être effectué avec l'équipement disponible"""
     if not exercise.equipment_required:
         return True
-    return EquipmentService.can_perform_exercise(exercise, available_equipment)
+    
+    # Convertir la liste en set pour performance
+    available_set = set(available_equipment)
+    
+    # Vérifier qu'au moins un équipement requis est disponible
+    for eq in exercise.equipment_required:
+        if eq in available_set:
+            return True
+            
+        # Mapping spécial banc
+        if eq.startswith('bench_') and 'bench_flat' in available_set:
+            return True
+    
+    return False
 
 # ===== ENDPOINTS PROGRAMMES =====
 

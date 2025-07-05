@@ -1,7 +1,7 @@
 from typing import List, Dict, Set
 import logging
 from sqlalchemy.orm import Session
-from .models import User, Exercise  
+from .models import User, Exercise
 
 logger = logging.getLogger(__name__)
 
@@ -233,13 +233,10 @@ class EquipmentService:
         return sorted(list(combinations))
         
     @classmethod
-    def can_perform_exercise(exercise: Exercise, available_equipment: List[str]) -> bool:
+    def can_perform_exercise(cls, exercise: Exercise, available_equipment: List[str]) -> bool:
         """Vérifier si un exercice peut être effectué avec l'équipement disponible"""
         if not exercise.equipment_required:
             return True  # Pas d'équipement requis = toujours possible
-        
-        # NOUVEAU : Utiliser EquipmentService pour cohérence
-        from backend.equipment_service import EquipmentService
         
         # Convertir la liste en set pour performance
         available_set = set(available_equipment)
