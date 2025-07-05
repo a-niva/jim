@@ -539,13 +539,13 @@ def get_next_intelligent_session(user_id: int, db: Session = Depends(get_db)):
         
         # Appels ML avec fallbacks
         try:
-            muscle_readiness = recovery_tracker.get_muscle_readiness(user)
+            muscle_readiness = recovery_tracker.get_muscle_readiness(user.id)
         except Exception as e:
             logger.warning(f"Recovery tracker failed: {e}")
             muscle_readiness = {}  # Fallback vide
             
         try:
-            volume_deficit = volume_optimizer.get_volume_deficit(user)
+            volume_deficit = volume_optimizer.get_volume_deficit(user.id)
         except Exception as e:
             logger.warning(f"Volume optimizer failed: {e}")
             volume_deficit = {}  # Fallback vide

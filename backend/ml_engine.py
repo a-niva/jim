@@ -1858,7 +1858,14 @@ class ProgressionAnalyzer:
         if completed_at.tzinfo is None:
             completed_at = completed_at.replace(tzinfo=timezone.utc)
         
-        days_since = (now - completed_at).days
+        # Gérer les timezones de façon compatible
+        if latest_set.workout.completed_at.tzinfo is None:
+            # Si la DB datetime est naive, la rendre aware UTC
+            completed_at = latest_set.workout.completed_at.replace(tzinfo=timezone.utc)
+        else:
+            completed_at = latest_set.workout.completed_at
+            
+        days_since = (datetime.now(timezone.utc) - completed_at).days
         staleness = min(1.0, days_since / 7.0)
         return staleness
 
