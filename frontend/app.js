@@ -517,35 +517,53 @@ async function registerServiceWorker() {
 
 // ===== NAVIGATION =====
 function showView(viewName) {
-    // Vérifier qu'on a un utilisateur pour les vues qui en ont besoin
+    console.log(`🔍 showView(${viewName}) - currentUser:`, currentUser ? currentUser.name : 'UNDEFINED');
+
+    // MODIFIER : Gérer le cas où currentUser est perdu
     if (!currentUser && ['dashboard', 'stats', 'profile'].includes(viewName)) {
-        console.error('Pas d\'utilisateur chargé, retour à l\'accueil');
-        showHomePage();
-        return;
+        const savedUserId = localStorage.getItem('fitness_user_id');
+        if (savedUserId) {
+            // Recharger l'utilisateur de façon asynchrone
+            console.log('currentUser perdu, rechargement depuis localStorage...');
+            apiGet(`/api/users/${savedUserId}`)
+                .then(user => {
+                    currentUser = user;
+                    console.log('Utilisateur rechargé:', currentUser.name);
+                    // Relancer showView maintenant que currentUser est disponible
+                    showView(viewName);
+                })
+                .catch(error => {
+                    console.error('Impossible de recharger l\'utilisateur:', error);
+                    localStorage.removeItem('fitness_user_id');
+                    showHomePage();
+                });
+            return; // Sortir et attendre le rechargement
+        } else {
+            console.error('Pas d\'utilisateur chargé, retour à l\'accueil');
+            showHomePage();
+            return;
+        }
     }
-    // Masquer toutes les vues
+    
+    // GARDER : Reste du code exactement identique
     document.querySelectorAll('.view, .onboarding').forEach(el => {
         el.classList.remove('active');
     });
     
-    // Mettre à jour la navigation
     document.querySelectorAll('.nav-item').forEach(el => {
         el.classList.remove('active');
     });
     
-    // Afficher la vue demandée
     const view = document.getElementById(viewName);
     if (view) {
         view.classList.add('active');
     }
     
-    // Marquer l'item de navigation actif
     const navItem = document.querySelector(`[onclick="showView('${viewName}')"]`);
     if (navItem) {
         navItem.classList.add('active');
     }
     
-    // Charger le contenu spécifique à la vue
     switch (viewName) {
         case 'dashboard':
             loadDashboard();
@@ -554,7 +572,7 @@ function showView(viewName) {
             loadStats();
             break;
         case 'profile':
-            loadProfile();
+            loadProfile(); // VOTRE FONCTION RESTE INTACTE
             break;
     }
 }
