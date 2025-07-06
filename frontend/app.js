@@ -2953,7 +2953,7 @@ async function selectExercise(exercise, skipValidation = false) {
     document.getElementById('exerciseName').textContent = exercise.name;
     document.getElementById('exerciseInstructions').textContent = exercise.instructions || 'Effectuez cet exercice avec une forme correcte';
 
-    // AJOUT : Initialiser les settings ML pour cet exercice
+    // Initialiser les settings ML pour cet exercice
     if (!currentWorkoutSession.mlSettings) {
         currentWorkoutSession.mlSettings = {};
     }
@@ -2966,7 +2966,7 @@ async function selectExercise(exercise, skipValidation = false) {
         };
     }
 
-    // AJOUT : Afficher le toggle ML si exercice avec poids
+    // Afficher le toggle ML si exercice avec poids
     if (exercise.weight_type !== 'bodyweight' && exercise.exercise_type !== 'isometric') {
         const mlToggleHtml = renderMLToggle(exercise.id);
         const exerciseHeader = document.querySelector('#currentExercise .exercise-header');
@@ -3042,6 +3042,11 @@ function renderMLConfidence(confidence) {
 
 // Nouvelle fonction pour gérer le toggle
 function toggleMLAdjustment(exerciseId) {
+    // AJOUTER : Initialiser mlSettings si n'existe pas
+    if (!currentWorkoutSession.mlSettings) {
+        currentWorkoutSession.mlSettings = {};
+    }
+    
     if (!currentWorkoutSession.mlSettings[exerciseId]) {
         currentWorkoutSession.mlSettings[exerciseId] = {};
     }
@@ -3050,6 +3055,18 @@ function toggleMLAdjustment(exerciseId) {
     const currentState = currentWorkoutSession.mlSettings[exerciseId].autoAdjust ?? 
                         currentUser.prefer_weight_changes_between_sets;
     currentWorkoutSession.mlSettings[exerciseId].autoAdjust = !currentState;
+    
+    // AJOUTER : Forcer la mise à jour visuelle du toggle
+    const toggle = document.getElementById('mlToggle');
+    if (toggle) {
+        toggle.checked = !currentState;
+    }
+    
+    // AJOUTER : Mettre à jour le texte du statut immédiatement
+    const aiStatusEl = document.getElementById('aiStatus');
+    if (aiStatusEl) {
+        aiStatusEl.textContent = !currentState ? 'Actif' : 'Inactif';
+    }
     
     // Synchroniser tous les toggles
     syncMLToggles();
@@ -5961,6 +5978,11 @@ function startRestPeriod(customTime = null, isMLRecommendation = false) {
     document.getElementById('setFeedback').style.display = 'block';
     document.getElementById('restPeriod').style.display = 'flex';
     
+    // AJOUTER : Cacher spécifiquement les sections de feedback pendant le repos
+    document.querySelectorAll('.feedback-section-modern').forEach(section => {
+        section.style.display = 'none';
+    });
+    
     // Cacher les inputs pendant le repos
     const inputSection = document.querySelector('.input-section');
     if (inputSection) {
@@ -6552,16 +6574,20 @@ function validateSessionState(skipExerciseCheck = false) {
 
 // ===== FIN DE SÉRIE =====
 function completeRest() {
-    // CORRECTION: Calculer et accumuler le temps de repos réel
+    // Rétablir les sections de feedback pour la série suivante
+    document.querySelectorAll('.feedback-section-modern').forEach(section => {
+        section.style.display = 'block';
+    });
+    // Calculer et accumuler le temps de repos réel
     if (workoutState.restStartTime) {
         const actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
         currentWorkoutSession.totalRestTime += actualRestTime;
         
-        // NOUVEAU : Enregistrer le temps de repos réel pour les futures recommandations ML
+        // Enregistrer le temps de repos réel pour les futures recommandations ML
         currentWorkoutSession.lastActualRestDuration = actualRestTime;
         console.log(`Repos réel enregistré : ${actualRestTime}s`);
         
-        // NOUVEAU : Mettre à jour la dernière série sauvegardée avec la durée réelle
+        // Mettre à jour la dernière série sauvegardée avec la durée réelle
         if (currentWorkoutSession.completedSets.length > 0) {
             const lastSetId = currentWorkoutSession.completedSets[currentWorkoutSession.completedSets.length - 1].id;
             if (lastSetId) {
