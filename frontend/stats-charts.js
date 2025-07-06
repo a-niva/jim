@@ -1,4 +1,5 @@
 // ===== frontend/stats-charts.js - GESTION DES GRAPHIQUES STATS =====
+import { apiGet, apiPost, apiPut } from './api.js';
 
 // Import des couleurs musculaires
 // Utiliser les fonctions depuis window car muscle-colors.js les expose globalement
@@ -31,7 +32,7 @@ function getSafeMuscleColor(muscle) {
     return window.MuscleColors.getMuscleColor(muscle) || '#94a3b8';
 }
 
-export async function initStatsCharts(userId, user) {
+async function initStatsCharts(userId, user) {
     if (!userId) return;
     
     // Stocker la référence à l'utilisateur
@@ -148,7 +149,7 @@ async function loadTabCharts(userId, tabName) {
 // ===== HELPERS =====
 async function checkUserHasData(userId) {
     try {
-        const stats = await window.apiGet(`/api/users/${userId}/stats`);
+        const stats = await apiGet(`/api/users/${userId}/stats`);
         return stats.total_workouts > 0;
     } catch (error) {
         console.error('Erreur vérification données:', error);
@@ -158,7 +159,7 @@ async function checkUserHasData(userId) {
 
 async function loadExercisesList(userId) {
     try {
-        const records = await window.apiGet(`/api/users/${userId}/stats/personal-records`);
+        const records = await apiGet(`/api/users/${userId}/stats/personal-records`);
         const selector = document.getElementById('exerciseSelector');
         
         selector.innerHTML = '<option value="">Sélectionner un exercice...</option>';
@@ -191,7 +192,7 @@ async function loadExercisesList(userId) {
 // ===== GRAPHIQUE 1: PROGRESSION 1RM =====
 async function loadProgressionChart(userId, exerciseId) {
     try {
-        const data = await window.apiGet(`/api/users/${userId}/stats/progression/${exerciseId}`);
+        const data = await apiGet(`/api/users/${userId}/stats/progression/${exerciseId}`);
         
         if (!data.data || data.data.length === 0) {
             document.getElementById('progressionInfo').innerHTML = 
@@ -419,7 +420,7 @@ async function loadProgressionChart(userId, exerciseId) {
 // ===== GRAPHIQUE 4: RECORDS PERSONNELS =====
 async function loadRecordsWaterfall(userId) {
     try {
-        const records = await window.apiGet(`/api/users/${userId}/stats/personal-records`);
+        const records = await apiGet(`/api/users/${userId}/stats/personal-records`);
         
         const container = document.getElementById('recordsWaterfall');
         if (!records || records.length === 0) {
@@ -463,7 +464,7 @@ async function loadRecordsWaterfall(userId) {
 // ===== GRAPHIQUE 5: CALENDRIER D'ASSIDUITÉ =====
 async function loadAttendanceCalendar(userId) {
     try {
-        const data = await window.apiGet(`/api/users/${userId}/stats/attendance-calendar`);
+        const data = await apiGet(`/api/users/${userId}/stats/attendance-calendar`);
         
         const container = document.getElementById('attendanceCalendar');
         container.innerHTML = '';
@@ -563,7 +564,7 @@ async function loadAttendanceCalendar(userId) {
 // ===== GRAPHIQUE 7: BURNDOWN VOLUME =====
 async function loadVolumeBurndownChart(userId, period) {
     try {
-        const data = await window.apiGet(`/api/users/${userId}/stats/volume-burndown/${period}`);
+        const data = await apiGet(`/api/users/${userId}/stats/volume-burndown/${period}`);
         
         const ctx = document.getElementById('volumeBurndownChart').getContext('2d');
         
@@ -669,7 +670,7 @@ async function loadVolumeBurndownChart(userId, period) {
 // ===== GRAPHIQUE 9: SUNBURST VOLUME MUSCULAIRE =====
 async function loadMuscleSunburst(userId) {
     try {
-        const data = await window.apiGet(`/api/users/${userId}/stats/muscle-sunburst`);
+        const data = await apiGet(`/api/users/${userId}/stats/muscle-sunburst`);
         
         const container = document.getElementById('muscleSunburst');
         
@@ -773,7 +774,7 @@ async function loadMuscleSunburst(userId) {
 // ===== GRAPHIQUE 10: GANTT RÉCUPÉRATION =====
 async function loadRecoveryGantt(userId) {
     try {
-        const data = await window.apiGet(`/api/users/${userId}/stats/recovery-gantt`);
+        const data = await apiGet(`/api/users/${userId}/stats/recovery-gantt`);
         
         const container = document.getElementById('recoveryGantt');
         container.innerHTML = '';
@@ -829,7 +830,7 @@ async function loadRecoveryGantt(userId) {
 // ===== GRAPHIQUE 11: SPIDER ÉQUILIBRE MUSCULAIRE =====
 async function loadMuscleBalanceChart(userId) {
     try {
-        const data = await window.apiGet(`/api/users/${userId}/stats/muscle-balance`);
+        const data = await apiGet(`/api/users/${userId}/stats/muscle-balance`);
         
         const ctx = document.getElementById('muscleBalanceChart').getContext('2d');
         
@@ -939,7 +940,7 @@ async function loadMuscleBalanceChart(userId) {
 // ===== GRAPHIQUE 14: CONFIANCE ML =====
 async function loadMLConfidenceChart(userId) {
     try {
-        const data = await window.apiGet(`/api/users/${userId}/stats/ml-confidence`);
+        const data = await apiGet(`/api/users/${userId}/stats/ml-confidence`);
         
         if (!data.data || data.data.length === 0) {
             document.getElementById('mlStats').innerHTML = 
@@ -1036,7 +1037,7 @@ async function loadMLConfidenceChart(userId) {
 // ===== GRAPHIQUE 15: SANKEY AJUSTEMENTS ML =====
 async function loadMLSankeyDiagram(userId) {
     try {
-        const data = await window.apiGet(`/api/users/${userId}/stats/ml-adjustments-flow`);
+        const data = await apiGet(`/api/users/${userId}/stats/ml-adjustments-flow`);
         
         const container = document.getElementById('mlSankeyDiagram');
         
@@ -1120,7 +1121,7 @@ async function loadMLSankeyDiagram(userId) {
 // ===== GRAPHIQUE PROFIL SÉANCES =====
 async function loadIntensityRecoveryChart(userId) {
     try {
-        const data = await window.apiGet(`/api/users/${userId}/stats/workout-intensity-recovery`);
+        const data = await apiGet(`/api/users/${userId}/stats/workout-intensity-recovery`);
         
         if (!data.sessions || data.sessions.length === 0) {
             return;
