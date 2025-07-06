@@ -7254,6 +7254,12 @@ window.currentExercise = currentExercise;
 window.updateSetRecommendations = updateSetRecommendations;
 window.syncMLToggles = syncMLToggles;
 
+// ===== EXPOSITION GLOBALE TOTALE =====
+window.apiGet = apiGet;
+window.apiPost = apiPost;  
+window.apiPut = apiPut;
+window.apiDelete = apiDelete;
 window.loadStats = loadStats;
-window.loadProfile = loadProfile;  
+window.loadProfile = loadProfile;
 window.currentUser = currentUser;
+window.showView = showView;
