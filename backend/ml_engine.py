@@ -1307,22 +1307,37 @@ class VolumeOptimizer:
             # S'assurer qu'on ne retourne jamais None ou 0
             return max(1000, result) if result else 5000
     
-    def get_volume_deficit(self, user: User) -> Dict[str, float]:
+    def get_volume_deficit(self, user: User, muscle: str = None) -> Dict[str, float]:
         """Retourne les muscles en retard sur leur volume cible"""
         from backend.models import AdaptiveTargets
         
+        if muscle:
+            # Calcul pour un muscle spécifique (rétrocompatibilité)
+            target = self.db.query(AdaptiveTargets).filter(
+                AdaptiveTargets.user_id == user.id,
+                AdaptiveTargets.muscle_group == muscle
+            ).first()
+            
+            if not target or not target.target_volume:
+                return 0.0
+                
+            deficit = max(0, (target.target_volume - target.current_volume) / target.target_volume)
+            return min(1.0, deficit)
+        
+        # Calcul pour tous les muscles (comportement original)
         targets = self.db.query(AdaptiveTargets).filter(
             AdaptiveTargets.user_id == user.id
         ).all()
         
         deficits = {}
         for target in targets:
-            if target.target_volume and target.target_volume > 0:  # Vérifier None d'abord
-                deficit = (target.target_volume - target.current_volume) / target.target_volume
-                if deficit > 0.2:  # Plus de 20% de retard
-                    deficits[target.muscle_group] = deficit
+            if target.target_volume and target.target_volume > 0:
+                deficit = max(0, (target.target_volume - target.current_volume) / target.target_volume)
+                deficits[target.muscle_group] = min(1.0, deficit)
+            else:
+                deficits[target.muscle_group] = 0.0
         
-        return dict(sorted(deficits.items(), key=lambda x: x[1], reverse=True))
+        return deficits
 
 class SessionBuilder:
     """Module 3 : Construction de séance pure"""

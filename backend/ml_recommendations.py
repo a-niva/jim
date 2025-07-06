@@ -17,8 +17,16 @@ logger = logging.getLogger(__name__)
 
 def safe_timedelta_hours(dt_aware, dt_maybe_naive):
     """Calcule la différence en heures en gérant les timezones"""
+    # Gérer tous les cas de timezone
+    if dt_aware.tzinfo is None:
+        dt_aware = dt_aware.replace(tzinfo=timezone.utc)
     if dt_maybe_naive.tzinfo is None:
         dt_maybe_naive = dt_maybe_naive.replace(tzinfo=timezone.utc)
+    
+    # S'assurer que les deux sont dans la même timezone
+    if dt_aware.tzinfo != dt_maybe_naive.tzinfo:
+        dt_maybe_naive = dt_maybe_naive.astimezone(dt_aware.tzinfo)
+    
     return (dt_aware - dt_maybe_naive).total_seconds() / 3600
 
 class FitnessRecommendationEngine:

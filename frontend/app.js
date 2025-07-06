@@ -3040,49 +3040,45 @@ function renderMLConfidence(confidence) {
     `;
 }
 
-// Nouvelle fonction pour gérer le toggle
+// Fonction pour gérer le toggle
 function toggleMLAdjustment(exerciseId) {
-    // AJOUTER : Initialiser mlSettings si n'existe pas
     if (!currentWorkoutSession.mlSettings) {
         currentWorkoutSession.mlSettings = {};
     }
     
     if (!currentWorkoutSession.mlSettings[exerciseId]) {
-        currentWorkoutSession.mlSettings[exerciseId] = {};
+        currentWorkoutSession.mlSettings[exerciseId] = {
+            autoAdjust: currentUser.prefer_weight_changes_between_sets
+        };
     }
     
-    // Inverser l'état
-    const currentState = currentWorkoutSession.mlSettings[exerciseId].autoAdjust ?? 
-                        currentUser.prefer_weight_changes_between_sets;
-    currentWorkoutSession.mlSettings[exerciseId].autoAdjust = !currentState;
+    // CORRECTION : Inverser l'état correctement
+    const currentState = currentWorkoutSession.mlSettings[exerciseId].autoAdjust;
+    const newState = !currentState;
+    currentWorkoutSession.mlSettings[exerciseId].autoAdjust = newState;
     
-    // AJOUTER : Forcer la mise à jour visuelle du toggle
-    const toggle = document.getElementById('mlToggle');
+    // CORRECTION : Forcer la mise à jour visuelle
+    const toggle = document.getElementById(`mlToggle-${exerciseId}`);
+    const mainToggle = document.getElementById('mlToggle');
+    
     if (toggle) {
-        toggle.checked = !currentState;
+        toggle.checked = newState;
+    }
+    if (mainToggle) {
+        mainToggle.checked = newState;
     }
     
-    // AJOUTER : Mettre à jour le texte du statut immédiatement
+    // CORRECTION : Mettre à jour le texte immédiatement
     const aiStatusEl = document.getElementById('aiStatus');
     if (aiStatusEl) {
-        aiStatusEl.textContent = !currentState ? 'Actif' : 'Inactif';
+        aiStatusEl.textContent = newState ? 'Actif' : 'Inactif';
     }
     
-    // Synchroniser tous les toggles
+    // Synchroniser tous les éléments UI
     syncMLToggles();
-    
-    // Mettre à jour l'affichage
     updateSetRecommendations();
     
-    // Tracker la modification (vérifier que ModificationTracker existe)
-    if (typeof ModificationTracker !== 'undefined' && ModificationTracker.track) {
-        ModificationTracker.track('ml_toggle', {
-            exercise_id: exerciseId,
-            new_state: !currentState
-        });
-    }
-    
-    showToast(`Ajustement IA ${!currentState ? 'activé' : 'désactivé'}`, 'info');
+    showToast(`Ajustement IA ${newState ? 'activé' : 'désactivé'}`, 'info');
 }
 
 // === PHASE 2.2 : VISUALISATION TRANSPARENTE ML ===
@@ -3373,7 +3369,18 @@ async function updateSetRecommendations() {
     }
 
     try {
-        // Obtenir les recommandations ML
+        // ENRICHIR les données envoyées au ML avec l'historique de cette séance
+        const sessionSets = currentWorkoutSession.completedSets.filter(s => s.exercise_id === currentExercise.id);
+        const sessionHistory = sessionSets.map(set => ({
+            weight: set.weight,
+            reps: set.reps,
+            fatigue_level: set.fatigue_level,
+            effort_level: set.effort_level,
+            set_number: set.set_number,
+            actual_rest_duration: set.actual_rest_duration_seconds
+        }));
+
+        // Obtenir les recommandations ML avec contexte de séance
         const recommendations = await apiPost(`/api/workouts/${currentWorkout.id}/recommendations`, {
             exercise_id: currentExercise.id,
             set_number: currentSet,
@@ -3381,11 +3388,15 @@ async function updateSetRecommendations() {
             previous_effort: currentSet > 1 ? currentWorkoutSession.currentSetEffort : null,
             exercise_order: currentWorkoutSession.exerciseOrder,
             set_order_global: currentWorkoutSession.globalSetCount + 1,
-            last_rest_duration: currentWorkoutSession.lastActualRestDuration
+            last_rest_duration: currentWorkoutSession.lastActualRestDuration,
+            session_history: sessionHistory,
+            completed_sets_this_exercise: sessionSets.length
         });
 
         // Stocker TOUTES les recommandations pour utilisation ultérieure
         workoutState.currentRecommendation = recommendations;
+        //Sauvegarder pour calcul de précision au prochain set
+        workoutState.lastRecommendation = workoutState.currentRecommendation || null;
         
         // Afficher le temps de repos recommandé dans l'interface si disponible
         if (recommendations.rest_seconds_recommendation) {
@@ -3405,16 +3416,59 @@ async function updateSetRecommendations() {
         if (aiStatusEl && currentExercise) {
             const mlSettings = currentWorkoutSession.mlSettings?.[currentExercise.id];
             const isActive = mlSettings?.autoAdjust ?? currentUser.prefer_weight_changes_between_sets;
-            const confidence = recommendations.confidence || 0;
             
-            if (!isActive) {
-                aiStatusEl.textContent = 'Inactif';
-            } else {
+            // ✅ CALCUL DYNAMIQUE de confiance qui évolue pendant la séance
+            let confidence = recommendations.confidence || 0.5; // Base backend
+            
+            if (isActive) {
+                // ✅ Bonus confiance selon séries accomplies sur cet exercice cette séance
+                const completedSetsThisExercise = currentWorkoutSession.completedSets.filter(
+                    s => s.exercise_id === currentExercise.id
+                ).length;
+                
+                if (completedSetsThisExercise > 0) {
+                    // +8% par série complétée, max +32% (4 séries)
+                    const sessionBonus = Math.min(0.32, completedSetsThisExercise * 0.08);
+                    confidence = Math.min(0.95, confidence + sessionBonus);
+                    
+                    // ✅ Bonus supplémentaire si les recommandations sont précises
+                    const lastSet = currentWorkoutSession.completedSets
+                        .filter(s => s.exercise_id === currentExercise.id)
+                        .slice(-1)[0];
+                        
+                    if (lastSet && workoutState.lastRecommendation) {
+                        const weightAccuracy = lastSet.weight ? 
+                            Math.abs(lastSet.weight - workoutState.lastRecommendation.weight_recommendation) < 2.5 : true;
+                        const repsAccuracy = Math.abs(lastSet.reps - workoutState.lastRecommendation.reps_recommendation) <= 2;
+                        
+                        if (weightAccuracy && repsAccuracy) {
+                            confidence = Math.min(0.95, confidence + 0.1); // +10% si précis
+                        }
+                    }
+                }
+                
                 aiStatusEl.textContent = 'Actif';
+            } else {
+                aiStatusEl.textContent = 'Inactif';
+                confidence = 1.0; // Mode manuel = confiance totale
             }
             
             if (aiConfidenceEl) {
-                aiConfidenceEl.textContent = Math.round(confidence * 100);
+                const confidencePercent = Math.round(confidence * 100);
+                
+                // ✅ Animation si amélioration significative
+                const previousConfidence = parseInt(aiConfidenceEl.getAttribute('data-previous') || '50');
+                if (confidencePercent > previousConfidence + 5) {
+                    aiConfidenceEl.style.color = 'var(--success)';
+                    aiConfidenceEl.style.fontWeight = '700';
+                    setTimeout(() => {
+                        aiConfidenceEl.style.color = '';
+                        aiConfidenceEl.style.fontWeight = '';
+                    }, 1500);
+                }
+                
+                aiConfidenceEl.textContent = confidencePercent;
+                aiConfidenceEl.setAttribute('data-previous', confidencePercent);
             }
         }
 
@@ -3440,6 +3494,11 @@ async function updateSetRecommendations() {
 
         // Appliquer la configuration UI selon le type
         await configureUIForExerciseType(exerciseType, recommendations);
+        // AFFICHAGE différentiel des recommandations
+        displayRecommendationChanges(recommendations);
+
+        // MISE À JOUR des détails IA pour debug
+        updateAIDetailsPanel(recommendations);
 
         // === NOUVELLE INTERFACE : Mise à jour des détails AI ===
         if (document.getElementById('aiWeightRec')) {
@@ -3507,6 +3566,56 @@ async function updateSetRecommendations() {
         if (aiStatusEl) {
             aiStatusEl.textContent = 'Erreur';
         }
+    }
+}
+
+// Affichage des changements de recommandations
+function displayRecommendationChanges(recommendations) {
+    if (!workoutState.lastRecommendation || currentSet === 1) return;
+    
+    const weightChange = recommendations.weight_recommendation - workoutState.lastRecommendation.weight_recommendation;
+    const repsChange = recommendations.reps_recommendation - workoutState.lastRecommendation.reps_recommendation;
+    
+    let changeMessage = '';
+    if (Math.abs(weightChange) >= 1) {
+        const direction = weightChange > 0 ? '↗️' : '↘️';
+        changeMessage += `Poids ${direction} ${Math.abs(weightChange).toFixed(1)}kg `;
+    }
+    if (Math.abs(repsChange) >= 1) {
+        const direction = repsChange > 0 ? '↗️' : '↘️';
+        changeMessage += `Reps ${direction} ${Math.abs(repsChange)} `;
+    }
+    
+    if (changeMessage) {
+        const reason = recommendations.reasoning || 'Ajustement basé sur fatigue/effort';
+        showToast(`🤖 IA: ${changeMessage.trim()} (${reason})`, 'info', 4000);
+    }
+}
+
+// Mise à jour panneau détails IA
+function updateAIDetailsPanel(recommendations) {
+    const aiWeightEl = document.getElementById('aiWeightRec');
+    const aiRepsEl = document.getElementById('aiRepsRec');
+    const aiStrategyEl = document.getElementById('aiStrategy');
+    const aiReasonEl = document.getElementById('aiReason');
+    
+    if (aiWeightEl) aiWeightEl.textContent = `${recommendations.weight_recommendation || '--'}kg`;
+    if (aiRepsEl) aiRepsEl.textContent = recommendations.reps_recommendation || '--';
+    if (aiStrategyEl) aiStrategyEl.textContent = recommendations.adaptation_strategy === 'fixed_weight' ? 'Poids fixe' : 'Progressif';
+    if (aiReasonEl) aiReasonEl.textContent = recommendations.reasoning || 'Recommandation standard';
+}
+
+// Toggle détails IA
+function toggleAIDetails() {
+    const panel = document.getElementById('aiDetailsPanel');
+    const button = document.querySelector('.ai-expand-btn svg');
+    
+    if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        button.style.transform = 'rotate(180deg)';
+    } else {
+        panel.style.display = 'none';
+        button.style.transform = 'rotate(0deg)';
     }
 }
 
@@ -5080,6 +5189,10 @@ async function loadProgramExercisesList() {
     if (!currentWorkoutSession.program) return;
     
     const container = document.getElementById('programExercisesContainer');
+    if (!container) {
+        console.warn('Container programExercisesContainer non trouvé');
+        return;
+    }
     
     try {
         // Récupérer les détails des exercices

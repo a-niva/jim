@@ -209,7 +209,7 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(db_user)
         
-        logger.info(f"✅ User créé avec ID: {db_user.id}")
+        logger.info(f"User créé avec ID: {db_user.id}")
         return db_user
     except Exception as e:
         logger.error(f"❌ Erreur création user: {str(e)}")
@@ -508,7 +508,7 @@ def get_program_status(user_id: int, db: Session = Depends(get_db)):
     sessions_this_week = db.query(Workout).filter(
         Workout.user_id == user_id,
         Workout.type == 'program',
-        Workout.started_at >= start_of_week  # ✅ CORRIGÉ
+        Workout.started_at >= start_of_week  # CORRIGÉ
     ).count()
     
     # Analyser la dernière séance pour les adaptations ML
@@ -1150,7 +1150,7 @@ def get_set_recommendations(
     request: Dict[str, Any], 
     db: Session = Depends(get_db)
 ):
-    """Obtenir des recommandations ML pour la prochaine série"""
+    """Obtenir des recommandations ML pour la prochaine série avec historique séance"""
     workout = db.query(Workout).filter(Workout.id == workout_id).first()
     if not workout:
         raise HTTPException(status_code=404, detail="Séance non trouvée")
@@ -1168,19 +1168,128 @@ def get_set_recommendations(
     from backend.ml_recommendations import FitnessRecommendationEngine
     ml_engine = FitnessRecommendationEngine(db)
     
-    recommendations = ml_engine.get_set_recommendations(
+    # NOUVEAU: Extraire les données de séance en cours
+    session_history = request.get('session_history', [])
+    completed_sets_count = request.get('completed_sets_this_exercise', 0)
+    set_number = request.get("set_number", 1)
+    current_fatigue = request.get("current_fatigue", 3)
+    previous_effort = request.get("previous_effort", 3)
+    
+    # Obtenir recommandations de base du ML
+    base_recommendations = ml_engine.get_set_recommendations(
         user=user,
         exercise=exercise,
-        set_number=request.get("set_number", 1),
-        current_fatigue=request.get("current_fatigue", 3),
-        current_effort=request.get("previous_effort", 3),
+        set_number=set_number,
+        current_fatigue=current_fatigue,
+        current_effort=previous_effort,
         last_rest_duration=request.get("last_rest_duration"),
         exercise_order=request.get("exercise_order", 1),
         set_order_global=request.get("set_order_global", 1),
         available_weights=available_weights
     )
     
-    return recommendations
+    # AJUSTEMENTS DYNAMIQUES basés sur l'historique de cette séance
+    if session_history and len(session_history) > 0:
+        # Analyser la tendance de cette séance
+        last_set = session_history[-1]
+        last_effort = last_set.get('effort_level', 3)
+        last_fatigue = last_set.get('fatigue_level', 3)
+        last_weight = last_set.get('weight', base_recommendations.get('weight_recommendation', 20))
+        
+        # Ajustement basé sur l'effort de la série précédente
+        weight_adjustment = 1.0
+        reason_parts = []
+        
+        if last_effort <= 2:  # Très facile
+            weight_adjustment = 1.08  # +8%
+            reason_parts.append(f"Série {len(session_history)} facile (effort {last_effort})")
+        elif last_effort >= 4:  # Difficile ou échec
+            weight_adjustment = 0.93  # -7%
+            reason_parts.append(f"Série {len(session_history)} difficile (effort {last_effort})")
+        
+        # Ajustement basé sur la fatigue cumulée
+        if last_fatigue >= 4 and len(session_history) >= 3:
+            weight_adjustment *= 0.95  # -5% supplémentaire si fatigue élevée
+            reason_parts.append("fatigue cumulée")
+        
+        # Appliquer les ajustements si significatifs
+        if abs(weight_adjustment - 1.0) > 0.02:  # Seuil 2%
+            original_weight = base_recommendations.get('weight_recommendation', last_weight)
+            adjusted_weight = original_weight * weight_adjustment
+            
+            # Arrondir au poids disponible le plus proche
+            if available_weights:
+                adjusted_weight = min(available_weights, key=lambda x: abs(x - adjusted_weight))
+            else:
+                adjusted_weight = round(adjusted_weight * 2) / 2  # Arrondir au 0.5kg
+            
+            base_recommendations['weight_recommendation'] = adjusted_weight
+            base_recommendations['reasoning'] = " + ".join(reason_parts) + f" → {original_weight:.1f}kg → {adjusted_weight:.1f}kg"
+            base_recommendations['weight_change'] = "increase" if adjusted_weight > original_weight else "decrease"
+        
+        # Ajustement des répétitions selon la progression
+        if len(session_history) >= 2:
+            # Si les 2 dernières séries étaient faciles, augmenter les reps
+            recent_efforts = [s.get('effort_level', 3) for s in session_history[-2:]]
+            if all(effort <= 2 for effort in recent_efforts):
+                original_reps = base_recommendations.get('reps_recommendation', 10)
+                base_recommendations['reps_recommendation'] = min(15, original_reps + 1)
+                if base_recommendations.get('reasoning'):
+                    base_recommendations['reasoning'] += " + reps +1"
+                else:
+                    base_recommendations['reasoning'] = "Séries récentes faciles → reps +1"
+    
+    # BOOST DE CONFIANCE selon l'historique de cette séance
+    base_confidence = base_recommendations.get('confidence', 0.5)
+    
+    if completed_sets_count > 0:
+        # +6% de confiance par série complétée, max +24% (4 séries)
+        confidence_boost = min(0.24, completed_sets_count * 0.06)
+        
+        # Bonus supplémentaire si cohérence dans les efforts
+        if len(session_history) >= 2:
+            efforts = [s.get('effort_level', 3) for s in session_history]
+            effort_variance = max(efforts) - min(efforts)
+            if effort_variance <= 1:  # Efforts cohérents
+                confidence_boost += 0.1
+        
+        # Malus si efforts très variables (prédictions difficiles)
+        elif len(session_history) >= 3:
+            efforts = [s.get('effort_level', 3) for s in session_history]
+            effort_variance = max(efforts) - min(efforts)
+            if effort_variance >= 3:  # Très variable
+                confidence_boost -= 0.05
+        
+        final_confidence = min(0.95, max(0.3, base_confidence + confidence_boost))
+        base_recommendations['confidence'] = round(final_confidence, 2)
+    
+    # NOUVEAU: Ajuster le temps de repos selon l'historique
+    if session_history and len(session_history) > 0:
+        last_rest = session_history[-1].get('actual_rest_duration', None)
+        base_rest = base_recommendations.get('rest_seconds_recommendation', 90)
+        
+        if last_rest:
+            # Si le repos précédent était très court et la série difficile
+            if last_rest < base_rest * 0.7 and session_history[-1].get('effort_level', 3) >= 4:
+                base_recommendations['rest_seconds_recommendation'] = min(120, int(base_rest * 1.2))
+                if base_recommendations.get('reasoning'):
+                    base_recommendations['reasoning'] += " + repos +20%"
+            
+            # Si repos très long mais série facile, raccourcir
+            elif last_rest > base_rest * 1.5 and session_history[-1].get('effort_level', 3) <= 2:
+                base_recommendations['rest_seconds_recommendation'] = max(45, int(base_rest * 0.85))
+                if base_recommendations.get('reasoning'):
+                    base_recommendations['reasoning'] += " + repos -15%"
+    
+    # LOGGING pour debug et amélioration continue
+    logger.info(f"Recommandations pour user {user.id}, exercise {exercise.id}, set {set_number}:")
+    logger.info(f"  Base: {base_recommendations.get('weight_recommendation')}kg x {base_recommendations.get('reps_recommendation')} reps")
+    logger.info(f"  Confiance: {base_recommendations.get('confidence', 0):.2f}")
+    logger.info(f"  Historique séance: {len(session_history)} séries")
+    if base_recommendations.get('reasoning'):
+        logger.info(f"  Raison: {base_recommendations['reasoning']}")
+    
+    return base_recommendations
 
 @app.put("/api/workouts/{workout_id}/fatigue")
 def update_workout_fatigue(
@@ -2387,3 +2496,32 @@ def refresh_user_stats(user_id: int, db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Erreur refresh stats: {e}")
         raise HTTPException(status_code=500, detail="Erreur lors de la mise à jour")
+    
+@app.post("/api/ml/feedback")
+def record_ml_feedback(
+    feedback_data: dict,
+    db: Session = Depends(get_db)
+):
+    """Enregistrer le feedback sur les recommandations ML"""
+    try:
+        # Validation des données reçues
+        required_fields = ['exercise_id', 'recommendation', 'accepted']
+        if not all(field in feedback_data for field in required_fields):
+            raise HTTPException(status_code=400, detail="Champs manquants")
+        
+        # Logs pour amélioration future du modèle
+        logger.info(f"ML feedback reçu:")
+        logger.info(f"  Exercise: {feedback_data['exercise_id']}")
+        logger.info(f"  Recommandation suivie: {feedback_data['accepted']}")
+        logger.info(f"  Données: {feedback_data['recommendation']}")
+        
+        # Ici on pourrait enrichir la base SetHistory avec le feedback
+        # Pour l'instant on accepte juste la requête
+        
+        return {"status": "success", "message": "Feedback ML enregistré"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erreur enregistrement ML feedback: {e}")
+        raise HTTPException(status_code=500, detail="Erreur serveur")
