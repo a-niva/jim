@@ -1831,12 +1831,25 @@ function isWorkoutComplete(workout) {
 
 function loadRecentWorkouts(workouts) {
     const container = document.getElementById('recentWorkouts');
+    if (!container) return;
 
     if (!workouts || workouts.length === 0) {
         container.innerHTML = `
             <div class="empty-workouts">
                 <p>Aucune séance récente</p>
                 <small>Commencez votre première séance !</small>
+            </div>
+        `;
+        return;
+    }
+
+    // Filtrer les séances avec au moins une série
+    const validWorkouts = workouts.filter(w => w.total_sets > 0);
+    if (validWorkouts.length === 0) {
+        container.innerHTML = `
+            <div class="empty-workouts">
+                <p>Aucune séance récente</p>
+                <small>Commencez une séance pour voir votre historique</small>
             </div>
         `;
         return;
@@ -2745,10 +2758,21 @@ async function confirmStartProgramWorkout() {
 }
 
 function setupFreeWorkout() {
-    document.getElementById('workoutTitle').textContent = '🕊️ Séance libre';
-    document.getElementById('exerciseSelection').style.display = 'block';
-    document.getElementById('currentExercise').style.display = 'none';
-    document.getElementById('programExercisesContainer').style.display = 'none';
+    // Supprimer ou commenter cette ligne qui cause l'erreur
+    // document.getElementById('workoutTitle').textContent = '🕊️ Séance libre';
+    
+    // Afficher les sections appropriées
+    const exerciseSelection = document.getElementById('exerciseSelection');
+    const currentExercise = document.getElementById('currentExercise');
+    const programExercisesContainer = document.getElementById('programExercisesContainer');
+    const workoutHeader = document.getElementById('workoutHeader');
+    const fatigueTracker = document.getElementById('fatigueTracker');
+    
+    if (exerciseSelection) exerciseSelection.style.display = 'block';
+    if (currentExercise) currentExercise.style.display = 'none';
+    if (programExercisesContainer) programExercisesContainer.style.display = 'none';
+    if (workoutHeader) workoutHeader.style.display = 'block';
+    if (fatigueTracker) fatigueTracker.style.display = 'block';
 
     loadAvailableExercises();
     enableHorizontalScroll();
