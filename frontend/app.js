@@ -36,6 +36,7 @@ const WorkoutStates = {
     EXECUTING: 'executing',   // Série en cours
     FEEDBACK: 'feedback',     // En attente du feedback
     RESTING: 'resting',       // Période de repos
+    TRANSITIONING: 'transitioning',
     COMPLETED: 'completed'    // Exercice/séance terminé
 };
 
@@ -48,17 +49,33 @@ let workoutState = {
 };
 
 function transitionTo(state) {
+    // CONSERVER LA LOGIQUE EXISTANTE DE NETTOYAGE DES TIMERS
+    switch(workoutState.current) {
+        case WorkoutStates.RESTING:
+            if (restTimer) {
+                clearInterval(restTimer);
+                restTimer = null;
+            }
+            break;
+        case WorkoutStates.EXECUTING:
+            if (setTimer) {
+                clearInterval(setTimer);
+                setTimer = null;
+            }
+            break;
+    }
+    
     workoutState.current = state;
     
-    // Nettoyer les états précédents
+    // Cacher tout par défaut
     const elements = {
-        inputSection: document.querySelector('.input-section'),
         executeBtn: document.getElementById('executeSetBtn'),
         setFeedback: document.getElementById('setFeedback'),
-        restPeriod: document.getElementById('restPeriod')
+        restPeriod: document.getElementById('restPeriod'),
+        inputSection: document.querySelector('.input-section')
     };
     
-    // Cacher tout par défaut
+    // Cacher tous les éléments qui existent
     Object.values(elements).forEach(el => {
         if (el) el.style.display = 'none';
     });
@@ -66,8 +83,8 @@ function transitionTo(state) {
     // Afficher selon l'état
     switch(state) {
         case WorkoutStates.READY:
-            if (elements.inputSection) elements.inputSection.style.display = 'block';
             if (elements.executeBtn) elements.executeBtn.style.display = 'block';
+            if (elements.inputSection) elements.inputSection.style.display = 'block';
             break;
             
         case WorkoutStates.FEEDBACK:
@@ -77,6 +94,14 @@ function transitionTo(state) {
         case WorkoutStates.RESTING:
             if (elements.setFeedback) elements.setFeedback.style.display = 'block';
             if (elements.restPeriod) elements.restPeriod.style.display = 'flex';
+            break;
+            
+        case WorkoutStates.COMPLETED:
+            // Géré par les fonctions spécifiques
+            break;
+
+        case WorkoutStates.TRANSITIONING:
+            // État temporaire : tout est masqué
             break;
     }
 }
@@ -2787,17 +2812,26 @@ async function setupProgramWorkout(program) {
         return;
     }
     
-    document.getElementById('workoutTitle').textContent = 'Séance programme';
-    document.getElementById('exerciseSelection').style.display = 'none';
+    // Configurer le titre SI L'ÉLÉMENT EXISTE
+    const workoutTitle = document.getElementById('workoutTitle');
+    if (workoutTitle) {
+        workoutTitle.textContent = 'Séance programme';
+    }
     
-    // Stocker le programme dans la session
+    // Cacher la sélection d'exercices SI ELLE EXISTE
+    const exerciseSelection = document.getElementById('exerciseSelection');
+    if (exerciseSelection) {
+        exerciseSelection.style.display = 'none';
+    }
+    
+    // Stocker le programme dans la session - CONSERVER TOUTES LES PROPRIÉTÉS
     currentWorkoutSession.program = program;
     currentWorkoutSession.programExercises = {};
     currentWorkoutSession.completedExercisesCount = 0;
     currentWorkoutSession.type = 'program'; // Important pour les vérifications
     currentWorkoutSession.exerciseOrder = 0; // Initialisé à 0, sera incrémenté à 1 lors de la sélection
     
-    // Initialiser l'état de chaque exercice
+    // Initialiser l'état de chaque exercice - CONSERVER TOUTE LA STRUCTURE
     program.exercises.forEach((exerciseData, index) => {
         currentWorkoutSession.programExercises[exerciseData.exercise_id] = {
             ...exerciseData,
@@ -2811,8 +2845,13 @@ async function setupProgramWorkout(program) {
         };
     });
     
-    // Afficher la liste des exercices
-    document.getElementById('programExercisesContainer').style.display = 'block';
+    // Afficher la liste des exercices SI LE CONTAINER EXISTE
+    const programExercisesContainer = document.getElementById('programExercisesContainer');
+    if (programExercisesContainer) {
+        programExercisesContainer.style.display = 'block';
+    }
+    
+    // Charger la liste
     loadProgramExercisesList();
     
     // Prendre le premier exercice non complété
@@ -2823,6 +2862,8 @@ async function setupProgramWorkout(program) {
     }
     
     startWorkoutTimer();
+    // Note: loadProgramExercisesList() est appelé deux fois dans l'original, je conserve ce comportement
+    loadProgramExercisesList();
 }
 
 // Fonction pour sélectionner un exercice par ID
@@ -3173,35 +3214,28 @@ function recordMLDecision(exerciseId, setNumber, accepted) {
 
 // Mettre à jour l'affichage de l'historique ML
 function updateMLHistoryDisplay() {
-    const timeline = document.getElementById('mlHistoryTimeline');
-    const countSpan = document.querySelector('.history-count');
-    
-    if (!currentWorkoutSession.mlHistory?.[currentExercise.id]) {
-        timeline.innerHTML = '<p class="history-more">Aucun ajustement IA pour cet exercice</p>';
-        countSpan.textContent = '(0)';
-        return;
-    }
+    if (!currentExercise || !currentWorkoutSession.mlHistory) return;
     
     const history = currentWorkoutSession.mlHistory[currentExercise.id];
-    countSpan.textContent = `(${history.length})`;
+    if (!history || history.length === 0) return;
     
-    timeline.innerHTML = history.map(item => `
-        <div class="ml-history-item ${item.accepted === null ? 'pending' : item.accepted ? 'accepted' : 'modified'}">
-            <div class="history-header">
-                <span class="set-num">Série ${item.setNumber}</span>
-                <span class="history-time">À l'instant</span>
+    // Mettre à jour le compteur S'IL EXISTE
+    const countEl = document.getElementById('mlHistoryCount');
+    if (countEl) {
+        countEl.textContent = history.length;
+    }
+    
+    // Afficher l'historique S'IL EXISTE un container
+    const container = document.getElementById('mlHistoryContainer');
+    if (container) {
+        container.innerHTML = history.slice(-3).map((entry, idx) => `
+            <div class="ml-history-item">
+                <span class="history-set">Série ${idx + 1}</span>
+                <span class="history-data">${entry.weight}kg × ${entry.reps}</span>
+                ${entry.accepted ? '✓' : '✗'}
             </div>
-            <div class="history-content">
-                <span class="history-weight">${item.weight}kg</span>
-                <span class="history-reps">× ${item.reps}</span>
-                <span class="history-confidence" title="Confiance: ${Math.round(item.confidence * 100)}%">
-                    ${item.confidence >= 0.8 ? '🟢' : item.confidence >= 0.6 ? '🟡' : '🔴'}
-                </span>
-            </div>
-            <div class="history-reason">${item.reasoning}</div>
-            ${item.accepted === false ? '<div class="override-badge">Modifié</div>' : ''}
-        </div>
-    `).join('');
+        `).join('');
+    }
 }
 
 function updateSeriesDots() {
@@ -3311,11 +3345,23 @@ async function updateSetRecommendations() {
             current_fatigue: currentWorkoutSession.sessionFatigue,
             previous_effort: currentSet > 1 ? currentWorkoutSession.currentSetEffort : null,
             exercise_order: currentWorkoutSession.exerciseOrder,
-            set_order_global: currentWorkoutSession.globalSetCount + 1
+            set_order_global: currentWorkoutSession.globalSetCount + 1,
+            last_rest_duration: currentWorkoutSession.lastActualRestDuration
         });
 
-        // Stocker les recommandations pour executeSet
+        // Stocker TOUTES les recommandations pour utilisation ultérieure
         workoutState.currentRecommendation = recommendations;
+        
+        // Afficher le temps de repos recommandé dans l'interface si disponible
+        if (recommendations.rest_seconds_recommendation) {
+            const restHint = document.getElementById('restHint');
+            if (restHint) {
+                restHint.textContent = `Repos: ${recommendations.rest_seconds_recommendation}s`;
+                if (recommendations.rest_range) {
+                    restHint.title = `Plage recommandée: ${recommendations.rest_range.min}-${recommendations.rest_range.max}s`;
+                }
+            }
+        }
 
         // === NOUVELLE INTERFACE : Mise à jour de la ligne AI compacte ===
         const aiStatusEl = document.getElementById('aiStatus');
@@ -3367,8 +3413,18 @@ async function updateSetRecommendations() {
         if (document.getElementById('aiRepsRec')) {
             document.getElementById('aiRepsRec').textContent = recommendations.reps_recommendation || 10;
         }
+        // Traduire la stratégie
+        const strategyTranslations = {
+            'progressive': 'Progressive',
+            'maintain': 'Maintien',
+            'deload': 'Décharge',
+            'fixed_weight': 'Poids fixe',
+            'Standard': 'Standard'
+        };
+
         if (document.getElementById('aiStrategy')) {
-            document.getElementById('aiStrategy').textContent = recommendations.adaptation_strategy || 'Standard';
+            const strategy = recommendations.adaptation_strategy || 'Standard';
+            document.getElementById('aiStrategy').textContent = strategyTranslations[strategy] || strategy;
         }
         if (document.getElementById('aiReason')) {
             document.getElementById('aiReason').textContent = recommendations.reasoning || 'Données insuffisantes';
@@ -5872,14 +5928,14 @@ function findClosestWeight(targetWeight, availableWeights) {
 
 
 // ===== TIMER DE REPOS =====
-function startRestPeriod(customTime = null) {
-    // CORRECTION 1: Arrêter le timer de série avant de commencer le repos
+function startRestPeriod(customTime = null, isMLRecommendation = false) {
+    // Arrêter le timer de série avant de commencer le repos
     if (setTimer) {
         clearInterval(setTimer);
         setTimer = null;
     }
     
-    // CORRECTION 2: Le repos s'affiche maintenant DANS le feedback (style compact)
+    // Le repos s'affiche maintenant DANS le feedback
     document.getElementById('setFeedback').style.display = 'block';
     document.getElementById('restPeriod').style.display = 'flex';
     
@@ -5889,7 +5945,7 @@ function startRestPeriod(customTime = null) {
         inputSection.style.display = 'none';
     }
     
-    // CORRECTION 3: Reset des sélections fatigue/effort inline
+    // Reset des sélections fatigue/effort
     document.querySelectorAll('.emoji-btn-modern.selected').forEach(btn => {
         btn.classList.remove('selected');
     });
@@ -5898,17 +5954,24 @@ function startRestPeriod(customTime = null) {
     currentWorkoutSession.currentSetFatigue = null;
     currentWorkoutSession.currentSetEffort = null;
     
-    // CORRECTION 4: Forcer la transition vers RESTING
+    // Forcer la transition vers RESTING
     transitionTo(WorkoutStates.RESTING);
     
-    // Modifier le contenu pour inclure le feedback
-    const restContent = document.querySelector('.rest-content');
+    // Modifier le titre si c'est une recommandation IA
+    const restContent = document.querySelector('.rest-content h3');
+    if (restContent) {
+        if (isMLRecommendation) {
+            restContent.innerHTML = '🧘 Temps de repos <span class="ai-badge">🤖 IA</span>';
+        } else {
+            restContent.innerHTML = '🧘 Temps de repos';
+        }
+    }
     
-    // Utiliser le temps de repos de l'exercice ou par défaut 60s
-    let timeLeft = customTime || 60;
+    // Utiliser le temps personnalisé ou celui de l'exercice
+    let timeLeft = customTime || currentExercise.base_rest_time_seconds || 60;
     const initialTime = timeLeft;
     
-    // Enregistrer le début du repos pour calcul ultérieur
+    // Enregistrer le début du repos
     workoutState.restStartTime = Date.now();
     workoutState.plannedRestDuration = timeLeft;
     updateRestTimer(timeLeft);
@@ -5918,15 +5981,13 @@ function startRestPeriod(customTime = null) {
         navigator.vibrate(200);
     }
     
-    // ✅ NOUVEAU : Notifications sonores programmées
+    // Notifications sonores programmées
     if (window.workoutAudio) {
         workoutAudio.scheduleRestNotifications(timeLeft);
     }
     
-    // ❌ SUPPRIMER l'ancien setTimeout de notification
-    // ✅ NOUVEAU : Programmer la notification mais stocker le timeout pour pouvoir l'annuler
+    // Programmer la notification
     if ('Notification' in window && Notification.permission === 'granted') {
-        // Annuler toute notification précédente
         if (notificationTimeout) {
             clearTimeout(notificationTimeout);
         }
@@ -5934,35 +5995,46 @@ function startRestPeriod(customTime = null) {
         notificationTimeout = setTimeout(() => {
             new Notification('Temps de repos terminé !', {
                 body: 'Prêt pour la série suivante ?',
-                icon: '/manifest.json'
+                icon: '/icon-192x192.png',
+                vibrate: [200, 100, 200]
             });
-            notificationTimeout = null; // Nettoyer la référence
         }, timeLeft * 1000);
     }
     
+    // Timer principal
     restTimer = setInterval(() => {
         timeLeft--;
         updateRestTimer(timeLeft);
         
-        // Mise à jour de la barre de progression
-        const progressFill = document.getElementById('restProgressFill');
-        if (progressFill) {
-            const progress = ((initialTime - timeLeft) / initialTime) * 100;
-            progressFill.style.width = `${progress}%`;
-        }
+        // LIGNE SUPPRIMÉE : updateRestProgress(progress);
         
         if (timeLeft <= 0) {
             clearInterval(restTimer);
             restTimer = null;
             
-            // ✅ Annuler la notification programmée car le timer naturel s'est terminé
+            // Annuler la notification si elle n'a pas encore été déclenchée
             if (notificationTimeout) {
                 clearTimeout(notificationTimeout);
                 notificationTimeout = null;
             }
             
-            // Auto-terminer le repos
-            endRest();
+            // Calculer et enregistrer le temps de repos réel
+            const actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
+            currentWorkoutSession.totalRestTime += actualRestTime;
+            console.log(`Repos terminé. Durée: ${actualRestTime}s (prévu: ${workoutState.plannedRestDuration}s)`);
+            
+            // Son de fin
+            if (window.workoutAudio) {
+                workoutAudio.playSound('restComplete');
+            }
+            
+            // Vibration de fin
+            if (navigator.vibrate) {
+                navigator.vibrate([100, 50, 100, 50, 200]);
+            }
+            
+            // Auto-progression après repos
+            completeRest();
         }
     }, 1000);
 }
@@ -5978,8 +6050,27 @@ async function requestNotificationPermission() {
 }
 
 // ===== FONCTIONS MANQUANTES POUR L'INTERFACE DÉTAILLÉE =====
-function setSessionFatigue(value) {
-    currentWorkoutSession.sessionFatigue = value;
+function setSessionFatigue(level) {
+    currentWorkoutSession.sessionFatigue = level;
+    
+    // Masquer le panneau de fatigue après sélection
+    const fatigueTracker = document.getElementById('fatigueTracker');
+    if (fatigueTracker) {
+        fatigueTracker.style.display = 'none';
+    }
+    
+    // Retirer la classe active de tous les boutons
+    document.querySelectorAll('.fatigue-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Ajouter la classe active au bouton sélectionné
+    const selectedBtn = document.querySelector(`.fatigue-btn[data-level="${level}"]`);
+    if (selectedBtn) {
+        selectedBtn.classList.add('active');
+    }
+    
+    showToast(`Fatigue initiale: ${level}/5`, 'info');
 }
 
 function adjustWeightUp() {
@@ -6101,41 +6192,189 @@ function getSetTimerSeconds() {
 
 function selectFatigue(button, value) {
     // Désélectionner tous les boutons de fatigue
-    document.querySelectorAll('.emoji-btn-modern[data-fatigue]').forEach(btn => {
+    document.querySelectorAll('[data-fatigue]').forEach(btn => {
         btn.classList.remove('selected');
     });
     
     // Sélectionner le bouton cliqué
     button.classList.add('selected');
+    
+    // Stocker la valeur
     currentWorkoutSession.currentSetFatigue = value;
     
-    // Mettre à jour la progression
-    document.getElementById('fatigueProgress').classList.add('completed');
-    
-    // Auto-validation si les deux sont sélectionnés
-    if (document.querySelector('.emoji-btn-modern[data-effort].selected')) {
-        showAutoValidation();
-        setTimeout(() => validateAndStartRest(), 1500);
+    // Mettre à jour l'indicateur de progression SI IL EXISTE
+    const progressIndicator = document.getElementById('fatigueProgress');
+    if (progressIndicator) {
+        progressIndicator.textContent = '✓';
+        progressIndicator.classList.add('completed');
     }
+    
+    // Vérifier si on peut valider automatiquement
+    checkAutoValidation();
 }
 
 function selectEffort(button, value) {
     // Désélectionner tous les boutons d'effort
-    document.querySelectorAll('.emoji-btn-modern[data-effort]').forEach(btn => {
+    document.querySelectorAll('[data-effort]').forEach(btn => {
         btn.classList.remove('selected');
     });
     
     // Sélectionner le bouton cliqué
     button.classList.add('selected');
+    
+    // Stocker la valeur
     currentWorkoutSession.currentSetEffort = value;
     
-    // Mettre à jour la progression
-    document.getElementById('effortProgress').classList.add('completed');
+    // Mettre à jour l'indicateur de progression SI IL EXISTE
+    const progressIndicator = document.getElementById('effortProgress');
+    if (progressIndicator) {
+        progressIndicator.textContent = '✓';
+        progressIndicator.classList.add('completed');
+    }
     
-    // Auto-validation si les deux sont sélectionnés
-    if (document.querySelector('.emoji-btn-modern[data-fatigue].selected')) {
-        showAutoValidation();
-        setTimeout(() => validateAndStartRest(), 1500);
+    // Vérifier si on peut valider automatiquement
+    checkAutoValidation();
+}
+
+// Fonction pour la validation automatique
+function checkAutoValidation() {
+    // Si fatigue ET effort sont sélectionnés, valider automatiquement
+    if (currentWorkoutSession.currentSetFatigue && currentWorkoutSession.currentSetEffort) {
+        setTimeout(() => {
+            saveFeedbackAndRest();
+        }, 300); // Petit délai pour voir la sélection
+    }
+}
+
+function checkAutoValidation() {
+    // Si fatigue ET effort sont sélectionnés, valider automatiquement
+    if (currentWorkoutSession.currentSetFatigue && currentWorkoutSession.currentSetEffort) {
+        setTimeout(() => {
+            saveFeedbackAndRest();
+        }, 300); // Petit délai pour voir la sélection
+    }
+}
+
+async function saveFeedbackAndRest() {
+    if (!workoutState.pendingSetData) {
+        console.error('Pas de données de série en attente');
+        return;
+    }
+    
+    try {
+        // Ajouter le feedback aux données
+        const setData = {
+            ...workoutState.pendingSetData,
+            fatigue_level: currentWorkoutSession.currentSetFatigue,
+            effort_level: currentWorkoutSession.currentSetEffort,
+            exercise_order_in_session: currentWorkoutSession.exerciseOrder,
+            set_order_in_session: currentWorkoutSession.globalSetCount + 1,
+            // Ajouter les propriétés ML si elles existent
+            ml_weight_suggestion: workoutState.currentRecommendation?.weight_recommendation,
+            ml_reps_suggestion: workoutState.currentRecommendation?.reps_recommendation,
+            ml_confidence: workoutState.currentRecommendation?.confidence,
+            ml_adjustment_enabled: currentWorkoutSession.mlSettings?.[currentExercise.id]?.autoAdjust,
+            suggested_rest_seconds: workoutState.currentRecommendation?.rest_seconds_recommendation
+        };
+        
+        // Enregistrer la série
+        const savedSet = await apiPost(`/api/workouts/${currentWorkout.id}/sets`, setData);
+        
+        // Ajouter aux séries complétées
+        const setWithId = { ...setData, id: savedSet.id };
+        currentWorkoutSession.completedSets.push(setWithId);
+        currentWorkoutSession.globalSetCount++;
+        
+        // Mettre à jour le programme si c'est une séance programme
+        if (currentWorkoutSession.type === 'program' && currentExercise) {
+            const programExercise = currentWorkoutSession.programExercises[currentExercise.id];
+            if (programExercise) {
+                programExercise.completedSets++;
+                if (programExercise.completedSets >= programExercise.totalSets) {
+                    programExercise.isCompleted = true;
+                    programExercise.endTime = new Date();
+                    currentWorkoutSession.completedExercisesCount++;
+                }
+            }
+        }
+        
+        // Mettre à jour l'historique visuel
+        updateSetsHistory();
+        
+        // Enregistrer la décision ML
+        if (workoutState.currentRecommendation && currentWorkoutSession.mlHistory?.[currentExercise.id]) {
+            const weightFollowed = Math.abs(setData.weight - workoutState.currentRecommendation.weight_recommendation) < 0.5;
+            const repsFollowed = Math.abs(setData.reps - workoutState.currentRecommendation.reps_recommendation) <= 1;
+            const accepted = weightFollowed && repsFollowed;
+            
+            if (typeof recordMLDecision === 'function') {
+                recordMLDecision(currentExercise.id, currentSet, accepted);
+            }
+        }
+        
+        // LOGIQUE DE REPOS UNIFIÉE POUR TOUS LES EXERCICES
+        
+        // Déterminer la durée de repos
+        let restDuration = currentExercise.base_rest_time_seconds || 60; // Défaut depuis exercises.json
+        let isMLRest = false;
+        
+        // Si l'IA est active ET a une recommandation de repos
+        if (currentWorkoutSession.mlSettings?.[currentExercise.id]?.autoAdjust && 
+            workoutState.currentRecommendation?.rest_seconds_recommendation) {
+            restDuration = workoutState.currentRecommendation.rest_seconds_recommendation;
+            isMLRest = true;
+            console.log(`🤖 Repos IA : ${restDuration}s (base: ${currentExercise.base_rest_time_seconds}s)`);
+        }
+        
+        // Vérifier si c'est la dernière série
+        const isLastSet = currentSet >= currentWorkoutSession.totalSets;
+        
+        if (isLastSet) {
+            // Dernière série : pas de repos, passer à la fin
+            transitionTo(WorkoutStates.COMPLETED);
+            showSetCompletionOptions();
+        } else {
+            // Pas la dernière série : gérer le repos
+            if (currentExercise.exercise_type === 'isometric') {
+                // Pour les isométriques : pas d'écran de repos mais compter le temps
+                currentWorkoutSession.totalRestTime += restDuration;
+                
+                // Afficher un message temporaire avec le temps de repos
+                showToast(`⏱️ Repos ${isMLRest ? '🤖' : ''}: ${restDuration}s`, 'info');
+                
+                // Désactiver temporairement les boutons
+                transitionTo(WorkoutStates.TRANSITIONING);
+                
+                // Timer pour la transition automatique
+                setTimeout(() => {
+                    currentSet++;
+                    currentWorkoutSession.currentSetNumber = currentSet;
+                    updateSeriesDots();
+                    updateHeaderProgress();
+                    
+                    if (currentWorkoutSession.type === 'program') {
+                        updateProgramExerciseProgress();
+                        loadProgramExercisesList();
+                    }
+                    
+                    updateSetRecommendations();
+                    startSetTimer();
+                    transitionTo(WorkoutStates.READY);
+                }, restDuration * 1000);
+                
+            } else {
+                // Pour les autres exercices : écran de repos classique
+                transitionTo(WorkoutStates.RESTING);
+                startRestPeriod(restDuration, isMLRest);
+            }
+        }
+        
+        // Réinitialiser les sélections
+        resetFeedbackSelection();
+        
+    } catch (error) {
+        console.error('Erreur enregistrement série:', error);
+        showToast('Erreur lors de l\'enregistrement', 'error');
     }
 }
 
@@ -6290,6 +6529,10 @@ function completeRest() {
         const actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
         currentWorkoutSession.totalRestTime += actualRestTime;
         
+        // NOUVEAU : Enregistrer le temps de repos réel pour les futures recommandations ML
+        currentWorkoutSession.lastActualRestDuration = actualRestTime;
+        console.log(`Repos réel enregistré : ${actualRestTime}s`);
+        
         // NOUVEAU : Mettre à jour la dernière série sauvegardée avec la durée réelle
         if (currentWorkoutSession.completedSets.length > 0) {
             const lastSetId = currentWorkoutSession.completedSets[currentWorkoutSession.completedSets.length - 1].id;
@@ -6307,6 +6550,10 @@ function completeRest() {
         restTimer = null;
     }
     
+    // Masquer l'interface de repos
+    document.getElementById('restPeriod').style.display = 'none';
+    document.getElementById('setFeedback').style.display = 'none';
+    
     // Transition vers COMPLETED après la dernière série
     if (currentSet >= currentWorkoutSession.totalSets) {
         transitionTo(WorkoutStates.COMPLETED);
@@ -6319,13 +6566,14 @@ function completeRest() {
         
         // Mettre à jour les compteurs d'en-tête
         updateHeaderProgress();
+        
         // Mettre à jour la progression du programme si applicable
         if (currentWorkoutSession.type === 'program') {
             updateProgramExerciseProgress();
             // Forcer la mise à jour visuelle
             loadProgramExercisesList();
         }
-            
+        
         // Réafficher les inputs pour la nouvelle série
         const inputSection = document.querySelector('.input-section');
         if (inputSection) {
