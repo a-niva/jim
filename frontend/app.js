@@ -3879,12 +3879,73 @@ function updateRestTimer(seconds) {
         `${sign}${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
-function resetFeedbackSelection() {
-    // Désélectionner tous les boutons
-    document.querySelectorAll('.emoji-btn.selected').forEach(btn => {
-        btn.classList.remove('selected');
-        btn.style.backgroundColor = '';
-    });
+function updateUIForState(state) {
+    // CORRECTION: Arrêter tous les timers selon l'état
+    switch(state) {
+        case WorkoutStates.RESTING:
+            // En repos: arrêter le timer de série mais garder le timer global
+            if (setTimer) {
+                clearInterval(setTimer);
+                setTimer = null;
+            }
+            break;
+            
+        case WorkoutStates.READY:
+            // Prêt: arrêter le repos mais garder le timer global
+            if (restTimer) {
+                clearInterval(restTimer);
+                restTimer = null;
+            }
+            // CORRECTION: Réinitialiser les sélections de feedback
+            resetFeedbackSelection();
+            break;
+            
+        case WorkoutStates.IDLE:
+            // Idle: arrêter TOUS les timers
+            if (setTimer) {
+                clearInterval(setTimer);
+                setTimer = null;
+            }
+            if (restTimer) {
+                clearInterval(restTimer);
+                restTimer = null;
+            }
+            break;
+    }
+    
+    // Cacher tout par défaut
+    document.getElementById('executeSetBtn').style.display = 'none';
+    document.getElementById('setFeedback').style.display = 'none';
+    document.getElementById('restPeriod').style.display = 'none';
+    
+    // Récupérer le panneau des inputs
+    const inputSection = document.querySelector('.input-section');
+    if (inputSection) {
+        inputSection.style.display = 'none';
+    }
+    
+    switch(state) {
+        case WorkoutStates.READY:
+            const executeBtn = document.getElementById('executeSetBtn');
+            if (executeBtn) {
+                executeBtn.style.display = 'block';
+            }
+            if (inputSection) inputSection.style.display = 'block';
+            break;
+            
+        case WorkoutStates.FEEDBACK:
+            document.getElementById('setFeedback').style.display = 'block';
+            break;
+            
+        case WorkoutStates.RESTING:
+            document.getElementById('setFeedback').style.display = 'block';
+            document.getElementById('restPeriod').style.display = 'flex';
+            break;
+            
+        case WorkoutStates.COMPLETED:
+            // Géré par les fonctions spécifiques
+            break;
+    }
 }
 
 function skipRest() {
@@ -5651,24 +5712,41 @@ function findClosestWeight(targetWeight, availableWeights) {
 
 // ===== TIMER DE REPOS =====
 function startRestPeriod(customTime = null) {
-    // Afficher la période de repos
+    // CORRECTION 1: Arrêter le timer de série avant de commencer le repos
+    if (setTimer) {
+        clearInterval(setTimer);
+        setTimer = null;
+    }
+    
+    // CORRECTION 2: Le repos s'affiche maintenant DANS le feedback (style compact)
+    document.getElementById('setFeedback').style.display = 'block';
     document.getElementById('restPeriod').style.display = 'flex';
     
-    // Cacher le feedback maintenant qu'on est en repos
-    document.getElementById('setFeedback').style.display = 'none';
-    
-    // Cacher aussi les inputs pendant le repos
+    // Cacher les inputs pendant le repos
     const inputSection = document.querySelector('.input-section');
     if (inputSection) {
         inputSection.style.display = 'none';
     }
     
+    // CORRECTION 3: Reset des sélections fatigue/effort inline
+    document.querySelectorAll('.emoji-btn-modern.selected').forEach(btn => {
+        btn.classList.remove('selected');
+    });
+    document.getElementById('fatigueProgress')?.classList.remove('completed');
+    document.getElementById('effortProgress')?.classList.remove('completed');
+    currentWorkoutSession.currentSetFatigue = null;
+    currentWorkoutSession.currentSetEffort = null;
+    
+    // CORRECTION 4: Forcer la transition vers RESTING
+    transitionTo(WorkoutStates.RESTING);
+    
     // Modifier le contenu pour inclure le feedback
     const restContent = document.querySelector('.rest-content');
-
+    
     // Utiliser le temps de repos de l'exercice ou par défaut 60s
     let timeLeft = customTime || 60;
     const initialTime = timeLeft;
+    
     // Enregistrer le début du repos pour calcul ultérieur
     workoutState.restStartTime = Date.now();
     workoutState.plannedRestDuration = timeLeft;
@@ -5724,9 +5802,6 @@ function startRestPeriod(customTime = null) {
             
             // Auto-terminer le repos
             endRest();
-            
-            // ❌ SUPPRIMER cette deuxième notification (doublonnée)
-            // La notification a déjà été envoyée par le setTimeout ci-dessus
         }
     }, 1000);
 }
@@ -5901,6 +5976,22 @@ function selectEffort(button, value) {
         showAutoValidation();
         setTimeout(() => validateAndStartRest(), 1500);
     }
+}
+
+// NOUVEAU: Fonction de réinitialisation des sélections
+function resetFeedbackSelection() {
+    // Supprimer toutes les sélections
+    document.querySelectorAll('.emoji-btn-modern.selected').forEach(btn => {
+        btn.classList.remove('selected');
+    });
+    
+    // Réinitialiser les indicateurs de progression
+    document.getElementById('fatigueProgress')?.classList.remove('completed');
+    document.getElementById('effortProgress')?.classList.remove('completed');
+    
+    // Réinitialiser les valeurs
+    currentWorkoutSession.currentSetFatigue = null;
+    currentWorkoutSession.currentSetEffort = null;
 }
 
 
@@ -6482,3 +6573,5 @@ window.recordMLDecision = recordMLDecision;
 window.updateMLHistoryDisplay = updateMLHistoryDisplay;
 window.formatTimeAgo = formatTimeAgo;
 window.getConfidenceIcon = getConfidenceIcon;
+
+window.resetFeedbackSelection = resetFeedbackSelection;
