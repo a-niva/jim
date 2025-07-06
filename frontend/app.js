@@ -2,6 +2,7 @@
 
 // Import du système de couleurs musculaires
 import { getMuscleColor, getChartColors, getMuscleClass, applyMuscleStyle } from './muscle-colors.js';
+import { savedUserId } from './app.js'
 
 // ===== ÉTAT GLOBAL =====
 let setTimer = null; 
@@ -518,6 +519,14 @@ async function registerServiceWorker() {
 // ===== NAVIGATION =====
 function showView(viewName) {
     console.log(`🔍 showView(${viewName}) - currentUser:`, currentUser ? currentUser.name : 'UNDEFINED');
+    
+    apiGet(`/api/users/${savedUserId}`)
+        .then(user => {
+            currentUser = user;
+            window.currentUser = user; // AJOUTER CETTE LIGNE
+            console.log('Utilisateur rechargé:', currentUser.name);
+            showView(viewName);
+        })
 
     // MODIFIER : Gérer le cas où currentUser est perdu
     if (!currentUser && ['dashboard', 'stats', 'profile'].includes(viewName)) {
@@ -585,6 +594,8 @@ function showMainInterface() {
     if (currentUser) {
         document.getElementById('userInitial').textContent = currentUser.name[0].toUpperCase();
         document.getElementById('userInitial').style.display = 'flex';
+        
+        window.currentUser = currentUser;
     }
     
     showView('dashboard');
@@ -2950,6 +2961,12 @@ async function selectExercise(exercise, skipValidation = false) {
    
     document.getElementById('exerciseSelection').style.display = 'none';
     document.getElementById('currentExercise').style.display = 'block';
+    if (currentWorkoutSession.type === 'program') {
+        const programExercisesContainer = document.getElementById('programExercisesContainer');
+        if (programExercisesContainer) {
+            programExercisesContainer.style.display = 'block';
+        }
+    }
     document.getElementById('exerciseName').textContent = exercise.name;
     document.getElementById('exerciseInstructions').textContent = exercise.instructions || 'Effectuez cet exercice avec une forme correcte';
 
@@ -4305,7 +4322,7 @@ async function finishExercise() {
                         Il reste ${remainingExercises.length} exercice(s) à faire
                     </p>
                     <div style="display: flex; gap: 1rem; justify-content: center;">
-                        <button class="btn btn-primary" onclick="document.getElementById('programExercisesContainer').style.display = 'none'; selectProgramExercise(${nextExercise.exercise_id}); closeModal();">
+                        <button class="btn btn-primary" onclick="selectProgramExercise(${nextExercise.exercise_id}); closeModal();">
                             Continuer
                         </button>
                         <button class="btn btn-secondary" onclick="closeModal(); showProgramExerciseList();">
@@ -7236,3 +7253,7 @@ window.currentExercise = currentExercise;
 
 window.updateSetRecommendations = updateSetRecommendations;
 window.syncMLToggles = syncMLToggles;
+
+window.loadStats = loadStats;
+window.loadProfile = loadProfile;  
+window.currentUser = currentUser;
