@@ -3379,66 +3379,7 @@ async function updateSetRecommendations() {
     }
 
     try {
-        // Vérifier si ML est activé pour cet exercice
-        const mlEnabled = currentWorkoutSession.mlSettings?.[currentExercise.id]?.autoAdjust ?? true;
-
-        if (!mlEnabled) {
-            // Mode manuel : utiliser les valeurs par défaut ou précédentes
-            const lastSet = currentWorkoutSession.completedSets
-                .filter(s => s.exercise_id === currentExercise.id)
-                .slice(-1)[0];
-            
-            workoutState.currentRecommendation = {
-                weight_recommendation: lastSet?.weight || currentExercise.default_weight || 20,
-                reps_recommendation: currentExercise.default_reps_min || 12,
-                confidence: 1.0,
-                reasoning: "Mode manuel activé",
-                weight_change: "same",
-                reps_change: "same",
-                adaptation_strategy: "fixed_weight"
-            };
-            
-            console.log('🔧 Mode manuel - Recommandations fixées');
-            
-            // Utiliser les fonctions existantes pour l'affichage
-            const exerciseType = getExerciseType(currentExercise);
-            await configureUIForExerciseType(exerciseType, workoutState.currentRecommendation);
-            updateAIDetailsPanel(workoutState.currentRecommendation);
-            
-            return;
-        }
-
-        // CONTINUER avec l'appel API ML existant
-        const recommendations = await apiPost(`/api/workouts/${currentWorkout.id}/recommendations`, {
-            exercise_id: currentExercise.id,
-            set_number: currentSet,
-            current_fatigue: currentWorkoutSession.sessionFatigue,
-            previous_effort: currentSet > 1 ? 
-                currentWorkoutSession.completedSets
-                    .filter(s => s.exercise_id === currentExercise.id)
-                    .slice(-1)[0]?.effort_level || 3 : 3,
-            exercise_order: currentWorkoutSession.exerciseOrder,
-            set_order_global: currentWorkoutSession.globalSetCount + 1,
-            last_rest_duration: currentWorkoutSession.lastActualRestDuration,
-            session_history: sessionHistory
-        });
-
-        // VALIDATION des recommandations reçues
-        if (!recommendations || recommendations.weight_recommendation === null || recommendations.weight_recommendation === 0) {
-            console.warn('⚠️ Recommandations ML invalides, fallback sur valeurs par défaut');
-            workoutState.currentRecommendation = {
-                weight_recommendation: currentExercise.default_weight || 20,
-                reps_recommendation: currentExercise.default_reps_min || 12,
-                confidence: 0.3,
-                reasoning: "Données insuffisantes, valeurs par défaut utilisées",
-                weight_change: "same",
-                reps_change: "same",
-                adaptation_strategy: "fixed_weight"
-            };
-        } else {
-            workoutState.currentRecommendation = recommendations;
-        }
-        // ENRICHIR les données envoyées au ML avec l'historique de cette séance
+        // CORRECTION 1 : Déplacer sessionHistory AVANT son utilisation
         const sessionSets = currentWorkoutSession.completedSets.filter(s => s.exercise_id === currentExercise.id);
         const sessionHistory = sessionSets.map(set => ({
             weight: set.weight,
@@ -3449,22 +3390,59 @@ async function updateSetRecommendations() {
             actual_rest_duration: set.actual_rest_duration_seconds
         }));
 
-        // Obtenir les recommandations ML avec contexte de séance
-        const recommendations = await apiPost(`/api/workouts/${currentWorkout.id}/recommendations`, {
-            exercise_id: currentExercise.id,
-            set_number: currentSet,
-            current_fatigue: currentWorkoutSession.sessionFatigue,
-            previous_effort: currentSet > 1 ? currentWorkoutSession.currentSetEffort : null,
-            exercise_order: currentWorkoutSession.exerciseOrder,
-            set_order_global: currentWorkoutSession.globalSetCount + 1,
-            last_rest_duration: currentWorkoutSession.lastActualRestDuration,
-            session_history: sessionHistory,
-            completed_sets_this_exercise: sessionSets.length
-        });
+        // CORRECTION 2 : Vérifier si ML est activé AVANT l'appel API
+        const mlEnabled = currentWorkoutSession.mlSettings?.[currentExercise.id]?.autoAdjust ?? true;
+
+        let recommendations; // CORRECTION 3 : UNE SEULE déclaration
+
+        if (!mlEnabled) {
+            // Mode manuel : utiliser les valeurs par défaut ou précédentes
+            const lastSet = sessionSets.slice(-1)[0];
+            
+            recommendations = {
+                weight_recommendation: lastSet?.weight || currentExercise.default_weight || 20,
+                reps_recommendation: currentExercise.default_reps_min || 12,
+                confidence: 1.0,
+                reasoning: "Mode manuel activé",
+                weight_change: "same",
+                reps_change: "same",
+                adaptation_strategy: "fixed_weight"
+            };
+            
+            console.log('🔧 Mode manuel - Recommandations fixées');
+        } else {
+            // Mode ML : appeler l'API
+            recommendations = await apiPost(`/api/workouts/${currentWorkout.id}/recommendations`, {
+                exercise_id: currentExercise.id,
+                set_number: currentSet,
+                current_fatigue: currentWorkoutSession.sessionFatigue,
+                previous_effort: currentSet > 1 ? 
+                    sessionSets.slice(-1)[0]?.effort_level || 3 : 3,
+                exercise_order: currentWorkoutSession.exerciseOrder,
+                set_order_global: currentWorkoutSession.globalSetCount + 1,
+                last_rest_duration: currentWorkoutSession.lastActualRestDuration,
+                session_history: sessionHistory,
+                completed_sets_this_exercise: sessionSets.length
+            });
+
+            // CORRECTION 4 : Validation des recommandations reçues
+            if (!recommendations || recommendations.weight_recommendation === null || recommendations.weight_recommendation === 0) {
+                console.warn('⚠️ Recommandations ML invalides, fallback sur valeurs par défaut');
+                recommendations = {
+                    weight_recommendation: currentExercise.default_weight || 20,
+                    reps_recommendation: currentExercise.default_reps_min || 12,
+                    confidence: 0.3,
+                    reasoning: "Données insuffisantes, valeurs par défaut utilisées",
+                    weight_change: "same",
+                    reps_change: "same",
+                    adaptation_strategy: "fixed_weight"
+                };
+            }
+        }
 
         // Stocker TOUTES les recommandations pour utilisation ultérieure
         workoutState.currentRecommendation = recommendations;
-        //Sauvegarder pour calcul de précision au prochain set
+        // Sauvegarder pour calcul de précision au prochain set
         workoutState.lastRecommendation = workoutState.currentRecommendation || null;
         
         // Afficher le temps de repos recommandé dans l'interface si disponible
@@ -3491,9 +3469,7 @@ async function updateSetRecommendations() {
             
             if (isActive) {
                 // ✅ Bonus confiance selon séries accomplies sur cet exercice cette séance
-                const completedSetsThisExercise = currentWorkoutSession.completedSets.filter(
-                    s => s.exercise_id === currentExercise.id
-                ).length;
+                const completedSetsThisExercise = sessionSets.length;
                 
                 if (completedSetsThisExercise > 0) {
                     // +8% par série complétée, max +32% (4 séries)
@@ -3501,50 +3477,31 @@ async function updateSetRecommendations() {
                     confidence = Math.min(0.95, confidence + sessionBonus);
                     
                     // ✅ Bonus supplémentaire si les recommandations sont précises
-                    const lastSet = currentWorkoutSession.completedSets
-                        .filter(s => s.exercise_id === currentExercise.id)
-                        .slice(-1)[0];
+                    const lastSet = sessionSets.slice(-1)[0];
                         
                     if (lastSet && workoutState.lastRecommendation) {
                         const weightAccuracy = lastSet.weight ? 
-                            Math.abs(lastSet.weight - workoutState.lastRecommendation.weight_recommendation) < 2.5 : true;
-                        const repsAccuracy = Math.abs(lastSet.reps - workoutState.lastRecommendation.reps_recommendation) <= 2;
+                            1 - Math.abs(lastSet.weight - workoutState.lastRecommendation.weight_recommendation) / workoutState.lastRecommendation.weight_recommendation 
+                            : 1;
+                        const repsAccuracy = 1 - Math.abs(lastSet.reps - workoutState.lastRecommendation.reps_recommendation) / workoutState.lastRecommendation.reps_recommendation;
                         
-                        if (weightAccuracy && repsAccuracy) {
-                            confidence = Math.min(0.95, confidence + 0.1); // +10% si précis
+                        if (weightAccuracy > 0.9 && repsAccuracy > 0.9) {
+                            confidence = Math.min(0.98, confidence + 0.1); // +10% si très précis
                         }
                     }
                 }
-                
-                aiStatusEl.textContent = 'Actif';
-            } else {
-                aiStatusEl.textContent = 'Inactif';
-                confidence = 1.0; // Mode manuel = confiance totale
             }
             
+            aiStatusEl.textContent = isActive ? 'Actif' : 'Inactif';
             if (aiConfidenceEl) {
-                const confidencePercent = Math.round(confidence * 100);
-                
-                // ✅ Animation si amélioration significative
-                const previousConfidence = parseInt(aiConfidenceEl.getAttribute('data-previous') || '50');
-                if (confidencePercent > previousConfidence + 5) {
-                    aiConfidenceEl.style.color = 'var(--success)';
-                    aiConfidenceEl.style.fontWeight = '700';
-                    setTimeout(() => {
-                        aiConfidenceEl.style.color = '';
-                        aiConfidenceEl.style.fontWeight = '';
-                    }, 1500);
-                }
-                
-                aiConfidenceEl.textContent = confidencePercent;
-                aiConfidenceEl.setAttribute('data-previous', confidencePercent);
+                aiConfidenceEl.textContent = Math.round(confidence * 100);
             }
         }
 
-        // PHASE 2.2 : Vérifier si ML est désactivé pour cet exercice
+        // GARDER : Gestion manuelle par exercice
         if (!currentWorkoutSession.mlSettings[currentExercise.id]?.autoAdjust) {
             // Mode manuel : utiliser les valeurs précédentes ou par défaut
-            const lastSet = currentWorkoutSession.completedSets?.slice(-1)[0];
+            const lastSet = sessionSets.slice(-1)[0];
             const lastWeight = lastSet?.weight || 
                             currentWorkoutSession.mlSettings[currentExercise.id]?.lastManualWeight ||
                             recommendations.baseline_weight;
@@ -3558,15 +3515,16 @@ async function updateSetRecommendations() {
         // PHASE 2.2 : Ajouter à l'historique ML
         addToMLHistory(currentExercise.id, recommendations);
 
-        // Déterminer le type d'exercice
+        // GARDER : Déterminer le type d'exercice
         const exerciseType = getExerciseType(currentExercise);
 
-        // Appliquer la configuration UI selon le type
+        // GARDER : Appliquer la configuration UI selon le type
         await configureUIForExerciseType(exerciseType, recommendations);
-        // AFFICHAGE différentiel des recommandations
+        
+        // GARDER : AFFICHAGE différentiel des recommandations
         displayRecommendationChanges(recommendations);
 
-        // MISE À JOUR des détails IA pour debug
+        // GARDER : MISE À JOUR des détails IA pour debug
         updateAIDetailsPanel(recommendations);
 
         // === NOUVELLE INTERFACE : Mise à jour des détails AI ===
@@ -3576,7 +3534,8 @@ async function updateSetRecommendations() {
         if (document.getElementById('aiRepsRec')) {
             document.getElementById('aiRepsRec').textContent = recommendations.reps_recommendation || 10;
         }
-        // Traduire la stratégie
+        
+        // GARDER : Traduire la stratégie
         const strategyTranslations = {
             'progressive': 'Progressive',
             'maintain': 'Maintien',
