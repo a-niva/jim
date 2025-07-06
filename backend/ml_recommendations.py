@@ -106,6 +106,12 @@ class FitnessRecommendationEngine:
             
             # 3. Récupérer ou créer les coefficients personnalisés
             coefficients = self._get_or_create_coefficients(user, exercise)
+            logger.info(f"DEBUG - Coefficients pour user {user.id}, exercise {exercise.id}:")
+            logger.info(f"  coefficients object: {coefficients}")
+            if coefficients:
+                logger.info(f"  fatigue_sensitivity: {getattr(coefficients, 'fatigue_sensitivity', 'MISSING')}")
+                logger.info(f"  effort_responsiveness: {getattr(coefficients, 'effort_responsiveness', 'MISSING')}")
+                logger.info(f"  recovery_rate: {getattr(coefficients, 'recovery_rate', 'MISSING')}")
             logger.info(f"DEBUG AVANT STRATÉGIE - Exercise {exercise.id}")
             logger.info(f"  performance_state: {performance_state}")
             logger.info(f"  exercise.weight_type: {exercise.weight_type}")

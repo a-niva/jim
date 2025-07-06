@@ -1288,7 +1288,7 @@ def get_set_recommendations(
     
     # LOGGING pour debug et amélioration continue
     logger.info(f"Recommandations pour user {user.id}, exercise {exercise.id}, set {set_number}:")
-    logger.info(f"  Base: {base_recommendations.get('weight_recommendation')}kg x {base_recommendations.get('reps_recommendation')} reps")
+    logger.info(f"  Base: {base_recommendations.get('baseline_weight')}kg x {base_recommendations.get('reps_recommendation')} reps")
     logger.info(f"  Confiance: {base_recommendations.get('confidence', 0):.2f}")
     logger.info(f"  Historique séance: {len(session_history)} séries")
     if base_recommendations.get('reasoning'):
