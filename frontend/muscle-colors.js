@@ -4,7 +4,7 @@
  */
 
 // Configuration complète des couleurs
-export const MUSCLE_COLORS = {
+const MUSCLE_COLORS = {
     // Groupe DOS
     dos: {
         primary: '#3b82f6',

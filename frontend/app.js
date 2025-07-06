@@ -1,9 +1,5 @@
 // ===== FITNESS COACH - APPLICATION PRINCIPALE =====
 
-// Import du système de couleurs musculaires
-import { getChartColors, getMuscleClass, applyMuscleStyle } from './muscle-colors.js';
-import { savedUserId } from './app.js'
-
 // ===== ÉTAT GLOBAL =====
 let setTimer = null; 
 let currentUser = null;
@@ -515,6 +511,9 @@ async function registerServiceWorker() {
         }
     }
 }
+
+
+const savedUserId = localStorage.getItem('fitness_user_id');
 
 // ===== NAVIGATION =====
 function showView(viewName) {
@@ -5587,7 +5586,7 @@ async function loadAvailableExercises() {
             abdominaux: []
         };
         // Import des couleurs depuis le système centralisé
-        const chartColors = getChartColors();
+        const chartColors = window.MuscleColors.getChartColors();
         backgroundColor: Object.values(chartColors)
         
         // Icônes pour chaque groupe
