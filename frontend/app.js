@@ -3476,9 +3476,7 @@ async function updateSetRecommendations() {
 }
 
 function syncMLToggles() {
-    // Synchroniser le nouveau toggle avec l'ancien système
     const mainToggle = document.getElementById('mlToggle');
-    const inlineToggle = document.getElementById('mlToggleInline'); // Si encore présent temporairement
     
     if (mainToggle && currentExercise) {
         const mlSettings = currentWorkoutSession.mlSettings?.[currentExercise.id];
@@ -3486,9 +3484,13 @@ function syncMLToggles() {
         
         mainToggle.checked = isActive;
         
-        // Synchroniser avec l'ancien toggle si présent
-        if (inlineToggle) {
-            inlineToggle.checked = isActive;
+        // AJOUT : Forcer le refresh visuel
+        mainToggle.dispatchEvent(new Event('change'));
+        
+        // Mettre à jour le texte du statut
+        const aiStatusEl = document.getElementById('aiStatus');
+        if (aiStatusEl) {
+            aiStatusEl.textContent = isActive ? 'Actif' : 'Inactif';
         }
     }
 }
@@ -6238,11 +6240,12 @@ function selectEffort(button, value) {
 
 // Fonction pour la validation automatique
 function checkAutoValidation() {
-    // Si fatigue ET effort sont sélectionnés, valider automatiquement
     if (currentWorkoutSession.currentSetFatigue && currentWorkoutSession.currentSetEffort) {
+        showAutoValidation();
+        
         setTimeout(() => {
-            saveFeedbackAndRest();
-        }, 300); // Petit délai pour voir la sélection
+            validateAndStartRest(); // CHANGER de saveFeedbackAndRest()
+        }, 1000);
     }
 }
 
@@ -6268,6 +6271,15 @@ async function saveFeedbackAndRest() {
             suggested_rest_seconds: workoutState.currentRecommendation?.rest_seconds_recommendation
         };
         
+        // Validation des données avant envoi
+        if (!setData.exercise_id || !setData.set_number || !setData.fatigue_level || !setData.effort_level) {
+            console.error('❌ Données de série incomplètes:', setData);
+            showToast('Données incomplètes, impossible d\'enregistrer', 'error');
+            return;
+        }
+        // Log pour debug
+        console.log('📤 Envoi série:', setData);
+
         // Enregistrer la série
         const savedSet = await apiPost(`/api/workouts/${currentWorkout.id}/sets`, setData);
         

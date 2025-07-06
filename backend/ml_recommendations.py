@@ -11,6 +11,7 @@ import statistics
 import logging
 
 from backend.models import User, Exercise, WorkoutSet, SetHistory, Workout
+from backend.main import safe_timedelta_hours
 
 logger = logging.getLogger(__name__)
 
@@ -140,7 +141,7 @@ class FitnessRecommendationEngine:
                 "confidence_details": {
                     "sample_size": len(historical_data),
                     "data_recency_days": min(
-                        (datetime.now(timezone.utc) - h['completed_at']).days 
+                        safe_timedelta_hours(datetime.now(timezone.utc), h['completed_at']) / 24
                         for h in historical_data[:5] if 'completed_at' in h
                     ) if historical_data and any('completed_at' in h for h in historical_data[:5]) else None
                 }
