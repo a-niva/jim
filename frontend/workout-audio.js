@@ -155,6 +155,15 @@ class WorkoutAudioSystem {
 // Instance globale
 const workoutAudio = new WorkoutAudioSystem();
 
+// Check if already initialized
+if (typeof window.workoutAudio !== 'undefined') {
+    console.warn('WorkoutAudio already initialized, skipping...');
+} else {
+    // Instance globale
+    const workoutAudio = new WorkoutAudioSystem();
+    window.workoutAudio = workoutAudio;
+}
+
 // Export pour utilisation dans d'autres modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = WorkoutAudioSystem;
