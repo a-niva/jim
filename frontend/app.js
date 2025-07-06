@@ -2855,16 +2855,6 @@ async function selectExercise(exercise, skipValidation = false) {
         };
     }
 
-    // AJOUT : Afficher le toggle ML si exercice avec poids
-    if (exercise.weight_type !== 'bodyweight' && exercise.exercise_type !== 'isometric') {
-        const mlToggleHtml = renderMLToggle(exercise.id);
-        const exerciseHeader = document.querySelector('#currentExercise .exercise-header');
-        if (exerciseHeader) {
-            const existingToggle = exerciseHeader.querySelector('.ml-toggle-container');
-            if (existingToggle) existingToggle.remove();
-            exerciseHeader.insertAdjacentHTML('beforeend', mlToggleHtml);
-        }
-    }
     // Gérer l'affichage du bouton "Changer d'exercice" selon le mode
     const changeExerciseBtn = document.querySelector('.btn-change-exercise');
     if (changeExerciseBtn) {
@@ -2934,43 +2924,16 @@ function toggleMLAdjustment(exerciseId) {
     const newState = !currentWorkoutSession.mlSettings[exerciseId].autoAdjust;
     currentWorkoutSession.mlSettings[exerciseId].autoAdjust = newState;
     
-    if (!newState) {
-        // Sauvegarder le dernier poids pour le mode manuel
-        const currentWeight = parseFloat(document.getElementById('setWeight')?.textContent) || null;
-        currentWorkoutSession.mlSettings[exerciseId].lastManualWeight = currentWeight;
-    }
-    
-    // Mettre à jour le label
-    const label = document.querySelector(`#mlToggle-${exerciseId}`).closest('.ml-toggle-container').querySelector('.toggle-label');
-    if (label) {
-        label.innerHTML = `<i class="fas fa-brain"></i> Ajustement IA ${newState ? '(Actif)' : '(Manuel)'}`;
-    }
-    
-    // AJOUT : Mettre à jour le toggle inline et le statut
-    const inlineToggle = document.getElementById('mlToggleInline');
-    if (inlineToggle) inlineToggle.checked = newState;
-    
-    // Mettre à jour le texte du statut
+    // Mise à jour simple du statut
     const statusEl = document.getElementById('aiToggleStatus');
     if (statusEl) {
-        const confidence = workoutState.currentRecommendation?.confidence || 0;
-        if (!newState) {
-            statusEl.textContent = 'Désactivé • Mode manuel';
-        } else if (confidence === 0 || !workoutState.currentRecommendation) {
-            statusEl.textContent = 'Actif • Données insuffisantes';
-        } else {
-            statusEl.textContent = `Actif • Confiance ${Math.round(confidence * 100)}%`;
-        }
+        statusEl.textContent = newState ? 'Active' : 'Manuelle';
     }
-    
-    // Sauvegarder la préférence localement
-    const key = `ml_preferences_${currentUser.id}_${exerciseId}`;
-    localStorage.setItem(key, JSON.stringify(newState));
     
     // Rafraîchir les recommandations
     updateSetRecommendations();
     
-    showToast(`Ajustement IA ${newState ? 'activé' : 'désactivé'} pour cet exercice`, 'info');
+    showToast(`Mode ${newState ? 'IA' : 'manuel'} activé`, 'info');
 }
 
 // === PHASE 2.2 : VISUALISATION TRANSPARENTE ML ===
@@ -3329,13 +3292,6 @@ async function updateSetRecommendations() {
             mlExplanationContainer.style.display = 'block';
         } else if (mlExplanationContainer) {
             mlExplanationContainer.style.display = 'none';
-        }
-
-        // PHASE 2.2 : Afficher toggle ML
-        const mlToggleContainer = document.getElementById('mlToggleContainer');
-        if (mlToggleContainer) {
-            mlToggleContainer.innerHTML = renderMLToggle(currentExercise.id);
-            mlToggleContainer.style.display = 'block';
         }
 
         // PHASE 2.2 : Afficher indicateur de confiance

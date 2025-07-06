@@ -369,13 +369,6 @@
                         </button>
                     </div>
                 </div>
-                
-                <!-- PHASE 2.2 : Toggle ML -->
-                <div id="mlToggleContainer" style="display: none;"></div>
-                
-                <!-- PHASE 2.2 : Explication ML -->
-                <div id="mlExplanationContainer" style="display: none;"></div>
-                
                 <!-- Carte principale unifiée -->
                 <div class="workout-card">
                     <!-- Progression des séries -->
@@ -384,9 +377,6 @@
                         <span class="dot"></span>
                         <span class="dot"></span>
                     </div>
-                    
-                    <!-- PHASE 2.2 : Indicateur de confiance -->
-                    <div id="mlConfidenceContainer" style="display: none;"></div>
                     
                     <!-- Zone d'input moderne avec IA intégrée -->
                     <div class="input-section">
@@ -419,40 +409,20 @@
                     </button>
                     
 <!-- Feedback après série -->
+<!-- Feedback après série -->
 <div id="setFeedback" class="set-feedback-modern" style="display: none;">
-    <!-- Toggle IA compact sur une ligne -->
-    <div class="ai-toggle-line">
-        <div class="ai-toggle-left">
-            <label class="toggle-switch">
-                <input type="checkbox" id="mlToggleInline" checked onchange="if(currentExercise) toggleMLAdjustment(currentExercise.id)">
-                <span class="toggle-slider"></span>
-            </label>
-            <span class="ai-status-text">
-                Ajustement IA : <span id="aiToggleStatus">Actif • Confiance 78%</span>
-            </span>
-        </div>
-        <button class="ai-info-btn" onclick="toggleAIDetails()">
-            <i class="fas fa-info-circle"></i>
-        </button>
+    <!-- Toggle IA ultra-compact -->
+    <div class="ai-toggle-minimal">
+        <label class="toggle-switch-minimal">
+            <input type="checkbox" id="mlToggleInline" checked onchange="if(currentExercise) toggleMLAdjustment(currentExercise.id)">
+            <span class="toggle-slider-minimal"></span>
+        </label>
+        <span class="ai-status-minimal">
+            IA : <span id="aiToggleStatus">Active</span>
+        </span>
     </div>
 
-    <!-- Détails IA cachés par défaut -->
-    <div class="ai-details-collapse" id="aiDetails">
-        <div class="ai-detail-item">
-            <span class="ai-detail-label">Prochaine recommandation</span>
-            <span class="ai-detail-value" id="aiNextRec">Calculer...</span>
-        </div>
-        <div class="ai-detail-item">
-            <span class="ai-detail-label">Raison</span>
-            <span class="ai-detail-value" id="aiReason">-</span>
-        </div>
-        <div class="ai-detail-item">
-            <span class="ai-detail-label">Historique</span>
-            <span class="ai-detail-value" id="aiHistory">-</span>
-        </div>
-    </div>
-
-    <!-- Sections de feedback (inchangées) -->
+    <!-- Section Fatigue -->
     <div class="feedback-section-modern">
         <div class="feedback-header">
             <div class="feedback-emoji-icon">💧</div>
@@ -481,24 +451,7 @@
             <button class="emoji-btn-modern" data-effort="5" onclick="selectEffort(this, 5)">🌋</button>
         </div>
     </div>
-
-    <!-- Indicateur de progression -->
-    <div class="feedback-progress">
-        <div class="progress-dot" id="fatigueProgress"></div>
-        <div class="progress-dot" id="effortProgress"></div>
-    </div>
 </div>
-                
-                <!-- PHASE 2.2 : Historique ML -->
-                <div id="mlHistoryContainer" style="display: none;">
-                    <div class="ml-history-container">
-                        <div class="ml-history-header" onclick="toggleMLHistory()">
-                            <h4>Historique IA <span class="history-count">(0)</span></h4>
-                            <span class="toggle-icon">▼</span>
-                        </div>
-                        <div id="mlHistoryTimeline" class="ml-history-timeline" style="display: none;"></div>
-                    </div>
-                </div>
                 
                 <!-- Historique minimaliste -->
                 <div class="history-minimal" id="setsHistory"></div>
