@@ -9,6 +9,7 @@ from typing import Dict, List, Optional, Tuple
 from datetime import datetime, timedelta, timezone
 import statistics
 import logging
+import traceback
 
 from backend.models import User, Exercise, WorkoutSet, SetHistory, Workout
 
@@ -107,11 +108,14 @@ class FitnessRecommendationEngine:
             # 3. Récupérer ou créer les coefficients personnalisés
             coefficients = self._get_or_create_coefficients(user, exercise)
             logger.info(f"DEBUG - Coefficients pour user {user.id}, exercise {exercise.id}:")
-            logger.info(f"  coefficients object: {coefficients}")
             if coefficients:
-                logger.info(f"  fatigue_sensitivity: {getattr(coefficients, 'fatigue_sensitivity', 'MISSING')}")
-                logger.info(f"  effort_responsiveness: {getattr(coefficients, 'effort_responsiveness', 'MISSING')}")
-                logger.info(f"  recovery_rate: {getattr(coefficients, 'recovery_rate', 'MISSING')}")
+                logger.info(f"  fatigue_sensitivity: {getattr(coefficients, 'fatigue_sensitivity', 'NONE')}")
+                logger.info(f"  effort_responsiveness: {getattr(coefficients, 'effort_responsiveness', 'NONE')}")
+                logger.info(f"  recovery_rate: {getattr(coefficients, 'recovery_rate', 'NONE')}")
+                logger.info(f"  volume_adaptability: {getattr(coefficients, 'volume_adaptability', 'NONE')}")
+            else:
+                logger.error("  coefficients est None!")
+
             logger.info(f"DEBUG AVANT STRATÉGIE - Exercise {exercise.id}")
             logger.info(f"  performance_state: {performance_state}")
             logger.info(f"  exercise.weight_type: {exercise.weight_type}")
@@ -186,6 +190,7 @@ class FitnessRecommendationEngine:
             
         except Exception as e:
             logger.error(f"Erreur recommandations pour user {user.id}, exercise {exercise.id}: {e}")
+            logger.error(f"Traceback complet:\n{traceback.format_exc()}")
             # Fallback sur les valeurs par défaut
             return {
                 "weight_recommendation": None,
