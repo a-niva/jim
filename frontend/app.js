@@ -3054,32 +3054,39 @@ function toggleMLAdjustment(exerciseId) {
         };
     }
     
-    // CORRECTION : Lire l'état depuis le toggle DOM
-    const toggleElement = document.getElementById('mlToggle') || document.getElementById(`mlToggle-${exerciseId}`);
-    const newState = toggleElement ? toggleElement.checked : !currentWorkoutSession.mlSettings[exerciseId].autoAdjust;
+    // CORRECTION : Lire depuis l'événement au lieu du DOM
+    const toggleElement = document.getElementById(`mlToggle-${exerciseId}`) || document.getElementById('mlToggle');
     
-    // Mettre à jour l'état
+    if (!toggleElement) {
+        console.error('❌ Toggle ML introuvable');
+        return;
+    }
+    
+    // L'état est déjà changé par le navigateur, on lit la nouvelle valeur
+    const newState = toggleElement.checked;
+    
+    // Mettre à jour l'état interne
     currentWorkoutSession.mlSettings[exerciseId].autoAdjust = newState;
     
     console.log('🔄 Nouvel état ML:', newState);
     
-    // FORCER la mise à jour de TOUS les toggles
-    const allToggles = document.querySelectorAll('[id^="mlToggle"]');
-    allToggles.forEach(toggle => {
-        if (toggle.checked !== newState) {
-            toggle.checked = newState;
-        }
-    });
-    
-    // Mettre à jour le texte immédiatement
+    // Mettre à jour immédiatement tous les autres éléments UI
     const aiStatusEl = document.getElementById('aiStatus');
     if (aiStatusEl) {
         aiStatusEl.textContent = newState ? 'Actif' : 'Inactif';
+        aiStatusEl.className = newState ? 'status-active' : 'status-inactive';
     }
     
-    // Synchroniser et rafraîchir
-    syncMLToggles();
-    updateSetRecommendations();
+    // Mettre à jour le label du toggle
+    const toggleLabel = toggleElement.closest('.ml-toggle-container')?.querySelector('.toggle-label');
+    if (toggleLabel) {
+        toggleLabel.innerHTML = `<i class="fas fa-brain"></i> Ajustement IA ${newState ? '(Actif)' : '(Manuel)'}`;
+    }
+    
+    // Appliquer les changements immédiatement
+    if (typeof updateSetRecommendations === 'function') {
+        updateSetRecommendations();
+    }
     
     showToast(`Ajustement IA ${newState ? 'activé' : 'désactivé'}`, 'info');
 }
@@ -3372,6 +3379,65 @@ async function updateSetRecommendations() {
     }
 
     try {
+        // Vérifier si ML est activé pour cet exercice
+        const mlEnabled = currentWorkoutSession.mlSettings?.[currentExercise.id]?.autoAdjust ?? true;
+
+        if (!mlEnabled) {
+            // Mode manuel : utiliser les valeurs par défaut ou précédentes
+            const lastSet = currentWorkoutSession.completedSets
+                .filter(s => s.exercise_id === currentExercise.id)
+                .slice(-1)[0];
+            
+            workoutState.currentRecommendation = {
+                weight_recommendation: lastSet?.weight || currentExercise.default_weight || 20,
+                reps_recommendation: currentExercise.default_reps_min || 12,
+                confidence: 1.0,
+                reasoning: "Mode manuel activé",
+                weight_change: "same",
+                reps_change: "same",
+                adaptation_strategy: "fixed_weight"
+            };
+            
+            console.log('🔧 Mode manuel - Recommandations fixées');
+            
+            // Utiliser les fonctions existantes pour l'affichage
+            const exerciseType = getExerciseType(currentExercise);
+            await configureUIForExerciseType(exerciseType, workoutState.currentRecommendation);
+            updateAIDetailsPanel(workoutState.currentRecommendation);
+            
+            return;
+        }
+
+        // CONTINUER avec l'appel API ML existant
+        const recommendations = await apiPost(`/api/workouts/${currentWorkout.id}/recommendations`, {
+            exercise_id: currentExercise.id,
+            set_number: currentSet,
+            current_fatigue: currentWorkoutSession.sessionFatigue,
+            previous_effort: currentSet > 1 ? 
+                currentWorkoutSession.completedSets
+                    .filter(s => s.exercise_id === currentExercise.id)
+                    .slice(-1)[0]?.effort_level || 3 : 3,
+            exercise_order: currentWorkoutSession.exerciseOrder,
+            set_order_global: currentWorkoutSession.globalSetCount + 1,
+            last_rest_duration: currentWorkoutSession.lastActualRestDuration,
+            session_history: sessionHistory
+        });
+
+        // VALIDATION des recommandations reçues
+        if (!recommendations || recommendations.weight_recommendation === null || recommendations.weight_recommendation === 0) {
+            console.warn('⚠️ Recommandations ML invalides, fallback sur valeurs par défaut');
+            workoutState.currentRecommendation = {
+                weight_recommendation: currentExercise.default_weight || 20,
+                reps_recommendation: currentExercise.default_reps_min || 12,
+                confidence: 0.3,
+                reasoning: "Données insuffisantes, valeurs par défaut utilisées",
+                weight_change: "same",
+                reps_change: "same",
+                adaptation_strategy: "fixed_weight"
+            };
+        } else {
+            workoutState.currentRecommendation = recommendations;
+        }
         // ENRICHIR les données envoyées au ML avec l'historique de cette séance
         const sessionSets = currentWorkoutSession.completedSets.filter(s => s.exercise_id === currentExercise.id);
         const sessionHistory = sessionSets.map(set => ({
@@ -3623,26 +3689,35 @@ function toggleAIDetails() {
     }
 }
 
+// Fonction syncMLToggles manquante
 function syncMLToggles() {
-    const mainToggle = document.getElementById('mlToggle');
+    if (!currentExercise || !currentWorkoutSession.mlSettings) return;
     
-    if (mainToggle && currentExercise) {
-        const mlSettings = currentWorkoutSession.mlSettings?.[currentExercise.id];
-        const isActive = mlSettings?.autoAdjust ?? currentUser.prefer_weight_changes_between_sets;
-        
-        // AJOUTER : Forcer le refresh visuel
-        if (mainToggle.checked !== isActive) {
-            mainToggle.checked = isActive;
-            // Déclencher l'événement change pour mettre à jour les styles
-            mainToggle.dispatchEvent(new Event('change', { bubbles: true }));
+    const exerciseId = currentExercise.id;
+    const currentState = currentWorkoutSession.mlSettings[exerciseId]?.autoAdjust ?? true;
+    
+    // Synchroniser tous les toggles avec l'état actuel
+    const toggles = document.querySelectorAll('[id^="mlToggle"]');
+    toggles.forEach(toggle => {
+        if (toggle.checked !== currentState) {
+            toggle.checked = currentState;
         }
-        
-        // Mettre à jour le texte du statut
-        const aiStatusEl = document.getElementById('aiStatus');
-        if (aiStatusEl) {
-            aiStatusEl.textContent = isActive ? 'Actif' : 'Inactif';
+    });
+    
+    // Mettre à jour les textes d'état
+    const statusElements = document.querySelectorAll('.toggle-label, #aiStatus');
+    statusElements.forEach(el => {
+        if (el.id === 'aiStatus') {
+            el.textContent = currentState ? 'Actif' : 'Inactif';
+        } else if (el.classList.contains('toggle-label')) {
+            const label = el.querySelector('span') || el;
+            if (label.textContent.includes('Ajustement IA')) {
+                label.textContent = `🧠 Ajustement IA (${currentState ? 'Actif' : 'Manuel'})`;
+            }
         }
-    }
+    });
+    
+    console.log(`🔄 syncMLToggles: état synchronisé à ${currentState} pour exercice ${exerciseId}`);
 }
 
 function renderConfidenceIndicators(recommendations) {
@@ -7148,3 +7223,11 @@ window.formatTimeAgo = formatTimeAgo;
 window.getConfidenceIcon = getConfidenceIcon;
 
 window.resetFeedbackSelection = resetFeedbackSelection;
+
+window.currentWorkout = currentWorkout;
+window.currentWorkoutSession = currentWorkoutSession;
+window.workoutState = workoutState;
+window.currentExercise = currentExercise;
+
+window.updateSetRecommendations = updateSetRecommendations;
+window.syncMLToggles = syncMLToggles;

@@ -791,40 +791,65 @@ class FitnessRecommendationEngine:
     ) -> float:
         """Calcule des points d'effort normalisés - VERSION CORRIGÉE"""
         
-        # === 1. VOLUME DE BASE ===
-        if exercise.exercise_type == "isometric":
-            # Calibrage : 1 seconde isométrique = 20 points d'effort
-            base_volume = reps * 20
-            
-        elif exercise.weight_type == "bodyweight":
-            percentage_data = exercise.bodyweight_percentage or {"intermediate": 65}
-            percentage = percentage_data.get(user.experience_level, 65)
-            equivalent_weight = user.weight * (percentage / 100)
-            base_volume = equivalent_weight * reps
-            
-        elif exercise.weight_type == "hybrid":
-            if weight and weight > 0:
-                base_volume = weight * reps
-            else:
+        # === 1. VALIDATION DES ENTRÉES ===
+        if not exercise or not user:
+            logger.warning("Exercise ou User manquant dans calculate_exercise_volume")
+            return 0.0
+        
+        if reps <= 0:
+            logger.warning(f"Reps invalides: {reps}")
+            return 0.0
+        
+        # === 2. CALCUL DU VOLUME DE BASE ===
+        try:
+            if exercise.exercise_type == "isometric":
+                # Calibrage : 1 seconde isométrique = 20 points d'effort
+                base_volume = reps * 20
+                
+            elif exercise.weight_type == "bodyweight":
                 percentage_data = exercise.bodyweight_percentage or {"intermediate": 65}
                 percentage = percentage_data.get(user.experience_level, 65)
                 equivalent_weight = user.weight * (percentage / 100)
                 base_volume = equivalent_weight * reps
                 
-        else:  # external
-            base_volume = (weight or 0) * reps
-        
-        # === 2. INTENSITY_FACTOR PARTOUT ===
-        intensity_adjusted = base_volume * (exercise.intensity_factor or 1.0)
-        
-        # === 3. EFFORT UTILISATEUR (optionnel) ===
-        if effort_level:
-            effort_multipliers = {1: 0.7, 2: 0.85, 3: 1.0, 4: 1.15, 5: 1.3}
-            final_volume = intensity_adjusted * effort_multipliers.get(effort_level, 1.0)
-        else:
-            final_volume = intensity_adjusted
-        
-        return round(final_volume, 1)
+            elif exercise.weight_type == "hybrid":
+                if weight and weight > 0:
+                    base_volume = weight * reps
+                else:
+                    percentage_data = exercise.bodyweight_percentage or {"intermediate": 65}
+                    percentage = percentage_data.get(user.experience_level, 65)
+                    equivalent_weight = user.weight * (percentage / 100)
+                    base_volume = equivalent_weight * reps
+                    
+            else:  # external
+                # CORRECTION CRITIQUE : gérer le cas où weight est None
+                if weight is None or weight <= 0:
+                    logger.warning(f"Poids invalide ({weight}) pour exercice externe {exercise.name}")
+                    # Utiliser un poids estimé au lieu de retourner None
+                    weight = self._estimate_weight(user, exercise)
+                base_volume = weight * reps
+            
+            # === 3. INTENSITY_FACTOR PARTOUT ===
+            intensity_factor = exercise.intensity_factor or 1.0
+            intensity_adjusted = base_volume * intensity_factor
+            
+            # === 4. EFFORT UTILISATEUR (optionnel) ===
+            if effort_level:
+                effort_multipliers = {1: 0.7, 2: 0.85, 3: 1.0, 4: 1.15, 5: 1.3}
+                final_volume = intensity_adjusted * effort_multipliers.get(effort_level, 1.0)
+            else:
+                final_volume = intensity_adjusted
+            
+            # === 5. VALIDATION DU RÉSULTAT ===
+            if final_volume is None or final_volume < 0:
+                logger.error(f"Volume calculé invalide: {final_volume}")
+                return 0.0
+            
+            return round(final_volume, 1)
+            
+        except Exception as e:
+            logger.error(f"Erreur dans calculate_exercise_volume: {e}")
+            return 0.0
     
     def _calculate_fatigue_adjustment(
         self, 
