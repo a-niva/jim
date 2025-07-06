@@ -106,7 +106,10 @@ class FitnessRecommendationEngine:
             
             # 3. Récupérer ou créer les coefficients personnalisés
             coefficients = self._get_or_create_coefficients(user, exercise)
-            
+            logger.info(f"DEBUG AVANT STRATÉGIE - Exercise {exercise.id}")
+            logger.info(f"  performance_state: {performance_state}")
+            logger.info(f"  exercise.weight_type: {exercise.weight_type}")
+
             # 4. Appliquer la stratégie selon la préférence utilisateur
             if user.prefer_weight_changes_between_sets:
                 recommendations = self._apply_variable_weight_strategy(
@@ -403,6 +406,7 @@ class FitnessRecommendationEngine:
         baseline_weight = performance_state.get('baseline_weight')
         if baseline_weight is None or baseline_weight <= 0:
             baseline_weight = 20.0  # Valeur par défaut sûre
+            logger.warning(f"baseline_weight était None/invalide, utilisation fallback: {baseline_weight}")
             
         baseline_reps = performance_state.get('baseline_reps')
         if baseline_reps is None or baseline_reps <= 0:
@@ -655,6 +659,14 @@ class FitnessRecommendationEngine:
         session_factor: float, exercise: Exercise, available_weights: Optional[List[float]]
     ) -> Optional[float]:
         """Calcule la recommandation de poids avec tous les facteurs"""
+
+        # PROTECTION ABSOLUE - Log détaillé si baseline_weight est None
+        if baseline_weight is None:
+            logger.error(f"ERREUR CRITIQUE: baseline_weight est None dans _calculate_weight_recommendation")
+            logger.error(f"  exercise: {exercise.name} (id: {exercise.id})")
+            logger.error(f"  weight_type: {exercise.weight_type}")
+            logger.error(f"  Tous les params: fatigue_adj={fatigue_adj}, effort_factor={effort_factor}")
+            baseline_weight = 20.0
         
         if exercise.weight_type == "bodyweight":
             return None
