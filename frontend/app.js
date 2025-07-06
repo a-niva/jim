@@ -6246,15 +6246,6 @@ function checkAutoValidation() {
     }
 }
 
-function checkAutoValidation() {
-    // Si fatigue ET effort sont sélectionnés, valider automatiquement
-    if (currentWorkoutSession.currentSetFatigue && currentWorkoutSession.currentSetEffort) {
-        setTimeout(() => {
-            saveFeedbackAndRest();
-        }, 300); // Petit délai pour voir la sélection
-    }
-}
-
 async function saveFeedbackAndRest() {
     if (!workoutState.pendingSetData) {
         console.error('Pas de données de série en attente');
