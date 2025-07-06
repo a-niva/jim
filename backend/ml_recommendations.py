@@ -71,8 +71,8 @@ class FitnessRecommendationEngine:
         )
     
     def get_set_recommendations(
-        self, 
-        user: User, 
+        self,
+        user: User,
         exercise: Exercise,
         set_number: int,
         current_fatigue: int,  # 1-5
@@ -80,7 +80,8 @@ class FitnessRecommendationEngine:
         last_rest_duration: Optional[int] = None,  # en secondes
         exercise_order: int = 1,
         set_order_global: int = 1,
-        available_weights: List[float] = None
+        available_weights: List[float] = None,
+        workout_id: Optional[int] = None 
     ) -> Dict[str, any]:
         """
         Génère des recommandations de poids/reps/repos pour la prochaine série
@@ -110,7 +111,9 @@ class FitnessRecommendationEngine:
             if user.prefer_weight_changes_between_sets:
                 recommendations = self._apply_variable_weight_strategy(
                     performance_state, exercise, set_number, 
-                    current_fatigue, current_effort, coefficients, user
+                    current_fatigue, current_effort, coefficients, user,
+                    workout_id=workout_id,
+                    available_weights=available_weights
                 )
             else:
                 recommendations = self._apply_fixed_weight_strategy(
@@ -354,51 +357,458 @@ class FitnessRecommendationEngine:
         current_fatigue: int,
         current_effort: int,
         coefficients: UserAdaptationCoefficients,
-        user: User
+        user: User,
+        workout_id: Optional[int] = None,
+        available_weights: Optional[List[float]] = None
     ) -> Dict[str, any]:
-        """Stratégie avec poids variable : ajuste poids, reps et repos"""
+        """
+        Stratégie avec ajustements variables : poids, reps ET repos adaptatifs
         
-        baseline_weight = performance_state['baseline_weight']
-        baseline_reps = performance_state['baseline_reps']
-        fatigue_adjustment = performance_state['fatigue_adjustment']
+        Args:
+            performance_state: État de performance baseline
+            exercise: Exercice concerné
+            set_number: Numéro de la série (1, 2, 3...)
+            current_fatigue: Fatigue ressentie (1-5)
+            current_effort: Effort fourni série précédente (1-5)
+            coefficients: Coefficients d'adaptation utilisateur
+            user: Utilisateur
+            workout_id: ID de la séance courante (pour récupérer historique)
+            available_weights: Poids disponibles pour ajustement
         
-        # Ajustements basés sur la fatigue et l'effort
-        effort_factor = {
-            1: 1.1,   # Très facile
-            2: 1.05,  # Facile
-            3: 1.0,   # Modéré
-            4: 0.95,  # Difficile
-            5: 0.85   # Échec
-        }.get(current_effort, 1.0)
+        Returns:
+            Dict avec weight, reps, rest_seconds et métadonnées
+        """
         
-        # Ajustement progressif selon le numéro de série
-        set_factor = 1.0 - (set_number - 1) * 0.05 * coefficients.fatigue_sensitivity
+        # ===== EXTRACTION DES DONNÉES DE BASE =====
+        baseline_weight = performance_state.get('baseline_weight', 0)
+        baseline_reps = performance_state.get('baseline_reps', 10)
+        fatigue_adjustment = performance_state.get('fatigue_adjustment', 1.0)
         
-        # Calculer les recommandations
-        if exercise.weight_type == "bodyweight":
-            recommended_weight = None
-        elif baseline_weight is None or baseline_weight <= 0:
-            # Fallback si pas de baseline
-            recommended_weight = self._estimate_initial_weight(user, exercise)
-            if recommended_weight is not None:
-                recommended_weight = recommended_weight * fatigue_adjustment * effort_factor * set_factor
-        else:
-            recommended_weight = baseline_weight * fatigue_adjustment * effort_factor * set_factor
+        # ===== RÉCUPÉRATION ROBUSTE DE L'HISTORIQUE =====
+        session_context = self._get_session_context(None, exercise.id, set_number)  # Temporairement None
         
-        # Maintenir les reps proches de la cible
-        reps_adjustment = 1.0 + (1.0 - fatigue_adjustment * effort_factor) * 0.2
-        recommended_reps = int(baseline_reps * reps_adjustment)
+        # ===== CALCULS DES FACTEURS D'AJUSTEMENT =====
         
-        # Déterminer les changements
-        weight_change = self._determine_change(recommended_weight, baseline_weight, 0.05)
-        reps_change = self._determine_change(recommended_reps, baseline_reps, 0.1)
+        # 1. Facteur d'effort de base
+        effort_factor = self._calculate_base_effort_factor(current_effort)
+        
+        # 2. Facteur de repos (nouveau - prend en compte repos effectif vs recommandé)
+        rest_factor = self._calculate_rest_impact_factor(session_context)
+        
+        # 3. Facteur de performance croisée (effort vs reps réelles)
+        performance_factor = self._calculate_performance_consistency_factor(
+            session_context, baseline_reps, current_effort
+        )
+        
+        # 4. Facteur de progression dans la série
+        set_progression_factor = self._calculate_set_progression_factor(
+            set_number, coefficients.fatigue_sensitivity
+        )
+        
+        # 5. Facteur de fatigue cumulée intra-séance
+        session_fatigue_factor = self._calculate_session_fatigue_factor(
+            session_context, set_number
+        )
+        
+        # ===== CALCULS DES RECOMMANDATIONS =====
+        
+        # POIDS
+        weight_recommendation = self._calculate_weight_recommendation(
+            baseline_weight, fatigue_adjustment, effort_factor, 
+            rest_factor, performance_factor, set_progression_factor,
+            session_fatigue_factor, exercise, available_weights, user
+        )
+        
+        # RÉPÉTITIONS  
+        reps_recommendation = self._calculate_reps_recommendation(
+            baseline_reps, fatigue_adjustment, effort_factor,
+            performance_factor, session_fatigue_factor, exercise
+        )
+        
+        # TEMPS DE REPOS
+        rest_recommendation = self._calculate_adaptive_rest_recommendation(
+            exercise, current_fatigue, current_effort, set_number,
+            session_context, coefficients
+        )
+        
+        # ===== DÉTECTION DES CHANGEMENTS =====
+        weight_change = self._determine_change(weight_recommendation, baseline_weight, 0.05)
+        reps_change = self._determine_change(reps_recommendation, baseline_reps, 0.1)
+        
+        # ===== VALIDATION ET CONTRAINTES =====
+        weight_recommendation, reps_recommendation, rest_recommendation = self._apply_safety_constraints(
+            weight_recommendation, reps_recommendation, rest_recommendation,
+            exercise, session_context
+        )
+        
+        # ===== CALCUL DE CONFIANCE =====
+        confidence = self._calculate_adaptive_confidence(
+            session_context, performance_factor, rest_factor
+        )
+        
+        # ===== GÉNÉRATION DU RAISONNEMENT =====
+        reasoning = self._generate_adaptive_reasoning(
+            effort_factor, rest_factor, performance_factor, 
+            weight_change, reps_change, session_context
+        )
         
         return {
-            'weight': recommended_weight,
-            'reps': recommended_reps,
+            'weight': weight_recommendation,
+            'reps': reps_recommendation,
+            'rest_seconds': rest_recommendation.get('seconds'),
+            'rest_range': rest_recommendation.get('range'),
             'weight_change': weight_change,
-            'reps_change': reps_change
+            'reps_change': reps_change,
+            'confidence': confidence,
+            'reasoning': reasoning,
+            'factors': {
+                'effort': effort_factor,
+                'rest_impact': rest_factor,
+                'performance_consistency': performance_factor,
+                'session_fatigue': session_fatigue_factor
+            }
         }
+
+    def _get_session_context(self, workout_id: Optional[int], exercise_id: int, set_number: int) -> Dict:
+        """Récupère le contexte de la séance de manière optimisée"""
+        
+        context = {
+            'previous_sets_this_exercise': [],
+            'previous_sets_this_session': [],
+            'last_rest_actual': None,
+            'last_rest_recommended': None,
+            'session_length': 0
+        }
+        
+        if not workout_id:
+            return context
+        
+        try:
+            from sqlalchemy import desc, and_
+            
+            # Requête optimisée : récupérer toutes les données nécessaires en une fois
+            previous_sets = self.db.query(WorkoutSet).filter(
+                and_(
+                    WorkoutSet.workout_id == workout_id,
+                    WorkoutSet.completed_at.isnot(None)
+                )
+            ).order_by(desc(WorkoutSet.completed_at)).limit(10).all()
+            
+            # Séparer les sets par exercice et session
+            for workout_set in previous_sets:
+                if workout_set.exercise_id == exercise_id:
+                    context['previous_sets_this_exercise'].append(workout_set)
+                context['previous_sets_this_session'].append(workout_set)
+            
+            # Récupérer les données de repos de la dernière série
+            if context['previous_sets_this_session']:
+                last_set = context['previous_sets_this_session'][0]
+                context['last_rest_actual'] = last_set.actual_rest_duration_seconds
+                context['last_rest_recommended'] = last_set.base_rest_time_seconds or last_set.suggested_rest_seconds
+            
+            context['session_length'] = len(context['previous_sets_this_session'])
+            
+        except Exception as e:
+            # Log l'erreur mais continue avec un contexte vide
+            import logging
+            logging.warning(f"Erreur récupération contexte séance: {e}")
+        
+        return context
+
+    def _calculate_base_effort_factor(self, current_effort: int) -> float:
+        """Calcule le facteur d'effort de base avec progression non-linéaire"""
+        
+        effort_factors = {
+            1: 1.15,  # Très facile : augmentation plus agressive
+            2: 1.08,  # Facile : augmentation modérée  
+            3: 1.0,   # Modéré : maintenir
+            4: 0.92,  # Difficile : réduction modérée
+            5: 0.80   # Échec : réduction importante
+        }
+        
+        return effort_factors.get(current_effort, 1.0)
+
+    def _calculate_rest_impact_factor(self, session_context: Dict) -> float:
+        """Calcule l'impact du repos effectif vs recommandé"""
+        
+        actual_rest = session_context.get('last_rest_actual')
+        recommended_rest = session_context.get('last_rest_recommended')
+        
+        if not actual_rest or not recommended_rest or recommended_rest <= 0:
+            return 1.0
+        
+        rest_ratio = actual_rest / recommended_rest
+        
+        # Fonction non-linéaire pour l'impact du repos
+        if rest_ratio < 0.3:
+            return 0.85  # Repos très insuffisant : forte réduction
+        elif rest_ratio < 0.6:
+            return 0.92  # Repos insuffisant : réduction modérée
+        elif rest_ratio < 0.8:
+            return 0.96  # Repos un peu court : légère réduction
+        elif rest_ratio <= 1.3:
+            return 1.0   # Repos dans la plage normale
+        elif rest_ratio <= 1.8:
+            return 1.03  # Repos long : légère augmentation possible
+        else:
+            return 1.05  # Repos très long : récupération excellente
+
+    def _calculate_performance_consistency_factor(
+        self, session_context: Dict, baseline_reps: int, current_effort: int
+    ) -> float:
+        """Cross-référence effort ressenti vs performance reps réelle"""
+        
+        previous_sets = session_context.get('previous_sets_this_exercise', [])
+        
+        if not previous_sets or len(previous_sets) < 1:
+            return 1.0
+        
+        last_set = previous_sets[0]
+        last_reps = last_set.reps
+        
+        # Calculer l'écart de performance
+        if baseline_reps > 0:
+            performance_ratio = last_reps / baseline_reps
+        else:
+            return 1.0
+        
+        # Détecter les incohérences effort/performance
+        if current_effort <= 2 and performance_ratio < 0.85:
+            # Effort "facile" mais reps dégradées = fatigue cachée
+            return 0.90
+        elif current_effort <= 2 and performance_ratio < 0.70:
+            # Effort "facile" mais reps très dégradées = problème majeur
+            return 0.80
+        elif current_effort >= 4 and performance_ratio > 1.15:
+            # Effort "difficile" mais reps excellentes = sous-estimation
+            return 1.10
+        else:
+            # Cohérence effort/performance
+            return 1.0
+
+    def _calculate_set_progression_factor(self, set_number: int, fatigue_sensitivity: float) -> float:
+        """Facteur de progression dans la série avec fatigue accumulated"""
+        
+        # Réduction progressive selon le numéro de série
+        base_reduction = (set_number - 1) * 0.04 * fatigue_sensitivity
+        
+        # Plateau après la 4ème série (éviter sur-réduction)
+        if set_number > 4:
+            base_reduction = 4 * 0.04 * fatigue_sensitivity + (set_number - 4) * 0.02 * fatigue_sensitivity
+        
+        return max(0.7, 1.0 - base_reduction)  # Plancher à 70%
+
+    def _calculate_session_fatigue_factor(self, session_context: Dict, set_number: int) -> float:
+        """Calcule la fatigue cumulée de la séance"""
+        
+        session_length = session_context.get('session_length', 0)
+        
+        if session_length == 0:
+            return 1.0
+        
+        # Facteur basé sur le nombre total de séries dans la séance
+        fatigue_factor = 1.0 - (session_length * 0.01)  # -1% par série globale
+        
+        # Bonus si récupération entre exercices (changement d'exercice)
+        previous_sets = session_context.get('previous_sets_this_session', [])
+        if previous_sets and len(previous_sets) > 0:
+            last_exercise_id = previous_sets[0].exercise_id
+            current_exercise_id = previous_sets[0].exercise_id  # Sera différent si changement
+            
+            # Si changement d'exercice récent, moins de fatigue cumulée
+            if session_length >= 3:
+                exercises_in_last_3 = set([s.exercise_id for s in previous_sets[:3]])
+                if len(exercises_in_last_3) > 1:
+                    fatigue_factor += 0.05  # Bonus variété
+        
+        return max(0.8, fatigue_factor)  # Plancher à 80%
+
+    def _calculate_weight_recommendation(
+        self, baseline_weight: float, fatigue_adj: float, effort_factor: float,
+        rest_factor: float, performance_factor: float, set_factor: float,
+        session_factor: float, exercise: Exercise, available_weights: Optional[List[float]],
+        user: User  # AJOUTER
+    ) -> Optional[float]:
+        """Calcule la recommandation de poids avec tous les facteurs"""
+        
+        if exercise.weight_type == "bodyweight":
+            return None
+        
+        if not baseline_weight or baseline_weight <= 0:
+            baseline_weight = 20.0
+        
+            
+        # Multiplication de tous les facteurs
+        recommended_weight = (
+            baseline_weight * 
+            fatigue_adj * 
+            effort_factor * 
+            rest_factor * 
+            performance_factor * 
+            set_factor * 
+            session_factor
+        )
+        
+        # Ajustement aux poids disponibles
+        if available_weights:
+            recommended_weight = self._find_closest_available_weight(
+                recommended_weight, available_weights
+            )
+        
+        # Contraintes de sécurité
+        max_increase = baseline_weight * 1.2  # Max +20% par série
+        min_weight = baseline_weight * 0.7    # Min -30% par série
+        
+        return max(min_weight, min(max_increase, recommended_weight))
+
+    def _calculate_reps_recommendation(
+        self, baseline_reps: int, fatigue_adj: float, effort_factor: float,
+        performance_factor: float, session_factor: float, exercise: Exercise
+    ) -> int:
+        """Calcule la recommandation de répétitions adaptive"""
+        
+        # Facteur combiné pour les reps (moins sensible que le poids)
+        reps_factor = (
+            (fatigue_adj + 2) / 3 *  # Moins d'impact fatigue sur reps
+            (effort_factor + 1) / 2 *  # Moins d'impact effort sur reps  
+            performance_factor *
+            session_factor
+        )
+        
+        recommended_reps = int(baseline_reps * reps_factor)
+        
+        # Contraintes de l'exercice
+        min_reps = getattr(exercise, 'default_reps_min', 5)
+        max_reps = getattr(exercise, 'default_reps_max', 20)
+        
+        return max(min_reps, min(max_reps, recommended_reps))
+
+    def _calculate_adaptive_rest_recommendation(
+        self, exercise: Exercise, current_fatigue: int, current_effort: int,
+        set_number: int, session_context: Dict, coefficients: UserAdaptationCoefficients
+    ) -> Dict[str, any]:
+        """Calcule le temps de repos adaptatif basé sur la performance"""
+        
+        # Appel à la fonction existante comme base
+        base_rest = self._calculate_optimal_rest(
+            exercise, current_fatigue, current_effort, set_number, coefficients
+        )
+        
+        # Ajustements basés sur le contexte de session
+        rest_seconds = base_rest.get('seconds', 90)
+        
+        # Ajustement si repos précédent trop court et performance dégradée
+        if session_context.get('last_rest_actual', 0) < session_context.get('last_rest_recommended', 90) * 0.7:
+            if current_effort >= 4:  # Et si dernière série était difficile
+                rest_seconds = int(rest_seconds * 1.3)  # +30% de repos
+        
+        # Ajustement selon le nombre de séries dans la session
+        session_length = session_context.get('session_length', 0)
+        if session_length > 8:  # Séance longue
+            rest_seconds = int(rest_seconds * 1.1)  # +10% repos
+        
+        return {
+            'seconds': rest_seconds,
+            'range': {
+                'min': max(30, int(rest_seconds * 0.8)),
+                'max': min(300, int(rest_seconds * 1.3))
+            }
+        }
+
+    def _apply_safety_constraints(
+        self, weight: Optional[float], reps: int, rest: Dict,
+        exercise: Exercise, session_context: Dict
+    ) -> tuple:
+        """Applique les contraintes de sécurité et cohérence"""
+        
+        # Contrainte de cohérence poids/reps (éviter poids trop lourd + reps trop élevées)
+        if weight and reps:
+            previous_sets = session_context.get('previous_sets_this_exercise', [])
+            if previous_sets:
+                last_set = previous_sets[0]
+                last_volume = (last_set.weight or 0) * last_set.reps
+                new_volume = weight * reps
+                
+                # Si augmentation de volume > 25%, privilégier l'un ou l'autre
+                if new_volume > last_volume * 1.25:
+                    if weight > (last_set.weight or 0) * 1.1:
+                        # Si poids augmente beaucoup, réduire reps
+                        reps = max(last_set.reps - 1, reps - 2)
+                    elif reps > last_set.reps * 1.1:
+                        # Si reps augmentent beaucoup, réduire poids
+                        weight = min(weight, (last_set.weight or weight) * 1.05)
+        
+        # Contrainte repos minimum selon effort
+        if rest and session_context.get('previous_sets_this_session'):
+            last_effort = getattr(session_context['previous_sets_this_session'][0], 'effort_level', 3)
+            if last_effort >= 4:
+                rest['seconds'] = max(rest['seconds'], 60)  # Minimum 1 minute si effort élevé
+        
+        return weight, reps, rest
+
+    def _calculate_adaptive_confidence(
+        self, session_context: Dict, performance_factor: float, rest_factor: float
+    ) -> float:
+        """Calcule la confiance avec facteurs adaptatifs"""
+        
+        base_confidence = 0.6
+        
+        # Bonus selon quantité de données
+        sets_count = len(session_context.get('previous_sets_this_exercise', []))
+        confidence_bonus = min(0.3, sets_count * 0.08)  # +8% par série, max +30%
+        
+        # Bonus cohérence performance/effort
+        if abs(performance_factor - 1.0) < 0.1:  # Performance cohérente
+            confidence_bonus += 0.1
+        
+        # Malus si repos très atypique
+        if abs(rest_factor - 1.0) > 0.15:  # Repos très différent de normal
+            confidence_bonus -= 0.1
+        
+        return min(0.95, max(0.3, base_confidence + confidence_bonus))
+
+    def _generate_adaptive_reasoning(
+        self, effort_factor: float, rest_factor: float, performance_factor: float,
+        weight_change: str, reps_change: str, session_context: Dict
+    ) -> str:
+        """Génère un raisonnement explicatif adaptatif"""
+        
+        reasons = []
+        
+        # Raison principale basée sur l'effort
+        if effort_factor > 1.05:
+            reasons.append("Performance excellente")
+        elif effort_factor < 0.95:
+            reasons.append("Effort élevé détecté")
+        
+        # Impact du repos
+        if rest_factor < 0.95:
+            reasons.append("Repos insuffisant compensé")
+        elif rest_factor > 1.03:
+            reasons.append("Excellente récupération")
+        
+        # Cohérence performance
+        if performance_factor < 0.95:
+            reasons.append("Ajustement sécuritaire")
+        elif performance_factor > 1.05:
+            reasons.append("Potentiel sous-exploité")
+        
+        # Information sur les changements
+        change_info = []
+        if weight_change != "same":
+            direction = "↗️" if "increase" in weight_change else "↘️"
+            change_info.append(f"Poids {direction}")
+        if reps_change != "same":
+            direction = "↗️" if "increase" in reps_change else "↘️"
+            change_info.append(f"Reps {direction}")
+        
+        # Assemblage final
+        if reasons and change_info:
+            return f"{' • '.join(reasons)} → {' + '.join(change_info)}"
+        elif reasons:
+            return ' • '.join(reasons)
+        else:
+            return "Progression normale"
 
     def _apply_fixed_weight_strategy(
         self,

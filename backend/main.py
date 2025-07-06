@@ -1185,7 +1185,8 @@ def get_set_recommendations(
         last_rest_duration=request.get("last_rest_duration"),
         exercise_order=request.get("exercise_order", 1),
         set_order_global=request.get("set_order_global", 1),
-        available_weights=available_weights
+        available_weights=available_weights,
+        workout_id=workout_id
     )
     
     # AJUSTEMENTS DYNAMIQUES basés sur l'historique de cette séance
