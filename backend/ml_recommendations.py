@@ -424,7 +424,7 @@ class FitnessRecommendationEngine:
         weight_recommendation = self._calculate_weight_recommendation(
             baseline_weight, fatigue_adjustment, effort_factor, 
             rest_factor, performance_factor, set_progression_factor,
-            session_fatigue_factor, exercise, available_weights, user
+            session_fatigue_factor, exercise, available_weights
         )
         
         # RÉPÉTITIONS  
@@ -643,9 +643,9 @@ class FitnessRecommendationEngine:
         
         # PROTECTION ANTI-CRASH - Fallback immédiat
         if baseline_weight is None or baseline_weight <= 0:
-            baseline_weight = 20.0
+            baseline_weight = 20.0  # ← Fallback direct sans appel à _estimate_initial_weight
             logger.warning(f"Baseline weight null/invalid, using fallback: {baseline_weight}")
-            
+                    
             
         # Multiplication de tous les facteurs
         recommended_weight = (
