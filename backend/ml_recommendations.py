@@ -115,7 +115,7 @@ class FitnessRecommendationEngine:
             else:
                 recommendations = self._apply_fixed_weight_strategy(
                     performance_state, exercise, set_number, 
-                    current_fatigue, current_effort, coefficients, historical_data
+                    current_fatigue, current_effort, coefficients, historical_data, user
                 )
             
             # 5. Calculer le temps de repos optimal
@@ -379,7 +379,7 @@ class FitnessRecommendationEngine:
             recommended_weight = None
         elif baseline_weight is None or baseline_weight <= 0:
             # Fallback si pas de baseline
-            recommended_weight = self._estimate_initial_weight(performance_state['user'], exercise)
+            recommended_weight = self._estimate_initial_weight(user, exercise)
             if recommended_weight is not None:
                 recommended_weight = recommended_weight * fatigue_adjustment * effort_factor * set_factor
         else:
@@ -408,7 +408,8 @@ class FitnessRecommendationEngine:
         current_fatigue: int,
         current_effort: int,
         coefficients: UserAdaptationCoefficients,
-        historical_data: List[Dict]
+        historical_data: List[Dict],
+        user: User
     ) -> Dict[str, any]:
         """Stratégie avec poids fixe : ajuste uniquement reps et repos"""
         
@@ -419,6 +420,7 @@ class FitnessRecommendationEngine:
         if exercise.weight_type == "bodyweight":
             recommended_weight = None
         elif baseline_weight is None or baseline_weight <= 0:
+            # Fallback si pas de baseline  
             recommended_weight = self._estimate_initial_weight(user, exercise)
         else:
             recommended_weight = baseline_weight
