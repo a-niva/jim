@@ -110,7 +110,7 @@ class FitnessRecommendationEngine:
             if user.prefer_weight_changes_between_sets:
                 recommendations = self._apply_variable_weight_strategy(
                     performance_state, exercise, set_number, 
-                    current_fatigue, current_effort, coefficients
+                    current_fatigue, current_effort, coefficients, user
                 )
             else:
                 recommendations = self._apply_fixed_weight_strategy(
@@ -353,7 +353,8 @@ class FitnessRecommendationEngine:
         set_number: int,
         current_fatigue: int,
         current_effort: int,
-        coefficients: UserAdaptationCoefficients
+        coefficients: UserAdaptationCoefficients,
+        user: User
     ) -> Dict[str, any]:
         """Stratégie avec poids variable : ajuste poids, reps et repos"""
         
@@ -376,16 +377,13 @@ class FitnessRecommendationEngine:
         # Calculer les recommandations
         if exercise.weight_type == "bodyweight":
             recommended_weight = None
+        elif baseline_weight is None or baseline_weight <= 0:
+            # Fallback si pas de baseline
+            recommended_weight = self._estimate_initial_weight(performance_state['user'], exercise)
+            if recommended_weight is not None:
+                recommended_weight = recommended_weight * fatigue_adjustment * effort_factor * set_factor
         else:
-            if exercise.weight_type == "bodyweight":
-                recommended_weight = None
-            elif baseline_weight is None or baseline_weight <= 0:
-                # Fallback si pas de baseline
-                recommended_weight = self._estimate_initial_weight(user, exercise)
-                if recommended_weight is not None:
-                    recommended_weight = recommended_weight * fatigue_adjustment * effort_factor * set_factor
-            else:
-                recommended_weight = baseline_weight * fatigue_adjustment * effort_factor * set_factor
+            recommended_weight = baseline_weight * fatigue_adjustment * effort_factor * set_factor
         
         # Maintenir les reps proches de la cible
         reps_adjustment = 1.0 + (1.0 - fatigue_adjustment * effort_factor) * 0.2
@@ -1064,9 +1062,12 @@ class FitnessRecommendationEngine:
     ) -> str:
         """Détermine si c'est une augmentation, diminution ou maintien"""
         
-        # AVANT : if baseline == 0:
-        # APRÈS : Vérifier aussi None
-        if baseline is None or baseline == 0:
+        # PROTECTION CONTRE None
+        if recommended is None and baseline is None:
+            return "same"
+        elif recommended is None or baseline is None:
+            return "same"
+        elif baseline == 0:
             return "same"
         
         change_ratio = abs(recommended - baseline) / baseline

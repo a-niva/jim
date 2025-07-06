@@ -1862,7 +1862,7 @@ def get_volume_burndown(
         AdaptiveTargets.user_id == user_id
     ).all()
     
-    total_target_volume = sum(t.target_volume for t in targets) * (days_in_period / 7)
+    total_target_volume = sum(t.target_volume for t in targets if t.target_volume is not None) * (days_in_period / 7)
     
     # Calculer le volume réalisé jour par jour
     daily_volumes = []

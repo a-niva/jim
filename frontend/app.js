@@ -3042,39 +3042,42 @@ function renderMLConfidence(confidence) {
 
 // Fonction pour gérer le toggle
 function toggleMLAdjustment(exerciseId) {
+    console.log('🔄 Toggle ML appelé pour exercice:', exerciseId);
+    
     if (!currentWorkoutSession.mlSettings) {
         currentWorkoutSession.mlSettings = {};
     }
     
     if (!currentWorkoutSession.mlSettings[exerciseId]) {
         currentWorkoutSession.mlSettings[exerciseId] = {
-            autoAdjust: currentUser.prefer_weight_changes_between_sets
+            autoAdjust: currentUser?.prefer_weight_changes_between_sets ?? true
         };
     }
     
-    // CORRECTION : Inverser l'état correctement
-    const currentState = currentWorkoutSession.mlSettings[exerciseId].autoAdjust;
-    const newState = !currentState;
+    // CORRECTION : Lire l'état depuis le toggle DOM
+    const toggleElement = document.getElementById('mlToggle') || document.getElementById(`mlToggle-${exerciseId}`);
+    const newState = toggleElement ? toggleElement.checked : !currentWorkoutSession.mlSettings[exerciseId].autoAdjust;
+    
+    // Mettre à jour l'état
     currentWorkoutSession.mlSettings[exerciseId].autoAdjust = newState;
     
-    // CORRECTION : Forcer la mise à jour visuelle
-    const toggle = document.getElementById(`mlToggle-${exerciseId}`);
-    const mainToggle = document.getElementById('mlToggle');
+    console.log('🔄 Nouvel état ML:', newState);
     
-    if (toggle) {
-        toggle.checked = newState;
-    }
-    if (mainToggle) {
-        mainToggle.checked = newState;
-    }
+    // FORCER la mise à jour de TOUS les toggles
+    const allToggles = document.querySelectorAll('[id^="mlToggle"]');
+    allToggles.forEach(toggle => {
+        if (toggle.checked !== newState) {
+            toggle.checked = newState;
+        }
+    });
     
-    // CORRECTION : Mettre à jour le texte immédiatement
+    // Mettre à jour le texte immédiatement
     const aiStatusEl = document.getElementById('aiStatus');
     if (aiStatusEl) {
         aiStatusEl.textContent = newState ? 'Actif' : 'Inactif';
     }
     
-    // Synchroniser tous les éléments UI
+    // Synchroniser et rafraîchir
     syncMLToggles();
     updateSetRecommendations();
     
