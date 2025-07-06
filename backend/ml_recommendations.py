@@ -11,10 +11,15 @@ import statistics
 import logging
 
 from backend.models import User, Exercise, WorkoutSet, SetHistory, Workout
-from backend.main import safe_timedelta_hours
+
 
 logger = logging.getLogger(__name__)
 
+def safe_timedelta_hours(dt_aware, dt_maybe_naive):
+    """Calcule la différence en heures en gérant les timezones"""
+    if dt_maybe_naive.tzinfo is None:
+        dt_maybe_naive = dt_maybe_naive.replace(tzinfo=timezone.utc)
+    return (dt_aware - dt_maybe_naive).total_seconds() / 3600
 
 class FitnessRecommendationEngine:
     """
@@ -938,7 +943,7 @@ class FitnessRecommendationEngine:
         
         for h in historical_data[:10]:  # Max 10 dernières
             if 'completed_at' in h and h['completed_at']:
-                days_ago = (now - h['completed_at']).days
+                days_ago = safe_timedelta_hours(now, h['completed_at']) / 24
                 # Décroissance linéaire : 100% à 0 jours, 50% à 30 jours, 0% à 60 jours
                 weight = max(0, 1 - days_ago / 60)
                 recency_weights.append(weight)
