@@ -319,7 +319,7 @@ class FitnessRecommendationEngine:
         # Calculer la fatigue aiguë
         now = datetime.now(timezone.utc)
         if perf_state.last_session_timestamp:
-            hours_since = (now - perf_state.last_session_timestamp).total_seconds() / 3600
+            hours_since = safe_timedelta_hours(datetime.now(timezone.utc), perf_state.last_session_timestamp)
             # Décroissance exponentielle de la fatigue
             perf_state.acute_fatigue *= math.exp(-hours_since / 24)  # Constante de temps = 24h
         
@@ -377,7 +377,15 @@ class FitnessRecommendationEngine:
         if exercise.weight_type == "bodyweight":
             recommended_weight = None
         else:
-            recommended_weight = baseline_weight * fatigue_adjustment * effort_factor * set_factor
+            if exercise.weight_type == "bodyweight":
+                recommended_weight = None
+            elif baseline_weight is None or baseline_weight <= 0:
+                # Fallback si pas de baseline
+                recommended_weight = self._estimate_initial_weight(user, exercise)
+                if recommended_weight is not None:
+                    recommended_weight = recommended_weight * fatigue_adjustment * effort_factor * set_factor
+            else:
+                recommended_weight = baseline_weight * fatigue_adjustment * effort_factor * set_factor
         
         # Maintenir les reps proches de la cible
         reps_adjustment = 1.0 + (1.0 - fatigue_adjustment * effort_factor) * 0.2
@@ -410,7 +418,12 @@ class FitnessRecommendationEngine:
         baseline_reps = performance_state['baseline_reps']
         
         # Le poids reste constant sur toutes les séries
-        recommended_weight = baseline_weight
+        if exercise.weight_type == "bodyweight":
+            recommended_weight = None
+        elif baseline_weight is None or baseline_weight <= 0:
+            recommended_weight = self._estimate_initial_weight(user, exercise)
+        else:
+            recommended_weight = baseline_weight
         
         # Calculer les RIR (Reps In Reserve) pour maintenir la qualité
         total_fatigue = performance_state['acute_fatigue'] + (current_fatigue - 3) * 0.1
@@ -651,9 +664,9 @@ class FitnessRecommendationEngine:
     ) -> str:
         """Détermine si c'est une augmentation, diminution ou maintien"""
         
-        # AVANT : if baseline == 0:
-        # APRÈS : Vérifier aussi None
-        if baseline is None or baseline == 0:
+        if recommended is None and baseline is None:
+            return "same"
+        elif recommended is None or baseline is None or baseline == 0:
             return "same"
         
         change_ratio = abs(recommended - baseline) / baseline

@@ -680,7 +680,7 @@ def get_next_intelligent_session(user_id: int, db: Session = Depends(get_db)):
                     muscle_readiness_dict[muscle] = 1.0
                 
                 try:
-                    deficit = volume_optimizer.get_volume_deficit(muscle, user)
+                    deficit = volume_optimizer.get_volume_deficit(user, muscle)
                     volume_deficit_dict[muscle] = deficit
                 except Exception as e:
                     logger.warning(f"Erreur volume deficit pour {muscle}: {e}")
