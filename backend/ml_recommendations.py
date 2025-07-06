@@ -1107,11 +1107,11 @@ class FitnessRecommendationEngine:
         if exercise.weight_type == "bodyweight":
             return None
         
-        # AJOUT : Pour exercices hybrid sans base_weights_kg (comme Tractions)
+        # Pour exercices hybrid sans base_weights_kg (comme Tractions)
         if exercise.weight_type == "hybrid" and not exercise.base_weights_kg:
-            return None  # Seront gérés comme bodyweight pur
+            return None
         
-        # Si on a des données base_weights_kg, les utiliser !
+        # NOUVEAU : Utiliser base_weights_kg si disponible
         if exercise.base_weights_kg:
             user_level = user.experience_level or "beginner"
             base_data = exercise.base_weights_kg.get(user_level)
@@ -1124,60 +1124,40 @@ class FitnessRecommendationEngine:
                 
                 logger.info(f"Poids calculé depuis base_weights_kg: {base_weight} + {per_kg_factor} * {user.weight} = {estimated_weight}")
                 
-                return max(0.0, estimated_weight)  # Jamais négatif
-            
-        # Si pas de données de poids de base (anciens exercices)
-        if not exercise.base_weights_kg:
-            # Garder l'ancien système comme fallback
-            bodyweight = user.weight
-            
-            level_multipliers = {
-                "beginner": 0.3,
-                "intermediate": 0.5,
-                "advanced": 0.7
-            }
-            
-            exercise_factors = {
-                "curl": 0.15,
-                "lateral": 0.1,
-                "triceps": 0.2,
-                "chest": 0.4,
-                "press": 0.4,
-                "row": 0.3,
-                "squat": 0.8,
-                "deadlift": 0.9
-            }
-            
-            exercise_factor = 0.3
-            exercise_name_lower = exercise.name.lower()
-            
-            for keyword, factor in exercise_factors.items():
-                if keyword in exercise_name_lower:
-                    exercise_factor = factor
-                    break
-            
-            base_multiplier = level_multipliers.get(user.experience_level, 0.3)
-            estimated_weight = bodyweight * base_multiplier * exercise_factor
-            
-            return max(5.0, estimated_weight)
+                return max(0.0, estimated_weight)
         
-        # Nouveau système avec base_weights_kg
-        level_data = exercise.base_weights_kg.get(user.experience_level)
-        if not level_data:
-            # Fallback sur intermediate si niveau non trouvé
-            level_data = exercise.base_weights_kg.get("intermediate", {
-                "base": 20,
-                "per_kg_bodyweight": 0.3
-            })
+        # FALLBACK : Ancien système si pas de base_weights_kg
+        bodyweight = user.weight
         
-        base = level_data.get("base", 20)
-        per_kg = level_data.get("per_kg_bodyweight", 0)
+        level_multipliers = {
+            "beginner": 0.3,
+            "intermediate": 0.5,
+            "advanced": 0.7
+        }
         
-        # Calcul du poids estimé
-        estimated_weight = base + (per_kg * user.weight)
+        exercise_factors = {
+            "curl": 0.15,
+            "lateral": 0.1,
+            "triceps": 0.2,
+            "chest": 0.4,
+            "press": 0.4,
+            "row": 0.3,
+            "squat": 0.8,
+            "deadlift": 0.9
+        }
         
-        # Limites de sécurité
-        return max(5.0, min(200.0, estimated_weight))
+        exercise_factor = 0.3
+        exercise_name_lower = exercise.name.lower()
+        
+        for keyword, factor in exercise_factors.items():
+            if keyword in exercise_name_lower:
+                exercise_factor = factor
+                break
+        
+        base_multiplier = level_multipliers.get(user.experience_level, 0.3)
+        estimated_weight = bodyweight * base_multiplier * exercise_factor
+        
+        return max(5.0, estimated_weight)
 
     def _legacy_estimate_weight(self, user: User, exercise: Exercise) -> float:
         """Ancien système pour compatibilité"""
