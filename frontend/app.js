@@ -3338,13 +3338,7 @@ async function updateSetRecommendations() {
         }
 
         // PHASE 2.2 : Afficher indicateur de confiance
-        const mlConfidenceContainer = document.getElementById('mlConfidenceContainer');
-        if (mlConfidenceContainer && recommendations.confidence < 0.95) {
-            mlConfidenceContainer.innerHTML = renderMLConfidence(recommendations.confidence);
-            mlConfidenceContainer.style.display = 'block';
-        } else if (mlConfidenceContainer) {
-            mlConfidenceContainer.style.display = 'none';
-        }
+        renderConfidenceIndicators(recommendations);
 
         // PHASE 2.2 : Mettre à jour l'historique ML si affiché
         updateMLHistoryDisplay();
@@ -3362,6 +3356,79 @@ async function updateSetRecommendations() {
             if (container) container.style.display = 'none';
         });
     }
+}
+
+function renderConfidenceIndicators(recommendations) {
+    const container = document.getElementById('mlConfidenceContainer');
+    if (!container) return;
+    
+    // Ne pas afficher si toutes les confiances sont élevées
+    const weights = [
+        recommendations.weight_confidence || recommendations.confidence,
+        recommendations.reps_confidence,
+        recommendations.rest_confidence
+    ].filter(c => c !== undefined);
+    
+    if (weights.every(c => c >= 0.9)) {
+        container.style.display = 'none';
+        return;
+    }
+    
+    const details = recommendations.confidence_details || {};
+    
+    container.innerHTML = `
+        <div class="ml-confidence-panel">
+            <h5>Fiabilité des recommandations</h5>
+            
+            ${renderSingleConfidence('Poids', recommendations.weight_confidence || recommendations.confidence, 'weight')}
+            ${renderSingleConfidence('Répétitions', recommendations.reps_confidence, 'reps')}
+            ${renderSingleConfidence('Repos', recommendations.rest_confidence, 'rest')}
+            
+            ${details.sample_size ? `
+                <div class="confidence-meta">
+                    <small>
+                        Basé sur ${details.sample_size} séance${details.sample_size > 1 ? 's' : ''}
+                        ${details.data_recency_days !== null ? 
+                          ` • Dernière il y a ${details.data_recency_days}j` : ''}
+                    </small>
+                </div>
+            ` : ''}
+        </div>
+    `;
+    
+    container.style.display = 'block';
+}
+
+function renderSingleConfidence(label, confidence, type) {
+    if (!confidence) return '';
+    
+    const percent = Math.round(confidence * 100);
+    let status, color;
+    
+    // Seuils basés sur la littérature statistique
+    if (percent >= 80) {
+        status = 'Élevée';
+        color = 'var(--success)';
+    } else if (percent >= 60) {
+        status = 'Modérée';
+        color = 'var(--warning)';
+    } else {
+        status = 'En apprentissage';
+        color = 'var(--danger)';
+    }
+    
+    return `
+        <div class="confidence-item">
+            <div class="confidence-label">
+                <span>${label}</span>
+                <span class="confidence-status" style="color: ${color}">${status}</span>
+            </div>
+            <div class="confidence-bar">
+                <div class="confidence-fill" style="width: ${percent}%; background: ${color}"></div>
+            </div>
+            <span class="confidence-percent">${percent}%</span>
+        </div>
+    `;
 }
 
 // Fonction helper pour déterminer le type d'exercice

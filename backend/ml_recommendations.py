@@ -115,30 +115,35 @@ class FitnessRecommendationEngine:
                 recommendations['weight'] = self._find_closest_available_weight(
                     recommendations['weight'], available_weights
                 )
-            
-            # 7. Calculer la confiance
-            confidence = self._calculate_confidence(historical_data, current_fatigue, current_effort)
-            
-            # 8. Générer le raisonnement
-            reasoning = self._generate_reasoning(
-                performance_state['fatigue_adjustment'], 
-                current_effort, rest_recommendation['adjustment'],
-                current_fatigue, current_effort, set_number
+
+            # 7. Calculer les confiances spécifiques
+            weight_confidence = self._calculate_confidence(
+                historical_data, current_fatigue, current_effort, 'weight'
             )
-            
+            reps_confidence = self._calculate_confidence(
+                historical_data, current_fatigue, current_effort, 'reps'
+            )
+            rest_confidence = self._calculate_confidence(
+                historical_data, current_fatigue, current_effort, 'rest'
+            )
+
+            # Dans le return final, ajouter :
             return {
                 "weight_recommendation": round(recommendations['weight'], 1) if recommendations['weight'] is not None else None,
                 "reps_recommendation": max(1, recommendations['reps']),
                 "rest_seconds_recommendation": rest_recommendation['seconds'],
                 "rest_range": rest_recommendation['range'],
-                "confidence": confidence,
-                "reasoning": reasoning,
-                "weight_change": recommendations.get('weight_change', 'same'),
-                "reps_change": recommendations.get('reps_change', 'same'),
-                "baseline_weight": performance_state['baseline_weight'],
-                "baseline_reps": performance_state['baseline_reps'],
-                "adaptation_strategy": "variable_weight" if user.prefer_weight_changes_between_sets else "fixed_weight",
-                "exercise_type": exercise.weight_type  # NOUVEAU
+                "confidence": weight_confidence,  # Pour rétrocompatibilité
+                "weight_confidence": weight_confidence,
+                "reps_confidence": reps_confidence,
+                "rest_confidence": rest_confidence,
+                "confidence_details": {
+                    "sample_size": len(historical_data),
+                    "data_recency_days": min(
+                        (datetime.now(timezone.utc) - h['completed_at']).days 
+                        for h in historical_data[:5] if 'completed_at' in h
+                    ) if historical_data and any('completed_at' in h for h in historical_data[:5]) else None
+                }
             }
             
         except Exception as e:
@@ -878,27 +883,117 @@ class FitnessRecommendationEngine:
         self, 
         historical_data: List[Dict], 
         current_fatigue: int,
-        current_effort: int
+        current_effort: int,
+        metric_type: str = 'weight'  # 'weight', 'reps', or 'rest'
     ) -> float:
-        """Calcule le niveau de confiance de la recommandation"""
+        """
+        Calcule le niveau de confiance basé sur :
+        1. Consistance des performances (via coefficient de variation)
+        2. Quantité de données (rendements décroissants)
+        3. Fraîcheur des données
+        """
         
-        base_confidence = 0.5
+        n = len(historical_data)
+        if n < 2:
+            return 0.3  # Confiance minimale sans données suffisantes
         
-        # Plus d'historique = plus de confiance
-        if len(historical_data) >= 10:
-            base_confidence += 0.3
-        elif len(historical_data) >= 5:
-            base_confidence += 0.2
-        elif len(historical_data) >= 2:
-            base_confidence += 0.1
+        # 1. SCORE DE QUANTITÉ (logarithmique, sature vers n=20)
+        # Basé sur la théorie de l'information : log2(n+1) / log2(21) 
+        quantity_score = min(1.0, math.log2(n + 1) / math.log2(21))
         
-        # Fatigue/effort dans des niveaux "normaux" = plus de confiance
-        if 2 <= current_fatigue <= 3:
-            base_confidence += 0.1
-        if 2 <= current_effort <= 4:
-            base_confidence += 0.1
+        # 2. SCORE DE CONSISTANCE (via coefficient de variation)
+        consistency_score = 0.5  # Valeur par défaut
         
-        return min(1.0, base_confidence)
+        if metric_type == 'weight' and n >= 3:
+            weights = [h['weight'] for h in historical_data[:10] if h.get('weight')]
+            if weights and len(weights) >= 3:
+                mean_weight = statistics.mean(weights)
+                if mean_weight > 0:
+                    std_dev = statistics.stdev(weights)
+                    cv = std_dev / mean_weight
+                    # CV < 0.1 = très consistant, CV > 0.3 = très variable
+                    # Transformation linéaire inverse
+                    consistency_score = max(0, min(1, 1 - (cv - 0.1) / 0.2))
+        
+        elif metric_type == 'reps' and n >= 3:
+            reps = [h['reps'] for h in historical_data[:10] if h.get('reps')]
+            if reps and len(reps) >= 3:
+                mean_reps = statistics.mean(reps)
+                if mean_reps > 0:
+                    std_dev = statistics.stdev(reps)
+                    cv = std_dev / mean_reps
+                    # Reps généralement plus variables que le poids
+                    consistency_score = max(0, min(1, 1 - (cv - 0.15) / 0.25))
+        
+        elif metric_type == 'rest' and n >= 3:
+            # Pour le repos, on regarde la corrélation avec fatigue/effort
+            rest_consistency = self._calculate_rest_consistency(historical_data)
+            consistency_score = rest_consistency
+        
+        # 3. SCORE DE FRAÎCHEUR
+        # Données > 30 jours perdent progressivement leur pertinence
+        now = datetime.now(timezone.utc)
+        recency_weights = []
+        
+        for h in historical_data[:10]:  # Max 10 dernières
+            if 'completed_at' in h and h['completed_at']:
+                days_ago = (now - h['completed_at']).days
+                # Décroissance linéaire : 100% à 0 jours, 50% à 30 jours, 0% à 60 jours
+                weight = max(0, 1 - days_ago / 60)
+                recency_weights.append(weight)
+        
+        recency_score = statistics.mean(recency_weights) if recency_weights else 0.5
+        
+        # CALCUL FINAL (moyennes pondérées justifiées)
+        # Quantité : 30% (important mais pas critique)
+        # Consistance : 50% (facteur le plus important)
+        # Fraîcheur : 20% (modérément important)
+        final_confidence = (
+            0.3 * quantity_score +
+            0.5 * consistency_score +
+            0.2 * recency_score
+        )
+        
+        # Ajustement pour fatigue/effort extrêmes (pénalité)
+        if current_fatigue >= 4 or current_effort >= 5:
+            final_confidence *= 0.9  # Réduction de 10% en conditions extrêmes
+        
+        return round(max(0.2, min(0.95, final_confidence)), 2)
+
+    def _calculate_rest_consistency(self, historical_data: List[Dict]) -> float:
+        """
+        Calcule la consistance des temps de repos en fonction de fatigue/effort
+        Retourne un score entre 0 et 1
+        """
+        rest_data = []
+        for h in historical_data[:10]:
+            if all(k in h for k in ['rest_duration', 'fatigue_level', 'effort_level']):
+                rest_data.append({
+                    'rest': h['rest_duration'],
+                    'fatigue': h['fatigue_level'],
+                    'effort': h['effort_level']
+                })
+        
+        if len(rest_data) < 3:
+            return 0.5
+        
+        # Calculer la variance des repos pour des niveaux similaires de fatigue/effort
+        grouped_variance = []
+        for target_fatigue in range(1, 6):
+            similar = [d['rest'] for d in rest_data 
+                    if abs(d['fatigue'] - target_fatigue) <= 1]
+            if len(similar) >= 2:
+                mean_rest = statistics.mean(similar)
+                if mean_rest > 0:
+                    cv = statistics.stdev(similar) / mean_rest
+                    grouped_variance.append(cv)
+        
+        if grouped_variance:
+            avg_cv = statistics.mean(grouped_variance)
+            # CV < 0.2 = consistant, CV > 0.5 = inconsistant
+            return max(0, min(1, 1 - (avg_cv - 0.2) / 0.3))
+        
+        return 0.5
         
     def _generate_reasoning(
         self, 
