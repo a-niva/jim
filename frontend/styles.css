@@ -3572,6 +3572,28 @@ select:focus-visible {
     padding-left: 1.5rem;
 }
 
+
+/* ===== INTERFACE AI COMPACTE ===== */
+
+/* Ligne du toggle AI */
+.ai-toggle-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-light);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid var(--border);
+}
+
+.ai-toggle-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+}
+
 .info-note {
     background: var(--bg-light);
     padding: 1rem;
@@ -3587,17 +3609,16 @@ select:focus-visible {
     gap: 1rem;
 }
 
+/* Toggle switch compact */
 .toggle-switch {
     position: relative;
     display: inline-block;
-    width: 50px;
+    width: 42px;
     height: 24px;
 }
 
 .toggle-switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
+    display: none;
 }
 
 .toggle-slider {
@@ -3608,7 +3629,7 @@ select:focus-visible {
     right: 0;
     bottom: 0;
     background-color: var(--border);
-    transition: .4s;
+    transition: 0.3s;
     border-radius: 24px;
 }
 
@@ -3620,16 +3641,86 @@ select:focus-visible {
     left: 3px;
     bottom: 3px;
     background-color: white;
-    transition: .4s;
+    transition: 0.3s;
     border-radius: 50%;
 }
 
-input:checked + .toggle-slider {
+
+.toggle-switch input:checked + .toggle-slider {
     background-color: var(--primary);
 }
 
-input:checked + .toggle-slider:before {
-    transform: translateX(26px);
+.toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(18px);
+}
+
+
+/* Texte du statut */
+.ai-status-text {
+    font-size: 0.9rem;
+    color: var(--text);
+}
+
+#aiToggleStatus {
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+
+/* Bouton info */
+.ai-info-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0.5rem;
+    font-size: 1.2rem;
+    transition: all 0.2s;
+    border-radius: 8px;
+}
+
+.ai-info-btn:hover {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--primary);
+}
+
+/* Détails AI collapsibles */
+.ai-details-collapse {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-bottom: 1rem;
+}
+
+.ai-details-collapse.expanded {
+    max-height: 200px;
+    background: var(--bg-light);
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin-top: -0.5rem;
+}
+
+.ai-detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    font-size: 0.85rem;
+}
+
+.ai-detail-item:not(:last-child) {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ai-detail-label {
+    color: var(--text-muted);
+}
+
+.ai-detail-value {
+    color: var(--primary);
+    font-weight: 500;
+    text-align: right;
 }
 
 /* Poids fixe visual */

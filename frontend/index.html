@@ -420,26 +420,24 @@
                     
 <!-- Feedback après série -->
 <div id="setFeedback" class="set-feedback-modern" style="display: none;">
-    <!-- Toggle IA compact avec état intégré -->
-    <div class="ai-toggle-compact">
-        <div class="ai-toggle-main">
-            <div class="ai-toggle-icon">🤖</div>
-            <div>
-                <div class="ai-toggle-text">
-                    Ajustement IA
-                    <label class="toggle-switch-inline">
-                        <input type="checkbox" id="mlToggleInline" checked onchange="if(currentExercise) toggleMLAdjustment(currentExercise.id)">
-                        <span class="toggle-slider-inline"></span>
-                    </label>
-                </div>
-                <div class="ai-toggle-status" id="aiToggleStatus">Actif • Confiance 78%</div>
-            </div>
+    <!-- Toggle IA compact sur une ligne -->
+    <div class="ai-toggle-line">
+        <div class="ai-toggle-left">
+            <label class="toggle-switch">
+                <input type="checkbox" id="mlToggleInline" checked onchange="if(currentExercise) toggleMLAdjustment(currentExercise.id)">
+                <span class="toggle-slider"></span>
+            </label>
+            <span class="ai-status-text">
+                Ajustement IA : <span id="aiToggleStatus">Actif • Confiance 78%</span>
+            </span>
         </div>
-        <button class="ai-expand-btn" id="aiExpandBtn" onclick="toggleAIDetails()">ⓘ</button>
+        <button class="ai-info-btn" onclick="toggleAIDetails()">
+            <i class="fas fa-info-circle"></i>
+        </button>
     </div>
 
-    <!-- Détails IA expansibles -->
-    <div class="ai-details" id="aiDetails">
+    <!-- Détails IA cachés par défaut -->
+    <div class="ai-details-collapse" id="aiDetails">
         <div class="ai-detail-item">
             <span class="ai-detail-label">Prochaine recommandation</span>
             <span class="ai-detail-value" id="aiNextRec">Calculer...</span>
@@ -454,7 +452,7 @@
         </div>
     </div>
 
-    <!-- Section Fatigue -->
+    <!-- Sections de feedback (inchangées) -->
     <div class="feedback-section-modern">
         <div class="feedback-header">
             <div class="feedback-emoji-icon">💧</div>

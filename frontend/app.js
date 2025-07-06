@@ -2950,6 +2950,7 @@ function toggleMLAdjustment(exerciseId) {
     const inlineToggle = document.getElementById('mlToggleInline');
     if (inlineToggle) inlineToggle.checked = newState;
     
+    // Mettre à jour le texte du statut
     const statusEl = document.getElementById('aiToggleStatus');
     if (statusEl) {
         const confidence = workoutState.currentRecommendation?.confidence || 0;
@@ -6077,31 +6078,52 @@ function resetFeedbackSelection() {
 }
 
 
+// Fonction pour toggle les détails AI
 function toggleAIDetails() {
     const details = document.getElementById('aiDetails');
-    const expandBtn = document.getElementById('aiExpandBtn');
+    const btn = document.querySelector('.ai-info-btn');
     
     details.classList.toggle('expanded');
-    expandBtn.textContent = details.classList.contains('expanded') ? '▾' : 'ⓘ';
     
-    // AJOUT : Mettre à jour le contenu quand on ouvre
-    if (details.classList.contains('expanded') && workoutState.currentRecommendation) {
-        const rec = workoutState.currentRecommendation;
-        
-        // Prochaine recommandation
-        document.getElementById('aiNextRec').textContent = 
-            rec.weight_recommendation ? 
-            `${rec.weight_recommendation}kg × ${rec.reps_recommendation} reps` : 
-            'En attente';
-            
-        // Raison
-        document.getElementById('aiReason').textContent = 
-            rec.reasoning || 'Analyse en cours';
-            
-        // Historique
+    // Rotation de l'icône
+    if (details.classList.contains('expanded')) {
+        btn.style.transform = 'rotate(180deg)';
+        updateAIDetailsContent();
+    } else {
+        btn.style.transform = 'rotate(0deg)';
+    }
+}
+
+
+// Mettre à jour le contenu des détails AI
+function updateAIDetailsContent() {
+    const recommendations = workoutState.currentRecommendation || {};
+    
+    // Prochaine recommandation
+    const nextRecEl = document.getElementById('aiNextRec');
+    if (nextRecEl) {
+        if (recommendations.weight_recommendation) {
+            nextRecEl.textContent = `${recommendations.weight_recommendation}kg × ${recommendations.reps_recommendation} reps`;
+        } else {
+            nextRecEl.textContent = 'En attente de données';
+        }
+    }
+    
+    // Raison
+    const reasonEl = document.getElementById('aiReason');
+    if (reasonEl) {
+        reasonEl.textContent = recommendations.reasoning || 'Analyse en cours...';
+    }
+    
+    // Historique
+    const historyEl = document.getElementById('aiHistory');
+    if (historyEl) {
         const history = currentWorkoutSession.mlHistory?.[currentExercise?.id];
-        document.getElementById('aiHistory').textContent = 
-            history && history.length > 0 ? `${history.length} ajustements` : 'Aucun';
+        if (history && history.length > 0) {
+            historyEl.textContent = `${history.length} ajustements`;
+        } else {
+            historyEl.textContent = 'Aucun historique';
+        }
     }
 }
 
