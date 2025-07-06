@@ -2855,6 +2855,16 @@ async function selectExercise(exercise, skipValidation = false) {
         };
     }
 
+    // AJOUT : Afficher le toggle ML si exercice avec poids
+    if (exercise.weight_type !== 'bodyweight' && exercise.exercise_type !== 'isometric') {
+        const mlToggleHtml = renderMLToggle(exercise.id);
+        const exerciseHeader = document.querySelector('#currentExercise .exercise-header');
+        if (exerciseHeader) {
+            const existingToggle = exerciseHeader.querySelector('.ml-toggle-container');
+            if (existingToggle) existingToggle.remove();
+            exerciseHeader.insertAdjacentHTML('beforeend', mlToggleHtml);
+        }
+    }
     // Gérer l'affichage du bouton "Changer d'exercice" selon le mode
     const changeExerciseBtn = document.querySelector('.btn-change-exercise');
     if (changeExerciseBtn) {
@@ -2921,28 +2931,45 @@ function renderMLConfidence(confidence) {
 
 // Nouvelle fonction pour gérer le toggle
 function toggleMLAdjustment(exerciseId) {
-    // Vérifier que mlSettings existe
-    if (!currentWorkoutSession.mlSettings?.[exerciseId]) {
-        currentWorkoutSession.mlSettings = currentWorkoutSession.mlSettings || {};
-        currentWorkoutSession.mlSettings[exerciseId] = {
-            autoAdjust: currentUser.prefer_weight_changes_between_sets,
-            lastManualWeight: null
-        };
-    }
-    
     const newState = !currentWorkoutSession.mlSettings[exerciseId].autoAdjust;
     currentWorkoutSession.mlSettings[exerciseId].autoAdjust = newState;
     
-    // Mise à jour simple du statut
+    if (!newState) {
+        // Sauvegarder le dernier poids pour le mode manuel
+        const currentWeight = parseFloat(document.getElementById('setWeight')?.textContent) || null;
+        currentWorkoutSession.mlSettings[exerciseId].lastManualWeight = currentWeight;
+    }
+    
+    // Mettre à jour le label
+    const label = document.querySelector(`#mlToggle-${exerciseId}`).closest('.ml-toggle-container').querySelector('.toggle-label');
+    if (label) {
+        label.innerHTML = `<i class="fas fa-brain"></i> Ajustement IA ${newState ? '(Actif)' : '(Manuel)'}`;
+    }
+    
+    // AJOUT : Mettre à jour le toggle inline et le statut
+    const inlineToggle = document.getElementById('mlToggleInline');
+    if (inlineToggle) inlineToggle.checked = newState;
+    
     const statusEl = document.getElementById('aiToggleStatus');
     if (statusEl) {
-        statusEl.textContent = newState ? 'Active' : 'Manuelle';
+        const confidence = workoutState.currentRecommendation?.confidence || 0;
+        if (!newState) {
+            statusEl.textContent = 'Désactivé • Mode manuel';
+        } else if (confidence === 0 || !workoutState.currentRecommendation) {
+            statusEl.textContent = 'Actif • Données insuffisantes';
+        } else {
+            statusEl.textContent = `Actif • Confiance ${Math.round(confidence * 100)}%`;
+        }
     }
+    
+    // Sauvegarder la préférence localement
+    const key = `ml_preferences_${currentUser.id}_${exerciseId}`;
+    localStorage.setItem(key, JSON.stringify(newState));
     
     // Rafraîchir les recommandations
     updateSetRecommendations();
     
-    showToast(`Mode ${newState ? 'IA' : 'manuel'} activé`, 'info');
+    showToast(`Ajustement IA ${newState ? 'activé' : 'désactivé'} pour cet exercice`, 'info');
 }
 
 // === PHASE 2.2 : VISUALISATION TRANSPARENTE ML ===
@@ -3301,6 +3328,13 @@ async function updateSetRecommendations() {
             mlExplanationContainer.style.display = 'block';
         } else if (mlExplanationContainer) {
             mlExplanationContainer.style.display = 'none';
+        }
+
+        // PHASE 2.2 : Afficher toggle ML
+        const mlToggleContainer = document.getElementById('mlToggleContainer');
+        if (mlToggleContainer) {
+            mlToggleContainer.innerHTML = renderMLToggle(currentExercise.id);
+            mlToggleContainer.style.display = 'block';
         }
 
         // PHASE 2.2 : Afficher indicateur de confiance
@@ -6042,6 +6076,35 @@ function resetFeedbackSelection() {
     currentWorkoutSession.currentSetEffort = null;
 }
 
+
+function toggleAIDetails() {
+    const details = document.getElementById('aiDetails');
+    const expandBtn = document.getElementById('aiExpandBtn');
+    
+    details.classList.toggle('expanded');
+    expandBtn.textContent = details.classList.contains('expanded') ? '▾' : 'ⓘ';
+    
+    // AJOUT : Mettre à jour le contenu quand on ouvre
+    if (details.classList.contains('expanded') && workoutState.currentRecommendation) {
+        const rec = workoutState.currentRecommendation;
+        
+        // Prochaine recommandation
+        document.getElementById('aiNextRec').textContent = 
+            rec.weight_recommendation ? 
+            `${rec.weight_recommendation}kg × ${rec.reps_recommendation} reps` : 
+            'En attente';
+            
+        // Raison
+        document.getElementById('aiReason').textContent = 
+            rec.reasoning || 'Analyse en cours';
+            
+        // Historique
+        const history = currentWorkoutSession.mlHistory?.[currentExercise?.id];
+        document.getElementById('aiHistory').textContent = 
+            history && history.length > 0 ? `${history.length} ajustements` : 'Aucun';
+    }
+}
+
 function showAutoValidation() {
     const indicator = document.createElement('div');
     indicator.className = 'auto-validation';
@@ -6562,6 +6625,7 @@ window.addExtraSet = addExtraSet;
 window.updateSetNavigationButtons = updateSetNavigationButtons;
 window.selectFatigue = selectFatigue;
 window.selectEffort = selectEffort;
+window.toggleAIDetails = toggleAIDetails;
 window.showAutoValidation = showAutoValidation;
 window.adjustWeightUp = adjustWeightUp;
 window.adjustWeightDown = adjustWeightDown;

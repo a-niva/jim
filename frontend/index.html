@@ -409,17 +409,33 @@
                     </button>
                     
 <!-- Feedback après série -->
-<!-- Feedback après série -->
 <div id="setFeedback" class="set-feedback-modern" style="display: none;">
-    <!-- Toggle IA ultra-compact -->
-    <div class="ai-toggle-minimal">
-        <label class="toggle-switch-minimal">
-            <input type="checkbox" id="mlToggleInline" checked onchange="if(currentExercise) toggleMLAdjustment(currentExercise.id)">
-            <span class="toggle-slider-minimal"></span>
-        </label>
-        <span class="ai-status-minimal">
-            IA : <span id="aiToggleStatus">Active</span>
-        </span>
+    <!-- Toggle IA compact sur une ligne -->
+    <div class="ai-toggle-line">
+        <div class="ai-toggle-left">
+            <label class="toggle-switch">
+                <input type="checkbox" id="mlToggleInline" checked onchange="if(currentExercise) toggleMLAdjustment(currentExercise.id)">
+                <span class="toggle-slider"></span>
+            </label>
+            <span class="ai-status-text">
+                Ajustement IA : <span id="aiToggleStatus">Actif</span>
+            </span>
+        </div>
+        <button class="ai-info-btn" onclick="toggleAIDetails()" title="Plus d'infos">
+            <i class="fas fa-info-circle"></i>
+        </button>
+    </div>
+
+    <!-- Détails IA cachés par défaut (optionnel) -->
+    <div class="ai-details-collapse" id="aiDetails">
+        <div class="ai-detail-item">
+            <span class="ai-detail-label">Recommandation</span>
+            <span class="ai-detail-value" id="aiNextRec">-</span>
+        </div>
+        <div class="ai-detail-item">
+            <span class="ai-detail-label">Raison</span>
+            <span class="ai-detail-value" id="aiReason">-</span>
+        </div>
     </div>
 
     <!-- Section Fatigue -->
