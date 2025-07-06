@@ -1190,42 +1190,46 @@ def get_set_recommendations(
     
     # AJUSTEMENTS DYNAMIQUES basés sur l'historique de cette séance
     if session_history and len(session_history) > 0:
-        # Analyser la tendance de cette séance
         last_set = session_history[-1]
         last_effort = last_set.get('effort_level', 3)
-        last_fatigue = last_set.get('fatigue_level', 3)
         last_weight = last_set.get('weight', base_recommendations.get('weight_recommendation', 20))
+        recommended_weight = base_recommendations.get('weight_recommendation', 20)
         
-        # Ajustement basé sur l'effort de la série précédente
-        weight_adjustment = 1.0
-        reason_parts = []
-        
-        if last_effort <= 2:  # Très facile
-            weight_adjustment = 1.08  # +8%
-            reason_parts.append(f"Série {len(session_history)} facile (effort {last_effort})")
-        elif last_effort >= 4:  # Difficile ou échec
-            weight_adjustment = 0.93  # -7%
-            reason_parts.append(f"Série {len(session_history)} difficile (effort {last_effort})")
-        
-        # Ajustement basé sur la fatigue cumulée
-        if last_fatigue >= 4 and len(session_history) >= 3:
-            weight_adjustment *= 0.95  # -5% supplémentaire si fatigue élevée
-            reason_parts.append("fatigue cumulée")
-        
-        # Appliquer les ajustements si significatifs
-        if abs(weight_adjustment - 1.0) > 0.02:  # Seuil 2%
-            original_weight = base_recommendations.get('weight_recommendation', last_weight)
-            adjusted_weight = original_weight * weight_adjustment
+        # NOUVEAU : Calculer l'écart performance vs recommandation
+        if last_weight and recommended_weight and recommended_weight > 0:
+            performance_ratio = last_weight / recommended_weight
             
-            # Arrondir au poids disponible le plus proche
-            if available_weights:
-                adjusted_weight = min(available_weights, key=lambda x: abs(x - adjusted_weight))
-            else:
-                adjusted_weight = round(adjusted_weight * 2) / 2  # Arrondir au 0.5kg
+            # Ajustement AGRESSIF basé sur l'écart réel
+            weight_adjustment = 1.0
+            reason_parts = []
             
-            base_recommendations['weight_recommendation'] = adjusted_weight
-            base_recommendations['reasoning'] = " + ".join(reason_parts) + f" → {original_weight:.1f}kg → {adjusted_weight:.1f}kg"
-            base_recommendations['weight_change'] = "increase" if adjusted_weight > original_weight else "decrease"
+            if last_effort <= 2 and performance_ratio > 1.1:  # Facile ET plus de poids
+                # L'utilisateur fait plus avec facilité → gros bond
+                weight_adjustment = min(1.25, performance_ratio * 0.95)  # Max +25%
+                reason_parts.append(f"Série {len(session_history)} facile avec {last_weight}kg (>{recommended_weight:.1f}kg)")
+                
+            elif last_effort <= 2:  # Juste facile
+                weight_adjustment = 1.08
+                reason_parts.append(f"Série {len(session_history)} facile (effort {last_effort})")
+                
+            elif last_effort >= 4:  # Difficile ou échec
+                weight_adjustment = 0.93
+                reason_parts.append(f"Série {len(session_history)} difficile (effort {last_effort})")
+            
+            # Appliquer les ajustements si significatifs
+            if abs(weight_adjustment - 1.0) > 0.02:
+                adjusted_weight = recommended_weight * weight_adjustment
+                
+                # Arrondir au poids disponible le plus proche
+                if available_weights:
+                    adjusted_weight = min(available_weights, key=lambda x: abs(x - adjusted_weight))
+                else:
+                    adjusted_weight = round(adjusted_weight * 2) / 2
+                
+                base_recommendations['weight_recommendation'] = adjusted_weight
+                base_recommendations['reasoning'] = " + ".join(reason_parts) + f" → {recommended_weight:.1f}kg → {adjusted_weight:.1f}kg"
+                base_recommendations['weight_change'] = "increase" if adjusted_weight > recommended_weight else "decrease"
+
         
         # Ajustement des répétitions selon la progression
         if len(session_history) >= 2:

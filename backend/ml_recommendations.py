@@ -827,8 +827,10 @@ class FitnessRecommendationEngine:
                     logger.warning(f"Poids invalide ({weight}) pour exercice externe {exercise.name}")
                     # Utiliser un poids estimé au lieu de retourner None
                     weight = self._estimate_weight(user, exercise)
+                    if weight is None:
+                        weight = 20.0  # Fallback absolu
                 base_volume = weight * reps
-            
+        
             # === 3. INTENSITY_FACTOR PARTOUT ===
             intensity_factor = exercise.intensity_factor or 1.0
             intensity_adjusted = base_volume * intensity_factor
@@ -851,6 +853,12 @@ class FitnessRecommendationEngine:
             logger.error(f"Erreur dans calculate_exercise_volume: {e}")
             return 0.0
     
+    def _estimate_weight(self, user: User, exercise: Exercise) -> float:
+        """Méthode manquante pour estimer un poids"""
+        if hasattr(self, '_estimate_initial_weight'):
+            return self._estimate_initial_weight(user, exercise) or 20.0
+        return 20.0  # Fallback simple
+
     def _calculate_fatigue_adjustment(
         self, 
         current_fatigue: int, 
