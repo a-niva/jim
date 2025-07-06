@@ -120,7 +120,12 @@ class FitnessRecommendationEngine:
                     performance_state, exercise, set_number, 
                     current_fatigue, current_effort, coefficients, historical_data, user
                 )
-            
+
+            logger.info(f"DEBUG - Exercise {exercise.id} ({exercise.name})")
+            logger.info(f"  weight_type: {exercise.weight_type}")
+            logger.info(f"  base_weights_kg: {exercise.base_weights_kg}")
+            logger.info(f"  performance_state: {performance_state}")
+
             # 5. Calculer le temps de repos optimal
             rest_recommendation = self._calculate_optimal_rest(
                 exercise, current_fatigue, current_effort, 
@@ -160,7 +165,14 @@ class FitnessRecommendationEngine:
                         safe_timedelta_hours(datetime.now(timezone.utc), h['completed_at']) / 24
                         for h in historical_data[:5] if 'completed_at' in h
                     ) if historical_data and any('completed_at' in h for h in historical_data[:5]) else None
-                }
+                },
+                "weight_change": recommendations.get('weight_change', 'same'),
+                "reps_change": recommendations.get('reps_change', 'same'),
+                "baseline_weight": performance_state.get('baseline_weight'),
+                "baseline_reps": performance_state.get('baseline_reps'),
+                "reasoning": recommendations.get('reasoning', 'Conditions normales'),
+                "adaptation_strategy": "variable_weight" if user.prefer_weight_changes_between_sets else "fixed_weight",
+                "exercise_type": exercise.weight_type  # "external", "bodyweight", "hybrid"
             }
             
         except Exception as e:
@@ -388,8 +400,14 @@ class FitnessRecommendationEngine:
         """
         
         # ===== EXTRACTION DES DONNÉES DE BASE =====
-        baseline_weight = performance_state.get('baseline_weight', 0)
-        baseline_reps = performance_state.get('baseline_reps', 10)
+        baseline_weight = performance_state.get('baseline_weight')
+        if baseline_weight is None or baseline_weight <= 0:
+            baseline_weight = 20.0  # Valeur par défaut sûre
+            
+        baseline_reps = performance_state.get('baseline_reps')
+        if baseline_reps is None or baseline_reps <= 0:
+            baseline_reps = 10
+            
         fatigue_adjustment = performance_state.get('fatigue_adjustment', 1.0)
         
         # ===== RÉCUPÉRATION ROBUSTE DE L'HISTORIQUE =====
