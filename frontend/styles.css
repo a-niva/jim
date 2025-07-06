@@ -4024,15 +4024,6 @@ input:checked + .toggle-slider:before {
 }
 
 /* Ajuster le bouton expand */
-.ai-expand-btn {
-    font-size: 1.2rem;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
 .ai-toggle-main {
     display: flex;
     align-items: center;
@@ -4060,57 +4051,8 @@ input:checked + .toggle-slider:before {
     color: var(--text-muted);
 }
 
-.ai-expand-btn {
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    padding: 0.25rem;
-    border-radius: 4px;
-    transition: all 0.2s;
-}
-
-.ai-expand-btn:hover {
-    background: var(--bg-main);
-    color: var(--text);
-}
-
-/* Détails IA expansibles */
-.ai-details {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease;
-    background: var(--bg-main);
-    border-radius: 8px;
-    margin-top: 0.5rem;
-}
-
-.ai-details.expanded {
-    max-height: 200px;
-    padding: 1rem;
-}
-
-.ai-detail-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid var(--border);
-}
-
 .ai-detail-item:last-child {
     border-bottom: none;
-}
-
-.ai-detail-label {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-}
-
-.ai-detail-value {
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: var(--primary);
 }
 
 /* Sections de feedback épurées */

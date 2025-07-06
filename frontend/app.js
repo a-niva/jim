@@ -3570,6 +3570,7 @@ async function updateSetRecommendations() {
 }
 
 // Affichage des changements de recommandations
+// AJOUTER ces fonctions manquantes
 function displayRecommendationChanges(recommendations) {
     if (!workoutState.lastRecommendation || currentSet === 1) return;
     
@@ -3592,7 +3593,6 @@ function displayRecommendationChanges(recommendations) {
     }
 }
 
-// Mise à jour panneau détails IA
 function updateAIDetailsPanel(recommendations) {
     const aiWeightEl = document.getElementById('aiWeightRec');
     const aiRepsEl = document.getElementById('aiRepsRec');
@@ -3604,6 +3604,7 @@ function updateAIDetailsPanel(recommendations) {
     if (aiStrategyEl) aiStrategyEl.textContent = recommendations.adaptation_strategy === 'fixed_weight' ? 'Poids fixe' : 'Progressif';
     if (aiReasonEl) aiReasonEl.textContent = recommendations.reasoning || 'Recommandation standard';
 }
+
 
 // Toggle détails IA
 function toggleAIDetails() {
@@ -6550,20 +6551,6 @@ function resetFeedbackSelection() {
     currentWorkoutSession.currentSetEffort = null;
 }
 
-
-function toggleAIDetails() {
-    const detailsPanel = document.getElementById('aiDetailsPanel');
-    const expandBtn = document.querySelector('.ai-expand-btn');
-    
-    if (detailsPanel.style.display === 'none') {
-        detailsPanel.style.display = 'block';
-        expandBtn.classList.add('expanded');
-    } else {
-        detailsPanel.style.display = 'none';
-        expandBtn.classList.remove('expanded');
-    }
-}
-
 function showAutoValidation() {
     const indicator = document.createElement('div');
     indicator.className = 'auto-validation';
@@ -7112,9 +7099,6 @@ window.updateSeriesDots = updateSeriesDots;
 window.handleExtraSet = handleExtraSet;
 window.completeRest = completeRest;
 window.playRestSound = playRestSound;
-window.selectProgramExercise = selectProgramExercise;
-window.restartExercise = restartExercise;
-window.handleExerciseCardClick = handleExerciseCardClick;
 window.selectProgramExercise = selectProgramExercise;
 window.restartExercise = restartExercise;
 window.handleExerciseCardClick = handleExerciseCardClick;
