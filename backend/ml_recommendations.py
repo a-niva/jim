@@ -341,6 +341,14 @@ class FitnessRecommendationEngine:
         # Calculer l'ajustement de fatigue
         fatigue_adjustment = 1.0 - perf_state.acute_fatigue * 0.3  # Max 30% de réduction
         
+        # PROTECTION ANTI-CRASH - Garantir des valeurs valides
+        if baseline_weight is None or baseline_weight <= 0:
+            baseline_weight = 20.0
+        if baseline_reps is None or baseline_reps <= 0:
+            baseline_reps = 8
+            
+        logger.info(f"Performance state: weight={baseline_weight}, reps={baseline_reps}")
+        
         return {
             "baseline_weight": baseline_weight,
             "baseline_reps": baseline_reps,
@@ -626,17 +634,18 @@ class FitnessRecommendationEngine:
     def _calculate_weight_recommendation(
         self, baseline_weight: float, fatigue_adj: float, effort_factor: float,
         rest_factor: float, performance_factor: float, set_factor: float,
-        session_factor: float, exercise: Exercise, available_weights: Optional[List[float]],
-        user: User  # AJOUTER
+        session_factor: float, exercise: Exercise, available_weights: Optional[List[float]]
     ) -> Optional[float]:
         """Calcule la recommandation de poids avec tous les facteurs"""
         
         if exercise.weight_type == "bodyweight":
             return None
         
-        if not baseline_weight or baseline_weight <= 0:
+        # PROTECTION ANTI-CRASH - Fallback immédiat
+        if baseline_weight is None or baseline_weight <= 0:
             baseline_weight = 20.0
-        
+            logger.warning(f"Baseline weight null/invalid, using fallback: {baseline_weight}")
+            
             
         # Multiplication de tous les facteurs
         recommended_weight = (

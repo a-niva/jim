@@ -3426,7 +3426,7 @@ async function updateSetRecommendations() {
             });
 
             // CORRECTION 4 : Validation des recommandations reçues
-            if (!recommendations || recommendations.weight_recommendation === null || recommendations.weight_recommendation === 0) {
+            if (!recommendations || (recommendations.weight_recommendation === null && recommendations.weight_recommendation === undefined)) {
                 console.warn('⚠️ Recommandations ML invalides, fallback sur valeurs par défaut');
                 recommendations = {
                     weight_recommendation: currentExercise.default_weight || 20,
