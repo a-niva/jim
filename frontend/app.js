@@ -2936,7 +2936,7 @@ function toggleMLAdjustment(exerciseId) {
     
     if (!newState) {
         // Sauvegarder le dernier poids pour le mode manuel
-        const currentWeight = parseFloat(document.getElementById('setWeight')?.value) || null;
+        const currentWeight = parseFloat(document.getElementById('setWeight')?.textContent) || null;
         currentWorkoutSession.mlSettings[exerciseId].lastManualWeight = currentWeight;
     }
     
@@ -2944,6 +2944,22 @@ function toggleMLAdjustment(exerciseId) {
     const label = document.querySelector(`#mlToggle-${exerciseId}`).closest('.ml-toggle-container').querySelector('.toggle-label');
     if (label) {
         label.innerHTML = `<i class="fas fa-brain"></i> Ajustement IA ${newState ? '(Actif)' : '(Manuel)'}`;
+    }
+    
+    // AJOUT : Mettre à jour le toggle inline et le statut
+    const inlineToggle = document.getElementById('mlToggleInline');
+    if (inlineToggle) inlineToggle.checked = newState;
+    
+    const statusEl = document.getElementById('aiToggleStatus');
+    if (statusEl) {
+        const confidence = workoutState.currentRecommendation?.confidence || 0;
+        if (!newState) {
+            statusEl.textContent = 'Désactivé • Mode manuel';
+        } else if (confidence === 0 || !workoutState.currentRecommendation) {
+            statusEl.textContent = 'Actif • Données insuffisantes';
+        } else {
+            statusEl.textContent = `Actif • Confiance ${Math.round(confidence * 100)}%`;
+        }
     }
     
     // Sauvegarder la préférence localement
@@ -3263,6 +3279,22 @@ async function updateSetRecommendations() {
 
         // Stocker les recommandations pour executeSet
         workoutState.currentRecommendation = recommendations;
+
+        // Mettre à jour le statut AI dans le feedback
+        const statusEl = document.getElementById('aiToggleStatus');
+        if (statusEl && currentExercise) {
+            const mlSettings = currentWorkoutSession.mlSettings?.[currentExercise.id];
+            const isActive = mlSettings?.autoAdjust ?? currentUser.prefer_weight_changes_between_sets;
+            const confidence = recommendations.confidence || 0;
+            
+            if (!isActive) {
+                statusEl.textContent = 'Désactivé • Mode manuel';
+            } else if (confidence === 0) {
+                statusEl.textContent = 'Actif • Données insuffisantes';
+            } else {
+                statusEl.textContent = `Actif • Confiance ${Math.round(confidence * 100)}%`;
+            }
+        }
 
         // PHASE 2.2 : Vérifier si ML est désactivé pour cet exercice
         if (!currentWorkoutSession.mlSettings[currentExercise.id]?.autoAdjust) {
@@ -5957,7 +5989,7 @@ function selectEffort(button, value) {
     }
 }
 
-// NOUVEAU: Fonction de réinitialisation des sélections
+// Fonction de réinitialisation des sélections
 function resetFeedbackSelection() {
     // Supprimer toutes les sélections
     document.querySelectorAll('.emoji-btn-modern.selected').forEach(btn => {
@@ -5976,10 +6008,30 @@ function resetFeedbackSelection() {
 
 function toggleAIDetails() {
     const details = document.getElementById('aiDetails');
-    const btn = document.getElementById('aiExpandBtn');
+    const expandBtn = document.getElementById('aiExpandBtn');
     
     details.classList.toggle('expanded');
-    btn.textContent = details.classList.contains('expanded') ? '✕' : 'ⓘ';
+    expandBtn.textContent = details.classList.contains('expanded') ? '▾' : 'ⓘ';
+    
+    // AJOUT : Mettre à jour le contenu quand on ouvre
+    if (details.classList.contains('expanded') && workoutState.currentRecommendation) {
+        const rec = workoutState.currentRecommendation;
+        
+        // Prochaine recommandation
+        document.getElementById('aiNextRec').textContent = 
+            rec.weight_recommendation ? 
+            `${rec.weight_recommendation}kg × ${rec.reps_recommendation} reps` : 
+            'En attente';
+            
+        // Raison
+        document.getElementById('aiReason').textContent = 
+            rec.reasoning || 'Analyse en cours';
+            
+        // Historique
+        const history = currentWorkoutSession.mlHistory?.[currentExercise?.id];
+        document.getElementById('aiHistory').textContent = 
+            history && history.length > 0 ? `${history.length} ajustements` : 'Aucun';
+    }
 }
 
 function showAutoValidation() {

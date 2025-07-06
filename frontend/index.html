@@ -256,7 +256,7 @@
             <!-- Actions principales -->
             <div class="main-actions">
                 <div class="action-card" onclick="startFreeWorkout()">
-                    <div class="action-icon">🏃‍♂️</div>
+                    <div class="action-icon">🕊️</div>
                     <h3>Séance libre</h3>
                     <p>Choisissez vos exercices librement</p>
                 </div>
@@ -420,16 +420,22 @@
                     
 <!-- Feedback après série -->
 <div id="setFeedback" class="set-feedback-modern" style="display: none;">
-    <!-- Toggle IA compact -->
-    <div class="ai-toggle-compact" onclick="toggleAIDetails()">
+    <!-- Toggle IA compact avec état intégré -->
+    <div class="ai-toggle-compact">
         <div class="ai-toggle-main">
             <div class="ai-toggle-icon">🤖</div>
             <div>
-                <div class="ai-toggle-text">Ajustement IA</div>
+                <div class="ai-toggle-text">
+                    Ajustement IA
+                    <label class="toggle-switch-inline">
+                        <input type="checkbox" id="mlToggleInline" checked onchange="if(currentExercise) toggleMLAdjustment(currentExercise.id)">
+                        <span class="toggle-slider-inline"></span>
+                    </label>
+                </div>
                 <div class="ai-toggle-status" id="aiToggleStatus">Actif • Confiance 78%</div>
             </div>
         </div>
-        <button class="ai-expand-btn" id="aiExpandBtn">ⓘ</button>
+        <button class="ai-expand-btn" id="aiExpandBtn" onclick="toggleAIDetails()">ⓘ</button>
     </div>
 
     <!-- Détails IA expansibles -->
@@ -440,11 +446,11 @@
         </div>
         <div class="ai-detail-item">
             <span class="ai-detail-label">Raison</span>
-            <span class="ai-detail-value" id="aiReason">Analyse en cours</span>
+            <span class="ai-detail-value" id="aiReason">-</span>
         </div>
         <div class="ai-detail-item">
             <span class="ai-detail-label">Historique</span>
-            <span class="ai-detail-value" id="aiHistory">-- séries</span>
+            <span class="ai-detail-value" id="aiHistory">-</span>
         </div>
     </div>
 
