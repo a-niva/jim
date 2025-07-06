@@ -1622,11 +1622,6 @@ textarea:focus {
         justify-content: space-between;
         align-items: center;
     }
-    
-    .ml-toggle-container {
-        margin-top: 0;
-        padding: 0.5rem 0.75rem;
-    }
 
     .set-header {
         flex-direction: column;
@@ -3573,27 +3568,6 @@ select:focus-visible {
 }
 
 
-/* ===== INTERFACE AI COMPACTE ===== */
-
-/* Ligne du toggle AI */
-.ai-toggle-line {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: var(--bg-light);
-    border-radius: 12px;
-    padding: 0.75rem 1rem;
-    margin-bottom: 1rem;
-    border: 1px solid var(--border);
-}
-
-.ai-toggle-left {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    flex: 1;
-}
-
 .info-note {
     background: var(--bg-light);
     padding: 1rem;
@@ -3684,23 +3658,6 @@ select:focus-visible {
     color: var(--primary);
 }
 
-/* Détails AI collapsibles */
-.ai-details-collapse {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    margin-bottom: 1rem;
-}
-
-.ai-details-collapse.expanded {
-    max-height: 200px;
-    background: var(--bg-light);
-    padding: 1rem;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    margin-top: -0.5rem;
-}
-
 .ai-detail-item {
     display: flex;
     justify-content: space-between;
@@ -3761,32 +3718,6 @@ select:focus-visible {
     }
 }
 
-
-
-/* ===== TOGGLE ML POUR LES EXERCICES ===== */
-.ml-toggle-container {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem;
-    background: var(--bg-secondary);
-    border-radius: 8px;
-    margin-top: 1rem;
-}
-
-.toggle-label {
-    font-size: 0.9rem;
-    color: var(--text-muted);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.toggle-label i {
-    color: var(--primary);
-    font-size: 1.1rem;
-}
-
 /* === PHASE 2.2 : VISUALISATION ML === */
 
 /* Explication ML */
@@ -3814,23 +3745,8 @@ select:focus-visible {
     background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05));
 }
 
-.ml-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    font-weight: 600;
-    color: var(--primary);
-    margin-bottom: 0.25rem;
-}
-
 .ml-change-icon {
     font-size: 1.1em;
-}
-
-.ml-reasoning {
-    color: var(--text);
-    line-height: 1.4;
-    margin: 0.5rem 0;
 }
 
 .ml-baseline {
@@ -3858,29 +3774,6 @@ select:focus-visible {
     margin-top: 1rem;
 }
 
-.ml-history-container {
-    background: var(--bg-secondary);
-    border-radius: 8px;
-    padding: 0.75rem;
-    margin: 1rem 0;
-}
-
-.ml-history-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: pointer;
-    user-select: none;
-}
-
-.ml-history-header h4 {
-    margin: 0;
-    font-size: 0.9rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
 .history-count {
     opacity: 0.6;
     font-weight: normal;
@@ -3899,36 +3792,6 @@ select:focus-visible {
     border-left: 2px solid var(--primary);
     padding-left: 1rem;
 }
-
-.ml-history-item {
-    position: relative;
-    padding: 0.75rem 0;
-    border-bottom: 1px solid var(--border);
-}
-
-.ml-history-item:last-child {
-    border-bottom: none;
-}
-
-.ml-history-item::before {
-    content: '';
-    position: absolute;
-    left: -1.4rem;
-    top: 1rem;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--primary);
-}
-
-.ml-history-item.modified::before {
-    background: var(--warning);
-}
-
-.ml-history-item.accepted::before {
-    background: var(--success);
-}
-
 .history-header {
     display: flex;
     justify-content: space-between;
@@ -4030,67 +3893,6 @@ select:focus-visible {
     margin-top: 1.5rem;
 }
 
-/* Toggle IA compact */
-.ai-toggle-compact {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: var(--bg-light);
-    border-radius: 8px;
-    padding: 0.75rem 1rem;
-    margin-bottom: 1.5rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.ai-toggle-compact:hover {
-    background: rgba(59, 130, 246, 0.1);
-}
-
-/* Toggle inline dans le texte */
-.ai-toggle-text {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-weight: 500;
-    font-size: 0.9rem;
-}
-
-.toggle-switch-inline {
-    position: relative;
-    display: inline-block;
-    width: 36px;
-    height: 20px;
-}
-
-.toggle-switch-inline input {
-    display: none;
-}
-
-.toggle-slider-inline {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: var(--border);
-    transition: 0.3s;
-    border-radius: 20px;
-}
-
-.toggle-slider-inline:before {
-    position: absolute;
-    content: "";
-    height: 14px;
-    width: 14px;
-    left: 3px;
-    bottom: 3px;
-    background-color: white;
-    transition: 0.3s;
-    border-radius: 50%;
-}
-
 .toggle-switch-inline input:checked + .toggle-slider-inline {
     background-color: var(--primary);
 }
@@ -4112,63 +3914,6 @@ select:focus-visible {
     display: flex;
     align-items: center;
     justify-content: center;
-}
-
-.ai-toggle-main {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.ai-toggle-icon {
-    width: 32px;
-    height: 32px;
-    background: var(--primary);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-}
-
-.ai-toggle-text {
-    font-weight: 500;
-    font-size: 0.9rem;
-}
-
-.ai-toggle-status {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-}
-
-.ai-expand-btn {
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    padding: 0.25rem;
-    border-radius: 4px;
-    transition: all 0.2s;
-}
-
-.ai-expand-btn:hover {
-    background: var(--bg-main);
-    color: var(--text);
-}
-
-/* Détails IA expansibles */
-.ai-details {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease;
-    background: var(--bg-main);
-    border-radius: 8px;
-    margin-top: 0.5rem;
-}
-
-.ai-details.expanded {
-    max-height: 200px;
-    padding: 1rem;
 }
 
 .ai-detail-item {
