@@ -2047,12 +2047,16 @@ async function startFreeWorkout() {
         clearWorkoutState();
         localStorage.removeItem('fitness_workout_state');
         
+        // Supprimer toute bannière résiduelle
+        const oldBanner = document.querySelector('.workout-resume-banner');
+        if (oldBanner) oldBanner.remove();
+        
         const workoutData = { type: 'free' };
         const response = await apiPost(`/api/users/${currentUser.id}/workouts`, workoutData);
         
         currentWorkout = response.workout;
-        // AJOUT : Initialiser le type de session
         currentWorkoutSession.type = 'free';
+        currentWorkoutSession.workout = response.workout;
         
         showView('workout');
         setupFreeWorkout();
@@ -4171,6 +4175,9 @@ async function endWorkout() {
         
         // Réinitialiser l'état
         clearWorkoutState();
+        // Retirer la bannière de reprise de séance si elle existe
+        const banner = document.querySelector('.workout-resume-banner');
+        if (banner) banner.remove();
         
         // Retour au dashboard
         showView('dashboard');
@@ -5570,6 +5577,7 @@ function clearWorkoutState() {
         pendingSetData: null
     };
     
+    // Réinitialiser complètement currentWorkoutSession
     currentWorkoutSession = {
         workout: null,
         currentExercise: null,
@@ -5581,11 +5589,16 @@ function clearWorkoutState() {
         type: 'free',
         totalRestTime: 0,
         totalSetTime: 0,
-        // AJOUT : Nettoyer aussi les données programme
-        program: null,
         programExercises: {},
-        completedExercisesCount: 0
+        completedExercisesCount: 0,
+        mlSettings: {},
+        mlHistory: {}
     };
+
+    // Réinitialiser aussi les variables globales
+    currentWorkout = null;
+    currentExercise = null;
+    currentSet = 1;
 }
 
 // ===== AMÉLIORATIONS DE L'INTERFACE =====
@@ -6445,27 +6458,26 @@ function pauseWorkout() {
 }
 
 async function abandonWorkout() {
-    if (!confirm('Êtes-vous sûr de vouloir abandonner cette séance ?')) 
-        return;
+    if (!confirm('Êtes-vous sûr de vouloir abandonner cette séance ?')) return;
     
-    try {
-        // CORRECTION : Tentative API avec fallback immédiat sur erreur
-        if (currentWorkout) {
-            try {
-                await apiPut(`/api/workouts/${currentWorkout.id}/complete`);
-            } catch (apiError) {
-                console.warn('API /complete échouée, nettoyage local forcé:', apiError);
-                // Continuer sans faire crasher
-            }
-        }
-    } catch (outerError) {
-        console.warn('Erreur globale abandon, nettoyage forcé:', outerError);
-    }
-    
-    // TOUJOURS nettoyer l'état local même si API échoue
+    // TOUJOURS nettoyer l'état local d'abord
     clearWorkoutState();
     localStorage.removeItem('fitness_workout_state');
     transitionTo(WorkoutStates.IDLE);
+    
+    // Retirer la bannière immédiatement
+    const banner = document.querySelector('.workout-resume-banner');
+    if (banner) banner.remove();
+    
+    // Tenter l'API en arrière-plan sans bloquer
+    if (currentWorkout?.id) {
+        apiPut(`/api/workouts/${currentWorkout.id}/complete`, {
+            total_duration: 0,
+            total_rest_time: 0
+        }).catch(error => {
+            console.warn('API /complete échouée, mais séance nettoyée localement:', error);
+        });
+    }
     
     showView('dashboard');
     showToast('Séance abandonnée', 'info');
