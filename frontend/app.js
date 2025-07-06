@@ -4573,7 +4573,8 @@ async function endWorkout() {
         // ✅ MÉTHODE ROBUSTE : Utiliser le timer d'affichage en priorité
         let totalDurationSeconds = 0;
         
-        const workoutTimerDisplay = document.getElementById('workoutTimer').textContent;
+        const workoutTimerElement = document.getElementById('workoutTimer');
+        const workoutTimerDisplay = workoutTimerElement?.textContent || '00:00';
         if (workoutTimerDisplay && workoutTimerDisplay !== '00:00') {
             // Parser l'affichage du timer : "MM:SS"
             const [minutes, seconds] = workoutTimerDisplay.split(':').map(Number);
@@ -4588,8 +4589,8 @@ async function endWorkout() {
         }
         
         // ✅ DEBUG DÉCOMPOSITION COMPLÈTE
-        const exerciseTime = currentWorkoutSession.totalSetTime;
-        const restTime = currentWorkoutSession.totalRestTime;
+        const exerciseTime = currentWorkoutSession.totalSetTime || 0;
+        const restTime = currentWorkoutSession.totalRestTime || 0;
         const transitionTime = Math.max(0, totalDurationSeconds - exerciseTime - restTime);
         
         console.log(`📊 DÉCOMPOSITION FINALE:`);
