@@ -2921,6 +2921,15 @@ function renderMLConfidence(confidence) {
 
 // Nouvelle fonction pour gérer le toggle
 function toggleMLAdjustment(exerciseId) {
+    // Vérifier que mlSettings existe
+    if (!currentWorkoutSession.mlSettings?.[exerciseId]) {
+        currentWorkoutSession.mlSettings = currentWorkoutSession.mlSettings || {};
+        currentWorkoutSession.mlSettings[exerciseId] = {
+            autoAdjust: currentUser.prefer_weight_changes_between_sets,
+            lastManualWeight: null
+        };
+    }
+    
     const newState = !currentWorkoutSession.mlSettings[exerciseId].autoAdjust;
     currentWorkoutSession.mlSettings[exerciseId].autoAdjust = newState;
     
@@ -6033,56 +6042,6 @@ function resetFeedbackSelection() {
     currentWorkoutSession.currentSetEffort = null;
 }
 
-
-// Fonction pour toggle les détails AI
-function toggleAIDetails() {
-    const details = document.getElementById('aiDetails');
-    const btn = document.querySelector('.ai-info-btn');
-    
-    details.classList.toggle('expanded');
-    
-    // Rotation de l'icône
-    if (details.classList.contains('expanded')) {
-        btn.style.transform = 'rotate(180deg)';
-        updateAIDetailsContent();
-    } else {
-        btn.style.transform = 'rotate(0deg)';
-    }
-}
-
-
-// Mettre à jour le contenu des détails AI
-function updateAIDetailsContent() {
-    const recommendations = workoutState.currentRecommendation || {};
-    
-    // Prochaine recommandation
-    const nextRecEl = document.getElementById('aiNextRec');
-    if (nextRecEl) {
-        if (recommendations.weight_recommendation) {
-            nextRecEl.textContent = `${recommendations.weight_recommendation}kg × ${recommendations.reps_recommendation} reps`;
-        } else {
-            nextRecEl.textContent = 'En attente de données';
-        }
-    }
-    
-    // Raison
-    const reasonEl = document.getElementById('aiReason');
-    if (reasonEl) {
-        reasonEl.textContent = recommendations.reasoning || 'Analyse en cours...';
-    }
-    
-    // Historique
-    const historyEl = document.getElementById('aiHistory');
-    if (historyEl) {
-        const history = currentWorkoutSession.mlHistory?.[currentExercise?.id];
-        if (history && history.length > 0) {
-            historyEl.textContent = `${history.length} ajustements`;
-        } else {
-            historyEl.textContent = 'Aucun historique';
-        }
-    }
-}
-
 function showAutoValidation() {
     const indicator = document.createElement('div');
     indicator.className = 'auto-validation';
@@ -6603,7 +6562,6 @@ window.addExtraSet = addExtraSet;
 window.updateSetNavigationButtons = updateSetNavigationButtons;
 window.selectFatigue = selectFatigue;
 window.selectEffort = selectEffort;
-window.toggleAIDetails = toggleAIDetails;
 window.showAutoValidation = showAutoValidation;
 window.adjustWeightUp = adjustWeightUp;
 window.adjustWeightDown = adjustWeightDown;
