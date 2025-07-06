@@ -5657,8 +5657,12 @@ function clearWorkoutState() {
         programExercises: {},
         completedExercisesCount: 0,
         mlSettings: {},
-        mlHistory: {}
+        mlHistory: {}  // S'assurer que c'est un objet vide
     };
+    
+    // Nettoyer aussi l'affichage de l'historique ML
+    const mlHistoryTimeline = document.getElementById('mlHistoryTimeline');
+    if (mlHistoryTimeline) mlHistoryTimeline.innerHTML = '';
 
     // Réinitialiser aussi les variables globales
     currentWorkout = null;

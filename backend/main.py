@@ -45,7 +45,7 @@ def update_exercise_stats_for_user(db: Session, user_id: int, exercise_id: int =
         
         # Requête optimisée pour récupérer toutes les stats d'un coup
         stats_query = db.query(
-            WorkoutSet.user_id,
+            Workout.user_id,
             WorkoutSet.exercise_id,
             func.count(distinct(WorkoutSet.workout_id)).label('total_sessions'),
             func.count(WorkoutSet.id).label('total_sets'),
@@ -60,7 +60,7 @@ def update_exercise_stats_for_user(db: Session, user_id: int, exercise_id: int =
             Workout.status == 'completed',
             *exercise_filter
         ).group_by(
-            WorkoutSet.user_id,
+            Workout.user_id,
             WorkoutSet.exercise_id
         )
         
