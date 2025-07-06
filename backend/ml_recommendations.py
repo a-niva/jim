@@ -747,8 +747,20 @@ class FitnessRecommendationEngine:
         # Ajustements basés sur le contexte de session
         rest_seconds = base_rest.get('seconds', 90)
         
+        # CORRECTION : S'assurer que les valeurs ne sont jamais None
+        last_rest_actual = session_context.get('last_rest_actual') or 0
+        last_rest_recommended = session_context.get('last_rest_recommended') or 90
+        
         # Ajustement si repos précédent trop court et performance dégradée
-        if session_context.get('last_rest_actual', 0) < session_context.get('last_rest_recommended', 90) * 0.7:
+        if last_rest_actual < last_rest_recommended * 0.7:
+            # Repos trop court → augmenter
+            rest_seconds = int(rest_seconds * 1.2)
+        
+        # Ajustement si repos précédent trop court et performance dégradée
+        last_rest_actual = session_context.get('last_rest_actual') or 0
+        last_rest_recommended = session_context.get('last_rest_recommended') or 90
+
+        if last_rest_actual < last_rest_recommended * 0.7:
             if current_effort >= 4:  # Et si dernière série était difficile
                 rest_seconds = int(rest_seconds * 1.3)  # +30% de repos
         

@@ -180,7 +180,7 @@ class FitnessMLEngine:
         # Chercher le ratio le plus proche
         ratio = 0.3  # Défaut
         for key, value in exercise_ratios.items():
-            if key.lower() in exercise.name_fr.lower():
+            if key.lower() in exercise.name.lower():
                 ratio = value
                 break
         
@@ -679,7 +679,7 @@ class FitnessMLEngine:
             # Debug détaillé des premiers exercices
             logger.info(f"=== DIAGNOSTIC DÉTAILLÉ ÉQUIPEMENT ===")
             for i, exercise in enumerate(all_exercises[:10]):
-                logger.info(f"Exercice {i+1}: {exercise.name_fr}")
+                logger.info(f"Exercice {i+1}: {exercise.name}")
                 logger.info(f"  Équipement requis: {exercise.equipment}")
                 if exercise.equipment:
                     matches = [eq for eq in exercise.equipment if eq in available_equipment]
@@ -701,7 +701,7 @@ class FitnessMLEngine:
                     # Log seulement quelques exemples pour debug
                     if len(available_exercises) < 5 and exercise.body_part in ["Pectoraux", "Dos"]:
                         missing = [eq for eq in exercise_equipment if eq not in available_equipment]
-                        logger.debug(f"Exercice exclu: {exercise.name_fr} - manque: {missing}")
+                        logger.debug(f"Exercice exclu: {exercise.name} - manque: {missing}")
 
             # Résumé du filtrage
             logger.info(f"=== RÉSULTAT FILTRAGE ===")
@@ -709,7 +709,7 @@ class FitnessMLEngine:
             if len(available_exercises) < 10:
                 logger.warning(f"Peu d'exercices trouvés ({len(available_exercises)})")
                 for i, ex in enumerate(available_exercises[:5]):
-                    logger.info(f"  Exercice {i+1}: {ex.name_fr}")
+                    logger.info(f"  Exercice {i+1}: {ex.name}")
                     
             # Vérifier qu'on a assez d'exercices
             if len(available_exercises) < 5:
@@ -770,7 +770,7 @@ class FitnessMLEngine:
                     )
                                         
                     for exercise in selected_exercises:
-                        logger.info(f"Tentative d'ajout de l'exercice: {exercise.name_fr} (ID: {exercise.id})")
+                        logger.info(f"Tentative d'ajout de l'exercice: {exercise.name} (ID: {exercise.id})")
                         try:
                             # Obtenir les recommandations pour cet exercice
                             sets_reps = self.get_sets_reps_for_level(
@@ -789,7 +789,7 @@ class FitnessMLEngine:
                             
                             workout["exercises"].append({
                                 "exercise_id": exercise.id,
-                                "exercise_name": exercise.name_fr,
+                                "exercise_name": exercise.name,
                                 "sets": int(sets_reps["sets"] * week_intensity),
                                 "target_reps": sets_reps["reps"],
                                 "predicted_weight": prediction["predicted_weight"],
@@ -797,7 +797,7 @@ class FitnessMLEngine:
                             })
                         except Exception as e:
                             # CHANGEZ print par logger.error pour voir dans les logs serveur
-                            logger.error(f"ERREUR CRITIQUE avec l'exercice {exercise.name_fr}: {str(e)}")
+                            logger.error(f"ERREUR CRITIQUE avec l'exercice {exercise.name}: {str(e)}")
                             logger.error(f"Traceback complet:", exc_info=True)
                             continue
                     
@@ -933,7 +933,7 @@ class FitnessMLEngine:
                 if not ex.equipment or any(eq in available_equipment for eq in ex.equipment):
                     fallback_exercises.append({
                         "exercise_id": ex.id,
-                        "exercise_name": ex.name_fr,
+                        "exercise_name": ex.name,
                         "body_part": ex.body_part,
                         "sets": 3,
                         "target_reps": "8-12",
@@ -1191,11 +1191,11 @@ class FitnessMLEngine:
             if 0 < weight <= 500:
                 return weight
             else:
-                logger.info(f"Poids hors limites ({weight}kg) pour {exercise.name_fr}, utilisation du poids de départ")
+                logger.info(f"Poids hors limites ({weight}kg) pour {exercise.name}, utilisation du poids de départ")
                 return self.calculate_starting_weight(user, exercise)
                 
         except Exception as e:
-            logger.error(f"Erreur calculate_weight pour {exercise.name_fr}: {str(e)}", exc_info=True)
+            logger.error(f"Erreur calculate_weight pour {exercise.name}: {str(e)}", exc_info=True)
             # Fallback simple basé sur le type d'exercice
             return self._get_default_weight_for_exercise(exercise)
 
@@ -1404,7 +1404,7 @@ class SessionBuilder:
             for ex in exercises:
                 is_compatible = self._check_equipment_availability(ex, user)
                 if ex.equipment and "dumbbells" in ex.equipment:
-                    logger.info(f"🏋️ {ex.name_fr}: dumbbells requis, compatible={is_compatible}")
+                    logger.info(f"🏋️ {ex.name}: dumbbells requis, compatible={is_compatible}")
                 
                 # AJOUTER CES LIGNES
                 if is_compatible:
@@ -1447,7 +1447,7 @@ class SessionBuilder:
                 try:
                     weight = self.ml_engine.calculate_weight_for_exercise(user, selected, reps)
                 except Exception as e:
-                    logger.error(f"Erreur calcul poids pour {selected.name_fr}: {e}")
+                    logger.error(f"Erreur calcul poids pour {selected.name}: {e}")
                     weight = 20.0  # Poids par défaut sécurisé
                 
                 exercise_time = sets * (30 + rest)  # 30s par série + repos
@@ -1455,7 +1455,7 @@ class SessionBuilder:
                 if time_used + exercise_time <= time_budget * 60:  # Convertir minutes en secondes
                     session.append({
                         "exercise_id": selected.id,
-                        "exercise_name": selected.name_fr,
+                        "exercise_name": selected.name,
                         "body_part": selected.body_part,
                         "sets": int(sets),
                         "target_reps": int(reps),
@@ -1484,7 +1484,7 @@ class SessionBuilder:
                 if ex.id not in [s["exercise_id"] for s in session]:
                     session.append({
                         "exercise_id": ex.id,
-                        "exercise_name": ex.name_fr,
+                        "exercise_name": ex.name,
                         "body_part": ex.body_part,
                         "sets": 3,
                         "target_reps": 10,
@@ -1516,12 +1516,12 @@ class SessionBuilder:
                 try:
                     fallback_weight = self.ml_engine.calculate_weight_for_exercise(user, fallback_exercise, 10)
                 except Exception as e:
-                    logger.error(f"Erreur calcul poids fallback pour {fallback_exercise.name_fr}: {e}")
+                    logger.error(f"Erreur calcul poids fallback pour {fallback_exercise.name}: {e}")
                     fallback_weight = 20.0
                 
                 session.append({
                     "exercise_id": fallback_exercise.id,
-                    "exercise_name": fallback_exercise.name_fr,
+                    "exercise_name": fallback_exercise.name,
                     "body_part": fallback_exercise.body_part,
                     "sets": 3,
                     "target_reps": 10,
@@ -1654,7 +1654,7 @@ class SessionBuilder:
                 selected.append(ex)
                 remaining -= 1
 
-        logger.info(f"Sélection {target_parts}: {[ex.name_fr for ex in selected]}")
+        logger.info(f"Sélection {target_parts}: {[ex.name for ex in selected]}")
         return selected[:max_exercises]
 
     
@@ -2146,8 +2146,8 @@ class RealTimeAdapter:
                 if alternatives:
                     suggestions["exercises_to_change"].append({
                         "muscle": muscle,
-                        "current": [e.name_fr for e in current_exercises[:1]],
-                        "alternatives": [e.name_fr for e in alternatives]
+                        "current": [e.name for e in current_exercises[:1]],
+                        "alternatives": [e.name for e in alternatives]
                     })
             
             # Si fatigue excessive → réduire volume
