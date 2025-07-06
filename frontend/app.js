@@ -47,10 +47,38 @@ let workoutState = {
     pendingSetData: null
 };
 
-function transitionTo(newState) {
-    console.log(`Transition: ${workoutState.current} → ${newState}`);
-    workoutState.current = newState;
-    updateUIForState(newState);
+function transitionTo(state) {
+    workoutState.current = state;
+    
+    // Nettoyer les états précédents
+    const elements = {
+        inputSection: document.querySelector('.input-section'),
+        executeBtn: document.getElementById('executeSetBtn'),
+        setFeedback: document.getElementById('setFeedback'),
+        restPeriod: document.getElementById('restPeriod')
+    };
+    
+    // Cacher tout par défaut
+    Object.values(elements).forEach(el => {
+        if (el) el.style.display = 'none';
+    });
+    
+    // Afficher selon l'état
+    switch(state) {
+        case WorkoutStates.READY:
+            if (elements.inputSection) elements.inputSection.style.display = 'block';
+            if (elements.executeBtn) elements.executeBtn.style.display = 'block';
+            break;
+            
+        case WorkoutStates.FEEDBACK:
+            if (elements.setFeedback) elements.setFeedback.style.display = 'block';
+            break;
+            
+        case WorkoutStates.RESTING:
+            if (elements.setFeedback) elements.setFeedback.style.display = 'block';
+            if (elements.restPeriod) elements.restPeriod.style.display = 'flex';
+            break;
+    }
 }
 
 function updateUIForState(state) {
@@ -2931,45 +2959,30 @@ function renderMLConfidence(confidence) {
 
 // Nouvelle fonction pour gérer le toggle
 function toggleMLAdjustment(exerciseId) {
-    const newState = !currentWorkoutSession.mlSettings[exerciseId].autoAdjust;
-    currentWorkoutSession.mlSettings[exerciseId].autoAdjust = newState;
-    
-    if (!newState) {
-        // Sauvegarder le dernier poids pour le mode manuel
-        const currentWeight = parseFloat(document.getElementById('setWeight')?.textContent) || null;
-        currentWorkoutSession.mlSettings[exerciseId].lastManualWeight = currentWeight;
+    if (!currentWorkoutSession.mlSettings[exerciseId]) {
+        currentWorkoutSession.mlSettings[exerciseId] = {};
     }
     
-    // Mettre à jour le label
-    const label = document.querySelector(`#mlToggle-${exerciseId}`).closest('.ml-toggle-container').querySelector('.toggle-label');
-    if (label) {
-        label.innerHTML = `<i class="fas fa-brain"></i> Ajustement IA ${newState ? '(Actif)' : '(Manuel)'}`;
-    }
+    // Inverser l'état
+    const currentState = currentWorkoutSession.mlSettings[exerciseId].autoAdjust ?? 
+                        currentUser.prefer_weight_changes_between_sets;
+    currentWorkoutSession.mlSettings[exerciseId].autoAdjust = !currentState;
     
-    // AJOUT : Mettre à jour le toggle inline et le statut
-    const inlineToggle = document.getElementById('mlToggleInline');
-    if (inlineToggle) inlineToggle.checked = newState;
+    // Synchroniser tous les toggles
+    syncMLToggles();
     
-    const statusEl = document.getElementById('aiToggleStatus');
-    if (statusEl) {
-        const confidence = workoutState.currentRecommendation?.confidence || 0;
-        if (!newState) {
-            statusEl.textContent = 'Désactivé • Mode manuel';
-        } else if (confidence === 0 || !workoutState.currentRecommendation) {
-            statusEl.textContent = 'Actif • Données insuffisantes';
-        } else {
-            statusEl.textContent = `Actif • Confiance ${Math.round(confidence * 100)}%`;
-        }
-    }
-    
-    // Sauvegarder la préférence localement
-    const key = `ml_preferences_${currentUser.id}_${exerciseId}`;
-    localStorage.setItem(key, JSON.stringify(newState));
-    
-    // Rafraîchir les recommandations
+    // Mettre à jour l'affichage
     updateSetRecommendations();
     
-    showToast(`Ajustement IA ${newState ? 'activé' : 'désactivé'} pour cet exercice`, 'info');
+    // Tracker la modification (vérifier que ModificationTracker existe)
+    if (typeof ModificationTracker !== 'undefined' && ModificationTracker.track) {
+        ModificationTracker.track('ml_toggle', {
+            exercise_id: exerciseId,
+            new_state: !currentState
+        });
+    }
+    
+    showToast(`Ajustement IA ${!currentState ? 'activé' : 'désactivé'}`, 'info');
 }
 
 // === PHASE 2.2 : VISUALISATION TRANSPARENTE ML ===
@@ -3280,19 +3293,23 @@ async function updateSetRecommendations() {
         // Stocker les recommandations pour executeSet
         workoutState.currentRecommendation = recommendations;
 
-        // Mettre à jour le statut AI dans le feedback
-        const statusEl = document.getElementById('aiToggleStatus');
-        if (statusEl && currentExercise) {
+        // === NOUVELLE INTERFACE : Mise à jour de la ligne AI compacte ===
+        const aiStatusEl = document.getElementById('aiStatus');
+        const aiConfidenceEl = document.getElementById('aiConfidence');
+        
+        if (aiStatusEl && currentExercise) {
             const mlSettings = currentWorkoutSession.mlSettings?.[currentExercise.id];
             const isActive = mlSettings?.autoAdjust ?? currentUser.prefer_weight_changes_between_sets;
             const confidence = recommendations.confidence || 0;
             
             if (!isActive) {
-                statusEl.textContent = 'Désactivé • Mode manuel';
-            } else if (confidence === 0) {
-                statusEl.textContent = 'Actif • Données insuffisantes';
+                aiStatusEl.textContent = 'Inactif';
             } else {
-                statusEl.textContent = `Actif • Confiance ${Math.round(confidence * 100)}%`;
+                aiStatusEl.textContent = 'Actif';
+            }
+            
+            if (aiConfidenceEl) {
+                aiConfidenceEl.textContent = Math.round(confidence * 100);
             }
         }
 
@@ -3319,7 +3336,21 @@ async function updateSetRecommendations() {
         // Appliquer la configuration UI selon le type
         await configureUIForExerciseType(exerciseType, recommendations);
 
-        // PHASE 2.2 : Afficher l'explication ML
+        // === NOUVELLE INTERFACE : Mise à jour des détails AI ===
+        if (document.getElementById('aiWeightRec')) {
+            document.getElementById('aiWeightRec').textContent = `${recommendations.weight_recommendation || 0}kg`;
+        }
+        if (document.getElementById('aiRepsRec')) {
+            document.getElementById('aiRepsRec').textContent = recommendations.reps_recommendation || 10;
+        }
+        if (document.getElementById('aiStrategy')) {
+            document.getElementById('aiStrategy').textContent = recommendations.adaptation_strategy || 'Standard';
+        }
+        if (document.getElementById('aiReason')) {
+            document.getElementById('aiReason').textContent = recommendations.reasoning || 'Données insuffisantes';
+        }
+
+        // PHASE 2.2 : Afficher l'explication ML (conserver pour compatibilité)
         const mlExplanationContainer = document.getElementById('mlExplanationContainer');
         if (mlExplanationContainer && recommendations.reasoning && 
             recommendations.reasoning !== "Conditions normales" && 
@@ -3330,7 +3361,7 @@ async function updateSetRecommendations() {
             mlExplanationContainer.style.display = 'none';
         }
 
-        // PHASE 2.2 : Afficher toggle ML
+        // PHASE 2.2 : Afficher toggle ML (conserver pour compatibilité)
         const mlToggleContainer = document.getElementById('mlToggleContainer');
         if (mlToggleContainer) {
             mlToggleContainer.innerHTML = renderMLToggle(currentExercise.id);
@@ -3355,6 +3386,30 @@ async function updateSetRecommendations() {
             const container = document.getElementById(id);
             if (container) container.style.display = 'none';
         });
+        
+        // === NOUVELLE INTERFACE : Mettre à jour le statut en cas d'erreur ===
+        const aiStatusEl = document.getElementById('aiStatus');
+        if (aiStatusEl) {
+            aiStatusEl.textContent = 'Erreur';
+        }
+    }
+}
+
+function syncMLToggles() {
+    // Synchroniser le nouveau toggle avec l'ancien système
+    const mainToggle = document.getElementById('mlToggle');
+    const inlineToggle = document.getElementById('mlToggleInline'); // Si encore présent temporairement
+    
+    if (mainToggle && currentExercise) {
+        const mlSettings = currentWorkoutSession.mlSettings?.[currentExercise.id];
+        const isActive = mlSettings?.autoAdjust ?? currentUser.prefer_weight_changes_between_sets;
+        
+        mainToggle.checked = isActive;
+        
+        // Synchroniser avec l'ancien toggle si présent
+        if (inlineToggle) {
+            inlineToggle.checked = isActive;
+        }
     }
 }
 
@@ -6078,30 +6133,15 @@ function resetFeedbackSelection() {
 
 
 function toggleAIDetails() {
-    const details = document.getElementById('aiDetails');
-    const expandBtn = document.getElementById('aiExpandBtn');
+    const detailsPanel = document.getElementById('aiDetailsPanel');
+    const expandBtn = document.querySelector('.ai-expand-btn');
     
-    details.classList.toggle('expanded');
-    expandBtn.textContent = details.classList.contains('expanded') ? '▾' : 'ⓘ';
-    
-    // AJOUT : Mettre à jour le contenu quand on ouvre
-    if (details.classList.contains('expanded') && workoutState.currentRecommendation) {
-        const rec = workoutState.currentRecommendation;
-        
-        // Prochaine recommandation
-        document.getElementById('aiNextRec').textContent = 
-            rec.weight_recommendation ? 
-            `${rec.weight_recommendation}kg × ${rec.reps_recommendation} reps` : 
-            'En attente';
-            
-        // Raison
-        document.getElementById('aiReason').textContent = 
-            rec.reasoning || 'Analyse en cours';
-            
-        // Historique
-        const history = currentWorkoutSession.mlHistory?.[currentExercise?.id];
-        document.getElementById('aiHistory').textContent = 
-            history && history.length > 0 ? `${history.length} ajustements` : 'Aucun';
+    if (detailsPanel.style.display === 'none') {
+        detailsPanel.style.display = 'block';
+        expandBtn.classList.add('expanded');
+    } else {
+        detailsPanel.style.display = 'none';
+        expandBtn.classList.remove('expanded');
     }
 }
 

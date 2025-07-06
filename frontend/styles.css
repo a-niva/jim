@@ -4338,3 +4338,133 @@ input:checked + .toggle-slider:before {
     text-align: center;
     color: var(--text-muted);
 }
+
+/* ===== CONTAINER PRINCIPAL EXERCICE ===== */
+.exercise-content-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+/* ===== LIGNE AI COMPACTE ===== */
+.ai-status-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    margin-top: 1rem;
+    transition: all 0.3s ease;
+}
+
+.ai-toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+}
+
+.ai-status-text {
+    font-size: 0.9rem;
+    color: var(--text);
+}
+
+.ai-confidence {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.ai-expand-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0.25rem;
+    transition: all 0.2s ease;
+}
+
+.ai-expand-btn:hover {
+    color: var(--primary);
+}
+
+.ai-expand-btn svg {
+    transition: transform 0.3s ease;
+}
+
+.ai-expand-btn.expanded svg {
+    transform: rotate(180deg);
+}
+
+/* ===== PANNEAU DÉTAILS AI ===== */
+.ai-details-panel {
+    background: var(--bg-light);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-top: 0.5rem;
+    animation: slideDown 0.3s ease;
+}
+
+.ai-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+}
+
+.ai-detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.detail-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.detail-value {
+    font-size: 0.9rem;
+    color: var(--text);
+    font-weight: 600;
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ===== AJUSTEMENTS CARTE WORKOUT ===== */
+.workout-card {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+    margin-bottom: 0;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+    .ai-detail-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .ai-status-line {
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .ai-status-text,
+    .ai-confidence {
+        font-size: 0.8rem;
+    }
+}

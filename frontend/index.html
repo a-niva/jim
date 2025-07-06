@@ -352,152 +352,155 @@
                 </div>
             </div>
             
-            <!-- Exercice en cours -->                
-            <div class="current-exercise" id="currentExercise" style="display: none;">
-                <!-- Header minimaliste -->
-                <div class="exercise-header-modern">
-                    <div class="exercise-title-section">
-                        <h2 id="exerciseName">Nom de l'exercice</h2>
-                        <p class="exercise-instructions" id="exerciseInstructions"></p>
+<!-- Exercice en cours -->                
+<div class="current-exercise" id="currentExercise" style="display: none;">
+    <!-- Second container pour tout le contenu -->
+    <div class="exercise-content-container">
+        <!-- 1. Header exercice avec nom, description et bouton changer -->
+        <div class="exercise-header-modern">
+            <div class="exercise-title-section">
+                <h2 id="exerciseName">Nom de l'exercice</h2>
+                <p class="exercise-instructions" id="exerciseInstructions"></p>
+            </div>
+            <div class="exercise-actions">
+                <button class="btn-change-exercise" onclick="changeExercise()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 3v6h-6M3 21v-6h6M15 3a9 9 0 00-9 9M9 21a9 9 0 009-9"/>
+                    </svg>
+                    <span>Changer d'exercice</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- 2. Zone d'input poids/reps et validation -->
+        <div class="workout-card">
+            <!-- Progression des séries -->
+            <div class="series-dots">
+                <span class="dot active"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+            </div>
+            
+            <!-- Zone d'input moderne -->
+            <div class="input-section">
+                <!-- Poids -->
+                <div class="input-row">
+                    <span class="input-icon">💪</span>
+                    <button class="stepper-modern" onclick="adjustWeightDown()">−</button>
+                    <div class="value-display">
+                        <span id="setWeight" class="value">20</span>
+                        <span class="unit">kg</span>
                     </div>
-                    <div class="exercise-actions">
-                        <button class="btn-change-exercise" onclick="changeExercise()">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 3v6h-6M3 21v-6h6M15 3a9 9 0 00-9 9M9 21a9 9 0 009-9"/>
-                            </svg>
-                            <span>Changer d'exercice</span>
-                        </button>
-                    </div>
-                </div>
-                <!-- Carte principale unifiée -->
-                <div class="workout-card">
-                    <!-- Progression des séries -->
-                    <div class="series-dots">
-                        <span class="dot active"></span>
-                        <span class="dot"></span>
-                        <span class="dot"></span>
-                    </div>
-                    
-                    <!-- Zone d'input moderne avec IA intégrée -->
-                    <div class="input-section">
-                        <!-- Poids -->
-                        <div class="input-row">
-                            <span class="input-icon">💪</span>
-                            <button class="stepper-modern" onclick="adjustWeightDown()">−</button>
-                            <div class="value-display">
-                                <span id="setWeight" class="value">20</span>
-                                <span class="unit">kg</span>
-                            </div>
-                            <button class="stepper-modern" onclick="adjustWeightUp()">+</button>
-                        </div>
-                        
-                        <!-- Répétitions -->
-                        <div class="input-row">
-                            <span class="input-icon">🔢</span>
-                            <button class="stepper-modern" onclick="adjustReps(-1)">−</button>
-                            <div class="value-display">
-                                <span id="setReps" class="value">10</span>
-                                <span class="unit">reps</span>
-                            </div>
-                            <button class="stepper-modern" onclick="adjustReps(1)">+</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Action principale -->
-                    <button id="executeSetBtn" class="action-btn" onclick="executeSet()">
-                        ✅
-                    </button>
-                    
-<!-- Feedback après série -->
-<div id="setFeedback" class="set-feedback-modern" style="display: none;">
-    <!-- Toggle IA compact sur une ligne -->
-    <div class="ai-toggle-line">
-        <div class="ai-toggle-left">
-            <label class="toggle-switch">
-                <input type="checkbox" id="mlToggleInline" checked onchange="if(currentExercise) toggleMLAdjustment(currentExercise.id)">
-                <span class="toggle-slider"></span>
-            </label>
-            <span class="ai-status-text">
-                Ajustement IA : <span id="aiToggleStatus">Actif</span>
-            </span>
-        </div>
-        <button class="ai-info-btn" onclick="toggleAIDetails()" title="Plus d'infos">
-            <i class="fas fa-info-circle"></i>
-        </button>
-    </div>
-
-    <!-- Détails IA cachés par défaut (optionnel) -->
-    <div class="ai-details-collapse" id="aiDetails">
-        <div class="ai-detail-item">
-            <span class="ai-detail-label">Recommandation</span>
-            <span class="ai-detail-value" id="aiNextRec">-</span>
-        </div>
-        <div class="ai-detail-item">
-            <span class="ai-detail-label">Raison</span>
-            <span class="ai-detail-value" id="aiReason">-</span>
-        </div>
-    </div>
-
-    <!-- Section Fatigue -->
-    <div class="feedback-section-modern">
-        <div class="feedback-header">
-            <div class="feedback-emoji-icon">💧</div>
-            <h4 class="feedback-title">Fatigue ressentie</h4>
-        </div>
-        <div class="feedback-options-modern">
-            <button class="emoji-btn-modern" data-fatigue="1" onclick="selectFatigue(this, 1)">😎</button>
-            <button class="emoji-btn-modern" data-fatigue="2" onclick="selectFatigue(this, 2)">🙂</button>
-            <button class="emoji-btn-modern" data-fatigue="3" onclick="selectFatigue(this, 3)">😐</button>
-            <button class="emoji-btn-modern" data-fatigue="4" onclick="selectFatigue(this, 4)">😓</button>
-            <button class="emoji-btn-modern" data-fatigue="5" onclick="selectFatigue(this, 5)">🥵</button>
-        </div>
-    </div>
-
-    <!-- Section Effort -->
-    <div class="feedback-section-modern">
-        <div class="feedback-header">
-            <div class="feedback-emoji-icon">🎯</div>
-            <h4 class="feedback-title">Effort fourni</h4>
-        </div>
-        <div class="feedback-options-modern">
-            <button class="emoji-btn-modern" data-effort="1" onclick="selectEffort(this, 1)">💤</button>
-            <button class="emoji-btn-modern" data-effort="2" onclick="selectEffort(this, 2)">😌</button>
-            <button class="emoji-btn-modern" data-effort="3" onclick="selectEffort(this, 3)">💪</button>
-            <button class="emoji-btn-modern" data-effort="4" onclick="selectEffort(this, 4)">🔥</button>
-            <button class="emoji-btn-modern" data-effort="5" onclick="selectEffort(this, 5)">🌋</button>
-        </div>
-    </div>
-</div>
-                
-                <!-- Historique minimaliste -->
-                <div class="history-minimal" id="setsHistory"></div>
-                
-                <!-- Liste des exercices programmés (visible seulement en mode programme) -->
-                <div class="program-exercises-container" id="programExercisesContainer" style="display: none;">
-                    <!-- Tout le contenu sera généré dynamiquement par JavaScript -->
+                    <button class="stepper-modern" onclick="adjustWeightUp()">+</button>
                 </div>
                 
-                <!-- Période de repos -->
-                <div class="rest-period" id="restPeriod" style="display: none;">
+                <!-- Répétitions -->
+                <div class="input-row">
+                    <span class="input-icon">🔢</span>
+                    <button class="stepper-modern" onclick="adjustReps(-1)">−</button>
+                    <div class="value-display">
+                        <span id="setReps" class="value">10</span>
+                        <span class="unit">reps</span>
+                    </div>
+                    <button class="stepper-modern" onclick="adjustReps(1)">+</button>
+                </div>
+                
+                <!-- Bouton de validation -->
+                <button id="executeSetBtn" class="action-btn" onclick="executeSet()">
+                    <span class="go-emoji">▶️</span>
+                </button>
+            </div>
+            
+            <!-- Feedback après série (remplace la zone d'input après validation) -->
+            <div id="setFeedback" class="set-feedback-modern" style="display: none;">
+                <!-- Section Fatigue -->
+                <div class="feedback-section-modern">
+                    <div class="feedback-header">
+                        <div class="feedback-emoji-icon">💧</div>
+                        <h4 class="feedback-title">Fatigue ressentie</h4>
+                    </div>
+                    <div class="feedback-options-modern">
+                        <button class="emoji-btn-modern" data-fatigue="1" onclick="selectFatigue(this, 1)">😎</button>
+                        <button class="emoji-btn-modern" data-fatigue="2" onclick="selectFatigue(this, 2)">🙂</button>
+                        <button class="emoji-btn-modern" data-fatigue="3" onclick="selectFatigue(this, 3)">😐</button>
+                        <button class="emoji-btn-modern" data-fatigue="4" onclick="selectFatigue(this, 4)">😓</button>
+                        <button class="emoji-btn-modern" data-fatigue="5" onclick="selectFatigue(this, 5)">🥵</button>
+                    </div>
+                </div>
+
+                <!-- Section Effort -->
+                <div class="feedback-section-modern">
+                    <div class="feedback-header">
+                        <div class="feedback-emoji-icon">🔥</div>
+                        <h4 class="feedback-title">Effort fourni</h4>
+                    </div>
+                    <div class="feedback-options-modern">
+                        <button class="emoji-btn-modern" data-effort="1" onclick="selectEffort(this, 1)">😴</button>
+                        <button class="emoji-btn-modern" data-effort="2" onclick="selectEffort(this, 2)">😌</button>
+                        <button class="emoji-btn-modern" data-effort="3" onclick="selectEffort(this, 3)">😤</button>
+                        <button class="emoji-btn-modern" data-effort="4" onclick="selectEffort(this, 4)">😣</button>
+                        <button class="emoji-btn-modern" data-effort="5" onclick="selectEffort(this, 5)">🤯</button>
+                    </div>
+                </div>
+
+                <!-- Période de repos (remplace tout après validation fatigue+effort) -->
+                <div id="restPeriod" class="rest-period" style="display: none;">
                     <div class="rest-content">
-                        <h3>Temps de repos</h3>
+                        <h3>🧘 Temps de repos</h3>
                         <div class="rest-timer" id="restTimer">01:30</div>
-                        <div class="rest-progress">
-                            <div class="rest-progress-bar">
-                                <div class="rest-progress-fill" id="restProgressFill"></div>
-                            </div>
-                        </div>
-                        <div class="rest-info">
-                            <p>Prochaine série : <span id="nextSetInfo">Série 2 - Même exercice</span></p>
-                        </div>
                         <div class="rest-actions">
-                            <button class="btn btn-secondary" onclick="skipRest()">⏭️ Ignorer le repos</button>
-                            <button class="btn btn-warning" onclick="addRestTime(30)">⏱️ +30s</button>
+                            <button class="btn btn-secondary btn-sm" onclick="addRestTime(30)">+30s</button>
+                            <button class="btn btn-primary btn-sm" onclick="endRest()">Passer</button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+        
+        <!-- 3. Toggle AI compact sur une ligne -->
+        <div class="ai-status-line">
+            <div class="ai-toggle-container">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="mlToggle" checked onchange="if(currentExercise) toggleMLAdjustment(currentExercise.id)">
+                    <span class="toggle-slider"></span>
+                </label>
+                <span class="ai-status-text">
+                    IA : <span id="aiStatus">Actif</span>
+                </span>
+                <span class="ai-confidence">
+                    Confiance : <span id="aiConfidence">85</span>%
+                </span>
+            </div>
+            <button class="ai-expand-btn" onclick="toggleAIDetails()" title="Détails IA">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 9l-7 7-7-7"/>
+                </svg>
+            </button>
+        </div>
+        
+        <!-- Détails AI (caché par défaut) -->
+        <div class="ai-details-panel" id="aiDetailsPanel" style="display: none;">
+            <div class="ai-detail-grid">
+                <div class="ai-detail-item">
+                    <span class="detail-label">Poids recommandé</span>
+                    <span class="detail-value" id="aiWeightRec">22.5kg</span>
+                </div>
+                <div class="ai-detail-item">
+                    <span class="detail-label">Reps recommandées</span>
+                    <span class="detail-value" id="aiRepsRec">10</span>
+                </div>
+                <div class="ai-detail-item">
+                    <span class="detail-label">Stratégie</span>
+                    <span class="detail-value" id="aiStrategy">Progressive</span>
+                </div>
+                <div class="ai-detail-item">
+                    <span class="detail-label">Raison</span>
+                    <span class="detail-value" id="aiReason">Basé sur vos 3 dernières séries</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
         <!-- STATISTIQUES -->
 
