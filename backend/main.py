@@ -1211,6 +1211,8 @@ def complete_workout(workout_id: int, data: Dict[str, int] = {}, db: Session = D
     
     workout.status = "completed"
     workout.completed_at = datetime.now(timezone.utc)
+    db.commit()  # Forcer le commit immédiatement
+    db.refresh(workout)  # Rafraîchir l'objet
 
     # CORRECTION : Gestion robuste des erreurs lors de la mise à jour des stats
     try:

@@ -1529,16 +1529,12 @@ async function resumeWorkout(workoutId) {
             throw new Error('ID de séance invalide');
         }
         
-        // Récupérer les données de la séance
-        const response = await fetch(`/api/workouts/${workoutId}`, {
-            headers: { 'Accept': 'application/json' }
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Séance non trouvée (${response.status})`);
+        // Récupérer les données de la séance via apiGet qui gère automatiquement les erreurs
+        const workout = await apiGet(`/api/workouts/${workoutId}`);
+
+        if (!workout || !workout.id) {
+            throw new Error('Données de séance invalides');
         }
-        
-        const workout = await response.json();
         currentWorkout = workout;
         
         // Configurer l'interface selon le type
@@ -1570,32 +1566,26 @@ async function resumeWorkout(workoutId) {
 
 async function abandonActiveWorkout(workoutId) {
     if (confirm('Êtes-vous sûr de vouloir abandonner cette séance ?')) {
+        // Nettoyer IMMÉDIATEMENT l'état local et la bannière
+        localStorage.removeItem('fitness_workout_state');
+        clearWorkoutState();
+        const banner = document.querySelector('.workout-resume-banner');
+        if (banner) banner.remove();
+        
         try {
-            // Terminer la séance côté serveur avec la bonne API
+            // Tenter l'API en arrière-plan
             await apiPut(`/api/workouts/${workoutId}/complete`, {
                 total_duration: 0,
                 total_rest_time: 0
             });
-            
-            // Nettoyer l'état local
-            localStorage.removeItem('fitness_workout_state');
-            clearWorkoutState();
-            
-            // Retirer la bannière
-            const banner = document.querySelector('.workout-resume-banner');
-            if (banner) banner.remove();
-            
             showToast('Séance abandonnée', 'info');
-            
         } catch (error) {
-            console.error('Erreur abandon séance:', error);
-            // En cas d'erreur API, au moins nettoyer localement
-            localStorage.removeItem('fitness_workout_state');
-            clearWorkoutState();
-            const banner = document.querySelector('.workout-resume-banner');
-            if (banner) banner.remove();
+            console.error('Erreur API abandon:', error);
             showToast('Séance abandonnée (hors ligne)', 'info');
         }
+        
+        // FORCER le rechargement du dashboard pour être sûr
+        loadDashboard();
     }
 }
 
@@ -2350,7 +2340,26 @@ function showSessionPreview(metadata) {
     `;
     
     // Afficher le preview dans un toast ou modal temporaire
-    showToast(previewHTML, 'info', 5000);
+    // Créer un conteneur temporaire pour le preview
+    const previewContainer = document.createElement('div');
+    previewContainer.innerHTML = previewHTML;
+    previewContainer.style.cssText = `
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 1000;
+        max-width: 400px;
+        animation: slideIn 0.3s ease;
+    `;
+
+    // Ajouter au body
+    document.body.appendChild(previewContainer);
+
+    // Retirer après 5 secondes
+    setTimeout(() => {
+        previewContainer.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => previewContainer.remove(), 300);
+    }, 5000);
 }
 async function regenerateSession() {
     if (!currentWorkoutSession.program) return;
@@ -5984,7 +5993,7 @@ function showAutoValidation() {
         if (indicator.parentNode) {
             indicator.remove();
         }
-    }, 2000);
+    }, 1000);
 }
 
 // ===== VALIDATION DU FEEDBACK =====
@@ -6417,6 +6426,9 @@ function pauseWorkout() {
 async function abandonWorkout() {
     if (!confirm('Êtes-vous sûr de vouloir abandonner cette séance ?')) return;
     
+    // Sauvegarder l'ID avant de nettoyer
+    const workoutId = currentWorkout?.id;
+    
     // TOUJOURS nettoyer l'état local d'abord
     clearWorkoutState();
     localStorage.removeItem('fitness_workout_state');
@@ -6427,8 +6439,8 @@ async function abandonWorkout() {
     if (banner) banner.remove();
     
     // Tenter l'API en arrière-plan sans bloquer
-    if (currentWorkout?.id) {
-        apiPut(`/api/workouts/${currentWorkout.id}/complete`, {
+    if (workoutId) {
+        apiPut(`/api/workouts/${workoutId}/complete`, {
             total_duration: 0,
             total_rest_time: 0
         }).catch(error => {
@@ -6438,6 +6450,9 @@ async function abandonWorkout() {
     
     showView('dashboard');
     showToast('Séance abandonnée', 'info');
+    
+    // FORCER le rechargement du dashboard après un court délai
+    setTimeout(() => loadDashboard(), 100);
 }
 
 function showProgramExerciseList() {
