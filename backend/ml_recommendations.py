@@ -1111,6 +1111,21 @@ class FitnessRecommendationEngine:
         if exercise.weight_type == "hybrid" and not exercise.base_weights_kg:
             return None  # Seront gérés comme bodyweight pur
         
+        # Si on a des données base_weights_kg, les utiliser !
+        if exercise.base_weights_kg:
+            user_level = user.experience_level or "beginner"
+            base_data = exercise.base_weights_kg.get(user_level)
+            
+            if base_data:
+                base_weight = base_data.get('base', 0)
+                per_kg_factor = base_data.get('per_kg_bodyweight', 0)
+                
+                estimated_weight = base_weight + (per_kg_factor * user.weight)
+                
+                logger.info(f"Poids calculé depuis base_weights_kg: {base_weight} + {per_kg_factor} * {user.weight} = {estimated_weight}")
+                
+                return max(0.0, estimated_weight)  # Jamais négatif
+            
         # Si pas de données de poids de base (anciens exercices)
         if not exercise.base_weights_kg:
             # Garder l'ancien système comme fallback
