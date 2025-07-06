@@ -4387,3 +4387,13 @@ input:checked + .toggle-slider:before {
         font-size: 0.8rem;
     }
 }
+
+.value-changed {
+    animation: pulseGreen 1s ease;
+}
+
+@keyframes pulseGreen {
+    0% { background-color: transparent; }
+    50% { background-color: rgba(34, 197, 94, 0.2); }
+    100% { background-color: transparent; }
+}

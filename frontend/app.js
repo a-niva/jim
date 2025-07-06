@@ -3527,12 +3527,20 @@ async function updateSetRecommendations() {
         // GARDER : MISE À JOUR des détails IA pour debug
         updateAIDetailsPanel(recommendations);
 
-        // === NOUVELLE INTERFACE : Mise à jour des détails AI ===
+        // === Mise à jour des détails AI ===
         if (document.getElementById('aiWeightRec')) {
             document.getElementById('aiWeightRec').textContent = `${recommendations.weight_recommendation || 0}kg`;
         }
+        // AJOUTER les lignes manquantes :
         if (document.getElementById('aiRepsRec')) {
             document.getElementById('aiRepsRec').textContent = recommendations.reps_recommendation || 10;
+        }
+        if (document.getElementById('aiStrategy')) {
+            const strategy = recommendations.adaptation_strategy || 'Standard';
+            document.getElementById('aiStrategy').textContent = strategy === 'fixed_weight' ? 'Poids fixe' : 'Progressif';
+        }
+        if (document.getElementById('aiReason')) {
+            document.getElementById('aiReason').textContent = recommendations.reasoning || 'Données insuffisantes';
         }
         
         // GARDER : Traduire la stratégie
@@ -4057,6 +4065,17 @@ async function configureWeighted(elements, recommendations) {
     
     // Mettre à jour les valeurs de poids
     if (elements.setWeight) elements.setWeight.textContent = closestWeight || weightRec;
+    if (elements.setWeight) {
+        const oldValue = parseFloat(elements.setWeight.textContent);
+        const newValue = closestWeight || weightRec;
+        
+        if (Math.abs(oldValue - newValue) > 0.1) {
+            elements.setWeight.classList.add('value-changed');
+            setTimeout(() => elements.setWeight.classList.remove('value-changed'), 1000);
+        }
+        
+        elements.setWeight.textContent = newValue;
+    }
     if (elements.weightHint) {
         elements.weightHint.textContent = `IA: ${weightRec}kg`;
         // Indicateur visuel si le poids disponible est différent
