@@ -512,30 +512,20 @@ async function registerServiceWorker() {
     }
 }
 
-
-const savedUserId = localStorage.getItem('fitness_user_id');
-
 // ===== NAVIGATION =====
 function showView(viewName) {
     console.log(`🔍 showView(${viewName}) - currentUser:`, currentUser ? currentUser.name : 'UNDEFINED');
-    
-    apiGet(`/api/users/${savedUserId}`)
-        .then(user => {
-            currentUser = user;
-            window.currentUser = user; // AJOUTER CETTE LIGNE
-            console.log('Utilisateur rechargé:', currentUser.name);
-            showView(viewName);
-        })
 
     // MODIFIER : Gérer le cas où currentUser est perdu
     if (!currentUser && ['dashboard', 'stats', 'profile'].includes(viewName)) {
-        const savedUserId = localStorage.getItem('fitness_user_id');
+        const savedUserId = localStorage.getItem('fitness_user_id');  // ← AJOUTER CETTE LIGNE
         if (savedUserId) {
             // Recharger l'utilisateur de façon asynchrone
             console.log('currentUser perdu, rechargement depuis localStorage...');
             apiGet(`/api/users/${savedUserId}`)
                 .then(user => {
                     currentUser = user;
+                    window.currentUser = user;
                     console.log('Utilisateur rechargé:', currentUser.name);
                     // Relancer showView maintenant que currentUser est disponible
                     showView(viewName);
@@ -580,7 +570,7 @@ function showView(viewName) {
             loadStats();
             break;
         case 'profile':
-            loadProfile(); // VOTRE FONCTION RESTE INTACTE
+            loadProfile();
             break;
     }
 }
@@ -5585,7 +5575,7 @@ async function loadAvailableExercises() {
             bras: [],
             abdominaux: []
         };
-        // Import des couleurs depuis le système centralisé
+        // Import des couleurs depuis le système centralisé  
         const chartColors = window.MuscleColors.getChartColors();
         backgroundColor: Object.values(chartColors)
         
