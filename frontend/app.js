@@ -4305,7 +4305,7 @@ async function finishExercise() {
                         Il reste ${remainingExercises.length} exercice(s) à faire
                     </p>
                     <div style="display: flex; gap: 1rem; justify-content: center;">
-                        <button class="btn btn-primary" onclick="selectProgramExercise(${nextExercise.exercise_id}); closeModal();">
+                        <button class="btn btn-primary" onclick="document.getElementById('programExercisesContainer').style.display = 'none'; selectProgramExercise(${nextExercise.exercise_id}); closeModal();">
                             Continuer
                         </button>
                         <button class="btn btn-secondary" onclick="closeModal(); showProgramExerciseList();">
