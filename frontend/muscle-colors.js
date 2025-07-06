@@ -77,7 +77,7 @@ const MUSCLE_COLORS = {
 };
 
 // Mapping pour la compatibilité avec l'ancien système
-export const MUSCLE_GROUP_MAPPING = {
+const MUSCLE_GROUP_MAPPING = {
     // Groupes principaux
     'dos': 'dos',
     'pectoraux': 'pectoraux',
