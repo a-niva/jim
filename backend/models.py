@@ -257,10 +257,12 @@ class UserAdaptationCoefficients(Base):
     exercise_id = Column(Integer, ForeignKey("exercises.id"), nullable=False)
     
     # Coefficients personnalisés
-    recovery_rate = Column(Float, default=1.0)  # Vitesse de récupération entre séries
-    fatigue_sensitivity = Column(Float, default=1.0)  # Sensibilité à la fatigue
-    volume_response = Column(Float, default=1.0)  # Réponse au volume d'entraînement
-    typical_progression_increment = Column(Float, default=2.5)  # Incrément de progression habituel
+    fatigue_sensitivity = Column(Float, default=1.0, nullable=False)
+    effort_responsiveness = Column(Float, default=1.0, nullable=False)
+    recovery_rate = Column(Float, default=1.0, nullable=False)
+    volume_adaptability = Column(Float, default=1.0, nullable=False)
+    strength_endurance_ratio = Column(Float, default=0.5, nullable=False)
+    optimal_volume_multiplier = Column(Float, default=1.0, nullable=False)
     
     last_updated = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     

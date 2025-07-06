@@ -190,7 +190,7 @@ class FitnessRecommendationEngine:
             
         except Exception as e:
             logger.error(f"Erreur recommandations pour user {user.id}, exercise {exercise.id}: {e}")
-            logger.error(f"Traceback complet:\n{traceback.format_exc()}")
+            logger.error(f"Traceback:\n{traceback.format_exc()}")
             # Fallback sur les valeurs par défaut
             return {
                 "weight_recommendation": None,
@@ -1004,7 +1004,24 @@ class FitnessRecommendationEngine:
         
         # Ajouter la relation user pour accéder à prefer_weight_changes_between_sets
         coefficients.user = user
-        
+        # PROTECTION CRITIQUE - S'assurer que tous les attributs sont définis
+        if not coefficients.fatigue_sensitivity or coefficients.fatigue_sensitivity is None:
+            coefficients.fatigue_sensitivity = 1.0
+            logger.warning(f"fatigue_sensitivity était None pour user {user.id}, exercise {exercise.id}")
+            
+        if not coefficients.effort_responsiveness or coefficients.effort_responsiveness is None:
+            coefficients.effort_responsiveness = 1.0
+            logger.warning(f"effort_responsiveness était None pour user {user.id}, exercise {exercise.id}")
+            
+        if not coefficients.recovery_rate or coefficients.recovery_rate is None:
+            coefficients.recovery_rate = 1.0
+            logger.warning(f"recovery_rate était None pour user {user.id}, exercise {exercise.id}")
+            
+        if not coefficients.volume_adaptability or coefficients.volume_adaptability is None:
+            coefficients.volume_adaptability = 1.0
+            logger.warning(f"volume_adaptability était None pour user {user.id}, exercise {exercise.id}")
+
+        self.db.commit()
         return coefficients
 
     def _update_user_coefficients(
