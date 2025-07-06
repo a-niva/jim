@@ -996,7 +996,7 @@ class FitnessRecommendationEngine:
                 exercise_id=exercise.id,
                 recovery_rate=1.0,
                 fatigue_sensitivity=1.0,
-                volume_response=1.0,
+                volume_adaptability=1.0,
                 typical_progression_increment=2.5
             )
             self.db.add(coefficients)

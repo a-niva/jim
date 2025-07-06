@@ -3529,7 +3529,19 @@ async function updateSetRecommendations() {
 
         // === Mise à jour des détails AI ===
         if (document.getElementById('aiWeightRec')) {
-            document.getElementById('aiWeightRec').textContent = `${recommendations.weight_recommendation || 0}kg`;
+            // NOUVEAU: Ne pas afficher 0 directement
+            let displayWeight = recommendations.weight_recommendation;
+            if (displayWeight === 0 || displayWeight === null || displayWeight === undefined) {
+                if (currentExercise?.weight_type === 'bodyweight') {
+                    document.getElementById('aiWeightRec').textContent = 'Poids du corps';
+                } else {
+                    // Utiliser une valeur fallback sensée
+                    const fallback = currentExercise?.base_weights_kg?.[currentUser?.experience_level || 'intermediate']?.base || 20;
+                    document.getElementById('aiWeightRec').textContent = `~${fallback}kg`;
+                }
+            } else {
+                document.getElementById('aiWeightRec').textContent = `${displayWeight}kg`;
+            }
         }
         // AJOUTER les lignes manquantes :
         if (document.getElementById('aiRepsRec')) {
@@ -3635,7 +3647,21 @@ function updateAIDetailsPanel(recommendations) {
     const aiStrategyEl = document.getElementById('aiStrategy');
     const aiReasonEl = document.getElementById('aiReason');
     
-    if (aiWeightEl) aiWeightEl.textContent = `${recommendations.weight_recommendation || '--'}kg`;
+    // Gestion intelligente du poids
+    if (aiWeightEl) {
+        let weightText = '--kg';
+        if (currentExercise?.weight_type === 'bodyweight') {
+            weightText = 'Poids du corps';
+        } else if (recommendations.weight_recommendation && recommendations.weight_recommendation > 0) {
+            weightText = `${recommendations.weight_recommendation}kg`;
+        } else if (recommendations.weight_recommendation === 0) {
+            // Cas spécifique du 0 - utiliser une valeur par défaut sensée
+            const fallbackWeight = currentExercise?.base_weights_kg?.[currentUser?.experience_level || 'intermediate']?.base || 20;
+            weightText = `~${fallbackWeight}kg (défaut)`;
+        }
+        aiWeightEl.textContent = weightText;
+    }
+    
     if (aiRepsEl) aiRepsEl.textContent = recommendations.reps_recommendation || '--';
     if (aiStrategyEl) aiStrategyEl.textContent = recommendations.adaptation_strategy === 'fixed_weight' ? 'Poids fixe' : 'Progressif';
     if (aiReasonEl) aiReasonEl.textContent = recommendations.reasoning || 'Recommandation standard';

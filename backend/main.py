@@ -1188,8 +1188,28 @@ def get_set_recommendations(
         available_weights=available_weights,
         workout_id=workout_id
     )
-    
-    # AJUSTEMENTS DYNAMIQUES basés sur l'historique de cette séance
+        
+    if base_recommendations.get('weight_recommendation') is None or base_recommendations.get('weight_recommendation') == 0:
+        logger.warning(f"Recommandation poids invalide pour exercise {exercise.id}, calcul fallback")
+        
+        if exercise.weight_type == "bodyweight":
+            base_recommendations['weight_recommendation'] = None  # Normal pour bodyweight
+        elif exercise.weight_type == "hybrid" and exercise.base_weights_kg:
+            # Calcul spécifique hybrid
+            level = user.experience_level
+            if level in exercise.base_weights_kg:
+                base = exercise.base_weights_kg[level].get('base', 30)
+                per_kg = exercise.base_weights_kg[level].get('per_kg_bodyweight', 0.5)
+                base_recommendations['weight_recommendation'] = base + (per_kg * user.weight)
+            else:
+                base_recommendations['weight_recommendation'] = 40.0  # Fallback général
+        else:
+            # Exercices externes standards
+            from backend.ml_engine import FitnessMLEngine
+            ml_fallback = FitnessMLEngine(db)
+            base_recommendations['weight_recommendation'] = ml_fallback.calculate_starting_weight(user, exercise)
+
+    # AJUSTEMENTS basés sur l'historique de la séance en cours
     if session_history and len(session_history) > 0:
         last_set = session_history[-1]
         last_effort = last_set.get('effort_level', 3)
