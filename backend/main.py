@@ -332,8 +332,7 @@ def get_progression_analysis(
         "coefficients": {
             "recovery_rate": coefficients.recovery_rate if coefficients else 1.0,
             "fatigue_sensitivity": coefficients.fatigue_sensitivity if coefficients else 1.0,
-            "volume_response": coefficients.volume_response if coefficients else 1.0,
-            "typical_progression_increment": coefficients.typical_progression_increment if coefficients else 2.5
+            "volume_response": coefficients.volume_response if coefficients else 1.0
         },
         "performance_state": {
             "base_potential": perf_state.base_potential if perf_state else 0,
@@ -1200,7 +1199,7 @@ def get_set_recommendations(
             if level in exercise.base_weights_kg:
                 base = exercise.base_weights_kg[level].get('base', 30)
                 per_kg = exercise.base_weights_kg[level].get('per_kg_bodyweight', 0.5)
-                base_recommendations['weight_recommendation'] = base + (per_kg * user.weight)
+                base_recommendations['weight_recommendation'] = float(base + (per_kg * user.weight))
             else:
                 base_recommendations['weight_recommendation'] = 40.0  # Fallback général
         else:
