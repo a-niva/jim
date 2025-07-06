@@ -825,7 +825,10 @@ class FitnessRecommendationEngine:
         
         baseline_weight = performance_state['baseline_weight']
         baseline_reps = performance_state['baseline_reps']
-        
+        if baseline_weight is None or baseline_weight <= 0:
+            baseline_weight = 20.0
+        if baseline_reps is None or baseline_reps <= 0:
+            baseline_reps = 8
         # Le poids reste constant sur toutes les séries
         if exercise.weight_type == "bodyweight":
             recommended_weight = None
