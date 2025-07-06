@@ -54,6 +54,39 @@ function transitionTo(newState) {
 }
 
 function updateUIForState(state) {
+    // CORRECTION: Arrêter tous les timers selon l'état
+    switch(state) {
+        case WorkoutStates.RESTING:
+            // En repos: arrêter le timer de série mais garder le timer global
+            if (setTimer) {
+                clearInterval(setTimer);
+                setTimer = null;
+            }
+            break;
+            
+        case WorkoutStates.READY:
+            // Prêt: arrêter le repos mais garder le timer global
+            if (restTimer) {
+                clearInterval(restTimer);
+                restTimer = null;
+            }
+            // CORRECTION: Réinitialiser les sélections de feedback
+            resetFeedbackSelection();
+            break;
+            
+        case WorkoutStates.IDLE:
+            // Idle: arrêter TOUS les timers
+            if (setTimer) {
+                clearInterval(setTimer);
+                setTimer = null;
+            }
+            if (restTimer) {
+                clearInterval(restTimer);
+                restTimer = null;
+            }
+            break;
+    }
+    
     // Cacher tout par défaut
     document.getElementById('executeSetBtn').style.display = 'none';
     document.getElementById('setFeedback').style.display = 'none';
@@ -68,30 +101,23 @@ function updateUIForState(state) {
     switch(state) {
         case WorkoutStates.READY:
             const executeBtn = document.getElementById('executeSetBtn');
-            // Toujours afficher executeSetBtn, même pour isométriques
             if (executeBtn) {
                 executeBtn.style.display = 'block';
             }
-            document.getElementById('setFeedback').style.display = 'none';
-            document.getElementById('restPeriod').style.display = 'none';
-            if (inputSection) inputSection.style.display = 'block';
-            break;
-            
-        case WorkoutStates.EXECUTING:
-            document.getElementById('executeSetBtn').style.display = 'block';
             if (inputSection) inputSection.style.display = 'block';
             break;
             
         case WorkoutStates.FEEDBACK:
             document.getElementById('setFeedback').style.display = 'block';
-            document.getElementById('executeSetBtn').style.display = 'none';
-            if (inputSection) inputSection.style.display = 'block';
             break;
             
         case WorkoutStates.RESTING:
+            document.getElementById('setFeedback').style.display = 'block';
             document.getElementById('restPeriod').style.display = 'flex';
-            document.getElementById('setFeedback').style.display = 'none';
-            if (inputSection) inputSection.style.display = 'none';
+            break;
+            
+        case WorkoutStates.COMPLETED:
+            // Géré par les fonctions spécifiques
             break;
     }
 }
@@ -3881,75 +3907,6 @@ function updateRestTimer(seconds) {
     const sign = seconds < 0 ? '-' : '';
     document.getElementById('restTimer').textContent = 
         `${sign}${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-}
-
-function updateUIForState(state) {
-    // CORRECTION: Arrêter tous les timers selon l'état
-    switch(state) {
-        case WorkoutStates.RESTING:
-            // En repos: arrêter le timer de série mais garder le timer global
-            if (setTimer) {
-                clearInterval(setTimer);
-                setTimer = null;
-            }
-            break;
-            
-        case WorkoutStates.READY:
-            // Prêt: arrêter le repos mais garder le timer global
-            if (restTimer) {
-                clearInterval(restTimer);
-                restTimer = null;
-            }
-            // CORRECTION: Réinitialiser les sélections de feedback
-            resetFeedbackSelection();
-            break;
-            
-        case WorkoutStates.IDLE:
-            // Idle: arrêter TOUS les timers
-            if (setTimer) {
-                clearInterval(setTimer);
-                setTimer = null;
-            }
-            if (restTimer) {
-                clearInterval(restTimer);
-                restTimer = null;
-            }
-            break;
-    }
-    
-    // Cacher tout par défaut
-    document.getElementById('executeSetBtn').style.display = 'none';
-    document.getElementById('setFeedback').style.display = 'none';
-    document.getElementById('restPeriod').style.display = 'none';
-    
-    // Récupérer le panneau des inputs
-    const inputSection = document.querySelector('.input-section');
-    if (inputSection) {
-        inputSection.style.display = 'none';
-    }
-    
-    switch(state) {
-        case WorkoutStates.READY:
-            const executeBtn = document.getElementById('executeSetBtn');
-            if (executeBtn) {
-                executeBtn.style.display = 'block';
-            }
-            if (inputSection) inputSection.style.display = 'block';
-            break;
-            
-        case WorkoutStates.FEEDBACK:
-            document.getElementById('setFeedback').style.display = 'block';
-            break;
-            
-        case WorkoutStates.RESTING:
-            document.getElementById('setFeedback').style.display = 'block';
-            document.getElementById('restPeriod').style.display = 'flex';
-            break;
-            
-        case WorkoutStates.COMPLETED:
-            // Géré par les fonctions spécifiques
-            break;
-    }
 }
 
 function skipRest() {
