@@ -1,7 +1,7 @@
 // ===== FITNESS COACH - APPLICATION PRINCIPALE =====
 
 // Import du système de couleurs musculaires
-import { getMuscleColor, getChartColors, getMuscleClass, applyMuscleStyle } from './muscle-colors.js';
+import { getChartColors, getMuscleClass, applyMuscleStyle } from './muscle-colors.js';
 import { savedUserId } from './app.js'
 
 // ===== ÉTAT GLOBAL =====

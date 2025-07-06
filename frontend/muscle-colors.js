@@ -111,7 +111,7 @@ export const MUSCLE_GROUP_MAPPING = {
  * @param {boolean} returnRgba - Retourner au format rgba (pour les backgrounds)
  * @returns {string} Couleur hex ou rgba
  */
-export function getMuscleColor(muscleOrGroup, returnRgba = false) {
+function getMuscleColor(muscleOrGroup, returnRgba = false) {
     const normalized = muscleOrGroup.toLowerCase().replace(/[éè]/g, 'e');
     
     // Vérifier si c'est un groupe principal
@@ -143,7 +143,7 @@ export function getMuscleColor(muscleOrGroup, returnRgba = false) {
  * @param {string} muscle - Nom du muscle
  * @returns {string} Nom du groupe
  */
-export function getMuscleGroup(muscle) {
+function getMuscleGroup(muscle) {
     const normalized = muscle.toLowerCase().replace(/[éè]/g, 'e');
     return MUSCLE_GROUP_MAPPING[normalized] || muscle;
 }
@@ -153,7 +153,7 @@ export function getMuscleGroup(muscle) {
  * @param {boolean} includeSpecific - Inclure les muscles spécifiques
  * @returns {Object} Objet de couleurs
  */
-export function getChartColors(includeSpecific = false) {
+function getChartColors(includeSpecific = false) {
     const colors = {};
     
     // Ajouter les groupes principaux
@@ -178,7 +178,7 @@ export function getChartColors(includeSpecific = false) {
  * @param {number} opacity - Opacité (0-1)
  * @returns {string} Style rgba
  */
-export function getMuscleBackground(muscleOrGroup, opacity = 0.15) {
+function getMuscleBackground(muscleOrGroup, opacity = 0.15) {
     const rgba = getMuscleColor(muscleOrGroup, true);
     return `rgba(${rgba}, ${opacity})`;
 }
@@ -189,7 +189,7 @@ export function getMuscleBackground(muscleOrGroup, opacity = 0.15) {
  * @param {string} type - Type de classe ('color', 'bg', 'border', 'card')
  * @returns {string} Nom de la classe CSS
  */
-export function getMuscleClass(muscleOrGroup, type = 'color') {
+function getMuscleClass(muscleOrGroup, type = 'color') {
     const normalized = muscleOrGroup.toLowerCase()
         .replace(/[éè]/g, 'e')
         .replace(/\s+/g, '-');
@@ -218,7 +218,7 @@ export function getMuscleClass(muscleOrGroup, type = 'color') {
  * Configuration pour les graphiques de volume musculaire
  * @returns {Object} Configuration Chart.js
  */
-export function getVolumeChartConfig() {
+function getVolumeChartConfig() {
     const colors = getChartColors();
     
     return {
@@ -235,7 +235,7 @@ export function getVolumeChartConfig() {
  * @param {HTMLElement} element - Élément DOM
  * @param {Object} options - Options de style
  */
-export function applyMuscleStyle(muscle, element, options = {}) {
+function applyMuscleStyle(muscle, element, options = {}) {
     const {
         colorType = 'border-left',
         additionalClasses = [],
