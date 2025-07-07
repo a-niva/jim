@@ -2422,11 +2422,19 @@ def get_workout_intensity_recovery(user_id: int, sessions: int = 50, db: Session
 def get_ml_insights_overview(user_id: int, days: int = 90, db: Session = Depends(get_db)):
     """Dashboard principal ML Analytics"""
     cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
+
+    def normalize_datetime_for_comparison(dt):
+        """Normalise les datetime pour comparaison en ajoutant UTC si nécessaire"""
+        if dt and dt.tzinfo is None:
+            return dt.replace(tzinfo=timezone.utc)
+        return dt
     
+    cutoff_date_naive = cutoff_date.replace(tzinfo=None) if cutoff_date.tzinfo else cutoff_date
+
     # Récupérer toutes les séries avec données potentielles
     all_sets = db.query(WorkoutSet).join(Workout).filter(
         Workout.user_id == user_id,
-        WorkoutSet.completed_at >= cutoff_date
+        WorkoutSet.completed_at >= cutoff_date_naive
     ).order_by(WorkoutSet.completed_at).all()
     
     if not all_sets:
@@ -2466,6 +2474,8 @@ def get_ml_insights_overview(user_id: int, days: int = 90, db: Session = Depends
         elif recent_confidence < older_confidence * 0.9:
             confidence_trend = "declining"
     
+    cutoff_7_days_naive = (datetime.now(timezone.utc) - timedelta(days=7)).replace(tzinfo=None)
+
     return {
         "overview": {
             "total_sets": len(all_sets),
@@ -2484,8 +2494,8 @@ def get_ml_insights_overview(user_id: int, days: int = 90, db: Session = Depends
             "confidence_trend": confidence_trend
         },
         "recent_activity": {
-            "last_7_days": len([s for s in all_sets if s.completed_at >= datetime.now(timezone.utc) - timedelta(days=7)]),
-            "ml_active_last_7": len([s for s in sets_with_ml if s.completed_at >= datetime.now(timezone.utc) - timedelta(days=7)])
+            "last_7_days": len([s for s in all_sets if s.completed_at >= cutoff_7_days_naive]),
+            "ml_active_last_7": len([s for s in sets_with_ml if s.completed_at >= cutoff_7_days_naive])
         }
     }
 
