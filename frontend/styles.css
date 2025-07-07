@@ -140,12 +140,14 @@ body {
 .view,
 .onboarding {
     display: none;
+    width: 100%;  /* AJOUTER */
 }
 
 .view.active,
 .onboarding.active {
     display: block;
-    min-height: calc(100vh - 160px);
+    width: 100%;  /* AJOUTER */
+    min-height: calc(100vh - 160px);  /* AJOUTER */
 }
 
 .onboarding-step {
