@@ -152,16 +152,9 @@ class WorkoutAudioSystem {
     }
 }
 
-// Instance globale
-const workoutAudio = new WorkoutAudioSystem();
-
-// Check if already initialized
-if (typeof window.workoutAudio !== 'undefined') {
-    console.warn('WorkoutAudio already initialized, skipping...');
-} else {
-    // Instance globale
-    const workoutAudio = new WorkoutAudioSystem();
-    window.workoutAudio = workoutAudio;
+// Instance globale - avec protection contre double chargement
+if (!window.workoutAudio) {
+    window.workoutAudio = new WorkoutAudioSystem();
 }
 
 // Export pour utilisation dans d'autres modules
@@ -169,5 +162,4 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = WorkoutAudioSystem;
 } else {
     window.WorkoutAudioSystem = WorkoutAudioSystem;
-    window.workoutAudio = workoutAudio;
 }

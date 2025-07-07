@@ -23,9 +23,6 @@ let currentWorkoutSession = {
     totalSetTime: 0         // Nouveau: temps total des séries
 };
 
-// Référence au système audio global
-const workoutAudio = window.workoutAudio;
-
 // ===== MACHINE D'ÉTAT SÉANCE =====
 const WorkoutStates = {
     IDLE: 'idle',
