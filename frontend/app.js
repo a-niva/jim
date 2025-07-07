@@ -3872,13 +3872,14 @@ function configureIsometric(elements, recommendations) {
     const executeBtn = document.getElementById('executeSetBtn');
     if (executeBtn) {
         executeBtn.style.display = 'block';
-        executeBtn.innerHTML = '<span class="go-emoji">▶️</span>';
+        const emoji = executeBtn.querySelector('.go-emoji');
+        if (emoji) emoji.textContent = '▶️';  // Utiliser textContent au lieu de innerHTML
         executeBtn.setAttribute('data-isometric-mode', 'start');
         executeBtn.classList.remove('btn-danger');
         executeBtn.classList.add('btn-success');
         executeBtn.onclick = () => handleIsometricAction();
     }
-    
+        
     // Masquer aussi la section de feedback temporairement
     const feedbackSection = document.getElementById('setFeedback');
     if (feedbackSection) {
@@ -4024,7 +4025,7 @@ function cleanupIsometricTimer() {
     const executeBtn = document.getElementById('executeSetBtn');
     if (executeBtn) {
         executeBtn.style.display = 'block';
-        executeBtn.innerHTML = '<span class="go-emoji">▶️</span>';
+        executeBtn.innerHTML = '<span class="go-emoji">✅</span>';
         
         // IMPORTANT: Supprimer tous les attributs isométriques
         executeBtn.removeAttribute('data-isometric-mode');
@@ -4394,7 +4395,7 @@ function skipRest() {
 
     // Annuler les sons programmés
     if (window.workoutAudio) {
-        workoutAudio.clearScheduledSounds();
+        window.workoutAudio.clearScheduledSounds();
     }
     
     // Annuler la notification programmée
@@ -4440,7 +4441,7 @@ function endRest() {
 
     // Annuler les sons programmés
     if (window.workoutAudio) {
-        workoutAudio.clearScheduledSounds();
+        window.workoutAudio.clearScheduledSounds();
     }
     
     // Reprendre le timer de séance
@@ -4538,7 +4539,7 @@ function startSetTimer() {
 // ===== CONTRÔLES AUDIO =====
 function toggleWorkoutAudio() {
     if (window.workoutAudio) {
-        const isEnabled = workoutAudio.toggle();
+        const isEnabled = window.workoutAudio.toggle();
         showToast(isEnabled ? 'Sons activés' : 'Sons désactivés', 'info');
         return isEnabled;
     }
@@ -4546,13 +4547,13 @@ function toggleWorkoutAudio() {
 
 function setAudioVolume(volume) {
     if (window.workoutAudio) {
-        workoutAudio.setVolume(volume);
+        window.workoutAudio.setVolume(volume);
     }
 }
 
 function testWorkoutSounds() {
     if (window.workoutAudio) {
-        workoutAudio.testAllSounds();
+        window.workoutAudio.testAllSounds();
         showToast('Test des sons en cours...', 'info');
     }
 }
@@ -4777,7 +4778,7 @@ async function loadProfile() {
     }
     // Initialiser l'état du système audio selon les préférences
     if (window.workoutAudio && currentUser) {
-        workoutAudio.isEnabled = currentUser.sound_notifications_enabled ?? true;
+        window.workoutAudio.isEnabled = currentUser.sound_notifications_enabled ?? true;
     }
 }
 
@@ -4821,7 +4822,7 @@ async function toggleSoundNotifications() {
         
         // Mettre à jour le système audio
         if (window.workoutAudio) {
-            workoutAudio.isEnabled = newPreference;
+            window.workoutAudio.isEnabled = newPreference;
         }
         
         showToast('Préférence mise à jour', 'success');
@@ -6227,7 +6228,7 @@ function startRestPeriod(customTime = null, isMLRecommendation = false) {
     
     // Notifications sonores programmées
     if (window.workoutAudio) {
-        workoutAudio.scheduleRestNotifications(timeLeft);
+        window.workoutAudio.scheduleRestNotifications(timeLeft);
     }
     
     // Programmer la notification
@@ -6269,7 +6270,7 @@ function startRestPeriod(customTime = null, isMLRecommendation = false) {
             
             // Son de fin
             if (window.workoutAudio) {
-                workoutAudio.playSound('restComplete');
+                window.workoutAudio.playSound('restComplete');
             }
             
             // Vibration de fin
@@ -6913,6 +6914,9 @@ function handleExtraSet() {
     startSetTimer();
     transitionTo(WorkoutStates.READY);
     resetFeedbackSelection();
+    
+    // Mettre à jour les recommandations ML pour la série supplémentaire
+    updateSetRecommendations();
 }
 
 function previousSet() {

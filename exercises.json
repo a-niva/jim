@@ -297,16 +297,16 @@
     "weight_type": "external",
     "base_weights_kg": {
       "beginner": {
-        "base": 40,
-        "per_kg_bodyweight": 0.6
+        "base": 20,
+        "per_kg_bodyweight": 0.8
       },
       "intermediate": {
-        "base": 60,
+        "base": 40,
         "per_kg_bodyweight": 1
       },
       "advanced": {
-        "base": 80,
-        "per_kg_bodyweight": 1.5
+        "base": 60,
+        "per_kg_bodyweight": 1.3
       }
     }
   },
