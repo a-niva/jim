@@ -602,24 +602,18 @@ function showOnboarding() {
     loadEquipmentStep();
 }
 
-function showHomePage(viewName) {
+function showHomePage() {  // ← SUPPRIMER PARAMÈTRE
     // Masquer tout
     document.getElementById('onboarding').classList.remove('active');
     document.getElementById('progressContainer').style.display = 'none';
-    document.getElementById('bottomNav').style.display = 'none';
+    document.getElementById('bottomNav').style.display = 'none';  // ← SIMPLIFIER
     document.getElementById('userInitial').style.display = 'none';
     
     // Masquer toutes les vues
     document.querySelectorAll('.view').forEach(el => {
         el.classList.remove('active');
     });
-
-    if (viewName === 'home') {
-        document.getElementById('bottomNav').style.display = 'none';
-    } else {
-        document.getElementById('bottomNav').style.display = 'flex';
-        document.getElementById('userInitial').style.display = 'flex';
-    }
+    
     // Afficher la page d'accueil
     document.getElementById('home').classList.add('active');
     
@@ -4733,7 +4727,7 @@ async function loadProfile() {
         </div>
         <div class="profile-item">
             <span class="profile-label">Poids</span>
-            <span class="profile-value">${currentUser.weight} kg</span>
+            <span class="profile-value">${currentUser.bodyweight} kg</span>
         </div>
         <div class="profile-item">
             <span class="profile-label">Niveau</span>
