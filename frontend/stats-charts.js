@@ -1035,7 +1035,12 @@ async function loadMLAccuracyChart(userId) {
         const data = await window.apiGet(`/api/users/${userId}/stats/ml-recommendations-accuracy`);
         
         if (data.error) {
-            document.getElementById('mlConfidenceChart').parentElement.innerHTML = `
+            const chartElement = document.getElementById('mlConfidenceChart');
+            if (!chartElement) {
+                console.warn('Element mlConfidenceChart non trouvé, tab probablement non actif');
+                return;
+            }
+            chartElement.parentElement.innerHTML = `
                 <div class="chart-placeholder">
                     <div class="placeholder-icon">📈</div>
                     <h4>Analyse de précision</h4>
@@ -1045,7 +1050,12 @@ async function loadMLAccuracyChart(userId) {
             return;
         }
         
-        const ctx = document.getElementById('mlConfidenceChart').getContext('2d');
+        const chartElement = document.getElementById('mlConfidenceChart');
+        if (!chartElement) {
+            console.warn('Element mlConfidenceChart non trouvé pour le graphique');
+            return;
+        }
+        const ctx = chartElement.getContext('2d');
         
         // Détruire le chart existant
         if (mlCharts.accuracy) {
