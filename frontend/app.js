@@ -6474,10 +6474,13 @@ async function saveFeedbackAndRest() {
         // Ajouter le feedback aux données
         const setData = {
             ...workoutState.pendingSetData,
+            exercise_id: currentExercise.id,
+            set_number: currentSet,
             fatigue_level: currentWorkoutSession.currentSetFatigue,
             effort_level: currentWorkoutSession.currentSetEffort,
             exercise_order_in_session: currentWorkoutSession.exerciseOrder,
             set_order_in_session: currentWorkoutSession.globalSetCount + 1,
+            base_rest_time_seconds: currentExercise.base_rest_time_seconds || 90,
             // Ajouter les propriétés ML si elles existent
             ml_weight_suggestion: workoutState.currentRecommendation?.weight_recommendation,
             ml_reps_suggestion: workoutState.currentRecommendation?.reps_recommendation,
@@ -6485,7 +6488,7 @@ async function saveFeedbackAndRest() {
             ml_adjustment_enabled: currentWorkoutSession.mlSettings?.[currentExercise.id]?.autoAdjust,
             suggested_rest_seconds: workoutState.currentRecommendation?.rest_seconds_recommendation
         };
-        
+                
         // Validation des données avant envoi
         if (!setData.exercise_id || !setData.set_number || !setData.fatigue_level || !setData.effort_level) {
             console.error('❌ Données de série incomplètes:', setData);
@@ -6627,88 +6630,6 @@ function showAutoValidation() {
 }
 
 // ===== VALIDATION DU FEEDBACK =====
-async function validateAndStartRest() {
-    const fatigue = document.querySelector('.emoji-btn-modern[data-fatigue].selected')?.dataset.fatigue;
-    const effort = document.querySelector('.emoji-btn-modern[data-effort].selected')?.dataset.effort;
-    
-    if (!fatigue || !effort) {
-        showToast('Veuillez indiquer fatigue et effort', 'warning');
-        return;
-    }
-    
-
-    
-    // Compléter les données de la série
-    const setData = {
-        ...workoutState.pendingSetData,
-        exercise_id: currentExercise.id,
-        set_number: currentSet,
-        fatigue_level: parseInt(fatigue),
-        effort_level: parseInt(effort),
-        base_rest_time_seconds: currentExercise.base_rest_time_seconds || 90,
-        exercise_order_in_session: currentWorkoutSession.exerciseOrder,
-        set_order_in_session: currentWorkoutSession.globalSetCount + 1
-    };
-    
-    // AJOUTER validation
-    if (!setData.reps) {
-        showToast('Données de série manquantes', 'error');
-        return;
-    }
-    
-    try {
-        // Enregistrer la série
-        const savedSet = await apiPost(`/api/workouts/${currentWorkout.id}/sets`, setData);
-        setData.id = savedSet.id;
-        currentWorkoutSession.completedSets.push(setData);
-        currentWorkoutSession.globalSetCount++;
-
-        updateSetsHistory();
-        
-        if (workoutState.currentRecommendation && currentWorkoutSession.mlHistory?.[currentExercise.id]) {
-            const weightFollowed = Math.abs(setData.weight - workoutState.currentRecommendation.weight_recommendation) < 0.5;
-            const repsFollowed = Math.abs(setData.reps - workoutState.currentRecommendation.reps_recommendation) <= 1;
-            const accepted = weightFollowed && repsFollowed;
-            recordMLDecision(currentExercise.id, currentSet, accepted);
-        }
-        
-        console.log(`Set sauvegardé avec ID: ${savedSet.id}`);
-        showToast(`Série ${currentSet} enregistrée !`, 'success');
-        
-        // TRANSFÉRER gestion isométrique + repos
-        if (currentExercise.exercise_type === 'isometric') {
-            document.getElementById('setFeedback').style.display = 'none';
-            cleanupIsometricTimer();
-            
-            if (currentSet < currentWorkoutSession.totalSets) {
-                const transitionTime = 5;
-                currentWorkoutSession.totalRestTime += transitionTime;
-                
-                currentSet++;
-                currentWorkoutSession.currentSetNumber = currentSet;
-                updateSeriesDots();
-                updateHeaderProgress();
-                
-                updateSetRecommendations();
-                startSetTimer();
-                transitionTo(WorkoutStates.READY);
-            } else {
-                transitionTo(WorkoutStates.COMPLETED);
-                showSetCompletionOptions();
-            }
-        } else {
-            transitionTo(WorkoutStates.RESTING);
-            startRestPeriod(currentExercise.base_rest_time_seconds || 60);
-        }
-
-        resetFeedbackSelection();
-        
-    } catch (error) {
-        console.error('Erreur enregistrement série:', error);
-        showToast('Erreur lors de l\'enregistrement', 'error');
-    }
-}
-
 function setFatigue(exerciseId, value) {
     // Stocker la fatigue pour cet exercice
     console.log(`Fatigue set to ${value} for exercise ${exerciseId}`);
