@@ -558,7 +558,7 @@ function showView(viewName) {
     if (navItem) {
         navItem.classList.add('active');
     }
-    if (['dashboard', 'stats', 'profile'].includes(viewName)) {
+    if (['dashboard', 'stats', 'profile', 'home'].includes(viewName)) {
         document.getElementById('bottomNav').style.display = 'flex';
     }
 
@@ -606,7 +606,12 @@ function showHomePage() {  // ← SUPPRIMER LE PARAMÈTRE
     // Masquer tout
     document.getElementById('onboarding').classList.remove('active');
     document.getElementById('progressContainer').style.display = 'none';
-    document.getElementById('bottomNav').style.display = 'none';
+    // Afficher la navigation si un utilisateur est connecté
+    if (currentUser) {
+        document.getElementById('bottomNav').style.display = 'flex';
+    } else {
+        document.getElementById('bottomNav').style.display = 'none';
+    }
     document.getElementById('userInitial').style.display = 'none';
     
     // Masquer toutes les vues
