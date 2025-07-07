@@ -513,7 +513,7 @@ async function registerServiceWorker() {
 function showView(viewName) {
     console.log(`🔍 showView(${viewName}) - currentUser:`, currentUser ? currentUser.name : 'UNDEFINED');
 
-    // MODIFIER : Gérer le cas où currentUser est perdu
+    // Gérer le cas où currentUser est perdu
     if (!currentUser && ['dashboard', 'stats', 'profile'].includes(viewName)) {
         const savedUserId = localStorage.getItem('fitness_user_id');  // ← AJOUTER CETTE LIGNE
         if (savedUserId) {
@@ -540,7 +540,7 @@ function showView(viewName) {
         }
     }
     
-    // GARDER : Reste du code exactement identique
+    // Reste du code exactement identique
     document.querySelectorAll('.view, .onboarding').forEach(el => {
         el.classList.remove('active');
     });
@@ -558,7 +558,10 @@ function showView(viewName) {
     if (navItem) {
         navItem.classList.add('active');
     }
-    
+    if (['dashboard', 'stats', 'profile'].includes(viewName)) {
+        document.getElementById('bottomNav').style.display = 'flex';
+    }
+
     switch (viewName) {
         case 'dashboard':
             loadDashboard();
