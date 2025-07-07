@@ -6459,7 +6459,7 @@ function selectEffort(button, value) {
 function checkAutoValidation() {
     if (currentWorkoutSession.currentSetFatigue && currentWorkoutSession.currentSetEffort) {
         setTimeout(() => {
-            saveFeedbackAndRest(); // CHANGER ICI - était saveFeedbackAndRest()
+            saveFeedbackAndRest();
         }, 300);
     }
 }
