@@ -602,7 +602,7 @@ function showOnboarding() {
     loadEquipmentStep();
 }
 
-function showHomePage() {
+function showHomePage(viewName) {
     // Masquer tout
     document.getElementById('onboarding').classList.remove('active');
     document.getElementById('progressContainer').style.display = 'none';
@@ -613,7 +613,13 @@ function showHomePage() {
     document.querySelectorAll('.view').forEach(el => {
         el.classList.remove('active');
     });
-    
+
+    if (viewName === 'home') {
+        document.getElementById('bottomNav').style.display = 'none';
+    } else {
+        document.getElementById('bottomNav').style.display = 'flex';
+        document.getElementById('userInitial').style.display = 'flex';
+    }
     // Afficher la page d'accueil
     document.getElementById('home').classList.add('active');
     

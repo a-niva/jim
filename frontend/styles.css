@@ -95,7 +95,7 @@ body {
     display: flex;
     justify-content: space-around;
     padding: 1rem 0;
-    z-index: 100;
+    z-index: 100000;
 }
 
 .nav-item {
