@@ -16,7 +16,9 @@
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <!-- Header -->
+    <!-- ========================================== -->
+    <!-- HEADER FIXE                               -->
+    <!-- ========================================== -->
     <div class="header">
         <div class="header-content">
             <div class="logo">💪 jim</div>
@@ -24,17 +26,23 @@
         </div>
     </div>
 
-    <!-- Barre de progression onboarding -->
+    <!-- ========================================== -->
+    <!-- BARRE DE PROGRESSION ONBOARDING           -->
+    <!-- ========================================== -->
     <div class="progress-container" id="progressContainer" style="display: none;">
         <div class="progress-bar">
             <div class="progress-fill" id="progressBar"></div>
         </div>
     </div>
 
-    <!-- Container principal -->
+    <!-- ========================================== -->
+    <!-- CONTAINER PRINCIPAL - TOUTES LES VUES     -->
+    <!-- ========================================== -->
     <div class="container">
         
-        <!-- ONBOARDING -->
+        <!-- ================================ -->
+        <!-- ONBOARDING - ÉTAPES 1 À 5       -->
+        <!-- ================================ -->
         <div class="onboarding active" id="onboarding">
             <!-- Étape 1: Informations personnelles -->
             <div class="onboarding-step active" id="step1">
@@ -223,7 +231,9 @@
             </div>
         </div>
 
-        <!-- HOME PAGE -->
+        <!-- ================================ -->
+        <!-- HOME PAGE                        -->
+        <!-- ================================ -->
         <div class="view" id="home">
             <div class="home-hero">
                 <div class="hero-content">
@@ -247,7 +257,9 @@
             </div>
         </div>
 
-        <!-- DASHBOARD -->
+        <!-- ================================ -->
+        <!-- DASHBOARD - VUE PRINCIPALE       -->
+        <!-- ================================ -->
         <div class="view" id="dashboard">
             <div class="welcome-message" id="welcomeMessage">
                 <!-- Généré dynamiquement -->
@@ -285,7 +297,9 @@
             </div>
         </div>
 
-        <!-- SÉANCE DÉTAILLÉE -->
+        <!-- ================================ -->
+        <!-- SÉANCE DÉTAILLÉE                 -->
+        <!-- ================================ -->
         <div class="view" id="workout">
             <!-- En-tête de séance -->
             <div class="workout-header">
@@ -352,316 +366,321 @@
                 </div>
             </div>
             
-    <!-- Exercice en cours -->                
-    <div class="current-exercise" id="currentExercise" style="display: none;">
-    <!-- Second container pour tout le contenu -->
-    <div class="exercise-content-container">
-        <!-- 1. Header exercice avec nom, description et bouton changer -->
-        <div class="exercise-header-modern">
-            <div class="exercise-title-section">
-                <h2 id="exerciseName">Nom de l'exercice</h2>
-                <p class="exercise-instructions" id="exerciseInstructions"></p>
-            </div>
-            <div class="exercise-actions">
-                <button class="btn-change-exercise" onclick="changeExercise()">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 3v6h-6M3 21v-6h6M15 3a9 9 0 00-9 9M9 21a9 9 0 009-9"/>
-                    </svg>
-                    <span>Changer d'exercice</span>
-                </button>
-            </div>
-        </div>
-        
-        <!-- 2. Zone d'input poids/reps et validation -->
-        <div class="workout-card">
-            <!-- Progression des séries -->
-            <div class="series-dots">
-                <span class="dot active"></span>
-                <span class="dot"></span>
-                <span class="dot"></span>
-            </div>
-            
-            <!-- Zone d'input moderne -->
-            <div class="input-section">
-                <!-- Poids -->
-                <div class="input-row">
-                    <span class="input-icon">💪</span>
-                    <button class="stepper-modern" onclick="adjustWeightDown()">−</button>
-                    <div class="value-display">
-                        <span id="setWeight" class="value">20</span>
-                        <span class="unit">kg</span>
+            <!-- Exercice en cours -->                
+            <div class="current-exercise" id="currentExercise" style="display: none;">
+                <!-- Container pour tout le contenu de l'exercice -->
+                <div class="exercise-content-container">
+                    <!-- 1. Header exercice avec nom, description et bouton changer -->
+                    <div class="exercise-header-modern">
+                        <div class="exercise-title-section">
+                            <h2 id="exerciseName">Nom de l'exercice</h2>
+                            <p class="exercise-instructions" id="exerciseInstructions"></p>
+                        </div>
+                        <div class="exercise-actions">
+                            <button class="btn-change-exercise" onclick="changeExercise()">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 3v6h-6M3 21v-6h6M15 3a9 9 0 00-9 9M9 21a9 9 0 009-9"/>
+                                </svg>
+                                <span>Changer d'exercice</span>
+                            </button>
+                        </div>
                     </div>
-                    <button class="stepper-modern" onclick="adjustWeightUp()">+</button>
-                </div>
-                
-                <!-- Répétitions -->
-                <div class="input-row">
-                    <span class="input-icon">🔢</span>
-                    <button class="stepper-modern" onclick="adjustReps(-1)">−</button>
-                    <div class="value-display">
-                        <span id="setReps" class="value">10</span>
-                        <span class="unit">reps</span>
-                    </div>
-                    <button class="stepper-modern" onclick="adjustReps(1)">+</button>
-                </div>
-                
-                <!-- Bouton de validation -->
-                <button id="executeSetBtn" class="action-btn" onclick="executeSet()" style="display: none;">
-                    <span class="go-emoji"></span>
-                </button>
-            </div>
-            
-            <!-- Feedback après série (remplace la zone d'input après validation) -->
-            <div id="setFeedback" class="set-feedback-modern" style="display: none;">
-                <!-- Section Fatigue -->
-                <div class="feedback-section-modern">
-                    <div class="feedback-header">
-                        <span class="feedback-emoji">💧</span>
-                        <h4>Fatigue ressentie</h4>
-                    </div>
-                    <div class="feedback-options-modern">
-                        <button class="emoji-btn-modern" data-fatigue="1" onclick="selectFatigue(this, 1)">😎</button>
-                        <button class="emoji-btn-modern" data-fatigue="2" onclick="selectFatigue(this, 2)">🙂</button>
-                        <button class="emoji-btn-modern" data-fatigue="3" onclick="selectFatigue(this, 3)">😐</button>
-                        <button class="emoji-btn-modern" data-fatigue="4" onclick="selectFatigue(this, 4)">😓</button>
-                        <button class="emoji-btn-modern" data-fatigue="5" onclick="selectFatigue(this, 5)">🥵</button>
-                    </div>
-                </div>
+                    
+                    <!-- 2. Zone d'input poids/reps et validation -->
+                    <div class="workout-card">
+                        <!-- Progression des séries -->
+                        <div class="series-dots">
+                            <span class="dot active"></span>
+                            <span class="dot"></span>
+                            <span class="dot"></span>
+                        </div>
+                        
+                        <!-- Zone d'input moderne -->
+                        <div class="input-section">
+                            <!-- Poids -->
+                            <div class="input-row">
+                                <span class="input-icon">💪</span>
+                                <button class="stepper-modern" onclick="adjustWeightDown()">−</button>
+                                <div class="value-display">
+                                    <span id="setWeight" class="value">20</span>
+                                    <span class="unit">kg</span>
+                                </div>
+                                <button class="stepper-modern" onclick="adjustWeightUp()">+</button>
+                            </div>
+                            
+                            <!-- Répétitions -->
+                            <div class="input-row">
+                                <span class="input-icon">🔢</span>
+                                <button class="stepper-modern" onclick="adjustReps(-1)">−</button>
+                                <div class="value-display">
+                                    <span id="setReps" class="value">10</span>
+                                    <span class="unit">reps</span>
+                                </div>
+                                <button class="stepper-modern" onclick="adjustReps(1)">+</button>
+                            </div>
+                            
+                            <!-- Bouton de validation -->
+                            <button id="executeSetBtn" class="action-btn" onclick="executeSet()" style="display: none;">
+                                <span class="go-emoji"></span>
+                            </button>
+                        </div>
+                        
+                        <!-- Feedback après série (remplace la zone d'input après validation) -->
+                        <div id="setFeedback" class="set-feedback-modern" style="display: none;">
+                            <!-- Section Fatigue -->
+                            <div class="feedback-section-modern">
+                                <div class="feedback-header">
+                                    <span class="feedback-emoji">💧</span>
+                                    <h4>Fatigue ressentie</h4>
+                                </div>
+                                <div class="feedback-options-modern">
+                                    <button class="emoji-btn-modern" data-fatigue="1" onclick="selectFatigue(this, 1)">😎</button>
+                                    <button class="emoji-btn-modern" data-fatigue="2" onclick="selectFatigue(this, 2)">🙂</button>
+                                    <button class="emoji-btn-modern" data-fatigue="3" onclick="selectFatigue(this, 3)">😐</button>
+                                    <button class="emoji-btn-modern" data-fatigue="4" onclick="selectFatigue(this, 4)">😓</button>
+                                    <button class="emoji-btn-modern" data-fatigue="5" onclick="selectFatigue(this, 5)">🥵</button>
+                                </div>
+                            </div>
 
-                <!-- Section Effort -->
-                <div class="feedback-section-modern">
-                    <div class="feedback-header">
-                        <span class="feedback-emoji">🔥</span>
-                        <h4>Effort fourni</h4>
-                    </div>
-                    <div class="feedback-options-modern">
-                        <button class="emoji-btn-modern" data-effort="1" onclick="selectEffort(this, 1)">❄️</button>
-                        <button class="emoji-btn-modern" data-effort="2" onclick="selectEffort(this, 2)">🌨️</button>
-                        <button class="emoji-btn-modern" data-effort="3" onclick="selectEffort(this, 3)">🌥️</button>
-                        <button class="emoji-btn-modern" data-effort="4" onclick="selectEffort(this, 4)">🌤️</button>
-                        <button class="emoji-btn-modern" data-effort="5" onclick="selectEffort(this, 5)">☀️</button>
-                    </div>
-                </div>
+                            <!-- Section Effort -->
+                            <div class="feedback-section-modern">
+                                <div class="feedback-header">
+                                    <span class="feedback-emoji">🔥</span>
+                                    <h4>Effort fourni</h4>
+                                </div>
+                                <div class="feedback-options-modern">
+                                    <button class="emoji-btn-modern" data-effort="1" onclick="selectEffort(this, 1)">❄️</button>
+                                    <button class="emoji-btn-modern" data-effort="2" onclick="selectEffort(this, 2)">🌨️</button>
+                                    <button class="emoji-btn-modern" data-effort="3" onclick="selectEffort(this, 3)">🌥️</button>
+                                    <button class="emoji-btn-modern" data-effort="4" onclick="selectEffort(this, 4)">🌤️</button>
+                                    <button class="emoji-btn-modern" data-effort="5" onclick="selectEffort(this, 5)">☀️</button>
+                                </div>
+                            </div>
 
-                <!-- Période de repos (remplace tout après validation fatigue+effort) -->
-                <div id="restPeriod" class="rest-period" style="display: none;">
-                    <div class="rest-content">
-                        <h3>🧘 Temps de repos</h3>
-                        <div class="rest-timer" id="restTimer">01:30</div>
-                        <div class="rest-actions">
-                            <button class="btn btn-secondary btn-sm" onclick="addRestTime(30)">+30s</button>
-                            <button class="btn btn-primary btn-sm" onclick="endRest()">Passer</button>
+                            <!-- Période de repos (remplace tout après validation fatigue+effort) -->
+                            <div id="restPeriod" class="rest-period" style="display: none;">
+                                <div class="rest-content">
+                                    <h3>🧘 Temps de repos</h3>
+                                    <div class="rest-timer" id="restTimer">01:30</div>
+                                    <div class="rest-actions">
+                                        <button class="btn btn-secondary btn-sm" onclick="addRestTime(30)">+30s</button>
+                                        <button class="btn btn-primary btn-sm" onclick="endRest()">Passer</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 3. Toggle AI compact sur une ligne -->
+                    <div class="ai-status-line">
+                        <div class="ai-toggle-container">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="mlToggle" checked onchange="if(currentExercise) toggleMLAdjustment(currentExercise.id)">
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span class="ai-status-text">
+                                IA : <span id="aiStatus">Actif</span>
+                            </span>
+                            <span class="ai-confidence">
+                                Confiance : <span id="aiConfidence">85</span>%
+                            </span>
+                        </div>
+                        <button class="ai-expand-btn" onclick="toggleAIDetails()" title="Détails IA">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <!-- Détails AI (caché par défaut) -->
+                    <div class="ai-details-panel" id="aiDetailsPanel">
+                        <div class="ai-detail-grid">
+                            <div class="ai-detail-item">
+                                <span class="detail-label">Poids recommandé</span>
+                                <span class="detail-value" id="aiWeightRec">22.5kg</span>
+                            </div>
+                            <div class="ai-detail-item">
+                                <span class="detail-label">Reps recommandées</span>
+                                <span class="detail-value" id="aiRepsRec">10</span>
+                            </div>
+                            <div class="ai-detail-item">
+                                <span class="detail-label">Stratégie</span>
+                                <span class="detail-value" id="aiStrategy">Progressive</span>
+                            </div>
+                            <div class="ai-detail-item">
+                                <span class="detail-label">Raison</span>
+                                <span class="detail-value" id="aiReason">Basé sur vos 3 dernières séries</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-        
-        <!-- 3. Toggle AI compact sur une ligne -->
-        <div class="ai-status-line">
-            <div class="ai-toggle-container">
-                <label class="toggle-switch">
-                    <input type="checkbox" id="mlToggle" checked onchange="if(currentExercise) toggleMLAdjustment(currentExercise.id)">
-                    <span class="toggle-slider"></span>
-                </label>
-                <span class="ai-status-text">
-                    IA : <span id="aiStatus">Actif</span>
-                </span>
-                <span class="ai-confidence">
-                    Confiance : <span id="aiConfidence">85</span>%
-                </span>
-            </div>
-            <button class="ai-expand-btn" onclick="toggleAIDetails()" title="Détails IA">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M19 9l-7 7-7-7"/>
-                </svg>
-            </button>
-        </div>
-        
-        <!-- Détails AI (caché par défaut) -->
-        <div class="ai-details-panel" id="aiDetailsPanel">
-            <div class="ai-detail-grid">
-                <div class="ai-detail-item">
-                    <span class="detail-label">Poids recommandé</span>
-                    <span class="detail-value" id="aiWeightRec">22.5kg</span>
-                </div>
-                <div class="ai-detail-item">
-                    <span class="detail-label">Reps recommandées</span>
-                    <span class="detail-value" id="aiRepsRec">10</span>
-                </div>
-                <div class="ai-detail-item">
-                    <span class="detail-label">Stratégie</span>
-                    <span class="detail-value" id="aiStrategy">Progressive</span>
-                </div>
-                <div class="ai-detail-item">
-                    <span class="detail-label">Raison</span>
-                    <span class="detail-value" id="aiReason">Basé sur vos 3 dernières séries</span>
-                </div>
+
+            <!-- Container pour les exercices du programme -->
+            <div class="program-exercises-container" id="programExercisesContainer" style="display: none;">
+                <!-- Contenu généré dynamiquement -->
             </div>
         </div>
-    </div>
 
-<div class="program-exercises-container" id="programExercisesContainer" style="display: none;">
-    <!-- Contenu généré dynamiquement -->
-</div>
-
-        <!-- STATISTIQUES -->
-
-<div class="view" id="stats">
-    <h2>📊 Vos statistiques</h2>
-    
-    <!-- Résumé rapide -->
-    <div class="stats-summary">
-        <div class="stat-card">
-            <div class="stat-number" id="totalWorkouts">0</div>
-            <div class="stat-label">Séances totales</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-number" id="totalVolume">0kg</div>
-            <div class="stat-label">Volume total</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-number" id="lastWorkout">-</div>
-            <div class="stat-label">Dernière séance</div>
-        </div>
-    </div>
-    
-    <!-- Sélecteur d'exercice pour progression -->
-    <div class="chart-controls">
-        <select id="exerciseSelector" class="form-control">
-            <option value="">Sélectionner un exercice...</option>
-        </select>
-    </div>
-    
-    <!-- Container des graphiques avec tabs pour mobile -->
-    <div class="charts-tabs">
-        <div class="tab-nav">
-            <button class="tab-btn active" data-tab="performance">Performance</button>
-            <button class="tab-btn" data-tab="adherence">Adhérence</button>
-            <button class="tab-btn" data-tab="muscles">Muscles</button>
-            <button class="tab-btn" data-tab="analytics">ML Analytics</button>
-        </div>
-        
-        <!-- Tab Performance -->
-        <div class="tab-content active" id="tab-performance">
-            <!-- Graphique 1: Progression 1RM -->
-            <div class="chart-section">
-                <h3>📈 Progression de Force</h3>
-                <div class="chart-container">
-                    <canvas id="progressionChart"></canvas>
-                </div>
-                <div class="chart-info" id="progressionInfo"></div>
-            </div>
+        <!-- ================================ -->
+        <!-- STATISTIQUES                     -->
+        <!-- ================================ -->
+        <div class="view" id="stats">
+            <h2>📊 Vos statistiques</h2>
             
-            <!-- Graphique 4: Records personnels -->
-            <div class="chart-section">
-                <h3>🏆 Records Personnels</h3>
-                <div id="recordsWaterfall" class="waterfall-container"></div>
-            </div>
-
-            <!-- Graphique profil séances -->
-            <div class="chart-section">
-                <h3>🎯 Profil de Vos Séances</h3>
-                <div class="chart-container" style="height: 600px; position: relative;">
-                    <canvas id="intensityRecoveryChart"></canvas>
+            <!-- Résumé rapide -->
+            <div class="stats-summary">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalWorkouts">0</div>
+                    <div class="stat-label">Séances totales</div>
                 </div>
-                <div class="chart-legend" style="margin-top: 15px; text-align: center; font-size: 12px; color: var(--text-secondary);">
-                    <span style="color: #10b981;">●</span> Récent &nbsp;
-                    <span style="color: #f59e0b;">●</span> Moyen &nbsp;
-                    <span style="color: #ef4444;">●</span> Ancien
+                <div class="stat-card">
+                    <div class="stat-number" id="totalVolume">0kg</div>
+                    <div class="stat-label">Volume total</div>
                 </div>
-            </div>
-        </div>
-        
-        <!-- Tab Adhérence -->
-        <div class="tab-content" id="tab-adherence">
-            <!-- Graphique 5: Calendrier d'assiduité -->
-            <div class="chart-section">
-                <h3>📅 Calendrier d'Assiduité</h3>
-                <div id="attendanceCalendar" class="calendar-container"></div>
-                <div class="calendar-legend">
-                    <span class="legend-item"><span class="legend-color" style="background: var(--success)"></span> Objectif atteint</span>
-                    <span class="legend-item"><span class="legend-color" style="background: var(--warning)"></span> Partiel</span>
-                    <span class="legend-item"><span class="legend-color" style="background: var(--danger)"></span> Séance manquée</span>
+                <div class="stat-card">
+                    <div class="stat-number" id="lastWorkout">-</div>
+                    <div class="stat-label">Dernière séance</div>
                 </div>
             </div>
             
-            <!-- Graphique 7: Burndown volume -->
-            <div class="chart-section">
-                <h3>🎯 Progression Volume</h3>
-                <div class="period-selector">
-                    <button class="period-btn active" data-period="week">Semaine</button>
-                    <button class="period-btn" data-period="month">Mois</button>
-                    <button class="period-btn" data-period="quarter">Trimestre</button>
-                    <button class="period-btn" data-period="year">Année</button>
-                </div>
-                <div class="chart-container">
-                    <canvas id="volumeBurndownChart"></canvas>
-                </div>
-                <div class="burndown-stats" id="burndownStats"></div>
-            </div>
-        </div>
-        
-        <!-- Tab Muscles -->
-        <div class="tab-content" id="tab-muscles">
-            <!-- Graphique 9: Sunburst volume musculaire -->
-            <div class="chart-section">
-                <h3>💪 Répartition du Volume</h3>
-                <div id="muscleSunburst" class="sunburst-container"></div>
-                <div class="sunburst-info">
-                    <p>Cliquez sur un segment pour zoomer</p>
-                </div>
+            <!-- Sélecteur d'exercice pour progression -->
+            <div class="chart-controls">
+                <select id="exerciseSelector" class="form-control">
+                    <option value="">Sélectionner un exercice...</option>
+                </select>
             </div>
             
-            <!-- Graphique 10: Gantt récupération -->
-            <div class="chart-section">
-                <h3>🔄 État de Récupération</h3>
-                <div id="recoveryGantt" class="gantt-container"></div>
-            </div>
-            
-            <!-- Graphique 11: Spider équilibre -->
-            <div class="chart-section">
-                <h3>⚖️ Équilibre Musculaire</h3>
-                <div class="chart-container">
-                    <canvas id="muscleBalanceChart"></canvas>
+            <!-- Container des graphiques avec tabs pour mobile -->
+            <div class="charts-tabs">
+                <div class="tab-nav">
+                    <button class="tab-btn active" data-tab="performance">Performance</button>
+                    <button class="tab-btn" data-tab="adherence">Adhérence</button>
+                    <button class="tab-btn" data-tab="muscles">Muscles</button>
+                    <button class="tab-btn" data-tab="analytics">ML Analytics</button>
                 </div>
-                <div class="balance-insights" id="balanceInsights"></div>
-            </div>
-        </div>
-        
-        <!-- Tab ML Analytics -->
-        <div class="tab-content" id="tab-analytics">
-            <!-- Graphique 14: Confiance ML -->
-            <div class="chart-section">
-                <h3>🤖 Évolution Confiance ML</h3>
-                <div class="chart-container">
-                    <canvas id="mlConfidenceChart"></canvas>
-                </div>
-                <div class="ml-stats" id="mlStats"></div>
-            </div>
-            
-            <!-- Graphique 15: Sankey ajustements -->
-            <div class="chart-section">
-                <h3>🔀 Flux des Suggestions ML</h3>
-                <div id="mlSankeyDiagram" class="sankey-container"></div>
-                <div class="sankey-legend">
-                    <p>Suivez le parcours de vos décisions par rapport aux suggestions ML</p>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Message pour profils sans historique -->
-    <div class="empty-state" id="statsEmptyState" style="display: none;">
-        <div class="empty-icon">📊</div>
-        <h3>Pas encore de données</h3>
-        <p>Commencez votre première séance pour voir vos statistiques !</p>
-        <button class="btn btn-primary" onclick="showView('dashboard')">Commencer</button>
-    </div>
-</div>
+                
+                <!-- Tab Performance -->
+                <div class="tab-content active" id="tab-performance">
+                    <!-- Graphique 1: Progression 1RM -->
+                    <div class="chart-section">
+                        <h3>📈 Progression de Force</h3>
+                        <div class="chart-container">
+                            <canvas id="progressionChart"></canvas>
+                        </div>
+                        <div class="chart-info" id="progressionInfo"></div>
+                    </div>
+                    
+                    <!-- Graphique 4: Records personnels -->
+                    <div class="chart-section">
+                        <h3>🏆 Records Personnels</h3>
+                        <div id="recordsWaterfall" class="waterfall-container"></div>
+                    </div>
 
+                    <!-- Graphique profil séances -->
+                    <div class="chart-section">
+                        <h3>🎯 Profil de Vos Séances</h3>
+                        <div class="chart-container" style="height: 600px; position: relative;">
+                            <canvas id="intensityRecoveryChart"></canvas>
+                        </div>
+                        <div class="chart-legend" style="margin-top: 15px; text-align: center; font-size: 12px; color: var(--text-secondary);">
+                            <span style="color: #10b981;">●</span> Récent &nbsp;
+                            <span style="color: #f59e0b;">●</span> Moyen &nbsp;
+                            <span style="color: #ef4444;">●</span> Ancien
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tab Adhérence -->
+                <div class="tab-content" id="tab-adherence">
+                    <!-- Graphique 5: Calendrier d'assiduité -->
+                    <div class="chart-section">
+                        <h3>📅 Calendrier d'Assiduité</h3>
+                        <div id="attendanceCalendar" class="calendar-container"></div>
+                        <div class="calendar-legend">
+                            <span class="legend-item"><span class="legend-color" style="background: var(--success)"></span> Objectif atteint</span>
+                            <span class="legend-item"><span class="legend-color" style="background: var(--warning)"></span> Partiel</span>
+                            <span class="legend-item"><span class="legend-color" style="background: var(--danger)"></span> Séance manquée</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Graphique 7: Burndown volume -->
+                    <div class="chart-section">
+                        <h3>🎯 Progression Volume</h3>
+                        <div class="period-selector">
+                            <button class="period-btn active" data-period="week">Semaine</button>
+                            <button class="period-btn" data-period="month">Mois</button>
+                            <button class="period-btn" data-period="quarter">Trimestre</button>
+                            <button class="period-btn" data-period="year">Année</button>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="volumeBurndownChart"></canvas>
+                        </div>
+                        <div class="burndown-stats" id="burndownStats"></div>
+                    </div>
+                </div>
+                
+                <!-- Tab Muscles -->
+                <div class="tab-content" id="tab-muscles">
+                    <!-- Graphique 9: Sunburst volume musculaire -->
+                    <div class="chart-section">
+                        <h3>💪 Répartition du Volume</h3>
+                        <div id="muscleSunburst" class="sunburst-container"></div>
+                        <div class="sunburst-info">
+                            <p>Cliquez sur un segment pour zoomer</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Graphique 10: Gantt récupération -->
+                    <div class="chart-section">
+                        <h3>🔄 État de Récupération</h3>
+                        <div id="recoveryGantt" class="gantt-container"></div>
+                    </div>
+                    
+                    <!-- Graphique 11: Spider équilibre -->
+                    <div class="chart-section">
+                        <h3>⚖️ Équilibre Musculaire</h3>
+                        <div class="chart-container">
+                            <canvas id="muscleBalanceChart"></canvas>
+                        </div>
+                        <div class="balance-insights" id="balanceInsights"></div>
+                    </div>
+                </div>
+                
+                <!-- Tab ML Analytics -->
+                <div class="tab-content" id="tab-analytics">
+                    <!-- Graphique 14: Confiance ML -->
+                    <div class="chart-section">
+                        <h3>🤖 Évolution Confiance ML</h3>
+                        <div class="chart-container">
+                            <canvas id="mlConfidenceChart"></canvas>
+                        </div>
+                        <div class="ml-stats" id="mlStats"></div>
+                    </div>
+                    
+                    <!-- Graphique 15: Sankey ajustements -->
+                    <div class="chart-section">
+                        <h3>🔀 Flux des Suggestions ML</h3>
+                        <div id="mlSankeyDiagram" class="sankey-container"></div>
+                        <div class="sankey-legend">
+                            <p>Suivez le parcours de vos décisions par rapport aux suggestions ML</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Message pour profils sans historique -->
+            <div class="empty-state" id="statsEmptyState" style="display: none;">
+                <div class="empty-icon">📊</div>
+                <h3>Pas encore de données</h3>
+                <p>Commencez votre première séance pour voir vos statistiques !</p>
+                <button class="btn btn-primary" onclick="showView('dashboard')">Commencer</button>
+            </div>
+        </div>
 
-<!-- PROFIL -->
+        <!-- ================================ -->
+        <!-- PROFIL                           -->
+        <!-- ================================ -->
         <div class="view" id="profile">
             <h2>👤 Mon profil</h2>
             
@@ -676,9 +695,14 @@
             </div>
         </div>
         
-    <!-- FIN du container -->
+    </div>
+    <!-- ========================================== -->
+    <!-- FIN DU CONTAINER PRINCIPAL                -->
+    <!-- ========================================== -->
 
-    <!-- Navigation (maintenant EN DEHORS du container) -->
+    <!-- ========================================== -->
+    <!-- NAVIGATION BOTTOM - NIVEAU RACINE         -->
+    <!-- ========================================== -->
     <div class="bottom-nav" id="bottomNav" style="display: none;">
         <button class="nav-item active" onclick="showView('dashboard')">
             <span>🏠</span>
@@ -694,7 +718,9 @@
         </button>
     </div>
 
-    <!-- Modals -->
+    <!-- ========================================== -->
+    <!-- MODALS                                     -->
+    <!-- ========================================== -->
     <div class="modal" id="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
@@ -707,6 +733,9 @@
         </div>
     </div>
 
+    <!-- ========================================== -->
+    <!-- SCRIPTS                                    -->
+    <!-- ========================================== -->
     <script src="muscle-colors.js"></script>
     <script src="stats-charts.js"></script>
     <script src="app.js"></script>

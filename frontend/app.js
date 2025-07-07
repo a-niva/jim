@@ -558,7 +558,7 @@ function showView(viewName) {
     if (navItem) {
         navItem.classList.add('active');
     }
-    if (['dashboard', 'stats', 'profile', 'home'].includes(viewName)) {
+    if (['dashboard', 'stats', 'profile', 'home', 'workout'].includes(viewName)) {
         document.getElementById('bottomNav').style.display = 'flex';
         
         // Double vérification après un court délai
