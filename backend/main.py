@@ -2416,6 +2416,312 @@ def get_workout_intensity_recovery(user_id: int, sessions: int = 50, db: Session
         }
     }
 
+# ===== ENDPOINTS ML ANALYTICS =====
+
+@app.get("/api/users/{user_id}/stats/ml-insights")
+def get_ml_insights_overview(user_id: int, days: int = 90, db: Session = Depends(get_db)):
+    """Dashboard principal ML Analytics"""
+    cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
+    
+    # Récupérer toutes les séries avec données potentielles
+    all_sets = db.query(WorkoutSet).join(Workout).filter(
+        Workout.user_id == user_id,
+        WorkoutSet.completed_at >= cutoff_date
+    ).order_by(WorkoutSet.completed_at).all()
+    
+    if not all_sets:
+        return {"error": "Aucune donnée disponible"}
+    
+    # Analyser les données ML disponibles
+    sets_with_ml = [s for s in all_sets if s.ml_confidence is not None]
+    sets_with_fatigue = [s for s in all_sets if s.fatigue_level is not None]
+    sets_with_effort = [s for s in all_sets if s.effort_level is not None]
+    sets_with_ml_suggestions = [s for s in all_sets if s.ml_weight_suggestion is not None or s.ml_reps_suggestion is not None]
+    
+    total_sessions = len(set(s.workout_id for s in all_sets))
+    ml_active_sessions = len(set(s.workout_id for s in sets_with_ml))
+    
+    # Calcul de métriques d'engagement
+    avg_fatigue = sum(s.fatigue_level for s in sets_with_fatigue) / len(sets_with_fatigue) if sets_with_fatigue else 0
+    avg_effort = sum(s.effort_level for s in sets_with_effort) / len(sets_with_effort) if sets_with_effort else 0
+    
+    # Analyse du suivi des recommandations
+    follow_rate_weight = 0
+    follow_rate_reps = 0
+    
+    if sets_with_ml_suggestions:
+        followed_weight = sum(1 for s in sets_with_ml_suggestions if s.user_followed_ml_weight)
+        followed_reps = sum(1 for s in sets_with_ml_suggestions if s.user_followed_ml_reps)
+        follow_rate_weight = followed_weight / len(sets_with_ml_suggestions)
+        follow_rate_reps = followed_reps / len(sets_with_ml_suggestions)
+    
+    # Tendance de confiance
+    confidence_trend = "stable"
+    if len(sets_with_ml) >= 10:
+        recent_confidence = sum(s.ml_confidence for s in sets_with_ml[-5:]) / 5
+        older_confidence = sum(s.ml_confidence for s in sets_with_ml[:5]) / 5
+        
+        if recent_confidence > older_confidence * 1.1:
+            confidence_trend = "improving"
+        elif recent_confidence < older_confidence * 0.9:
+            confidence_trend = "declining"
+    
+    return {
+        "overview": {
+            "total_sets": len(all_sets),
+            "total_sessions": total_sessions,
+            "ml_active_sessions": ml_active_sessions,
+            "ml_adoption_rate": ml_active_sessions / total_sessions if total_sessions > 0 else 0,
+            "data_quality_score": len(sets_with_fatigue) / len(all_sets) if all_sets else 0,
+            "avg_fatigue": round(avg_fatigue, 1),
+            "avg_effort": round(avg_effort, 1)
+        },
+        "ml_performance": {
+            "sets_with_recommendations": len(sets_with_ml_suggestions),
+            "follow_rate_weight": round(follow_rate_weight, 2),
+            "follow_rate_reps": round(follow_rate_reps, 2),
+            "avg_confidence": round(sum(s.ml_confidence for s in sets_with_ml) / len(sets_with_ml), 2) if sets_with_ml else 0,
+            "confidence_trend": confidence_trend
+        },
+        "recent_activity": {
+            "last_7_days": len([s for s in all_sets if s.completed_at >= datetime.now(timezone.utc) - timedelta(days=7)]),
+            "ml_active_last_7": len([s for s in sets_with_ml if s.completed_at >= datetime.now(timezone.utc) - timedelta(days=7)])
+        }
+    }
+
+
+@app.get("/api/users/{user_id}/stats/ml-progression")
+def get_ml_progression_analysis(user_id: int, days: int = 60, db: Session = Depends(get_db)):
+    """Analyse de progression avec/sans ML"""
+    cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
+    
+    # Récupérer les exercices avec suffisamment de données
+    sets_query = db.query(WorkoutSet).join(Workout).filter(
+        Workout.user_id == user_id,
+        WorkoutSet.completed_at >= cutoff_date,
+        WorkoutSet.weight.isnot(None),
+        WorkoutSet.reps.isnot(None)
+    ).order_by(WorkoutSet.completed_at)
+    
+    all_sets = sets_query.all()
+    
+    if len(all_sets) < 10:
+        return {"error": "Données insuffisantes pour l'analyse"}
+    
+    # Grouper par exercice
+    exercises_data = {}
+    for s in all_sets:
+        if s.exercise_id not in exercises_data:
+            exercises_data[s.exercise_id] = {
+                "with_ml": [],
+                "without_ml": [],
+                "exercise_name": None
+            }
+        
+        # Calculer le volume (poids * reps)
+        volume = (s.weight or 0) * s.reps
+        set_data = {
+            "date": s.completed_at,
+            "volume": volume,
+            "weight": s.weight,
+            "reps": s.reps,
+            "confidence": s.ml_confidence or 0
+        }
+        
+        if s.ml_confidence is not None and s.ml_confidence > 0.3:
+            exercises_data[s.exercise_id]["with_ml"].append(set_data)
+        else:
+            exercises_data[s.exercise_id]["without_ml"].append(set_data)
+    
+    # Analyser la progression pour chaque exercice
+    progression_analysis = []
+    
+    for exercise_id, data in exercises_data.items():
+        if len(data["with_ml"]) >= 3 and len(data["without_ml"]) >= 3:
+            # Calculer les tendances
+            ml_volumes = [d["volume"] for d in data["with_ml"]]
+            no_ml_volumes = [d["volume"] for d in data["without_ml"]]
+            
+            ml_avg = sum(ml_volumes) / len(ml_volumes)
+            no_ml_avg = sum(no_ml_volumes) / len(no_ml_volumes)
+            
+            # Récupérer le nom de l'exercice
+            exercise = db.query(Exercise).filter(Exercise.id == exercise_id).first()
+            
+            progression_analysis.append({
+                "exercise_id": exercise_id,
+                "exercise_name": exercise.name if exercise else f"Exercice {exercise_id}",
+                "ml_sessions": len(data["with_ml"]),
+                "traditional_sessions": len(data["without_ml"]),
+                "ml_avg_volume": round(ml_avg, 1),
+                "traditional_avg_volume": round(no_ml_avg, 1),
+                "improvement_ratio": round(ml_avg / no_ml_avg, 2) if no_ml_avg > 0 else 1,
+                "confidence_evolution": data["with_ml"][-5:] if len(data["with_ml"]) >= 5 else data["with_ml"]
+            })
+    
+    # Trier par amélioration
+    progression_analysis.sort(key=lambda x: x["improvement_ratio"], reverse=True)
+    
+    return {
+        "exercises": progression_analysis[:10],  # Top 10
+        "summary": {
+            "total_analyzed": len(progression_analysis),
+            "avg_improvement": round(sum(e["improvement_ratio"] for e in progression_analysis) / len(progression_analysis), 2) if progression_analysis else 1,
+            "best_exercise": progression_analysis[0] if progression_analysis else None
+        }
+    }
+
+
+@app.get("/api/users/{user_id}/stats/ml-recommendations-accuracy")
+def get_ml_recommendations_accuracy(user_id: int, days: int = 30, db: Session = Depends(get_db)):
+    """Analyse de précision des recommandations ML"""
+    cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
+    
+    sets = db.query(WorkoutSet).join(Workout).filter(
+        Workout.user_id == user_id,
+        WorkoutSet.completed_at >= cutoff_date,
+        WorkoutSet.ml_weight_suggestion.isnot(None),
+        WorkoutSet.weight.isnot(None)
+    ).order_by(WorkoutSet.completed_at).all()
+    
+    if not sets:
+        return {"error": "Aucune recommandation ML trouvée"}
+    
+    accuracy_data = []
+    weight_diffs = []
+    reps_diffs = []
+    
+    for s in sets:
+        weight_diff = 0
+        reps_diff = 0
+        
+        if s.ml_weight_suggestion and s.weight:
+            weight_diff = abs(s.weight - s.ml_weight_suggestion)
+            weight_diffs.append(weight_diff)
+        
+        if s.ml_reps_suggestion and s.reps:
+            reps_diff = abs(s.reps - s.ml_reps_suggestion)
+            reps_diffs.append(reps_diff)
+        
+        accuracy_data.append({
+            "date": s.completed_at.isoformat(),
+            "weight_suggested": s.ml_weight_suggestion,
+            "weight_actual": s.weight,
+            "weight_diff": round(weight_diff, 1),
+            "reps_suggested": s.ml_reps_suggestion,
+            "reps_actual": s.reps,
+            "reps_diff": reps_diff,
+            "confidence": s.ml_confidence or 0,
+            "followed_weight": s.user_followed_ml_weight,
+            "followed_reps": s.user_followed_ml_reps
+        })
+    
+    # Calculer les métriques de précision
+    avg_weight_diff = sum(weight_diffs) / len(weight_diffs) if weight_diffs else 0
+    avg_reps_diff = sum(reps_diffs) / len(reps_diffs) if reps_diffs else 0
+    
+    # Précision (pourcentage de recommandations "proches")
+    weight_precision = len([d for d in weight_diffs if d <= 2.5]) / len(weight_diffs) if weight_diffs else 0
+    reps_precision = len([d for d in reps_diffs if d <= 1]) / len(reps_diffs) if reps_diffs else 0
+    
+    return {
+        "accuracy_timeline": accuracy_data,
+        "metrics": {
+            "total_recommendations": len(accuracy_data),
+            "avg_weight_deviation": round(avg_weight_diff, 1),
+            "avg_reps_deviation": round(avg_reps_diff, 1),
+            "weight_precision_rate": round(weight_precision, 2),
+            "reps_precision_rate": round(reps_precision, 2),
+            "overall_follow_rate": round(len([d for d in accuracy_data if d["followed_weight"]]) / len(accuracy_data), 2) if accuracy_data else 0
+        }
+    }
+
+
+@app.get("/api/users/{user_id}/stats/ml-exercise-patterns")
+def get_ml_exercise_patterns(user_id: int, days: int = 60, db: Session = Depends(get_db)):
+    """Patterns d'utilisation ML par exercice"""
+    cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
+    
+    # Requête optimisée avec jointures
+    sets = db.query(WorkoutSet, Exercise.name).join(Workout).join(Exercise).filter(
+        Workout.user_id == user_id,
+        WorkoutSet.completed_at >= cutoff_date
+    ).all()
+    
+    if not sets:
+        return {"error": "Aucune donnée disponible"}
+    
+    # Grouper par exercice
+    exercise_patterns = {}
+    
+    for workout_set, exercise_name in sets:
+        if exercise_name not in exercise_patterns:
+            exercise_patterns[exercise_name] = {
+                "total_sets": 0,
+                "ml_sets": 0,
+                "avg_confidence": 0,
+                "confidence_values": [],
+                "follow_rate": 0,
+                "followed_count": 0,
+                "last_used": None,
+                "volume_progression": []
+            }
+        
+        pattern = exercise_patterns[exercise_name]
+        pattern["total_sets"] += 1
+        pattern["last_used"] = max(pattern["last_used"] or workout_set.completed_at, workout_set.completed_at)
+        
+        if workout_set.ml_confidence is not None:
+            pattern["ml_sets"] += 1
+            pattern["confidence_values"].append(workout_set.ml_confidence)
+        
+        if workout_set.user_followed_ml_weight or workout_set.user_followed_ml_reps:
+            pattern["followed_count"] += 1
+        
+        # Calculer le volume pour la progression
+        if workout_set.weight and workout_set.reps:
+            volume = workout_set.weight * workout_set.reps
+            pattern["volume_progression"].append({
+                "date": workout_set.completed_at.isoformat(),
+                "volume": volume,
+                "has_ml": workout_set.ml_confidence is not None
+            })
+    
+    # Finaliser les calculs
+    for exercise_name, pattern in exercise_patterns.items():
+        if pattern["confidence_values"]:
+            pattern["avg_confidence"] = sum(pattern["confidence_values"]) / len(pattern["confidence_values"])
+        
+        if pattern["ml_sets"] > 0:
+            pattern["follow_rate"] = pattern["followed_count"] / pattern["ml_sets"]
+        
+        pattern["ml_adoption_rate"] = pattern["ml_sets"] / pattern["total_sets"]
+        
+        # Nettoyer pour la sérialisation
+        del pattern["confidence_values"]
+        pattern["last_used"] = pattern["last_used"].isoformat() if pattern["last_used"] else None
+    
+    # Trier par utilisation ML
+    sorted_patterns = sorted(
+        [(name, data) for name, data in exercise_patterns.items()],
+        key=lambda x: x[1]["ml_adoption_rate"],
+        reverse=True
+    )
+    
+    return {
+        "exercise_patterns": dict(sorted_patterns[:15]),  # Top 15
+        "summary": {
+            "total_exercises": len(exercise_patterns),
+            "avg_ml_adoption": round(sum(p["ml_adoption_rate"] for p in exercise_patterns.values()) / len(exercise_patterns), 2),
+            "most_ml_friendly": sorted_patterns[0][0] if sorted_patterns else None,
+            "total_ml_sets": sum(p["ml_sets"] for p in exercise_patterns.values())
+        }
+    }
+
+
+# ===== / ENDPOINTS ML ANALYTICS (fin) =====
+
+
 # Helper function à ajouter
 def get_muscles_for_group(muscle_group: str) -> List[str]:
     """Retourne les muscles spécifiques d'un groupe musculaire"""

@@ -1348,7 +1348,7 @@ async function loadDashboard() {
         const stats = await apiGet(`/api/users/${currentUser.id}/stats`);
         
         document.getElementById('totalWorkouts').textContent = stats.total_workouts;
-        document.getElementById('totalVolume').textContent = `${stats.total_volume_kg}kg`;
+        document.getElementById('totalVolume').textContent = `${(stats.total_volume_kg / 1000).toFixed(1)}t`;
         document.getElementById('lastWorkout').textContent = 
             stats.last_workout_date ? new Date(stats.last_workout_date).toLocaleDateString() : '-';
         
@@ -4670,7 +4670,7 @@ async function loadStats() {
         document.getElementById('totalWorkouts').textContent = stats.total_workouts;
         document.getElementById('totalVolume').textContent = `${stats.total_volume_kg}kg`;
         document.getElementById('lastWorkout').textContent = 
-            stats.last_workout_date ? new Date(stats.last_workout_date).toLocaleDateString() : '-';
+            stats.last_workout_date ? `Il y a ${Math.floor((new Date() - new Date(stats.last_workout_date)) / (1000 * 60 * 60 * 24))} jours` : '-';
         
         // Initialiser les graphiques
         if (typeof window.initStatsCharts === 'function') {

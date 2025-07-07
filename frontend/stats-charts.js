@@ -932,47 +932,155 @@ async function loadMuscleBalanceChart(userId) {
     }
 }
 
-// ===== GRAPHIQUE 14: CONFIANCE ML =====
-async function loadMLConfidenceChart(userId) {
+// ===== NOUVEAU ML ANALYTICS - À REMPLACER dans frontend/stats-charts.js =====
+
+// Variables globales pour les charts ML
+let mlCharts = {};
+
+// ===== DASHBOARD PRINCIPAL ML =====
+async function loadMLDashboard(userId) {
     try {
-        const data = await window.apiGet(`/api/users/${userId}/stats/ml-confidence`);
+        const data = await window.apiGet(`/api/users/${userId}/stats/ml-insights`);
         
-        if (!data.data || data.data.length === 0) {
-            document.getElementById('mlStats').innerHTML = 
-                '<p class="text-muted">Pas encore de données ML</p>';
+        if (data.error) {
+            document.getElementById('mlStats').innerHTML = `
+                <div class="ml-dashboard-empty">
+                    <div class="empty-icon">🤖</div>
+                    <h4>Pas encore de données ML</h4>
+                    <p>Commencez à utiliser les recommandations ML pendant vos séances pour voir des insights apparaître ici.</p>
+                </div>
+            `;
+            return;
+        }
+        
+        const { overview, ml_performance, recent_activity } = data;
+        
+        // Dashboard principal avec métriques
+        const dashboardHTML = `
+            <div class="ml-dashboard">
+                <div class="ml-metrics-grid">
+                    <div class="metric-card primary">
+                        <div class="metric-icon">🎯</div>
+                        <div class="metric-content">
+                            <div class="metric-value">${Math.round(ml_performance.avg_confidence * 100)}%</div>
+                            <div class="metric-label">Confiance moyenne</div>
+                            <div class="metric-trend ${ml_performance.confidence_trend}">
+                                ${ml_performance.confidence_trend === 'improving' ? '📈 En amélioration' : 
+                                  ml_performance.confidence_trend === 'declining' ? '📉 En baisse' : '➡️ Stable'}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-card success">
+                        <div class="metric-icon">✅</div>
+                        <div class="metric-content">
+                            <div class="metric-value">${Math.round(ml_performance.follow_rate_weight * 100)}%</div>
+                            <div class="metric-label">Suivi des poids</div>
+                            <div class="metric-detail">${ml_performance.sets_with_recommendations} recommandations</div>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-card info">
+                        <div class="metric-icon">📊</div>
+                        <div class="metric-content">
+                            <div class="metric-value">${Math.round(overview.ml_adoption_rate * 100)}%</div>
+                            <div class="metric-label">Adoption ML</div>
+                            <div class="metric-detail">${overview.ml_active_sessions}/${overview.total_sessions} séances</div>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-card warning">
+                        <div class="metric-icon">🔬</div>
+                        <div class="metric-content">
+                            <div class="metric-value">${Math.round(overview.data_quality_score * 100)}%</div>
+                            <div class="metric-label">Qualité données</div>
+                            <div class="metric-detail">Fatigue: ${overview.avg_fatigue}/5, Effort: ${overview.avg_effort}/5</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="ml-activity-summary">
+                    <h5>🔥 Activité récente</h5>
+                    <div class="activity-bars">
+                        <div class="activity-bar">
+                            <span class="activity-label">7 derniers jours</span>
+                            <div class="activity-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${Math.min(100, (recent_activity.ml_active_last_7 / recent_activity.last_7_days) * 100)}%"></div>
+                                </div>
+                                <span class="progress-text">${recent_activity.ml_active_last_7}/${recent_activity.last_7_days} séries ML</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('mlStats').innerHTML = dashboardHTML;
+        
+    } catch (error) {
+        console.error('Erreur chargement ML dashboard:', error);
+        document.getElementById('mlStats').innerHTML = `
+            <div class="error-state">
+                <span class="error-icon">⚠️</span>
+                <span>Erreur de chargement des données ML</span>
+            </div>
+        `;
+    }
+}
+
+// ===== GRAPHIQUE DE PRÉCISION DES RECOMMANDATIONS =====
+async function loadMLAccuracyChart(userId) {
+    try {
+        const data = await window.apiGet(`/api/users/${userId}/stats/ml-recommendations-accuracy`);
+        
+        if (data.error) {
+            document.getElementById('mlConfidenceChart').parentElement.innerHTML = `
+                <div class="chart-placeholder">
+                    <div class="placeholder-icon">📈</div>
+                    <h4>Analyse de précision</h4>
+                    <p>Utilisez les recommandations ML pour voir l'analyse de précision apparaître ici.</p>
+                </div>
+            `;
             return;
         }
         
         const ctx = document.getElementById('mlConfidenceChart').getContext('2d');
         
         // Détruire le chart existant
-        if (charts.mlConfidence) {
-            charts.mlConfidence.destroy();
+        if (mlCharts.accuracy) {
+            mlCharts.accuracy.destroy();
         }
         
-        // Préparer les données
-        const labels = data.data.map(d => new Date(d.date).toLocaleDateString());
-        const confidenceData = data.data.map(d => d.confidence * 100);
-        const successData = data.data.map(d => d.success ? 100 : 0);
+        // Préparer les données pour le graphique
+        const timelineData = data.accuracy_timeline;
+        const labels = timelineData.map(d => new Date(d.date).toLocaleDateString());
         
-        charts.mlConfidence = new window.Chart(ctx, {
+        mlCharts.accuracy = new window.Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Confiance ML (%)',
-                    data: confidenceData,
-                    borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    tension: 0.2,
+                    label: 'Écart poids (kg)',
+                    data: timelineData.map(d => d.weight_diff),
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    tension: 0.3,
                     yAxisID: 'y'
                 }, {
-                    label: 'Taux de réussite',
-                    data: successData,
-                    borderColor: '#10b981',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    stepped: true,
+                    label: 'Écart reps',
+                    data: timelineData.map(d => d.reps_diff),
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    tension: 0.3,
                     yAxisID: 'y1'
+                }, {
+                    label: 'Confiance ML (%)',
+                    data: timelineData.map(d => d.confidence * 100),
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    tension: 0.3,
+                    yAxisID: 'y2'
                 }]
             },
             options: {
@@ -985,132 +1093,287 @@ async function loadMLConfidenceChart(userId) {
                 scales: {
                     y: {
                         beginAtZero: true,
-                        max: 100,
+                        position: 'left',
                         title: {
                             display: true,
-                            text: 'Confiance (%)'
+                            text: 'Écart poids (kg)'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
                         }
                     },
                     y1: {
-                        display: false,
                         beginAtZero: true,
-                        max: 100
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Écart reps'
+                        },
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y2: {
+                        beginAtZero: true,
+                        max: 100,
+                        display: false
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            afterBody: function(context) {
+                                const index = context[0].dataIndex;
+                                const item = timelineData[index];
+                                return [
+                                    `Suggéré: ${item.weight_suggested}kg, ${item.reps_suggested} reps`,
+                                    `Réalisé: ${item.weight_actual}kg, ${item.reps_actual} reps`,
+                                    `Suivi: ${item.followed_weight ? '✅' : '❌'} poids, ${item.followed_reps ? '✅' : '❌'} reps`
+                                ];
+                            }
+                        }
                     }
                 }
             }
         });
         
-        // Afficher les stats
-        const trendIcon = {
-            'improving': '📈',
-            'stable': '➡️',
-            'declining': '📉'
-        }[data.trend] || '➡️';
-        
-        document.getElementById('mlStats').innerHTML = `
-            <div class="ml-stats-grid">
-                <div class="ml-stat">
-                    <span class="stat-label">Confiance moyenne</span>
-                    <span class="stat-value">${Math.round(data.averageConfidence * 100)}%</span>
+        // Afficher les métriques de précision
+        const metricsHTML = `
+            <div class="accuracy-metrics">
+                <div class="accuracy-metric">
+                    <span class="metric-label">Précision poids</span>
+                    <span class="metric-value ${data.metrics.weight_precision_rate > 0.7 ? 'good' : data.metrics.weight_precision_rate > 0.5 ? 'medium' : 'poor'}">
+                        ${Math.round(data.metrics.weight_precision_rate * 100)}%
+                    </span>
                 </div>
-                <div class="ml-stat">
-                    <span class="stat-label">Taux de suivi</span>
-                    <span class="stat-value">${Math.round(data.followRate * 100)}%</span>
+                <div class="accuracy-metric">
+                    <span class="metric-label">Précision reps</span>
+                    <span class="metric-value ${data.metrics.reps_precision_rate > 0.8 ? 'good' : data.metrics.reps_precision_rate > 0.6 ? 'medium' : 'poor'}">
+                        ${Math.round(data.metrics.reps_precision_rate * 100)}%
+                    </span>
                 </div>
-                <div class="ml-stat">
-                    <span class="stat-label">Tendance</span>
-                    <span class="stat-value">${trendIcon} ${data.trend}</span>
+                <div class="accuracy-metric">
+                    <span class="metric-label">Écart moyen</span>
+                    <span class="metric-value">±${data.metrics.avg_weight_deviation}kg</span>
+                </div>
+                <div class="accuracy-metric">
+                    <span class="metric-label">Taux de suivi</span>
+                    <span class="metric-value">${Math.round(data.metrics.overall_follow_rate * 100)}%</span>
                 </div>
             </div>
         `;
         
+        // Insérer après le canvas
+        const chartContainer = document.getElementById('mlConfidenceChart').parentElement;
+        const existingMetrics = chartContainer.querySelector('.accuracy-metrics');
+        if (existingMetrics) {
+            existingMetrics.remove();
+        }
+        chartContainer.insertAdjacentHTML('beforeend', metricsHTML);
+        
     } catch (error) {
-        console.error('Erreur chargement confiance ML:', error);
+        console.error('Erreur chargement précision ML:', error);
     }
 }
 
-// ===== GRAPHIQUE 15: SANKEY AJUSTEMENTS ML =====
-async function loadMLSankeyDiagram(userId) {
+// ===== ANALYSE DE PROGRESSION ML vs TRADITIONNEL =====
+
+async function loadMLProgressionAnalysis(userId) {
+    // ✅ DÉCLARATION EXPLICITE du container en premier
+    const container = document.getElementById('mlSankeyDiagram');
+    
+    if (!container) {
+        console.error('Element mlSankeyDiagram non trouvé');
+        return;
+    }
+    
     try {
-        const data = await window.apiGet(`/api/users/${userId}/stats/ml-adjustments-flow`);
+        const data = await window.apiGet(`/api/users/${userId}/stats/ml-progression`);
         
-        const container = document.getElementById('mlSankeyDiagram');
-        
-        if (!data.links || data.links.length === 0) {
-            container.innerHTML = '<p class="text-muted">Pas assez de données pour le diagramme</p>';
+        if (data.error || !data.exercises || data.exercises.length === 0) {
+            container.innerHTML = `
+                <div class="chart-placeholder">
+                    <div class="placeholder-icon">📊</div>
+                    <h4>Analyse de progression</h4>
+                    <p>Effectuez plus de séances avec et sans ML pour voir l'analyse comparative.</p>
+                </div>
+            `;
             return;
         }
         
-        // Dimensions
-        const width = container.offsetWidth;
-        const height = 400;
-        const margin = { top: 10, right: 10, bottom: 10, left: 10 };
+        // Créer le tableau de comparaison
+        let progressionHTML = `
+            <div class="progression-analysis">
+                <div class="progression-summary">
+                    <h4>📈 Impact du ML sur vos performances</h4>
+                    <div class="summary-stats">
+                        <div class="summary-stat">
+                            <span class="stat-value ${data.summary.avg_improvement > 1.1 ? 'positive' : data.summary.avg_improvement < 0.9 ? 'negative' : 'neutral'}">
+                                ${data.summary.avg_improvement > 1 ? '+' : ''}${Math.round((data.summary.avg_improvement - 1) * 100)}%
+                            </span>
+                            <span class="stat-label">Amélioration moyenne</span>
+                        </div>
+                        <div class="summary-stat">
+                            <span class="stat-value">${data.summary.total_analyzed}</span>
+                            <span class="stat-label">Exercices analysés</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="progression-table">
+                    <div class="table-header">
+                        <div class="col-exercise">Exercice</div>
+                        <div class="col-sessions">Séances</div>
+                        <div class="col-volume">Volume moyen</div>
+                        <div class="col-improvement">Impact ML</div>
+                    </div>
+        `;
         
-        // Nettoyer le container
-        window.d3.select(container).selectAll("*").remove();
-        
-        const svg = window.d3.select(container)
-            .append("svg")
-            .attr("width", width)
-            .attr("height", height);
-        
-        const sankey = window.d3.sankey()
-            .nodeWidth(15)
-            .nodePadding(10)
-            .extent([[margin.left, margin.top], [width - margin.right, height - margin.bottom]]);
-        
-        const { nodes, links } = sankey({
-            nodes: data.nodes.map(d => Object.assign({}, d)),
-            links: data.links.map(d => Object.assign({}, d))
+        data.exercises.forEach(exercise => {
+            const improvementClass = exercise.improvement_ratio > 1.1 ? 'positive' : 
+                                   exercise.improvement_ratio < 0.9 ? 'negative' : 'neutral';
+            const improvementText = exercise.improvement_ratio > 1 ? 
+                `+${Math.round((exercise.improvement_ratio - 1) * 100)}%` : 
+                `${Math.round((exercise.improvement_ratio - 1) * 100)}%`;
+            
+            progressionHTML += `
+                <div class="table-row">
+                    <div class="col-exercise">
+                        <strong>${exercise.exercise_name}</strong>
+                    </div>
+                    <div class="col-sessions">
+                        <span class="session-split">
+                            <span class="ml-sessions">${exercise.ml_sessions} ML</span>
+                            <span class="traditional-sessions">${exercise.traditional_sessions} normal</span>
+                        </span>
+                    </div>
+                    <div class="col-volume">
+                        <div class="volume-comparison">
+                            <div class="volume-bar">
+                                <div class="volume-ml" style="width: ${Math.min(100, (exercise.ml_avg_volume / Math.max(exercise.ml_avg_volume, exercise.traditional_avg_volume)) * 100)}%">
+                                    ${Math.round(exercise.ml_avg_volume)}
+                                </div>
+                            </div>
+                            <div class="volume-bar">
+                                <div class="volume-traditional" style="width: ${Math.min(100, (exercise.traditional_avg_volume / Math.max(exercise.ml_avg_volume, exercise.traditional_avg_volume)) * 100)}%">
+                                    ${Math.round(exercise.traditional_avg_volume)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-improvement">
+                        <span class="improvement-badge ${improvementClass}">
+                            ${improvementText}
+                        </span>
+                    </div>
+                </div>
+            `;
         });
         
-        // Créer les liens
-        svg.append("g")
-            .selectAll("path")
-            .data(links)
-            .join("path")
-            .attr("d", window.d3.sankeyLinkHorizontal())
-            .attr("stroke", d => {
-                if (d.target.name === "Succès") return "var(--success)";
-                if (d.target.name === "Échec") return "var(--danger)";
-                return "var(--primary)";
-            })
-            .attr("stroke-width", d => Math.max(1, d.width))
-            .attr("fill", "none")
-            .attr("opacity", 0.5);
+        progressionHTML += `
+                </div>
+            </div>
+        `;
         
-        // Créer les noeuds
-        svg.append("g")
-            .selectAll("rect")
-            .data(nodes)
-            .join("rect")
-            .attr("x", d => d.x0)
-            .attr("y", d => d.y0)
-            .attr("height", d => d.y1 - d.y0)
-            .attr("width", d => d.x1 - d.x0)
-            .attr("fill", d => {
-                if (d.name === "Succès") return "var(--success)";
-                if (d.name === "Échec") return "var(--danger)";
-                if (d.name.includes("Modifiées")) return "var(--warning)";
-                return "var(--primary)";
-            });
-        
-        // Ajouter les labels
-        svg.append("g")
-            .selectAll("text")
-            .data(nodes)
-            .join("text")
-            .attr("x", d => d.x0 < width / 2 ? d.x1 + 6 : d.x0 - 6)
-            .attr("y", d => (d.y1 + d.y0) / 2)
-            .attr("dy", "0.35em")
-            .attr("text-anchor", d => d.x0 < width / 2 ? "start" : "end")
-            .style("fill", "var(--text)")
-            .style("font-size", "12px")
-            .text(d => d.name);
+        container.innerHTML = progressionHTML;
         
     } catch (error) {
-        console.error('Erreur chargement Sankey:', error);
+        console.error('Erreur chargement progression ML:', error);
+        container.innerHTML = `
+            <div class="error-state">
+                <span class="error-icon">⚠️</span>
+                <span>Erreur de chargement de l'analyse de progression</span>
+            </div>
+        `;
     }
+}
+
+// ===== PATTERNS PAR EXERCICE =====
+async function loadMLExercisePatterns(userId) {
+    try {
+        const data = await window.apiGet(`/api/users/${userId}/stats/ml-exercise-patterns`);
+        
+        if (data.error) {
+            return; // Pas d'affichage si pas de données
+        }
+        
+        const patterns = Object.entries(data.exercise_patterns)
+            .sort(([,a], [,b]) => b.ml_adoption_rate - a.ml_adoption_rate)
+            .slice(0, 8); // Top 8
+        
+        let patternsHTML = `
+            <div class="exercise-patterns">
+                <h5>🎯 Utilisation ML par exercice</h5>
+                <div class="patterns-grid">
+        `;
+        
+        patterns.forEach(([exerciseName, pattern]) => {
+            const adoptionPercent = Math.round(pattern.ml_adoption_rate * 100);
+            const confidencePercent = Math.round(pattern.avg_confidence * 100);
+            
+            patternsHTML += `
+                <div class="pattern-card">
+                    <div class="pattern-header">
+                        <h6>${exerciseName}</h6>
+                        <span class="adoption-badge ${adoptionPercent > 50 ? 'high' : adoptionPercent > 20 ? 'medium' : 'low'}">
+                            ${adoptionPercent}% ML
+                        </span>
+                    </div>
+                    <div class="pattern-stats">
+                        <div class="pattern-stat">
+                            <span class="stat-label">Séries totales</span>
+                            <span class="stat-value">${pattern.total_sets}</span>
+                        </div>
+                        <div class="pattern-stat">
+                            <span class="stat-label">Confiance moy.</span>
+                            <span class="stat-value">${confidencePercent}%</span>
+                        </div>
+                    </div>
+                    <div class="pattern-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${adoptionPercent}%"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        patternsHTML += `
+                </div>
+                <div class="patterns-summary">
+                    <p>💡 <strong>${data.summary.most_ml_friendly}</strong> est votre exercice le plus adapté au ML</p>
+                </div>
+            </div>
+        `;
+        
+        // Ajouter après le dashboard principal
+        const mlStatsDiv = document.getElementById('mlStats');
+        mlStatsDiv.insertAdjacentHTML('beforeend', patternsHTML);
+        
+    } catch (error) {
+        console.error('Erreur chargement patterns exercices:', error);
+    }
+}
+
+// ===== FONCTION PRINCIPALE D'INITIALISATION =====
+async function loadMLAnalytics(userId) {
+    // Charger tous les composants ML
+    await loadMLDashboard(userId);
+    await loadMLAccuracyChart(userId);
+    await loadMLProgressionAnalysis(userId);
+    await loadMLExercisePatterns(userId);
+}
+
+// ===== REMPLACER LES ANCIENNES FONCTIONS =====
+// Cette fonction remplace loadMLConfidenceChart
+async function loadMLConfidenceChart(userId) {
+    await loadMLAnalytics(userId);
+}
+
+// Cette fonction remplace loadMLSankeyDiagram  
+async function loadMLSankeyDiagram(userId) {
+    // Déjà géré dans loadMLAnalytics
+    return;
 }
 
 // ===== GRAPHIQUE PROFIL SÉANCES =====
