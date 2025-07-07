@@ -1,10 +1,6 @@
 // ===== frontend/stats-charts.js - GESTION DES GRAPHIQUES STATS =====
 
 // Import des couleurs musculaires
-// Utiliser les fonctions depuis window car muscle-colors.js les expose globalement
-const getMuscleColor = (muscle) => window.MuscleColors?.getMuscleColor?.(muscle) || '#94a3b8';
-const getMuscleBackground = (muscle, opacity) => window.MuscleColors?.getMuscleBackground?.(muscle, opacity) || `rgba(148, 163, 184, ${opacity || 0.15})`;
-// Ne pas redéclarer getChartColors - utiliser directement window.MuscleColors.getChartColors
 
 // Variables globales pour les charts
 let charts = {
@@ -17,9 +13,6 @@ let charts = {
 
 // Période actuelle pour le burndown
 let currentBurndownPeriod = 'week';
-
-// Référence à l'utilisateur courant
-let currentUser = null;
 
 // ===== INITIALISATION =====
 // Helper pour accès sécurisé aux couleurs musculaires
@@ -35,7 +28,7 @@ async function initStatsCharts(userId, user) {
     if (!userId) return;
     
     // Stocker la référence à l'utilisateur
-    currentUser = user || window.currentUser;
+    window.currentUser = user || window.currentUser;
     
     // Vérifier s'il y a des données
     const hasData = await checkUserHasData(userId);
@@ -71,7 +64,7 @@ function initStatsEventListeners() {
     // Sélecteur d'exercice
     document.getElementById('exerciseSelector').addEventListener('change', (e) => {
         if (e.target.value) {
-            loadProgressionChart(currentUser.id, e.target.value);
+            loadProgressionChart(window.currentUser.id, e.target.value);
         }
     });
     
@@ -81,7 +74,7 @@ function initStatsEventListeners() {
             currentBurndownPeriod = e.target.dataset.period;
             document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
-            loadVolumeBurndownChart(currentUser.id, currentBurndownPeriod);
+            loadVolumeBurndownChart(window.currentUser.id, currentBurndownPeriod);
         });
     });
 }
@@ -99,7 +92,7 @@ function switchTab(tabName) {
     });
     
     // Charger les graphiques du nouvel onglet
-    loadTabCharts(currentUser.id, tabName);
+    loadTabCharts(window.currentUser.id, tabName);
 }
 
 function loadActiveTabCharts(userId) {
@@ -486,7 +479,7 @@ async function loadAttendanceCalendar(userId) {
         cellsContainer.className = 'calendar-cells';
 
         // Obtenir la date de création du profil
-        const userCreatedDate = new Date(currentUser.created_at);
+        const userCreatedDate = new Date(window.currentUser.created_at);
 
         let currentMonth = -1;
         let monthStart = 0;
@@ -712,8 +705,8 @@ async function loadMuscleSunburst(userId) {
             .attr("d", arc)
             .style("fill", d => {
                 if (d.depth === 0) return "var(--bg-light)";
-                if (d.depth === 1) return getMuscleColor(d.data.name);
-                return getMuscleColor(d.data.name, false) + "CC";
+                if (d.depth === 1) return window.MuscleColors?.getMuscleColor(d.data.name);
+                return window.MuscleColors?.getMuscleColor(d.data.name, false) + "CC";
             })
             .style("stroke", "var(--bg)")
             .style("stroke-width", 2)
@@ -786,7 +779,7 @@ async function loadRecoveryGantt(userId) {
             const ganttBar = document.createElement('div');
             ganttBar.className = 'gantt-row';
             
-            const muscleColor = getMuscleColor(muscle);
+            const muscleColor = window.MuscleColors?.getMuscleColor(muscle);
             const statusIcon = {
                 'fresh': '✨',
                 'recovered': '💪',
@@ -803,7 +796,7 @@ async function loadRecoveryGantt(userId) {
                         width: ${recovery.recoveryPercent}%;
                         background: linear-gradient(to right, 
                             ${muscleColor}, 
-                            ${getMuscleBackground(muscle, 0.3)}
+                            ${window.MuscleColors?.getMuscleBackground(muscle, 0.3)}
                         );
                     ">
                         <span class="gantt-percent">${recovery.recoveryPercent}%</span>
@@ -839,8 +832,8 @@ async function loadMuscleBalanceChart(userId) {
         }
         
         // Couleurs par muscle
-        const backgroundColors = data.muscles.map(m => getMuscleBackground(m, 0.3));
-        const borderColors = data.muscles.map(m => getMuscleColor(m));
+        const backgroundColors = data.muscles.map(m => window.MuscleColors?.getMuscleBackground(m, 0.3));
+        const borderColors = data.muscles.map(m => window.MuscleColors?.getMuscleColor(m));
         
         charts.muscleBalance = new window.Chart(ctx, {
             type: 'radar',
