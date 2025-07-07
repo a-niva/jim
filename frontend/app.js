@@ -1674,7 +1674,7 @@ function updateExecuteButtonState(state = 'ready') {
             
         case 'isometric-start':
             executeBtn.classList.add('btn-success');
-            executeBtn.innerHTML = '▶️';
+            executeBtn.innerHTML = '✅';
             executeBtn.onclick = () => handleIsometricAction();
             break;
             
@@ -3873,7 +3873,7 @@ function configureIsometric(elements, recommendations) {
     if (executeBtn) {
         executeBtn.style.display = 'block';
         const emoji = executeBtn.querySelector('.go-emoji');
-        if (emoji) emoji.textContent = '▶️';  // Utiliser textContent au lieu de innerHTML
+        if (emoji) emoji.textContent = '✅';  // Utiliser textContent au lieu de innerHTML
         executeBtn.setAttribute('data-isometric-mode', 'start');
         executeBtn.classList.remove('btn-danger');
         executeBtn.classList.add('btn-success');
@@ -4644,9 +4644,9 @@ async function loadStats() {
         document.getElementById('lastWorkout').textContent = 
             stats.last_workout_date ? new Date(stats.last_workout_date).toLocaleDateString() : '-';
         
-        // NOUVEAU: Initialiser les graphiques
-        if (typeof initStatsCharts === 'function') {
-            await initStatsCharts(currentUser.id, currentUser);
+        // Initialiser les graphiques
+        if (typeof window.initStatsCharts === 'function') {
+            await window.initStatsCharts(currentUser.id, currentUser);
         }
         
     } catch (error) {
