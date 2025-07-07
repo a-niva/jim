@@ -560,6 +560,15 @@ function showView(viewName) {
     }
     if (['dashboard', 'stats', 'profile', 'home'].includes(viewName)) {
         document.getElementById('bottomNav').style.display = 'flex';
+        
+        // Double vérification après un court délai
+        setTimeout(() => {
+            const nav = document.getElementById('bottomNav');
+            if (nav && nav.style.display !== 'flex') {
+                nav.style.display = 'flex';
+                console.log('Navigation forcée à s\'afficher');
+            }
+        }, 50);
     }
 
     switch (viewName) {
@@ -588,6 +597,11 @@ function showMainInterface() {
     }
     
     showView('dashboard');
+
+    // Forcer l'affichage de la navigation après un court délai
+    setTimeout(() => {
+        document.getElementById('bottomNav').style.display = 'flex';
+    }, 100);
 }
 
 function showOnboarding() {
@@ -1292,7 +1306,13 @@ function collectEquipmentConfig() {
 // ===== DASHBOARD =====
 
 async function loadDashboard() {
-    if (!currentUser) return;
+    if (!currentUser) {
+        console.error('loadDashboard: currentUser non défini');
+        return;
+    }
+    
+    // S'assurer que la navigation est visible sur le dashboard
+    document.getElementById('bottomNav').style.display = 'flex';
     
     // Supprimer toute bannière existante d'abord
     const existingBanner = document.querySelector('.workout-resume-banner');
