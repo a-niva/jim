@@ -219,7 +219,7 @@ function getMuscleClass(muscleOrGroup, type = 'color') {
  * @returns {Object} Configuration Chart.js
  */
 function getVolumeChartConfig() {
-    const colors = getChartColors();
+    const colors = window.MuscleColors?.getChartColors?.() || {};
     
     return {
         backgroundColor: Object.values(colors),
