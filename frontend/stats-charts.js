@@ -1,3 +1,6 @@
+(function() {
+'use strict';
+
 // ===== frontend/stats-charts.js - GESTION DES GRAPHIQUES STATS =====
 
 // Import des couleurs musculaires
@@ -1374,3 +1377,5 @@ function getSessionCategory(charge, ratio, medians) {
 
 // Export des fonctions pour app.js
 window.initStatsCharts = initStatsCharts;
+
+})(); // Fin de l'IIFE - TRÈS IMPORTANT
