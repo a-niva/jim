@@ -82,6 +82,7 @@ body {
     margin: 0 auto;
     padding: 80px 1rem 80px;
     min-height: 100vh;
+    overflow: visible;
 }
 
 .bottom-nav {
@@ -147,7 +148,6 @@ body {
 .onboarding.active {
     display: block;
     width: 100%;  /* AJOUTER */
-    min-height: calc(100vh - 160px);  /* AJOUTER */
 }
 
 .onboarding-step {
