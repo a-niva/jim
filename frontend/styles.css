@@ -145,6 +145,7 @@ body {
 .view.active,
 .onboarding.active {
     display: block;
+    min-height: calc(100vh - 160px);
 }
 
 .onboarding-step {
