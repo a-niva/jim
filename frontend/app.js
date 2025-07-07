@@ -602,11 +602,11 @@ function showOnboarding() {
     loadEquipmentStep();
 }
 
-function showHomePage() {  // ← SUPPRIMER PARAMÈTRE
+function showHomePage() {  // ← SUPPRIMER LE PARAMÈTRE
     // Masquer tout
     document.getElementById('onboarding').classList.remove('active');
     document.getElementById('progressContainer').style.display = 'none';
-    document.getElementById('bottomNav').style.display = 'none';  // ← SIMPLIFIER
+    document.getElementById('bottomNav').style.display = 'none';
     document.getElementById('userInitial').style.display = 'none';
     
     // Masquer toutes les vues
