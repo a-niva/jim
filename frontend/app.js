@@ -4200,60 +4200,6 @@ function applyDefaultValues(exercise) {
     }
 }
 
-async function completeSet(setNumber) {
-    const reps = document.getElementById('setReps').value;
-    const weight = document.getElementById('setWeight').value;
-    
-    if (!reps) {
-        showToast('Veuillez indiquer le nombre de répétitions', 'error');
-        return;
-    }
-    
-    try {
-        const setData = {
-            exercise_id: currentExercise.id,
-            set_number: setNumber,
-            reps: parseInt(reps),
-            weight: (currentExercise.weight_type === 'bodyweight') ? null : (weight ? parseFloat(weight) : null),
-            reps: parseInt(reps),
-            weight: weight ? parseFloat(weight) : null,
-            base_rest_time_seconds: currentExercise.base_rest_time_seconds || 90,
-            fatigue_level: currentWorkoutSession.sessionFatigue,
-            exercise_order_in_session: currentWorkoutSession.exerciseOrder,
-            set_order_in_session: currentWorkoutSession.globalSetCount + 1
-        };
-        
-        // Enregistrer la série
-        const savedSet = await apiPost(`/api/workouts/${currentWorkout.id}/sets`, setData);
-        
-        // Ajouter aux séries complétées avec l'ID retourné
-        const setWithId = { ...setData, id: savedSet.id };
-        currentWorkoutSession.completedSets.push(setWithId);
-        currentWorkoutSession.globalSetCount++;
-        
-        // AJOUT PHASE 2.2 : Enregistrer l'acceptation de la recommandation ML
-        if (workoutState.currentRecommendation && currentWorkoutSession.mlHistory?.[currentExercise.id]) {
-            const weightFollowed = Math.abs(setData.weight - workoutState.currentRecommendation.weight_recommendation) < 0.5;
-            const repsFollowed = Math.abs(setData.reps - workoutState.currentRecommendation.reps_recommendation) <= 1;
-            const accepted = weightFollowed && repsFollowed;
-            
-            recordMLDecision(currentExercise.id, currentSet, accepted);
-        }
-        
-        // Mettre à jour l'historique visuel
-        updateSetsHistory();
-        
-        showToast(`Série ${setNumber} enregistrée !`, 'success');
-        
-        // Démarrer la période de repos
-        startRestPeriod(currentExercise.base_rest_time_seconds);
-        
-    } catch (error) {
-        console.error('Erreur enregistrement série:', error);
-        showToast('Erreur lors de l\'enregistrement', 'error');
-    }
-}
-
 function updateSetsHistory() {
     const container = document.getElementById('setsHistory');
     if (!container) return;
@@ -6513,7 +6459,7 @@ function selectEffort(button, value) {
 function checkAutoValidation() {
     if (currentWorkoutSession.currentSetFatigue && currentWorkoutSession.currentSetEffort) {
         setTimeout(() => {
-            validateAndStartRest(); // CHANGER ICI - était saveFeedbackAndRest()
+            saveFeedbackAndRest(); // CHANGER ICI - était saveFeedbackAndRest()
         }, 300);
     }
 }
@@ -6690,6 +6636,8 @@ async function validateAndStartRest() {
         return;
     }
     
+
+    
     // Compléter les données de la série
     const setData = {
         ...workoutState.pendingSetData,
@@ -6698,7 +6646,6 @@ async function validateAndStartRest() {
         fatigue_level: parseInt(fatigue),
         effort_level: parseInt(effort),
         base_rest_time_seconds: currentExercise.base_rest_time_seconds || 90,
-        // AJOUTER logique ML de completeSet()
         exercise_order_in_session: currentWorkoutSession.exerciseOrder,
         set_order_in_session: currentWorkoutSession.globalSetCount + 1
     };
@@ -6716,10 +6663,8 @@ async function validateAndStartRest() {
         currentWorkoutSession.completedSets.push(setData);
         currentWorkoutSession.globalSetCount++;
 
-        // TRANSFÉRER logique de completeSet()
         updateSetsHistory();
         
-        // TRANSFÉRER logique ML tracking de completeSet()
         if (workoutState.currentRecommendation && currentWorkoutSession.mlHistory?.[currentExercise.id]) {
             const weightFollowed = Math.abs(setData.weight - workoutState.currentRecommendation.weight_recommendation) < 0.5;
             const repsFollowed = Math.abs(setData.reps - workoutState.currentRecommendation.reps_recommendation) <= 1;
