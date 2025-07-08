@@ -4903,3 +4903,18 @@ input:checked + .toggle-slider:before {
         grid-template-columns: 1fr;
     }
 }
+
+.favorite-star.updating {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.favorite-star.is-favorite svg {
+    fill: #ffd700;
+    stroke: #ffd700;
+}
+
+.favorite-star:not(.is-favorite) svg {
+    fill: none;
+    stroke: var(--text-muted);
+}

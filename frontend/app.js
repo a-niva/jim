@@ -5100,47 +5100,62 @@ function filterExercises() {
 
 // Fonction pour toggle un favori
 async function toggleFavorite(exerciseId) {
-    if (!currentUser) return;
+    const starElement = document.querySelector(`[data-exercise-id="${exerciseId}"] .favorite-star`);
+    if (!starElement) return;
     
-    const isFavorite = userFavorites.includes(exerciseId);
+    // Prévenir les clics multiples
+    if (starElement.classList.contains('updating')) return;
+    starElement.classList.add('updating');
     
     try {
+        const isFavorite = starElement.classList.contains('is-favorite');
+        
         if (isFavorite) {
             // Retirer des favoris
             await apiDelete(`/api/users/${currentUser.id}/favorites/${exerciseId}`);
+            starElement.classList.remove('is-favorite');
             userFavorites = userFavorites.filter(id => id !== exerciseId);
-            showToast('Retiré des favoris', 'success');
+            currentUser.favorite_exercises = userFavorites;
+            showToast('Retiré des favoris', 'info');
         } else {
-            // Vérifier la limite
-            if (userFavorites.length >= 10) {
-                showToast('Limite de 10 favoris atteinte (10/10)', 'warning');
-                return;
-            }
-            
             // Ajouter aux favoris
-            const response = await apiPost(`/api/users/${currentUser.id}/favorites/${exerciseId}`);
-            userFavorites = response.favorites;
+            await apiPost(`/api/users/${currentUser.id}/favorites/${exerciseId}`);
+            starElement.classList.add('is-favorite');
+            userFavorites.push(exerciseId);
+            currentUser.favorite_exercises = userFavorites;
             showToast('Ajouté aux favoris', 'success');
         }
         
-        // Mettre à jour l'affichage
-        updateFavoriteDisplay(exerciseId);
+        // Mettre à jour le compteur de l'onglet favoris
+        updateFavoritesTabCount();
         
-        // Si on est sur l'onglet favoris, recharger
+        // Si on est sur l'onglet favoris, actualiser l'affichage
         const activeTab = document.querySelector('.muscle-tab.active');
         if (activeTab && activeTab.dataset.muscle === 'favoris') {
-            await loadAvailableExercises();
+            filterByMuscleGroup('favoris');
         }
         
-        // Mettre à jour currentUser pour cohérence
-        currentUser.favorite_exercises = userFavorites;
-        
     } catch (error) {
-        console.error('Erreur gestion favori:', error);
-        if (error.status === 400) {
-            showToast('Limite de 10 favoris atteinte (10/10)', 'warning');
+        console.error('Erreur toggle favori:', error);
+        showToast('Erreur lors de la mise à jour', 'error');
+    } finally {
+        starElement.classList.remove('updating');
+    }
+}
+
+function updateFavoritesTabCount() {
+    const favoritesTab = document.querySelector('.muscle-tab[data-muscle="favoris"]');
+    if (favoritesTab) {
+        const countElement = favoritesTab.querySelector('.tab-count');
+        if (countElement) {
+            countElement.textContent = userFavorites.length;
+        }
+        
+        // Masquer l'onglet favoris s'il n'y en a plus
+        if (userFavorites.length === 0) {
+            favoritesTab.style.display = 'none';
         } else {
-            showToast('Erreur lors de la modification', 'error');
+            favoritesTab.style.display = 'flex';
         }
     }
 }
@@ -5621,7 +5636,16 @@ async function loadAvailableExercises() {
     try {
         const exercises = await apiGet(`/api/exercises?user_id=${currentUser.id}`);
         
-        // Charger les favoris de l'utilisateur
+        // Charger les favoris depuis le backend si pas encore fait
+        if (!currentUser.favorite_exercises) {
+            try {
+                const favoritesResponse = await apiGet(`/api/users/${currentUser.id}/favorites`);
+                currentUser.favorite_exercises = favoritesResponse.favorites || [];
+            } catch (error) {
+                console.log('Aucun favori trouvé');
+                currentUser.favorite_exercises = [];
+            }
+        }
         userFavorites = currentUser.favorite_exercises || [];
         
         // Grouper les exercices par muscle
@@ -5822,34 +5846,35 @@ function searchExercises(searchTerm) {
 }
 
 // Fonction de filtrage par muscle
-// Fonction pour filtrer par groupe musculaire (y compris favoris)
-function filterByMuscleGroup(muscle) {
+function filterByMuscleGroup(selectedMuscle) {
     // Mettre à jour l'onglet actif
     document.querySelectorAll('.muscle-tab').forEach(tab => {
-        tab.classList.toggle('active', tab.dataset.muscle === muscle);
+        tab.classList.remove('active');
+    });
+    document.querySelector(`.muscle-tab[data-muscle="${selectedMuscle}"]`).classList.add('active');
+    
+    // Afficher/masquer les sections
+    const allSections = document.querySelectorAll('.muscle-group-section');
+    allSections.forEach(section => {
+        if (selectedMuscle === 'all') {
+            section.style.display = 'block';
+        } else {
+            section.style.display = section.dataset.muscle === selectedMuscle ? 'block' : 'none';
+        }
     });
     
-    // Filtrer les sections
-    const muscleGroups = document.querySelectorAll('.muscle-group-section');
-    
-    if (muscle === 'all') {
-        // Afficher toutes les sections
-        muscleGroups.forEach(group => {
-            group.style.display = 'block';
+    // Pour les favoris, afficher seulement les exercices favoris
+    if (selectedMuscle === 'favoris') {
+        const allCards = document.querySelectorAll('.free-exercise-card');
+        allCards.forEach(card => {
+            const exerciseId = parseInt(card.dataset.exerciseId);
+            const isFavorite = userFavorites.includes(exerciseId);
+            card.style.display = isFavorite ? 'block' : 'none';
         });
-    } else if (muscle === 'favoris') {
-        // Pour les favoris, masquer toutes les sections normales
-        muscleGroups.forEach(group => {
-            if (group.dataset.muscle === 'favoris') {
-                group.style.display = 'block';
-            } else {
-                group.style.display = 'none';
-            }
-        });
-    } else {
-        // Filtrer par muscle spécifique
-        muscleGroups.forEach(group => {
-            group.style.display = group.dataset.muscle === muscle ? 'block' : 'none';
+        
+        // Afficher toutes les sections mais filtrer les cartes
+        allSections.forEach(section => {
+            section.style.display = 'block';
         });
     }
 }
