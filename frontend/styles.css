@@ -4387,8 +4387,13 @@ input:checked + .toggle-slider:before {
 }
 
 .experience-option input[type="radio"] {
-    margin-right: var(--spacing-sm);
-    width: auto;
+    margin-right: 0.75rem;
+    width: 18px;
+    height: 18px;
+    pointer-events: auto;
+    position: relative;
+    z-index: 1;
+    cursor: pointer;
 }
 
 .experience-option input[type="radio"]:checked + span {
