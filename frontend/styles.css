@@ -4380,6 +4380,7 @@ input:checked + .toggle-slider:before {
     border-radius: var(--radius);
     cursor: pointer;
     transition: all 0.3s;
+    position: relative;
 }
 
 .experience-option:hover {
@@ -4387,13 +4388,45 @@ input:checked + .toggle-slider:before {
 }
 
 .experience-option input[type="radio"] {
-    margin-right: 0.75rem;
-    width: 18px;
-    height: 18px;
-    pointer-events: auto;
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.experience-option span {
     position: relative;
-    z-index: 1;
-    cursor: pointer;
+    padding-left: 35px;
+}
+
+.experience-option span::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border);
+    border-radius: 50%;
+    background: var(--bg-card);
+    transition: all 0.3s;
+}
+
+.experience-option input[type="radio"]:checked + span::before {
+    border-color: var(--primary);
+    background: var(--primary);
+}
+
+.experience-option input[type="radio"]:checked + span::after {
+    content: '✓';
+    position: absolute;
+    left: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
 }
 
 .experience-option input[type="radio"]:checked + span {
