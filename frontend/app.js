@@ -459,14 +459,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             currentUser = await apiGet(`/api/users/${savedUserId}`);
             
-            // AJOUT : Charger les favoris depuis le backend
-            try {
-                const favoritesResponse = await apiGet(`/api/users/${savedUserId}/favorites`);
-                currentUser.favorite_exercises = favoritesResponse.favorites || [];
-                console.log('Favoris chargés:', currentUser.favorite_exercises);
-            } catch (error) {
-                console.log('Aucun favori trouvé');
-                currentUser.favorite_exercises = [];
+            // Charger les favoris depuis le backend
+            if (!currentUser.favorite_exercises || currentUser.favorite_exercises.length === 0) {
+                try {
+                    const favoritesResponse = await apiGet(`/api/users/${savedUserId}/favorites`);
+                    currentUser.favorite_exercises = favoritesResponse.favorites || [];
+                    console.log('Favoris chargés depuis API:', currentUser.favorite_exercises);
+                } catch (error) {
+                    console.log('Aucun favori trouvé');
+                    currentUser.favorite_exercises = [];
+                }
+            } else {
+                console.log('Favoris déjà présents:', currentUser.favorite_exercises);
             }
             
             showMainInterface();
@@ -2194,6 +2198,16 @@ async function startFreeWorkout() {
         currentWorkout = response.workout;
         currentWorkoutSession.type = 'free';
         currentWorkoutSession.workout = response.workout;
+        
+        // Toujours resynchroniser les favoris (évite les états incohérents)
+        try {
+            const favoritesResponse = await apiGet(`/api/users/${currentUser.id}/favorites`);
+            currentUser.favorite_exercises = favoritesResponse.favorites || [];
+            console.log('✅ Favoris resynchronisés pour séance libre:', currentUser.favorite_exercises.length);
+        } catch (error) {
+            console.log('❌ Erreur sync favoris, utilisation cache:', error);
+            currentUser.favorite_exercises = currentUser.favorite_exercises || [];
+        }
         
         showView('workout');
         setupFreeWorkout();
@@ -5128,8 +5142,18 @@ async function toggleFavorite(exerciseId) {
             userFavorites = userFavorites.filter(id => id !== exerciseId);
             currentUser.favorite_exercises = userFavorites;
             showToast('Retiré des favoris', 'info');
+            
+            // AJOUT : Masquer immédiatement si on est sur le filtre favoris
+            const activeTab = document.querySelector('.muscle-tab.active');
+            if (activeTab && activeTab.dataset.muscle === 'favoris') {
+                const exerciseCard = document.querySelector(`[data-exercise-id="${exerciseId}"]`);
+                if (exerciseCard) {
+                    exerciseCard.style.display = 'none';
+                }
+            }
+            
         } else {
-            // AJOUT : Vérifier la limite de 10 favoris
+            // Vérifier la limite de 10 favoris
             if (userFavorites.length >= 10) {
                 showToast('Maximum 10 exercices favoris autorisés', 'warning');
                 return;
@@ -5141,16 +5165,19 @@ async function toggleFavorite(exerciseId) {
             userFavorites.push(exerciseId);
             currentUser.favorite_exercises = userFavorites;
             showToast(`Ajouté aux favoris (${userFavorites.length}/10)`, 'success');
+            
+            // AJOUT : Afficher immédiatement si on est sur le filtre favoris
+            const activeTab = document.querySelector('.muscle-tab.active');
+            if (activeTab && activeTab.dataset.muscle === 'favoris') {
+                const exerciseCard = document.querySelector(`[data-exercise-id="${exerciseId}"]`);
+                if (exerciseCard) {
+                    exerciseCard.style.display = 'block';
+                }
+            }
         }
         
         // Mettre à jour le compteur de l'onglet favoris
         updateFavoritesTabCount();
-        
-        // Si on est sur l'onglet favoris, actualiser l'affichage
-        const activeTab = document.querySelector('.muscle-tab.active');
-        if (activeTab && activeTab.dataset.muscle === 'favoris') {
-            filterByMuscleGroup('favoris');
-        }
         
     } catch (error) {
         console.error('Erreur toggle favori:', error);
@@ -5168,9 +5195,13 @@ function updateFavoritesTabCount() {
             countElement.textContent = userFavorites.length;
         }
         
-        // Masquer l'onglet favoris s'il n'y en a plus
+        // Afficher/masquer l'onglet selon le nombre de favoris
         if (userFavorites.length === 0) {
             favoritesTab.style.display = 'none';
+            // Si on était sur l'onglet favoris, basculer sur "Tous"
+            if (favoritesTab.classList.contains('active')) {
+                filterByMuscleGroup('all');
+            }
         } else {
             favoritesTab.style.display = 'flex';
         }
@@ -5653,17 +5684,17 @@ async function loadAvailableExercises() {
     try {
         const exercises = await apiGet(`/api/exercises?user_id=${currentUser.id}`);
         
-        // Charger les favoris depuis le backend si pas encore fait
-        if (!currentUser.favorite_exercises) {
+        // Charger les favoris de l'utilisateur - S'assurer qu'ils sont à jour
+        if (!currentUser.favorite_exercises || currentUser.favorite_exercises.length === 0) {
             try {
                 const favoritesResponse = await apiGet(`/api/users/${currentUser.id}/favorites`);
                 currentUser.favorite_exercises = favoritesResponse.favorites || [];
+                console.log('Favoris rechargés dans loadAvailableExercises:', currentUser.favorite_exercises);
             } catch (error) {
-                console.log('Aucun favori trouvé');
+                console.log('Erreur chargement favoris:', error);
                 currentUser.favorite_exercises = [];
             }
         }
-        // Charger les favoris de l'utilisateur
         userFavorites = currentUser.favorite_exercises || [];
         console.log('UserFavorites dans loadAvailableExercises:', userFavorites);
         
@@ -5869,31 +5900,58 @@ function filterByMuscleGroup(selectedMuscle) {
     document.querySelectorAll('.muscle-tab').forEach(tab => {
         tab.classList.remove('active');
     });
-    document.querySelector(`.muscle-tab[data-muscle="${selectedMuscle}"]`).classList.add('active');
+    
+    const targetTab = document.querySelector(`.muscle-tab[data-muscle="${selectedMuscle}"]`);
+    if (targetTab) {
+        targetTab.classList.add('active');
+    }
     
     // Afficher/masquer les sections
     const allSections = document.querySelectorAll('.muscle-group-section');
-    allSections.forEach(section => {
-        if (selectedMuscle === 'all') {
-            section.style.display = 'block';
-        } else {
-            section.style.display = section.dataset.muscle === selectedMuscle ? 'block' : 'none';
-        }
-    });
+    const allCards = document.querySelectorAll('.free-exercise-card');
     
-    // Pour les favoris, afficher seulement les exercices favoris
-    if (selectedMuscle === 'favoris') {
-        const allCards = document.querySelectorAll('.free-exercise-card');
+    if (selectedMuscle === 'all') {
+        // Afficher tout
+        allSections.forEach(section => section.style.display = 'block');
+        allCards.forEach(card => card.style.display = 'block');
+    } else if (selectedMuscle === 'favoris') {
+        // Afficher seulement les favoris
+        allSections.forEach(section => section.style.display = 'block');
         allCards.forEach(card => {
             const exerciseId = parseInt(card.dataset.exerciseId);
             const isFavorite = userFavorites.includes(exerciseId);
             card.style.display = isFavorite ? 'block' : 'none';
         });
         
-        // Afficher toutes les sections mais filtrer les cartes
+        // Masquer les sections qui n'ont aucun favori visible
         allSections.forEach(section => {
-            section.style.display = 'block';
+            const visibleCards = section.querySelectorAll('.free-exercise-card[style*="block"], .free-exercise-card:not([style*="none"])');
+            section.style.display = visibleCards.length > 0 ? 'block' : 'none';
         });
+        
+        // Afficher message si aucun favori
+        if (userFavorites.length === 0) {
+            showNoFavoritesMessage();
+        }
+    } else {
+        // Filtrer par muscle spécifique
+        allSections.forEach(section => {
+            section.style.display = section.dataset.muscle === selectedMuscle ? 'block' : 'none';
+        });
+        allCards.forEach(card => card.style.display = 'block');
+    }
+}
+
+function showNoFavoritesMessage() {
+    const resultsContainer = document.getElementById('exercisesResults');
+    if (resultsContainer && userFavorites.length === 0) {
+        resultsContainer.innerHTML = `
+            <div class="no-favorites-message">
+                <div class="no-favorites-icon">⭐</div>
+                <h3>Aucun exercice favori</h3>
+                <p>Cliquez sur l'étoile d'un exercice pour l'ajouter à vos favoris</p>
+            </div>
+        `;
     }
 }
 
