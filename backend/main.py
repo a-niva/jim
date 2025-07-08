@@ -364,27 +364,32 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "Profil supprimé avec succès"}
 
-@app.post("/api/users/{user_id}/favorites/{exercise_id}")
-def add_favorite(user_id: int, exercise_id: int, db: Session = Depends(get_db)):
-    """Ajouter un exercice aux favoris (limite 10)"""
+@app.get("/api/users/{user_id}/favorites")
+def get_user_favorites(user_id: int, db: Session = Depends(get_db)):
+    """Récupérer les exercices favoris d'un utilisateur"""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
     
-    exercise = db.query(Exercise).filter(Exercise.id == exercise_id).first()
-    if not exercise:
-        raise HTTPException(status_code=404, detail="Exercice non trouvé")
+    # Retourner les favoris depuis les métadonnées utilisateur
+    favorites = user.favorite_exercises if hasattr(user, 'favorite_exercises') else []
+    return {"favorites": favorites or []}
+
+@app.post("/api/users/{user_id}/favorites/{exercise_id}")
+def add_favorite(user_id: int, exercise_id: int, db: Session = Depends(get_db)):
+    """Ajouter un exercice aux favoris"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
     
-    if user.favorite_exercises is None:
+    if not hasattr(user, 'favorite_exercises') or user.favorite_exercises is None:
         user.favorite_exercises = []
     
-    if len(user.favorite_exercises) >= 10 and exercise_id not in user.favorite_exercises:
-        raise HTTPException(status_code=400, detail="Limite de 10 favoris atteinte")
-    
     if exercise_id not in user.favorite_exercises:
+        if len(user.favorite_exercises) >= 10:
+            raise HTTPException(status_code=400, detail="Maximum 10 favoris autorisés")
         user.favorite_exercises.append(exercise_id)
         db.commit()
-        db.refresh(user)
     
     return {"status": "success", "favorites": user.favorite_exercises}
 
@@ -395,12 +400,11 @@ def remove_favorite(user_id: int, exercise_id: int, db: Session = Depends(get_db
     if not user:
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
     
-    if user.favorite_exercises and exercise_id in user.favorite_exercises:
-        user.favorite_exercises.remove(exercise_id)
+    if hasattr(user, 'favorite_exercises') and user.favorite_exercises:
+        user.favorite_exercises = [fav for fav in user.favorite_exercises if fav != exercise_id]
         db.commit()
-        db.refresh(user)
     
-    return {"status": "success", "favorites": user.favorite_exercises}
+    return {"status": "success", "favorites": user.favorite_exercises or []}
 
 @app.delete("/api/users/{user_id}/history")
 def clear_user_history(user_id: int, db: Session = Depends(get_db)):

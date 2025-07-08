@@ -458,6 +458,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (savedUserId) {
         try {
             currentUser = await apiGet(`/api/users/${savedUserId}`);
+            
+            // AJOUT : Charger les favoris depuis le backend
+            try {
+                const favoritesResponse = await apiGet(`/api/users/${savedUserId}/favorites`);
+                currentUser.favorite_exercises = favoritesResponse.favorites || [];
+                console.log('Favoris chargés:', currentUser.favorite_exercises);
+            } catch (error) {
+                console.log('Aucun favori trouvé');
+                currentUser.favorite_exercises = [];
+            }
+            
             showMainInterface();
             
             // Exécuter l'action demandée si l'utilisateur est connecté
@@ -5118,12 +5129,18 @@ async function toggleFavorite(exerciseId) {
             currentUser.favorite_exercises = userFavorites;
             showToast('Retiré des favoris', 'info');
         } else {
+            // AJOUT : Vérifier la limite de 10 favoris
+            if (userFavorites.length >= 10) {
+                showToast('Maximum 10 exercices favoris autorisés', 'warning');
+                return;
+            }
+            
             // Ajouter aux favoris
             await apiPost(`/api/users/${currentUser.id}/favorites/${exerciseId}`);
             starElement.classList.add('is-favorite');
             userFavorites.push(exerciseId);
             currentUser.favorite_exercises = userFavorites;
-            showToast('Ajouté aux favoris', 'success');
+            showToast(`Ajouté aux favoris (${userFavorites.length}/10)`, 'success');
         }
         
         // Mettre à jour le compteur de l'onglet favoris
@@ -5646,7 +5663,9 @@ async function loadAvailableExercises() {
                 currentUser.favorite_exercises = [];
             }
         }
+        // Charger les favoris de l'utilisateur
         userFavorites = currentUser.favorite_exercises || [];
+        console.log('UserFavorites dans loadAvailableExercises:', userFavorites);
         
         // Grouper les exercices par muscle
         const exercisesByMuscle = {
@@ -5727,13 +5746,12 @@ async function loadAvailableExercises() {
                             <span class="tab-icon">💪</span>
                             <span>Tous</span>
                         </button>
-                        ${userFavorites.length > 0 ? `
-                            <button class="muscle-tab" data-muscle="favoris" onclick="filterByMuscleGroup('favoris')">
-                                <span class="tab-icon">⭐</span>
-                                <span>Favoris</span>
-                                <span class="tab-count">${exercisesByMuscle.favoris.length}</span>
-                            </button>
-                        ` : ''}
+                        <button class="muscle-tab" data-muscle="favoris" onclick="filterByMuscleGroup('favoris')" 
+                                style="${userFavorites.length === 0 ? 'display: none;' : ''}">
+                            <span class="tab-icon">⭐</span>
+                            <span>Favoris</span>
+                            <span class="tab-count">${exercisesByMuscle.favoris.length}</span>
+                        </button>
                         ${Object.entries(exercisesByMuscle)
                             .filter(([muscle, exercises]) => muscle !== 'favoris' && exercises.length > 0)
                             .map(([muscle, exercises]) => `
