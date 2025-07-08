@@ -4147,8 +4147,24 @@ async function configureWeighted(elements, recommendations) {
     const weightRec = recommendations.weight_recommendation || 20;
     const closestWeight = findClosestWeight(weightRec, availableWeights);
     
-    // Mettre à jour les valeurs de poids
-    if (elements.setWeight) elements.setWeight.textContent = closestWeight || weightRec;
+    // Mettre à jour les valeurs de poids avec clarification
+    if (elements.setWeight) {
+        const weight = closestWeight || weightRec;
+        let displayText = weight;
+        
+        // Clarifier selon le type d'équipement
+        if (currentExercise && currentExercise.equipment_required) {
+            if (currentExercise.equipment_required.includes('dumbbells')) {
+                displayText = `${weight}kg (2×${weight/2}kg)`;
+            } else if (currentExercise.equipment_required.includes('barbell')) {
+                displayText = `${weight}kg total`;
+            } else {
+                displayText = `${weight}kg`;
+            }
+        }
+        
+        elements.setWeight.textContent = displayText;
+    }
     if (elements.setWeight) {
         const oldValue = parseFloat(elements.setWeight.textContent);
         const newValue = closestWeight || weightRec;

@@ -72,7 +72,6 @@ class WeightCalculator:
             kb_weights = config['kettlebells'].get('weights', [])
             for weight in kb_weights:
                 weights.add(weight)      # Unitaire (exercices à une main)
-                weights.add(weight * 2)  # Paire (exercices à deux mains)
         
         return sorted(list(weights))
     
