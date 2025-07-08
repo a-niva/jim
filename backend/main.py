@@ -1,5 +1,5 @@
 # ===== backend/main.py - VERSION REFACTORISÉE =====
-from fastapi import FastAPI, HTTPException, Depends, Query
+from fastapi import FastAPI, HTTPException, Depends, Query, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -2822,6 +2822,38 @@ def get_available_weights(user_id: int, exercise_id: int = Query(None), db: Sess
     except Exception as e:
         logger.error(f"Erreur calcul poids user {user_id}: {e}")
         raise HTTPException(status_code=500, detail="Erreur calcul des poids")
+
+@app.get("/api/users/{user_id}/plate-layout/{weight}")
+def get_plate_layout(user_id: int, weight: float, exercise_id: int = Query(None), db: Session = Depends(get_db)):
+    """Version simplifiée et optimisée"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user or not user.equipment_config:
+        raise HTTPException(status_code=400, detail="Configuration manquante")
+    
+    # Déterminer équipement depuis l'exercice (optimisé)
+    exercise_equipment = ['barbell']  # default
+    if exercise_id:
+        exercise = db.query(Exercise).filter(Exercise.id == exercise_id).first()
+        if exercise:
+            exercise_equipment = exercise.equipment_required
+    
+    try:
+        layout = EquipmentService.get_plate_layout(user_id, weight, exercise_equipment, user.equipment_config)
+        return layout
+    except Exception as e:
+        logger.error(f"Erreur layout user {user_id}: {e}")
+        raise HTTPException(status_code=500, detail="Erreur calcul")
+
+@app.put("/api/users/{user_id}/plate-helper")  
+def toggle_plate_helper(user_id: int, enabled: bool = Body(..., embed=True), db: Session = Depends(get_db)):
+    """Toggle aide montage"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
+    user.show_plate_helper = enabled
+    db.commit()
+    return {"enabled": enabled}
 
 # ===== FICHIERS STATIQUES =====
 

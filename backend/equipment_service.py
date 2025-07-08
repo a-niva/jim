@@ -389,6 +389,72 @@ class EquipmentService:
         }
     
     @classmethod
+    def get_plate_layout(cls, user_id: int, target_weight: float, exercise_equipment: List[str], config: dict) -> dict:
+        """Version optimisée : réutilise la logique existante"""
+        equipment_type = 'barbell'
+        if 'dumbbells' in exercise_equipment:
+            equipment_type = 'dumbbells'
+        
+        # Réutiliser les méthodes existantes au lieu de recoder
+        if equipment_type == 'barbell':
+            return cls._barbell_layout(target_weight, config)
+        else:
+            return cls._dumbbell_layout(target_weight, config)
+    
+    @classmethod
+    def _barbell_layout(cls, target_weight: float, config: dict) -> dict:
+        """Optimisé : réutilise get_equipment_setup"""
+        setup = cls.get_equipment_setup(config, target_weight, 'barbell')
+        
+        if setup['type'] == 'barbell_only':
+            return {
+                'feasible': True,
+                'type': 'barbell',
+                'weight': setup['total_weight'],
+                'layout': [f"Barre {setup['bar_weight']}kg seule"]
+            }
+        elif setup['type'] == 'barbell_loaded':
+            # Simplifier : juste les poids sans SVG complexe
+            plates = []
+            for plate in setup['plates_per_side']:
+                plates.extend([f"{plate['weight']}kg"] * plate['count'])
+            
+            return {
+                'feasible': True,
+                'type': 'barbell',
+                'weight': setup['total_weight'],
+                'layout': plates
+            }
+        
+        return {'feasible': False, 'reason': 'Poids non réalisable'}
+    
+    @classmethod  
+    def _dumbbell_layout(cls, target_weight: float, config: dict) -> dict:
+        """Optimisé : réutilise get_equipment_setup"""
+        setup = cls.get_equipment_setup(config, target_weight, 'dumbbells')
+        
+        if setup['type'] == 'fixed_dumbbells':
+            return {
+                'feasible': True,
+                'type': 'dumbbells_fixed',
+                'weight': setup['total_weight'],
+                'layout': [f"{setup['weight_each']}kg × 2"]
+            }
+        elif setup['type'] == 'adjustable_dumbbells':
+            plates = []
+            for plate in setup['plates_per_bar']:
+                plates.extend([f"{plate['weight']}kg"] * plate['count'])
+            
+            return {
+                'feasible': True,
+                'type': 'dumbbells_adjustable', 
+                'weight': setup['total_weight'],
+                'layout': [f"Barre {setup['bar_weight']}kg"] + plates
+            }
+        
+        return {'feasible': False, 'reason': 'Configuration impossible'}
+    
+    @classmethod
     def _optimize_plate_distribution(cls, available_plates: dict, target_weight: float) -> List[dict]:
         """Algorithme glouton pour optimiser la distribution de disques"""
         result = []

@@ -4159,6 +4159,9 @@ async function configureWeighted(elements, recommendations) {
         }
         
         elements.setWeight.textContent = newValue;
+        
+        // AJOUT : Mise à jour aide au montage quand le poids change
+        updatePlateHelper(newValue);
     }
     if (elements.weightHint) {
         elements.weightHint.textContent = `IA: ${weightRec}kg`;
@@ -4758,7 +4761,24 @@ async function loadProfile() {
                     <span class="toggle-slider"></span>
                 </label>
                 <span id="soundNotificationsLabel">${currentUser.sound_notifications_enabled ? 'Sons activés' : 'Sons désactivés'}</span>
+                
             </div>
+        </div>
+    `;
+    // Ajouter le toggle pour l'aide au montage
+    profileHTML += `
+        <div class="profile-field">
+            <span class="field-label">Aide au montage</span>
+            <div class="toggle-container">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="plateHelperToggle"
+                        ${currentUser.show_plate_helper ? 'checked' : ''}
+                        onchange="togglePlateHelper()">
+                    <span class="toggle-slider"></span>
+                </label>
+                <span id="plateHelperLabel">${currentUser.show_plate_helper ? 'Activé' : 'Désactivé'}</span>
+            </div>
+            <small class="field-description">Affiche la répartition des disques pendant les séances</small>
         </div>
     `;
 
@@ -4829,6 +4849,33 @@ async function toggleSoundNotifications() {
     } catch (error) {
         toggle.checked = !newPreference; // Revert on error
         showToast('Erreur lors de la mise à jour', 'error');
+    }
+}
+
+async function togglePlateHelper() {
+    const toggle = document.getElementById('plateHelperToggle');
+    const label = document.getElementById('plateHelperLabel');
+    
+    try {
+        const response = await apiPut(`/api/users/${currentUser.id}/plate-helper`, {
+            enabled: toggle.checked
+        });
+        
+        currentUser.show_plate_helper = toggle.checked;
+        label.textContent = toggle.checked ? 'Activé' : 'Désactivé';
+        
+        // Mise à jour immédiate si on est en séance
+        if (currentExercise) {
+            const weight = parseFloat(document.getElementById('setWeight')?.textContent) || 0;
+            updatePlateHelper(weight);
+        }
+        
+        console.log('Aide montage mise à jour:', toggle.checked);
+    } catch (error) {
+        console.error('Erreur toggle aide montage:', error);
+        // Revenir à l'état précédent en cas d'erreur
+        toggle.checked = !toggle.checked;
+        showToast('Erreur lors de la sauvegarde', 'error');
     }
 }
 
@@ -6353,6 +6400,80 @@ function findClosestWeight(targetWeight, availableWeights) {
     });
 }
 
+// ===== AIDE AU MONTAGE DES BARRES (VERSION OPTIMISÉE) =====
+// ===== AIDE AU MONTAGE DES BARRES (VERSION OPTIMISÉE) =====
+
+async function updatePlateHelper(weight) {
+    // Optimisation : ne pas calculer si désactivé ou poids invalide
+    if (!currentUser?.show_plate_helper || !weight || weight <= 0 || !currentExercise) {
+        hidePlateHelper();
+        return;
+    }
+    
+    try {
+        const layout = await apiGet(`/api/users/${currentUser.id}/plate-layout/${weight}?exercise_id=${currentExercise.id}`);
+        showPlateHelper(layout);
+    } catch (error) {
+        console.warn('Erreur aide montage:', error);
+        hidePlateHelper();
+    }
+}
+
+function showPlateHelper(layout) {
+    let container = document.getElementById('plateHelper');
+    
+    // Créer container s'il n'existe pas
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'plateHelper';
+        container.className = 'plate-helper';
+        
+        // Insérer après le champ de poids
+        const weightRow = document.querySelector('.input-row:has(#setWeight)');
+        if (weightRow) {
+            weightRow.insertAdjacentElement('afterend', container);
+        }
+    }
+    
+    if (!layout.feasible) {
+        container.innerHTML = `<div class="helper-error">⚠️ ${layout.reason}</div>`;
+        return;
+    }
+    
+    // Version simplifiée sans SVG complexe
+    container.innerHTML = createSimpleLayout(layout);
+}
+
+function createSimpleLayout(layout) {
+    // Version texte + CSS plus simple
+    const isBarbell = layout.type === 'barbell';
+    const icon = isBarbell ? '🏋️' : '💪';
+    
+    if (isBarbell) {
+        const platesList = layout.layout.join(' + ');
+        return `
+            <div class="helper-content">
+                <div class="helper-header">${icon} ${layout.weight}kg</div>
+                <div class="helper-layout">${platesList} (×2 côtés)</div>
+            </div>
+        `;
+    } else {
+        const each = layout.layout[0];
+        return `
+            <div class="helper-content">
+                <div class="helper-header">${icon} ${layout.weight}kg total</div>
+                <div class="helper-layout">${each} par dumbbell</div>
+            </div>
+        `;
+    }
+}
+
+function hidePlateHelper() {
+    const container = document.getElementById('plateHelper');
+    if (container) {
+        container.innerHTML = '';
+    }
+}
 
 // ===== TIMER DE REPOS =====
 function startRestPeriod(customTime = null, isMLRecommendation = false) {
@@ -6931,6 +7052,10 @@ function completeRest() {
         // Mettre à jour les recommandations pour la nouvelle série
         updateSetRecommendations();
         
+        // AJOUT : Mise à jour aide au montage pour la nouvelle série
+        const weight = parseFloat(document.getElementById('setWeight')?.textContent) || 0;
+        updatePlateHelper(weight);
+        
         startSetTimer();
         transitionTo(WorkoutStates.READY);
     }
@@ -7362,3 +7487,6 @@ window.showView = showView;
 
 window.filterExercises = filterExercises;
 window.toggleFavorite = toggleFavorite;
+
+window.updatePlateHelper = updatePlateHelper;
+window.togglePlateHelper = togglePlateHelper;

@@ -19,6 +19,7 @@ class User(Base):
     favorite_exercises = Column(JSON, nullable=True, default=lambda: [])   # Liste des IDs d'exercices favoris
     prefer_weight_changes_between_sets = Column(Boolean, default=True)
     sound_notifications_enabled = Column(Boolean, default=True)
+    show_plate_helper = Column(Boolean, default=False)
 
     # Relations
     workouts = relationship("Workout", back_populates="user", cascade="all, delete-orphan")
