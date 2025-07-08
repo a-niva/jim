@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy import func, desc, cast, text, distinct
 from sqlalchemy.dialects.postgresql import JSONB
 from typing import List, Optional, Dict, Any
@@ -371,7 +372,8 @@ def get_user_favorites(user_id: int, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
     
-    favorites = getattr(user, 'favorite_exercises', []) or []
+    # CORRECTION : S'assurer que favorite_exercises n'est jamais None
+    favorites = user.favorite_exercises if user.favorite_exercises is not None else []
     return {"favorites": favorites}
 
 @app.post("/api/users/{user_id}/favorites/{exercise_id}")
@@ -381,13 +383,19 @@ def add_favorite(user_id: int, exercise_id: int, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
     
-    if not hasattr(user, 'favorite_exercises') or user.favorite_exercises is None:
+    # CORRECTION : Initialiser la liste si None
+    if user.favorite_exercises is None:
         user.favorite_exercises = []
     
+    # CORRECTION : Vérifier si déjà présent
     if exercise_id not in user.favorite_exercises:
         if len(user.favorite_exercises) >= 10:
             raise HTTPException(status_code=400, detail="Maximum 10 favoris autorisés")
+        
         user.favorite_exercises.append(exercise_id)
+        # CORRECTION CRITIQUE : Marquer comme modifié pour SQLAlchemy
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(user, 'favorite_exercises')
         db.commit()
     
     return {"status": "success", "favorites": user.favorite_exercises}
@@ -399,11 +407,19 @@ def remove_favorite(user_id: int, exercise_id: int, db: Session = Depends(get_db
     if not user:
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
     
-    if hasattr(user, 'favorite_exercises') and user.favorite_exercises:
-        user.favorite_exercises = [fav for fav in user.favorite_exercises if fav != exercise_id]
+    # CORRECTION : S'assurer que la liste existe
+    if user.favorite_exercises is None:
+        user.favorite_exercises = []
+    
+    # CORRECTION : Retirer si présent
+    if exercise_id in user.favorite_exercises:
+        user.favorite_exercises.remove(exercise_id)
+        # CORRECTION CRITIQUE : Marquer comme modifié
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(user, 'favorite_exercises')
         db.commit()
     
-    return {"status": "success", "favorites": user.favorite_exercises or []}
+    return {"status": "success", "favorites": user.favorite_exercises}
 
 @app.delete("/api/users/{user_id}/history")
 def clear_user_history(user_id: int, db: Session = Depends(get_db)):
