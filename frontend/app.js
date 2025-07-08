@@ -3190,6 +3190,42 @@ function renderMLExplanation(recommendation) {
     `;
 }
 
+function displayRecommendations(recommendations) {
+    if (!recommendations) return;
+    
+    // Mettre à jour le poids suggéré avec animation
+    const weightElement = document.getElementById('setWeight');
+    if (weightElement && recommendations.weight_recommendation) {
+        const currentWeight = parseFloat(weightElement.textContent);
+        
+        if (currentWeight !== recommendations.weight_recommendation) {
+            weightElement.textContent = recommendations.weight_recommendation;
+            
+            // Ajouter animation uniquement si le poids change
+            weightElement.classList.add('ml-updated');
+            setTimeout(() => weightElement.classList.remove('ml-updated'), 600);
+        }
+    }
+    
+    // Afficher l'explication ML dans le bon conteneur
+    const explanationContainer = document.querySelector('.ml-explanation-wrapper') || 
+                               document.getElementById('mlExplanation');
+    
+    if (explanationContainer) {
+        const explanationHTML = renderMLExplanation(recommendations);
+        if (explanationHTML) {
+            explanationContainer.innerHTML = explanationHTML;
+            explanationContainer.style.display = 'block';
+        } else {
+            explanationContainer.style.display = 'none';
+        }
+    }
+    
+    // Mettre à jour l'aide au montage si activée
+    if (currentUser?.show_plate_helper && recommendations.weight_recommendation) {
+        setTimeout(() => updatePlateHelper(recommendations.weight_recommendation), 100);
+    }
+}
 
 // Historique ML
 function addToMLHistory(exerciseId, recommendation) {
@@ -3669,6 +3705,9 @@ async function updateSetRecommendations() {
 
         // PHASE 2.2 : Mettre à jour l'historique ML si affiché
         updateMLHistoryDisplay();
+        // Afficher les recommandations mises à jour
+        displayRecommendations(recommendations);
+
 
     } catch (error) {
         console.error('Erreur recommandations ML:', error);
