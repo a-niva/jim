@@ -5125,8 +5125,12 @@ function filterExercises() {
 
 // Fonction pour toggle un favori
 async function toggleFavorite(exerciseId) {
+    console.log('🔄 toggleFavorite appelé pour:', exerciseId);
     const starElement = document.querySelector(`[data-exercise-id="${exerciseId}"] .favorite-star`);
-    if (!starElement) return;
+    if (!starElement) {
+        console.error('❌ Étoile non trouvée pour exercice:', exerciseId);
+        return;
+    }
     
     // Prévenir les clics multiples
     if (starElement.classList.contains('updating')) return;
@@ -5134,6 +5138,7 @@ async function toggleFavorite(exerciseId) {
     
     try {
         const isFavorite = starElement.classList.contains('is-favorite');
+        console.log('État actuel favori:', isFavorite);
         
         if (isFavorite) {
             // Retirer des favoris
@@ -5143,17 +5148,15 @@ async function toggleFavorite(exerciseId) {
             currentUser.favorite_exercises = userFavorites;
             showToast('Retiré des favoris', 'info');
             
-            // AJOUT : Masquer immédiatement si on est sur le filtre favoris
+            // Masquer immédiatement si on est sur le filtre favoris
             const activeTab = document.querySelector('.muscle-tab.active');
             if (activeTab && activeTab.dataset.muscle === 'favoris') {
                 const exerciseCard = document.querySelector(`[data-exercise-id="${exerciseId}"]`);
-                if (exerciseCard) {
-                    exerciseCard.style.display = 'none';
-                }
+                if (exerciseCard) exerciseCard.style.display = 'none';
             }
             
         } else {
-            // Vérifier la limite de 10 favoris
+            // Vérifier la limite
             if (userFavorites.length >= 10) {
                 showToast('Maximum 10 exercices favoris autorisés', 'warning');
                 return;
@@ -5165,22 +5168,14 @@ async function toggleFavorite(exerciseId) {
             userFavorites.push(exerciseId);
             currentUser.favorite_exercises = userFavorites;
             showToast(`Ajouté aux favoris (${userFavorites.length}/10)`, 'success');
-            
-            // AJOUT : Afficher immédiatement si on est sur le filtre favoris
-            const activeTab = document.querySelector('.muscle-tab.active');
-            if (activeTab && activeTab.dataset.muscle === 'favoris') {
-                const exerciseCard = document.querySelector(`[data-exercise-id="${exerciseId}"]`);
-                if (exerciseCard) {
-                    exerciseCard.style.display = 'block';
-                }
-            }
         }
         
-        // Mettre à jour le compteur de l'onglet favoris
+        // Mettre à jour le compteur et affichage
         updateFavoritesTabCount();
+        console.log('✅ Favoris mis à jour:', userFavorites);
         
     } catch (error) {
-        console.error('Erreur toggle favori:', error);
+        console.error('❌ Erreur toggle favori:', error);
         showToast('Erreur lors de la mise à jour', 'error');
     } finally {
         starElement.classList.remove('updating');
@@ -5195,15 +5190,24 @@ function updateFavoritesTabCount() {
             countElement.textContent = userFavorites.length;
         }
         
-        // Afficher/masquer l'onglet selon le nombre de favoris
+        // Afficher/masquer l'onglet
         if (userFavorites.length === 0) {
             favoritesTab.style.display = 'none';
-            // Si on était sur l'onglet favoris, basculer sur "Tous"
+            // Si on était sur favoris, basculer sur "tous"
             if (favoritesTab.classList.contains('active')) {
-                filterByMuscleGroup('all');
+                const allTab = document.querySelector('.muscle-tab[data-muscle="all"]');
+                if (allTab) {
+                    allTab.click();
+                }
             }
         } else {
             favoritesTab.style.display = 'flex';
+        }
+    } else {
+        console.log('⚠️ Onglet favoris non trouvé, rechargement nécessaire');
+        // Forcer rechargement des exercices si onglet pas trouvé
+        if (userFavorites.length > 0) {
+            loadAvailableExercises();
         }
     }
 }
@@ -5681,22 +5685,23 @@ async function restartExercise(exerciseId) {
 
 // ===== FONCTIONS UTILITAIRES SÉANCES =====
 async function loadAvailableExercises() {
+    console.log('🔍 [DEBUG] loadAvailableExercises - currentUser:', currentUser?.id);
+    console.log('🔍 [DEBUG] currentUser.favorite_exercises avant:', currentUser?.favorite_exercises);
+    
+    // CORRECTION CRITIQUE : Toujours recharger les favoris
+    try {
+        const favoritesResponse = await apiGet(`/api/users/${currentUser.id}/favorites`);
+        currentUser.favorite_exercises = favoritesResponse.favorites || [];
+        userFavorites = currentUser.favorite_exercises;
+        console.log('✅ Favoris rechargés:', userFavorites);
+    } catch (error) {
+        console.error('❌ Erreur chargement favoris:', error);
+        currentUser.favorite_exercises = [];
+        userFavorites = [];
+    }
+    
     try {
         const exercises = await apiGet(`/api/exercises?user_id=${currentUser.id}`);
-        
-        // Charger les favoris de l'utilisateur - S'assurer qu'ils sont à jour
-        if (!currentUser.favorite_exercises || currentUser.favorite_exercises.length === 0) {
-            try {
-                const favoritesResponse = await apiGet(`/api/users/${currentUser.id}/favorites`);
-                currentUser.favorite_exercises = favoritesResponse.favorites || [];
-                console.log('Favoris rechargés dans loadAvailableExercises:', currentUser.favorite_exercises);
-            } catch (error) {
-                console.log('Erreur chargement favoris:', error);
-                currentUser.favorite_exercises = [];
-            }
-        }
-        userFavorites = currentUser.favorite_exercises || [];
-        console.log('UserFavorites dans loadAvailableExercises:', userFavorites);
         
         // Grouper les exercices par muscle
         const exercisesByMuscle = {

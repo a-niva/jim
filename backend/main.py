@@ -371,9 +371,8 @@ def get_user_favorites(user_id: int, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
     
-    # Retourner les favoris depuis les métadonnées utilisateur
-    favorites = user.favorite_exercises if hasattr(user, 'favorite_exercises') else []
-    return {"favorites": favorites or []}
+    favorites = getattr(user, 'favorite_exercises', []) or []
+    return {"favorites": favorites}
 
 @app.post("/api/users/{user_id}/favorites/{exercise_id}")
 def add_favorite(user_id: int, exercise_id: int, db: Session = Depends(get_db)):
