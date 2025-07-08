@@ -492,7 +492,15 @@ class FitnessRecommendationEngine:
             effort_factor, rest_factor, performance_factor, 
             weight_change, reps_change, session_context
         )
-        
+
+        # Validation finale pour les dumbbells - forcer poids pairs
+        if exercise.equipment_required and 'dumbbells' in exercise.equipment_required:
+            if weight_rec and weight_rec % 2 != 0:
+                # Arrondir au pair le plus proche
+                original_weight = weight_rec
+                weight_rec = round(weight_rec / 2) * 2
+                reasoning += f" Ajusté de {original_weight:.1f}kg à {weight_rec}kg pour paire d'haltères."
+                
         return {
             'weight': weight_recommendation,
             'reps': reps_recommendation,

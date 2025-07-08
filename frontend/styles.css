@@ -5261,3 +5261,120 @@ background: rgba(255, 255, 255, 0.02);
     animation: slideIn 0.5s ease;
 }
 
+/* ===== AIDE AU MONTAGE ===== */
+.plate-helper {
+    margin: 1rem 0;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.helper-content {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.helper-header {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.helper-layout {
+    color: var(--text-secondary);
+}
+
+.helper-detail {
+    padding: 0.25rem 0;
+    font-size: 0.95rem;
+}
+
+.helper-error {
+    background: #ff6b6b20;
+    border: 1px solid #ff6b6b40;
+    border-radius: 8px;
+    padding: 0.75rem;
+    color: #ff6b6b;
+    text-align: center;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Animation pour les mises à jour ML */
+.ml-updated {
+    animation: mlPulse 0.6s ease-out;
+}
+
+@keyframes mlPulse {
+    0% {
+        transform: scale(1);
+        background-color: var(--bg-primary);
+    }
+    50% {
+        transform: scale(1.1);
+        background-color: var(--primary-light);
+        color: white;
+    }
+    100% {
+        transform: scale(1);
+        background-color: var(--bg-primary);
+    }
+}
+
+/* === ANIMATIONS ML === */
+.ml-updated {
+    animation: mlPulse 0.6s ease-out;
+}
+
+@keyframes mlPulse {
+    0% {
+        transform: scale(1);
+        background-color: transparent;
+    }
+    50% {
+        transform: scale(1.1);
+        background-color: var(--primary-light);
+        color: white;
+        border-radius: 4px;
+    }
+    100% {
+        transform: scale(1);
+        background-color: transparent;
+    }
+}
+
+/* Amélioration des ml-explanation existantes */
+.ml-explanation.ml-increase {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.15), rgba(76, 175, 80, 0.05));
+    border-color: rgba(76, 175, 80, 0.4);
+}
+
+.ml-explanation.ml-decrease {
+    background: linear-gradient(135deg, rgba(255, 152, 0, 0.15), rgba(255, 152, 0, 0.05));
+    border-color: rgba(255, 152, 0, 0.4);
+}
+
+.ml-explanation.ml-same {
+    background: linear-gradient(135deg, rgba(33, 150, 243, 0.15), rgba(33, 150, 243, 0.05));
+    border-color: rgba(33, 150, 243, 0.4);
+}
+
+/* Animation d'entrée pour l'explication */
+@keyframes slideInFade {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

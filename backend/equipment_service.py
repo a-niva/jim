@@ -143,6 +143,8 @@ class EquipmentService:
         # 2. Poids dumbbells (si requis)  
         if 'dumbbells' in required_equipment:
             dumbbell_weights = WeightCalculator.get_dumbbell_weights(config)
+            # Forcer uniquement des poids pairs pour les dumbbells
+            dumbbell_weights = [w for w in dumbbell_weights if w % 2 == 0]
             all_weights.update(dumbbell_weights)
         
         # 3. Kettlebells (si requis)
@@ -430,7 +432,7 @@ class EquipmentService:
     
     @classmethod  
     def _dumbbell_layout(cls, target_weight: float, config: dict) -> dict:
-        """Optimisé : réutilise get_equipment_setup"""
+        """Version améliorée avec structure claire"""
         setup = cls.get_equipment_setup(config, target_weight, 'dumbbells')
         
         if setup['type'] == 'fixed_dumbbells':
@@ -438,6 +440,7 @@ class EquipmentService:
                 'feasible': True,
                 'type': 'dumbbells_fixed',
                 'weight': setup['total_weight'],
+                'weight_per_dumbbell': setup['weight_each'],
                 'layout': [f"{setup['weight_each']}kg × 2"]
             }
         elif setup['type'] == 'adjustable_dumbbells':
@@ -447,13 +450,18 @@ class EquipmentService:
             
             return {
                 'feasible': True,
-                'type': 'dumbbells_adjustable', 
+                'type': 'dumbbells_adjustable',
                 'weight': setup['total_weight'],
+                'weight_per_dumbbell': setup['weight_each'],
+                'bar_weight': setup['bar_weight'],
                 'layout': [f"Barre {setup['bar_weight']}kg"] + plates
             }
         
-        return {'feasible': False, 'reason': 'Configuration impossible'}
-    
+        return {
+            'feasible': False, 
+            'reason': f'Impossible de réaliser {target_weight}kg avec votre équipement'
+        }
+        
     @classmethod
     def _optimize_plate_distribution(cls, available_plates: dict, target_weight: float) -> List[dict]:
         """Algorithme glouton pour optimiser la distribution de disques"""

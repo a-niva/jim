@@ -2822,16 +2822,23 @@ def get_available_weights(user_id: int, exercise_id: int = Query(None), db: Sess
 
 @app.get("/api/users/{user_id}/plate-layout/{weight}")
 def get_plate_layout(user_id: int, weight: float, exercise_id: int = Query(None), db: Session = Depends(get_db)):
-    """Version simplifiée et optimisée"""
+    """Version corrigée avec validation des poids pairs"""
     user = db.query(User).filter(User.id == user_id).first()
     if not user or not user.equipment_config:
         raise HTTPException(status_code=400, detail="Configuration manquante")
     
-    # Déterminer équipement depuis l'exercice (optimisé)
+    # Déterminer équipement depuis l'exercice
     exercise_equipment = ['barbell']  # default
     if exercise_id:
         exercise = db.query(Exercise).filter(Exercise.id == exercise_id).first()
         if exercise:
+            # Validation poids pair pour dumbbells
+            if 'dumbbells' in exercise_equipment and weight % 2 != 0:
+                return {
+                    'feasible': False,
+                    'reason': f'Poids impair ({weight}kg) impossible avec des haltères. Utilisez {int(weight/2)*2}kg ou {int(weight/2)*2+2}kg.',
+                    'type': 'error'
+                }
             exercise_equipment = exercise.equipment_required
     
     try:
