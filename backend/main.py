@@ -1218,10 +1218,7 @@ def get_set_recommendations(
     exercise = db.query(Exercise).filter(Exercise.id == request["exercise_id"]).first()
     if not exercise:
         raise HTTPException(status_code=404, detail="Exercice non trouvé")
-    
-    # Récupérer les poids disponibles
-    weights_data = get_available_weights(user.id, db)
-    available_weights = weights_data["available_weights"]
+    available_weights = EquipmentService.get_available_weights(db, user.id, exercise)
     
     # Importer et utiliser le moteur ML
     from backend.ml_recommendations import FitnessRecommendationEngine
