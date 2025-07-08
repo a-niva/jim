@@ -3,6 +3,7 @@
 // ===== ÉTAT GLOBAL =====
 let setTimer = null; 
 let currentUser = null;
+let userFavorites = [];
 let currentWorkout = null;
 let currentExercise = null;
 let currentSet = 1;
@@ -5081,9 +5082,91 @@ function filterExercises() {
     
     exercises.forEach(exercise => {
         const text = exercise.textContent.toLowerCase();
-        const visible = !filter || text.includes(filter.toLowerCase());
+        const exerciseId = parseInt(exercise.dataset.exerciseId);
+        
+        let visible = false;
+        
+        if (!filter) {
+            visible = true;
+        } else if (filter === 'favoris') {
+            visible = userFavorites.includes(exerciseId);
+        } else {
+            visible = text.includes(filter.toLowerCase());
+        }
+        
         exercise.style.display = visible ? 'block' : 'none';
     });
+}
+
+// Fonction pour toggle un favori
+async function toggleFavorite(exerciseId) {
+    if (!currentUser) return;
+    
+    const isFavorite = userFavorites.includes(exerciseId);
+    
+    try {
+        if (isFavorite) {
+            // Retirer des favoris
+            await apiDelete(`/api/users/${currentUser.id}/favorites/${exerciseId}`);
+            userFavorites = userFavorites.filter(id => id !== exerciseId);
+            showToast('Retiré des favoris', 'success');
+        } else {
+            // Vérifier la limite
+            if (userFavorites.length >= 10) {
+                showToast('Limite de 10 favoris atteinte (10/10)', 'warning');
+                return;
+            }
+            
+            // Ajouter aux favoris
+            const response = await apiPost(`/api/users/${currentUser.id}/favorites/${exerciseId}`);
+            userFavorites = response.favorites;
+            showToast('Ajouté aux favoris', 'success');
+        }
+        
+        // Mettre à jour l'affichage
+        updateFavoriteDisplay(exerciseId);
+        
+        // Si on est sur l'onglet favoris, recharger
+        const activeTab = document.querySelector('.muscle-tab.active');
+        if (activeTab && activeTab.dataset.muscle === 'favoris') {
+            await loadAvailableExercises();
+        }
+        
+        // Mettre à jour currentUser pour cohérence
+        currentUser.favorite_exercises = userFavorites;
+        
+    } catch (error) {
+        console.error('Erreur gestion favori:', error);
+        if (error.status === 400) {
+            showToast('Limite de 10 favoris atteinte (10/10)', 'warning');
+        } else {
+            showToast('Erreur lors de la modification', 'error');
+        }
+    }
+}
+
+// Mettre à jour l'affichage d'une étoile
+function updateFavoriteDisplay(exerciseId) {
+    const exerciseCard = document.querySelector(`.free-exercise-card[data-exercise-id="${exerciseId}"]`);
+    if (!exerciseCard) return;
+    
+    const star = exerciseCard.querySelector('.favorite-star');
+    if (!star) return;
+    
+    if (userFavorites.includes(exerciseId)) {
+        star.classList.add('is-favorite');
+    } else {
+        star.classList.remove('is-favorite');
+    }
+    
+    // Mettre à jour le compteur de l'onglet favoris
+    const favorisTab = document.querySelector('.muscle-tab[data-muscle="favoris"]');
+    if (favorisTab) {
+        const count = favorisTab.querySelector('.tab-count');
+        if (count) {
+            count.textContent = userFavorites.length;
+        }
+    }
 }
 
 function playRestSound(type) {
@@ -5538,8 +5621,12 @@ async function loadAvailableExercises() {
     try {
         const exercises = await apiGet(`/api/exercises?user_id=${currentUser.id}`);
         
+        // Charger les favoris de l'utilisateur
+        userFavorites = currentUser.favorite_exercises || [];
+        
         // Grouper les exercices par muscle
         const exercisesByMuscle = {
+            favoris: [],  // Nouveau groupe pour les favoris
             dos: [],
             pectoraux: [],
             jambes: [],
@@ -5553,6 +5640,7 @@ async function loadAvailableExercises() {
         
         // Icônes pour chaque groupe
         const muscleIcons = {
+            favoris: '⭐',  // Icône pour les favoris
             dos: '🏋🏻‍♂️',
             pectoraux: '🫁',
             jambes: '🦵',
@@ -5563,6 +5651,12 @@ async function loadAvailableExercises() {
         
         // Classer les exercices
         exercises.forEach(exercise => {
+            // Ajouter aux favoris si applicable
+            if (userFavorites.includes(exercise.id)) {
+                exercisesByMuscle.favoris.push(exercise);
+            }
+            
+            // Classement normal par muscle
             exercise.muscle_groups.forEach(muscle => {
                 const muscleLower = muscle.toLowerCase();
                 if (exercisesByMuscle[muscleLower]) {
@@ -5609,8 +5703,15 @@ async function loadAvailableExercises() {
                             <span class="tab-icon">💪</span>
                             <span>Tous</span>
                         </button>
+                        ${userFavorites.length > 0 ? `
+                            <button class="muscle-tab" data-muscle="favoris" onclick="filterByMuscleGroup('favoris')">
+                                <span class="tab-icon">⭐</span>
+                                <span>Favoris</span>
+                                <span class="tab-count">${exercisesByMuscle.favoris.length}</span>
+                            </button>
+                        ` : ''}
                         ${Object.entries(exercisesByMuscle)
-                            .filter(([muscle, exercises]) => exercises.length > 0)
+                            .filter(([muscle, exercises]) => muscle !== 'favoris' && exercises.length > 0)
                             .map(([muscle, exercises]) => `
                                 <button class="muscle-tab" data-muscle="${muscle}" onclick="filterByMuscleGroup('${muscle}')">
                                     <span class="tab-icon">${muscleIcons[muscle]}</span>
@@ -5660,6 +5761,12 @@ async function loadAvailableExercises() {
                                                 data-difficulty="${exercise.difficulty}"
                                                 data-exercise-id="${exercise.id}"
                                                 onclick="selectExerciseById(${exercise.id})">
+                                                <div class="favorite-star ${userFavorites.includes(exercise.id) ? 'is-favorite' : ''}" 
+                                                     onclick="event.stopPropagation(); toggleFavorite(${exercise.id})">
+                                                    <svg viewBox="0 0 24 24" stroke-width="2">
+                                                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                                    </svg>
+                                                </div>
                                                 <div class="exercise-card-header">
                                                     <h4>${exercise.name}</h4>
                                                     <span class="difficulty-badge difficulty-${exercise.difficulty}">
@@ -5715,6 +5822,7 @@ function searchExercises(searchTerm) {
 }
 
 // Fonction de filtrage par muscle
+// Fonction pour filtrer par groupe musculaire (y compris favoris)
 function filterByMuscleGroup(muscle) {
     // Mettre à jour l'onglet actif
     document.querySelectorAll('.muscle-tab').forEach(tab => {
@@ -5723,30 +5831,29 @@ function filterByMuscleGroup(muscle) {
     
     // Filtrer les sections
     const muscleGroups = document.querySelectorAll('.muscle-group-section');
-    muscleGroups.forEach(group => {
-        if (muscle === 'all') {
+    
+    if (muscle === 'all') {
+        // Afficher toutes les sections
+        muscleGroups.forEach(group => {
             group.style.display = 'block';
-        } else {
+        });
+    } else if (muscle === 'favoris') {
+        // Pour les favoris, masquer toutes les sections normales
+        muscleGroups.forEach(group => {
+            if (group.dataset.muscle === 'favoris') {
+                group.style.display = 'block';
+            } else {
+                group.style.display = 'none';
+            }
+        });
+    } else {
+        // Filtrer par muscle spécifique
+        muscleGroups.forEach(group => {
             group.style.display = group.dataset.muscle === muscle ? 'block' : 'none';
-        }
-    });
-    
-    // Réinitialiser la recherche
-    const searchInput = document.getElementById('exerciseSearch');
-    if (searchInput) searchInput.value = '';
+        });
+    }
 }
 
-// Fonction pour replier/déplier un groupe musculaire
-function toggleMuscleGroup(muscle) {
-    const section = document.querySelector(`.muscle-group-${muscle}`);
-    const grid = section.querySelector('.muscle-exercises-grid');
-    const icon = section.querySelector('.collapse-icon');
-    
-    grid.classList.toggle('expanded');
-    icon.classList.toggle('rotated');
-}
-
-// Ajouter après la fonction toggleMuscleGroup()
 // Ajouter après la fonction toggleMuscleGroup()
 function enableHorizontalScroll() {
     const muscleTabsContainer = document.querySelector('.muscle-tabs');
@@ -7109,7 +7216,6 @@ window.selectExerciseById = selectExerciseById;
 window.searchExercises = searchExercises;
 window.enableHorizontalScroll = enableHorizontalScroll;
 window.filterByMuscleGroup = filterByMuscleGroup;
-window.toggleMuscleGroup = toggleMuscleGroup;
 window.toggleWeightPreference = toggleWeightPreference;
 window.toggleSoundNotifications = toggleSoundNotifications;
 
@@ -7147,3 +7253,6 @@ window.loadStats = loadStats;
 window.loadProfile = loadProfile;
 window.currentUser = currentUser;
 window.showView = showView;
+
+window.filterExercises = filterExercises;
+window.toggleFavorite = toggleFavorite;

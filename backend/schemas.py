@@ -27,6 +27,7 @@ class UserResponse(BaseModel):
     equipment_config: Dict[str, Any]
     prefer_weight_changes_between_sets: bool
     created_at: datetime
+    favorite_exercises: List[int] = []
     sound_notifications_enabled: bool
 
     class Config:

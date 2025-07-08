@@ -1096,6 +1096,51 @@ textarea:focus {
     line-height: 1.5;
 }
 
+/* ===== FAVORIS ===== */
+.favorite-star {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.favorite-star svg {
+    width: 100%;
+    height: 100%;
+    transition: all 0.2s ease;
+}
+
+.favorite-star:hover svg {
+    transform: scale(1.2);
+}
+
+.favorite-star.is-favorite svg {
+    fill: #fbbf24;
+    stroke: #f59e0b;
+}
+
+.favorite-star:not(.is-favorite) svg {
+    fill: transparent;
+    stroke: var(--text-muted);
+}
+
+.favorite-star:not(.is-favorite):hover svg {
+    stroke: #fbbf24;
+}
+
+.exercise-item {
+    position: relative;
+}
+
+.exercise-filters select option[value="favoris"] {
+    color: #fbbf24;
+    font-weight: bold;
+}
+
 /* Recommandations ML */
 .recommendation-content {
     display: grid;
@@ -2032,6 +2077,22 @@ select:focus-visible {
         font-size: var(--font-sm);
     }
     
+    /* Style spécifique pour l'onglet favoris */
+.muscle-tab[data-muscle="favoris"] {
+    background: rgba(251, 191, 36, 0.1);
+    border-color: rgba(251, 191, 36, 0.3);
+}
+
+.muscle-tab[data-muscle="favoris"].active {
+    background: #fbbf24;
+    border-color: #f59e0b;
+    color: white;
+}
+
+.muscle-tab[data-muscle="favoris"] .tab-icon {
+    filter: none;
+}
+
     .tab-icon {
         font-size: var(--font-base);
     }
@@ -5064,3 +5125,4 @@ background: rgba(255, 255, 255, 0.02);
 .workout-resume-banner {
     animation: slideIn 0.5s ease;
 }
+

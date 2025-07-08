@@ -16,6 +16,7 @@ class User(Base):
     experience_level = Column(String, nullable=False)  # beginner, intermediate, advanced
     equipment_config = Column(JSON, nullable=False)  # Configuration complète équipement
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    favorite_exercises = Column(JSON, default=list)    # Système de favoris (max 10 exercices)
     prefer_weight_changes_between_sets = Column(Boolean, default=True)
     sound_notifications_enabled = Column(Boolean, default=True)
 
