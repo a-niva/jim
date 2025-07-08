@@ -2808,50 +2808,20 @@ def get_muscles_for_group(muscle_group: str) -> List[str]:
 # ===== CALCULS POIDS DISPONIBLES =====
 
 @app.get("/api/users/{user_id}/available-weights")
-def get_available_weights(user_id: int, db: Session = Depends(get_db)):
-    """Utilise le service d'équipement unifié"""
+def get_available_weights(user_id: int, exercise_id: int = Query(None), db: Session = Depends(get_db)):
+    """Utilise le service d'équipement unifié avec support exercice spécifique"""
     from backend.equipment_service import EquipmentService
     
     try:
-        weights = EquipmentService.get_available_weights(db, user_id, None)  # ← AJOUT du None
+        exercise = None
+        if exercise_id:
+            exercise = db.query(Exercise).filter(Exercise.id == exercise_id).first()
+        
+        weights = EquipmentService.get_available_weights(db, user_id, exercise)
         return {"available_weights": weights}
     except Exception as e:
         logger.error(f"Erreur calcul poids user {user_id}: {e}")
         raise HTTPException(status_code=500, detail="Erreur calcul des poids")
-
-def generate_plate_combinations(plates: List[float]) -> List[float]:
-    """Génère toutes les combinaisons possibles de disques"""
-    if not plates:
-        return [0]
-    
-    combinations = set([0])  # Barre seule
-    
-    # Pour chaque disque, ajouter toutes les quantités possibles (0 à nombre max raisonnable)
-    for plate in plates:
-        new_combinations = set()
-        for existing in combinations:
-            # Ajouter 0, 1, 2, 3, 4 disques de ce poids (quantité raisonnable)
-            for count in range(5):  
-                new_combinations.add(existing + plate * count)
-        combinations.update(new_combinations)
-    
-    return list(combinations)
-
-def generate_band_combinations(tensions: List[float]) -> List[float]:
-    """Génère les combinaisons possibles d'élastiques"""
-    if not tensions:
-        return []
-    
-    combinations = set()
-    
-    # Combinaisons de 2 élastiques maximum (réaliste)
-    for i, tension1 in enumerate(tensions):
-        for j, tension2 in enumerate(tensions[i:], i):
-            if i == j:
-                continue  # Éviter la duplication simple
-            combinations.add(tension1 + tension2)
-    
-    return list(combinations)
 
 # ===== FICHIERS STATIQUES =====
 

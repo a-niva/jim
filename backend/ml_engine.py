@@ -210,76 +210,26 @@ class FitnessMLEngine:
                     goal_mult *= self.GOAL_ADJUSTMENTS[goal]["weight"]
             goal_mult = goal_mult ** (1/len(user.goals))  # Moyenne géométrique
         
-        # Si dumbbells, ajuster au poids disponible le plus proche
-        if "dumbbells" in exercise.equipment and user.equipment_config:
-            target_weight = base_weight * experience_mult * goal_mult / 2
-            available_weights = []
-            
-            # Ajouter les haltères fixes si disponibles
-            dumbbell_config = user.equipment_config.get("dumbbells", {})
-            if dumbbell_config.get("available", False) and dumbbell_config.get("weights"):
-                available_weights.extend(dumbbell_config["weights"])
-            
-            # Ajouter AUSSI l'équivalence barres courtes + disques
-            barres_courtes = user.equipment_config.get("barres", {}).get("courte", {})
-            disques_config = user.equipment_config.get("disques", {})
-            if (barres_courtes.get("available", False) and 
-                barres_courtes.get("count", 0) >= 2 and 
-                disques_config.get("available", False)):
-                
-                # Calculer avec barre courte + disques disponibles
-                barre_weight = barres_courtes.get("weight", 2.5)
-                available_plates = []
-                for weight_str, count in disques_config.get("weights", {}).items():
-                    weight = float(weight_str)
-                    # On peut utiliser jusqu'à la moitié des disques (pour faire une paire)
-                    available_plates.extend([weight] * (count // 2))
-                
-                # Ajouter la barre seule
-                available_weights.append(barre_weight)
-                
-                # Ajouter toutes les combinaisons possibles
-                if available_plates:
-                    plate_combinations = set()
-                    for i in range(1, min(len(available_plates) + 1, 5)):  # Limiter la complexité
-                        for combo in itertools.combinations(available_plates, i):
-                            plate_combinations.add(barre_weight + sum(combo))
-                    available_weights.extend(list(plate_combinations))
-            
-            # Trouver le poids le plus proche parmi TOUTES les options
-            if available_weights:
-                available_weights = sorted(set(available_weights))  # Unique et trié
-                closest_weight = min(available_weights, key=lambda x: abs(x - target_weight))
-                return closest_weight * 2  # Paire
-            
-            # Sinon, utiliser équivalence barres courtes + disques
-            barres_courtes = user.equipment_config.get("barres", {}).get("courte", {})
-            disques_config = user.equipment_config.get("disques", {})
-            if (barres_courtes.get("available", False) and 
-                barres_courtes.get("count", 0) >= 2 and 
-                disques_config.get("available", False)):
-                
-                # Calculer avec barre courte + disques disponibles
-                barre_weight = barres_courtes.get("weight", 2.5)
-                available_plates = []
-                for weight_str, count in disques_config.get("weights", {}).items():
-                    weight = float(weight_str)
-                    # On peut utiliser jusqu'à la moitié des disques (pour faire une paire)
-                    available_plates.extend([weight] * (count // 2))
-                
-                if available_plates:
-                    # Trouver la combinaison optimale pour se rapprocher de target_weight - barre_weight
-                    target_plate_weight = max(0, target_weight - barre_weight)
-                    closest_plate = min(available_plates, key=lambda x: abs(x - target_plate_weight))
-                    return (barre_weight + closest_plate) * 2  # Paire
-            
-            # Trouver le poids le plus proche SI disponible
-            if available_weights:  # Maintenant safe !
-                closest_weight = min(available_weights, key=lambda x: abs(x - target_weight))
-                return closest_weight * 2  # Multiplié par 2 pour la paire
+        # Calculer le poids final et utiliser le service unifié
+        final_weight = base_weight * experience_mult * goal_mult
         
-        # Arrondir à 2.5kg près
-        return round(base_weight * experience_mult * goal_mult / 2.5) * 2.5
+        # Utiliser le service EquipmentService pour obtenir les poids réalisables
+        from backend.equipment_service import EquipmentService
+        from backend.database import get_db
+        
+        # Obtenir une session DB temporaire
+        db_session = next(get_db())
+        try:
+            available_weights = EquipmentService.get_available_weights(db_session, user.id, exercise)
+            
+            if available_weights:
+                closest_weight = min(available_weights, key=lambda x: abs(x - final_weight))
+                return closest_weight
+            
+            # Fallback : arrondir à 2.5kg près
+            return round(final_weight / 2.5) * 2.5
+        finally:
+            db_session.close()
     
     def _get_user_weight(self, user: User) -> float:
         """Retourne le poids réel de l'utilisateur"""

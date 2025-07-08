@@ -117,71 +117,45 @@ class EquipmentService:
         return available
 
     @classmethod
-    def get_available_weights(cls, db: Session, user_id: int, exercise_type: str = None) -> List[float]:
-        """Calcule tous les poids disponibles selon la configuration"""
+    def get_available_weights(cls, db: Session, user_id: int, exercise: 'Exercise' = None) -> List[float]:
+        """Version corrigée : SEULS les poids réellement réalisables"""
+        from .weight_calculator import WeightCalculator
+        
         user = db.query(User).filter(User.id == user_id).first()
         if not user or not user.equipment_config:
-            return [0.0]  # Poids du corps minimum
+            return [user.weight if user else 0.0]  # Bodyweight seulement
             
         config = user.equipment_config
         all_weights = set([user.weight])  # Poids du corps
         
-        # 1. Dumbbells fixes
-        if config.get('dumbbells', {}).get('available', False):
-            weights = config['dumbbells'].get('weights', [])
-            for weight in weights:
-                all_weights.add(weight)      # Poids unitaire
-                all_weights.add(weight * 2)  # Paire
+        # Déterminer les types d'équipement pour cet exercice
+        if exercise:
+            required_equipment = exercise.equipment_required
+        else:
+            # Si pas d'exercice spécifique, calculer pour tous les types
+            required_equipment = ['barbell', 'dumbbells', 'kettlebells']
         
-        # 2. Barres + disques
-        plates = config.get('weight_plates', {}).get('weights', {})
+        # 1. Poids barbell (si requis)
+        if any(eq in ['barbell', 'barbell_athletic', 'barbell_ez'] for eq in required_equipment):
+            barbell_weights = WeightCalculator.get_barbell_weights(config)
+            all_weights.update(barbell_weights)
         
-        # Barre athlétique
-        if config.get('barbell_athletic', {}).get('available', False):
-            bar_weight = config['barbell_athletic'].get('weight', 20)
-            combinations = cls._calculate_plate_combinations(plates)
-            for combo in combinations:
-                all_weights.add(bar_weight + combo)
+        # 2. Poids dumbbells (si requis)  
+        if 'dumbbells' in required_equipment:
+            dumbbell_weights = WeightCalculator.get_dumbbell_weights(config)
+            all_weights.update(dumbbell_weights)
         
-        # Barre EZ
-        if config.get('barbell_ez', {}).get('available', False):
-            bar_weight = config['barbell_ez'].get('weight', 10)
-            combinations = cls._calculate_plate_combinations(plates)
-            for combo in combinations:
-                all_weights.add(bar_weight + combo)
+        # 3. Kettlebells (si requis)
+        if 'kettlebells' in required_equipment:
+            kettlebell_weights = WeightCalculator.get_kettlebell_weights(config)
+            all_weights.update(kettlebell_weights)
         
-        # 3. ÉQUIVALENCE : Barres courtes + disques = dumbbells
-        barres_courtes = config.get('barbell_short_pair', {})
-        if (barres_courtes.get('available', False) and 
-            barres_courtes.get('count', 0) >= 2 and 
-            plates):
-            
-            bar_weight = barres_courtes.get('weight', 2.5)
-            combinations = cls._calculate_plate_combinations(plates, max_per_side=25)
-            
-            for combo in combinations:
-                # Poids par barre courte
-                single_weight = bar_weight + combo
-                all_weights.add(single_weight)      # Unitaire
-                all_weights.add(single_weight * 2)  # Paire (équivalent dumbbells)
+        # 4. Machines (pas de problème de symétrie)
+        machine_weights = WeightCalculator.get_machine_weights(config, required_equipment)
+        all_weights.update(machine_weights)
         
-        # 4. Kettlebells
-        if config.get('kettlebells', {}).get('available', False):
-            weights = config['kettlebells'].get('weights', [])
-            for weight in weights:
-                all_weights.add(weight)
-                all_weights.add(weight * 2)  # Paire si disponible
-        
-        # 5. Machines
-        for machine in ['cable_machine', 'leg_press', 'lat_pulldown', 'chest_press']:
-            if config.get(machine, {}).get('available', False):
-                max_weight = config[machine].get('max_weight', 100)
-                increment = config[machine].get('increment', 5)
-                machine_weights = [i * increment for i in range(0, int(max_weight / increment) + 1)]
-                all_weights.update(machine_weights)
-
-        # 6. Élastiques (tensions équivalentes)
-        if config.get('resistance_bands', {}).get('available', False):
+        # 5. Élastiques (tensions équivalentes)
+        if 'resistance_bands' in required_equipment and config.get('resistance_bands', {}).get('available', False):
             tensions = config['resistance_bands'].get('tensions', {})
             
             # Ajouter les tensions individuelles
@@ -194,20 +168,20 @@ class EquipmentService:
             if config['resistance_bands'].get('combinable', False):
                 combinations = cls._calculate_resistance_combinations(tensions)
                 all_weights.update(combinations)
-
+        
         # Filtrer et trier
-        valid_weights = sorted([w for w in all_weights if 0 <= w <= 1000])
+        valid_weights = sorted([w for w in all_weights if 0 <= w <= 500])  # Limite raisonnable
         
         logger.info(f"Poids calculés pour user {user_id}: {len(valid_weights)} options")
         return valid_weights
-    
+        
     @classmethod
     def _calculate_plate_combinations(cls, plates_dict: dict, max_per_side: float = 50) -> List[float]:
-        """Version améliorée avec support du disque de 2kg"""
+        """Calcule UNIQUEMENT les combinaisons symétriques réalisables"""
         if not plates_dict:
             return [0]
         
-        combinations = set([0])
+        combinations = set([0])  # Barre seule
         
         # Trier par poids croissant pour optimiser les petites combinaisons
         sorted_plates = sorted(
@@ -216,17 +190,19 @@ class EquipmentService:
         )
         
         for weight, available_count in sorted_plates:
-            max_pairs = available_count // 2  # Paires seulement
+            # CORRECTION CRITIQUE : Ne considérer que les paires complètes
+            max_pairs = available_count // 2  # Nombre de PAIRES réellement disponibles
             
             if max_pairs == 0:
-                continue
+                continue  # Pas assez de disques pour une paire symétrique
                 
             new_combinations = set()
             for existing in combinations:
                 for pairs in range(1, max_pairs + 1):
-                    total = existing + (weight * pairs * 2)  # Des deux côtés
-                    if total <= max_per_side * 2:
-                        new_combinations.add(total)
+                    # CORRECTION : 2 disques par paire (un de chaque côté de la barre)
+                    symmetric_weight = existing + (weight * pairs * 2)
+                    if symmetric_weight <= max_per_side * 2:
+                        new_combinations.add(symmetric_weight)
             
             combinations.update(new_combinations)
         
