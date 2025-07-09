@@ -6604,52 +6604,121 @@ function showPlateHelper(layout) {
 function createSimpleLayout(layout) {
     const icon = layout.type === 'barbell' ? '🏋️' : '💪';
     
-    // Gestion différenciée selon le type exact
     switch(layout.type) {
         case 'barbell':
-            const platesList = layout.layout.join(' + ');
-            return `
-                <div class="helper-content">
-                    <div class="helper-header">${icon} ${layout.weight}kg total</div>
-                    <div class="helper-layout">
-                        <div class="helper-detail">Par côté : ${platesList}</div>
-                    </div>
-                </div>
-            `;
+            return createBarbellVisualization(layout);
             
         case 'dumbbells_fixed':
-            // Ex: "15kg × 2" -> extraire le poids unitaire
             const fixedMatch = layout.layout[0].match(/(\d+(?:\.\d+)?)kg × 2/);
             const perDumbbell = fixedMatch ? fixedMatch[1] : '?';
             return `
                 <div class="helper-content">
                     <div class="helper-header">${icon} ${layout.weight}kg total</div>
-                    <div class="helper-layout">
-                        <div class="helper-detail">2 haltères de ${perDumbbell}kg chacun</div>
+                    <div class="helper-visual">
+                        <div class="dumbbell-fixed">${perDumbbell}kg</div>
                     </div>
+                    <div class="helper-detail">2 haltères fixes de ${perDumbbell}kg</div>
                 </div>
             `;
             
         case 'dumbbells_adjustable':
-            // Composition d'UN haltère
-            const barWeight = layout.bar_weight || 2.5;
-            const plates = layout.layout.slice(1); // Enlever "Barre Xkg"
-            return `
-                <div class="helper-content">
-                    <div class="helper-header">${icon} ${layout.weight}kg total</div>
-                    <div class="helper-layout">
-                        <div class="helper-detail">Par haltère : Barre ${barWeight}kg</div>
-                        ${plates.length > 0 ? 
-                            `<div class="helper-detail">Disques : ${plates.join(' + ')}</div>` : 
-                            '<div class="helper-detail">Sans disques additionnels</div>'
-                        }
-                    </div>
-                </div>
-            `;
+            return createDumbbellVisualization(layout);
             
         default:
             return `<div class="helper-error">⚠️ ${layout.reason || 'Configuration non reconnue'}</div>`;
     }
+}
+
+function createDumbbellVisualization(layout) {
+    const totalWeight = layout.weight;
+    const weightPerDumbbell = totalWeight / 2;
+    const barWeight = layout.bar_weight || 2.5;
+    const platesWeight = weightPerDumbbell - barWeight;
+    
+    // Parser les disques depuis le layout
+    let plates = [];
+    if (layout.layout && layout.layout.length > 1) {
+        // Extraire les disques (ignorer le premier élément qui est la barre)
+        for (let i = 1; i < layout.layout.length; i++) {
+            const match = layout.layout[i].match(/(\d+(?:\.\d+)?)kg/);
+            if (match) {
+                plates.push(parseFloat(match[1]));
+            }
+        }
+    }
+    
+    // Si pas de disques parsés, calculer depuis le poids
+    if (plates.length === 0 && platesWeight > 0) {
+        // Pour 2.5kg de disques avec des 1.25kg disponibles = 2×1.25kg
+        if (Math.abs(platesWeight - 2.5) < 0.1) {
+            plates = [1.25, 1.25];
+        }
+    }
+    
+    // Créer la visualisation
+    return `
+        <div class="helper-content">
+            <div class="helper-header">💪 ${totalWeight}kg total</div>
+            <div class="helper-subheader">${weightPerDumbbell}kg par haltère</div>
+            
+            <div class="dumbbell-visual">
+                <div class="visual-label">Montage d'UN haltère :</div>
+                <div class="bar-assembly">
+                    ${plates.map((weight, index) => 
+                        `<div class="plate plate-${weight}" title="${weight}kg">${weight}</div>`
+                    ).join('')}
+                    <div class="bar-center" title="Barre ${barWeight}kg">
+                        <span>${barWeight}kg</span>
+                    </div>
+                    ${plates.slice().reverse().map((weight, index) => 
+                        `<div class="plate plate-${weight}" title="${weight}kg">${weight}</div>`
+                    ).join('')}
+                </div>
+            </div>
+            
+            <div class="helper-details">
+                <div class="detail-item">• Barre : ${barWeight}kg</div>
+                <div class="detail-item">• Disques : ${plates.join(' + ')}kg = ${platesWeight}kg</div>
+                <div class="detail-item">• Total : ${weightPerDumbbell}kg × 2 = ${totalWeight}kg</div>
+            </div>
+        </div>
+    `;
+}
+
+function createBarbellVisualization(layout) {
+    // Similaire mais pour barbell
+    const plates = [];
+    layout.layout.forEach(item => {
+        const match = item.match(/(\d+(?:\.\d+)?)kg/);
+        if (match) {
+            plates.push(parseFloat(match[1]));
+        }
+    });
+    
+    return `
+        <div class="helper-content">
+            <div class="helper-header">🏋️ ${layout.weight}kg total</div>
+            
+            <div class="barbell-visual">
+                <div class="visual-label">Montage de la barre :</div>
+                <div class="bar-assembly">
+                    ${plates.map(weight => 
+                        `<div class="plate plate-${weight}" title="${weight}kg">${weight}</div>`
+                    ).join('')}
+                    <div class="bar-center barbell" title="Barre">
+                        <span>BARRE</span>
+                    </div>
+                    ${plates.slice().reverse().map(weight => 
+                        `<div class="plate plate-${weight}" title="${weight}kg">${weight}</div>`
+                    ).join('')}
+                </div>
+            </div>
+            
+            <div class="helper-details">
+                <div class="detail-item">• Par côté : ${plates.join(' + ')}kg</div>
+            </div>
+        </div>
+    `;
 }
 
 function hidePlateHelper() {

@@ -5378,3 +5378,96 @@ background: rgba(255, 255, 255, 0.02);
         transform: translateY(0);
     }
 }
+
+/* Visualisation du montage */
+.dumbbell-visual, .barbell-visual {
+    margin: 1rem 0;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+.visual-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.bar-assembly {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 1rem;
+    min-height: 80px;
+}
+
+.bar-center {
+    background: linear-gradient(to bottom, #888, #555);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 80px;
+    height: 30px;
+}
+
+.bar-center.barbell {
+    min-width: 120px;
+    height: 20px;
+}
+
+.plate {
+    background: linear-gradient(to right, #333, #111);
+    color: white;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: bold;
+    min-width: 40px;
+}
+
+/* Tailles des disques selon le poids */
+.plate-20 { height: 70px; min-width: 50px; }
+.plate-15 { height: 65px; min-width: 48px; }
+.plate-10 { height: 60px; min-width: 45px; }
+.plate-5 { height: 50px; min-width: 40px; }
+.plate-2\.5 { height: 45px; min-width: 38px; }
+.plate-2 { height: 40px; min-width: 35px; }
+.plate-1\.25 { height: 35px; min-width: 32px; }
+.plate-1 { height: 32px; min-width: 30px; }
+.plate-0\.5 { height: 28px; min-width: 28px; }
+
+.helper-subheader {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.helper-details {
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.detail-item {
+    padding: 0.25rem 0;
+}
+
+.dumbbell-fixed {
+    background: linear-gradient(135deg, #666, #333);
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    text-align: center;
+    margin: 1rem auto;
+    width: fit-content;
+}

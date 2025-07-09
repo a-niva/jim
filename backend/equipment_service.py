@@ -464,11 +464,11 @@ class EquipmentService:
         
     @classmethod
     def _optimize_plate_distribution(cls, available_plates: dict, target_weight: float) -> List[dict]:
-        """Algorithme glouton pour optimiser la distribution de disques"""
+        """Optimise la distribution de disques pour UN CÔTÉ de la barre"""
         result = []
         remaining = target_weight
         
-        # Trier par poids décroissant
+        # Trier par poids décroissant pour mettre les gros disques à l'intérieur
         sorted_plates = sorted(
             [(float(w), count) for w, count in available_plates.items()],
             key=lambda x: x[0],
@@ -476,20 +476,12 @@ class EquipmentService:
         )
         
         for weight, available_count in sorted_plates:
-            while remaining >= weight and available_count > 0:
-                existing = next((p for p in result if p['weight'] == weight), None)
-                if existing:
-                    existing['count'] += 1
-                else:
-                    result.append({'weight': weight, 'count': 1})
-                
+            while remaining >= weight and available_count >= 2:  # PAIRES uniquement
+                result.append({'weight': weight, 'count': 1})  # 1 disque par côté
                 remaining -= weight
-                available_count -= 1
+                available_count -= 2  # On utilise une paire
                 
-                if remaining <= 0.1:  # Tolérance
-                    break
-            
-            if remaining <= 0.1:
+            if remaining < 0.1:  # Tolérance floating point
                 break
         
-        return result
+        return result  # Ordre : gros disques d'abord
