@@ -3193,15 +3193,39 @@ function renderMLExplanation(recommendation) {
 function displayRecommendations(recommendations) {
     if (!recommendations) return;
     
-    // Mettre à jour le poids suggéré avec animation
+    // Récupérer les poids disponibles
+    const availableWeights = JSON.parse(sessionStorage.getItem('availableWeights') || '[]');
+    
+    // Mettre à jour le poids suggéré avec validation
     const weightElement = document.getElementById('setWeight');
     if (weightElement && recommendations.weight_recommendation) {
         const currentWeight = parseFloat(weightElement.textContent);
+        let targetWeight = recommendations.weight_recommendation;
         
-        if (currentWeight !== recommendations.weight_recommendation) {
-            weightElement.textContent = recommendations.weight_recommendation;
+        // VALIDATION : Vérifier que le poids est réalisable
+        if (availableWeights.length > 0 && !availableWeights.includes(targetWeight)) {
+            console.error('[Display] Poids ML non réalisable:', targetWeight);
+            console.log('[Display] Poids disponibles:', availableWeights);
             
-            // Ajouter animation uniquement si le poids change
+            // Trouver le plus proche
+            const closest = availableWeights.reduce((prev, curr) => 
+                Math.abs(curr - targetWeight) < Math.abs(prev - targetWeight) ? curr : prev
+            );
+            
+            console.log('[Display] Ajustement:', targetWeight, '→', closest);
+            showToast(`Poids ajusté à ${closest}kg (équipement disponible)`, 'warning');
+            
+            targetWeight = closest;
+            
+            // Mettre à jour la recommandation pour cohérence
+            recommendations.weight_recommendation = closest;
+        }
+        
+        // Mettre à jour l'affichage si différent
+        if (currentWeight !== targetWeight) {
+            weightElement.textContent = targetWeight;
+            
+            // Ajouter animation
             weightElement.classList.add('ml-updated');
             setTimeout(() => weightElement.classList.remove('ml-updated'), 600);
         }
@@ -3221,9 +3245,20 @@ function displayRecommendations(recommendations) {
         }
     }
     
-    // Mettre à jour l'aide au montage si activée
+    // Mettre à jour l'aide au montage avec le poids validé
     if (currentUser?.show_plate_helper && recommendations.weight_recommendation) {
+        console.log('[Display] Mise à jour aide montage avec:', recommendations.weight_recommendation);
         setTimeout(() => updatePlateHelper(recommendations.weight_recommendation), 100);
+    }
+    
+    // Afficher les indicateurs de confiance si disponibles
+    if (typeof renderConfidenceIndicators === 'function') {
+        renderConfidenceIndicators(recommendations);
+    }
+    
+    // Mettre à jour l'historique ML
+    if (typeof addToMLHistory === 'function' && currentExercise) {
+        addToMLHistory(currentExercise.id, recommendations);
     }
 }
 
@@ -6521,8 +6556,19 @@ async function updatePlateHelper(weight) {
     }
     
     try {
-        const layout = await apiGet(`/api/users/${currentUser.id}/plate-layout/${weight}?exercise_id=${currentExercise.id}`);
-        console.log('[PlateHelper] Layout received:', layout);
+        // Utiliser le poids depuis les recommandations ML si disponible
+        const mlWeight = currentWorkoutSession?.lastRecommendations?.weight_recommendation;
+        const weightToUse = mlWeight || weight;
+        
+        console.log('[PlateHelper] Poids ML:', mlWeight, 'Poids affiché:', weight);
+        
+        const layout = await apiGet(`/api/users/${currentUser.id}/plate-layout/${weightToUse}?exercise_id=${currentExercise.id}`);
+        
+        // Si le layout retourne un poids différent, c'est une erreur
+        if (layout.feasible && layout.weight !== weightToUse) {
+            console.error('[PlateHelper] Incohérence:', weightToUse, 'vs', layout.weight);
+        }
+        
         showPlateHelper(layout);
     } catch (error) {
         console.error('[PlateHelper] Error:', error);

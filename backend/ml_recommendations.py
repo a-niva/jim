@@ -76,9 +76,9 @@ class FitnessRecommendationEngine:
         user: User,
         exercise: Exercise,
         set_number: int,
-        current_fatigue: int,  # 1-5
-        current_effort: int,   # 1-5 (effort de la série précédente)
-        last_rest_duration: Optional[int] = None,  # en secondes
+        current_fatigue: int,
+        current_effort: int,
+        last_rest_duration: Optional[int] = None,
         exercise_order: int = 1,
         set_order_global: int = 1,
         available_weights: List[float] = None,
@@ -86,7 +86,6 @@ class FitnessRecommendationEngine:
     ) -> Dict[str, any]:
         """
         Génère des recommandations de poids/reps/repos pour la prochaine série
-        Utilise maintenant la préférence utilisateur pour la stratégie
         """
         # Assurer que exercise_order et set_order_global ne sont jamais None
         exercise_order = exercise_order or 1
@@ -107,20 +106,14 @@ class FitnessRecommendationEngine:
             
             # 3. Récupérer ou créer les coefficients personnalisés
             coefficients = self._get_or_create_coefficients(user, exercise)
-            logger.info(f"DEBUG - Coefficients pour user {user.id}, exercise {exercise.id}:")
-            if coefficients:
-                logger.info(f"  fatigue_sensitivity: {getattr(coefficients, 'fatigue_sensitivity', 'NONE')}")
-                logger.info(f"  effort_responsiveness: {getattr(coefficients, 'effort_responsiveness', 'NONE')}")
-                logger.info(f"  recovery_rate: {getattr(coefficients, 'recovery_rate', 'NONE')}")
-                logger.info(f"  volume_adaptability: {getattr(coefficients, 'volume_adaptability', 'NONE')}")
-            else:
-                logger.error("  coefficients est None!")
-
+            
             logger.info(f"DEBUG AVANT STRATÉGIE - Exercise {exercise.id}")
             logger.info(f"  performance_state: {performance_state}")
             logger.info(f"  exercise.weight_type: {exercise.weight_type}")
+            logger.info(f"  available_weights count: {len(available_weights) if available_weights else 0}")
 
             # 4. Appliquer la stratégie selon la préférence utilisateur
+            # Les poids disponibles sont DÉJÀ passés aux stratégies
             if user.prefer_weight_changes_between_sets:
                 recommendations = self._apply_variable_weight_strategy(
                     performance_state, exercise, set_number, 
@@ -131,13 +124,9 @@ class FitnessRecommendationEngine:
             else:
                 recommendations = self._apply_fixed_weight_strategy(
                     performance_state, exercise, set_number, 
-                    current_fatigue, current_effort, coefficients, historical_data, user
+                    current_fatigue, current_effort, coefficients, historical_data, user,
+                    available_weights=available_weights  # AJOUTÉ
                 )
-
-            logger.info(f"DEBUG - Exercise {exercise.id} ({exercise.name})")
-            logger.info(f"  weight_type: {exercise.weight_type}")
-            logger.info(f"  base_weights_kg: {exercise.base_weights_kg}")
-            logger.info(f"  performance_state: {performance_state}")
 
             # 5. Calculer le temps de repos optimal
             rest_recommendation = self._calculate_optimal_rest(
@@ -145,12 +134,9 @@ class FitnessRecommendationEngine:
                 set_number, coefficients, last_rest_duration
             )
             
-            # 6. Valider avec les poids disponibles
-            if available_weights and recommendations['weight']:
-                recommendations['weight'] = self._find_closest_available_weight(
-                    recommendations['weight'], available_weights
-                )
-
+            # 6. SUPPRIMÉ - Plus besoin de valider les poids ici
+            # Les poids sont déjà validés dans les stratégies
+            
             # 7. Calculer les confiances spécifiques
             weight_confidence = self._calculate_confidence(
                 historical_data, current_fatigue, current_effort, 'weight'
@@ -162,13 +148,20 @@ class FitnessRecommendationEngine:
                 historical_data, current_fatigue, current_effort, 'rest'
             )
 
-            # Dans le return final, ajouter :
+            # VALIDATION FINALE : S'assurer que le poids est réalisable
+            if recommendations['weight'] and available_weights:
+                if recommendations['weight'] not in available_weights:
+                    logger.error(f"ERREUR: Poids {recommendations['weight']} non réalisable!")
+                    # Forcer le plus proche
+                    recommendations['weight'] = min(available_weights, 
+                                                key=lambda x: abs(x - recommendations['weight']))
+
             return {
                 "weight_recommendation": round(recommendations['weight'], 1) if recommendations['weight'] is not None else None,
                 "reps_recommendation": max(1, recommendations['reps']),
                 "rest_seconds_recommendation": rest_recommendation['seconds'],
                 "rest_range": rest_recommendation['range'],
-                "confidence": weight_confidence,  # Pour rétrocompatibilité
+                "confidence": weight_confidence,
                 "weight_confidence": weight_confidence,
                 "reps_confidence": reps_confidence,
                 "rest_confidence": rest_confidence,
@@ -185,7 +178,7 @@ class FitnessRecommendationEngine:
                 "baseline_reps": performance_state.get('baseline_reps'),
                 "reasoning": recommendations.get('reasoning', 'Conditions normales'),
                 "adaptation_strategy": "variable_weight" if user.prefer_weight_changes_between_sets else "fixed_weight",
-                "exercise_type": exercise.weight_type  # "external", "bodyweight", "hybrid"
+                "exercise_type": exercise.weight_type
             }
             
         except Exception as e:
@@ -678,7 +671,6 @@ class FitnessRecommendationEngine:
         session_factor: float, exercise: Exercise, available_weights: Optional[List[float]]
     ) -> Optional[float]:
         """Calcule la recommandation de poids avec tous les facteurs"""
-
         # PROTECTION ABSOLUE - Log détaillé si baseline_weight est None
         if baseline_weight is None:
             logger.error(f"ERREUR CRITIQUE: baseline_weight est None dans _calculate_weight_recommendation")
@@ -694,10 +686,9 @@ class FitnessRecommendationEngine:
         if baseline_weight is None or baseline_weight <= 0:
             baseline_weight = 20.0  # ← Fallback direct sans appel à _estimate_initial_weight
             logger.warning(f"Baseline weight null/invalid, using fallback: {baseline_weight}")
-                    
-            
-        # Multiplication de tous les facteurs
-        recommended_weight = (
+        
+        # Calculer le poids théorique idéal
+        theoretical_weight = (
             baseline_weight * 
             fatigue_adj * 
             effort_factor * 
@@ -707,17 +698,41 @@ class FitnessRecommendationEngine:
             session_factor
         )
         
-        # Ajustement aux poids disponibles
-        if available_weights:
-            recommended_weight = self._find_closest_available_weight(
-                recommended_weight, available_weights
-            )
+        # NOUVEAU : Travailler UNIQUEMENT avec les poids disponibles
+        if available_weights and len(available_weights) > 0:
+            # Définir les contraintes
+            max_increase = baseline_weight * 1.2  # Max +20% par série
+            min_weight = baseline_weight * 0.7    # Min -30% par série
+            
+            # Filtrer les poids dans la plage acceptable
+            valid_weights = [w for w in available_weights 
+                            if min_weight <= w <= max_increase]
+            
+            if not valid_weights:
+                # Si aucun poids dans la plage idéale, élargir la recherche
+                logger.warning(f"Aucun poids disponible entre {min_weight:.1f} et {max_increase:.1f}")
+                
+                # Prendre les 3 plus proches du théorique
+                sorted_weights = sorted(available_weights, 
+                                    key=lambda x: abs(x - theoretical_weight))
+                valid_weights = sorted_weights[:3]
+            
+            # Choisir le plus proche du poids théorique
+            recommended_weight = min(valid_weights, 
+                                key=lambda x: abs(x - theoretical_weight))
+            
+            logger.info(f"Poids théorique: {theoretical_weight:.1f}kg → Poids disponible: {recommended_weight}kg")
+        else:
+            # Fallback si pas de poids disponibles (ne devrait pas arriver)
+            logger.error("Aucun poids disponible! Utilisation du poids théorique")
+            recommended_weight = theoretical_weight
+            
+            # Appliquer quand même les contraintes
+            max_increase = baseline_weight * 1.2
+            min_weight = baseline_weight * 0.7
+            recommended_weight = max(min_weight, min(max_increase, recommended_weight))
         
-        # Contraintes de sécurité
-        max_increase = baseline_weight * 1.2  # Max +20% par série
-        min_weight = baseline_weight * 0.7    # Min -30% par série
-        
-        return max(min_weight, min(max_increase, recommended_weight))
+        return recommended_weight
 
     def _calculate_reps_recommendation(
         self, baseline_reps: int, fatigue_adj: float, effort_factor: float,
@@ -889,7 +904,8 @@ class FitnessRecommendationEngine:
         current_effort: int,
         coefficients: UserAdaptationCoefficients,
         historical_data: List[Dict],
-        user: User
+        user: User,
+        available_weights: Optional[List[float]] = None  # AJOUTER
     ) -> Dict[str, any]:
         """Stratégie avec poids fixe : ajuste uniquement reps et repos"""
         
@@ -933,7 +949,10 @@ class FitnessRecommendationEngine:
         else:
             recommended_reps = max(exercise.default_reps_min - 2, 
                                 min(exercise.default_reps_max + 2, recommended_reps))
-        
+        # Valider avec les poids disponibles
+        if available_weights and recommended_weight is not None:
+            closest = min(available_weights, key=lambda x: abs(x - recommended_weight))
+            recommended_weight = closest
         return {
             'weight': recommended_weight,
             'reps': recommended_reps,

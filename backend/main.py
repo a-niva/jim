@@ -2845,10 +2845,24 @@ def get_plate_layout(user_id: int, weight: float, exercise_id: int = Query(None)
                     'type': 'error'
                 }
             exercise_equipment = exercise.equipment_required
-    
+        
     try:
+        # Vérifier d'abord si ce poids est réalisable
+        available_weights = EquipmentService.get_available_weights(db, user_id, exercise)
+        
+        if weight not in available_weights:
+            # Retourner une erreur claire
+            closest = min(available_weights, key=lambda x: abs(x - weight))
+            return {
+                'feasible': False,
+                'reason': f'{weight}kg non réalisable. Poids disponibles proches: {closest}kg',
+                'closest_weight': closest,
+                'available_weights': sorted([w for w in available_weights if abs(w - weight) < 10])
+            }
+        
         layout = EquipmentService.get_plate_layout(user_id, weight, exercise_equipment, user.equipment_config)
         return layout
+    
     except Exception as e:
         logger.error(f"Erreur layout user {user_id}: {e}")
         raise HTTPException(status_code=500, detail="Erreur calcul")
