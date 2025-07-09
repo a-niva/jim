@@ -1303,6 +1303,11 @@ def get_set_recommendations(
                 else:
                     adjusted_weight = round(adjusted_weight * 2) / 2
                 
+                # Validation finale pour dumbbells
+                if exercise.equipment_required and 'dumbbells' in exercise.equipment_required:
+                    if adjusted_weight % 2 != 0:
+                        adjusted_weight = int(round(adjusted_weight / 2)) * 2
+
                 base_recommendations['weight_recommendation'] = adjusted_weight
                 base_recommendations['reasoning'] = " + ".join(reason_parts) + f" → {recommended_weight:.1f}kg → {adjusted_weight:.1f}kg"
                 base_recommendations['weight_change'] = "increase" if adjusted_weight > recommended_weight else "decrease"

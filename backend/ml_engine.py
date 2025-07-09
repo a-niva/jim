@@ -187,7 +187,7 @@ class FitnessMLEngine:
         # Calcul du poids de base
         base_weight = body_weight * ratio
         # Vérifier le poids minimum de la barre pour les exercices avec barbell
-        if any('barbell' in eq for eq in exercise.equipment):
+        if any('barbell' in eq for eq in exercise.equipment_required):
             min_bar_weight = 20  # Barre olympique par défaut
             if user.equipment_config and user.equipment_config.get('barres'):
                 if user.equipment_config['barres'].get('courte', {}).get('available'):
@@ -630,7 +630,7 @@ class FitnessMLEngine:
             logger.info(f"=== DIAGNOSTIC DÉTAILLÉ ÉQUIPEMENT ===")
             for i, exercise in enumerate(all_exercises[:10]):
                 logger.info(f"Exercice {i+1}: {exercise.name}")
-                logger.info(f"  Équipement requis: {exercise.equipment}")
+                logger.info(f"  Équipement requis: {exercise.equipment_required}")
                 if exercise.equipment_required:
                     matches = [eq for eq in exercise.equipment_required if eq in available_equipment]
                     logger.info(f"  Équipements correspondants: {matches}")
@@ -1515,7 +1515,7 @@ class SessionBuilder:
         suitable = exercises
         if hasattr(user, 'available_equipment'):
             avail = set(user.available_equipment or [])
-            filt = [ex for ex in suitable if any(eq in avail for eq in ex.equipment)]
+            filt = [ex for ex in suitable if any(eq in avail for eq in ex.equipment_required)]
             suitable = filt or suitable
 
         # --- 2. Filtrer par niveau d'expérience

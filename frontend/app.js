@@ -837,7 +837,7 @@ function loadEquipmentStep() {
     Object.entries(EQUIPMENT_CONFIG).forEach(([key, config]) => {
         const card = document.createElement('div');
         card.className = 'equipment-card';
-        card.dataset.equipment_required = key;
+        card.dataset.equipment = key;
         card.innerHTML = `
             <div class="equipment-icon">${config.icon}</div>
             <div class="equipment-name">${config.name}</div>
@@ -3947,7 +3947,7 @@ async function configureUIForExerciseType(type, recommendations) {
             break;
             
         case 'weighted':
-            await configureWeighted(elements, recommendations);
+            await configureWeighted(elements, currentExercise, recommendations.weight_recommendation || 20);
             break;
     }
     // Créer bouton GO seulement quand nécessaire
@@ -4203,7 +4203,7 @@ async function configureWeighted(elements, exercise, weightRec) {
     let closestWeight;
     
     // Pour les dumbbells, forcer des poids pairs uniquement
-    if (currentExercise?.equipment_required?.includes('dumbbells')) {
+    if (exercise?.equipment_required?.includes('dumbbells')) {
         const evenWeights = availableWeights.filter(w => w % 2 === 0);
         
         if (evenWeights.length > 0) {
@@ -4241,7 +4241,7 @@ async function configureWeighted(elements, exercise, weightRec) {
     }
     
     // Stocker les poids disponibles dans sessionStorage
-    if (currentExercise?.equipment_required?.includes('dumbbells')) {
+    if (exercise?.equipment_required?.includes('dumbbells')) {
         // Stocker uniquement les poids pairs pour les dumbbells
         const evenWeights = availableWeights.filter(w => w % 2 === 0);
         sessionStorage.setItem('availableWeights', JSON.stringify(evenWeights));
@@ -6501,6 +6501,11 @@ async function updatePlateHelper(weight) {
         hasExercise: !!currentExercise,
         showHelper: currentUser?.show_plate_helper
     });
+    // Validation du poids pour dumbbells
+    if (currentExercise?.equipment_required?.includes('dumbbells') && weight % 2 !== 0) {
+        console.warn('[PlateHelper] Poids impair détecté pour dumbbells:', weight);
+        weight = Math.round(weight / 2) * 2;
+    }
     
     // Vérifications de base (sans currentExercise)
     if (!currentUser?.show_plate_helper || !weight || weight <= 0) {
