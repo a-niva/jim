@@ -179,34 +179,52 @@ class EquipmentService:
         
     @classmethod
     def _calculate_plate_combinations(cls, plates_dict: dict, max_per_side: float = 50) -> List[float]:
-        """Calcule UNIQUEMENT les combinaisons symétriques réalisables"""
+        """
+        Calcule UNIQUEMENT les combinaisons symétriques réalisables
+        Pour dumbbells : doit pouvoir équiper 2 barres identiquement
+        Pour barbell : doit pouvoir équiper les 2 côtés identiquement
+        """
         if not plates_dict:
             return [0]
         
-        combinations = set([0])  # Barre seule
+        # Pour dumbbells, on a besoin de 4 disques identiques (2 par barre)
+        # Pour barbell, on a besoin de 2 disques identiques (1 par côté)
+        # Cette fonction est utilisée pour les deux, donc on prend le cas le plus restrictif
         
-        # Trier par poids croissant pour optimiser les petites combinaisons
+        combinations = set([0])  # Toujours possible sans disques
+        
+        # Convertir et trier les disques
         sorted_plates = sorted(
             [(float(w), count) for w, count in plates_dict.items()],
             key=lambda x: x[0]
         )
         
-        for weight, available_count in sorted_plates:
-            # CORRECTION CRITIQUE : Ne considérer que les paires complètes
-            max_pairs = available_count // 2  # Nombre de PAIRES réellement disponibles
+        # Générer toutes les combinaisons possibles
+        def generate_combinations(plates, current_weight, current_index, used_plates):
+            if current_index >= len(plates):
+                return
             
-            if max_pairs == 0:
-                continue  # Pas assez de disques pour une paire symétrique
-                
-            new_combinations = set()
-            for existing in combinations:
-                for pairs in range(1, max_pairs + 1):
-                    # CORRECTION : 2 disques par paire (un de chaque côté de la barre)
-                    symmetric_weight = existing + (weight * pairs * 2)
-                    if symmetric_weight <= max_per_side * 2:
-                        new_combinations.add(symmetric_weight)
+            plate_weight, available_count = plates[current_index]
             
-            combinations.update(new_combinations)
+            # Pour chaque nombre de paires possibles avec ce poids
+            for pairs in range(0, available_count // 2 + 1):
+                if pairs > 0:
+                    # Poids ajouté (2 disques par paire)
+                    added_weight = pairs * plate_weight * 2
+                    new_weight = current_weight + added_weight
+                    
+                    if new_weight <= max_per_side * 2:
+                        combinations.add(new_weight)
+                        
+                        # Continuer avec les disques suivants
+                        new_used = used_plates.copy()
+                        new_used[plate_weight] = pairs * 2
+                        generate_combinations(plates, new_weight, current_index + 1, new_used)
+                else:
+                    # Cas où on n'utilise pas ce disque
+                    generate_combinations(plates, current_weight, current_index + 1, used_plates)
+        
+        generate_combinations(sorted_plates, 0, 0, {})
         
         return sorted(list(combinations))
         

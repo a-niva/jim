@@ -4227,63 +4227,51 @@ async function configureWeighted(elements, exercise, weightRec) {
     
     // Get available weights
     const response = await apiGet(`/api/users/${currentUser.id}/available-weights?exercise_id=${exercise.id}`);
-    const availableWeights = response.available_weights || [];
+    let availableWeights = response.available_weights || [];
     
     if (availableWeights.length === 0) {
         console.warn('Aucun poids disponible');
         return;
     }
     
+    // Validation des poids pour dumbbells
+    if (exercise?.equipment_required?.includes('dumbbells')) {
+        // Calculer le maximum théorique possible
+        const maxPossible = calculateMaxDumbbellWeight(currentUser.equipment_config);
+        
+        // Filtrer les poids impossibles
+        const originalCount = availableWeights.length;
+        availableWeights = availableWeights.filter(w => w <= maxPossible);
+        
+        if (originalCount !== availableWeights.length) {
+            console.error('[Weights] Poids impossibles filtrés:', originalCount - availableWeights.length);
+        }
+        
+        // Forcer uniquement les poids pairs
+        availableWeights = availableWeights.filter(w => w % 2 === 0);
+        
+        console.log('[Weights] Dumbbells - poids valides:', availableWeights);
+    }
+    
+    // Log des poids disponibles pour debug
+    console.log('[Weights] Poids disponibles pour', exercise.name, ':', availableWeights);
+    console.log('[Weights] Config équipement:', currentUser.equipment_config);
+    
     // Find closest available weight
     let closestWeight;
     
-    // Pour les dumbbells, forcer des poids pairs uniquement
-    if (exercise?.equipment_required?.includes('dumbbells')) {
-        const evenWeights = availableWeights.filter(w => w % 2 === 0);
-        
-        if (evenWeights.length > 0) {
-            // Trouver le poids pair le plus proche
-            closestWeight = evenWeights.reduce((prev, curr) => {
-                return Math.abs(curr - weightRec) < Math.abs(prev - weightRec) ? curr : prev;
-            }, evenWeights[0]);
-            
-            console.log('[Weights] Dumbbells - forced even weight:', closestWeight, 'from', evenWeights);
-        } else {
-            // Aucun poids pair disponible - Situation anormale
-            console.warn('[Weights] No even weights available for dumbbells!');
-            
-            // Prendre le plus proche et l'arrondir au pair inférieur
-            const closest = availableWeights.reduce((prev, curr) => {
-                return Math.abs(curr - weightRec) < Math.abs(prev - weightRec) ? curr : prev;
-            }, availableWeights[0]);
-            
-            closestWeight = Math.floor(closest / 2) * 2;
-            
-            // Si 0, prendre le minimum pair possible
-            if (closestWeight === 0 && availableWeights.length > 0) {
-                closestWeight = Math.ceil(Math.min(...availableWeights) / 2) * 2;
-            }
-            
-            console.warn('[Weights] Rounded to even:', closestWeight);
-        }
-    } else {
-        // Pour les autres équipements (barbell, etc.), logique normale
+    if (availableWeights.length > 0) {
         closestWeight = availableWeights.reduce((prev, curr) => {
             return Math.abs(curr - weightRec) < Math.abs(prev - weightRec) ? curr : prev;
         }, availableWeights[0]);
-        
-        console.log('[Weights] Standard equipment - closest weight:', closestWeight);
+    } else {
+        console.error('[Weights] Aucun poids disponible après filtrage!');
+        closestWeight = 5; // Fallback minimal
     }
     
     // Stocker les poids disponibles dans sessionStorage
-    if (exercise?.equipment_required?.includes('dumbbells')) {
-        // Stocker uniquement les poids pairs pour les dumbbells
-        const evenWeights = availableWeights.filter(w => w % 2 === 0);
-        sessionStorage.setItem('availableWeights', JSON.stringify(evenWeights));
-    } else {
-        sessionStorage.setItem('availableWeights', JSON.stringify(availableWeights));
-    }
-
+    sessionStorage.setItem('availableWeights', JSON.stringify(availableWeights));
+    
     // Configure weight controls
     if (elements.setWeight) {
         elements.setWeight.textContent = closestWeight || weightRec;
@@ -4297,10 +4285,10 @@ async function configureWeighted(elements, exercise, weightRec) {
         }
     }
     
-    // Configure weight adjustment controls
+    // Configure weight adjustment controls - CORRIGÉ
     if (elements.decreaseWeight && elements.increaseWeight) {
-        elements.decreaseWeight.onclick = () => adjustWeight(-1, availableWeights, exercise);
-        elements.increaseWeight.onclick = () => adjustWeight(1, availableWeights, exercise);
+        elements.decreaseWeight.onclick = () => adjustWeightDown();
+        elements.increaseWeight.onclick = () => adjustWeightUp();
     }
     
     // Log configuration for debugging
@@ -4310,8 +4298,39 @@ async function configureWeighted(elements, exercise, weightRec) {
         recommendedWeight: weightRec,
         selectedWeight: closestWeight,
         availableCount: availableWeights.length,
+        availableWeights: availableWeights.slice(0, 10), // Premiers 10 pour debug
         isDumbbells: exercise.equipment_required?.includes('dumbbells')
     });
+}
+
+// Calculer le poids maximum théorique pour dumbbells
+function calculateMaxDumbbellWeight(config) {
+    let maxWeight = 0;
+    
+    // Barres (2 barres pour dumbbells)
+    if (config.barbell_short_pair?.available && config.barbell_short_pair?.count >= 2) {
+        const barWeight = config.barbell_short_pair.weight || 2.5;
+        maxWeight += barWeight * 2;
+        
+        // Tous les disques disponibles sur 2 barres
+        if (config.weight_plates?.weights) {
+            for (const [weight, count] of Object.entries(config.weight_plates.weights)) {
+                // Pour dumbbells, on ne peut pas mettre plus que count/2 disques par barre
+                // (car il faut équiper 2 barres)
+                const maxPerBar = Math.floor(count / 2);
+                maxWeight += parseFloat(weight) * maxPerBar * 2;
+            }
+        }
+    }
+    
+    // Dumbbells fixes (si disponibles)
+    if (config.dumbbells?.available && config.dumbbells?.weights) {
+        const maxFixed = Math.max(...config.dumbbells.weights) * 2;
+        maxWeight = Math.max(maxWeight, maxFixed);
+    }
+    
+    console.log('[Weights] Poids maximum théorique dumbbells:', maxWeight, 'kg');
+    return maxWeight;
 }
 
 // Mise à jour des recommandations de repos
@@ -6646,33 +6665,34 @@ function createDumbbellVisualization(layout) {
     if (plates.length === 0) {
         const platesWeight = weightPerDumbbell - barWeight;
         if (platesWeight > 0) {
-            // Logique pour déterminer les disques
-            // Ex: 17.5kg = 15 + 2.5
+            // Calculer les combinaisons possibles
+            // TODO: Améliorer cette logique avec les vraies combinaisons du backend
             if (Math.abs(platesWeight - 17.5) < 0.1) {
                 plates = [15, 2.5];
             } else if (Math.abs(platesWeight - 2.5) < 0.1) {
                 plates = [1.25, 1.25];
+            } else if (Math.abs(platesWeight - 7.5) < 0.1) {
+                plates = [5, 2.5];
             }
-            // Ajouter d'autres combinaisons selon besoin
         }
     }
     
-    // Créer la visualisation épurée
+    // Visualisation épurée
     return `
         <div class="helper-content-minimal">
             <div class="weight-per-dumbbell">${weightPerDumbbell}kg par haltère</div>
             
             <div class="bar-visualization">
                 ${plates.map(weight => 
-                    `<div class="plate-visual plate-${weight.toString().replace('.', '-')}" data-weight="${weight}">
+                    `<div class="plate-visual plate-${weight.toString().replace('.', '-')}" title="${weight}kg">
                         <span>${weight}</span>
                     </div>`
                 ).join('')}
-                <div class="bar-visual" data-weight="${barWeight}kg">
+                <div class="bar-visual" title="Barre ${barWeight}kg">
                     <span>${barWeight}kg</span>
                 </div>
                 ${plates.slice().reverse().map(weight => 
-                    `<div class="plate-visual plate-${weight.toString().replace('.', '-')}" data-weight="${weight}">
+                    `<div class="plate-visual plate-${weight.toString().replace('.', '-')}" title="${weight}kg">
                         <span>${weight}</span>
                     </div>`
                 ).join('')}
@@ -6682,7 +6702,6 @@ function createDumbbellVisualization(layout) {
 }
 
 function createBarbellVisualization(layout) {
-    // Similaire mais pour barbell
     const plates = [];
     layout.layout.forEach(item => {
         const match = item.match(/(\d+(?:\.\d+)?)kg/);
@@ -6696,22 +6715,22 @@ function createBarbellVisualization(layout) {
             <div class="helper-header">🏋️ ${layout.weight}kg total</div>
             
             <div class="barbell-visual">
-                <div class="visual-label">Montage de la barre :</div>
+                <div class="visual-label">Par côté :</div>
                 <div class="bar-assembly">
                     ${plates.map(weight => 
-                        `<div class="plate plate-${weight}" title="${weight}kg">${weight}</div>`
+                        `<div class="plate-visual plate-${weight.toString().replace('.', '-')}" title="${weight}kg">
+                            <span>${weight}</span>
+                        </div>`
                     ).join('')}
-                    <div class="bar-center barbell" title="Barre">
+                    <div class="bar-visual barbell" title="Barre">
                         <span>BARRE</span>
                     </div>
                     ${plates.slice().reverse().map(weight => 
-                        `<div class="plate plate-${weight}" title="${weight}kg">${weight}</div>`
+                        `<div class="plate-visual plate-${weight.toString().replace('.', '-')}" title="${weight}kg">
+                            <span>${weight}</span>
+                        </div>`
                     ).join('')}
                 </div>
-            </div>
-            
-            <div class="helper-details">
-                <div class="detail-item">• Par côté : ${plates.join(' + ')}kg</div>
             </div>
         </div>
     `;
