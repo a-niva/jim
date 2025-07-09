@@ -32,7 +32,7 @@ class WeightCalculator:
                 weights.add(bar_weight + combo)
         
         return sorted(list(weights))
-    
+        
     @staticmethod
     def get_dumbbell_weights(config: dict) -> List[float]:
         """Retourne UNIQUEMENT les poids dumbbells en PAIRES réalisables"""
@@ -44,37 +44,79 @@ class WeightCalculator:
         if config.get('dumbbells', {}).get('available', False):
             fixed_weights = config['dumbbells'].get('weights', [])
             for weight in fixed_weights:
-                # SEUL le poids total (2×dumbbell) est ajouté
+                # Poids total des 2 dumbbells
                 weights.add(weight * 2)
         
-        # Barres courtes + disques (équivalence dumbbells)
+        # Barres courtes + disques
         barres_courtes = config.get('barbell_short_pair', {})
         if (barres_courtes.get('available', False) and 
             barres_courtes.get('count', 0) >= 2):
             
             bar_weight = barres_courtes.get('weight', 2.5)
             plates = config.get('weight_plates', {}).get('weights', {})
-            symmetric_combinations = EquipmentService._calculate_plate_combinations(plates)
             
-            for combo in symmetric_combinations:
-                # Poids total : 2 barres + disques sur chaque barre
-                total_weight = (bar_weight + combo) * 2
-                weights.add(total_weight)
+            if plates:
+                # Pour les dumbbells, on doit pouvoir équiper 2 barres identiquement
+                # Donc on a besoin de 4 disques du même poids (2 par barre)
+                dumbbell_combinations = set([0])  # Barres seules
+                
+                for weight_str, total_count in plates.items():
+                    weight = float(weight_str)
+                    # Nombre de QUADRUPLETS disponibles (4 disques identiques)
+                    quads_available = total_count // 4
+                    
+                    if quads_available > 0:
+                        # Ajouter toutes les combinaisons possibles
+                        new_combinations = set()
+                        for existing in dumbbell_combinations:
+                            for quads in range(1, quads_available + 1):
+                                # Poids total : 2 barres + 4 disques par quad
+                                total_weight = (bar_weight * 2) + existing + (weight * 4 * quads)
+                                new_combinations.add(total_weight)
+                        
+                        dumbbell_combinations.update(new_combinations)
+                
+                # Cas spécial : on peut aussi utiliser des PAIRES différentes sur chaque barre
+                # si on a au moins 2 disques de chaque poids
+                for combo in cls._calculate_mixed_dumbbell_combinations(plates):
+                    total_weight = (bar_weight * 2) + combo
+                    weights.add(total_weight)
+                
+                # Ajouter toutes les combinaisons valides
+                for combo_weight in dumbbell_combinations:
+                    total = (bar_weight * 2) + combo_weight
+                    weights.add(total)
         
         return sorted(list(weights))
-    
+
     @staticmethod
-    def get_kettlebell_weights(config: dict) -> List[float]:
-        """Retourne les poids kettlebells (unitaire + paire)"""
-        weights = set()
+    def _calculate_mixed_dumbbell_combinations(plates: dict) -> List[float]:
+        """Calcule les combinaisons mixtes pour dumbbells (paires différentes)"""
+        combinations = set()
         
-        if config.get('kettlebells', {}).get('available', False):
-            kb_weights = config['kettlebells'].get('weights', [])
-            for weight in kb_weights:
-                weights.add(weight)      # Unitaire (exercices à une main)
+        # Pour chaque poids où on a au moins 2 disques
+        valid_weights = [(float(w), count) for w, count in plates.items() if count >= 2]
         
-        return sorted(list(weights))
-    
+        # Générer les combinaisons en utilisant des paires
+        for i, (weight1, count1) in enumerate(valid_weights):
+            # Utiliser une paire de ce poids (2 disques sur les 2 barres)
+            combinations.add(weight1 * 2)
+            
+            # Combiner avec d'autres poids
+            for j, (weight2, count2) in enumerate(valid_weights[i+1:], i+
+        
+        @staticmethod
+        def get_kettlebell_weights(config: dict) -> List[float]:
+            """Retourne les poids kettlebells (unitaire + paire)"""
+            weights = set()
+            
+            if config.get('kettlebells', {}).get('available', False):
+                kb_weights = config['kettlebells'].get('weights', [])
+                for weight in kb_weights:
+                    weights.add(weight)      # Unitaire (exercices à une main)
+            
+            return sorted(list(weights))
+        
     @staticmethod
     def get_machine_weights(config: dict, required_equipment: List[str]) -> List[float]:
         """Retourne les poids machines"""
