@@ -6778,21 +6778,16 @@ function startRestPeriod(customTime = null, isMLRecommendation = false) {
     // Forcer la transition vers RESTING
     transitionTo(WorkoutStates.RESTING);
     
-    // === MODULE 2: GESTION UNIQUE DES DONNÉES ML ===
-    let mlRestRecommendation = false;
-    let mlSeconds = null;
-    let mlReason = '';
-    let mlRange = null;
-
-    // Vérifier si on a des données ML du Module 1
+    // === MODULE 2: AFFICHAGE BADGE ML (CONSERVÉ) ===
+    // Vérifier si on a des données ML du Module 1 pour l'affichage
     if (currentWorkoutSession.mlRestData?.seconds) {
-        mlRestRecommendation = true;
-        mlSeconds = currentWorkoutSession.mlRestData.seconds;
-        mlReason = currentWorkoutSession.mlRestData.reason || '';
-        mlRange = currentWorkoutSession.mlRestData.range;
-        console.log(`🧠 Utilisation repos ML: ${mlSeconds}s (raison: ${mlReason})`);
+        const mlSeconds = currentWorkoutSession.mlRestData.seconds;
+        const mlReason = currentWorkoutSession.mlRestData.reason || '';
+        const mlRange = currentWorkoutSession.mlRestData.range;
         
-        // Remplacer complètement le HTML statique
+        console.log(`🧠 Données ML détectées: ${mlSeconds}s (raison: ${mlReason})`);
+        
+        // Remplacer complètement le HTML statique pour afficher le badge ML
         document.getElementById('restPeriod').innerHTML = `
             <div class="rest-content">
                 <h3>🧘 Temps de repos <span class="ai-badge">🤖 IA</span></h3>
@@ -6809,9 +6804,28 @@ function startRestPeriod(customTime = null, isMLRecommendation = false) {
         `;
     }
 
-    // Utiliser le temps ML ou personnalisé ou celui de l'exercice
-    let timeLeft = mlSeconds || customTime || currentExercise.base_rest_time_seconds || 60;
+    // === MODULE 3: TIMER ADAPTATIF ML AUTOMATIQUE ===
+    // Feature flag pour désactiver rapidement en cas de problème
+    const ML_REST_ENABLED = localStorage.getItem('mlRestFeatureFlag') !== 'false';
+    
+    // Calcul du temps avec priorité directe aux données ML
+    let timeLeft = (ML_REST_ENABLED && currentWorkoutSession.mlRestData?.seconds) || 
+                   customTime || 
+                   currentExercise.base_rest_time_seconds || 
+                   60;
+
+    // Garde-fou de sécurité sur les valeurs
+    timeLeft = Math.max(15, Math.min(300, timeLeft));
+    
     const initialTime = timeLeft;
+    
+    // Logging pour traçabilité et debug
+    const source = (ML_REST_ENABLED && currentWorkoutSession.mlRestData?.seconds) ? 
+                   `ML(${currentWorkoutSession.mlRestData.seconds}s)` :
+                   customTime ? `Personnalisé(${customTime}s)` : 
+                   `Défaut(${currentExercise.base_rest_time_seconds || 60}s)`;
+    
+    console.log(`⏱️ MODULE 3 - Source timer: ${source} - Flag ML: ${ML_REST_ENABLED} - Final: ${timeLeft}s`);
     
     // Enregistrer le début du repos
     workoutState.restStartTime = Date.now();
@@ -6848,8 +6862,6 @@ function startRestPeriod(customTime = null, isMLRecommendation = false) {
         timeLeft--;
         updateRestTimer(timeLeft);
         
-        // LIGNE SUPPRIMÉE : updateRestProgress(progress);
-        
         if (timeLeft <= 0) {
             clearInterval(restTimer);
             restTimer = null;
@@ -6863,20 +6875,16 @@ function startRestPeriod(customTime = null, isMLRecommendation = false) {
             // Calculer et enregistrer le temps de repos réel
             const actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
             currentWorkoutSession.totalRestTime += actualRestTime;
-            console.log(`Repos terminé. Durée: ${actualRestTime}s (prévu: ${workoutState.plannedRestDuration}s)`);
+            console.log(`⏱️ MODULE 3 - Repos terminé: ${actualRestTime}s réels vs ${initialTime}s planifiés`);
             
-            // Son de fin
-            if (window.workoutAudio) {
-                window.workoutAudio.playSound('restComplete');
+            // Auto-transition vers la série suivante si configuré
+            if (currentWorkoutSession.autoAdvance) {
+                setTimeout(() => {
+                    if (currentWorkoutSession.state === WorkoutStates.RESTING) {
+                        endRest();
+                    }
+                }, 1000);
             }
-            
-            // Vibration de fin
-            if (navigator.vibrate) {
-                navigator.vibrate([100, 50, 100, 50, 200]);
-            }
-            
-            // Auto-progression après repos
-            completeRest();
         }
     }, 1000);
 }
