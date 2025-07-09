@@ -78,7 +78,7 @@ class WeightCalculator:
                 
                 # Cas spécial : on peut aussi utiliser des PAIRES différentes sur chaque barre
                 # si on a au moins 2 disques de chaque poids
-                for combo in cls._calculate_mixed_dumbbell_combinations(plates):
+                for combo in WeightCalculator._calculate_mixed_dumbbell_combinations(plates):
                     total_weight = (bar_weight * 2) + combo
                     weights.add(total_weight)
                 
@@ -103,19 +103,29 @@ class WeightCalculator:
             combinations.add(weight1 * 2)
             
             # Combiner avec d'autres poids
-            for j, (weight2, count2) in enumerate(valid_weights[i+1:], i+
+            for j, (weight2, count2) in enumerate(valid_weights[i+1:], i+1):
+                # On peut utiliser 1 paire de chaque
+                combinations.add((weight1 + weight2) * 2)
+                
+                # Si on a 4+ disques d'un poids, on peut en mettre 2 par barre
+                if count1 >= 4:
+                    combinations.add((weight1 * 2 + weight2) * 2)
+                if count2 >= 4:
+                    combinations.add((weight1 + weight2 * 2) * 2)
         
-        @staticmethod
-        def get_kettlebell_weights(config: dict) -> List[float]:
-            """Retourne les poids kettlebells (unitaire + paire)"""
-            weights = set()
-            
-            if config.get('kettlebells', {}).get('available', False):
-                kb_weights = config['kettlebells'].get('weights', [])
-                for weight in kb_weights:
-                    weights.add(weight)      # Unitaire (exercices à une main)
-            
-            return sorted(list(weights))
+        return list(combinations)
+        
+    @staticmethod
+    def get_kettlebell_weights(config: dict) -> List[float]:
+        """Retourne les poids kettlebells (unitaire + paire)"""
+        weights = set()
+        
+        if config.get('kettlebells', {}).get('available', False):
+            kb_weights = config['kettlebells'].get('weights', [])
+            for weight in kb_weights:
+                weights.add(weight)      # Unitaire (exercices à une main)
+        
+        return sorted(list(weights))
         
     @staticmethod
     def get_machine_weights(config: dict, required_equipment: List[str]) -> List[float]:

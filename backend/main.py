@@ -18,7 +18,7 @@ from backend.ml_engine import RecoveryTracker, VolumeOptimizer, ProgressionAnaly
 from backend.constants import normalize_muscle_group 
 from backend.database import engine, get_db, SessionLocal
 from backend.models import Base, User, Exercise, Program, Workout, WorkoutSet, SetHistory, UserCommitment, AdaptiveTargets, UserAdaptationCoefficients, PerformanceStates, ExerciseCompletionStats
-from backend.schemas import UserCreate, UserResponse, ProgramCreate, WorkoutCreate, SetCreate, ExerciseResponse, UserPreferenceUpdate
+from backend.schemas import UserCreate, UserResponse, WorkoutResponse, ProgramCreate, WorkoutCreate, SetCreate, ExerciseResponse, UserPreferenceUpdate
 from backend.equipment_service import EquipmentService
 from sqlalchemy import extract, and_
 import calendar
@@ -1202,6 +1202,14 @@ def get_workout_sets(workout_id: int, db: Session = Depends(get_db)):
     ).order_by(WorkoutSet.id).all()
     
     return sets
+
+@app.get("/api/workouts/{workout_id}", response_model=WorkoutResponse)
+def get_workout(workout_id: int, db: Session = Depends(get_db)):
+    """Récupérer les détails d'une séance spécifique"""
+    workout = db.query(Workout).filter(Workout.id == workout_id).first()
+    if not workout:
+        raise HTTPException(status_code=404, detail="Séance non trouvée")
+    return workout
 
 @app.post("/api/workouts/{workout_id}/recommendations")
 def get_set_recommendations(
