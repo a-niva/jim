@@ -6778,7 +6778,7 @@ function startRestPeriod(customTime = null, isMLRecommendation = false) {
     // Forcer la transition vers RESTING
     transitionTo(WorkoutStates.RESTING);
     
-    // === MODULE 2: DÉTECTER ET UTILISER LES DONNÉES ML ===
+    // === MODULE 2: GESTION UNIQUE DES DONNÉES ML ===
     let mlRestRecommendation = false;
     let mlSeconds = null;
     let mlReason = '';
@@ -6791,39 +6791,22 @@ function startRestPeriod(customTime = null, isMLRecommendation = false) {
         mlReason = currentWorkoutSession.mlRestData.reason || '';
         mlRange = currentWorkoutSession.mlRestData.range;
         console.log(`🧠 Utilisation repos ML: ${mlSeconds}s (raison: ${mlReason})`);
-    }
-
-    // Modifier le titre si c'est une recommandation IA
-    const restContent = document.querySelector('.rest-content h3');
-    if (restContent) {
-        if (mlRestRecommendation) {
-            restContent.innerHTML = '🧘 Temps de repos <span class="ai-badge">🤖 IA</span>';
-        } else {
-            restContent.innerHTML = '🧘 Temps de repos';
-        }
-    }
-
-    // === MODULE 2: AJOUTER BADGE ML INFORMATIF ===
-    // Ajouter le badge ML si disponible
-    const restPeriod = document.getElementById('restPeriod');
-    if (restPeriod && mlRestRecommendation) {
-        // Chercher s'il y a déjà un badge pour éviter les doublons
-        let mlBadge = restPeriod.querySelector('.ml-rest-suggestion');
-        if (!mlBadge) {
-            // Créer le badge ML
-            mlBadge = document.createElement('div');
-            mlBadge.className = 'ml-rest-suggestion';
-            mlBadge.innerHTML = `
-                ✨ IA suggère : ${mlSeconds}s ${mlReason ? `(${mlReason})` : ''}
-                ${mlRange ? `<div class="ml-range">Plage optimale: ${mlRange.min}-${mlRange.max}s</div>` : ''}
-            `;
-            
-            // Insérer le badge après le titre
-            const restContentParent = restContent?.parentElement;
-            if (restContentParent) {
-                restContentParent.appendChild(mlBadge);
-            }
-        }
+        
+        // Remplacer complètement le HTML statique
+        document.getElementById('restPeriod').innerHTML = `
+            <div class="rest-content">
+                <h3>🧘 Temps de repos <span class="ai-badge">🤖 IA</span></h3>
+                <div class="ml-rest-suggestion">
+                    ✨ IA suggère : ${mlSeconds}s ${mlReason ? `(${mlReason})` : ''}
+                    ${mlRange ? `<div class="ml-range">Plage optimale: ${mlRange.min}-${mlRange.max}s</div>` : ''}
+                </div>
+                <div class="rest-timer" id="restTimer">01:30</div>
+                <div class="rest-actions">
+                    <button class="btn btn-secondary btn-sm" onclick="addRestTime(30)">+30s</button>
+                    <button class="btn btn-primary btn-sm" onclick="endRest()">Passer</button>
+                </div>
+            </div>
+        `;
     }
 
     // Utiliser le temps ML ou personnalisé ou celui de l'exercice
