@@ -7237,6 +7237,17 @@ async function saveFeedbackAndRest() {
             restDuration = workoutState.currentRecommendation.rest_seconds_recommendation;
             isMLRest = true;
             console.log(`🤖 Repos IA : ${restDuration}s (base: ${currentExercise.base_rest_time_seconds}s)`);
+            
+            // === MODULE 1 : STOCKER LES DONNÉES ML POUR LE BADGE ===
+            currentWorkoutSession.mlRestData = {
+                seconds: workoutState.currentRecommendation.rest_seconds_recommendation,
+                reason: workoutState.currentRecommendation.rest_reason || 
+                       workoutState.currentRecommendation.reasoning || 
+                       "Recommandation IA",
+                range: workoutState.currentRecommendation.rest_range || null,
+                confidence: workoutState.currentRecommendation.confidence || 0.8
+            };
+            console.log(`📊 MODULE 1 - Données ML stockées:`, currentWorkoutSession.mlRestData);
         }
         
         // Vérifier si c'est la dernière série
