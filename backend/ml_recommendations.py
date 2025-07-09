@@ -127,32 +127,22 @@ class FitnessRecommendationEngine:
                     current_fatigue, current_effort, coefficients, historical_data, user,
                     available_weights=available_weights  # AJOUTÉ
                 )
-
-            # 5.1 Calculer le temps de repos optimal
-            rest_recommendation = self._calculate_optimal_rest(
-                exercise, current_fatigue, current_effort, 
-                set_number, coefficients, last_rest_duration
-            )
-            
-            # Extraire la confiance du repos (ou utiliser la confiance générale comme fallback)
-            rest_confidence = rest_recommendation.get('confidence', weight_confidence)
-            
-            # 9. Calculer la confiance
+                
+            # 5. Calculer TOUTES les confidences d'abord
             weight_confidence = self._calculate_confidence(
                 len(historical_data), 
                 performance_state.get('consistency_score', 0.5)
             )
             reps_confidence = weight_confidence * 0.9
-            
-            # Extraire la confiance du repos (déplacé ici)
-            rest_confidence = rest_recommendation.get('confidence', weight_confidence)
-            
-            # Extraire la confiance du repos (ou utiliser la confiance générale comme fallback)
-            rest_confidence = rest_recommendation.get('confidence', weight_confidence)
-            
-            rest_confidence = self._calculate_confidence(
-                historical_data, current_fatigue, current_effort, 'rest'
+
+            # 6. Calculer le temps de repos optimal
+            rest_recommendation = self._calculate_optimal_rest(
+                exercise, current_fatigue, current_effort, 
+                set_number, coefficients, last_rest_duration
             )
+
+            # 7. Maintenant on peut utiliser weight_confidence comme fallback
+            rest_confidence = rest_recommendation.get('confidence', weight_confidence)
 
             # VALIDATION FINALE : S'assurer que le poids est réalisable
             if recommendations['weight'] and available_weights:
