@@ -7382,40 +7382,69 @@ function completeRest() {
     document.getElementById('setFeedback').style.display = 'none';
     
     // Transition vers COMPLETED après la dernière série
-    if (currentSet >= currentWorkoutSession.totalSets) {
-        transitionTo(WorkoutStates.COMPLETED);
-        showSetCompletionOptions();
-    } else {
-        // Passage à la série suivante
-        currentSet++;
-        currentWorkoutSession.currentSetNumber = currentSet;
-        updateSeriesDots();
+    // Gestion spéciale pour les séries supplémentaires
+    if (currentWorkoutSession.isStartingExtraSet) {
+        // Flag détecté : on démarre une série supplémentaire, pas d'incrémentation
+        currentWorkoutSession.isStartingExtraSet = false; // Reset du flag
+        console.log(`🔄 Préparation série supplémentaire ${currentSet}/${currentWorkoutSession.totalSets}`);
         
-        // Mettre à jour les compteurs d'en-tête
+        // Préparer l'interface pour la série supplémentaire (sans currentSet++)
+        updateSeriesDots();
         updateHeaderProgress();
         
-        // Mettre à jour la progression du programme si applicable
         if (currentWorkoutSession.type === 'program') {
             updateProgramExerciseProgress();
-            // Forcer la mise à jour visuelle
             loadProgramExercisesList();
         }
         
-        // Réafficher les inputs pour la nouvelle série
         const inputSection = document.querySelector('.input-section');
         if (inputSection) {
             inputSection.style.display = 'block';
         }
         
-        // Mettre à jour les recommandations pour la nouvelle série
         updateSetRecommendations();
         
-        // AJOUT : Mise à jour aide au montage pour la nouvelle série
         const weight = parseFloat(document.getElementById('setWeight')?.textContent) || 0;
         updatePlateHelper(weight);
         
         startSetTimer();
         transitionTo(WorkoutStates.READY);
+        
+    } else if (currentSet >= currentWorkoutSession.totalSets) {
+        // Cas normal : fin d'exercice
+        transitionTo(WorkoutStates.COMPLETED);
+        showSetCompletionOptions();
+    } else {
+    // Cas normal : passage à la série suivante
+    currentSet++;
+    currentWorkoutSession.currentSetNumber = currentSet;
+    updateSeriesDots();
+    
+    // Mettre à jour les compteurs d'en-tête
+    updateHeaderProgress();
+    
+    // Mettre à jour la progression du programme si applicable
+    if (currentWorkoutSession.type === 'program') {
+        updateProgramExerciseProgress();
+        // Forcer la mise à jour visuelle
+        loadProgramExercisesList();
+    }
+    
+    // Réafficher les inputs pour la nouvelle série
+    const inputSection = document.querySelector('.input-section');
+    if (inputSection) {
+        inputSection.style.display = 'block';
+    }
+    
+    // Mettre à jour les recommandations pour la nouvelle série
+    updateSetRecommendations();
+    
+    // AJOUT : Mise à jour aide au montage pour la nouvelle série
+    const weight = parseFloat(document.getElementById('setWeight')?.textContent) || 0;
+    updatePlateHelper(weight);
+    
+    startSetTimer();
+    transitionTo(WorkoutStates.READY);
     }
 }
 
@@ -7486,27 +7515,44 @@ function addExtraSet() {
 
 // ===== GESTION DES SÉRIES SUPPLEMENTAIRES =====
 function handleExtraSet() {
+    // 1. Incrémenter le total comme l'ancienne version
     currentWorkoutSession.totalSets++;
+    
+    // 2. GARDER la logique de l'ancienne version pour currentSet
     currentSet = currentWorkoutSession.totalSets;
     
-    // Mettre à jour l'interface
+    // 3. Flag pour indiquer qu'on démarre une série supplémentaire (évite bug endRest)
+    currentWorkoutSession.isStartingExtraSet = true;
+    
+    // 4. Mettre à jour l'interface EXACTEMENT comme l'ancienne version
     updateSeriesDots();
     document.getElementById('setProgress').textContent = `Série ${currentSet}`;
     
-    // Réinitialiser pour la nouvelle série
+    // 5. Réinitialisations d'interface (preservation ancienne version)
     document.getElementById('setFeedback').style.display = 'none';
     document.getElementById('executeSetBtn').style.display = 'block';
+    
+    // 6. Reset émojis avec gestion des deux sélecteurs (compatibilité)
     document.querySelectorAll('.emoji-btn').forEach(btn => {
         btn.classList.remove('selected');
     });
+    document.querySelectorAll('.emoji-btn-modern').forEach(btn => {
+        btn.classList.remove('selected');
+    });
     
-    // Démarrer le timer de la nouvelle série
-    startSetTimer();
-    transitionTo(WorkoutStates.READY);
+    // 7. Reset feedback selections
     resetFeedbackSelection();
     
-    // Mettre à jour les recommandations ML pour la série supplémentaire
+    // 8. Mettre à jour les recommandations ML
     updateSetRecommendations();
+    
+    console.log(`🔄 Série supplémentaire ${currentSet}/${currentWorkoutSession.totalSets} - Démarrage repos`);
+    
+    // 9. === NOUVEAUTÉ : AJOUTER LE REPOS ===
+    startRestPeriod();
+    
+    // Note: completeRest() détectera le flag isStartingExtraSet et ne fera PAS currentSet++
+    // Il préparera directement l'interface pour la série supplémentaire
 }
 
 function previousSet() {
