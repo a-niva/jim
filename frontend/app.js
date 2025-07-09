@@ -6778,18 +6778,56 @@ function startRestPeriod(customTime = null, isMLRecommendation = false) {
     // Forcer la transition vers RESTING
     transitionTo(WorkoutStates.RESTING);
     
+    // === MODULE 2: DÉTECTER ET UTILISER LES DONNÉES ML ===
+    let mlRestRecommendation = false;
+    let mlSeconds = null;
+    let mlReason = '';
+    let mlRange = null;
+
+    // Vérifier si on a des données ML du Module 1
+    if (currentWorkoutSession.mlRestData?.seconds) {
+        mlRestRecommendation = true;
+        mlSeconds = currentWorkoutSession.mlRestData.seconds;
+        mlReason = currentWorkoutSession.mlRestData.reason || '';
+        mlRange = currentWorkoutSession.mlRestData.range;
+        console.log(`🧠 Utilisation repos ML: ${mlSeconds}s (raison: ${mlReason})`);
+    }
+
     // Modifier le titre si c'est une recommandation IA
     const restContent = document.querySelector('.rest-content h3');
     if (restContent) {
-        if (isMLRecommendation) {
+        if (mlRestRecommendation) {
             restContent.innerHTML = '🧘 Temps de repos <span class="ai-badge">🤖 IA</span>';
         } else {
             restContent.innerHTML = '🧘 Temps de repos';
         }
     }
-    
-    // Utiliser le temps personnalisé ou celui de l'exercice
-    let timeLeft = customTime || currentExercise.base_rest_time_seconds || 60;
+
+    // === MODULE 2: AJOUTER BADGE ML INFORMATIF ===
+    // Ajouter le badge ML si disponible
+    const restPeriod = document.getElementById('restPeriod');
+    if (restPeriod && mlRestRecommendation) {
+        // Chercher s'il y a déjà un badge pour éviter les doublons
+        let mlBadge = restPeriod.querySelector('.ml-rest-suggestion');
+        if (!mlBadge) {
+            // Créer le badge ML
+            mlBadge = document.createElement('div');
+            mlBadge.className = 'ml-rest-suggestion';
+            mlBadge.innerHTML = `
+                ✨ IA suggère : ${mlSeconds}s ${mlReason ? `(${mlReason})` : ''}
+                ${mlRange ? `<div class="ml-range">Plage optimale: ${mlRange.min}-${mlRange.max}s</div>` : ''}
+            `;
+            
+            // Insérer le badge après le titre
+            const restContentParent = restContent?.parentElement;
+            if (restContentParent) {
+                restContentParent.appendChild(mlBadge);
+            }
+        }
+    }
+
+    // Utiliser le temps ML ou personnalisé ou celui de l'exercice
+    let timeLeft = mlSeconds || customTime || currentExercise.base_rest_time_seconds || 60;
     const initialTime = timeLeft;
     
     // Enregistrer le début du repos
