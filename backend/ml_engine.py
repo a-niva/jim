@@ -293,7 +293,7 @@ class FitnessMLEngine:
                 recommendation = "Maintenir le poids actuel et viser l'amélioration technique."
             
             # Arrondir au poids disponible le plus proche
-            if "dumbbells" in exercise.equipment and user.equipment_config:
+            if "dumbbells" in exercise.equipment_required and user.equipment_config:
                 target_per_dumbbell = next_weight / 2
                 available = []
                 
@@ -631,8 +631,8 @@ class FitnessMLEngine:
             for i, exercise in enumerate(all_exercises[:10]):
                 logger.info(f"Exercice {i+1}: {exercise.name}")
                 logger.info(f"  Équipement requis: {exercise.equipment}")
-                if exercise.equipment:
-                    matches = [eq for eq in exercise.equipment if eq in available_equipment]
+                if exercise.equipment_required:
+                    matches = [eq for eq in exercise.equipment_required if eq in available_equipment]
                     logger.info(f"  Équipements correspondants: {matches}")
                     logger.info(f"  Compatible: {len(matches) > 0}")
 
@@ -642,7 +642,7 @@ class FitnessMLEngine:
             # Filtrer les exercices
             available_exercises = []
             for exercise in all_exercises:
-                exercise_equipment = exercise.equipment or []
+                exercise_equipment = exercise.equipment_required or []
                 
                 # Un exercice est disponible si on a AU MOINS UN des équipements requis
                 if not exercise_equipment or any(eq in available_equipment for eq in exercise_equipment):
@@ -880,7 +880,7 @@ class FitnessMLEngine:
             
             # Filtrer par équipement disponible SANS SessionBuilder
             for ex in exercises:
-                if not ex.equipment or any(eq in available_equipment for eq in ex.equipment):
+                if not ex.equipment_required or any(eq in available_equipment for eq in ex.equipment_required):
                     fallback_exercises.append({
                         "exercise_id": ex.id,
                         "exercise_name": ex.name,
@@ -1353,7 +1353,7 @@ class SessionBuilder:
             available_exercises = []
             for ex in exercises:
                 is_compatible = self._check_equipment_availability(ex, user)
-                if ex.equipment and "dumbbells" in ex.equipment:
+                if ex.equipment_required and "dumbbells" in ex.equipment_required:
                     logger.info(f"🏋️ {ex.name}: dumbbells requis, compatible={is_compatible}")
                 
                 # AJOUTER CES LIGNES
@@ -1457,7 +1457,7 @@ class SessionBuilder:
             for fallback_exercise in all_muscle_exercises:
                 # Vérifier directement l'équipement sans passer par la méthode
                 available_equipment = self.get_user_available_equipment(user)
-                exercise_equipment = fallback_exercise.equipment or []
+                exercise_equipment = fallback_exercise.equipment_required or []
                 if not exercise_equipment or any(eq in available_equipment for eq in exercise_equipment):
                     # Utiliser cet exercice compatible
                     break
@@ -1483,11 +1483,11 @@ class SessionBuilder:
     
     def _check_equipment_availability(self, exercise: Exercise, user: User) -> bool:
         """Vérifie si l'équipement nécessaire est disponible"""
-        if not exercise.equipment:
+        if not exercise.equipment_required:
             return True
         
         available_equipment = self.ml_engine.get_user_available_equipment(user)
-        exercise_equipment = exercise.equipment or []
+        exercise_equipment = exercise.equipment_required or []
         
         return any(eq in available_equipment for eq in exercise_equipment)
     

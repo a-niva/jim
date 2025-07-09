@@ -837,7 +837,7 @@ function loadEquipmentStep() {
     Object.entries(EQUIPMENT_CONFIG).forEach(([key, config]) => {
         const card = document.createElement('div');
         card.className = 'equipment-card';
-        card.dataset.equipment = key;
+        card.dataset.equipment_required = key;
         card.innerHTML = `
             <div class="equipment-icon">${config.icon}</div>
             <div class="equipment-name">${config.name}</div>
