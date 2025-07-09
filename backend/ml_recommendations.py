@@ -127,13 +127,20 @@ class FitnessRecommendationEngine:
                     current_fatigue, current_effort, coefficients, historical_data, user,
                     available_weights=available_weights  # AJOUTÉ
                 )
-                
+
             # 5. Calculer TOUTES les confidences d'abord
             weight_confidence = self._calculate_confidence(
-                len(historical_data), 
-                performance_state.get('consistency_score', 0.5)
+                historical_data,      # historical_data: List[Dict]
+                current_fatigue,      # current_fatigue: int
+                current_effort,       # current_effort: int
+                'weight'             # metric_type: str
             )
-            reps_confidence = weight_confidence * 0.9
+            reps_confidence = self._calculate_confidence(
+                historical_data,      
+                current_fatigue,      
+                current_effort,       
+                'reps'
+            )
 
             # 6. Calculer le temps de repos optimal
             rest_recommendation = self._calculate_optimal_rest(
@@ -141,7 +148,7 @@ class FitnessRecommendationEngine:
                 set_number, coefficients, last_rest_duration
             )
 
-            # 7. Maintenant on peut utiliser weight_confidence comme fallback
+            # 7. Confiance pour le repos
             rest_confidence = rest_recommendation.get('confidence', weight_confidence)
 
             # VALIDATION FINALE : S'assurer que le poids est réalisable
