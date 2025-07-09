@@ -6579,13 +6579,11 @@ async function updatePlateHelper(weight) {
 function showPlateHelper(layout) {
     let container = document.getElementById('plateHelper');
     
-    // Créer container s'il n'existe pas
     if (!container) {
         container = document.createElement('div');
         container.id = 'plateHelper';
-        container.className = 'plate-helper';
+        container.className = 'plate-helper-minimal';  // Classe modifiée
         
-        // Insérer après le champ de poids
         const weightRow = document.querySelector('.input-row:has(#setWeight)');
         if (weightRow) {
             weightRow.insertAdjacentElement('afterend', container);
@@ -6597,7 +6595,6 @@ function showPlateHelper(layout) {
         return;
     }
     
-    // Version simplifiée sans SVG complexe
     container.innerHTML = createSimpleLayout(layout);
 }
 
@@ -6633,12 +6630,10 @@ function createDumbbellVisualization(layout) {
     const totalWeight = layout.weight;
     const weightPerDumbbell = totalWeight / 2;
     const barWeight = layout.bar_weight || 2.5;
-    const platesWeight = weightPerDumbbell - barWeight;
     
     // Parser les disques depuis le layout
     let plates = [];
     if (layout.layout && layout.layout.length > 1) {
-        // Extraire les disques (ignorer le premier élément qui est la barre)
         for (let i = 1; i < layout.layout.length; i++) {
             const match = layout.layout[i].match(/(\d+(?:\.\d+)?)kg/);
             if (match) {
@@ -6648,38 +6643,39 @@ function createDumbbellVisualization(layout) {
     }
     
     // Si pas de disques parsés, calculer depuis le poids
-    if (plates.length === 0 && platesWeight > 0) {
-        // Pour 2.5kg de disques avec des 1.25kg disponibles = 2×1.25kg
-        if (Math.abs(platesWeight - 2.5) < 0.1) {
-            plates = [1.25, 1.25];
+    if (plates.length === 0) {
+        const platesWeight = weightPerDumbbell - barWeight;
+        if (platesWeight > 0) {
+            // Logique pour déterminer les disques
+            // Ex: 17.5kg = 15 + 2.5
+            if (Math.abs(platesWeight - 17.5) < 0.1) {
+                plates = [15, 2.5];
+            } else if (Math.abs(platesWeight - 2.5) < 0.1) {
+                plates = [1.25, 1.25];
+            }
+            // Ajouter d'autres combinaisons selon besoin
         }
     }
     
-    // Créer la visualisation
+    // Créer la visualisation épurée
     return `
-        <div class="helper-content">
-            <div class="helper-header">💪 ${totalWeight}kg total</div>
-            <div class="helper-subheader">${weightPerDumbbell}kg par haltère</div>
+        <div class="helper-content-minimal">
+            <div class="weight-per-dumbbell">${weightPerDumbbell}kg par haltère</div>
             
-            <div class="dumbbell-visual">
-                <div class="visual-label">Montage d'UN haltère :</div>
-                <div class="bar-assembly">
-                    ${plates.map((weight, index) => 
-                        `<div class="plate plate-${weight}" title="${weight}kg">${weight}</div>`
-                    ).join('')}
-                    <div class="bar-center" title="Barre ${barWeight}kg">
-                        <span>${barWeight}kg</span>
-                    </div>
-                    ${plates.slice().reverse().map((weight, index) => 
-                        `<div class="plate plate-${weight}" title="${weight}kg">${weight}</div>`
-                    ).join('')}
+            <div class="bar-visualization">
+                ${plates.map(weight => 
+                    `<div class="plate-visual plate-${weight.toString().replace('.', '-')}" data-weight="${weight}">
+                        <span>${weight}</span>
+                    </div>`
+                ).join('')}
+                <div class="bar-visual" data-weight="${barWeight}kg">
+                    <span>${barWeight}kg</span>
                 </div>
-            </div>
-            
-            <div class="helper-details">
-                <div class="detail-item">• Barre : ${barWeight}kg</div>
-                <div class="detail-item">• Disques : ${plates.join(' + ')}kg = ${platesWeight}kg</div>
-                <div class="detail-item">• Total : ${weightPerDumbbell}kg × 2 = ${totalWeight}kg</div>
+                ${plates.slice().reverse().map(weight => 
+                    `<div class="plate-visual plate-${weight.toString().replace('.', '-')}" data-weight="${weight}">
+                        <span>${weight}</span>
+                    </div>`
+                ).join('')}
             </div>
         </div>
     `;
