@@ -179,6 +179,8 @@ class RecommendationResponse(BaseModel):
     reps_recommendation: int
     rest_seconds_recommendation: Optional[int]  # NOUVEAU
     rest_range: Optional[Dict[str, int]]  # NOUVEAU: {"min": 30, "max": 120}
+    rest_confidence: Optional[float] = None  # NOUVEAU
+    rest_reason: Optional[str] = None  # NOUVEAU
     confidence: float
     reasoning: str
     weight_change: str  # "increase", "decrease", "same"

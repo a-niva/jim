@@ -1232,23 +1232,26 @@ def get_set_recommendations(
     from backend.ml_recommendations import FitnessRecommendationEngine
     ml_engine = FitnessRecommendationEngine(db)
     
-    # NOUVEAU: Extraire les données de séance en cours
+    # Extraire toutes les données de la requête
     session_history = request.get('session_history', [])
     completed_sets_count = request.get('completed_sets_this_exercise', 0)
     set_number = request.get("set_number", 1)
     current_fatigue = request.get("current_fatigue", 3)
-    previous_effort = request.get("previous_effort", 3)
+    current_effort = request.get("current_effort", 3)  # Effort de la dernière série
+    last_rest_duration = request.get("last_rest_duration", None)
+    exercise_order = request.get("exercise_order", 1)
+    set_order_global = request.get("set_order_global", 1)
     
-    # Obtenir recommandations de base du ML
+    # Appel au moteur ML avec les bonnes variables
     base_recommendations = ml_engine.get_set_recommendations(
         user=user,
         exercise=exercise,
         set_number=set_number,
         current_fatigue=current_fatigue,
-        current_effort=previous_effort,
-        last_rest_duration=request.get("last_rest_duration"),
-        exercise_order=request.get("exercise_order", 1),
-        set_order_global=request.get("set_order_global", 1),
+        current_effort=current_effort,  # Pas previous_effort
+        last_rest_duration=last_rest_duration,
+        exercise_order=exercise_order,
+        set_order_global=set_order_global,
         available_weights=available_weights,
         workout_id=workout_id
     )
@@ -1374,10 +1377,22 @@ def get_set_recommendations(
                 base_recommendations['rest_seconds_recommendation'] = max(45, int(base_rest * 0.85))
                 if base_recommendations.get('reasoning'):
                     base_recommendations['reasoning'] += " + repos -15%"
+
+    # Ajouter la raison du temps de repos
+    rest_reason = "Récupération normale"
+    if current_fatigue >= 4:
+        rest_reason = "Fatigue élevée"
+    elif current_effort >= 4:
+        rest_reason = "Effort intense"
+    elif set_number > 3:
+        rest_reason = "Séries avancées"
+    
+    base_recommendations['rest_reason'] = rest_reason
     
     # LOGGING pour debug et amélioration continue
     logger.info(f"Recommandations pour user {user.id}, exercise {exercise.id}, set {set_number}:")
     logger.info(f"  Base: {base_recommendations.get('baseline_weight')}kg x {base_recommendations.get('reps_recommendation')} reps")
+    logger.info(f"  Repos: {base_recommendations.get('rest_seconds_recommendation')}s ({rest_reason})")
     logger.info(f"  Confiance: {base_recommendations.get('confidence', 0):.2f}")
     logger.info(f"  Historique séance: {len(session_history)} séries")
     if base_recommendations.get('reasoning'):

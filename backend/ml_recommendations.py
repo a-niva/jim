@@ -128,14 +128,14 @@ class FitnessRecommendationEngine:
                     available_weights=available_weights  # AJOUTÉ
                 )
 
-            # 5. Calculer le temps de repos optimal
+            # 5.1 Calculer le temps de repos optimal
             rest_recommendation = self._calculate_optimal_rest(
                 exercise, current_fatigue, current_effort, 
                 set_number, coefficients, last_rest_duration
             )
             
-            # 6. SUPPRIMÉ - Plus besoin de valider les poids ici
-            # Les poids sont déjà validés dans les stratégies
+            # Extraire la confiance du repos
+            rest_confidence = rest_recommendation.get('confidence', confidence)
             
             # 7. Calculer les confiances spécifiques
             weight_confidence = self._calculate_confidence(
@@ -161,6 +161,7 @@ class FitnessRecommendationEngine:
                 "reps_recommendation": max(1, recommendations['reps']),
                 "rest_seconds_recommendation": rest_recommendation['seconds'],
                 "rest_range": rest_recommendation['range'],
+                "rest_confidence": rest_confidence,
                 "confidence": weight_confidence,
                 "weight_confidence": weight_confidence,
                 "reps_confidence": reps_confidence,
@@ -1012,13 +1013,23 @@ class FitnessRecommendationEngine:
         if not coefficients.user.prefer_weight_changes_between_sets and current_effort >= 4:
             optimal_rest = int(optimal_rest * 1.2)
         
+        # Calculer la confiance spécifique au repos
+        rest_confidence = 0.5  # Base
+        if coefficients.recovery_rate != 1.0:
+            rest_confidence += 0.2  # Données personnalisées
+        if last_rest_duration:
+            rest_confidence += 0.2  # Historique disponible
+        if set_number > 2:
+            rest_confidence += 0.1  # Plus de contexte dans la séance
+        
         return {
             'seconds': optimal_rest,
             'range': {
                 'min': max(min_rest, int(optimal_rest * 0.8)),
                 'max': min(max_rest, int(optimal_rest * 1.2))
             },
-            'adjustment': optimal_rest / base_rest
+            'adjustment': optimal_rest / base_rest,
+            'confidence': min(1.0, rest_confidence)
         }
 
     def _get_or_create_coefficients(self, user: User, exercise: Exercise) -> UserAdaptationCoefficients:
