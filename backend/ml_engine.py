@@ -204,7 +204,8 @@ class FitnessMLEngine:
         
         # Ajuster selon les objectifs
         goal_mult = 1.0
-        if user.goals:
+        user_goals = getattr(user, 'goals', [])
+        if user_goals:
             for goal in user.goals:
                 if goal in self.GOAL_ADJUSTMENTS:
                     goal_mult *= self.GOAL_ADJUSTMENTS[goal]["weight"]
@@ -455,7 +456,8 @@ class FitnessMLEngine:
         
         # Ajuster selon les objectifs
         goal_multiplier = 1.0
-        if user.goals:
+        user_goals = getattr(user, 'goals', [])
+        if user_goals:
             for goal in user.goals:
                 if goal in self.GOAL_ADJUSTMENTS:
                     goal_multiplier *= self.GOAL_ADJUSTMENTS[goal]["reps"]

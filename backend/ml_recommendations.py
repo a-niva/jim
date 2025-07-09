@@ -137,13 +137,19 @@ class FitnessRecommendationEngine:
             # Extraire la confiance du repos (ou utiliser la confiance générale comme fallback)
             rest_confidence = rest_recommendation.get('confidence', weight_confidence)
             
-            # 7. Calculer les confiances spécifiques
+            # 9. Calculer la confiance
             weight_confidence = self._calculate_confidence(
-                historical_data, current_fatigue, current_effort, 'weight'
+                len(historical_data), 
+                performance_state.get('consistency_score', 0.5)
             )
-            reps_confidence = self._calculate_confidence(
-                historical_data, current_fatigue, current_effort, 'reps'
-            )
+            reps_confidence = weight_confidence * 0.9
+            
+            # Extraire la confiance du repos (déplacé ici)
+            rest_confidence = rest_recommendation.get('confidence', weight_confidence)
+            
+            # Extraire la confiance du repos (ou utiliser la confiance générale comme fallback)
+            rest_confidence = rest_recommendation.get('confidence', weight_confidence)
+            
             rest_confidence = self._calculate_confidence(
                 historical_data, current_fatigue, current_effort, 'rest'
             )
