@@ -7383,9 +7383,13 @@ function completeRest() {
     document.querySelectorAll('.feedback-section-modern').forEach(section => {
         section.style.display = 'block';
     });
+    
+    // Déclarer actualRestTime au début pour qu'elle soit accessible partout
+    let actualRestTime = 0;
+    
     // Calculer et accumuler le temps de repos réel
     if (workoutState.restStartTime) {
-        const actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
+        actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
         currentWorkoutSession.totalRestTime += actualRestTime;
         
         // Enregistrer le temps de repos réel pour les futures recommandations ML
@@ -7404,9 +7408,9 @@ function completeRest() {
         
         workoutState.restStartTime = null;
     }
+    
     // === MODULE 4 : TRACKING ACCEPTATION ML ===
-    if (currentWorkoutSession.mlRestData?.seconds) {
-        const actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
+    if (currentWorkoutSession.mlRestData?.seconds && actualRestTime > 0) {
         const suggestedTime = currentWorkoutSession.mlRestData.seconds;
         const tolerance = 10; // 10 secondes de tolérance
         
@@ -7433,6 +7437,7 @@ function completeRest() {
         // Reset des ajustements pour le prochain repos
         currentWorkoutSession.restAdjustments = [];
     }
+    
     if (restTimer) {
         clearInterval(restTimer);
         restTimer = null;
@@ -7476,36 +7481,36 @@ function completeRest() {
         transitionTo(WorkoutStates.COMPLETED);
         showSetCompletionOptions();
     } else {
-    // Cas normal : passage à la série suivante
-    currentSet++;
-    currentWorkoutSession.currentSetNumber = currentSet;
-    updateSeriesDots();
-    
-    // Mettre à jour les compteurs d'en-tête
-    updateHeaderProgress();
-    
-    // Mettre à jour la progression du programme si applicable
-    if (currentWorkoutSession.type === 'program') {
-        updateProgramExerciseProgress();
-        // Forcer la mise à jour visuelle
-        loadProgramExercisesList();
-    }
-    
-    // Réafficher les inputs pour la nouvelle série
-    const inputSection = document.querySelector('.input-section');
-    if (inputSection) {
-        inputSection.style.display = 'block';
-    }
-    
-    // Mettre à jour les recommandations pour la nouvelle série
-    updateSetRecommendations();
-    
-    // AJOUT : Mise à jour aide au montage pour la nouvelle série
-    const weight = parseFloat(document.getElementById('setWeight')?.textContent) || 0;
-    updatePlateHelper(weight);
-    
-    startSetTimer();
-    transitionTo(WorkoutStates.READY);
+        // Cas normal : passage à la série suivante
+        currentSet++;
+        currentWorkoutSession.currentSetNumber = currentSet;
+        updateSeriesDots();
+        
+        // Mettre à jour les compteurs d'en-tête
+        updateHeaderProgress();
+        
+        // Mettre à jour la progression du programme si applicable
+        if (currentWorkoutSession.type === 'program') {
+            updateProgramExerciseProgress();
+            // Forcer la mise à jour visuelle
+            loadProgramExercisesList();
+        }
+        
+        // Réafficher les inputs pour la nouvelle série
+        const inputSection = document.querySelector('.input-section');
+        if (inputSection) {
+            inputSection.style.display = 'block';
+        }
+        
+        // Mettre à jour les recommandations pour la nouvelle série
+        updateSetRecommendations();
+        
+        // AJOUT : Mise à jour aide au montage pour la nouvelle série
+        const weight = parseFloat(document.getElementById('setWeight')?.textContent) || 0;
+        updatePlateHelper(weight);
+        
+        startSetTimer();
+        transitionTo(WorkoutStates.READY);
     }
 }
 

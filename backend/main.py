@@ -1413,21 +1413,27 @@ def record_ml_rest_feedback(
     if not workout:
         raise HTTPException(status_code=404, detail="Workout not found")
     
-    # Ajouter aux métadonnées de la séance
-    if not workout.metadata:
+    # Initialiser metadata comme dictionnaire Python si None
+    if workout.metadata is None:
         workout.metadata = {}
     
-    if 'ml_rest_feedback' not in workout.metadata:
-        workout.metadata['ml_rest_feedback'] = []
+    # Convertir en dictionnaire si ce n'est pas déjà le cas
+    metadata_dict = dict(workout.metadata) if workout.metadata else {}
     
     # Ajouter le feedback
-    workout.metadata['ml_rest_feedback'].append({
+    if 'ml_rest_feedback' not in metadata_dict:
+        metadata_dict['ml_rest_feedback'] = []
+    
+    metadata_dict['ml_rest_feedback'].append({
         'timestamp': datetime.now().isoformat(),
         'stats': feedback_data.get('stats', []),
         'summary': feedback_data.get('summary', {}),
         'total_suggestions': len(feedback_data.get('stats', [])),
         'accepted_count': len([s for s in feedback_data.get('stats', []) if s.get('accepted', False)])
     })
+    
+    # Réassigner la metadata complète
+    workout.metadata = metadata_dict
     
     # Marquer comme modifié pour SQLAlchemy
     flag_modified(workout, "metadata")
