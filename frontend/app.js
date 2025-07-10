@@ -4754,6 +4754,26 @@ async function endWorkout() {
         console.log(`  Transitions: ${transitionTime}s`);
         
         // Enregistrer la séance comme terminée
+        // === MODULE 4 : ENVOI STATS ML ===
+        if (currentWorkoutSession.mlRestStats?.length > 0) {
+            try {
+                const mlFeedback = {
+                    stats: currentWorkoutSession.mlRestStats,
+                    summary: {
+                        total_suggestions: currentWorkoutSession.mlRestStats.length,
+                        accepted_count: currentWorkoutSession.mlRestStats.filter(s => s.accepted).length,
+                        average_deviation: currentWorkoutSession.mlRestStats.reduce((sum, s) => 
+                            sum + Math.abs(s.actual - s.suggested), 0) / currentWorkoutSession.mlRestStats.length
+                    }
+                };
+                
+                await apiPost(`/api/workouts/${currentWorkout.id}/ml-rest-feedback`, mlFeedback);
+                console.log(`📊 MODULE 4 - Stats ML envoyées: ${currentWorkoutSession.mlRestStats.length} recommendations`);
+            } catch (error) {
+                console.error('Erreur envoi stats ML:', error);
+                // Ne pas bloquer la fin de séance si l'envoi échoue
+            }
+        }
         await apiPut(`/api/workouts/${currentWorkout.id}/complete`, {
             total_duration: totalDurationSeconds,  // ✅ DURÉE RÉELLE
             total_rest_time: currentWorkoutSession.totalRestTime
@@ -6797,7 +6817,8 @@ function startRestPeriod(customTime = null, isMLRecommendation = false) {
                 </div>
                 <div class="rest-timer" id="restTimer">01:30</div>
                 <div class="rest-actions">
-                    <button class="btn btn-secondary btn-sm" onclick="addRestTime(30)">+30s</button>
+                    <button class="btn btn-secondary btn-sm" onclick="adjustRestTime(-30)">-30s</button>
+                    <button class="btn btn-secondary btn-sm" onclick="adjustRestTime(30)">+30s</button>
                     <button class="btn btn-primary btn-sm" onclick="endRest()">Passer</button>
                 </div>
             </div>
@@ -7383,6 +7404,35 @@ function completeRest() {
         
         workoutState.restStartTime = null;
     }
+    // === MODULE 4 : TRACKING ACCEPTATION ML ===
+    if (currentWorkoutSession.mlRestData?.seconds) {
+        const actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
+        const suggestedTime = currentWorkoutSession.mlRestData.seconds;
+        const tolerance = 10; // 10 secondes de tolérance
+        
+        const wasAccepted = Math.abs(actualRestTime - suggestedTime) <= tolerance;
+        const wasAdjusted = currentWorkoutSession.restAdjustments?.length > 0;
+        
+        // Stocker les stats ML
+        if (!currentWorkoutSession.mlRestStats) {
+            currentWorkoutSession.mlRestStats = [];
+        }
+        
+        currentWorkoutSession.mlRestStats.push({
+            suggested: suggestedTime,
+            actual: actualRestTime,
+            accepted: wasAccepted,
+            adjusted: wasAdjusted,
+            adjustments: currentWorkoutSession.restAdjustments || [],
+            confidence: currentWorkoutSession.mlRestData.confidence,
+            timestamp: Date.now()
+        });
+        
+        console.log(`📊 MODULE 4 - ML Stats: Suggéré ${suggestedTime}s → Réel ${actualRestTime}s (${wasAccepted ? 'Accepté' : 'Modifié'})`);
+        
+        // Reset des ajustements pour le prochain repos
+        currentWorkoutSession.restAdjustments = [];
+    }
     if (restTimer) {
         clearInterval(restTimer);
         restTimer = null;
@@ -7641,27 +7691,90 @@ function changeExercise() {
     finishExercise();
 }
 
-function addRestTime(seconds) {
-    if (!restTimer) return;
+function adjustRestTime(deltaSeconds) {
+    if (!restTimer) return; // Pas de repos en cours
     
-    // Récupérer le temps actuel
+    // Récupérer le temps actuel affiché
     const timerEl = document.getElementById('restTimer');
     const [mins, secs] = timerEl.textContent.replace('-', '').split(':').map(Number);
     let currentSeconds = mins * 60 + secs;
     
-    // Ajouter du temps
-    currentSeconds += seconds;
+    // Ajuster le temps
+    currentSeconds += deltaSeconds;
+    currentSeconds = Math.max(0, Math.min(600, currentSeconds)); // Limites 0-10min
     
-    // Annuler l'ancienne notification avant de redémarrer
+    // === MODULE 4 : TRACKING AJUSTEMENTS ===
+    if (!currentWorkoutSession.restAdjustments) {
+        currentWorkoutSession.restAdjustments = [];
+    }
+    currentWorkoutSession.restAdjustments.push({
+        timestamp: Date.now(),
+        delta: deltaSeconds,
+        fromML: !!currentWorkoutSession.mlRestData?.seconds,
+        originalML: currentWorkoutSession.mlRestData?.seconds,
+        finalTime: currentSeconds
+    });
+    
+    // Annuler l'ancienne notification
     if (notificationTimeout) {
         clearTimeout(notificationTimeout);
         notificationTimeout = null;
     }
     
-    // Redémarrer le timer avec le nouveau temps
+    // Programmer la nouvelle notification avec le temps ajusté
+    if ('Notification' in window && Notification.permission === 'granted') {
+        notificationTimeout = setTimeout(() => {
+            new Notification('Temps de repos terminé !', {
+                body: 'Prêt pour la série suivante ?',
+                icon: '/icon-192x192.png',
+                vibrate: [200, 100, 200]
+            });
+        }, currentSeconds * 1000);
+    }
+    
+    // Repartir du nouveau temps (ne PAS appeler startRestPeriod !)
     clearInterval(restTimer);
-    startRestPeriod(currentSeconds);
-    showToast('+30 secondes ajoutées', 'info');
+    
+    // Redémarrer le timer avec le temps ajusté
+    let timeLeft = currentSeconds;
+    updateRestTimer(timeLeft);
+    
+    restTimer = setInterval(() => {
+        timeLeft--;
+        updateRestTimer(timeLeft);
+        
+        if (timeLeft <= 0) {
+            clearInterval(restTimer);
+            restTimer = null;
+            
+            if (notificationTimeout) {
+                clearTimeout(notificationTimeout);
+                notificationTimeout = null;
+            }
+            
+            // Calculer et enregistrer le temps de repos réel
+            const actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
+            currentWorkoutSession.totalRestTime += actualRestTime;
+            console.log(`⏱️ Repos terminé après ajustement: ${actualRestTime}s réels`);
+            
+            if (currentWorkoutSession.autoAdvance) {
+                setTimeout(() => {
+                    if (currentWorkoutSession.state === WorkoutStates.RESTING) {
+                        endRest();
+                    }
+                }, 1000);
+            }
+        }
+    }, 1000);
+    
+    const sign = deltaSeconds > 0 ? '+' : '';
+    console.log(`⏱️ MODULE 4 - Ajustement: ${sign}${deltaSeconds}s → ${currentSeconds}s total`);
+    showToast(`${sign}${deltaSeconds} secondes`, 'info');
+}
+
+// Garder l'ancienne fonction pour compatibilité
+function addRestTime(seconds) {
+    adjustRestTime(seconds);
 }
 
 
@@ -7820,6 +7933,7 @@ window.previousSet = previousSet;
 window.changeExercise = changeExercise;
 window.skipRest = skipRest;
 window.addRestTime = addRestTime;
+window.adjustRestTime = adjustRestTime;
 window.endRest = endRest;
 window.pauseWorkout = pauseWorkout;
 window.abandonWorkout = abandonWorkout;

@@ -1400,6 +1400,41 @@ def get_set_recommendations(
     
     return base_recommendations
 
+@app.post("/api/workouts/{workout_id}/ml-rest-feedback")
+def record_ml_rest_feedback(
+    workout_id: int,
+    feedback_data: Dict[str, Any],
+    db: Session = Depends(get_db)
+):
+    """Enregistrer le feedback utilisateur sur les recommandations ML de repos"""
+    
+    # Vérifier que la séance existe
+    workout = db.query(Workout).filter(Workout.id == workout_id).first()
+    if not workout:
+        raise HTTPException(status_code=404, detail="Workout not found")
+    
+    # Ajouter aux métadonnées de la séance
+    if not workout.metadata:
+        workout.metadata = {}
+    
+    if 'ml_rest_feedback' not in workout.metadata:
+        workout.metadata['ml_rest_feedback'] = []
+    
+    # Ajouter le feedback
+    workout.metadata['ml_rest_feedback'].append({
+        'timestamp': datetime.now().isoformat(),
+        'stats': feedback_data.get('stats', []),
+        'summary': feedback_data.get('summary', {}),
+        'total_suggestions': len(feedback_data.get('stats', [])),
+        'accepted_count': len([s for s in feedback_data.get('stats', []) if s.get('accepted', False)])
+    })
+    
+    # Marquer comme modifié pour SQLAlchemy
+    flag_modified(workout, "metadata")
+    db.commit()
+    
+    return {"message": "Feedback recorded", "suggestions_count": len(feedback_data.get('stats', []))}
+
 @app.put("/api/workouts/{workout_id}/fatigue")
 def update_workout_fatigue(
     workout_id: int, 
