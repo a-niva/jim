@@ -20,8 +20,8 @@ let currentWorkoutSession = {
     sessionFatigue: 3,
     completedSets: [],
     type: 'free',
-    totalRestTime: 0,       // Nouveau: temps total de repos
-    totalSetTime: 0,        // Nouveau: temps total des séries
+    totalRestTime: 0,
+    totalSetTime: 0,
     // MODULE 0 : Nouvelles propriétés
     skipped_exercises: [],  // Liste des exercices skippés
     session_metadata: {}    // Métadonnées de session
@@ -2526,6 +2526,7 @@ async function setupProgramWorkoutWithSelection(program, sessionData) {
     currentWorkoutSession.completedExercisesCount = 0;
     currentWorkoutSession.type = 'program';
     currentWorkoutSession.exerciseOrder = 0;
+    currentWorkoutSession.session_metadata = currentWorkoutSession.session_metadata || {};
     
     // Initialiser l'état de chaque exercice sélectionné par le ML
     sessionData.selected_exercises.forEach((exerciseData, index) => {
@@ -3023,6 +3024,7 @@ async function setupProgramWorkout(program) {
     currentWorkoutSession.completedExercisesCount = 0;
     currentWorkoutSession.type = 'program'; // Important pour les vérifications
     currentWorkoutSession.exerciseOrder = 0; // Initialisé à 0, sera incrémenté à 1 lors de la sélection
+    currentWorkoutSession.session_metadata = currentWorkoutSession.session_metadata || {};
     
     // Initialiser l'état de chaque exercice - CONSERVER TOUTE LA STRUCTURE
     program.exercises.forEach((exerciseData, index) => {
