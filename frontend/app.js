@@ -2416,7 +2416,10 @@ async function startProgramWorkout() {
                 
                 // Pour la phase 1.4
                 programExercises: {},
-                completedExercisesCount: 0
+                completedExercisesCount: 0,
+                // MODULE 0 : Propriétés essentielles
+                skipped_exercises: [],
+                session_metadata: {}
             };
             
             // Initialiser l'état de chaque exercice pour la UI
@@ -2526,8 +2529,10 @@ async function setupProgramWorkoutWithSelection(program, sessionData) {
     currentWorkoutSession.completedExercisesCount = 0;
     currentWorkoutSession.type = 'program';
     currentWorkoutSession.exerciseOrder = 0;
+    // MODULE 0 : Préserver les propriétés
+    currentWorkoutSession.skipped_exercises = currentWorkoutSession.skipped_exercises || [];
     currentWorkoutSession.session_metadata = currentWorkoutSession.session_metadata || {};
-    
+        
     // Initialiser l'état de chaque exercice sélectionné par le ML
     sessionData.selected_exercises.forEach((exerciseData, index) => {
         currentWorkoutSession.programExercises[exerciseData.exercise_id] = {
@@ -3024,6 +3029,8 @@ async function setupProgramWorkout(program) {
     currentWorkoutSession.completedExercisesCount = 0;
     currentWorkoutSession.type = 'program'; // Important pour les vérifications
     currentWorkoutSession.exerciseOrder = 0; // Initialisé à 0, sera incrémenté à 1 lors de la sélection
+    // MODULE 0 : Préserver les propriétés
+    currentWorkoutSession.skipped_exercises = currentWorkoutSession.skipped_exercises || [];
     currentWorkoutSession.session_metadata = currentWorkoutSession.session_metadata || {};
     
     // Initialiser l'état de chaque exercice - CONSERVER TOUTE LA STRUCTURE
