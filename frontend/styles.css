@@ -5659,3 +5659,57 @@ background: rgba(255, 255, 255, 0.02);
     background: #6c757d;
     color: white;
 }
+
+/* ===== MODULE 2 : SWAP SYSTEM STYLES (MINIMAL) ===== */
+
+/* Bouton swap - réutilise les styles action-btn existants */
+.swap-btn {
+    background: rgba(59, 130, 246, 0.1) !important;
+    color: var(--primary) !important;
+    border: 1px solid rgba(59, 130, 246, 0.3) !important;
+}
+
+.swap-btn:hover {
+    background: rgba(59, 130, 246, 0.2) !important;
+    transform: scale(1.05);
+}
+
+/* Exercise card swappé - modification visuelle subtile */
+.exercise-card.exercise-swapped {
+    opacity: 0.7;
+    border-left: 3px solid var(--primary);
+}
+
+.exercise-card.exercise-swapped .exercise-name::after {
+    content: " ↻";
+    color: var(--primary);
+    font-weight: bold;
+}
+
+/* Styles modals - réutilisent l'infrastructure existante */
+.swap-reason-modal, .alternatives-modal {
+    max-width: 500px;
+    width: 90%;
+}
+
+.reason-options, .alternatives-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.reason-btn, .alternative-card {
+    padding: var(--spacing-md);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-card);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+}
+
+.reason-btn:hover, .alternative-card:hover {
+    border-color: var(--primary);
+    background: rgba(59, 130, 246, 0.05);
+    transform: translateX(4px);
+}
