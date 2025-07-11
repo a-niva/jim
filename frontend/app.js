@@ -2550,7 +2550,12 @@ async function setupProgramWorkoutWithSelection(program, sessionData) {
             startTime: null,
             endTime: null,
             mlReason: exerciseData.selection_reason || null,
-            mlScore: exerciseData.score || null
+            mlScore: exerciseData.score || null,
+            // MODULE 2 : Propriétés swap
+            swapped: false,
+            swappedFrom: null,
+            swappedTo: null,
+            swapReason: null
         };
     });
     
@@ -5877,17 +5882,17 @@ async function loadProgramExercisesList() {
                                     <div class="sets-counter">${exerciseState.completedSets}/${exerciseState.totalSets}</div>
                                     <div class="sets-dots">${dotsHtml}</div>
                                 </div>
-                                <div class="action-buttons">
-                                    ${exerciseState.isCompleted ? 
-                                        `<button class="action-btn" onclick="event.stopPropagation(); restartExercise(${exerciseData.exercise_id})" title="Refaire">↻</button>` :
-                                    exerciseState.isSkipped ? 
-                                        `<button class="action-btn" onclick="event.stopPropagation(); restartSkippedExercise(${exerciseData.exercise_id})" title="Reprendre">↺</button>` :
-                                        `<button class="action-btn primary" onclick="event.stopPropagation(); selectProgramExercise(${exerciseData.exercise_id})" title="Commencer">${exerciseState.completedSets > 0 ? '▶' : '→'}</button>
-                                        ${canSwapExercise(exerciseData.exercise_id) ? 
-                                            `<button class="action-btn swap-btn" onclick="event.stopPropagation(); initiateSwap(${exerciseData.exercise_id})" title="Changer d'exercice">⇄</button>` : ''}
-                                        <button class="action-btn secondary" onclick="event.stopPropagation(); showSkipModal(${exerciseData.exercise_id})" title="Passer">⏭</button>`
-                                    }
-                                </div>
+                                    <div class="action-buttons">
+                                        ${exerciseState.isCompleted ? 
+                                            `<button class="action-btn" onclick="event.stopPropagation(); restartExercise(${exerciseData.exercise_id})" title="Refaire">↻</button>` :
+                                        exerciseState.isSkipped ? 
+                                            `<button class="action-btn" onclick="event.stopPropagation(); restartSkippedExercise(${exerciseData.exercise_id})" title="Reprendre">↺</button>` :
+                                            `<button class="action-btn primary" onclick="event.stopPropagation(); selectProgramExercise(${exerciseData.exercise_id})" title="Commencer">${exerciseState.completedSets > 0 ? '▶' : '→'}</button>
+                                            ${canSwapExercise && canSwapExercise(exerciseData.exercise_id) ? 
+                                                `<button class="action-btn swap-btn" onclick="event.stopPropagation(); initiateSwap(${exerciseData.exercise_id})" title="Changer d'exercice" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none;">⇄</button>` : ''}
+                                            <button class="action-btn secondary" onclick="event.stopPropagation(); showSkipModal(${exerciseData.exercise_id})" title="Passer">⏭</button>`
+                                        }
+                                    </div>
                             </div>
                         </div>
                     `;
@@ -7903,7 +7908,6 @@ async function initiateSwap(exerciseId) {
         return;
     }
     
-    // Sauvegarder le contexte pour le swap
     const swapContext = {
         originalExerciseId: exerciseId,
         originalExerciseState: {...currentWorkoutSession.programExercises[exerciseId]},
@@ -8066,7 +8070,6 @@ function showSwapReasonModal(exerciseId) {
 async function proceedToAlternatives(exerciseId, reason) {
     closeModal();
     
-    // Animation de chargement
     showModal('Recherche d\'alternatives', `
         <div class="loading-container">
             <div class="loading-spinner"></div>
@@ -8111,9 +8114,6 @@ function showAlternativesModal(originalExerciseId, reason, alternatives) {
                                 <p class="reason-match">${alt.reason_match || 'Exercice similaire'}</p>
                                 <div class="alt-meta">
                                     <span class="muscle-groups">${(alt.muscle_groups || []).join(' • ')}</span>
-                                    ${alt.predicted_performance ? `
-                                        <span class="predicted-weight">${alt.predicted_performance.weight}kg × ${alt.predicted_performance.reps}</span>
-                                    ` : ''}
                                 </div>
                             </div>
                         </div>
@@ -8121,24 +8121,9 @@ function showAlternativesModal(originalExerciseId, reason, alternatives) {
                 </div>
             ` : `
                 <div class="no-alternatives">
-                    <p>Aucune alternative trouvée pour cette raison.</p>
+                    <p>Aucune alternative trouvée. Gardez l'exercice actuel.</p>
                 </div>
             `}
-            
-            ${alternatives.keep_current ? `
-                <div class="keep-current-section">
-                    <div class="divider">
-                        <span>ou</span>
-                    </div>
-                    <div class="keep-current-card" onclick="keepCurrentWithAdaptation(${originalExerciseId}, '${reason}')">
-                        <div class="keep-icon">✨</div>
-                        <div class="keep-content">
-                            <h5>Garder l'exercice actuel</h5>
-                            <p>${alternatives.keep_current.possible_adjustments}</p>
-                        </div>
-                    </div>
-                </div>
-            ` : ''}
             
             <div class="modal-actions">
                 <button class="btn-secondary" onclick="closeModal()">Annuler</button>
@@ -8151,13 +8136,8 @@ function showAlternativesModal(originalExerciseId, reason, alternatives) {
 
 async function selectAlternative(originalExerciseId, newExerciseId, reason) {
     closeModal();
-    
-    try {
-        await executeSwapTransition(originalExerciseId, newExerciseId, reason);
-    } catch (error) {
-        console.error('Erreur lors du swap:', error);
-        showToast('Erreur lors du changement d\'exercice', 'error');
-    }
+    showToast('Changement d\'exercice simulé', 'info');
+    // TODO: Implémenter le swap réel
 }
 
 async function keepCurrentWithAdaptation(exerciseId, reason) {
@@ -8505,15 +8485,16 @@ function canSwapExercise(exerciseId) {
     // Règle 3 : Pas si > 50% des séries faites
     if (exerciseState.completedSets > exerciseState.totalSets * 0.5) return false;
     
-    // Règle 4 : Pas pendant timer actif
-    if (setTimer || restTimer) return false;
+    // Règle 4 : Pas pendant timer actif MAIS seulement pour l'exercice EN COURS
+    if ((setTimer || restTimer) && currentExercise && currentExercise.id === exerciseId) return false;
     
     // Règle 5 : Pas si exercice en cours et série commencée
     if (currentExercise && currentExercise.id === exerciseId && 
-        workoutState.current === WorkoutStates.EXECUTING) return false;
+        workoutState.current === 'executing') return false;
     
     return true;
 }
+
 
 function getCurrentExerciseData(exerciseId) {
     if (!currentWorkoutSession.program || !currentWorkoutSession.program.exercises) {
@@ -8523,11 +8504,13 @@ function getCurrentExerciseData(exerciseId) {
     const exerciseData = currentWorkoutSession.program.exercises.find(ex => ex.exercise_id === exerciseId);
     if (!exerciseData) return null;
     
-    // Enrichir avec les données complètes de l'exercice si nécessaire
+    const exerciseState = currentWorkoutSession.programExercises[exerciseId];
+    
     return {
         exercise_id: exerciseId,
-        name: exerciseData.name || 'Exercice inconnu',
-        sets: exerciseData.sets || 3
+        name: exerciseData.name || `Exercice ${exerciseId}`,
+        sets: exerciseData.sets || exerciseState?.totalSets || 3,
+        state: exerciseState
     };
 }
 
