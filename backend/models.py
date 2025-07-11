@@ -85,7 +85,10 @@ class Workout(Base):
     session_notes = Column(Text, nullable=True)
     overall_fatigue_start = Column(Integer, nullable=True)  # 1-5
     overall_fatigue_end = Column(Integer, nullable=True)  # 1-5
-    
+    # Tracking des exercices skippés pour le ML
+    skipped_exercises = Column(JSON, nullable=True, default=lambda: [])
+    session_metadata = Column(JSON, nullable=True, default=lambda: {})
+        
     user = relationship("User", back_populates="workouts")
     program = relationship("Program")
     sets = relationship("WorkoutSet", back_populates="workout", cascade="all, delete-orphan")

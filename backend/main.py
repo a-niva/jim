@@ -142,6 +142,42 @@ def update_exercise_stats_for_user(db: Session, user_id: int, exercise_id: int =
         logger.error(f"Erreur mise à jour stats: {e}")
         db.rollback()
 
+def analyze_skip_patterns_realtime(user_id: int, current_skips: List[Dict], db: Session):
+    """Analyse immédiate des patterns de skip pour ajustements ML"""
+    from collections import defaultdict
+    
+    # Récupérer les 10 dernières séances
+    recent_workouts = db.query(Workout).filter(
+        Workout.user_id == user_id,
+        Workout.status == 'completed',
+        Workout.skipped_exercises.isnot(None)
+    ).order_by(desc(Workout.completed_at)).limit(10).all()
+    
+    # Compter les skips par exercice
+    skip_counts = defaultdict(int)
+    skip_reasons = defaultdict(list)
+    
+    for workout in recent_workouts:
+        for skip in (workout.skipped_exercises or []):
+            exercise_id = skip['exercise_id']
+            skip_counts[exercise_id] += 1
+            skip_reasons[exercise_id].append(skip['reason'])
+    
+    # Ajouter les skips actuels
+    for skip in current_skips:
+        exercise_id = skip['exercise_id']
+        skip_counts[exercise_id] += 1
+        skip_reasons[exercise_id].append(skip['reason'])
+    
+    # Détecter les patterns critiques (3+ skips)
+    critical_exercises = [
+        exercise_id for exercise_id, count in skip_counts.items() 
+        if count >= 3
+    ]
+    
+    if critical_exercises:
+        logger.info(f"User {user_id}: Critical skip pattern detected for exercises {critical_exercises}")
+        #TODO:Déclencher ajustement automatique du programme via ML Engine
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -1502,7 +1538,24 @@ def complete_workout(workout_id: int, data: Dict[str, int] = {}, db: Session = D
     
     if "total_rest_time" in data:
         workout.total_rest_time_seconds = data["total_rest_time"]
-    
+
+    # MODULE 0 : Traitement des exercices skippés
+    skipped_exercises = data.get('skipped_exercises', [])
+    session_metadata = data.get('session_metadata', {})
+
+    if skipped_exercises:
+        workout.skipped_exercises = skipped_exercises
+        logger.info(f"Workout {workout_id}: {len(skipped_exercises)} exercises skipped")
+        
+        # Analyse temps réel des patterns de skip  
+        try:
+            analyze_skip_patterns_realtime(workout.user_id, skipped_exercises, db)
+        except Exception as e:
+            logger.warning(f"Skip pattern analysis failed: {e}")
+
+    if session_metadata:
+        workout.session_metadata = session_metadata
+
     db.commit()
     return {"message": "Séance terminée", "workout": workout}
 

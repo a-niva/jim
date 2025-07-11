@@ -21,7 +21,10 @@ let currentWorkoutSession = {
     completedSets: [],
     type: 'free',
     totalRestTime: 0,       // Nouveau: temps total de repos
-    totalSetTime: 0         // Nouveau: temps total des séries
+    totalSetTime: 0,        // Nouveau: temps total des séries
+    // MODULE 0 : Nouvelles propriétés
+    skipped_exercises: [],  // Liste des exercices skippés
+    session_metadata: {}    // Métadonnées de session
 };
 
 // ===== MACHINE D'ÉTAT SÉANCE =====
@@ -1699,6 +1702,127 @@ async function abandonActiveWorkout(workoutId) {
         // FORCER le rechargement du dashboard pour être sûr
         loadDashboard();
     }
+}
+
+// ===== MODULE 0 : GESTION DES EXERCICES SKIPPÉS =====
+
+async function skipExercise(exerciseId, reason) {
+    console.log(`📊 MODULE 0 - Skipping exercise ${exerciseId} for reason: ${reason}`);
+    
+    const exerciseState = currentWorkoutSession.programExercises[exerciseId];
+    if (!exerciseState) {
+        console.error(`Exercise ${exerciseId} not found in current session`);
+        return;
+    }
+    
+    const exerciseName = getExerciseName(exerciseId);
+    
+    // Créer l'entrée de skip
+    const skipEntry = {
+        exercise_id: parseInt(exerciseId),
+        reason: reason,
+        planned_sets: exerciseState.totalSets,
+        completed_sets: exerciseState.completedSets || 0,
+        timestamp: new Date().toISOString(),
+        exercise_order: exerciseState.index + 1,
+        exercise_name: exerciseName
+    };
+    
+    // Ajouter à la liste des skips
+    currentWorkoutSession.skipped_exercises.push(skipEntry);
+    
+    // Marquer l'exercice comme skippé (NOUVELLE propriété)
+    exerciseState.isSkipped = true;
+    exerciseState.skipReason = reason;
+    exerciseState.endTime = new Date();
+    
+    // Fermer le modal s'il est ouvert
+    closeModal();
+    
+    // Mettre à jour l'affichage
+    loadProgramExercisesList();
+    updateHeaderProgress();
+    
+    showToast(`✅ Exercice passé : ${exerciseName}`, 'info');
+    
+    // Analytics temps réel
+    if (typeof trackEvent === 'function') {
+        trackEvent('exercise_skipped', {
+            exercise_id: exerciseId,
+            reason: reason,
+            workout_progress: Math.round((currentWorkoutSession.completedExercisesCount / 
+                             Object.keys(currentWorkoutSession.programExercises).length) * 100)
+        });
+    }
+}
+
+function showSkipModal(exerciseId) {
+    const exerciseName = getExerciseName(exerciseId);
+    
+    showModal('Passer l\'exercice', `
+        <div style="text-align: center; padding: 1rem;">
+            <p style="margin-bottom: 1.5rem; font-size: 1.1rem;">
+                Pourquoi voulez-vous passer <strong>"${exerciseName}"</strong> ?
+            </p>
+            <div class="skip-reasons-grid">
+                <button onclick="skipExercise(${exerciseId}, 'time')" class="skip-reason-btn">
+                    <i class="fas fa-clock"></i>
+                    <span>Manque de temps</span>
+                </button>
+                <button onclick="skipExercise(${exerciseId}, 'fatigue')" class="skip-reason-btn">
+                    <i class="fas fa-tired"></i>
+                    <span>Trop fatigué</span>
+                </button>
+                <button onclick="skipExercise(${exerciseId}, 'equipment')" class="skip-reason-btn">
+                    <i class="fas fa-dumbbell"></i>
+                    <span>Équipement indisponible</span>
+                </button>
+                <button onclick="skipExercise(${exerciseId}, 'other')" class="skip-reason-btn">
+                    <i class="fas fa-question-circle"></i>
+                    <span>Autre raison</span>
+                </button>
+            </div>
+        </div>
+    `);
+}
+
+async function restartSkippedExercise(exerciseId) {
+    const exerciseState = currentWorkoutSession.programExercises[exerciseId];
+    
+    // Retirer de la liste des skips
+    currentWorkoutSession.skipped_exercises = currentWorkoutSession.skipped_exercises.filter(
+        skip => skip.exercise_id !== exerciseId
+    );
+    
+    // Réinitialiser l'état de l'exercice
+    exerciseState.isSkipped = false;
+    exerciseState.skipReason = null;
+    exerciseState.completedSets = 0;
+    exerciseState.isCompleted = false;
+    exerciseState.startTime = new Date();
+    exerciseState.endTime = null;
+    
+    // Supprimer les séries de cet exercice de l'historique
+    currentWorkoutSession.completedSets = currentWorkoutSession.completedSets.filter(
+        s => s.exercise_id !== exerciseId
+    );
+    
+    // Sélectionner l'exercice
+    await selectProgramExercise(exerciseId);
+    
+    showToast('Exercice repris', 'success');
+}
+
+// Fonction utilitaire pour récupérer le nom d'un exercice
+function getExerciseName(exerciseId) {
+    const exerciseState = currentWorkoutSession.programExercises[exerciseId];
+    if (exerciseState && exerciseState.name) {
+        return exerciseState.name;
+    }
+    
+    // Fallback : rechercher dans la liste des exercices chargés
+    const exerciseElement = document.querySelector(`[data-exercise-id="${exerciseId}"] .exercise-name`);
+    return exerciseElement ? exerciseElement.textContent : `Exercice ${exerciseId}`;
 }
 
 // ===== GESTION ÉTATS BOUTON PRINCIPAL =====
@@ -4774,9 +4898,54 @@ async function endWorkout() {
                 // Ne pas bloquer la fin de séance si l'envoi échoue
             }
         }
+        // MODULE 0 : Identifier les exercices "zombies" (started but not completed/skipped)
+        const zombieExercises = [];
+        for (const [exerciseId, exerciseState] of Object.entries(currentWorkoutSession.programExercises)) {
+            if (exerciseState.startTime && 
+                !exerciseState.isCompleted && 
+                !exerciseState.isSkipped &&
+                exerciseState.completedSets < exerciseState.totalSets) {
+                
+                zombieExercises.push({
+                    exercise_id: parseInt(exerciseId),
+                    reason: 'implicit_change', // Changé via changeExercise() sans explicit skip
+                    planned_sets: exerciseState.totalSets,
+                    completed_sets: exerciseState.completedSets,
+                    timestamp: exerciseState.endTime?.toISOString() || new Date().toISOString(),
+                    exercise_order: exerciseState.index + 1,
+                    exercise_name: getExerciseName(exerciseId)
+                });
+            }
+        }
+
+        // Combiner skips explicites et zombies
+        const allSkippedExercises = [...currentWorkoutSession.skipped_exercises, ...zombieExercises];
+
+        // Métadonnées de session
+        const sessionMetadata = {
+            total_planned_exercises: Object.keys(currentWorkoutSession.programExercises).length,
+            total_completed_exercises: currentWorkoutSession.completedExercisesCount,
+            total_skipped_exercises: allSkippedExercises.length,
+            completion_rate: Math.round((currentWorkoutSession.completedExercisesCount / 
+                                    Object.keys(currentWorkoutSession.programExercises).length) * 100),
+            skip_rate: Math.round((allSkippedExercises.length / 
+                                Object.keys(currentWorkoutSession.programExercises).length) * 100)
+        };
+
+        console.log(`📊 MODULE 0 - Session completed:`, {
+            completed: currentWorkoutSession.completedExercisesCount,
+            explicit_skips: currentWorkoutSession.skipped_exercises.length,
+            zombie_exercises: zombieExercises.length,
+            total_skipped: allSkippedExercises.length,
+            completion_rate: sessionMetadata.completion_rate
+        });
+
         await apiPut(`/api/workouts/${currentWorkout.id}/complete`, {
             total_duration: totalDurationSeconds,  // ✅ DURÉE RÉELLE
-            total_rest_time: currentWorkoutSession.totalRestTime
+            total_rest_time: currentWorkoutSession.totalRestTime,
+            // MODULE 0 : Nouvelles données
+            skipped_exercises: allSkippedExercises,
+            session_metadata: sessionMetadata
         });
         
         // Réinitialiser l'état
@@ -5652,13 +5821,22 @@ async function loadProgramExercisesList() {
                     let cardClass = 'exercise-card';
                     let indexContent = index + 1;
                     let actionIcon = '→';
-                    
+                    let statusBadge = '';
+
                     if (exerciseState.isCompleted) {
                         cardClass += ' completed';
                         indexContent = '✓';
                         actionIcon = '↻';
+                        statusBadge = '<div class="status-badge">✓ Terminé</div>';
+                    } else if (exerciseState.isSkipped) {
+                        cardClass += ' skipped';
+                        indexContent = '⏭';
+                        actionIcon = '↺';
+                        statusBadge = `<div class="status-badge skipped">Passé (${exerciseState.skipReason})</div>`;
                     } else if (isCurrentExercise) {
                         cardClass += ' current';
+                    } else if (exerciseState.completedSets > 0) {
+                        statusBadge = `<div class="status-badge partial">${exerciseState.completedSets}/${exerciseState.totalSets} séries</div>`;
                     }
                     
                     // Générer les dots de progression
@@ -5669,7 +5847,7 @@ async function loadProgramExercisesList() {
                     
                     return `
                         <div class="${cardClass}" data-muscle="${exercise.muscle_groups[0].toLowerCase()}" onclick="handleExerciseCardSimpleClick(${exerciseData.exercise_id})">
-                            ${exerciseState.isCompleted ? '<div class="status-badge">✓ Terminé</div>' : ''}
+                            ${statusBadge}
                             <div class="card-content">
                                 <div class="exercise-index">${indexContent}</div>
                                 <div class="exercise-info">
@@ -5686,7 +5864,15 @@ async function loadProgramExercisesList() {
                                     <div class="sets-counter">${exerciseState.completedSets}/${exerciseState.totalSets}</div>
                                     <div class="sets-dots">${dotsHtml}</div>
                                 </div>
-                                <button class="action-btn" onclick="event.stopPropagation(); handleExerciseAction(${exerciseData.exercise_id})">${actionIcon}</button>
+                                <div class="action-buttons">
+                                    ${exerciseState.isCompleted ? 
+                                        `<button class="action-btn" onclick="event.stopPropagation(); restartExercise(${exerciseData.exercise_id})" title="Refaire">↻</button>` :
+                                    exerciseState.isSkipped ? 
+                                        `<button class="action-btn" onclick="event.stopPropagation(); restartSkippedExercise(${exerciseData.exercise_id})" title="Reprendre">↺</button>` :
+                                        `<button class="action-btn primary" onclick="event.stopPropagation(); selectProgramExercise(${exerciseData.exercise_id})" title="Commencer">${exerciseState.completedSets > 0 ? '▶' : '→'}</button>
+                                        <button class="action-btn secondary" onclick="event.stopPropagation(); showSkipModal(${exerciseData.exercise_id})" title="Passer">⏭</button>`
+                                    }
+                                </div>
                             </div>
                         </div>
                     `;
@@ -8024,3 +8210,8 @@ window.toggleFavorite = toggleFavorite;
 
 window.updatePlateHelper = updatePlateHelper;
 window.togglePlateHelper = togglePlateHelper;
+
+window.skipExercise = skipExercise;
+window.showSkipModal = showSkipModal;
+window.restartSkippedExercise = restartSkippedExercise;
+window.getExerciseName = getExerciseName;
