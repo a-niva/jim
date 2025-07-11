@@ -17,7 +17,7 @@ from backend.ml_recommendations import FitnessRecommendationEngine
 from backend.ml_engine import RecoveryTracker, VolumeOptimizer, ProgressionAnalyzer
 from backend.constants import normalize_muscle_group 
 from backend.database import engine, get_db, SessionLocal
-from backend.models import Base, User, Exercise, Program, Workout, WorkoutSet, SetHistory, UserCommitment, AdaptiveTargets, UserAdaptationCoefficients, PerformanceStates, ExerciseCompletionStats
+from backend.models import Base, User, Exercise, Program, Workout, WorkoutSet, SetHistory, UserCommitment, AdaptiveTargets, UserAdaptationCoefficients, PerformanceStates, ExerciseCompletionStats, SwapLog
 from backend.schemas import UserCreate, UserResponse, WorkoutResponse, ProgramCreate, WorkoutCreate, SetCreate, ExerciseResponse, UserPreferenceUpdate
 from backend.equipment_service import EquipmentService
 from sqlalchemy import extract, and_
@@ -178,6 +178,47 @@ def analyze_skip_patterns_realtime(user_id: int, current_skips: List[Dict], db: 
     if critical_exercises:
         logger.info(f"User {user_id}: Critical skip pattern detected for exercises {critical_exercises}")
         #TODO:Déclencher ajustement automatique du programme via ML Engine
+
+def score_exercise_alternative(
+    source_exercise: Exercise, 
+    candidate: Exercise, 
+    user_equipment: List[str],
+    recent_exercise_ids: List[int]
+) -> float:
+    """
+    Score simple d'une alternative (0-1)
+    3 critères : muscle_match + equipment_match + freshness
+    """
+    score = 0.0
+    
+    # 1. Correspondance musculaire (0-0.6)
+    if source_exercise.muscle_groups and candidate.muscle_groups:
+        source_muscles = set(source_exercise.muscle_groups)
+        candidate_muscles = set(candidate.muscle_groups)
+        overlap = len(source_muscles & candidate_muscles)
+        total = len(source_muscles | candidate_muscles)
+        muscle_score = overlap / total if total > 0 else 0
+        score += muscle_score * 0.6
+    
+    # 2. Accessibilité équipement (0-0.3)
+    if not candidate.equipment_required:
+        equipment_score = 1.0  # Bodyweight = parfait
+    else:
+        available = set(user_equipment)
+        required = set(candidate.equipment_required)
+        if required.issubset(available):
+            equipment_score = 1.0
+        elif len(required & available) > 0:
+            equipment_score = 0.5  # Partiellement disponible
+        else:
+            equipment_score = 0.0
+    score += equipment_score * 0.3
+    
+    # 3. Fraîcheur (0-0.1)
+    freshness_score = 0.1 if candidate.id not in recent_exercise_ids else 0.0
+    score += freshness_score
+    
+    return min(1.0, score)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -1439,6 +1480,213 @@ def get_set_recommendations(
         logger.info(f"  Raison: {base_recommendations['reasoning']}")
     
     return base_recommendations
+
+@app.get("/api/exercises/{exercise_id}/alternatives")
+async def get_exercise_alternatives(
+    exercise_id: int,
+    user_id: int = Query(...),
+    reason: str = Query("preference", regex="^(pain|equipment|preference)$"),
+    workout_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Récupère alternatives intelligentes pour un exercice
+    Optimisé : 1 seule requête DB principale + scoring en mémoire
+    """
+    logger.info(f"🔄 Alternatives pour exercice {exercise_id}, user {user_id}")
+    
+    # 1. Validation en une requête
+    base_query = db.query(Exercise, User).filter(
+        Exercise.id == exercise_id,
+        User.id == user_id
+    ).first()
+    
+    if not base_query:
+        raise HTTPException(status_code=404, detail="Exercise or user not found")
+    
+    source_exercise, user = base_query
+    
+    # 2. Récupérer exercices récents (7 derniers jours) en 1 requête
+    recent_cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+    recent_exercise_ids = db.query(WorkoutSet.exercise_id).join(Workout).filter(
+        Workout.user_id == user_id,
+        WorkoutSet.completed_at >= recent_cutoff
+    ).distinct().all()
+    recent_exercise_ids = [ex_id[0] for ex_id in recent_exercise_ids]
+    
+    # 3. Récupérer candidats en 1 requête optimisée
+    primary_muscle = source_exercise.muscle_groups[0] if source_exercise.muscle_groups else None
+    
+    if not primary_muscle:
+        return {"alternatives": [], "keep_current": {"advice": "Exercice sans groupe musculaire défini"}}
+    
+    # Query principale pour candidats
+    candidates_query = db.query(Exercise).filter(
+        Exercise.id != exercise_id,
+        cast(Exercise.muscle_groups, JSONB).contains([primary_muscle])
+    )
+    
+    # Ajustement selon raison
+    if reason == "pain":
+        # Pour douleur : éviter même pattern ou chercher variations plus douces
+        candidates_query = candidates_query.filter(Exercise.difficulty.in_(['beginner', 'intermediate']))
+    
+    candidates = candidates_query.all()
+    
+    # 4. Scoring en mémoire (rapide)
+    user_equipment = EquipmentService.get_available_equipment_types(user.equipment_config)
+    
+    scored_candidates = []
+    for candidate in candidates:
+        score = score_exercise_alternative(source_exercise, candidate, user_equipment, recent_exercise_ids)
+        if score > 0.3:  # Seuil minimum
+            scored_candidates.append({
+                'exercise': candidate,
+                'score': score
+            })
+    
+    # 5. Trier et limiter
+    scored_candidates.sort(key=lambda x: x['score'], reverse=True)
+    top_alternatives = scored_candidates[:4]  # Top 4 pour UI
+    
+    # 6. Format de réponse simple
+    alternatives = []
+    for item in top_alternatives:
+        ex = item['exercise']
+        alternatives.append({
+            'exercise_id': ex.id,
+            'name': ex.name,
+            'muscle_groups': ex.muscle_groups,
+            'equipment_required': ex.equipment_required or [],
+            'difficulty': ex.difficulty,
+            'score': round(item['score'], 2),
+            'reason_match': get_reason_explanation(reason, ex.difficulty, source_exercise.difficulty)
+        })
+    
+    # 7. Conseil pour garder exercice actuel
+    keep_advice = {
+        'pain': "Réduire poids de 30% ou amplitude de mouvement",
+        'equipment': "Vérifier équipement alternatif disponible",
+        'preference': "Ajuster technique ou tempo pour varier"
+    }
+    
+    return {
+        "alternatives": alternatives,
+        "keep_current": {"advice": keep_advice.get(reason, "Maintenir exercice actuel")},
+        "source_exercise": source_exercise.name,
+        "reason": reason
+    }
+
+def get_reason_explanation(reason: str, alt_difficulty: str, source_difficulty: str) -> str:
+    """Explication simple selon raison et difficulté"""
+    if reason == "pain":
+        return "Mouvement potentiellement moins stressant"
+    elif reason == "equipment":
+        return "Utilise équipement alternatif"
+    elif alt_difficulty != source_difficulty:
+        return f"Niveau {alt_difficulty} vs {source_difficulty}"
+    else:
+        return "Alternative équivalente"
+
+@app.post("/api/workouts/{workout_id}/track-swap")
+async def track_exercise_swap(
+    workout_id: int,
+    swap_data: Dict[str, Any] = Body(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Track un swap - Version simple mais complète
+    Body: {original_exercise_id, new_exercise_id, reason, sets_completed_before}
+    """
+    logger.info(f"📝 Track swap: {swap_data}")
+    
+    # Validation rapide
+    workout = db.query(Workout).filter(Workout.id == workout_id).first()
+    if not workout:
+        raise HTTPException(status_code=404, detail="Workout not found")
+    
+    try:
+        # 1. Créer SwapLog
+        swap_log = SwapLog(
+            user_id=workout.user_id,
+            workout_id=workout_id,
+            original_exercise_id=swap_data['original_exercise_id'],
+            new_exercise_id=swap_data['new_exercise_id'],
+            reason=swap_data['reason'],
+            sets_completed_before=swap_data.get('sets_completed_before', 0)
+        )
+        db.add(swap_log)
+        
+        # 2. Ajouter à workout.modifications
+        if not workout.modifications:
+            workout.modifications = []
+        
+        modification = {
+            'type': 'swap',
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'from_id': swap_data['original_exercise_id'],
+            'to_id': swap_data['new_exercise_id'],
+            'reason': swap_data['reason']
+        }
+        workout.modifications.append(modification)
+        flag_modified(workout, 'modifications')
+        
+        db.commit()
+        
+        return {"status": "success", "swap_id": swap_log.id}
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Erreur track swap: {e}")
+        raise HTTPException(status_code=500, detail="Error tracking swap")
+    
+@app.get("/api/workouts/{workout_id}/exercises/{exercise_id}/can-swap")
+async def check_swap_eligibility(
+    workout_id: int,
+    exercise_id: int,
+    user_id: int = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Validation rapide si swap possible - Règles métier de base"""
+    
+    # 1. Vérifier workout actif
+    workout = db.query(Workout).filter(
+        Workout.id == workout_id,
+        Workout.user_id == user_id,
+        Workout.status == 'active'
+    ).first()
+    
+    if not workout:
+        return {"allowed": False, "reason": "Séance inactive ou non trouvée"}
+    
+    # 2. Compter sets complétés
+    completed_sets = db.query(WorkoutSet).filter(
+        WorkoutSet.workout_id == workout_id,
+        WorkoutSet.exercise_id == exercise_id
+    ).count()
+    
+    # Règle simple : pas plus de 50% de l'exercice fait
+    if completed_sets > 2:  # Assumant 3-4 sets standard
+        return {
+            "allowed": False, 
+            "reason": f"Exercice trop avancé ({completed_sets} sets complétées)"
+        }
+    
+    # 3. Vérifier pas déjà swappé
+    existing_swap = db.query(SwapLog).filter(
+        SwapLog.workout_id == workout_id,
+        SwapLog.original_exercise_id == exercise_id
+    ).first()
+    
+    if existing_swap:
+        return {"allowed": False, "reason": "Exercice déjà modifié"}
+    
+    # 4. Limite globale de swaps par séance
+    total_swaps = db.query(SwapLog).filter(SwapLog.workout_id == workout_id).count()
+    if total_swaps >= 2:  # Max 2 swaps par séance
+        return {"allowed": False, "reason": "Limite de modifications atteinte (2 max)"}
+    
+    return {"allowed": True, "reason": "Swap autorisé"}
 
 @app.post("/api/workouts/{workout_id}/ml-rest-feedback")
 def record_ml_rest_feedback(

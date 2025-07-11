@@ -263,3 +263,30 @@ class ProgramExerciseBase(BaseModel):
     sets: int
     reps: int
     rest_seconds: int = 90
+
+# ===== MODULE 1 - SWAP SCHEMAS =====
+
+class SwapRequest(BaseModel):
+    original_exercise_id: int
+    new_exercise_id: int
+    reason: str  # 'pain', 'equipment', 'preference'
+    sets_completed_before: int = 0
+
+class ExerciseAlternative(BaseModel):
+    exercise_id: int
+    name: str
+    muscle_groups: List[str]
+    equipment_required: List[str]
+    difficulty: str
+    score: float
+    reason_match: str
+
+class AlternativesResponse(BaseModel):
+    alternatives: List[ExerciseAlternative]
+    keep_current: Dict[str, str]
+    source_exercise: str
+    reason: str
+
+class SwapEligibility(BaseModel):
+    allowed: bool
+    reason: str

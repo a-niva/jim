@@ -88,6 +88,8 @@ class Workout(Base):
     # Tracking des exercices skippés pour le ML
     skipped_exercises = Column(JSON, nullable=True, default=lambda: [])
     session_metadata = Column(JSON, nullable=True, default=lambda: {})
+    # MODULE 1 : Tracking modifications globales
+    modifications = Column(JSON, nullable=True, default=lambda: [])
         
     user = relationship("User", back_populates="workouts")
     program = relationship("Program")
@@ -124,10 +126,14 @@ class WorkoutSet(Base):
     user_followed_ml_weight = Column(Boolean, nullable=True)
     user_followed_ml_reps = Column(Boolean, nullable=True)
     #État du toggle ML au moment de la série
-    ml_adjustment_enabled = Column(Boolean, nullable=True)  # Toggle ML actif ou non
-    
+    ml_adjustment_enabled = Column(Boolean, nullable=True)
+
+    # MODULE 1 : Champs swap
+    swap_from_exercise_id = Column(Integer, ForeignKey('exercises.id'), nullable=True)
+    swap_reason = Column(String(20), nullable=True)  # 'pain', 'equipment', 'preference'
+
     # Position dans la séance pour le ML
-    exercise_order_in_session = Column(Integer, nullable=True)  # 1er, 2ème, 3ème exercice...
+    exercise_order_in_session = Column(Integer, nullable=True)
     set_order_in_session = Column(Integer, nullable=True)  # 1ère, 2ème, 3ème série globale...
     
     completed_at = Column(DateTime, default=datetime.now(timezone.utc))
@@ -306,3 +312,22 @@ class PerformanceStates(Base):
     __table_args__ = (
         Index('idx_user_exercise_performance', 'user_id', 'exercise_id', unique=True),
     )
+
+class SwapLog(Base):
+    __tablename__ = "swap_logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    workout_id = Column(Integer, ForeignKey("workouts.id"), nullable=False)
+    original_exercise_id = Column(Integer, ForeignKey("exercises.id"), nullable=False)
+    new_exercise_id = Column(Integer, ForeignKey("exercises.id"), nullable=False)
+    reason = Column(String(20), nullable=False)
+    sets_completed_before = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    
+    # Relations minimales
+    user = relationship("User")
+    workout = relationship("Workout")
+
+# Index essentiel pour performance
+Index('idx_swap_user_original', SwapLog.user_id, SwapLog.original_exercise_id)
