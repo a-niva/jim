@@ -823,7 +823,11 @@ def get_next_intelligent_session(user_id: int, db: Session = Depends(get_db)):
             
             # Score de fraîcheur (0-1, 1 = pas fait récemment)
             if stat and stat.last_performed:
-                days_since = (datetime.now(timezone.utc) - stat.last_performed).days
+                # CORRECTION TIMEZONE : s'assurer que last_performed a une timezone
+                last_performed = stat.last_performed
+                if last_performed.tzinfo is None:
+                    last_performed = last_performed.replace(tzinfo=timezone.utc)
+                days_since = (datetime.now(timezone.utc) - last_performed).days
                 staleness_score = min(1.0, days_since / 7.0)  # Max à 7 jours
             else:
                 staleness_score = 1.0  # Jamais fait = priorité max

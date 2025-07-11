@@ -2432,7 +2432,6 @@ async function startProgramWorkout() {
                     completedSets: 0,
                     totalSets: exerciseData.sets || 3,
                     isCompleted: false,
-                    isSkipped: false,
                     index: index,
                     startTime: null,
                     endTime: null,
@@ -2543,7 +2542,6 @@ async function setupProgramWorkoutWithSelection(program, sessionData) {
             completedSets: 0,
             totalSets: exerciseData.sets || 3,
             isCompleted: false,
-            isSkipped: false,
             index: index,
             startTime: null,
             endTime: null,
@@ -3043,7 +3041,6 @@ async function setupProgramWorkout(program) {
             completedSets: 0,
             totalSets: exerciseData.sets || 3,
             isCompleted: false,
-            isSkipped: false,
             index: index,
             startTime: null,
             endTime: null
