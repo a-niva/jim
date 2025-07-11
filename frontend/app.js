@@ -2558,6 +2558,11 @@ async function setupProgramWorkoutWithSelection(program, sessionData) {
             swapReason: null
         };
     });
+
+// MODULE 2 : Initialiser les propriétés swap pour cette session
+currentWorkoutSession.swaps = currentWorkoutSession.swaps || [];
+currentWorkoutSession.modifications = currentWorkoutSession.modifications || [];
+currentWorkoutSession.pendingSwap = null;
     
     // Remplacer les exercices du programme par ceux sélectionnés
     program.exercises = sessionData.selected_exercises;
@@ -5890,7 +5895,9 @@ async function loadProgramExercisesList() {
                                             `<button class="action-btn primary" onclick="event.stopPropagation(); selectProgramExercise(${exerciseData.exercise_id})" title="Commencer">${exerciseState.completedSets > 0 ? '▶' : '→'}</button>
                                             ${canSwapExercise && canSwapExercise(exerciseData.exercise_id) ? 
                                                 `<button class="action-btn swap-btn" onclick="event.stopPropagation(); initiateSwap(${exerciseData.exercise_id})" title="Changer d'exercice" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none;">⇄</button>` : ''}
-                                            <button class="action-btn secondary" onclick="event.stopPropagation(); showSkipModal(${exerciseData.exercise_id})" title="Passer">⏭</button>`
+                                            ${canSwapExercise(exerciseData.exercise_id) ? 
+    `<button class="action-btn swap-btn" onclick="event.stopPropagation(); initiateSwap(${exerciseData.exercise_id})" title="Changer d'exercice" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none;">⇄</button>` : ''}
+<button class="action-btn secondary" onclick="event.stopPropagation(); showSkipModal(${exerciseData.exercise_id})" title="Passer">⏭</button>`
                                         }
                                     </div>
                             </div>
@@ -8485,9 +8492,9 @@ function canSwapExercise(exerciseId) {
     // Règle 3 : Pas si > 50% des séries faites
     if (exerciseState.completedSets > exerciseState.totalSets * 0.5) return false;
     
-    // Règle 4 : Pas pendant timer actif MAIS seulement pour l'exercice EN COURS
+    // Règle 4 : Pas pendant timer actif SEULEMENT pour l'exercice EN COURS
     if ((setTimer || restTimer) && currentExercise && currentExercise.id === exerciseId) return false;
-    
+        
     // Règle 5 : Pas si exercice en cours et série commencée
     if (currentExercise && currentExercise.id === exerciseId && 
         workoutState.current === 'executing') return false;
