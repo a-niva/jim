@@ -8008,6 +8008,188 @@ function updateLocalStateAfterSwap(originalExerciseId, newExerciseId, reason, sw
     });
 }
 
+// ===== MODULE 2 : FONCTIONS MODAL SWAP MANQUANTES =====
+
+function showSwapReasonModal(exerciseId) {
+    const exercise = getCurrentExerciseData(exerciseId);
+    
+    const modalContent = `
+        <div class="swap-reason-container">
+            <div class="exercise-context">
+                <h4>Changer "${exercise.name}"</h4>
+                <p>Pourquoi souhaitez-vous changer cet exercice ?</p>
+            </div>
+            
+            <div class="reason-options">
+                <button class="reason-btn pain" onclick="proceedToAlternatives(${exerciseId}, 'pain')">
+                    <div class="reason-icon">🩹</div>
+                    <div class="reason-content">
+                        <span class="reason-title">Douleur/Inconfort</span>
+                        <span class="reason-desc">Alternatives moins stressantes</span>
+                    </div>
+                </button>
+                
+                <button class="reason-btn equipment" onclick="proceedToAlternatives(${exerciseId}, 'equipment')">
+                    <div class="reason-icon">🔧</div>
+                    <div class="reason-content">
+                        <span class="reason-title">Équipement pris</span>
+                        <span class="reason-desc">Alternatives avec autre matériel</span>
+                    </div>
+                </button>
+                
+                <button class="reason-btn preference" onclick="proceedToAlternatives(${exerciseId}, 'preference')">
+                    <div class="reason-icon">❤️</div>
+                    <div class="reason-content">
+                        <span class="reason-title">Préférence personnelle</span>
+                        <span class="reason-desc">Autres exercices similaires</span>
+                    </div>
+                </button>
+                
+                <button class="reason-btn too_hard" onclick="proceedToAlternatives(${exerciseId}, 'too_hard')">
+                    <div class="reason-icon">⬇️</div>
+                    <div class="reason-content">
+                        <span class="reason-title">Trop difficile</span>
+                        <span class="reason-desc">Versions plus accessibles</span>
+                    </div>
+                </button>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeModal()">Annuler</button>
+            </div>
+        </div>
+    `;
+    
+    showModal('Changer d\'exercice', modalContent);
+}
+
+async function proceedToAlternatives(exerciseId, reason) {
+    closeModal();
+    
+    // Animation de chargement
+    showModal('Recherche d\'alternatives', `
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <p>Recherche des meilleures alternatives...</p>
+        </div>
+    `);
+    
+    try {
+        const alternatives = await apiGet(
+            `/api/exercises/${exerciseId}/alternatives?user_id=${currentUser.id}&reason=${reason}&workout_id=${currentWorkout.id}`
+        );
+        
+        closeModal();
+        showAlternativesModal(exerciseId, reason, alternatives);
+        
+    } catch (error) {
+        closeModal();
+        console.error('Erreur récupération alternatives:', error);
+        showToast('Impossible de récupérer les alternatives', 'error');
+    }
+}
+
+function showAlternativesModal(originalExerciseId, reason, alternatives) {
+    const originalExercise = getCurrentExerciseData(originalExerciseId);
+    
+    const modalContent = `
+        <div class="alternatives-container">
+            <div class="alternatives-header">
+                <h4>Alternatives à "${originalExercise.name}"</h4>
+                <span class="reason-badge reason-${reason}">${getReasonLabel(reason)}</span>
+            </div>
+            
+            ${alternatives.alternatives && alternatives.alternatives.length > 0 ? `
+                <div class="alternatives-list">
+                    ${alternatives.alternatives.map(alt => `
+                        <div class="alternative-card" onclick="selectAlternative(${originalExerciseId}, ${alt.exercise_id}, '${reason}')">
+                            <div class="alt-header">
+                                <h5>${alt.name}</h5>
+                                <div class="match-score">${Math.round((alt.score || 0) * 100)}%</div>
+                            </div>
+                            <div class="alt-details">
+                                <p class="reason-match">${alt.reason_match || 'Exercice similaire'}</p>
+                                <div class="alt-meta">
+                                    <span class="muscle-groups">${(alt.muscle_groups || []).join(' • ')}</span>
+                                    ${alt.predicted_performance ? `
+                                        <span class="predicted-weight">${alt.predicted_performance.weight}kg × ${alt.predicted_performance.reps}</span>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : `
+                <div class="no-alternatives">
+                    <p>Aucune alternative trouvée pour cette raison.</p>
+                </div>
+            `}
+            
+            ${alternatives.keep_current ? `
+                <div class="keep-current-section">
+                    <div class="divider">
+                        <span>ou</span>
+                    </div>
+                    <div class="keep-current-card" onclick="keepCurrentWithAdaptation(${originalExerciseId}, '${reason}')">
+                        <div class="keep-icon">✨</div>
+                        <div class="keep-content">
+                            <h5>Garder l'exercice actuel</h5>
+                            <p>${alternatives.keep_current.possible_adjustments}</p>
+                        </div>
+                    </div>
+                </div>
+            ` : ''}
+            
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeModal()">Annuler</button>
+            </div>
+        </div>
+    `;
+    
+    showModal('Choisir une alternative', modalContent);
+}
+
+async function selectAlternative(originalExerciseId, newExerciseId, reason) {
+    closeModal();
+    
+    try {
+        await executeSwapTransition(originalExerciseId, newExerciseId, reason);
+    } catch (error) {
+        console.error('Erreur lors du swap:', error);
+        showToast('Erreur lors du changement d\'exercice', 'error');
+    }
+}
+
+async function keepCurrentWithAdaptation(exerciseId, reason) {
+    closeModal();
+    
+    // Appliquer une adaptation selon la raison
+    if (reason === 'too_hard') {
+        showToast('💡 Conseil : Réduisez le poids de 20% pour cet exercice', 'info');
+    } else if (reason === 'pain') {
+        showToast('💡 Conseil : Réduisez l\'amplitude ou le poids si nécessaire', 'warning');
+    }
+    
+    // Tracker la décision de garder
+    currentWorkoutSession.modifications.push({
+        type: 'keep_with_adaptation',
+        timestamp: new Date(),
+        exercise_id: exerciseId,
+        reason: reason,
+        adaptation_applied: true
+    });
+}
+
+function getReasonLabel(reason) {
+    const labels = {
+        'pain': 'Douleur',
+        'equipment': 'Équipement',
+        'preference': 'Préférence',
+        'too_hard': 'Trop difficile'
+    };
+    return labels[reason] || reason;
+}
+
 async function executeSwap(originalExerciseId, newExerciseId, reason) {
     const originalState = currentWorkoutSession.programExercises[originalExerciseId];
     const setsCompleted = originalState.completedSets;
@@ -8303,6 +8485,8 @@ function showProgramExerciseList() {
         document.getElementById('currentExercise').style.display = 'none';
         document.getElementById('programExercisesContainer').style.display = 'block';
         loadProgramExercisesList();
+        // Support des gestes mobiles
+        addSwipeToExerciseCards();
     }
 }
 
@@ -8345,6 +8529,101 @@ function getCurrentExerciseData(exerciseId) {
         name: exerciseData.name || 'Exercice inconnu',
         sets: exerciseData.sets || 3
     };
+}
+
+// ===== MODULE 2 : GESTES MOBILES =====
+
+function initSwipeGestures() {
+    // Initialiser sur toutes les exercise cards
+    document.querySelectorAll('.exercise-card').forEach(card => {
+        if (card.dataset.exerciseId) {
+            addSwipeSupport(card, parseInt(card.dataset.exerciseId));
+        }
+    });
+}
+
+function addSwipeSupport(element, exerciseId) {
+    let startX = 0;
+    let startY = 0;
+    let startTime = 0;
+    let isSwipping = false;
+    
+    element.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        startTime = Date.now();
+        isSwipping = false;
+    }, { passive: true });
+    
+    element.addEventListener('touchmove', (e) => {
+        if (!startX) return;
+        
+        const currentX = e.touches[0].clientX;
+        const currentY = e.touches[0].clientY;
+        const diffX = currentX - startX;
+        const diffY = currentY - startY;
+        
+        // Détecter swipe horizontal
+        if (Math.abs(diffX) > 30 && Math.abs(diffY) < 50) {
+            isSwipping = true;
+            e.preventDefault();
+            
+            // Animation visuelle
+            if (diffX > 0) {
+                element.style.transform = `translateX(${Math.min(diffX * 0.5, 50)}px)`;
+                element.style.borderLeft = '4px solid #10b981';
+            } else {
+                element.style.transform = `translateX(${Math.max(diffX * 0.5, -50)}px)`;
+                element.style.borderRight = '4px solid #667eea';
+            }
+        }
+    }, { passive: false });
+    
+    element.addEventListener('touchend', (e) => {
+        if (!startX || !isSwipping) {
+            startX = 0;
+            return;
+        }
+        
+        const endX = e.changedTouches[0].clientX;
+        const diffX = endX - startX;
+        const timeDiff = Date.now() - startTime;
+        
+        // Reset visual
+        element.style.transform = '';
+        element.style.borderLeft = '';
+        element.style.borderRight = '';
+        
+        // Action selon direction et vitesse
+        if (Math.abs(diffX) > 80 && timeDiff < 300) {
+            // Vibration haptique si supportée
+            if (navigator.vibrate) {
+                navigator.vibrate(50);
+            }
+            
+            if (diffX > 0) {
+                // Swipe droite → Skip
+                if (canSwapExercise(exerciseId)) {
+                    showSkipModal(exerciseId);
+                }
+            } else {
+                // Swipe gauche → Swap
+                if (canSwapExercise(exerciseId)) {
+                    initiateSwap(exerciseId);
+                }
+            }
+        }
+        
+        startX = 0;
+        isSwipping = false;
+    }, { passive: true });
+}
+
+// Ajouter support swipe après chargement liste
+function addSwipeToExerciseCards() {
+    setTimeout(() => {
+        initSwipeGestures();
+    }, 100);
 }
 
 // ===== EXPOSITION GLOBALE =====
@@ -8474,3 +8753,14 @@ window.canSwapExercise = canSwapExercise;
 window.initiateSwap = initiateSwap;
 window.executeSwapTransition = executeSwapTransition;
 window.getCurrentExerciseData = getCurrentExerciseData;
+
+window.showSwapReasonModal = showSwapReasonModal;
+window.proceedToAlternatives = proceedToAlternatives;
+window.showAlternativesModal = showAlternativesModal;
+window.selectAlternative = selectAlternative;
+window.keepCurrentWithAdaptation = keepCurrentWithAdaptation;
+window.getReasonLabel = getReasonLabel;
+
+window.initSwipeGestures = initSwipeGestures;
+window.addSwipeSupport = addSwipeSupport;
+window.addSwipeToExerciseCards = addSwipeToExerciseCards;
