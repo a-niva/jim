@@ -135,12 +135,11 @@ class WorkoutSet(Base):
     # Position dans la séance pour le ML
     exercise_order_in_session = Column(Integer, nullable=True)
     set_order_in_session = Column(Integer, nullable=True)  # 1ère, 2ème, 3ème série globale...
-    
-    completed_at = Column(DateTime, default=datetime.now(timezone.utc))
-    
-    workout = relationship("Workout", back_populates="sets")
-    exercise = relationship("Exercise")
 
+    completed_at = Column(DateTime, default=datetime.now(timezone.utc))
+
+    workout = relationship("Workout", back_populates="sets")
+    exercise = relationship("Exercise", foreign_keys="WorkoutSet.exercise_id")
 
 class SetHistory(Base):
     """Table d'historique pour l'analyse ML avancée"""
@@ -171,8 +170,11 @@ class SetHistory(Base):
     
     date_performed = Column(DateTime, default=datetime.now(timezone.utc))
     
+    # Relations minimales
     user = relationship("User")
-    exercise = relationship("Exercise")
+    workout = relationship("Workout")
+    original_exercise = relationship("Exercise", foreign_keys="SwapLog.original_exercise_id")
+    new_exercise = relationship("Exercise", foreign_keys="SwapLog.new_exercise_id")
 
 class ExerciseCompletionStats(Base):
     """Table de cache pour les statistiques d'exercices - Alternative à la vue matérialisée"""
@@ -325,9 +327,13 @@ class SwapLog(Base):
     sets_completed_before = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
     
-    # Relations minimales
+    # Relations avec foreign_keys en string
     user = relationship("User")
     workout = relationship("Workout")
+    original_exercise = relationship("Exercise", foreign_keys="SwapLog.original_exercise_id")
+    new_exercise = relationship("Exercise", foreign_keys="SwapLog.new_exercise_id")
 
-# Index essentiel pour performance
-Index('idx_swap_user_original', SwapLog.user_id, SwapLog.original_exercise_id)
+    # Index
+    __table_args__ = (
+        Index('idx_swap_user_original', 'user_id', 'original_exercise_id'),
+    )
