@@ -2329,8 +2329,13 @@ async function startFreeWorkout() {
         // MODULE 0 : Préserver les propriétés essentielles
         currentWorkoutSession.skipped_exercises = currentWorkoutSession.skipped_exercises || [];
         currentWorkoutSession.session_metadata = currentWorkoutSession.session_metadata || {};
+
+        // MODULE 2 : Initialiser propriétés swap system
+        currentWorkoutSession.swaps = currentWorkoutSession.swaps || [];
+        currentWorkoutSession.modifications = currentWorkoutSession.modifications || [];
+        currentWorkoutSession.pendingSwap = null;
                 
-        // Toujours resynchroniser les favoris (évite les états incohérents)
+        // Toujours resynchroniser les favoris
         try {
             const favoritesResponse = await apiGet(`/api/users/${currentUser.id}/favorites`);
             currentUser.favorite_exercises = favoritesResponse.favorites || [];
@@ -3047,8 +3052,13 @@ async function setupProgramWorkout(program) {
     // MODULE 0 : Préserver les propriétés
     currentWorkoutSession.skipped_exercises = currentWorkoutSession.skipped_exercises || [];
     currentWorkoutSession.session_metadata = currentWorkoutSession.session_metadata || {};
-    
-    // Initialiser l'état de chaque exercice - CONSERVER TOUTE LA STRUCTURE
+
+    // MODULE 2 : Initialiser propriétés swap system
+    currentWorkoutSession.swaps = currentWorkoutSession.swaps || [];
+    currentWorkoutSession.modifications = currentWorkoutSession.modifications || [];
+    currentWorkoutSession.pendingSwap = null;
+
+    // Initialiser l'état de chaque exercice - CONSERVER
     program.exercises.forEach((exerciseData, index) => {
         currentWorkoutSession.programExercises[exerciseData.exercise_id] = {
             ...exerciseData,
@@ -3057,7 +3067,12 @@ async function setupProgramWorkout(program) {
             isCompleted: false,
             index: index,
             startTime: null,
-            endTime: null
+            endTime: null,
+            // MODULE 2 : Propriétés swap
+            swapped: false,
+            swappedFrom: null,
+            swappedTo: null,
+            swapReason: null
         };
     });
     
@@ -8480,25 +8495,46 @@ function showProgramExerciseList() {
 // ===== MODULE 2 : SYSTÈME DE SWAP - FONCTIONS UTILITAIRES =====
 
 function canSwapExercise(exerciseId) {
+    console.log(`🔍 canSwapExercise(${exerciseId})`);
+    
     const exerciseState = currentWorkoutSession.programExercises[exerciseId];
-    if (!exerciseState) return false;
+    if (!exerciseState) {
+        console.log(`ERROR: Exercice ${exerciseId} non trouvé`);
+        return false;
+    }
     
     // Règle 1 : Pas si déjà complété
-    if (exerciseState.isCompleted) return false;
+    if (exerciseState.isCompleted) {
+        console.log(`ERROR: Exercice ${exerciseId} déjà complété`);
+        return false;
+    }
     
     // Règle 2 : Pas si déjà swappé
-    if (exerciseState.swapped) return false;
+    if (exerciseState.swapped) {
+        console.log(`ERROR: Exercice ${exerciseId} déjà swappé`);
+        return false;
+    }
     
     // Règle 3 : Pas si > 50% des séries faites
-    if (exerciseState.completedSets > exerciseState.totalSets * 0.5) return false;
+    if (exerciseState.completedSets > exerciseState.totalSets * 0.5) {
+        console.log(`ERROR: Exercice ${exerciseId} trop avancé (${exerciseState.completedSets}/${exerciseState.totalSets})`);
+        return false;
+    }
     
     // Règle 4 : Pas pendant timer actif SEULEMENT pour l'exercice EN COURS
-    if ((setTimer || restTimer) && currentExercise && currentExercise.id === exerciseId) return false;
-        
+    if ((setTimer || restTimer) && currentExercise && currentExercise.id === exerciseId) {
+        console.log(`ERROR: Exercice ${exerciseId} en cours avec timer actif`);
+        return false;
+    }
+    
     // Règle 5 : Pas si exercice en cours et série commencée
     if (currentExercise && currentExercise.id === exerciseId && 
-        workoutState.current === 'executing') return false;
+        workoutState.current === 'executing') {
+        console.log(`ERROR: Exercice ${exerciseId} en cours d'exécution`);
+        return false;
+    }
     
+    console.log(`✅ Exercice ${exerciseId} peut être swappé`);
     return true;
 }
 
