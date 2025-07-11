@@ -2322,7 +2322,10 @@ async function startFreeWorkout() {
         currentWorkout = response.workout;
         currentWorkoutSession.type = 'free';
         currentWorkoutSession.workout = response.workout;
-        
+        // MODULE 0 : Préserver les propriétés essentielles
+        currentWorkoutSession.skipped_exercises = currentWorkoutSession.skipped_exercises || [];
+        currentWorkoutSession.session_metadata = currentWorkoutSession.session_metadata || {};
+                
         // Toujours resynchroniser les favoris (évite les états incohérents)
         try {
             const favoritesResponse = await apiGet(`/api/users/${currentUser.id}/favorites`);
