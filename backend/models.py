@@ -148,6 +148,7 @@ class SetHistory(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     exercise_id = Column(Integer, ForeignKey("exercises.id"), nullable=False)
+    workout_id = Column(Integer, ForeignKey("workouts.id"), nullable=True)  # NOUVEAU
     
     # Contexte de la série
     weight = Column(Float, nullable=False)
@@ -161,20 +162,19 @@ class SetHistory(Base):
     set_number_in_exercise = Column(Integer, nullable=False)
     
     # Contexte temporel
-    rest_before_seconds = Column(Integer, nullable=True)  # Repos avant cette série
-    session_fatigue_start = Column(Integer, nullable=True)  # Fatigue début séance
+    rest_before_seconds = Column(Integer, nullable=True)
+    session_fatigue_start = Column(Integer, nullable=True)
     
     # Résultat
-    success = Column(Boolean, nullable=False)  # L'utilisateur a-t-il réussi la série comme prévu
-    actual_reps = Column(Integer, nullable=False)  # Reps réellement effectuées
+    success = Column(Boolean, nullable=False)
+    actual_reps = Column(Integer, nullable=False)
     
     date_performed = Column(DateTime, default=datetime.now(timezone.utc))
     
-    # Relations minimales
+    # Relations
     user = relationship("User")
-    workout = relationship("Workout")
-    original_exercise = relationship("Exercise", foreign_keys="SwapLog.original_exercise_id")
-    new_exercise = relationship("Exercise", foreign_keys="SwapLog.new_exercise_id")
+    exercise = relationship("Exercise")
+    workout = relationship("Workout")  # OK avec le FK ajouté
 
 class ExerciseCompletionStats(Base):
     """Table de cache pour les statistiques d'exercices - Alternative à la vue matérialisée"""
