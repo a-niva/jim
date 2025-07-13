@@ -494,4 +494,14 @@ class ProgramBuilder {
 }
 
 // ===== INSTANCE GLOBALE =====
+// ===== INSTANCE GLOBALE =====
 let programBuilder = new ProgramBuilder();
+
+// ===== ACCÈS AUX FONCTIONS GLOBALES =====
+// Ces fonctions sont définies dans app.js, on les récupère depuis window
+const showToast = window.showToast || function(msg, type) { console.log(msg); };
+const apiPost = window.apiPost || function() { throw new Error('apiPost non disponible'); };
+const currentUser = () => window.currentUser;
+const showMainInterface = window.showMainInterface || function() { console.log('showMainInterface non disponible'); };
+const showModal = window.showModal || function() { console.log('showModal non disponible'); };
+const closeModal = window.closeModal || function() { console.log('closeModal non disponible'); };

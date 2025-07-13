@@ -2573,7 +2573,7 @@ async function regenerateSession() {
    
     try {
         showToast('Génération d\'une nouvelle sélection...', 'info');
-        const* session = await apiGet(`/api/users/${currentUser.id}/programs/next-session*`);
+        const session = await apiGet(`/api/users/${currentUser.id}/programs/next-session`);
        
         // Réinitialiser avec la nouvelle sélection
         currentWorkoutSession.programExercises = {};
