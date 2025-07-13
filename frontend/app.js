@@ -5907,10 +5907,10 @@ async function loadProgramExercisesList() {
                                             `<button class="action-btn" onclick="event.stopPropagation(); restartExercise(${exerciseData.exercise_id})" title="Refaire">↻</button>` :
                                         exerciseState.isSkipped ? 
                                             `<button class="action-btn" onclick="event.stopPropagation(); restartSkippedExercise(${exerciseData.exercise_id})" title="Reprendre">↺</button>` :
-                                            `<button class="action-btn primary" onclick="event.stopPropagation(); selectProgramExercise(${exerciseData.exercise_id})" title="Commencer">${exerciseState.completedSets > 0 ? '▶' : '→'}</button>
-                                            ${canSwapExercise(exerciseData.exercise_id) ? 
-                                            `<button class="action-btn swap-btn" onclick="event.stopPropagation(); initiateSwap(${exerciseData.exercise_id})" title="Changer d'exercice" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none;">⇄</button>` : ''}
-                                            <button class="action-btn secondary" onclick="event.stopPropagation(); showSkipModal(${exerciseData.exercise_id})" title="Passer">⏭</button>`
+`<button class="action-btn primary" onclick="event.stopPropagation(); selectProgramExercise(${exerciseData.exercise_id})" title="Commencer">${exerciseState.completedSets > 0 ? '▶' : '→'}</button>
+${canSwapExercise(exerciseData.exercise_id) ? 
+`<button class="action-btn swap-btn" onclick="event.stopPropagation(); initiateSwap(${exerciseData.exercise_id})" title="Changer d'exercice" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none;">⇄</button>` : ''}
+<button class="action-btn secondary" onclick="event.stopPropagation(); showSkipModal(${exerciseData.exercise_id})" title="Passer">⏭</button>`
                                         }
                                     </div>
                             </div>
@@ -7968,23 +7968,29 @@ async function executeSwapTransition(originalExerciseId, newExerciseId, reason) 
         // 3. Mise à jour état local SANS modifier changeExercise()
         await updateLocalStateAfterSwap(originalExerciseId, newExerciseId, reason, swapContext);
         
-        // 4. Si c'est l'exercice en cours, mettre à jour l'affichage principal
+        // 4. Mettre à jour affichage principal si exercice en cours
         if (currentExercise && currentExercise.id === originalExerciseId) {
-            // Récupérer les métadonnées complètes du nouvel exercice
+            // Récupérer les métadonnées du nouvel exercice
             const exercises = await apiGet(`/api/exercises?user_id=${currentUser.id}`);
             const newExercise = exercises.find(ex => ex.id === newExerciseId);
             
             if (newExercise) {
-                // Mettre à jour currentExercise avec les bonnes données
+                // FORCER la mise à jour de currentExercise ET de l'affichage
                 currentExercise = newExercise;
                 
-                // FORCER la mise à jour de l'affichage principal
+                // Mettre à jour l'affichage principal immédiatement
                 const exerciseNameElement = document.getElementById('exerciseName');
                 if (exerciseNameElement) {
                     exerciseNameElement.textContent = newExercise.name;
                 }
                 
-                // Utiliser selectProgramExercise pour finaliser
+                // Mettre à jour les instructions si elles existent
+                const instructionsElement = document.getElementById('exerciseInstructions');
+                if (instructionsElement && newExercise.instructions) {
+                    instructionsElement.textContent = newExercise.instructions;
+                }
+                
+                // Utiliser selectProgramExercise pour finaliser la mise à jour
                 await selectProgramExercise(newExerciseId);
             }
         }
@@ -8321,14 +8327,32 @@ function updateLocalStateAfterSwap(originalExerciseId, newExerciseId, reason, se
         swapReason: reason
     };
     
-    // 3. Mettre à jour l'exercice dans le programme
+    // 3. Mettre à jour l'exercice dans le programme avec métadonnées
     const exerciseIndex = currentWorkoutSession.program.exercises.findIndex(
         ex => ex.exercise_id === originalExerciseId
     );
     if (exerciseIndex !== -1) {
-        currentWorkoutSession.program.exercises[exerciseIndex].exercise_id = newExerciseId;
+        // Récupérer les métadonnées du nouvel exercice
+        const exercises = await apiGet(`/api/exercises?user_id=${currentUser.id}`);
+        const newExercise = exercises.find(ex => ex.id === newExerciseId);
+        
+        if (newExercise) {
+            // Mettre à jour avec les vraies métadonnées
+            currentWorkoutSession.program.exercises[exerciseIndex] = {
+                ...currentWorkoutSession.program.exercises[exerciseIndex],
+                exercise_id: newExerciseId,
+                name: newExercise.name,
+                instructions: newExercise.instructions,
+                muscle_groups: newExercise.muscle_groups,
+                equipment_required: newExercise.equipment_required,
+                difficulty: newExercise.difficulty
+            };
+        } else {
+            // Fallback si pas trouvé
+            currentWorkoutSession.program.exercises[exerciseIndex].exercise_id = newExerciseId;
+        }
     }
-    
+        
     // 4. Ajouter au tracking des swaps
     currentWorkoutSession.swaps.push({
         original_id: originalExerciseId,
