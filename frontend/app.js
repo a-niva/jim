@@ -7948,50 +7948,114 @@ function previousSet() {
     // Redémarrer le timer pour cette série
     startSetTimer();
 }
-
+// Nouvelle fonction changeExercise() avec modal stylisé
 function changeExercise() {
-    // Ajouter une animation de sortie
-    const exerciseCard = document.querySelector('.workout-card');
-    if (exerciseCard) {
-        exerciseCard.style.animation = 'slideOut 0.3s ease forwards';
+    if (!currentExercise) {
+        showToast('Aucun exercice sélectionné', 'warning');
+        return;
     }
     
-    // Vérifier l'état actuel
-    if (workoutState.current === WorkoutStates.EXECUTING || 
-        workoutState.current === WorkoutStates.FEEDBACK) {
-        if (!confirm('Une série est en cours. Voulez-vous vraiment changer d\'exercice ?')) {
-            if (exerciseCard) {
-                exerciseCard.style.animation = 'slideIn 0.3s ease forwards';
-            }
-            return;
-        }
-    }
+    const modalContent = `
+        <div class="swap-reason-modal">
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <h3 style="margin-bottom: 0.5rem;">Changer "${currentExercise.name}"</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">
+                    Pourquoi souhaitez-vous changer cet exercice ?
+                </p>
+            </div>
+            
+            <div class="reason-options">
+                <button class="reason-btn" onclick="proceedToAlternatives(${currentExercise.id}, 'pain')" style="border-color: #ef4444; background: rgba(239, 68, 68, 0.1);">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span style="font-size: 1.5rem;">😣</span>
+                        <div style="text-align: left;">
+                            <div style="font-weight: 600; color: #ef4444;">Douleur/Inconfort</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);">Alternatives moins stressantes</div>
+                        </div>
+                    </div>
+                </button>
+                
+                <button class="reason-btn" onclick="proceedToAlternatives(${currentExercise.id}, 'equipment')" style="border-color: #f59e0b; background: rgba(245, 158, 11, 0.1);">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span style="font-size: 1.5rem;">🏋️</span>
+                        <div style="text-align: left;">
+                            <div style="font-weight: 600; color: #f59e0b;">Équipement pris</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);">Alternatives avec autre matériel</div>
+                        </div>
+                    </div>
+                </button>
+                
+                <button class="reason-btn" onclick="proceedToAlternatives(${currentExercise.id}, 'preference')" style="border-color: #8b5cf6; background: rgba(139, 92, 246, 0.1);">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span style="font-size: 1.5rem;">💭</span>
+                        <div style="text-align: left;">
+                            <div style="font-weight: 600; color: #8b5cf6;">Préférence personnelle</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);">Autres exercices similaires</div>
+                        </div>
+                    </div>
+                </button>
+                
+                <button class="reason-btn" onclick="proceedToAlternatives(${currentExercise.id}, 'too_hard')" style="border-color: #06b6d4; background: rgba(6, 182, 212, 0.1);">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span style="font-size: 1.5rem;">💪</span>
+                        <div style="text-align: left;">
+                            <div style="font-weight: 600; color: #06b6d4;">Trop difficile</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);">Versions plus accessibles</div>
+                        </div>
+                    </div>
+                </button>
+            </div>
+            
+            <div style="margin-top: 1.5rem; text-align: center;">
+                <button class="btn-secondary" onclick="closeModal()" style="padding: 0.75rem 2rem;">
+                    Annuler
+                </button>
+            </div>
+        </div>
+    `;
     
-    // Nettoyer les timers
-    if (restTimer) {
-        clearInterval(restTimer);
-        // Arrêter aussi le timer de série
-        if (setTimer) {
-            clearInterval(setTimer);
-            setTimer = null;
-        }
-        restTimer = null;
-        if (notificationTimeout) {
-            clearTimeout(notificationTimeout);
-            notificationTimeout = null;
-        }
-    }
+    showModal('Changer d\'exercice', modalContent);
+}
+
+// Fonction helper pour procéder aux alternatives (réutilise le système swap)
+function proceedToAlternatives(exerciseId, reason) {
+    closeModal();
     
-    // Réinitialiser l'état
-    workoutState = {
-        current: WorkoutStates.IDLE,
-        exerciseStartTime: null,
-        setStartTime: null,
-        restStartTime: null,
-        pendingSetData: null
-    };
+    // Simuler une liste d'alternatives basique pour l'instant
+    const modalContent = `
+        <div class="alternatives-modal">
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <h3 style="margin-bottom: 0.5rem;">Alternatives suggérées</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">
+                    Raison : ${getReasonLabel(reason)}
+                </p>
+            </div>
+            
+            <div class="alternatives-list">
+                <div class="keep-current-card" onclick="keepCurrentWithAdaptation(${exerciseId}, '${reason}')" style="border: 2px solid var(--primary); background: rgba(99, 102, 241, 0.1); padding: 1rem; border-radius: 8px; cursor: pointer; margin-bottom: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span style="font-size: 1.5rem;">✅</span>
+                        <div>
+                            <div style="font-weight: 600; color: var(--primary);">Garder "${currentExercise.name}"</div>
+                            <div style="font-size: 0.85rem; color: var(--text-muted);">Continuer avec des adaptations</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; color: var(--text-muted); margin: 1rem 0; font-size: 0.9rem;">
+                    Les alternatives détaillées seront disponibles prochainement
+                </div>
+            </div>
+            
+            <div style="margin-top: 1.5rem; text-align: center;">
+                <button class="btn-secondary" onclick="closeModal()" style="padding: 0.75rem 2rem;">
+                    Retour
+                </button>
+            </div>
+        </div>
+    `;
     
-    finishExercise();
+    showModal('Choisir une alternative', modalContent);
 }
 
 async function initiateSwap(exerciseId) {
