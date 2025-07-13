@@ -1181,7 +1181,14 @@ async function completeOnboarding() {
             document.getElementById('progressContainer').style.display = 'none';
             
             // Initialiser le ProgramBuilder avec les données utilisateur
-            programBuilder.initialize(userData);
+            // Vérifier que programBuilder est chargé
+            if (typeof programBuilder !== 'undefined') {
+                programBuilder.initialize(userData);
+            } else {
+                console.error('ProgramBuilder non chargé');
+                showToast('Erreur: ProgramBuilder non disponible', 'error');
+                showMainInterface();
+            }
             
         }, 1000);
         
@@ -2422,7 +2429,7 @@ async function startProgramWorkout() {
 }
 
 function showComprehensiveSessionPreview(sessionData, program) {
-    """Afficher un aperçu de la séance avant de commencer"""
+    // Afficher un aperçu de la séance avant de commencer
     const exercises = sessionData.selected_exercises || [];
     const metadata = sessionData.session_metadata || {};
     
@@ -2505,7 +2512,7 @@ function showComprehensiveSessionPreview(sessionData, program) {
 }
 
 async function confirmStartComprehensiveWorkout(sessionData) {
-    """Confirmer et démarrer la séance comprehensive"""
+    //Confirmer et démarrer la séance comprehensive
     try {
         // Créer la séance en base
         const workoutData = {
@@ -2530,7 +2537,7 @@ async function confirmStartComprehensiveWorkout(sessionData) {
 }
 
 function setupComprehensiveWorkout(sessionData) {
-    """Configurer l'interface pour une séance comprehensive"""
+    //Configurer l'interface pour une séance comprehensive
     const exercises = sessionData.selected_exercises || [];
     const metadata = sessionData.session_metadata || {};
     
@@ -2583,7 +2590,7 @@ async function regenerateSession() {
 }
 
 function getFocusAreaName(area) {
-    """Convertir les clés focus en noms lisibles"""
+    //Convertir les clés focus en noms lisibles
     const names = {
         'upper_body': 'Haut du corps',
         'legs': 'Jambes', 
