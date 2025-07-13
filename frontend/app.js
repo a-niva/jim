@@ -8011,13 +8011,13 @@ async function executeSwapTransition(originalExerciseId, newExerciseId, reason) 
 }
 
 async function updateLocalStateAfterSwap(originalExerciseId, newExerciseId, reason, swapContext) {
-    // 1. Marquer l'original comme swappé
-    currentWorkoutSession.programExercises[originalExerciseId].swapped = true;
-    currentWorkoutSession.programExercises[originalExerciseId].swappedTo = newExerciseId;
-    currentWorkoutSession.programExercises[originalExerciseId].swapReason = reason;
-    
-    // 2. RÉCUPÉRER LES MÉTADONNÉES DU NOUVEL EXERCICE
     try {
+        // 1. Marquer l'original comme swappé
+        currentWorkoutSession.programExercises[originalExerciseId].swapped = true;
+        currentWorkoutSession.programExercises[originalExerciseId].swappedTo = newExerciseId;
+        currentWorkoutSession.programExercises[originalExerciseId].swapReason = reason;
+        
+        // 2. Récupérer les métadonnées du nouvel exercice
         const exercises = await apiGet(`/api/exercises?user_id=${currentUser.id}`);
         const newExercise = exercises.find(ex => ex.id === newExerciseId);
         
@@ -8031,18 +8031,21 @@ async function updateLocalStateAfterSwap(originalExerciseId, newExerciseId, reas
             swapped: false,
             swappedFrom: originalExerciseId,
             swapReason: reason,
-            // Mettre à jour les métadonnées
+            // Mettre à jour les métadonnées avec celles du nouvel exercice
             name: newExercise.name,
             instructions: newExercise.instructions,
             muscle_groups: newExercise.muscle_groups,
             equipment_required: newExercise.equipment_required,
-            difficulty: newExercise.difficulty
+            difficulty: newExercise.difficulty,
+            exercise_type: newExercise.exercise_type,
+            weight_type: newExercise.weight_type
         };
         
-        // 4. Mettre à jour l'exercice dans le programme avec TOUTES les métadonnées
+        // 4. Mettre à jour l'exercice dans le programme avec métadonnées complètes
         const exerciseIndex = currentWorkoutSession.program.exercises.findIndex(
             ex => ex.exercise_id === originalExerciseId
         );
+        
         if (exerciseIndex !== -1) {
             currentWorkoutSession.program.exercises[exerciseIndex] = {
                 ...currentWorkoutSession.program.exercises[exerciseIndex],
@@ -8051,13 +8054,52 @@ async function updateLocalStateAfterSwap(originalExerciseId, newExerciseId, reas
                 instructions: newExercise.instructions,
                 muscle_groups: newExercise.muscle_groups,
                 equipment_required: newExercise.equipment_required,
-                difficulty: newExercise.difficulty
+                difficulty: newExercise.difficulty,
+                exercise_type: newExercise.exercise_type,
+                weight_type: newExercise.weight_type
             };
         }
         
+        // 5. Initialiser le tableau des swaps si nécessaire
+        if (!currentWorkoutSession.swaps) {
+            currentWorkoutSession.swaps = [];
+        }
+        
+        // 6. Ajouter au tracking des swaps
+        currentWorkoutSession.swaps.push({
+            original_id: originalExerciseId,
+            new_id: newExerciseId,
+            reason: reason,
+            timestamp: swapContext.timestamp,
+            sets_before: swapContext.originalExerciseState.completedSets
+        });
+        
+        // 7. Initialiser le tableau des modifications si nécessaire
+        if (!currentWorkoutSession.modifications) {
+            currentWorkoutSession.modifications = [];
+        }
+        
+        // 8. Ajouter au tracking des modifications globales
+        currentWorkoutSession.modifications.push({
+            type: 'swap',
+            timestamp: swapContext.timestamp,
+            original: originalExerciseId,
+            replacement: newExerciseId,
+            reason: reason,
+            sets_completed_before: swapContext.originalExerciseState.completedSets
+        });
+        
+        console.log(`✅ Swap local state updated: ${originalExerciseId} → ${newExerciseId} (${reason})`);
+        
     } catch (error) {
-        console.error('Erreur mise à jour métadonnées:', error);
-        // Fallback : mettre à jour seulement l'ID
+        console.error('Erreur mise à jour état local après swap:', error);
+        
+        // Fallback : mise à jour minimale sans métadonnées
+        currentWorkoutSession.programExercises[originalExerciseId].swapped = true;
+        currentWorkoutSession.programExercises[originalExerciseId].swappedTo = newExerciseId;
+        currentWorkoutSession.programExercises[originalExerciseId].swapReason = reason;
+        
+        // Créer l'état basique pour le nouvel exercice
         currentWorkoutSession.programExercises[newExerciseId] = {
             ...swapContext.originalExerciseState,
             swapped: false,
@@ -8065,32 +8107,27 @@ async function updateLocalStateAfterSwap(originalExerciseId, newExerciseId, reas
             swapReason: reason
         };
         
+        // Mettre à jour seulement l'ID dans le programme
         const exerciseIndex = currentWorkoutSession.program.exercises.findIndex(
             ex => ex.exercise_id === originalExerciseId
         );
         if (exerciseIndex !== -1) {
             currentWorkoutSession.program.exercises[exerciseIndex].exercise_id = newExerciseId;
         }
+        
+        // Tracking basique
+        if (!currentWorkoutSession.swaps) currentWorkoutSession.swaps = [];
+        currentWorkoutSession.swaps.push({
+            original_id: originalExerciseId,
+            new_id: newExerciseId,
+            reason: reason,
+            timestamp: swapContext.timestamp,
+            sets_before: swapContext.originalExerciseState.completedSets
+        });
+        
+        // Re-lancer l'erreur pour que la fonction appelante soit au courant
+        throw error;
     }
-    
-    // 4. Ajouter au tracking des swaps
-    currentWorkoutSession.swaps.push({
-        original_id: originalExerciseId,
-        new_id: newExerciseId,
-        reason: reason,
-        timestamp: swapContext.timestamp,
-        sets_before: swapContext.originalExerciseState.completedSets
-    });
-    
-    // 5. Tracking modification globale
-    currentWorkoutSession.modifications.push({
-        type: 'swap',
-        timestamp: swapContext.timestamp,
-        original: originalExerciseId,
-        replacement: newExerciseId,
-        reason: reason,
-        sets_completed_before: swapContext.originalExerciseState.completedSets
-    });
 }
 
 // ===== MODULE 2 : FONCTIONS MODAL SWAP MANQUANTES =====
@@ -8309,68 +8346,6 @@ async function executeSwap(originalExerciseId, newExerciseId, reason) {
         showToast('Impossible de changer l\'exercice', 'error');
         throw error;
     }
-}
-
-function updateLocalStateAfterSwap(originalExerciseId, newExerciseId, reason, setsCompleted) {
-    // 1. Marquer l'original comme swappé
-    currentWorkoutSession.programExercises[originalExerciseId].swapped = true;
-    currentWorkoutSession.programExercises[originalExerciseId].swappedTo = newExerciseId;
-    currentWorkoutSession.programExercises[originalExerciseId].swapReason = reason;
-    
-    // 2. Créer l'état pour le nouvel exercice
-    const originalState = currentWorkoutSession.programExercises[originalExerciseId];
-    currentWorkoutSession.programExercises[newExerciseId] = {
-        ...originalState,
-        completedSets: setsCompleted, // Conserver les séries déjà faites
-        swapped: false,
-        swappedFrom: originalExerciseId,
-        swapReason: reason
-    };
-    
-    // 3. Mettre à jour l'exercice dans le programme avec métadonnées
-    const exerciseIndex = currentWorkoutSession.program.exercises.findIndex(
-        ex => ex.exercise_id === originalExerciseId
-    );
-    if (exerciseIndex !== -1) {
-        // Récupérer les métadonnées du nouvel exercice
-        const exercises = await apiGet(`/api/exercises?user_id=${currentUser.id}`);
-        const newExercise = exercises.find(ex => ex.id === newExerciseId);
-        
-        if (newExercise) {
-            // Mettre à jour avec les vraies métadonnées
-            currentWorkoutSession.program.exercises[exerciseIndex] = {
-                ...currentWorkoutSession.program.exercises[exerciseIndex],
-                exercise_id: newExerciseId,
-                name: newExercise.name,
-                instructions: newExercise.instructions,
-                muscle_groups: newExercise.muscle_groups,
-                equipment_required: newExercise.equipment_required,
-                difficulty: newExercise.difficulty
-            };
-        } else {
-            // Fallback si pas trouvé
-            currentWorkoutSession.program.exercises[exerciseIndex].exercise_id = newExerciseId;
-        }
-    }
-        
-    // 4. Ajouter au tracking des swaps
-    currentWorkoutSession.swaps.push({
-        original_id: originalExerciseId,
-        new_id: newExerciseId,
-        reason: reason,
-        timestamp: new Date(),
-        sets_before: setsCompleted
-    });
-    
-    // 5. Tracking modification globale
-    currentWorkoutSession.modifications.push({
-        type: 'swap',
-        timestamp: new Date(),
-        original: originalExerciseId,
-        replacement: newExerciseId,
-        reason: reason,
-        sets_completed_before: setsCompleted
-    });
 }
 
 function adjustRestTime(deltaSeconds) {
