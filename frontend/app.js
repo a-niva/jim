@@ -8124,7 +8124,8 @@ async function updateLocalStateAfterSwap(originalExerciseId, newExerciseId, reas
             sets_completed_before: swapContext.originalExerciseState.completedSets
         });
         
-        console.log(`✅ Swap local state updated: ${originalExerciseId} → ${newExerciseId} (${reason})`);
+        console.log(`✅ MODULE 3 - Swap local state updated: ${originalExerciseId} → ${newExerciseId} (${reason})`);
+        console.log(`📊 MODULE 3 - Total swaps cette séance: ${currentWorkoutSession.swaps?.length || 0}`);
         
     } catch (error) {
         console.error('Erreur mise à jour état local après swap:', error);
