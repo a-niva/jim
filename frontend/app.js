@@ -1685,6 +1685,11 @@ async function resumeWorkout(workoutId) {
 
 async function abandonActiveWorkout(workoutId) {
     if (confirm('Êtes-vous sûr de vouloir abandonner cette séance ?')) {
+        
+        // Nettoyer IMMÉDIATEMENT le système audio
+        if (window.workoutAudio) {
+            window.workoutAudio.clearScheduledSounds();
+        }
         // Nettoyer IMMÉDIATEMENT l'état local et la bannière
         localStorage.removeItem('fitness_workout_state');
         clearWorkoutState();
@@ -6662,6 +6667,17 @@ function clearWorkoutState() {
         notificationTimeout = null;
     }
     
+    // Nettoyer systématiquement le système audio
+    if (window.workoutAudio) {
+        window.workoutAudio.clearScheduledSounds();
+    }
+    
+    // Nettoyer les timers isométriques
+    if (window.currentIsometricTimer && window.currentIsometricTimer.interval) {
+        clearInterval(window.currentIsometricTimer.interval);
+        window.currentIsometricTimer.interval = null;
+    }
+    
     // Réinitialiser toutes les variables
     currentWorkout = null;
     currentExercise = null;
@@ -8576,8 +8592,13 @@ function pauseWorkout() {
     }
 }
 
-async function abandonWorkout() {
+function abandonWorkout() {
     if (!confirm('Êtes-vous sûr de vouloir abandonner cette séance ?')) return;
+    
+    // Nettoyer IMMÉDIATEMENT le système audio
+    if (window.workoutAudio) {
+        window.workoutAudio.clearScheduledSounds();
+    }
     
     // Sauvegarder l'ID avant de nettoyer
     const workoutId = currentWorkout?.id;

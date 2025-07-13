@@ -1458,9 +1458,27 @@ textarea:focus {
 .input-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center; /* Centrage parfait */
+    gap: var(--spacing-md); /* Espacement uniforme */
     margin-bottom: var(--spacing-lg);
     position: relative;
+}
+
+.input-row .stepper-modern {
+    flex-shrink: 0; /* Empêche la déformation */
+    width: 44px; /* Taille fixe */
+    height: 44px; /* Taille fixe */
+}
+
+.input-row .value-display {
+    flex: 1;
+    min-width: 120px; /* Largeur minimale pour éviter les décalages */
+    max-width: 180px; /* Largeur maximale */
+    text-align: center;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: var(--spacing-sm);
 }
 
 .input-row[data-hidden="true"] {
@@ -5660,412 +5678,56 @@ background: rgba(255, 255, 255, 0.02);
     color: white;
 }
 
-/* ===== MODULE 2 : SWAP SYSTEM - DESIGN MODERNE ===== */
+/* ===== MODULE 2 : SWAP SYSTEM STYLES (MINIMAL) ===== */
 
-/* Container principal swap */
-.swap-reason-container,
-.alternatives-container {
-    max-width: 500px;
-    margin: 0 auto;
+/* Bouton swap - réutilise les styles action-btn existants */
+.swap-btn {
+    background: rgba(59, 130, 246, 0.1) !important;
+    color: var(--primary) !important;
+    border: 1px solid rgba(59, 130, 246, 0.3) !important;
 }
 
-.exercise-context {
-    text-align: center;
-    margin-bottom: 2rem;
-    padding: 1rem;
-    background: rgba(59, 130, 246, 0.05);
-    border-radius: 12px;
-    border-left: 4px solid var(--primary);
+.swap-btn:hover {
+    background: rgba(59, 130, 246, 0.2) !important;
+    transform: scale(1.05);
 }
 
-.exercise-context h4 {
-    margin: 0 0 0.5rem 0;
-    color: var(--text);
-    font-size: 1.1rem;
-}
-
-.exercise-context p {
-    margin: 0;
-    color: var(--text-muted);
-    font-size: 0.9rem;
-}
-
-/* Raisons de swap */
-.reason-options {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    margin-bottom: 2rem;
-}
-
-.reason-btn {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    border: 2px solid var(--border);
-    border-radius: 12px;
-    background: var(--bg-card);
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    text-align: left;
-    position: relative;
-    overflow: hidden;
-}
-
-.reason-btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: transparent;
-    transition: background 0.3s ease;
-}
-
-.reason-btn.pain::before { background: #ef4444; }
-.reason-btn.equipment::before { background: #f59e0b; }
-.reason-btn.preference::before { background: #8b5cf6; }
-.reason-btn.too_hard::before { background: #06b6d4; }
-
-.reason-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-    border-color: var(--primary);
-}
-
-.reason-btn:active {
-    transform: translateY(0);
-    transition-duration: 0.1s;
-}
-
-.reason-icon {
-    font-size: 1.5rem;
-    min-width: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.reason-content {
-    flex: 1;
-}
-
-.reason-title {
-    display: block;
-    font-weight: 600;
-    color: var(--text);
-    margin-bottom: 0.25rem;
-}
-
-.reason-desc {
-    display: block;
-    font-size: 0.85rem;
-    color: var(--text-muted);
-}
-
-/* Alternatives */
-.alternatives-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 1.5rem;
-    padding: 1rem;
-    background: linear-gradient(135deg, var(--primary), #8b5cf6);
-    border-radius: 12px;
-    color: white;
-}
-
-.alternatives-header h4 {
-    margin: 0;
-    font-size: 1.1rem;
-}
-
-.reason-badge {
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-}
-
-.alternatives-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    margin-bottom: 2rem;
-}
-
-.alternative-card {
-    padding: 1rem;
-    border: 2px solid var(--border);
-    border-radius: 12px;
-    background: var(--bg-card);
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
-}
-
-.alternative-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--primary), #10b981);
-    transform: scaleX(0);
-    transition: transform 0.3s ease;
-}
-
-.alternative-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
-    border-color: var(--primary);
-}
-
-.alternative-card:hover::before {
-    transform: scaleX(1);
-}
-
-.alt-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.75rem;
-}
-
-.alt-header h5 {
-    margin: 0;
-    color: var(--text);
-    font-size: 1rem;
-}
-
-.match-score {
-    background: linear-gradient(135deg, #10b981, #059669);
-    color: white;
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    min-width: 50px;
-    text-align: center;
-}
-
-.reason-match {
-    color: var(--primary);
-    font-weight: 500;
-    margin: 0 0 0.5rem 0;
-    font-size: 0.9rem;
-}
-
-.alt-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    font-size: 0.85rem;
-    color: var(--text-muted);
-}
-
-.predicted-weight {
-    background: rgba(245, 158, 11, 0.1);
-    color: #f59e0b;
-    padding: 0.25rem 0.5rem;
-    border-radius: 6px;
-    font-weight: 500;
-}
-
-/* Section garder actuel */
-.keep-current-section {
-    margin-top: 2rem;
-}
-
-.divider {
-    text-align: center;
-    margin: 1.5rem 0;
-    position: relative;
-}
-
-.divider::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: var(--border);
-}
-
-.divider span {
-    background: var(--bg);
-    padding: 0 1rem;
-    color: var(--text-muted);
-    font-size: 0.9rem;
-}
-
-.keep-current-card {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    border: 2px dashed var(--border);
-    border-radius: 12px;
-    background: rgba(245, 158, 11, 0.05);
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.keep-current-card:hover {
-    border-color: #f59e0b;
-    background: rgba(245, 158, 11, 0.1);
-    transform: translateY(-1px);
-}
-
-.keep-icon {
-    font-size: 1.5rem;
-    color: #f59e0b;
-}
-
-.keep-content h5 {
-    margin: 0 0 0.25rem 0;
-    color: var(--text);
-    font-size: 1rem;
-}
-
-.keep-content p {
-    margin: 0;
-    color: var(--text-muted);
-    font-size: 0.9rem;
-}
-
-/* Loading animation */
-.loading-container {
-    text-align: center;
-    padding: 2rem;
-}
-
-.loading-spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid rgba(59, 130, 246, 0.1);
-    border-top: 3px solid var(--primary);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 1rem;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-.no-alternatives {
-    text-align: center;
-    padding: 2rem;
-    color: var(--text-muted);
-    background: rgba(108, 117, 125, 0.05);
-    border-radius: 12px;
-    margin-bottom: 2rem;
-}
-
-/* Bouton swap dans exercise cards */
-.action-buttons .swap-btn {
-    background: linear-gradient(135deg, #667eea, #764ba2) !important;
-    color: white !important;
-    border: none !important;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-.action-buttons .swap-btn:hover {
-    transform: scale(1.05) !important;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4) !important;
-}
-
-/* Exercice swappé */
+/* Exercise card swappé - modification visuelle subtile */
 .exercise-card.exercise-swapped {
-    opacity: 0.8;
-    border-left: 4px solid #8b5cf6;
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.02), rgba(99, 102, 241, 0.02));
+    opacity: 0.7;
+    border-left: 3px solid var(--primary);
 }
 
 .exercise-card.exercise-swapped .exercise-name::after {
-    content: ' ↻';
-    color: #8b5cf6;
+    content: " ↻";
+    color: var(--primary);
     font-weight: bold;
-    font-size: 1.1em;
 }
 
-/* Modal actions */
-.modal-actions {
+/* Styles modals - réutilisent l'infrastructure existante */
+.swap-reason-modal, .alternatives-modal {
+    max-width: 500px;
+    width: 90%;
+}
+
+.reason-options, .alternatives-list {
     display: flex;
-    gap: 1rem;
-    margin-top: 2rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid var(--border);
+    flex-direction: column;
+    gap: var(--spacing-md);
 }
 
-.modal-actions .btn-secondary {
-    flex: 1;
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    font-weight: 500;
-    transition: all 0.3s ease;
+.reason-btn, .alternative-card {
+    padding: var(--spacing-md);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-card);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
 }
 
-/* Responsive mobile */
-@media (max-width: 768px) {
-    .swap-reason-container,
-    .alternatives-container {
-        max-width: 100%;
-    }
-    
-    .reason-btn,
-    .alternative-card {
-        padding: 0.75rem;
-    }
-    
-    .alternatives-header {
-        flex-direction: column;
-        gap: 0.5rem;
-        text-align: center;
-    }
-    
-    .alt-meta {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-    
-    .modal-actions {
-        flex-direction: column;
-    }
+.reason-btn:hover, .alternative-card:hover {
+    border-color: var(--primary);
+    background: rgba(59, 130, 246, 0.05);
+    transform: translateX(4px);
 }
-
-/* Animations d'entrée */
-@keyframes slideInUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.reason-btn,
-.alternative-card,
-.keep-current-card {
-    animation: slideInUp 0.4s ease forwards;
-}
-
-.reason-btn:nth-child(2) { animation-delay: 0.1s; }
-.reason-btn:nth-child(3) { animation-delay: 0.2s; }
-.reason-btn:nth-child(4) { animation-delay: 0.3s; }
-.reason-btn:nth-child(5) { animation-delay: 0.4s; }
-
-.alternative-card:nth-child(2) { animation-delay: 0.1s; }
-.alternative-card:nth-child(3) { animation-delay: 0.2s; }
-.alternative-card:nth-child(4) { animation-delay: 0.3s; }
