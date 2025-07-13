@@ -8055,22 +8055,39 @@ async function executeSwapTransition(originalExerciseId, newExerciseId, reason) 
             const newExercise = exercises.find(ex => ex.id === newExerciseId);
             
             if (newExercise) {
-                // FORCER la mise à jour de currentExercise ET de l'affichage
+                // CORRECTION 1 : Mettre à jour currentExercise immédiatement
                 currentExercise = newExercise;
                 
-                // Mettre à jour l'affichage principal immédiatement
+                // CORRECTION 2 : Mettre à jour l'affichage de base
                 const exerciseNameElement = document.getElementById('exerciseName');
                 if (exerciseNameElement) {
                     exerciseNameElement.textContent = newExercise.name;
                 }
                 
-                // Mettre à jour les instructions si elles existent
                 const instructionsElement = document.getElementById('exerciseInstructions');
                 if (instructionsElement && newExercise.instructions) {
                     instructionsElement.textContent = newExercise.instructions;
                 }
                 
-                // Utiliser selectProgramExercise pour finaliser la mise à jour
+                // CORRECTION 3 : Forcer la configuration UI AVANT selectProgramExercise
+                try {
+                    const exerciseType = getExerciseType(newExercise);
+                    const fallbackRecommendations = {
+                        weight_recommendation: newExercise.default_weight || 20,
+                        reps_recommendation: newExercise.default_reps_min || 10,
+                        confidence: 0.5,
+                        reasoning: "Exercice swappé - valeurs par défaut"
+                    };
+                    
+                    console.log('🔧 SWAP - Configuration UI forcée pour:', newExercise.name);
+                    await configureUIForExerciseType(exerciseType, fallbackRecommendations);
+                } catch (error) {
+                    console.error('Erreur configuration UI swap:', error);
+                    // Fallback minimal
+                    applyDefaultValues(newExercise);
+                }
+                
+                // CORRECTION 4 : Appeler selectProgramExercise après l'UI
                 await selectProgramExercise(newExerciseId);
             }
         }
