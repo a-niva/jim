@@ -7966,15 +7966,30 @@ async function executeSwapTransition(originalExerciseId, newExerciseId, reason) 
         });
         
         // 3. Mise à jour état local SANS modifier changeExercise()
-        updateLocalStateAfterSwap(originalExerciseId, newExerciseId, reason, swapContext);
+        await updateLocalStateAfterSwap(originalExerciseId, newExerciseId, reason, swapContext);
         
-        // 4. Si c'est l'exercice en cours, utiliser selectProgramExercise() existant
+        // 4. Si c'est l'exercice en cours, mettre à jour l'affichage principal
         if (currentExercise && currentExercise.id === originalExerciseId) {
-            // Utiliser la fonction existante qui fonctionne déjà
-            await selectProgramExercise(newExerciseId);
+            // Récupérer les métadonnées complètes du nouvel exercice
+            const exercises = await apiGet(`/api/exercises?user_id=${currentUser.id}`);
+            const newExercise = exercises.find(ex => ex.id === newExerciseId);
+            
+            if (newExercise) {
+                // Mettre à jour currentExercise avec les bonnes données
+                currentExercise = newExercise;
+                
+                // FORCER la mise à jour de l'affichage principal
+                const exerciseNameElement = document.getElementById('exerciseName');
+                if (exerciseNameElement) {
+                    exerciseNameElement.textContent = newExercise.name;
+                }
+                
+                // Utiliser selectProgramExercise pour finaliser
+                await selectProgramExercise(newExerciseId);
+            }
         }
-        
-        // 5. Mettre à jour affichage
+
+        // 5. Mettre à jour affichage de la liste
         showProgramExerciseList();
         
         // 6. Nettoyer le contexte
@@ -7989,27 +8004,67 @@ async function executeSwapTransition(originalExerciseId, newExerciseId, reason) 
     }
 }
 
-function updateLocalStateAfterSwap(originalExerciseId, newExerciseId, reason, swapContext) {
+async function updateLocalStateAfterSwap(originalExerciseId, newExerciseId, reason, swapContext) {
     // 1. Marquer l'original comme swappé
     currentWorkoutSession.programExercises[originalExerciseId].swapped = true;
     currentWorkoutSession.programExercises[originalExerciseId].swappedTo = newExerciseId;
     currentWorkoutSession.programExercises[originalExerciseId].swapReason = reason;
     
-    // 2. Créer ou mettre à jour l'état pour le nouvel exercice
-    currentWorkoutSession.programExercises[newExerciseId] = {
-        ...swapContext.originalExerciseState,
-        swapped: false,
-        swappedFrom: originalExerciseId,
-        swapReason: reason
-    };
-    
-    // 3. Mettre à jour l'exercice dans le programme
-    const exerciseIndex = currentWorkoutSession.program.exercises.findIndex(
-        ex => ex.exercise_id === originalExerciseId
-    );
-    if (exerciseIndex !== -1) {
-        currentWorkoutSession.program.exercises[exerciseIndex].exercise_id = newExerciseId;
-        // Préserver les autres propriétés de l'exercice
+    // 2. RÉCUPÉRER LES MÉTADONNÉES DU NOUVEL EXERCICE
+    try {
+        const exercises = await apiGet(`/api/exercises?user_id=${currentUser.id}`);
+        const newExercise = exercises.find(ex => ex.id === newExerciseId);
+        
+        if (!newExercise) {
+            throw new Error(`Exercice ${newExerciseId} non trouvé`);
+        }
+        
+        // 3. Créer l'état pour le nouvel exercice avec les bonnes métadonnées
+        currentWorkoutSession.programExercises[newExerciseId] = {
+            ...swapContext.originalExerciseState,
+            swapped: false,
+            swappedFrom: originalExerciseId,
+            swapReason: reason,
+            // Mettre à jour les métadonnées
+            name: newExercise.name,
+            instructions: newExercise.instructions,
+            muscle_groups: newExercise.muscle_groups,
+            equipment_required: newExercise.equipment_required,
+            difficulty: newExercise.difficulty
+        };
+        
+        // 4. Mettre à jour l'exercice dans le programme avec TOUTES les métadonnées
+        const exerciseIndex = currentWorkoutSession.program.exercises.findIndex(
+            ex => ex.exercise_id === originalExerciseId
+        );
+        if (exerciseIndex !== -1) {
+            currentWorkoutSession.program.exercises[exerciseIndex] = {
+                ...currentWorkoutSession.program.exercises[exerciseIndex],
+                exercise_id: newExerciseId,
+                name: newExercise.name,
+                instructions: newExercise.instructions,
+                muscle_groups: newExercise.muscle_groups,
+                equipment_required: newExercise.equipment_required,
+                difficulty: newExercise.difficulty
+            };
+        }
+        
+    } catch (error) {
+        console.error('Erreur mise à jour métadonnées:', error);
+        // Fallback : mettre à jour seulement l'ID
+        currentWorkoutSession.programExercises[newExerciseId] = {
+            ...swapContext.originalExerciseState,
+            swapped: false,
+            swappedFrom: originalExerciseId,
+            swapReason: reason
+        };
+        
+        const exerciseIndex = currentWorkoutSession.program.exercises.findIndex(
+            ex => ex.exercise_id === originalExerciseId
+        );
+        if (exerciseIndex !== -1) {
+            currentWorkoutSession.program.exercises[exerciseIndex].exercise_id = newExerciseId;
+        }
     }
     
     // 4. Ajouter au tracking des swaps
