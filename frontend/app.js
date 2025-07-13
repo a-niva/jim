@@ -4999,7 +4999,13 @@ async function endWorkout() {
         // Retour au dashboard
         showView('dashboard');
         loadDashboard();
-        showToast('Séance terminée ! Bravo ! 🎉', 'success');
+        // MODULE 3 : Message enrichi avec adaptations
+        let toastMessage = 'Séance terminée ! Bravo ! 🎉';
+        if (currentWorkoutSession.swaps?.length > 0) {
+            const swapCount = currentWorkoutSession.swaps.length;
+            toastMessage = `Séance terminée avec ${swapCount} adaptation(s) ! 🎉`;
+        }
+        showToast(toastMessage, 'success');
         
     } catch (error) {
         console.error('Erreur fin de séance:', error);
@@ -7788,13 +7794,13 @@ async function updateLastSetRestDuration(actualRestTime) {
 }
 
 function showSetCompletionOptions() {
-    // MODULE 3 : Générer résumé adaptations si présentes
+    // MODULE 3 : Résumé adaptations dans modal fin d'exercice
     let adaptationsHtml = '';
     if (currentWorkoutSession.swaps?.length > 0) {
         const swapCount = currentWorkoutSession.swaps.length;
         adaptationsHtml = `
-            <p style="color: var(--info); font-size: 0.9rem; margin: 0.5rem 0;">
-                🔄 ${swapCount} exercice(s) adapté(s) pendant cette séance
+            <p style="color: var(--primary); font-size: 0.85rem; margin: 0.5rem 0; font-style: italic;">
+                🔄 ${swapCount} exercice(s) adapté(s) cette séance
             </p>
         `;
     }
@@ -7805,7 +7811,15 @@ function showSetCompletionOptions() {
             <p>Temps de repos total: ${formatTime(currentWorkoutSession.totalRestTime)}</p>
             ${adaptationsHtml}
             <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; margin-top: 2rem;">
-                // ... boutons existants
+                <button class="btn btn-secondary" onclick="handleExtraSet(); closeModal();">
+                    Série supplémentaire
+                </button>
+                <button class="btn btn-primary" onclick="finishExercise(); closeModal();">
+                    ${currentWorkout.type === 'free' ? 'Changer d\'exercice' : 'Exercice suivant'}
+                </button>
+                <button class="btn btn-danger" onclick="endWorkout(); closeModal();">
+                    Terminer la séance
+                </button>
             </div>
         </div>
     `;
