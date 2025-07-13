@@ -1164,6 +1164,7 @@ async function completeOnboarding() {
         // Créer l'utilisateur
         currentUser = await apiPost('/api/users', userData);
         localStorage.setItem('fitness_user_id', currentUser.id);
+        
         // Ajouter à la liste des profils
         const profiles = JSON.parse(localStorage.getItem('fitness_profiles') || '[]');
         if (!profiles.includes(currentUser.id)) {
@@ -1171,27 +1172,50 @@ async function completeOnboarding() {
             localStorage.setItem('fitness_profiles', JSON.stringify(profiles));
         }
         
-        // Créer le programme si des zones sont sélectionnées
-        const focusAreas = Array.from(document.querySelectorAll('input[name="focusAreas"]:checked'))
-            .map(cb => cb.value);
+        showToast('Profil créé avec succès !', 'success');
         
-        if (focusAreas.length > 0) {
-            const programData = {
-                name: document.getElementById('programName').value || 'Mon programme',
-                sessions_per_week: parseInt(document.getElementById('sessionsPerWeek').value),
-                session_duration_minutes: parseInt(document.getElementById('sessionDuration').value),
-                focus_areas: focusAreas
-            };
+        // NOUVEAU FLOW: Redirection vers ProgramBuilder au lieu de créer le programme directement
+        setTimeout(() => {
+            // Masquer l'onboarding
+            document.getElementById('onboarding').classList.remove('active');
+            document.getElementById('progressContainer').style.display = 'none';
             
-            await apiPost(`/api/users/${currentUser.id}/programs`, programData);
-        }
-        
-        showToast('Profil créé avec succès ! 🎉', 'success');
-        showMainInterface();
+            // Initialiser le ProgramBuilder avec les données utilisateur
+            programBuilder.initialize(userData);
+            
+        }, 1000);
         
     } catch (error) {
-        console.error('Erreur création profil:', error);
+        console.error('Erreur lors de la création du profil:', error);
         showToast('Erreur lors de la création du profil', 'error');
+    }
+}
+
+function showMainInterface() {
+    // Masquer le ProgramBuilder
+    const builderContainer = document.getElementById('programBuilder');
+    if (builderContainer) {
+        builderContainer.classList.remove('active');
+    }
+    
+    // Afficher l'interface principale
+    document.getElementById('bottomNav').style.display = 'flex';
+    document.getElementById('userInitial').style.display = 'block';
+    
+    // Afficher le dashboard
+    showView('dashboard');
+    
+    // Charger les données du dashboard
+    if (typeof loadDashboard === 'function') {
+        loadDashboard();
+    }
+    
+    // Mettre à jour l'avatar utilisateur
+    if (currentUser && currentUser.name) {
+        const userInitial = document.getElementById('userInitial');
+        if (userInitial) {
+            userInitial.textContent = currentUser.name[0].toUpperCase();
+        }
     }
 }
 
@@ -2359,172 +2383,214 @@ async function startFreeWorkout() {
     }
 }
 
+
 async function startProgramWorkout() {
-    console.log('Démarrage séance programme...');
+    if (!currentUser) {
+        showToast('Veuillez vous connecter', 'error');
+        return;
+    }
     
     try {
+        showToast('Chargement de votre programme...', 'info');
+        
         // Récupérer le programme actif
-        let activeProgram = await apiGet(`/api/users/${currentUser.id}/programs/active`);
+        const activeProgram = await apiGet(`/api/users/${currentUser.id}/programs/active`);
         
         if (!activeProgram) {
-            showToast('Aucun programme actif trouvé', 'error');
+            showToast('Aucun programme actif trouvé', 'warning');
             return;
         }
         
-        console.log('Programme récupéré:', activeProgram.name);
-        
-        // SIMPLIFICATION : On force tout en v2.0 avec ML
-        // Si vous recréez la BDD, assurez-vous que tous les programmes ont le format exercise_pool
-        
+        // Nouveau format ComprehensiveProgram - Obtenir sélection intelligente
         try {
             showToast('Préparation de votre séance personnalisée...', 'info');
             
-            // Toujours utiliser la sélection ML
-            const mlSession = await apiGet(`/api/users/${currentUser.id}/programs/next-session`);
-            console.log('Réponse ML reçue:', mlSession);
+            const sessionData = await apiGet(`/api/users/${currentUser.id}/programs/next-session`);
             
-            // Vérifier la structure de la réponse
-            if (!mlSession.selected_exercises || !Array.isArray(mlSession.selected_exercises)) {
-                throw new Error('Format de réponse invalide - pas de selected_exercises');
-            }
-            
-            // Enrichir le programme avec la sélection ML
-            const enrichedExercises = mlSession.selected_exercises.map(ex => ({
-                exercise_id: ex.exercise_id,
-                exercise_name: ex.exercise_name || ex.name,
-                sets: ex.sets || 3,
-                reps: ex.reps || 10,
-                rest_seconds: ex.rest_seconds || 90,
-                muscle_groups: ex.muscle_groups || [],
-                score: ex.score || 0,
-                selection_reason: ex.selection_reason || 'Sélection standard',
-                ml_selected: true
-            }));
-            
-            // Initialiser la session complète avec toutes les métadonnées
-            currentWorkoutSession = {
-                type: 'program',
-                program: {
-                    ...activeProgram,
-                    exercises: enrichedExercises  // Remplacer par la sélection ML
-                },
-                exerciseOrder: 0,
-                globalSetCount: 0,
-                completedSets: [],
-                sessionFatigue: 3,
-                currentSetFatigue: null,
-                currentSetEffort: null,
-                totalWorkoutTime: 0,
-                totalRestTime: 0,
-                totalSetTime: 0,
-                
-                // Métadonnées ML
-                mlSelection: mlSession,
-                formatUsed: 'pool',
-                mlSelectionUsed: true,
-                sessionMetadata: {
-                    totalExercises: enrichedExercises.length,
-                    averageScore: (enrichedExercises.reduce((sum, ex) => sum + (ex.score || 0), 0) / enrichedExercises.length).toFixed(3),
-                    selectionMethod: 'ML Intelligence',
-                    mlConfidence: mlSession.session_metadata?.ml_confidence || 0,
-                    muscleDistribution: mlSession.session_metadata?.muscle_distribution || {},
-                    warnings: mlSession.session_metadata?.warnings || []
-                },
-                
-                // Pour la phase 1.4
-                programExercises: {},
-                completedExercisesCount: 0,
-                // MODULE 0 : Propriétés essentielles
-                skipped_exercises: [],
-                session_metadata: {}
-            };
-            
-            // Initialiser l'état de chaque exercice pour la UI
-            enrichedExercises.forEach((exerciseData, index) => {
-                currentWorkoutSession.programExercises[exerciseData.exercise_id] = {
-                    ...exerciseData,
-                    completedSets: 0,
-                    totalSets: exerciseData.sets || 3,
-                    isCompleted: false,
-                    index: index,
-                    startTime: null,
-                    endTime: null,
-                    mlReason: exerciseData.selection_reason,
-                    mlScore: exerciseData.score
-                };
-            });
-            
-            console.log('📊 Session ML configurée:');
-            console.log('   Exercices:', currentWorkoutSession.sessionMetadata.totalExercises);
-            console.log('   Score moyen:', currentWorkoutSession.sessionMetadata.averageScore);
-            console.log('   Confiance ML:', currentWorkoutSession.sessionMetadata.mlConfidence);
-            console.log('   Distribution:', currentWorkoutSession.sessionMetadata.muscleDistribution);
-            
-            // Si des warnings ML, les afficher
-            if (currentWorkoutSession.sessionMetadata.warnings.length > 0) {
-                currentWorkoutSession.sessionMetadata.warnings.forEach(warning => {
-                    showToast(warning, 'warning', 3000);
-                });
-            }
-            
-            // Afficher un aperçu de la session si disponible
-            if (mlSession.session_metadata && window.showSessionPreview) {
-                showSessionPreview(mlSession.session_metadata);
-            }
-            
-            // Afficher le modal de confirmation enrichi
-            showProgramStartModal(currentWorkoutSession.program);
+            // Afficher preview de la séance avant de commencer
+            showComprehensiveSessionPreview(sessionData, activeProgram);
             
         } catch (error) {
-            console.error('❌ Erreur sélection ML:', error);
-            
-            // FALLBACK SIMPLE : Si le ML échoue, on prend juste les premiers exercices du pool
-            if (activeProgram.exercises?.exercise_pool && activeProgram.exercises.exercise_pool.length > 0) {
-                showToast('Sélection ML indisponible - Mode basique', 'warning');
-                
-                const fallbackExercises = activeProgram.exercises.exercise_pool.slice(0, 6).map((ex, index) => ({
-                    exercise_id: ex.exercise_id,
-                    exercise_name: ex.name || `Exercice ${index + 1}`,
-                    sets: ex.sets || 3,
-                    reps: ex.reps || 10,
-                    rest_seconds: ex.rest_seconds || 90,
-                    muscle_groups: ex.muscle_groups || [],
-                    score: 0,
-                    selection_reason: 'Sélection de secours',
-                    ml_selected: false
-                }));
-                
-                // Initialiser avec le fallback
-                currentWorkoutSession = {
-                    type: 'program',
-                    program: {
-                        ...activeProgram,
-                        exercises: fallbackExercises
-                    },
-                    exerciseOrder: 0,
-                    globalSetCount: 0,
-                    completedSets: [],
-                    sessionFatigue: 3,
-                    formatUsed: 'fallback',
-                    mlSelectionUsed: false,
-                    sessionMetadata: {
-                        totalExercises: fallbackExercises.length,
-                        selectionMethod: 'Fallback (ML indisponible)'
-                    }
-                };
-                
-                showProgramStartModal(currentWorkoutSession.program);
-                
-            } else {
-                showToast('Erreur : Format de programme incompatible', 'error');
-                console.error('Programme sans exercise_pool:', activeProgram);
-            }
+            console.error('Erreur sélection intelligente:', error);
+            showToast('Erreur lors de la génération de séance', 'error');
         }
         
     } catch (error) {
-        console.error('Erreur chargement programme:', error);
-        showToast('Erreur lors du chargement du programme', 'error');
+        console.error('Erreur démarrage programme:', error);
+        showToast('Erreur lors du démarrage du programme', 'error');
     }
+}
+
+function showComprehensiveSessionPreview(sessionData, program) {
+    """Afficher un aperçu de la séance avant de commencer"""
+    const exercises = sessionData.selected_exercises || [];
+    const metadata = sessionData.session_metadata || {};
+    
+    const exercisesCount = exercises.length;
+    const focusArea = metadata.focus || "general";
+    const estimatedDuration = metadata.target_duration || metadata.estimated_duration || 60;
+    
+    // Calculer distribution musculaire
+    const muscleDistribution = metadata.muscle_distribution || {};
+    const muscleBreakdown = Object.entries(muscleDistribution)
+        .map(([muscle, count]) => `${muscle}: ${count}`)
+        .join(', ') || 'Distribution équilibrée';
+    
+    const modalContent = `
+        <div class="session-preview">
+            <div class="preview-header">
+                <h3>🎯 Séance ${metadata.session_number ? `${metadata.session_number}` : ''} ${metadata.week_number ? `- Semaine ${metadata.week_number}/${metadata.total_weeks}` : ''}</h3>
+                <p class="focus-area">Focus: <strong>${getFocusAreaName(focusArea)}</strong></p>
+            </div>
+            
+            <div class="preview-stats">
+                <div class="stat-item">
+                    <div class="stat-value">${exercisesCount}</div>
+                    <div class="stat-label">Exercices</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${estimatedDuration}min</div>
+                    <div class="stat-label">Durée estimée</div>
+                </div>
+                ${metadata.week_number && metadata.total_weeks ? `
+                <div class="stat-item">
+                    <div class="stat-value">${metadata.week_number}/${metadata.total_weeks}</div>
+                    <div class="stat-label">Progression</div>
+                </div>
+                ` : ''}
+            </div>
+            
+            <div class="exercises-preview">
+                <h4>📋 Exercices de la séance</h4>
+                <div class="exercises-list">
+                    ${exercises.map((ex, index) => `
+                        <div class="exercise-preview-item">
+                            <div class="exercise-info">
+                                <strong>${ex.exercise_name}</strong>
+                                <span class="exercise-details">${ex.sets} séries × ${ex.reps_min}-${ex.reps_max} reps</span>
+                            </div>
+                            ${ex.selection_reason ? `<span class="reason-badge" title="${ex.selection_reason}">🧠</span>` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            
+            <div class="muscle-distribution">
+                <h4>💪 Répartition musculaire</h4>
+                <p class="distribution-text">${muscleBreakdown}</p>
+            </div>
+            
+            ${metadata.ml_used ? `
+                <div class="ml-info">
+                    <i class="fas fa-brain"></i>
+                    <span>Séance optimisée par l'IA selon votre récupération</span>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" style="width: ${(metadata.ml_confidence || 0.85) * 100}%"></div>
+                    </div>
+                </div>
+            ` : ''}
+            
+            <div class="preview-actions">
+                <button class="btn btn-secondary" onclick="closeModal(); regenerateSession();">
+                    🔄 Régénérer
+                </button>
+                <button class="btn btn-primary" onclick="closeModal(); confirmStartComprehensiveWorkout(${JSON.stringify(sessionData).replace(/"/g, '&quot;')});">
+                    ✅ Commencer cette séance
+                </button>
+            </div>
+        </div>
+    `;
+    
+    showModal('Aperçu de votre séance', modalContent);
+}
+
+async function confirmStartComprehensiveWorkout(sessionData) {
+    """Confirmer et démarrer la séance comprehensive"""
+    try {
+        // Créer la séance en base
+        const workoutData = {
+            type: 'program',
+            program_id: sessionData.session_metadata?.program_id || 1 // Fallback
+        };
+        
+        const response = await apiPost(`/api/users/${currentUser.id}/workouts`, workoutData);
+        currentWorkout = response.workout;
+        
+        // Préparer la session avec les exercices sélectionnés
+        setupComprehensiveWorkout(sessionData);
+        
+        // Passer à l'écran de séance
+        showView('workout');
+        showToast('Séance démarrée !', 'success');
+        
+    } catch (error) {
+        console.error('Erreur démarrage séance comprehensive:', error);
+        showToast('Erreur lors du démarrage', 'error');
+    }
+}
+
+function setupComprehensiveWorkout(sessionData) {
+    """Configurer l'interface pour une séance comprehensive"""
+    const exercises = sessionData.selected_exercises || [];
+    const metadata = sessionData.session_metadata || {};
+    
+    // Adapter le format pour compatibilité avec l'interface existante
+    const adaptedProgram = {
+        id: metadata.program_id || 1,
+        name: `${metadata.week_number ? `Semaine ${metadata.week_number}` : 'Séance'} - ${getFocusAreaName(metadata.focus || 'general')}`,
+        exercises: exercises,
+        format: "comprehensive"
+    };
+    
+    // Utiliser la fonction existante avec le programme adapté
+    setupProgramWorkout(adaptedProgram);
+    
+    // Ajouter métadonnées comprehensive à la session
+    currentWorkoutSession.comprehensive_metadata = {
+        week_number: metadata.week_number,
+        session_number: metadata.session_number,
+        focus: metadata.focus,
+        ml_used: metadata.ml_used,
+        original_session_data: sessionData
+    };
+    
+    // Mettre à jour le titre de la séance
+    const workoutTitle = document.getElementById('workoutTitle');
+    if (workoutTitle) {
+        workoutTitle.textContent = `🎯 ${adaptedProgram.name}`;
+    }
+}
+
+async function regenerateSession() {
+    """Régénérer la sélection d'exercices"""
+    try {
+        showToast('Régénération en cours...', 'info');
+        
+        // Appeler l'endpoint avec paramètre de régénération
+        const sessionData = await apiGet(`/api/users/${currentUser.id}/programs/next-session?regenerate=true`);
+        const program = await apiGet(`/api/users/${currentUser.id}/programs/active`);
+        
+        showComprehensiveSessionPreview(sessionData, program);
+        showToast('Nouvelle séance générée !', 'success');
+        
+    } catch (error) {
+        console.error('Erreur régénération:', error);
+        showToast('Erreur lors de la régénération', 'error');
+    }
+}
+
+function getFocusAreaName(area) {
+    """Convertir les clés focus en noms lisibles"""
+    const names = {
+        'upper_body': 'Haut du corps',
+        'legs': 'Jambes', 
+        'core': 'Abdominaux',
+        'back': 'Dos',
+        'shoulders': 'Épaules',
+        'arms': 'Bras',
+        'general': 'Général'
+    };
+    return names[area] || area;
 }
 
 async function setupProgramWorkoutWithSelection(program, sessionData) {
@@ -2651,26 +2717,7 @@ function showSessionPreview(metadata) {
         setTimeout(() => previewContainer.remove(), 300);
     }, 5000);
 }
-async function regenerateSession() {
-    if (!currentWorkoutSession.program) return;
-    
-    try {
-        showToast('Génération d\'une nouvelle sélection...', 'info');
-        const session = await apiGet(`/api/users/${currentUser.id}/programs/next-session`);
-        
-        // Réinitialiser avec la nouvelle sélection
-        currentWorkoutSession.programExercises = {};
-        currentWorkoutSession.completedExercisesCount = 0;
-        currentWorkoutSession.exerciseOrder = 0;
-        
-        await setupProgramWorkoutWithSelection(currentWorkoutSession.program, session);
-        showToast('Nouvelle sélection générée !', 'success');
-        
-    } catch (error) {
-        console.error('Erreur régénération:', error);
-        showToast('Impossible de régénérer la sélection', 'error');
-    }
-}
+
 
 // Fonction helper pour enrichir le modal de démarrage
 function showProgramStartModal(program) {
@@ -8542,6 +8589,14 @@ let isPaused = false;
 let pausedTime = null;
 
 function pauseWorkout() {
+    // NOUVEAU: Fermer tous les modals de swap avant pause
+    if (document.querySelector('.modal.active')) {
+        closeModal();
+    }
+    if (currentWorkoutSession.pendingSwap) {
+        delete currentWorkoutSession.pendingSwap;
+        console.log('🔍 Pending swap annulé par pause');
+    }
     const pauseBtn = event.target;
     
     if (!isPaused) {

@@ -53,16 +53,67 @@ class Exercise(Base):
 
 
 class Program(Base):
+    """Programme de fitness complet avec structure temporelle et scoring"""
     __tablename__ = "programs"
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    name = Column(String, nullable=False)
+    
+    # Métadonnées programme
+    name = Column(String(100), nullable=False)
+    duration_weeks = Column(Integer, nullable=False)  # 4-16 semaines
+    periodization_type = Column(String(50), default="linear")  # "linear", "undulating"
     sessions_per_week = Column(Integer, nullable=False)
     session_duration_minutes = Column(Integer, nullable=False)
-    focus_areas = Column(JSON, nullable=False)  # ["upper_body", "core"]
-    exercises = Column(JSON, nullable=False)  # Liste ordonnée des exercices avec sets/reps
+    focus_areas = Column(JSON, nullable=False)  # ["upper_body", "legs", "core"]
+    
+    # Structure temporelle NOUVELLE
+    weekly_structure = Column(JSON, nullable=False)  
+    # Format: [
+    #   {
+    #     "week": 1, 
+    #     "sessions": [
+    #       {
+    #         "day": "monday", 
+    #         "exercise_pool": [
+    #           {
+    #             "exercise_id": 1,
+    #             "sets": 3,
+    #             "reps_min": 8,
+    #             "reps_max": 12,
+    #             "priority": 5,
+    #             "constraints": {
+    #               "min_recovery_hours": 48,
+    #               "max_frequency_per_week": 2
+    #             }
+    #           }
+    #         ],
+    #         "focus": "upper",
+    #         "target_duration": 60
+    #       }
+    #     ]
+    #   }
+    # ]
+    
+    progression_rules = Column(JSON, nullable=False)  # Règles intensité/volume
+    # Format: {
+    #   "intensity_progression": "linear",  # +2.5% par semaine
+    #   "volume_progression": "wave",       # ondulée
+    #   "deload_frequency": 4               # toutes les 4 semaines
+    # }
+    
+    # État et suivi
+    current_week = Column(Integer, default=1)
+    current_session_in_week = Column(Integer, default=1)
+    started_at = Column(DateTime, nullable=True)
+    estimated_completion = Column(DateTime, nullable=True)
+    
+    # Scoring et qualité
+    base_quality_score = Column(Float, default=0.0)  # Score 0-100
+    user_modifications = Column(JSON, default=lambda: [])  # Historique changements
+    
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc))
     is_active = Column(Boolean, default=True)
     
     user = relationship("User", back_populates="programs")

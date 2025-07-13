@@ -18,7 +18,8 @@ from backend.ml_engine import RecoveryTracker, VolumeOptimizer, ProgressionAnaly
 from backend.constants import normalize_muscle_group 
 from backend.database import engine, get_db, SessionLocal
 from backend.models import Base, User, Exercise, Program, Workout, WorkoutSet, SetHistory, UserCommitment, AdaptiveTargets, UserAdaptationCoefficients, PerformanceStates, ExerciseCompletionStats, SwapLog
-from backend.schemas import UserCreate, UserResponse, WorkoutResponse, ProgramCreate, WorkoutCreate, SetCreate, ExerciseResponse, UserPreferenceUpdate
+from backend.schemas import UserCreate, UserResponse, WorkoutResponse, ProgramCreate, WorkoutCreate, SetCreate, ExerciseResponse, UserPreferenceUpdate,    ProgramBuilderStart, ProgramBuilderSelections, ComprehensiveProgramCreate, ComprehensiveProgramResponse, ProgramBuilderRecommendations, WeeklySessionPreview
+
 from backend.equipment_service import EquipmentService
 from sqlalchemy import extract, and_
 import calendar
@@ -732,7 +733,7 @@ def get_program_status(user_id: int, db: Session = Depends(get_db)):
 
 @app.get("/api/users/{user_id}/programs/active")
 def get_active_program(user_id: int, db: Session = Depends(get_db)):
-    """Récupérer le programme actif d'un utilisateur"""
+    """Récupérer le programme actif d'un utilisateur (format ComprehensiveProgram)"""
     program = db.query(Program).filter(
         Program.user_id == user_id,
         Program.is_active == True
@@ -741,29 +742,65 @@ def get_active_program(user_id: int, db: Session = Depends(get_db)):
     if not program:
         return None
     
-    # Détecter le format du programme
-    program_data = dict(program.__dict__)
+    # Mettre à jour l'état de progression si le programme est déjà démarré
+    if program.started_at:
+        from datetime import datetime, timezone
+        weeks_elapsed = (datetime.now(timezone.utc) - program.started_at).days // 7
+        program.current_week = min(weeks_elapsed + 1, program.duration_weeks)
+        
+        # Calculer estimated_completion si pas déjà fait
+        if not program.estimated_completion:
+            from datetime import timedelta
+            program.estimated_completion = program.started_at + timedelta(weeks=program.duration_weeks)
+            
+        db.commit()
     
-    # Nouveau format (v2.0) avec exercise_pool
-    if isinstance(program.exercises, dict) and program.exercises.get('version') == '2.0':
-        program_data['format'] = 'dynamic'
-        program_data['exercise_pool'] = program.exercises.get('exercise_pool', [])
-        program_data['session_templates'] = program.exercises.get('session_templates', {})
-        logger.info(f"Programme v2.0 détecté: {len(program_data['exercise_pool'])} exercices dans pool")
-    
-    # Ancien format (liste d'exercices)
-    else:
-        program_data['format'] = 'static'
-        # Enrichir les exercices avec leurs noms si nécessaire (compatibilité)
-        if program.exercises and isinstance(program.exercises, list):
-            for ex in program.exercises:
-                if 'exercise_name' not in ex and 'exercise_id' in ex:
-                    exercise_db = db.query(Exercise).filter(Exercise.id == ex['exercise_id']).first()
+    # Enrichir avec la session actuelle pour l'interface
+    current_session_exercises = []
+    if program.weekly_structure and len(program.weekly_structure) >= program.current_week:
+        current_week_data = program.weekly_structure[program.current_week - 1]
+        
+        if current_week_data and "sessions" in current_week_data:
+            current_session_index = (program.current_session_in_week - 1) % len(current_week_data["sessions"])
+            current_session = current_week_data["sessions"][current_session_index]
+            
+            # Convertir exercise_pool pour compatibilité avec l'interface existante
+            if "exercise_pool" in current_session:
+                for pool_exercise in current_session["exercise_pool"]:
+                    exercise_db = db.query(Exercise).filter(Exercise.id == pool_exercise["exercise_id"]).first()
                     if exercise_db:
-                        ex['exercise_name'] = exercise_db.name
-        logger.info(f"Programme v1.0 détecté: {len(program.exercises) if program.exercises else 0} exercices statiques")
+                        current_session_exercises.append({
+                            "exercise_id": pool_exercise["exercise_id"],
+                            "exercise_name": exercise_db.name,
+                            "sets": pool_exercise.get("sets", 3),
+                            "reps_min": pool_exercise.get("reps_min", 8),
+                            "reps_max": pool_exercise.get("reps_max", 12),
+                            "muscle_groups": exercise_db.muscle_groups,
+                            "equipment_required": exercise_db.equipment_required,
+                            "priority": pool_exercise.get("priority", 3)
+                        })
     
-    return program_data
+    return {
+        "id": program.id,
+        "user_id": program.user_id,
+        "name": program.name,
+        "duration_weeks": program.duration_weeks,
+        "periodization_type": program.periodization_type,
+        "sessions_per_week": program.sessions_per_week,
+        "session_duration_minutes": program.session_duration_minutes,
+        "focus_areas": program.focus_areas,
+        "weekly_structure": program.weekly_structure,
+        "progression_rules": program.progression_rules,
+        "current_week": program.current_week,
+        "current_session_in_week": program.current_session_in_week,
+        "started_at": program.started_at,
+        "estimated_completion": program.estimated_completion,
+        "base_quality_score": program.base_quality_score,
+        "created_at": program.created_at,
+        "is_active": program.is_active,
+        "exercises": current_session_exercises,  # Pour compatibilité interface
+        "format": "comprehensive"
+    }
 
 def _get_selection_reason(item):
     """Génère une raison lisible pour la sélection d'un exercice"""
@@ -842,8 +879,62 @@ def get_next_intelligent_session(user_id: int, db: Session = Depends(get_db)):
             else:
                 raise HTTPException(status_code=400, detail="Format de programme invalide")
         
+        # Vérifier si c'est le nouveau format ComprehensiveProgram
+        if hasattr(program, 'weekly_structure') and program.weekly_structure:
+            # NOUVEAU FORMAT: Utiliser la structure temporelle
+            try:
+                # Obtenir la session actuelle dans la structure
+                current_week_data = program.weekly_structure[program.current_week - 1]
+                session_index = (program.current_session_in_week - 1) % len(current_week_data["sessions"])
+                session_template = current_week_data["sessions"][session_index]
+                
+                # Utiliser l'exercise_pool de la session
+                exercise_pool_data = session_template.get("exercise_pool", [])
+                
+                if not exercise_pool_data:
+                    raise HTTPException(status_code=400, detail="Pas d'exercices dans le pool de cette session")
+                
+                # Convertir en format compatible avec la logique ML existante
+                program_exercises_adapted = []
+                for pool_exercise in exercise_pool_data:
+                    exercise_db = db.query(Exercise).filter(Exercise.id == pool_exercise["exercise_id"]).first()
+                    if exercise_db:
+                        adapted_exercise = {
+                            "exercise_id": pool_exercise["exercise_id"],
+                            "sets": pool_exercise.get("sets", 3),
+                            "reps_min": pool_exercise.get("reps_min", 8),
+                            "reps_max": pool_exercise.get("reps_max", 12),
+                            "priority": pool_exercise.get("priority", 3),
+                            # Ajouter données nécessaires pour ML
+                            "muscle_groups": exercise_db.muscle_groups,
+                            "equipment_required": exercise_db.equipment_required,
+                            "difficulty": exercise_db.difficulty
+                        }
+                        program_exercises_adapted.append(adapted_exercise)
+                
+                # Remplacer program.exercises par les données adaptées pour le reste de la logique
+                program_exercises_for_ml = program_exercises_adapted
+                
+                logger.info(f"Format ComprehensiveProgram détecté - {len(program_exercises_for_ml)} exercices dans le pool")
+                
+            except (IndexError, KeyError) as e:
+                logger.error(f"Erreur structure ComprehensiveProgram: {e}")
+                raise HTTPException(status_code=400, detail="Structure de programme invalide")
+                
+        elif program.exercises and isinstance(program.exercises, dict) and program.exercises.get('exercise_pool'):
+            # ANCIEN FORMAT avec exercise_pool
+            pool = program.exercises.get('exercise_pool', [])
+            program_exercises_for_ml = pool
+            logger.info(f"Format legacy avec pool détecté - {len(program_exercises_for_ml)} exercices")
+            
+        else:
+            # ANCIEN FORMAT simple liste
+            program_exercises_for_ml = program.exercises or []
+            logger.info(f"Format legacy simple détecté - {len(program_exercises_for_ml)} exercices")
+        
+        
         # Nouveau format - sélection intelligente
-        exercise_pool = program.exercises.get('exercise_pool', [])
+        exercise_pool = program_exercises_for_ml
         exercise_pool_ids = [ex['exercise_id'] for ex in exercise_pool]
         
         # Récupérer les stats depuis la table de cache
@@ -998,6 +1089,48 @@ def get_next_intelligent_session(user_id: int, db: Session = Depends(get_db)):
         for muscle, readiness in muscle_readiness_dict.items():
             if readiness < 0.5 and muscle in muscle_distribution:
                 session_metadata['warnings'].append(f"{muscle.capitalize()} encore en récupération")
+        
+
+        # Ajouter métadonnées spécifiques au format ComprehensiveProgram
+        session_metadata = {
+            'ml_used': True,
+            'ml_confidence': 0.85,
+            'muscle_distribution': muscle_distribution,
+            'estimated_duration': len(selected_exercises) * 5,
+            'warnings': []
+        }
+        
+        # Si ComprehensiveProgram, ajouter infos de progression
+        if hasattr(program, 'weekly_structure') and program.weekly_structure:
+            session_metadata.update({
+                'week_number': program.current_week,
+                'session_number': program.current_session_in_week,
+                'total_weeks': program.duration_weeks,
+                'focus': session_template.get("focus", "general"),
+                'target_duration': session_template.get("target_duration", 60),
+                'format': 'comprehensive'
+            })
+            
+            # Avancer à la session suivante pour la prochaine fois
+            try:
+                program.current_session_in_week += 1
+                
+                # Si on dépasse les sessions de la semaine, passer à la semaine suivante
+                current_week_sessions = len(program.weekly_structure[program.current_week - 1]["sessions"])
+                if program.current_session_in_week > current_week_sessions:
+                    program.current_session_in_week = 1
+                    program.current_week += 1
+                    
+                    # Si première session d'une nouvelle semaine, marquer le démarrage
+                    if not program.started_at:
+                        program.started_at = datetime.now(timezone.utc)
+                        program.estimated_completion = program.started_at + timedelta(weeks=program.duration_weeks)
+                
+                db.commit()
+                logger.info(f"Progression mise à jour: semaine {program.current_week}, session {program.current_session_in_week}")
+                
+            except Exception as e:
+                logger.warning(f"Erreur mise à jour progression: {e}")
         
         return {
             "selected_exercises": selected_exercises,
@@ -1159,6 +1292,269 @@ def determine_rotation_pattern(focus_areas: List[str]) -> List[str]:
     logger.info(f"Nouveau format: {len(exercise_pool)} exercices dans pool, rotation {rotation_pattern}")
     return program_structure
 
+
+# ===== NOUVEAUX ENDPOINTS PROGRAM BUILDER =====
+
+@app.post("/api/users/{user_id}/program-builder/start", response_model=ProgramBuilderRecommendations)
+def start_program_builder(
+    user_id: int, 
+    builder_data: ProgramBuilderStart, 
+    db: Session = Depends(get_db)
+):
+    """Initialiser ProgramBuilder avec recommandations ML personnalisées"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
+    try:
+        # Utiliser les services ML existants pour personnaliser le questionnaire
+        ml_engine = FitnessMLEngine(db) if 'FitnessMLEngine' in globals() else None
+        
+        # Analyser le profil utilisateur
+        user_insights = []
+        suggested_focus_areas = []
+        
+        # Logique basée sur l'expérience
+        if user.experience_level == "beginner":
+            suggested_focus_areas = ["upper_body", "legs", "core"]
+            user_insights.append("Programme débutant recommandé avec focus équilibré")
+        elif user.experience_level == "intermediate":
+            suggested_focus_areas = ["upper_body", "legs"]
+            user_insights.append("Vous pouvez gérer une intensité modérée à élevée")
+        else:  # advanced
+            suggested_focus_areas = ["upper_body", "legs"]
+            user_insights.append("Programme avancé avec périodisation recommandée")
+        
+        # Adapter selon l'équipement disponible
+        equipment_keys = list(user.equipment_config.keys()) if user.equipment_config else []
+        if len(equipment_keys) < 3:
+            user_insights.append("Équipement limité détecté - focus sur exercices polyarticulaires")
+        
+        # Générer questionnaire adaptatif (8-12 questions)
+        questionnaire_items = [
+            {
+                "id": "focus_selection",
+                "type": "multiple_choice",
+                "question": "Quelles sont vos priorités d'entraînement ? (1-3 choix)",
+                "options": [
+                    {"value": "upper_body", "label": "Haut du corps", "recommended": "upper_body" in suggested_focus_areas},
+                    {"value": "legs", "label": "Jambes", "recommended": "legs" in suggested_focus_areas},
+                    {"value": "core", "label": "Abdominaux/Core", "recommended": "core" in suggested_focus_areas},
+                    {"value": "back", "label": "Dos", "recommended": False},
+                    {"value": "shoulders", "label": "Épaules", "recommended": False},
+                    {"value": "arms", "label": "Bras", "recommended": False}
+                ],
+                "min_selections": 1,
+                "max_selections": 3
+            },
+            {
+                "id": "periodization",
+                "type": "single_choice", 
+                "question": "Préférez-vous une progression...",
+                "options": [
+                    {"value": "linear", "label": "Régulière et prévisible", "recommended": user.experience_level != "advanced"},
+                    {"value": "undulating", "label": "Variable selon les séances", "recommended": user.experience_level == "advanced"}
+                ]
+            },
+            {
+                "id": "variety",
+                "type": "single_choice",
+                "question": "Concernant la variété d'exercices...",
+                "options": [
+                    {"value": "minimal", "label": "Je préfère maîtriser quelques exercices", "recommended": user.experience_level == "beginner"},
+                    {"value": "balanced", "label": "Un équilibre entre routine et nouveauté", "recommended": True},
+                    {"value": "high", "label": "J'aime découvrir de nouveaux exercices", "recommended": user.experience_level == "advanced"}
+                ]
+            },
+            {
+                "id": "intensity",
+                "type": "single_choice",
+                "question": "Niveau d'intensité souhaité ?",
+                "options": [
+                    {"value": "light", "label": "Léger - je débute ou je reprends", "recommended": user.experience_level == "beginner"},
+                    {"value": "moderate", "label": "Modéré - je veux progresser régulièrement", "recommended": True},
+                    {"value": "intense", "label": "Intense - je veux me dépasser", "recommended": user.experience_level == "advanced"}
+                ]
+            },
+            {
+                "id": "recovery",
+                "type": "single_choice",
+                "question": "Votre priorité entre performance et récupération ?",
+                "options": [
+                    {"value": "performance", "label": "Performance maximale", "recommended": user.experience_level == "advanced"},
+                    {"value": "balanced", "label": "Équilibre performance/récupération", "recommended": True},
+                    {"value": "recovery", "label": "Récupération prioritaire", "recommended": user.experience_level == "beginner"}
+                ]
+            }
+        ]
+        
+        # Calcul de la fréquence suggérée
+        suggested_frequency = builder_data.training_frequency
+        if user.experience_level == "beginner" and suggested_frequency > 4:
+            suggested_frequency = 4
+            user_insights.append("Fréquence réduite recommandée pour débuter")
+        
+        return ProgramBuilderRecommendations(
+            suggested_duration=builder_data.duration_weeks,
+            suggested_frequency=suggested_frequency,
+            suggested_focus_areas=suggested_focus_areas,
+            questionnaire_items=questionnaire_items,
+            user_insights=user_insights,
+            confidence_level=0.85
+        )
+        
+    except Exception as e:
+        logger.error(f"Erreur initialisation ProgramBuilder pour user {user_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Erreur lors de l'initialisation")
+
+@app.post("/api/users/{user_id}/program-builder/generate", response_model=ComprehensiveProgramResponse)  
+def generate_comprehensive_program(
+    user_id: int, 
+    selections: ProgramBuilderSelections,
+    db: Session = Depends(get_db)
+):
+    """Générer un programme complet basé sur les sélections utilisateur"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
+    try:
+        # Désactiver les anciens programmes
+        db.query(Program).filter(Program.user_id == user_id).update({"is_active": False})
+        
+        # Générer la structure temporelle multi-semaines
+        weekly_structure = []
+        
+        # Logique de génération basée sur les sélections
+        sessions_per_week = 4  # Default, peut être ajusté
+        if selections.exercise_variety_preference == "minimal":
+            sessions_per_week = 3
+        elif selections.exercise_variety_preference == "high":
+            sessions_per_week = 5
+            
+        # Générer structure pour chaque semaine
+        for week in range(1, 9):  # 8 semaines par défaut
+            week_sessions = []
+            
+            # Distribution des focus areas sur la semaine
+            focus_rotation = selections.focus_areas * (sessions_per_week // len(selections.focus_areas) + 1)
+            
+            for session_num in range(sessions_per_week):
+                focus_area = focus_rotation[session_num % len(selections.focus_areas)]
+                
+                # Récupérer exercices compatibles pour cette zone
+                exercises_query = db.query(Exercise).filter(
+                    Exercise.muscle_groups.contains([focus_area])
+                )
+                
+                # Filtrer par équipement disponible
+                available_exercises = []
+                for ex in exercises_query.all():
+                    if any(eq in user.equipment_config for eq in ex.equipment_required):
+                        available_exercises.append(ex)
+                
+                # Créer pool d'exercices pour cette session
+                exercise_pool = []
+                for ex in available_exercises[:6]:  # Limiter à 6 exercices par session
+                    pool_entry = {
+                        "exercise_id": ex.id,
+                        "sets": ex.default_sets,
+                        "reps_min": ex.default_reps_min,
+                        "reps_max": ex.default_reps_max,
+                        "priority": 3,  # Priorité neutre par défaut
+                        "constraints": {
+                            "min_recovery_hours": 48,
+                            "max_frequency_per_week": 2
+                        }
+                    }
+                    exercise_pool.append(pool_entry)
+                
+                session = {
+                    "day": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday"][session_num % 6],
+                    "exercise_pool": exercise_pool,
+                    "focus": focus_area,
+                    "target_duration": 60
+                }
+                week_sessions.append(session)
+            
+            weekly_structure.append({
+                "week": week,
+                "sessions": week_sessions
+            })
+        
+        # Règles de progression
+        progression_rules = {
+            "intensity_progression": selections.periodization_preference,
+            "volume_progression": "linear" if selections.session_intensity_preference == "moderate" else "wave",
+            "deload_frequency": 4,
+            "weight_increase_percentage": 2.5,
+            "rep_increase_threshold": 12
+        }
+        
+        # Calculer score de qualité initial
+        base_quality_score = 75.0  # Score de base
+        if len(selections.focus_areas) <= 2:
+            base_quality_score += 10  # Bonus pour focus ciblé
+        if selections.recovery_priority == "balanced":
+            base_quality_score += 5   # Bonus pour équilibre
+            
+        # Créer le programme
+        program_name = f"Programme {user.name} - {', '.join(selections.focus_areas)}"
+        
+        db_program = Program(
+            user_id=user_id,
+            name=program_name,
+            duration_weeks=8,
+            periodization_type=selections.periodization_preference,
+            sessions_per_week=sessions_per_week,
+            session_duration_minutes=60,
+            focus_areas=selections.focus_areas,
+            weekly_structure=weekly_structure,
+            progression_rules=progression_rules,
+            base_quality_score=base_quality_score,
+            format_version="2.0",
+            is_active=True
+        )
+        
+        db.add(db_program)
+        db.commit()
+        db.refresh(db_program)
+        
+        logger.info(f"Programme complet créé pour user {user_id}: {db_program.id}")
+        return db_program
+        
+    except Exception as e:
+        logger.error(f"Erreur génération programme pour user {user_id}: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Erreur lors de la génération du programme")
+
+@app.get("/api/users/{user_id}/comprehensive-program", response_model=ComprehensiveProgramResponse)
+def get_user_comprehensive_program(user_id: int, db: Session = Depends(get_db)):
+    """Récupérer le programme complet actuel + état progression"""
+    program = db.query(Program).filter(
+        Program.user_id == user_id,
+        Program.is_active == True
+    ).first()
+    
+    if not program:
+        raise HTTPException(status_code=404, detail="Aucun programme actif trouvé")
+    
+    # Mettre à jour l'état de progression si nécessaire
+    if program.format_version == "2.0":
+        # Calculer la semaine actuelle basée sur started_at
+        if program.started_at:
+            from datetime import datetime, timezone
+            weeks_elapsed = (datetime.now(timezone.utc) - program.started_at).days // 7
+            program.current_week = min(weeks_elapsed + 1, program.duration_weeks)
+            
+            # Calculer estimated_completion si pas déjà fait
+            if not program.estimated_completion:
+                from datetime import timedelta
+                program.estimated_completion = program.started_at + timedelta(weeks=program.duration_weeks)
+                
+            db.commit()
+    
+    return program
 
 # ===== ENDPOINTS SÉANCES =====
 
