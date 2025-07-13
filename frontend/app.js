@@ -4136,8 +4136,8 @@ async function configureUIForExerciseType(type, recommendations) {
         // CORRECTIF : Ajouter les contrôles manquants
         weightedControls: document.querySelector('.weighted-controls'),
         bodyweightControls: document.querySelector('.bodyweight-controls'),
-        decreaseWeight: document.querySelector('[onclick*="adjustWeightDown"]'),
-        increaseWeight: document.querySelector('[onclick*="adjustWeightUp"]')
+        decreaseWeight: document.querySelector('.input-row:has(#setWeight) .stepper-modern:first-of-type'),
+        increaseWeight: document.querySelector('.input-row:has(#setWeight) .stepper-modern:last-of-type')
     };
 
     switch (type) {
@@ -4466,9 +4466,12 @@ async function configureWeighted(elements, exercise, weightRec) {
     }
     
     // Configure weight adjustment controls - CORRIGÉ
-    if (elements.decreaseWeight && elements.increaseWeight) {
-        elements.decreaseWeight.onclick = () => adjustWeightDown();
-        elements.increaseWeight.onclick = () => adjustWeightUp();
+    const decreaseBtn = document.querySelector('.input-row:has(#setWeight) .stepper-modern:first-of-type');
+    const increaseBtn = document.querySelector('.input-row:has(#setWeight) .stepper-modern:last-of-type');
+
+    if (decreaseBtn && increaseBtn) {
+        decreaseBtn.onclick = () => adjustWeightDown();
+        increaseBtn.onclick = () => adjustWeightUp();
     }
     
     // Log configuration for debugging

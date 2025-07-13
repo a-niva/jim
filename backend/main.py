@@ -1750,7 +1750,7 @@ def update_workout_fatigue(
     return {"message": "Fatigue mise à jour", "workout": workout}
 
 @app.put("/api/workouts/{workout_id}/complete")
-def complete_workout(workout_id: int, data: Dict[str, int] = {}, db: Session = Depends(get_db)):
+def complete_workout(workout_id: int, data: Dict[str, Any] = {}, db: Session = Depends(get_db)):
     """Terminer une séance"""
     workout = db.query(Workout).filter(Workout.id == workout_id).first()
     if not workout:
