@@ -5908,11 +5908,9 @@ async function loadProgramExercisesList() {
                                         exerciseState.isSkipped ? 
                                             `<button class="action-btn" onclick="event.stopPropagation(); restartSkippedExercise(${exerciseData.exercise_id})" title="Reprendre">↺</button>` :
                                             `<button class="action-btn primary" onclick="event.stopPropagation(); selectProgramExercise(${exerciseData.exercise_id})" title="Commencer">${exerciseState.completedSets > 0 ? '▶' : '→'}</button>
-                                            ${canSwapExercise && canSwapExercise(exerciseData.exercise_id) ? 
-                                                `<button class="action-btn swap-btn" onclick="event.stopPropagation(); initiateSwap(${exerciseData.exercise_id})" title="Changer d'exercice" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none;">⇄</button>` : ''}
                                             ${canSwapExercise(exerciseData.exercise_id) ? 
-    `<button class="action-btn swap-btn" onclick="event.stopPropagation(); initiateSwap(${exerciseData.exercise_id})" title="Changer d'exercice" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none;">⇄</button>` : ''}
-<button class="action-btn secondary" onclick="event.stopPropagation(); showSkipModal(${exerciseData.exercise_id})" title="Passer">⏭</button>`
+                                            `<button class="action-btn swap-btn" onclick="event.stopPropagation(); initiateSwap(${exerciseData.exercise_id})" title="Changer d'exercice" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none;">⇄</button>` : ''}
+                                            <button class="action-btn secondary" onclick="event.stopPropagation(); showSkipModal(${exerciseData.exercise_id})" title="Passer">⏭</button>`
                                         }
                                     </div>
                             </div>
@@ -8092,6 +8090,18 @@ function showSwapReasonModal(exerciseId) {
 async function proceedToAlternatives(exerciseId, reason) {
     closeModal();
     
+    // ===== MAPPING RAISONS FRONTEND → API =====
+    const reasonMap = {
+        'pain': 'pain',
+        'equipment': 'equipment',  
+        'preference': 'preference',
+        'too_hard': 'pain',         // Mapper vers pain
+        'too_easy': 'preference',   // Mapper vers preference  
+        'fatigue': 'pain'           // Mapper vers pain
+    };
+    
+    const apiReason = reasonMap[reason] || 'preference';
+    
     showModal('Recherche d\'alternatives', `
         <div class="loading-container">
             <div class="loading-spinner"></div>
@@ -8101,7 +8111,7 @@ async function proceedToAlternatives(exerciseId, reason) {
     
     try {
         const alternatives = await apiGet(
-            `/api/exercises/${exerciseId}/alternatives?user_id=${currentUser.id}&reason=${reason}&workout_id=${currentWorkout.id}`
+            `/api/exercises/${exerciseId}/alternatives?user_id=${currentUser.id}&reason=${apiReason}&workout_id=${currentWorkout.id}`
         );
         
         closeModal();
@@ -8158,8 +8168,13 @@ function showAlternativesModal(originalExerciseId, reason, alternatives) {
 
 async function selectAlternative(originalExerciseId, newExerciseId, reason) {
     closeModal();
-    showToast('Changement d\'exercice simulé', 'info');
-    // TODO: Implémenter le swap réel
+    
+    try {
+        await executeSwapTransition(originalExerciseId, newExerciseId, reason);
+    } catch (error) {
+        console.error('Erreur lors du swap:', error);
+        showToast('Impossible de changer l\'exercice', 'error');
+    }
 }
 
 async function keepCurrentWithAdaptation(exerciseId, reason) {
