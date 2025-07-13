@@ -4131,7 +4131,13 @@ async function configureUIForExerciseType(type, recommendations) {
         setWeight: document.getElementById('setWeight'),
         setReps: document.getElementById('setReps'),
         repsIcon: document.querySelector('.input-row:has(#setReps) .input-icon'),
-        repsUnit: document.querySelector('.input-row:has(#setReps) .unit')
+        repsUnit: document.querySelector('.input-row:has(#setReps) .unit'),
+        
+        // CORRECTIF : Ajouter les contrôles manquants
+        weightedControls: document.querySelector('.weighted-controls'),
+        bodyweightControls: document.querySelector('.bodyweight-controls'),
+        decreaseWeight: document.querySelector('[onclick*="adjustWeightDown"]'),
+        increaseWeight: document.querySelector('[onclick*="adjustWeightUp"]')
     };
 
     switch (type) {
@@ -4385,6 +4391,18 @@ async function configureWeighted(elements, exercise, weightRec) {
     // Show weighted controls
     if (elements.weightedControls) {
         elements.weightedControls.style.display = 'flex';
+    }
+
+    // CORRECTIF : Forcer l'affichage de la ligne de poids
+    if (elements.weightRow) {
+        elements.weightRow.style.display = 'block';
+        elements.weightRow.removeAttribute('data-hidden');
+    }
+
+    // CORRECTIF : S'assurer que les boutons d'ajustement sont visibles
+    const weightControls = document.querySelector('.weight-controls');
+    if (weightControls) {
+        weightControls.style.display = 'flex';
     }
     
     // Get available weights
