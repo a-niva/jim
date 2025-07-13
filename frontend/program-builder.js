@@ -1,4 +1,4 @@
-// ===== NOUVEAU FICHIER: frontend/program-builder.js =====
+//  ===== NOUVEAU FICHIER: frontend/program-builder.js =====
 
 class ProgramBuilder {
     constructor() {
@@ -19,47 +19,47 @@ class ProgramBuilder {
     }
     
     async initialize(userData) {
-        //Initialiser le ProgramBuilder avec les données utilisateur de l'onboarding
+    //  Initialiser le ProgramBuilder avec les données utilisateur de l'onboarding
         this.userData = userData;
         
         try {
-            showToast('Analyse de votre profil...', 'info');
+            window.showToast('Analyse de votre profil...', 'info');
             
-            // Préparer les données pour l'API
+            //  Préparer les données pour l'API
             const builderData = {
                 duration_weeks: 8,
-                goals: ["muscle", "strength"], // Default, sera affiné
+                goals: ["muscle", "strength"], //  Default, sera affiné
                 training_frequency: 4,
                 experience_level: userData.experience_level,
                 available_time_per_session: 60
             };
             
-            // Appeler l'API pour obtenir recommandations personnalisées
-            this.recommendations = await apiPost(
-                `/api/users/${currentUser.id}/program-builder/start`, 
+            //  Appeler l'API pour obtenir recommandations personnalisées
+            this.recommendations = await window.apiPost(
+                `/api/users/${window.currentUser.id}/program-builder/start`, 
                 builderData
             );
             
-            this.totalSteps = this.recommendations.questionnaire_items.length + 2; // +2 pour preview et confirmation
+            this.totalSteps = this.recommendations.questionnaire_items.length + 2; //  +2 pour preview et confirmation
             
-            // Afficher l'interface ProgramBuilder
+            //  Afficher l'interface ProgramBuilder
             this.render();
             
         } catch (error) {
             console.error('Erreur initialisation ProgramBuilder:', error);
-            showToast('Erreur lors de l\'initialisation. Redirection...', 'error');
-            setTimeout(() => showMainInterface(), 2000);
+            window.showToast('Erreur lors de l\'initialisation. Redirection...', 'error');
+            setTimeout(() => window.showMainInterface(), 2000);
         }
     }
     
     render() {
-        //Afficher l'interface ProgramBuilder
-        // Cacher toutes les autres vues
+        // Afficher l'interface ProgramBuilder
+        //  Cacher toutes les autres vues
         document.querySelectorAll('.view').forEach(el => {
             el.classList.remove('active');
         });
         
-        // Créer l'interface si elle n'existe pas
+        //  Créer l'interface si elle n'existe pas
         let builderContainer = document.getElementById('programBuilder');
         if (!builderContainer) {
             builderContainer = document.createElement('div');
@@ -95,12 +95,12 @@ class ProgramBuilder {
         
         builderContainer.classList.add('active');
         
-        // Afficher la première étape
+        //  Afficher la première étape
         this.renderStep();
     }
     
     renderStep() {
-        //Afficher l'étape actuelle
+        // Afficher l'étape actuelle
         const content = document.getElementById('builderContent');
         const currentStepNum = document.getElementById('currentStepNum');
         const prevBtn = document.getElementById('builderPrevBtn');
@@ -108,30 +108,30 @@ class ProgramBuilder {
         
         currentStepNum.textContent = this.currentStep + 1;
         
-        // Afficher/masquer boutons navigation
+        //  Afficher/masquer boutons navigation
         prevBtn.style.display = this.currentStep > 0 ? 'block' : 'none';
         
-        // Mise à jour barre de progression
+        //  Mise à jour barre de progression
         const progress = ((this.currentStep + 1) / this.totalSteps) * 100;
         document.getElementById('builderProgress').style.width = `${progress}%`;
         
         if (this.currentStep === 0) {
-            // Étape d'introduction
+            //  Étape d'introduction
             this.renderIntroStep(content);
         } else if (this.currentStep <= this.recommendations.questionnaire_items.length) {
-            // Étapes de questionnaire
+            //  Étapes de questionnaire
             this.renderQuestionStep(content, this.currentStep - 1);
         } else if (this.currentStep === this.recommendations.questionnaire_items.length + 1) {
-            // Étape de génération et preview
+            //  Étape de génération et preview
             this.renderPreviewStep(content);
         } else {
-            // Étape de confirmation finale
+            //  Étape de confirmation finale
             this.renderConfirmationStep(content);
         }
     }
     
     renderIntroStep(content) {
-        //Afficher l'étape d'introduction avec insights ML
+        // Afficher l'étape d'introduction avec insights ML
         const insights = this.recommendations.user_insights;
         
         content.innerHTML = `
@@ -176,7 +176,7 @@ class ProgramBuilder {
     }
     
     renderQuestionStep(content, questionIndex) {
-        //Afficher une question du questionnaire
+        // Afficher une question du questionnaire
         const question = this.recommendations.questionnaire_items[questionIndex];
         
         content.innerHTML = `
@@ -206,18 +206,18 @@ class ProgramBuilder {
             </div>
         `;
         
-        // Restaurer les sélections précédentes
+        //  Restaurer les sélections précédentes
         this.restoreSelections(question.id);
     }
     
     async renderPreviewStep(content) {
-        // Générer et afficher le preview du programme// 
+        //  Générer et afficher le preview du programme//  
         try {
-            showToast('Génération de votre programme...', 'info');
+            window.showToast('Génération de votre programme...', 'info');
             
-            // Générer le programme via l'API
-            this.generatedProgram = await apiPost(
-                `/api/users/${currentUser.id}/program-builder/generate`,
+            //  Générer le programme via l'API
+            this.generatedProgram = await window.apiPost(
+                `/api/users/${window.currentUser.id}/program-builder/generate`,
                 this.selections
             );
             
@@ -294,7 +294,7 @@ class ProgramBuilder {
     }
     
     renderConfirmationStep(content) {
-        // Étape de confirmation finale// 
+        //  Étape de confirmation finale//  
         content.innerHTML = `
             <div class="confirmation-step">
                 <div class="success-animation">
@@ -323,43 +323,43 @@ class ProgramBuilder {
             </div>
         `;
         
-        // Masquer le bouton "Continuer"
+        //  Masquer le bouton "Continuer"
         document.getElementById('builderNextBtn').style.display = 'none';
     }
     
-    // ===== MÉTHODES D'INTERACTION =====
+    //  ===== MÉTHODES D'INTERACTION =====
     
     selectOption(questionId, value, isMultiple) {
-        // Gérer la sélection d'options// 
+        //  Gérer la sélection d'options//  
         const optionCard = document.querySelector(`[data-value="${value}"]`);
         
         if (isMultiple) {
-            // Sélection multiple
+            //  Sélection multiple
             if (questionId === 'focus_selection') {
                 const isSelected = this.selections.focus_areas.includes(value);
                 
                 if (isSelected) {
-                    // Désélectionner
+                    //  Désélectionner
                     this.selections.focus_areas = this.selections.focus_areas.filter(v => v !== value);
                     optionCard.classList.remove('selected');
                 } else {
-                    // Sélectionner (max 3)
+                    //  Sélectionner (max 3)
                     if (this.selections.focus_areas.length < 3) {
                         this.selections.focus_areas.push(value);
                         optionCard.classList.add('selected');
                     } else {
-                        showToast('Maximum 3 zones sélectionnables', 'warning');
+                        window.showToast('Maximum 3 zones sélectionnables', 'warning');
                     }
                 }
             }
         } else {
-            // Sélection unique
-            // Désélectionner toutes les autres options
+            //  Sélection unique
+            //  Désélectionner toutes les autres options
             document.querySelectorAll('.option-card').forEach(card => {
                 card.classList.remove('selected');
             });
             
-            // Sélectionner l'option cliquée
+            //  Sélectionner l'option cliquée
             optionCard.classList.add('selected');
             this.selections[questionId] = value;
         }
@@ -368,7 +368,7 @@ class ProgramBuilder {
     }
     
     restoreSelections(questionId) {
-        // Restaurer les sélections précédentes// 
+        //  Restaurer les sélections précédentes//  
         if (questionId === 'focus_selection') {
             this.selections.focus_areas.forEach(value => {
                 const card = document.querySelector(`[data-value="${value}"]`);
@@ -383,7 +383,7 @@ class ProgramBuilder {
     }
     
     updateNextButton() {
-        // Mettre à jour l'état du bouton Continuer// 
+        //  Mettre à jour l'état du bouton Continuer//  
         const nextBtn = document.getElementById('builderNextBtn');
         const hasValidSelection = this.validateCurrentStep();
         
@@ -392,8 +392,8 @@ class ProgramBuilder {
     }
     
     validateCurrentStep() {
-        // Valider l'étape actuelle// 
-        if (this.currentStep === 0) return true; // Intro
+        //  Valider l'étape actuelle//  
+        if (this.currentStep === 0) return true; //  Intro
         
         if (this.currentStep <= this.recommendations.questionnaire_items.length) {
             const questionIndex = this.currentStep - 1;
@@ -406,15 +406,15 @@ class ProgramBuilder {
             }
         }
         
-        return true; // Preview et confirmation
+        return true; //  Preview et confirmation
     }
     
-    // ===== NAVIGATION =====
+    //  ===== NAVIGATION =====
     
     nextStep() {
-        // Passer à l'étape suivante// 
+        //  Passer à l'étape suivante//  
         if (!this.validateCurrentStep()) {
-            showToast('Veuillez faire une sélection', 'warning');
+            window.showToast('Veuillez faire une sélection', 'warning');
             return;
         }
         
@@ -427,7 +427,7 @@ class ProgramBuilder {
     }
     
     previousStep() {
-        // Revenir à l'étape précédente// 
+        //  Revenir à l'étape précédente//  
         if (this.currentStep > 0) {
             this.currentStep--;
             this.renderStep();
@@ -435,41 +435,41 @@ class ProgramBuilder {
     }
     
     async regenerateProgram() {
-        // Régénérer le programme avec les mêmes sélections// 
+        //  Régénérer le programme avec les mêmes sélections//  
         try {
-            showToast('Régénération en cours...', 'info');
-            this.generatedProgram = await apiPost(
-                `/api/users/${currentUser.id}/program-builder/generate`,
+            window.showToast('Régénération en cours...', 'info');
+            this.generatedProgram = await window.apiPost(
+                `/api/users/${window.currentUser.id}/program-builder/generate`,
                 this.selections
             );
-            this.renderStep(); // Re-render preview
-            showToast('Nouveau programme généré !', 'success');
+            this.renderStep(); //  Re-render preview
+            window.showToast('Nouveau programme généré !', 'success');
         } catch (error) {
-            showToast('Erreur lors de la régénération', 'error');
+            window.showToast('Erreur lors de la régénération', 'error');
         }
     }
     
     confirmProgram() {
-        // Confirmer le programme et passer à l'étape finale// 
+        //  Confirmer le programme et passer à l'étape finale//  
         this.currentStep++;
         this.renderStep();
     }
     
     complete() {
-        // Terminer le ProgramBuilder// 
+        //  Terminer le ProgramBuilder//  
         this.goToDashboard();
     }
     
     goToDashboard() {
-        // Retourner au dashboard principal// 
-        showToast('Programme activé ! Prêt à commencer', 'success');
-        showMainInterface();
+        //  Retourner au dashboard principal//  
+        window.showToast('Programme activé ! Prêt à commencer', 'success');
+        window.showMainInterface();
     }
     
-    // ===== MÉTHODES UTILITAIRES =====
+    //  ===== MÉTHODES UTILITAIRES =====
     
     getFocusAreaName(area) {
-        // Convertir les clés focus_areas en noms lisibles// 
+        //  Convertir les clés focus_areas en noms lisibles//  
         const names = {
             'upper_body': 'Haut du corps',
             'legs': 'Jambes',
@@ -482,7 +482,7 @@ class ProgramBuilder {
     }
     
     renderWeekPreview(weekData) {
-        // Afficher un aperçu d'une semaine// 
+        //  Afficher un aperçu d'une semaine//  
         return weekData.sessions.map((session, index) => `
             <div class="session-preview">
                 <div class="session-day">Jour ${index + 1}</div>
@@ -493,15 +493,5 @@ class ProgramBuilder {
     }
 }
 
-// ===== INSTANCE GLOBALE =====
-// ===== INSTANCE GLOBALE =====
+//  ===== INSTANCE GLOBALE =====
 let programBuilder = new ProgramBuilder();
-
-// ===== ACCÈS AUX FONCTIONS GLOBALES =====
-// Ces fonctions sont définies dans app.js, on les récupère depuis window
-const showToast = window.showToast || function(msg, type) { console.log(msg); };
-const apiPost = window.apiPost || function() { throw new Error('apiPost non disponible'); };
-const currentUser = () => window.currentUser;
-const showMainInterface = window.showMainInterface || function() { console.log('showMainInterface non disponible'); };
-const showModal = window.showModal || function() { console.log('showModal non disponible'); };
-const closeModal = window.closeModal || function() { console.log('closeModal non disponible'); };
