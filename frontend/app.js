@@ -2562,20 +2562,23 @@ function setupComprehensiveWorkout(sessionData) {
 }
 
 async function regenerateSession() {
-    """Régénérer la sélection d'exercices"""
+    if (!currentWorkoutSession.program) return;
+   
     try {
-        showToast('Régénération en cours...', 'info');
-        
-        // Appeler l'endpoint avec paramètre de régénération
-        const sessionData = await apiGet(`/api/users/${currentUser.id}/programs/next-session?regenerate=true`);
-        const program = await apiGet(`/api/users/${currentUser.id}/programs/active`);
-        
-        showComprehensiveSessionPreview(sessionData, program);
-        showToast('Nouvelle séance générée !', 'success');
-        
+        showToast('Génération d\'une nouvelle sélection...', 'info');
+        const* session = await apiGet(`/api/users/${currentUser.id}/programs/next-session*`);
+       
+        // Réinitialiser avec la nouvelle sélection
+        currentWorkoutSession.programExercises = {};
+        currentWorkoutSession.completedExercisesCount = 0;
+        currentWorkoutSession.exerciseOrder = 0;
+       
+        await setupProgramWorkoutWithSelection(currentWorkoutSession.program, session);
+        showToast('Nouvelle sélection générée !', 'success');
+       
     } catch (error) {
         console.error('Erreur régénération:', error);
-        showToast('Erreur lors de la régénération', 'error');
+        showToast('Impossible de régénérer la sélection', 'error');
     }
 }
 

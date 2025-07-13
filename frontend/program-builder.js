@@ -19,7 +19,7 @@ class ProgramBuilder {
     }
     
     async initialize(userData) {
-        """Initialiser le ProgramBuilder avec les données utilisateur de l'onboarding"""
+        //Initialiser le ProgramBuilder avec les données utilisateur de l'onboarding
         this.userData = userData;
         
         try {
@@ -53,7 +53,7 @@ class ProgramBuilder {
     }
     
     render() {
-        """Afficher l'interface ProgramBuilder"""
+        //Afficher l'interface ProgramBuilder
         // Cacher toutes les autres vues
         document.querySelectorAll('.view').forEach(el => {
             el.classList.remove('active');
@@ -100,7 +100,7 @@ class ProgramBuilder {
     }
     
     renderStep() {
-        """Afficher l'étape actuelle"""
+        //Afficher l'étape actuelle
         const content = document.getElementById('builderContent');
         const currentStepNum = document.getElementById('currentStepNum');
         const prevBtn = document.getElementById('builderPrevBtn');
@@ -131,7 +131,7 @@ class ProgramBuilder {
     }
     
     renderIntroStep(content) {
-        """Afficher l'étape d'introduction avec insights ML"""
+        //Afficher l'étape d'introduction avec insights ML
         const insights = this.recommendations.user_insights;
         
         content.innerHTML = `
@@ -176,7 +176,7 @@ class ProgramBuilder {
     }
     
     renderQuestionStep(content, questionIndex) {
-        """Afficher une question du questionnaire"""
+        //Afficher une question du questionnaire
         const question = this.recommendations.questionnaire_items[questionIndex];
         
         content.innerHTML = `
@@ -211,7 +211,7 @@ class ProgramBuilder {
     }
     
     async renderPreviewStep(content) {
-        """Générer et afficher le preview du programme"""
+        // Générer et afficher le preview du programme// 
         try {
             showToast('Génération de votre programme...', 'info');
             
@@ -294,7 +294,7 @@ class ProgramBuilder {
     }
     
     renderConfirmationStep(content) {
-        """Étape de confirmation finale"""
+        // Étape de confirmation finale// 
         content.innerHTML = `
             <div class="confirmation-step">
                 <div class="success-animation">
@@ -330,7 +330,7 @@ class ProgramBuilder {
     // ===== MÉTHODES D'INTERACTION =====
     
     selectOption(questionId, value, isMultiple) {
-        """Gérer la sélection d'options"""
+        // Gérer la sélection d'options// 
         const optionCard = document.querySelector(`[data-value="${value}"]`);
         
         if (isMultiple) {
@@ -368,7 +368,7 @@ class ProgramBuilder {
     }
     
     restoreSelections(questionId) {
-        """Restaurer les sélections précédentes"""
+        // Restaurer les sélections précédentes// 
         if (questionId === 'focus_selection') {
             this.selections.focus_areas.forEach(value => {
                 const card = document.querySelector(`[data-value="${value}"]`);
@@ -383,7 +383,7 @@ class ProgramBuilder {
     }
     
     updateNextButton() {
-        """Mettre à jour l'état du bouton Continuer"""
+        // Mettre à jour l'état du bouton Continuer// 
         const nextBtn = document.getElementById('builderNextBtn');
         const hasValidSelection = this.validateCurrentStep();
         
@@ -392,7 +392,7 @@ class ProgramBuilder {
     }
     
     validateCurrentStep() {
-        """Valider l'étape actuelle"""
+        // Valider l'étape actuelle// 
         if (this.currentStep === 0) return true; // Intro
         
         if (this.currentStep <= this.recommendations.questionnaire_items.length) {
@@ -412,7 +412,7 @@ class ProgramBuilder {
     // ===== NAVIGATION =====
     
     nextStep() {
-        """Passer à l'étape suivante"""
+        // Passer à l'étape suivante// 
         if (!this.validateCurrentStep()) {
             showToast('Veuillez faire une sélection', 'warning');
             return;
@@ -427,7 +427,7 @@ class ProgramBuilder {
     }
     
     previousStep() {
-        """Revenir à l'étape précédente"""
+        // Revenir à l'étape précédente// 
         if (this.currentStep > 0) {
             this.currentStep--;
             this.renderStep();
@@ -435,7 +435,7 @@ class ProgramBuilder {
     }
     
     async regenerateProgram() {
-        """Régénérer le programme avec les mêmes sélections"""
+        // Régénérer le programme avec les mêmes sélections// 
         try {
             showToast('Régénération en cours...', 'info');
             this.generatedProgram = await apiPost(
@@ -450,18 +450,18 @@ class ProgramBuilder {
     }
     
     confirmProgram() {
-        """Confirmer le programme et passer à l'étape finale"""
+        // Confirmer le programme et passer à l'étape finale// 
         this.currentStep++;
         this.renderStep();
     }
     
     complete() {
-        """Terminer le ProgramBuilder"""
+        // Terminer le ProgramBuilder// 
         this.goToDashboard();
     }
     
     goToDashboard() {
-        """Retourner au dashboard principal"""
+        // Retourner au dashboard principal// 
         showToast('Programme activé ! Prêt à commencer', 'success');
         showMainInterface();
     }
@@ -469,7 +469,7 @@ class ProgramBuilder {
     // ===== MÉTHODES UTILITAIRES =====
     
     getFocusAreaName(area) {
-        """Convertir les clés focus_areas en noms lisibles"""
+        // Convertir les clés focus_areas en noms lisibles// 
         const names = {
             'upper_body': 'Haut du corps',
             'legs': 'Jambes',
@@ -482,7 +482,7 @@ class ProgramBuilder {
     }
     
     renderWeekPreview(weekData) {
-        """Afficher un aperçu d'une semaine"""
+        // Afficher un aperçu d'une semaine// 
         return weekData.sessions.map((session, index) => `
             <div class="session-preview">
                 <div class="session-day">Jour ${index + 1}</div>
@@ -495,134 +495,3 @@ class ProgramBuilder {
 
 // ===== INSTANCE GLOBALE =====
 let programBuilder = new ProgramBuilder();
-
-// ===== STYLES CSS INTÉGRÉS =====
-const builderStyles = `
-<style>
-.program-builder-container {
-    max-width: 600px;
-    margin: 0 auto;
-    padding: 2rem;
-    min-height: 100vh;
-}
-
-.builder-header {
-    text-align: center;
-    margin-bottom: 2rem;
-}
-
-.progress-bar {
-    width: 100%;
-    height: 8px;
-    background: var(--bg-secondary);
-    border-radius: 4px;
-    margin: 1rem 0;
-    overflow: hidden;
-}
-
-.progress-fill {
-    height: 100%;
-    background: var(--primary);
-    transition: width 0.3s ease;
-}
-
-.builder-content {
-    margin-bottom: 2rem;
-}
-
-.builder-navigation {
-    display: flex;
-    gap: 1rem;
-    justify-content: space-between;
-}
-
-.option-card {
-    background: var(--bg-secondary);
-    border: 2px solid transparent;
-    border-radius: var(--radius);
-    padding: 1rem;
-    margin-bottom: 0.5rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    position: relative;
-}
-
-.option-card:hover {
-    border-color: var(--primary);
-    transform: translateY(-2px);
-}
-
-.option-card.selected {
-    border-color: var(--primary);
-    background: var(--primary-light);
-}
-
-.option-card.recommended {
-    border-color: var(--success);
-}
-
-.recommended-badge {
-    background: var(--success);
-    color: white;
-    padding: 0.25rem 0.5rem;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-}
-
-.quality-score {
-    text-align: center;
-    margin: 2rem 0;
-}
-
-.score-circle {
-    width: 80px;
-    height: 80px;
-    border: 4px solid var(--primary);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto;
-    font-size: 1.2rem;
-    font-weight: bold;
-}
-
-.focus-tags {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-}
-
-.focus-tag {
-    background: var(--primary);
-    color: white;
-    padding: 0.25rem 0.75rem;
-    border-radius: 16px;
-    font-size: 0.85rem;
-}
-
-.success-animation {
-    text-align: center;
-    font-size: 4rem;
-    color: var(--success);
-    margin-bottom: 1rem;
-}
-
-@media (max-width: 768px) {
-    .program-builder-container {
-        padding: 1rem;
-    }
-}
-</style>
-`;
-
-// Injecter les styles
-if (!document.querySelector('#program-builder-styles')) {
-    const styleElement = document.createElement('div');
-    styleElement.id = 'program-builder-styles';
-    styleElement.innerHTML = builderStyles;
-    document.head.appendChild(styleElement);
-}

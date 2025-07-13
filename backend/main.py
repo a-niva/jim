@@ -14,11 +14,12 @@ import json
 import os
 import logging
 from backend.ml_recommendations import FitnessRecommendationEngine
-from backend.ml_engine import RecoveryTracker, VolumeOptimizer, ProgressionAnalyzer
+from backend.ml_engine import FitnessMLEngine, RecoveryTracker, VolumeOptimizer, ProgressionAnalyzer
 from backend.constants import normalize_muscle_group 
 from backend.database import engine, get_db, SessionLocal
 from backend.models import Base, User, Exercise, Program, Workout, WorkoutSet, SetHistory, UserCommitment, AdaptiveTargets, UserAdaptationCoefficients, PerformanceStates, ExerciseCompletionStats, SwapLog
 from backend.schemas import UserCreate, UserResponse, WorkoutResponse, ProgramCreate, WorkoutCreate, SetCreate, ExerciseResponse, UserPreferenceUpdate,    ProgramBuilderStart, ProgramBuilderSelections, ComprehensiveProgramCreate, ComprehensiveProgramResponse, ProgramBuilderRecommendations, WeeklySessionPreview
+
 
 from backend.equipment_service import EquipmentService
 from sqlalchemy import extract, and_
