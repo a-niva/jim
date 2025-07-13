@@ -141,6 +141,10 @@ class WorkoutSet(Base):
     workout = relationship("Workout", back_populates="sets")
     exercise = relationship("Exercise", foreign_keys="WorkoutSet.exercise_id")
 
+    # MODULE 3 : Champs swap context
+    swap_from_exercise_id = Column(Integer, ForeignKey('exercises.id'), nullable=True)
+    swap_reason = Column(String(50), nullable=True)
+
 class SetHistory(Base):
     """Table d'historique pour l'analyse ML avancée"""
     __tablename__ = "set_history"

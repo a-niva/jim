@@ -4979,11 +4979,15 @@ async function endWorkout() {
         });
 
         await apiPut(`/api/workouts/${currentWorkout.id}/complete`, {
-            total_duration: totalDurationSeconds,  // ✅ DURÉE RÉELLE
+            total_duration: totalDurationSeconds,
             total_rest_time: currentWorkoutSession.totalRestTime,
-            // MODULE 0 : Nouvelles données
+            // MODULE 0 : Données existantes
             skipped_exercises: allSkippedExercises,
-            session_metadata: sessionMetadata
+            session_metadata: sessionMetadata,
+            
+            // MODULE 3 : Nouvelles données swap
+            swaps: currentWorkoutSession.swaps || [],
+            modifications: currentWorkoutSession.modifications || []
         });
         
         // Réinitialiser l'état
@@ -7425,8 +7429,21 @@ async function saveFeedbackAndRest() {
             ml_reps_suggestion: workoutState.currentRecommendation?.reps_recommendation,
             ml_confidence: workoutState.currentRecommendation?.confidence,
             ml_adjustment_enabled: currentWorkoutSession.mlSettings?.[currentExercise.id]?.autoAdjust,
-            suggested_rest_seconds: workoutState.currentRecommendation?.rest_seconds_recommendation
+            suggested_rest_seconds: workoutState.currentRecommendation?.rest_seconds_recommendation,
+            // MODULE 3 : Ajout contexte swap
+            swap_from_exercise_id: null,
+            swap_reason: null
         };
+
+        // MODULE 3 : Détecter si exercice actuel provient d'un swap
+        const activeSwap = currentWorkoutSession.swaps?.find(swap => 
+            swap.new_id === currentExercise.id
+        );
+
+        if (activeSwap) {
+            setData.swap_from_exercise_id = activeSwap.original_id;
+            setData.swap_reason = activeSwap.reason;
+        }
                 
         // Validation des données avant envoi
         if (!setData.exercise_id || !setData.set_number || !setData.fatigue_level || !setData.effort_level) {
@@ -7771,20 +7788,24 @@ async function updateLastSetRestDuration(actualRestTime) {
 }
 
 function showSetCompletionOptions() {
+    // MODULE 3 : Générer résumé adaptations si présentes
+    let adaptationsHtml = '';
+    if (currentWorkoutSession.swaps?.length > 0) {
+        const swapCount = currentWorkoutSession.swaps.length;
+        adaptationsHtml = `
+            <p style="color: var(--info); font-size: 0.9rem; margin: 0.5rem 0;">
+                🔄 ${swapCount} exercice(s) adapté(s) pendant cette séance
+            </p>
+        `;
+    }
+
     const modalContent = `
         <div style="text-align: center;">
             <p>${currentSet} séries de ${currentExercise.name} complétées</p>
             <p>Temps de repos total: ${formatTime(currentWorkoutSession.totalRestTime)}</p>
+            ${adaptationsHtml}
             <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; margin-top: 2rem;">
-                <button class="btn btn-secondary" onclick="handleExtraSet(); closeModal();">
-                    Série supplémentaire
-                </button>
-                <button class="btn btn-primary" onclick="finishExercise(); closeModal();">
-                    ${currentWorkout.type === 'free' ? 'Changer d\'exercice' : 'Exercice suivant'}
-                </button>
-                <button class="btn btn-danger" onclick="endWorkout(); closeModal();">
-                    Terminer la séance
-                </button>
+                // ... boutons existants
             </div>
         </div>
     `;
