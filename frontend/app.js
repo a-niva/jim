@@ -7955,68 +7955,8 @@ function changeExercise() {
         return;
     }
     
-    const modalContent = `
-        <div class="change-exercise-modal">
-            <div class="modal-header-modern">
-                <h3>Changer "${currentExercise.name}"</h3>
-                <p>Pourquoi souhaitez-vous changer cet exercice ?</p>
-            </div>
-            
-            <div class="reason-cards-container">
-                <button class="reason-card pain-card" onclick="proceedToAlternatives(${currentExercise.id}, 'pain')">
-                    <div class="reason-icon">
-                        <span class="emoji">😣</span>
-                    </div>
-                    <div class="reason-content">
-                        <h4>Douleur/Inconfort</h4>
-                        <p>Alternatives moins stressantes</p>
-                    </div>
-                    <div class="reason-arrow">→</div>
-                </button>
-                
-                <button class="reason-card equipment-card" onclick="proceedToAlternatives(${currentExercise.id}, 'equipment')">
-                    <div class="reason-icon">
-                        <span class="emoji">🏋️</span>
-                    </div>
-                    <div class="reason-content">
-                        <h4>Équipement pris</h4>
-                        <p>Alternatives avec autre matériel</p>
-                    </div>
-                    <div class="reason-arrow">→</div>
-                </button>
-                
-                <button class="reason-card preference-card" onclick="proceedToAlternatives(${currentExercise.id}, 'preference')">
-                    <div class="reason-icon">
-                        <span class="emoji">💭</span>
-                    </div>
-                    <div class="reason-content">
-                        <h4>Préférence personnelle</h4>
-                        <p>Autres exercices similaires</p>
-                    </div>
-                    <div class="reason-arrow">→</div>
-                </button>
-                
-                <button class="reason-card difficulty-card" onclick="proceedToAlternatives(${currentExercise.id}, 'too_hard')">
-                    <div class="reason-icon">
-                        <span class="emoji">💪</span>
-                    </div>
-                    <div class="reason-content">
-                        <h4>Trop difficile</h4>
-                        <p>Versions plus accessibles</p>
-                    </div>
-                    <div class="reason-arrow">→</div>
-                </button>
-            </div>
-            
-            <div class="modal-footer-modern">
-                <button class="btn-cancel-modern" onclick="closeModal()">
-                    Annuler
-                </button>
-            </div>
-        </div>
-    `;
-    
-    showModal('Changer d\'exercice', modalContent);
+    // Appeler directement la fonction qui existe déjà
+    showSwapReasonModal(currentExercise.id);
 }
 
 // Fonction helper pour procéder aux alternatives (réutilise le système swap)

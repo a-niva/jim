@@ -6092,3 +6092,217 @@ background: rgba(255, 255, 255, 0.02);
 .alternatives-modal {
     animation: modalSlideIn 0.3s ease-out;
 }
+
+/* ===== CORRECTION STYLES MODAL SWAP ===== */
+.swap-reason-container {
+    max-width: 500px;
+    width: 90%;
+    margin: 0 auto;
+    padding: 0;
+}
+
+.exercise-context {
+    text-align: center;
+    padding: 1.5rem 1.5rem 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 1rem;
+}
+
+.exercise-context h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.exercise-context p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.reason-options {
+    padding: 0 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.reason-btn {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-card);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-align: left;
+    width: 100%;
+    font-family: inherit;
+    color: var(--text) !important; /* CORRECTION PRINCIPALE */
+    position: relative;
+    overflow: hidden;
+}
+
+.reason-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--primary);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s ease;
+}
+
+.reason-btn:hover::before {
+    transform: scaleX(1);
+}
+
+.reason-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    border-color: var(--primary);
+    color: var(--text) !important; /* CORRECTION HOVER */
+}
+
+.reason-btn:active {
+    transform: translateY(0) scale(0.98);
+}
+
+/* Couleurs spécifiques par raison */
+.reason-btn.pain:hover { 
+    border-color: #ef4444; 
+    background: rgba(239, 68, 68, 0.05);
+}
+.reason-btn.pain:hover::before { background: #ef4444; }
+
+.reason-btn.equipment:hover { 
+    border-color: #f59e0b; 
+    background: rgba(245, 158, 11, 0.05);
+}
+.reason-btn.equipment:hover::before { background: #f59e0b; }
+
+.reason-btn.preference:hover { 
+    border-color: #8b5cf6; 
+    background: rgba(139, 92, 246, 0.05);
+}
+.reason-btn.preference:hover::before { background: #8b5cf6; }
+
+.reason-btn.too_hard:hover { 
+    border-color: #06b6d4; 
+    background: rgba(6, 182, 212, 0.05);
+}
+.reason-btn.too_hard:hover::before { background: #06b6d4; }
+
+.reason-icon {
+    flex-shrink: 0;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(99, 102, 241, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    font-size: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.reason-btn:hover .reason-icon {
+    transform: scale(1.1);
+}
+
+.reason-content {
+    flex: 1;
+}
+
+.reason-title {
+    display: block;
+    margin: 0 0 0.25rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text) !important; /* CORRECTION TITRE */
+    line-height: 1.2;
+}
+
+.reason-desc {
+    display: block;
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-muted) !important; /* CORRECTION DESCRIPTION */
+    line-height: 1.3;
+}
+
+.modal-actions {
+    padding: 1rem 1.5rem 1.5rem 1.5rem;
+    text-align: center;
+    border-top: 1px solid var(--border);
+    margin-top: 1rem;
+}
+
+.btn-secondary {
+    padding: 0.75rem 2rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text) !important; /* CORRECTION BOUTON ANNULER */
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: inherit;
+}
+
+.btn-secondary:hover {
+    background: var(--border);
+    transform: translateY(-1px);
+    color: var(--text) !important;
+}
+
+/* Responsive mobile */
+@media (max-width: 768px) {
+    .swap-reason-container {
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    .reason-btn {
+        padding: 0.75rem;
+    }
+    
+    .reason-icon {
+        width: 40px;
+        height: 40px;
+        margin-right: 0.75rem;
+        font-size: 1.2rem;
+    }
+    
+    .reason-title {
+        font-size: 0.9rem;
+    }
+    
+    .reason-desc {
+        font-size: 0.8rem;
+    }
+}
+
+/* Animation d'entrée */
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.swap-reason-container {
+    animation: modalSlideIn 0.3s ease-out;
+}
