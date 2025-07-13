@@ -7956,58 +7956,60 @@ function changeExercise() {
     }
     
     const modalContent = `
-        <div class="swap-reason-modal">
-            <div style="text-align: center; margin-bottom: 1.5rem;">
-                <h3 style="margin-bottom: 0.5rem;">Changer "${currentExercise.name}"</h3>
-                <p style="color: var(--text-muted); font-size: 0.9rem;">
-                    Pourquoi souhaitez-vous changer cet exercice ?
-                </p>
+        <div class="change-exercise-modal">
+            <div class="modal-header-modern">
+                <h3>Changer "${currentExercise.name}"</h3>
+                <p>Pourquoi souhaitez-vous changer cet exercice ?</p>
             </div>
             
-            <div class="reason-options">
-                <button class="reason-btn" onclick="proceedToAlternatives(${currentExercise.id}, 'pain')" style="border-color: #ef4444; background: rgba(239, 68, 68, 0.1);">
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <span style="font-size: 1.5rem;">😣</span>
-                        <div style="text-align: left;">
-                            <div style="font-weight: 600; color: #ef4444;">Douleur/Inconfort</div>
-                            <div style="font-size: 0.8rem; color: var(--text-muted);">Alternatives moins stressantes</div>
-                        </div>
+            <div class="reason-cards-container">
+                <button class="reason-card pain-card" onclick="proceedToAlternatives(${currentExercise.id}, 'pain')">
+                    <div class="reason-icon">
+                        <span class="emoji">😣</span>
                     </div>
+                    <div class="reason-content">
+                        <h4>Douleur/Inconfort</h4>
+                        <p>Alternatives moins stressantes</p>
+                    </div>
+                    <div class="reason-arrow">→</div>
                 </button>
                 
-                <button class="reason-btn" onclick="proceedToAlternatives(${currentExercise.id}, 'equipment')" style="border-color: #f59e0b; background: rgba(245, 158, 11, 0.1);">
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <span style="font-size: 1.5rem;">🏋️</span>
-                        <div style="text-align: left;">
-                            <div style="font-weight: 600; color: #f59e0b;">Équipement pris</div>
-                            <div style="font-size: 0.8rem; color: var(--text-muted);">Alternatives avec autre matériel</div>
-                        </div>
+                <button class="reason-card equipment-card" onclick="proceedToAlternatives(${currentExercise.id}, 'equipment')">
+                    <div class="reason-icon">
+                        <span class="emoji">🏋️</span>
                     </div>
+                    <div class="reason-content">
+                        <h4>Équipement pris</h4>
+                        <p>Alternatives avec autre matériel</p>
+                    </div>
+                    <div class="reason-arrow">→</div>
                 </button>
                 
-                <button class="reason-btn" onclick="proceedToAlternatives(${currentExercise.id}, 'preference')" style="border-color: #8b5cf6; background: rgba(139, 92, 246, 0.1);">
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <span style="font-size: 1.5rem;">💭</span>
-                        <div style="text-align: left;">
-                            <div style="font-weight: 600; color: #8b5cf6;">Préférence personnelle</div>
-                            <div style="font-size: 0.8rem; color: var(--text-muted);">Autres exercices similaires</div>
-                        </div>
+                <button class="reason-card preference-card" onclick="proceedToAlternatives(${currentExercise.id}, 'preference')">
+                    <div class="reason-icon">
+                        <span class="emoji">💭</span>
                     </div>
+                    <div class="reason-content">
+                        <h4>Préférence personnelle</h4>
+                        <p>Autres exercices similaires</p>
+                    </div>
+                    <div class="reason-arrow">→</div>
                 </button>
                 
-                <button class="reason-btn" onclick="proceedToAlternatives(${currentExercise.id}, 'too_hard')" style="border-color: #06b6d4; background: rgba(6, 182, 212, 0.1);">
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <span style="font-size: 1.5rem;">💪</span>
-                        <div style="text-align: left;">
-                            <div style="font-weight: 600; color: #06b6d4;">Trop difficile</div>
-                            <div style="font-size: 0.8rem; color: var(--text-muted);">Versions plus accessibles</div>
-                        </div>
+                <button class="reason-card difficulty-card" onclick="proceedToAlternatives(${currentExercise.id}, 'too_hard')">
+                    <div class="reason-icon">
+                        <span class="emoji">💪</span>
                     </div>
+                    <div class="reason-content">
+                        <h4>Trop difficile</h4>
+                        <p>Versions plus accessibles</p>
+                    </div>
+                    <div class="reason-arrow">→</div>
                 </button>
             </div>
             
-            <div style="margin-top: 1.5rem; text-align: center;">
-                <button class="btn-secondary" onclick="closeModal()" style="padding: 0.75rem 2rem;">
+            <div class="modal-footer-modern">
+                <button class="btn-cancel-modern" onclick="closeModal()">
                     Annuler
                 </button>
             </div>
@@ -8021,34 +8023,35 @@ function changeExercise() {
 function proceedToAlternatives(exerciseId, reason) {
     closeModal();
     
-    // Simuler une liste d'alternatives basique pour l'instant
+    // Pour l'instant, simuler des alternatives
     const modalContent = `
         <div class="alternatives-modal">
-            <div style="text-align: center; margin-bottom: 1.5rem;">
-                <h3 style="margin-bottom: 0.5rem;">Alternatives suggérées</h3>
-                <p style="color: var(--text-muted); font-size: 0.9rem;">
-                    Raison : ${getReasonLabel(reason)}
-                </p>
+            <div class="modal-header-modern">
+                <h3>Alternatives suggérées</h3>
+                <p>Raison : ${getReasonLabel(reason)}</p>
             </div>
             
-            <div class="alternatives-list">
-                <div class="keep-current-card" onclick="keepCurrentWithAdaptation(${exerciseId}, '${reason}')" style="border: 2px solid var(--primary); background: rgba(99, 102, 241, 0.1); padding: 1rem; border-radius: 8px; cursor: pointer; margin-bottom: 1rem;">
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <span style="font-size: 1.5rem;">✅</span>
-                        <div>
-                            <div style="font-weight: 600; color: var(--primary);">Garder "${currentExercise.name}"</div>
-                            <div style="font-size: 0.85rem; color: var(--text-muted);">Continuer avec des adaptations</div>
-                        </div>
+            <div class="alternatives-container">
+                <div class="keep-current-option" onclick="keepCurrentWithAdaptation(${exerciseId}, '${reason}')">
+                    <div class="option-icon">✅</div>
+                    <div class="option-content">
+                        <h4>Garder "${currentExercise.name}"</h4>
+                        <p>Continuer avec des adaptations</p>
                     </div>
                 </div>
                 
-                <div style="text-align: center; color: var(--text-muted); margin: 1rem 0; font-size: 0.9rem;">
-                    Les alternatives détaillées seront disponibles prochainement
+                <div class="divider-text">
+                    <span>ou choisir une alternative</span>
+                </div>
+                
+                <div class="coming-soon">
+                    <div class="coming-icon">🚧</div>
+                    <p>Les alternatives détaillées seront disponibles prochainement</p>
                 </div>
             </div>
             
-            <div style="margin-top: 1.5rem; text-align: center;">
-                <button class="btn-secondary" onclick="closeModal()" style="padding: 0.75rem 2rem;">
+            <div class="modal-footer-modern">
+                <button class="btn-cancel-modern" onclick="closeModal()">
                     Retour
                 </button>
             </div>
@@ -8057,6 +8060,7 @@ function proceedToAlternatives(exerciseId, reason) {
     
     showModal('Choisir une alternative', modalContent);
 }
+
 
 async function initiateSwap(exerciseId) {
     if (!canSwapExercise(exerciseId)) {
@@ -8412,31 +8416,36 @@ async function selectAlternative(originalExerciseId, newExerciseId, reason) {
     }
 }
 
-async function keepCurrentWithAdaptation(exerciseId, reason) {
+function keepCurrentWithAdaptation(exerciseId, reason) {
     closeModal();
     
-    // Appliquer une adaptation selon la raison
-    if (reason === 'too_hard') {
-        showToast('💡 Conseil : Réduisez le poids de 20% pour cet exercice', 'info');
-    } else if (reason === 'pain') {
-        showToast('💡 Conseil : Réduisez l\'amplitude ou le poids si nécessaire', 'warning');
-    }
+    // Messages d'adaptation selon la raison
+    const adaptationMessages = {
+        'pain': '💡 Conseil : Réduisez l\'amplitude et le poids si nécessaire',
+        'equipment': '💡 Conseil : Adaptez avec le matériel disponible',
+        'preference': '💡 Essayons quelques ajustements pour améliorer l\'exercice',
+        'too_hard': '💡 Conseil : Réduisez le poids de 20% pour cet exercice'
+    };
     
-    // Tracker la décision de garder
-    currentWorkoutSession.modifications.push({
-        type: 'keep_with_adaptation',
-        timestamp: new Date(),
-        exercise_id: exerciseId,
-        reason: reason,
-        adaptation_applied: true
-    });
+    showToast(adaptationMessages[reason] || '💡 Continuons avec des adaptations', 'info');
+    
+    // Tracker la décision (si le système existe)
+    if (currentWorkoutSession.modifications) {
+        currentWorkoutSession.modifications.push({
+            type: 'keep_with_adaptation',
+            timestamp: new Date(),
+            exercise_id: exerciseId,
+            reason: reason,
+            adaptation_applied: true
+        });
+    }
 }
 
 function getReasonLabel(reason) {
     const labels = {
-        'pain': 'Douleur',
-        'equipment': 'Équipement',
-        'preference': 'Préférence',
+        'pain': 'Douleur/Inconfort',
+        'equipment': 'Équipement pris',
+        'preference': 'Préférence personnelle',
         'too_hard': 'Trop difficile'
     };
     return labels[reason] || reason;
