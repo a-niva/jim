@@ -18,8 +18,12 @@ from backend.ml_engine import FitnessMLEngine, RecoveryTracker, VolumeOptimizer,
 from backend.constants import normalize_muscle_group 
 from backend.database import engine, get_db, SessionLocal
 from backend.models import Base, User, Exercise, Program, Workout, WorkoutSet, SetHistory, UserCommitment, AdaptiveTargets, UserAdaptationCoefficients, PerformanceStates, ExerciseCompletionStats, SwapLog
-from backend.schemas import UserCreate, UserResponse, WorkoutResponse, ProgramCreate, WorkoutCreate, SetCreate, ExerciseResponse, UserPreferenceUpdate,    ProgramBuilderStart, ProgramBuilderSelections, ComprehensiveProgramCreate, ComprehensiveProgramResponse, ProgramBuilderRecommendations, WeeklySessionPreview
-
+from backend.schemas import (
+    UserCreate, UserResponse, WorkoutResponse, ProgramCreate, WorkoutCreate, 
+    SetCreate, ExerciseResponse, UserPreferenceUpdate,
+    ProgramBuilderStart, ProgramBuilderSelections, ComprehensiveProgramCreate, 
+    ComprehensiveProgramResponse, ProgramBuilderRecommendations, WeeklySessionPreview
+)
 
 from backend.equipment_service import EquipmentService
 from sqlalchemy import extract, and_
@@ -1287,8 +1291,12 @@ def start_program_builder(
     
     try:
         # Utiliser les services ML existants pour personnaliser le questionnaire
-        ml_engine = FitnessMLEngine(db) if 'FitnessMLEngine' in globals() else None
-        
+        try:
+            ml_engine = FitnessMLEngine(db)
+        except Exception as e:
+            logger.error(f"Impossible d'initialiser FitnessMLEngine: {e}")
+            raise HTTPException(status_code=500, detail="Service ML indisponible")
+                
         # Analyser le profil utilisateur
         user_insights = []
         suggested_focus_areas = []
