@@ -1430,6 +1430,130 @@ def start_program_builder(
         logger.error(f"Erreur initialisation ProgramBuilder pour user {user_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Erreur lors de l'initialisation")
 
+def calculate_session_duration(exercises_data, target_duration_minutes):
+    """
+    Calcule la durée réelle d'une session et ajuste les paramètres pour respecter la durée cible.
+    
+    Paramètres:
+    - exercises_data: liste des exercices avec leurs données DB
+    - target_duration_minutes: durée cible en minutes (30, 45, 60, etc.)
+    
+    Retourne:
+    - exercise_pool optimisé avec sets/reps ajustés
+    - durée estimée réelle
+    """
+    
+    def estimate_exercise_duration(exercise_db, sets, reps_avg):
+        """Estime la durée d'un exercice complet"""
+        # Temps d'effort par rep (variable selon type d'exercice)
+        effort_per_rep = 3  # secondes de base
+        if exercise_db.exercise_type == "compound":
+            effort_per_rep = 4  # Exercices composés plus longs
+        elif exercise_db.exercise_type == "isolation":
+            effort_per_rep = 2.5  # Exercices d'isolation plus rapides
+            
+        # Temps de repos ajusté par intensity_factor
+        rest_time = exercise_db.base_rest_time_seconds * (exercise_db.intensity_factor or 1.0)
+        
+        # Temps total pour cet exercice
+        effort_total = sets * reps_avg * effort_per_rep
+        rest_total = (sets - 1) * rest_time  # Pas de repos après la dernière série
+        setup_time = 60  # 1 minute pour setup/changement d'équipement
+        
+        return effort_total + rest_total + setup_time
+    
+    # Calcul initial avec paramètres par défaut
+    total_duration_seconds = 0
+    exercise_durations = []
+    
+    for ex in exercises_data:
+        sets = ex.default_sets
+        reps_avg = (ex.default_reps_min + ex.default_reps_max) / 2
+        duration = estimate_exercise_duration(ex, sets, reps_avg)
+        
+        exercise_durations.append({
+            "exercise": ex,
+            "sets": sets,
+            "reps_avg": reps_avg,
+            "duration_seconds": duration
+        })
+        total_duration_seconds += duration
+    
+    # Ajouter temps de transition entre exercices (1 min par transition)
+    if len(exercises_data) > 1:
+        total_duration_seconds += (len(exercises_data) - 1) * 60
+    
+    # Ajouter échauffement/récupération (5 minutes)
+    total_duration_seconds += 300
+    
+    estimated_minutes = total_duration_seconds / 60
+    target_seconds = target_duration_minutes * 60
+    
+    # Si la durée dépasse la cible, ajuster intelligemment
+    if estimated_minutes > target_duration_minutes * 1.1:  # Marge de 10%
+        
+        # Stratégies d'ajustement par ordre de priorité :
+        
+        # 1. Réduire le nombre d'exercices en premier
+        ratio_over = estimated_minutes / target_duration_minutes
+        if ratio_over > 1.5:  # Plus de 50% au-dessus
+            # Enlever des exercices (garder les plus prioritaires)
+            max_exercises = max(2, int(len(exercises_data) / ratio_over))
+            exercises_data = exercises_data[:max_exercises]
+            
+        # 2. Réduire les séries des exercices d'isolation
+        elif ratio_over > 1.2:  # 20-50% au-dessus
+            for ex_data in exercise_durations:
+                if ex_data["exercise"].exercise_type == "isolation":
+                    ex_data["sets"] = max(2, ex_data["sets"] - 1)
+                    
+        # 3. Réduire légèrement les reps
+        elif ratio_over > 1.1:  # 10-20% au-dessus
+            for ex_data in exercise_durations:
+                if ex_data["reps_avg"] > 10:
+                    ex_data["reps_avg"] = max(8, ex_data["reps_avg"] - 2)
+    
+    # Recalculer après ajustements
+    adjusted_exercise_pool = []
+    total_adjusted_duration = 0
+    
+    for ex_data in exercise_durations[:len(exercises_data)]:  # Limiter si on a retiré des exercices
+        ex = ex_data["exercise"]
+        sets = ex_data["sets"]
+        reps_avg = int(ex_data["reps_avg"])
+        
+        # Recalculer durée ajustée
+        duration = estimate_exercise_duration(ex, sets, reps_avg)
+        total_adjusted_duration += duration
+        
+        # Créer entry pour exercise_pool
+        adjusted_exercise_pool.append({
+            "exercise_id": ex.id,
+            "exercise_name": ex.name,
+            "sets": sets,
+            "reps_min": max(6, reps_avg - 2),
+            "reps_max": reps_avg + 2,
+            "priority": 3,  # Priorité neutre par défaut
+            "estimated_duration_minutes": duration / 60,
+            "constraints": {
+                "min_recovery_hours": 48,
+                "max_frequency_per_week": 2,
+                "required_equipment": ex.equipment_required or []
+            },
+            "muscle_groups": ex.muscle_groups
+        })
+    
+    # Durée finale ajustée
+    final_duration_minutes = (total_adjusted_duration + 300) / 60  # +5min échauffement
+    
+    return {
+        "exercise_pool": adjusted_exercise_pool,
+        "estimated_duration_minutes": final_duration_minutes,
+        "target_duration_minutes": target_duration_minutes,
+        "duration_accuracy": abs(final_duration_minutes - target_duration_minutes) <= target_duration_minutes * 0.15,  # Marge 15%
+        "adjustments_made": estimated_minutes > target_duration_minutes * 1.1
+    }
+
 @app.post("/api/users/{user_id}/program-builder/generate", response_model=ComprehensiveProgramResponse)  
 def generate_comprehensive_program(
     user_id: int, 
@@ -1490,7 +1614,32 @@ def generate_comprehensive_program(
 
                 # Créer pool d'exercices pour cette session
                 exercise_pool = []
-                for ex in available_exercises[:6]:  # Limiter à 6 exercices par session
+                # Calculer duration intelligemment
+                session_optimization = calculate_session_duration(available_exercises, session_duration)
+
+                # Si les ajustements n'ont pas suffi, réduire encore plus d'exercices
+                if not session_optimization["duration_accuracy"]:
+                    # Réduire drastiquement le nombre d'exercices
+                    max_for_duration = {
+                        15: 2, 30: 3, 45: 4, 60: 6, 90: 8
+                    }.get(session_duration, 4)
+                    
+                    shorter_optimization = calculate_session_duration(
+                        available_exercises[:max_for_duration], 
+                        session_duration
+                    )
+                    session_optimization = shorter_optimization
+
+                # Utiliser les exercices optimisés
+                optimized_exercise_pool = session_optimization["exercise_pool"]
+
+                # Log pour debugging
+                logger.info(f"Session {focus_area}: {len(optimized_exercise_pool)} exercices, "
+                        f"durée estimée {session_optimization['estimated_duration_minutes']:.1f}min "
+                        f"(cible {session_duration}min)")
+
+                # Continuer avec optimized_exercise_pool au lieu de available_exercises[:6]
+                for pool_exercise in optimized_exercise_pool:
                     pool_entry = {
                         "exercise_id": ex.id,
                         "sets": ex.default_sets,
