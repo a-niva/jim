@@ -64,6 +64,18 @@ class SessionQualityEngine {
      */
     static async getExerciseDetails(exercises) {
         try {
+            // Vérifier que apiGet et currentUser sont disponibles
+            if (typeof apiGet === 'undefined' || typeof currentUser === 'undefined') {
+                console.warn('apiGet ou currentUser non disponible, utilisation fallback');
+                return exercises.map(ex => ({
+                    ...ex,
+                    body_part: 'unknown',
+                    muscle_groups: ['unknown'],
+                    difficulty: 'intermediate',
+                    exercise_type: 'compound'
+                }));
+            }
+            
             const allExercises = await apiGet(`/api/exercises?user_id=${currentUser.id}`);
             
             return exercises.map(ex => {
@@ -93,6 +105,12 @@ class SessionQualityEngine {
      */
     static async getRecentWorkouts(userId, days = 14) {
         try {
+            // Vérifier que apiGet est disponible
+            if (typeof apiGet === 'undefined') {
+                console.warn('apiGet non disponible, retour array vide');
+                return [];
+            }
+            
             const cutoffDate = new Date();
             cutoffDate.setDate(cutoffDate.getDate() - days);
             
@@ -107,16 +125,21 @@ class SessionQualityEngine {
             return [];
         }
     }
-
     /**
      * Récupère le profil utilisateur via l'API existante
      */
     static async getUserProfile(userId) {
         try {
+            // Vérifier que apiGet est disponible
+            if (typeof apiGet === 'undefined') {
+                console.warn('apiGet non disponible, utilisation currentUser');
+                return (typeof currentUser !== 'undefined' ? currentUser : {});
+            }
+            
             return await apiGet(`/api/users/${userId}`);
         } catch (error) {
             console.warn('Impossible de récupérer profil:', error);
-            return currentUser || {};
+            return (typeof currentUser !== 'undefined' ? currentUser : {});
         }
     }
 
@@ -482,7 +505,10 @@ function getScoreGradient(score) {
     return 'linear-gradient(90deg, var(--text-muted), var(--secondary))';
 }
 
-// Export pour utilisation dans app.js
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = SessionQualityEngine;
+// Export global pour utilisation dans app.js
+if (typeof window !== 'undefined') {
+    window.SessionQualityEngine = SessionQualityEngine;
+    window.renderScoreBreakdown = renderScoreBreakdown;
+    window.getScoreColor = getScoreColor;
+    window.getScoreGradient = getScoreGradient;
 }

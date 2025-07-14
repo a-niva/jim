@@ -7132,7 +7132,8 @@ background: rgba(255, 255, 255, 0.02);
 @supports (-webkit-touch-callout: none) {
     .exercise-item {
         -webkit-touch-callout: none;
-        -webkit-user-select: none;
+        user-select: none;              /* Propriété standard ajoutée */
+        -webkit-user-select: none;      /* Vendor prefix conservé */
     }
     
     .drag-handle {
