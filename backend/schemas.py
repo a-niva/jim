@@ -315,6 +315,8 @@ class ProgramBuilderStart(BaseModel):
 
 class ProgramBuilderSelections(BaseModel):
     """Réponses au questionnaire ProgramBuilder"""
+    training_frequency: int = 4  # 3-6 séances par semaine  
+    session_duration: int = 60   # 30-90 minutes par séance
     focus_areas: List[str]  # ["upper_body", "legs", "core", "back", "shoulders", "arms"]
     periodization_preference: str = "linear"  # "linear", "undulating"
     exercise_variety_preference: str = "balanced"  # "minimal", "balanced", "high"
