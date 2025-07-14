@@ -16,7 +16,7 @@ import os
 import logging
 from backend.ml_recommendations import FitnessRecommendationEngine
 from backend.ml_engine import FitnessMLEngine, RecoveryTracker, VolumeOptimizer, ProgressionAnalyzer
-from backend.constants import normalize_muscle_group 
+from backend.constants import normalize_muscle_group, exercise_matches_focus_area
 from backend.database import engine, get_db, SessionLocal
 from backend.models import Base, User, Exercise, Program, Workout, WorkoutSet, SetHistory, UserCommitment, AdaptiveTargets, UserAdaptationCoefficients, PerformanceStates, ExerciseCompletionStats, SwapLog, PlannedSession
 from backend.schemas import (
@@ -1477,8 +1477,8 @@ def generate_comprehensive_program(
                 available_equipment = EquipmentService.get_available_equipment_types(user.equipment_config)
                 
                 for ex in all_exercises:
-                    # Vérifier si l'exercice correspond au focus_area
-                    if ex.muscle_groups and any(focus_area.lower() in mg.lower() for mg in ex.muscle_groups):
+                    # Vérifier si l'exercice correspond au focus_area avec le nouveau mapping
+                    if exercise_matches_focus_area(ex.muscle_groups, focus_area):
                         # Vérifier si l'équipement est disponible
                         if can_perform_exercise(ex, list(available_equipment)):
                             available_exercises.append(ex)
