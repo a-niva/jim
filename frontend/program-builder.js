@@ -98,7 +98,11 @@ class ProgramBuilder {
         `;
         
         builderContainer.classList.add('active');
-        
+
+        // forcer le scroll en haut
+        window.scrollTo(0, 0);
+        builderContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                
         //  Afficher la première étape
         this.renderStep();
     }
