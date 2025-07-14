@@ -2427,7 +2427,16 @@ async function startProgramWorkout() {
         const activeProgram = await apiGet(`/api/users/${currentUser.id}/programs/active`);
         
         if (!activeProgram) {
-            showToast('Aucun programme actif trouvé', 'warning');
+            console.log('Aucun programme actif → Lancement ProgramBuilder');
+            showToast('Configuration de votre premier programme...', 'info');
+            
+            // Lancer le ProgramBuilder avec les données utilisateur
+            if (window.programBuilder) {
+                await window.programBuilder.initialize(currentUser);
+            } else {
+                console.error('ProgramBuilder non disponible');
+                showToast('Erreur : Module de configuration non chargé', 'error');
+            }
             return;
         }
         
