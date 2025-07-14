@@ -271,23 +271,45 @@ class WeeklyPlannerView {
         const dayColumns = this.container.querySelectorAll('.day-sessions');
         
         dayColumns.forEach(column => {
-            new Sortable(column, {
-                group: 'planning',
-                animation: 150,
-                ghostClass: 'session-ghost',
-                chosenClass: 'session-chosen',
-                onStart: (evt) => {
-                    this.draggedSession = evt.item.dataset.sessionId;
-                },
-                onEnd: async (evt) => {
-                    if (evt.from !== evt.to) {
-                        await this.handleSessionMove(evt);
+            if (typeof Sortable !== 'undefined') {
+                new Sortable(column, {
+                    group: 'planning',
+                    animation: 150,
+                    ghostClass: 'session-ghost',
+                    chosenClass: 'session-chosen',
+                    onStart: (evt) => {
+                        this.draggedSession = evt.item.dataset.sessionId;
+                    },
+                    onEnd: async (evt) => {
+                        if (evt.from !== evt.to) {
+                            await this.handleSessionMove(evt);
+                        }
                     }
-                }
-            });
+                });
+            } else {
+                console.warn('SortableJS non disponible - drag & drop désactivé');
+                // Fallback : ajouter des boutons up/down pour réorganiser
+                this.addFallbackMoveButtons(column);
+            }
         });
     }
     
+    addFallbackMoveButtons(column) {
+        // Méthode fallback si SortableJS n'est pas disponible
+        const sessionCards = column.querySelectorAll('.session-card');
+        sessionCards.forEach((card, index) => {
+            const moveButtons = document.createElement('div');
+            moveButtons.className = 'move-buttons';
+            moveButtons.innerHTML = `
+                <button class="move-btn up" ${index === 0 ? 'disabled' : ''} 
+                        onclick="weeklyPlanner.moveSessionUp('${card.dataset.sessionId}')">↑</button>
+                <button class="move-btn down" ${index === sessionCards.length - 1 ? 'disabled' : ''} 
+                        onclick="weeklyPlanner.moveSessionDown('${card.dataset.sessionId}')">↓</button>
+            `;
+            card.appendChild(moveButtons);
+        });
+    }
+
     async handleSessionMove(evt) {
         const sessionId = this.draggedSession;
         const newDate = evt.to.dataset.day;
