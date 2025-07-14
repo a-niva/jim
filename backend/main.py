@@ -1271,28 +1271,6 @@ def determine_rotation_pattern(focus_areas: List[str]) -> List[str]:
         return ["upper_body", "lower_body"]
     else:
         return ["full_body"]
-    
-    # Détecter rotation basée sur focus areas
-    rotation_pattern = ["full_body"]  # Défaut
-    if len(program.focus_areas) >= 2:
-        if "upper_body" in program.focus_areas and "legs" in program.focus_areas:
-            rotation_pattern = ["upper", "lower"]
-        elif len(program.focus_areas) >= 3:
-            rotation_pattern = ["push", "pull", "legs"]
-    
-    program_structure = {
-        "version": "2.0",  # Marquer nouveau format
-        "exercise_pool": exercise_pool,
-        "session_templates": {
-            "rotation": rotation_pattern,
-            "exercises_per_session": min(6, program.session_duration_minutes // 10),
-            "target_duration": program.session_duration_minutes
-        }
-    }
-    
-    logger.info(f"Nouveau format: {len(exercise_pool)} exercices dans pool, rotation {rotation_pattern}")
-    return program_structure
-
 
 # ===== NOUVEAUX ENDPOINTS PROGRAM BUILDER =====
 

@@ -1,5 +1,3 @@
-//  ===== NOUVEAU FICHIER: frontend/program-builder.js =====
-
 class ProgramBuilder {
     constructor() {
         this.currentStep = 0;
@@ -494,4 +492,4 @@ class ProgramBuilder {
 }
 
 //  ===== INSTANCE GLOBALE =====
-let programBuilder = new ProgramBuilder();
+window.programBuilder = new ProgramBuilder();
