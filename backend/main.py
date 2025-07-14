@@ -766,26 +766,35 @@ def get_active_program(user_id: int, db: Session = Depends(get_db)):
     if program.weekly_structure and len(program.weekly_structure) >= program.current_week:
         current_week_data = program.weekly_structure[program.current_week - 1]
         
-        if current_week_data and "sessions" in current_week_data:
-            current_session_index = (program.current_session_in_week - 1) % len(current_week_data["sessions"])
-            current_session = current_week_data["sessions"][current_session_index]
-            
-            # Convertir exercise_pool pour compatibilité avec l'interface existante
-            if "exercise_pool" in current_session:
-                for pool_exercise in current_session["exercise_pool"]:
-                    exercise_db = db.query(Exercise).filter(Exercise.id == pool_exercise["exercise_id"]).first()
-                    if exercise_db:
-                        current_session_exercises.append({
-                            "exercise_id": pool_exercise["exercise_id"],
-                            "exercise_name": exercise_db.name,
-                            "sets": pool_exercise.get("sets", 3),
-                            "reps_min": pool_exercise.get("reps_min", 8),
-                            "reps_max": pool_exercise.get("reps_max", 12),
-                            "muscle_groups": exercise_db.muscle_groups,
-                            "equipment_required": exercise_db.equipment_required,
-                            "priority": pool_exercise.get("priority", 3)
-                        })
-    
+        if current_week_data and "sessions" in current_week_data and len(current_week_data["sessions"]) > 0:
+            try:
+                current_session_index = (program.current_session_in_week - 1) % len(current_week_data["sessions"])
+                current_session = current_week_data["sessions"][current_session_index]
+                
+                # Convertir exercise_pool pour compatibilité avec l'interface existante
+                if "exercise_pool" in current_session:
+                    for pool_exercise in current_session["exercise_pool"]:
+                        exercise_db = db.query(Exercise).filter(Exercise.id == pool_exercise["exercise_id"]).first()
+                        if exercise_db:
+                            current_session_exercises.append({
+                                "exercise_id": pool_exercise["exercise_id"],
+                                "exercise_name": exercise_db.name,
+                                "sets": pool_exercise.get("sets", 3),
+                                "reps_min": pool_exercise.get("reps_min", 8),
+                                "reps_max": pool_exercise.get("reps_max", 12),
+                                "muscle_groups": exercise_db.muscle_groups,
+                                "equipment_required": exercise_db.equipment_required,
+                                "priority": pool_exercise.get("priority", 3)
+                            })
+            except (ZeroDivisionError, IndexError) as e:
+                logger.warning(f"Erreur récupération session programme {program.id}: {e}")
+                # Fallback: retourner None pour déclencher ProgramBuilder
+                current_session_exercises = []
+        else:
+            logger.warning(f"Programme {program.id} structure weekly_structure invalide ou sessions vides")
+            # Si structure invalide, on peut soit retourner None soit des exercices par défaut
+            current_session_exercises = []
+        
     return {
         "id": program.id,
         "user_id": program.user_id,
@@ -1321,53 +1330,69 @@ def start_program_builder(
         # Générer questionnaire adaptatif (8-12 questions)
         questionnaire_items = [
             {
+                "id": "training_frequency",
+                "question": "Combien de séances d'entraînement par semaine souhaitez-vous ?",
+                "type": "single_choice",
+                "options": [
+                    {"value": 1, "label": "3 séances/semaine", "recommended": False}
+                    {"value": 2, "label": "3 séances/semaine", "recommended": user.experience_level == "beginner"},
+                    {"value": 3, "label": "3 séances/semaine", "recommended": user.experience_level == "intermediate"},
+                    {"value": 4, "label": "4 séances/semaine", "recommended": user.experience_level in ["intermediate", "advanced"]},
+                    {"value": 5, "label": "5 séances/semaine", "recommended": user.experience_level == "advanced"},
+                    {"value": 6, "label": "6 séances/semaine", "recommended": False}
+                ]
+            },
+            {
+                "id": "session_duration",
+                "question": "Combien de temps pouvez-vous consacrer par séance ?",
+                "type": "single_choice",
+                "options": [
+                    {"value": 30, "label": "30-45 minutes"},
+                    {"value": 60, "label": "45-75 minutes", "recommended": True},
+                    {"value": 90, "label": "75-90 minutes", "recommended": user.experience_level == "advanced"}
+                ]
+            },
+            {
                 "id": "focus_selection",
+                "question": "Quelles zones corporelles souhaitez-vous prioriser ?",
                 "type": "multiple_choice",
-                "question": "Quelles sont vos priorités d'entraînement ? (1-3 choix)",
-                "options": [
-                    {"value": "upper_body", "label": "Haut du corps", "recommended": "upper_body" in suggested_focus_areas},
-                    {"value": "legs", "label": "Jambes", "recommended": "legs" in suggested_focus_areas},
-                    {"value": "core", "label": "Abdominaux/Core", "recommended": "core" in suggested_focus_areas},
-                    {"value": "back", "label": "Dos", "recommended": False},
-                    {"value": "shoulders", "label": "Épaules", "recommended": False},
-                    {"value": "arms", "label": "Bras", "recommended": False}
-                ],
                 "min_selections": 1,
-                "max_selections": 3
+                "max_selections": 3,
+                "options": focus_options
             },
             {
-                "id": "periodization",
+                "id": "periodization_preference", 
+                "question": "Quel type de progression préférez-vous ?",
+                "type": "single_choice",
+                "options": [
+                    {"value": "linear", "label": "Progression linéaire constante", "recommended": user.experience_level in ["beginner", "intermediate"]},
+                    {"value": "undulating", "label": "Progression ondulante (variation)", "recommended": user.experience_level == "advanced"}
+                ]
+            },
+            {
+                "id": "exercise_variety_preference",
+                "question": "Niveau de variété d'exercices souhaité ?", 
+                "type": "single_choice",
+                "options": [
+                    {"value": "minimal", "label": "Peu d'exercices, maîtrise technique", "recommended": user.experience_level == "beginner"},
+                    {"value": "balanced", "label": "Équilibre variété/consistance", "recommended": True},
+                    {"value": "high", "label": "Beaucoup de variété", "recommended": False}
+                ]
+            },
+            {
+                "id": "session_intensity_preference",
+                "question": "Intensité des séances préférée ?",
                 "type": "single_choice", 
-                "question": "Préférez-vous une progression...",
                 "options": [
-                    {"value": "linear", "label": "Régulière et prévisible", "recommended": user.experience_level != "advanced"},
-                    {"value": "undulating", "label": "Variable selon les séances", "recommended": user.experience_level == "advanced"}
+                    {"value": "light", "label": "Légère", "recommended": user.experience_level == "beginner"},
+                    {"value": "moderate", "label": "Modérée", "recommended": True},
+                    {"value": "intense", "label": "Intense", "recommended": user.experience_level == "advanced"}
                 ]
             },
             {
-                "id": "variety",
+                "id": "recovery_priority",
+                "question": "Priorité récupération vs performance ?",
                 "type": "single_choice",
-                "question": "Concernant la variété d'exercices...",
-                "options": [
-                    {"value": "minimal", "label": "Je préfère maîtriser quelques exercices", "recommended": user.experience_level == "beginner"},
-                    {"value": "balanced", "label": "Un équilibre entre routine et nouveauté", "recommended": True},
-                    {"value": "high", "label": "J'aime découvrir de nouveaux exercices", "recommended": user.experience_level == "advanced"}
-                ]
-            },
-            {
-                "id": "intensity",
-                "type": "single_choice",
-                "question": "Niveau d'intensité souhaité ?",
-                "options": [
-                    {"value": "light", "label": "Léger - je débute ou je reprends", "recommended": user.experience_level == "beginner"},
-                    {"value": "moderate", "label": "Modéré - je veux progresser régulièrement", "recommended": True},
-                    {"value": "intense", "label": "Intense - je veux me dépasser", "recommended": user.experience_level == "advanced"}
-                ]
-            },
-            {
-                "id": "recovery",
-                "type": "single_choice",
-                "question": "Votre priorité entre performance et récupération ?",
                 "options": [
                     {"value": "performance", "label": "Performance maximale", "recommended": user.experience_level == "advanced"},
                     {"value": "balanced", "label": "Équilibre performance/récupération", "recommended": True},
@@ -1413,12 +1438,16 @@ def generate_comprehensive_program(
         # Générer la structure temporelle multi-semaines
         weekly_structure = []
         
-        # Logique de génération basée sur les sélections
-        sessions_per_week = 4  # Default, peut être ajusté
-        if selections.exercise_variety_preference == "minimal":
-            sessions_per_week = 3
-        elif selections.exercise_variety_preference == "high":
-            sessions_per_week = 5
+        # Logique de génération basée sur les sélections utilisateur
+        sessions_per_week = getattr(selections, 'training_frequency', 4)  # Utiliser la sélection utilisateur
+        session_duration = getattr(selections, 'session_duration', 60)   # Utiliser la sélection utilisateur
+
+        # Ajustements basés sur d'autres préférences (garde la logique existante comme fallback)
+        if not hasattr(selections, 'training_frequency'):
+            if selections.exercise_variety_preference == "minimal":
+                sessions_per_week = 3
+            elif selections.exercise_variety_preference == "high":
+                sessions_per_week = 5
             
         # Générer structure pour chaque semaine
         for week in range(1, 9):  # 8 semaines par défaut
@@ -1503,7 +1532,7 @@ def generate_comprehensive_program(
             duration_weeks=8,
             periodization_type=selections.periodization_preference,
             sessions_per_week=sessions_per_week,
-            session_duration_minutes=60,
+            session_duration_minutes=session_duration,  # Utilise la sélection utilisateur
             focus_areas=selections.focus_areas,
             weekly_structure=weekly_structure,
             progression_rules=progression_rules,

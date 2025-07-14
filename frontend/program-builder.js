@@ -5,6 +5,8 @@ class ProgramBuilder {
         this.userData = null;
         this.recommendations = null;
         this.selections = {
+            training_frequency: 4,
+            session_duration: 60,
             focus_areas: [],
             periodization_preference: "linear",
             exercise_variety_preference: "balanced",
