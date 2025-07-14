@@ -1164,6 +1164,8 @@ async function completeOnboarding() {
         // Créer l'utilisateur
         currentUser = await apiPost('/api/users', userData);
         localStorage.setItem('fitness_user_id', currentUser.id);
+        // Assigner aussi à window pour que ProgramBuilder puisse y accéder
+        window.currentUser = currentUser;
         
         // Ajouter à la liste des profils
         const profiles = JSON.parse(localStorage.getItem('fitness_profiles') || '[]');
@@ -1183,7 +1185,7 @@ async function completeOnboarding() {
             // Initialiser le ProgramBuilder avec les données utilisateur
             // Vérifier que programBuilder est chargé
             if (typeof programBuilder !== 'undefined') {
-                programBuilder.initialize(userData);
+                programBuilder.initialize(currentUser);
             } else {
                 console.error('ProgramBuilder non chargé');
                 showToast('Erreur: ProgramBuilder non disponible', 'error');

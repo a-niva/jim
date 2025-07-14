@@ -1430,17 +1430,25 @@ def generate_comprehensive_program(
             for session_num in range(sessions_per_week):
                 focus_area = focus_rotation[session_num % len(selections.focus_areas)]
                 
-                # Récupérer exercices compatibles pour cette zone
-                exercises_query = db.query(Exercise).filter(
-                    Exercise.muscle_groups.contains([focus_area])
-                )
+                # Récupérer TOUS les exercices d'abord
+                all_exercises = db.query(Exercise).all()
                 
-                # Filtrer par équipement disponible
+                # Filtrer par muscle_groups en Python
                 available_exercises = []
-                for ex in exercises_query.all():
-                    if any(eq in user.equipment_config for eq in ex.equipment_required):
-                        available_exercises.append(ex)
+                available_equipment = EquipmentService.get_available_equipment_types(user.equipment_config)
                 
+                for ex in all_exercises:
+                    # Vérifier si l'exercice correspond au focus_area
+                    if ex.muscle_groups and any(focus_area.lower() in mg.lower() for mg in ex.muscle_groups):
+                        # Vérifier si l'équipement est disponible
+                        if can_perform_exercise(ex, list(available_equipment)):
+                            available_exercises.append(ex)
+                            
+                # Juste après avoir filtré available_exercises
+                if not available_exercises:
+                    logger.warning(f"Aucun exercice trouvé pour focus_area={focus_area}")
+                    continue  # Passer à la session suivante
+
                 # Créer pool d'exercices pour cette session
                 exercise_pool = []
                 for ex in available_exercises[:6]:  # Limiter à 6 exercices par session
