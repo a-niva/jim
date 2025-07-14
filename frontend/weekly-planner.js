@@ -36,8 +36,12 @@ class WeeklyPlannerView {
     async loadWeeklyPlanning() {
         const weekStart = this.currentWeekStart.toISOString().split('T')[0];
         this.planningData = await window.apiGet(`/api/users/${window.currentUser.id}/weekly-planning?week_start=${weekStart}`);
+        
+        // AJOUTER CES LOGS TEMPORAIRES
+        console.log('🔍 Planning data reçue:', this.planningData);
+        console.log('🔍 Structure planning_data:', this.planningData?.planning_data);
     }
-    
+        
     getCurrentWeekStart() {
         const now = new Date();
         const monday = new Date(now);
@@ -47,35 +51,64 @@ class WeeklyPlannerView {
     }
     
     render() {
+        console.log('🔍 render() appelé, planningData:', this.planningData);
+        
         if (!this.planningData) {
+            console.log('⚠️ Pas de planningData, affichage loading');
             this.renderLoading();
             return;
         }
         
+        console.log('🔍 Données planningData disponibles, structure:', Object.keys(this.planningData));
+        
         const isMobile = window.innerWidth <= 768;
         
-        this.container.innerHTML = `
-            <div class="weekly-planner ${isMobile ? 'mobile' : 'desktop'}">
-                <div class="planner-header">
-                    ${this.renderWeekNavigation()}
-                    ${this.renderWeekOverview()}
-                </div>
-                
-                <div class="planner-grid">
-                    ${this.renderWeekDays()}
-                </div>
-                
-                ${!isMobile ? `
-                    <div class="planner-sidebar">
-                        ${this.renderRecoveryStatus()}
-                        ${this.renderOptimizationSuggestions()}
+        try {
+            console.log('🔍 Génération du contenu HTML...');
+            
+            const navigationHTML = this.renderWeekNavigation();
+            console.log('✅ Navigation HTML généré');
+            
+            const overviewHTML = this.renderWeekOverview();
+            console.log('✅ Overview HTML généré');
+            
+            const weekDaysHTML = this.renderWeekDays();
+            console.log('✅ WeekDays HTML généré');
+            
+            // Méthodes pas encore implémentées - fallback temporaire
+            const recoveryHTML = this.renderRecoveryStatus ? this.renderRecoveryStatus() : '<p>Recovery status en développement</p>';
+            const optimizationHTML = this.renderOptimizationSuggestions ? this.renderOptimizationSuggestions() : '<p>Suggestions en développement</p>';
+            
+            this.container.innerHTML = `
+                <div class="weekly-planner ${isMobile ? 'mobile' : 'desktop'}">
+                    <div class="planner-header">
+                        ${navigationHTML}
+                        ${overviewHTML}
                     </div>
-                ` : ''}
-            </div>
-        `;
-        
-        // Ajouter les event listeners après le rendu
-        this.attachEventListeners();
+                    
+                    <div class="planner-grid">
+                        ${weekDaysHTML}
+                    </div>
+                    
+                    ${!isMobile ? `
+                        <div class="planner-sidebar">
+                            ${recoveryHTML}
+                            ${optimizationHTML}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            console.log('✅ HTML injecté dans le conteneur');
+            
+            // Ajouter les event listeners après le rendu
+            this.attachEventListeners();
+            console.log('✅ Event listeners attachés');
+            
+        } catch (error) {
+            console.error('❌ Erreur dans render():', error);
+            this.container.innerHTML = `<div class="error">Erreur de rendu: ${error.message}</div>`;
+        }
     }
     
     renderWeekNavigation() {
