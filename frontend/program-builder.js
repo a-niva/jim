@@ -130,6 +130,23 @@ class ProgramBuilder {
     
     renderIntroStep(content) {
         // Afficher l'étape d'introduction avec insights ML
+        if (!this.recommendations) {
+            content.innerHTML = `
+                <div class="intro-step">
+                    <div class="welcome-section">
+                        <h3>🎯 Créons votre programme idéal</h3>
+                        <p class="intro-text">
+                            Préparation de votre programme personnalisé en cours...
+                        </p>
+                    </div>
+                    <div class="error-message">
+                        <p>Impossible de charger les recommandations. Le programme sera créé avec les paramètres par défaut.</p>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+        
         const insights = this.recommendations.user_insights;
         
         content.innerHTML = `
