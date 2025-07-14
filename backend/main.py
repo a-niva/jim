@@ -1286,8 +1286,9 @@ def determine_rotation_pattern(focus_areas: List[str]) -> List[str]:
     else:
         return ["full_body"]
 
-# ===== NOUVEAUX ENDPOINTS PROGRAM BUILDER =====
 
+
+# ===== NOUVEAUX ENDPOINTS PROGRAM BUILDER =====
 @app.post("/api/users/{user_id}/program-builder/start", response_model=ProgramBuilderRecommendations)
 def start_program_builder(
     user_id: int, 
@@ -1326,7 +1327,16 @@ def start_program_builder(
         equipment_keys = list(user.equipment_config.keys()) if user.equipment_config else []
         if len(equipment_keys) < 3:
             user_insights.append("Équipement limité détecté - focus sur exercices polyarticulaires")
-        
+                
+        focus_options = [
+            {"value": "upper_body", "label": "Haut du corps", "recommended": True},
+            {"value": "legs", "label": "Jambes", "recommended": True},
+            {"value": "core", "label": "Abdominaux/Core", "recommended": user.experience_level == "beginner"},
+            {"value": "back", "label": "Dos", "recommended": False},
+            {"value": "shoulders", "label": "Épaules", "recommended": False},
+            {"value": "arms", "label": "Bras", "recommended": False}
+        ]
+
         # Générer questionnaire adaptatif (8-12 questions)
         questionnaire_items = [
             {
@@ -1334,8 +1344,8 @@ def start_program_builder(
                 "question": "Combien de séances d'entraînement par semaine souhaitez-vous ?",
                 "type": "single_choice",
                 "options": [
-                    {"value": 1, "label": "3 séances/semaine", "recommended": False},
-                    {"value": 2, "label": "3 séances/semaine", "recommended": user.experience_level == "beginner"},
+                    {"value": 1, "label": "1 séance/semaine", "recommended": False},
+                    {"value": 2, "label": "2 séances/semaine", "recommended": user.experience_level == "beginner"},
                     {"value": 3, "label": "3 séances/semaine", "recommended": user.experience_level == "intermediate"},
                     {"value": 4, "label": "4 séances/semaine", "recommended": user.experience_level in ["intermediate", "advanced"]},
                     {"value": 5, "label": "5 séances/semaine", "recommended": user.experience_level == "advanced"},
