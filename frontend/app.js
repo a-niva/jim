@@ -1176,6 +1176,9 @@ async function completeOnboarding() {
         currentUser = await apiPost('/api/users', userData);
         localStorage.setItem('fitness_user_id', currentUser.id);
         
+        // S'assurer que currentUser est bien défini globalement
+        window.currentUser = currentUser;
+        
         // Ajouter à la liste des profils
         const profiles = JSON.parse(localStorage.getItem('fitness_profiles') || '[]');
         if (!profiles.includes(currentUser.id)) {
@@ -1191,10 +1194,23 @@ async function completeOnboarding() {
             document.getElementById('onboarding').classList.remove('active');
             document.getElementById('progressContainer').style.display = 'none';
             
+            // Vérifier que currentUser est bien défini avant d'initialiser ProgramBuilder
+            if (!window.currentUser || !window.currentUser.id) {
+                console.error('currentUser non défini après création');
+                showToast('Erreur: Utilisateur non défini', 'error');
+                showMainInterface();
+                return;
+            }
+            
             // Initialiser le ProgramBuilder avec les données utilisateur
             // Vérifier que programBuilder est chargé
             if (typeof programBuilder !== 'undefined') {
-                programBuilder.initialize(userData);
+                // Passer userData enrichie avec l'ID utilisateur
+                const enrichedUserData = {
+                    ...userData,
+                    id: currentUser.id
+                };
+                programBuilder.initialize(enrichedUserData);
             } else {
                 console.error('ProgramBuilder non chargé');
                 showToast('Erreur: ProgramBuilder non disponible', 'error');

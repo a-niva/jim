@@ -17,10 +17,16 @@ class ProgramBuilder {
     }
     
     async initialize(userData) {
-    //  Initialiser le ProgramBuilder avec les données utilisateur de l'onboarding
+        //  Initialiser le ProgramBuilder avec les données utilisateur de l'onboarding
         this.userData = userData;
         
         try {
+            // Vérifier que currentUser est disponible
+            if (!window.currentUser || !window.currentUser.id) {
+                console.error('currentUser non disponible dans ProgramBuilder');
+                throw new Error('Utilisateur non connecté');
+            }
+            
             window.showToast('Analyse de votre profil...', 'info');
             
             //  Préparer les données pour l'API

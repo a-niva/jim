@@ -1,7 +1,3 @@
-// ===== frontend/session-quality-engine.js =====
-// Module de scoring unifié Phase 3.1
-// Exploite RecoveryTracker, VolumeOptimizer, structure réelle des données
-
 class SessionQualityEngine {
     /**
      * Calcule le score de qualité d'une session (0-100 points)
