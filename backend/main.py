@@ -1,4 +1,5 @@
 # ===== backend/main.py - VERSION REFACTORISÉE =====
+import traceback
 from fastapi import FastAPI, HTTPException, Depends, Query, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -1512,8 +1513,9 @@ def generate_comprehensive_program(
         
     except Exception as e:
         logger.error(f"Erreur génération programme pour user {user_id}: {str(e)}")
+        logger.error(f"Traceback complet: {traceback.format_exc()}")  # Ajouter ceci
         db.rollback()
-        raise HTTPException(status_code=500, detail="Erreur lors de la génération du programme")
+        raise HTTPException(status_code=500, detail=str(e))  # Modifier pour voir l'erreur
 
 @app.get("/api/users/{user_id}/comprehensive-program", response_model=ComprehensiveProgramResponse)
 def get_user_comprehensive_program(user_id: int, db: Session = Depends(get_db)):

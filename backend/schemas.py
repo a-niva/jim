@@ -361,7 +361,7 @@ class ComprehensiveProgramResponse(BaseModel):
     started_at: Optional[datetime]
     estimated_completion: Optional[datetime]
     base_quality_score: float
-    format_version: str
+    format_version: str = "2.0"
     created_at: datetime
     is_active: bool
     

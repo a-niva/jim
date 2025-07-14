@@ -287,7 +287,7 @@ class UserCommitment(Base):
     preferred_time = Column(String, nullable=True)  # "morning", "afternoon", "evening"
     
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc))
     
     user = relationship("User")
 
@@ -312,7 +312,7 @@ class AdaptiveTargets(Base):
     adaptation_rate = Column(Float, default=1.0)
     
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc))
     
     user = relationship("User")
 
@@ -332,7 +332,7 @@ class UserAdaptationCoefficients(Base):
     strength_endurance_ratio = Column(Float, default=0.5, nullable=False)
     optimal_volume_multiplier = Column(Float, default=1.0, nullable=False)
     
-    last_updated = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    last_updated = Column(DateTime, default=datetime.now(timezone.utc))
     
     # Relations
     user = relationship("User")
@@ -359,7 +359,7 @@ class PerformanceStates(Base):
     progression_pattern = Column(JSON, nullable=True)  # Patterns de progression observés
     
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc))
     
     # Relations
     user = relationship("User")
