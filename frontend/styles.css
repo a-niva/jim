@@ -6600,3 +6600,542 @@ background: rgba(255, 255, 255, 0.02);
     background: var(--bg-primary);
     border: 1px solid var(--border-color);
 }
+
+/* ===== AJOUTS PHASE 3.1 - SCORING & DRAG DROP =====
+   À ajouter à la fin du fichier styles.css existant
+   Utilise UNIQUEMENT les variables CSS préexistantes
+   ================================================= */
+
+/* === LOADING SPINNER GÉNÉRAL === */
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--border);
+    border-top: 4px solid var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* === SESSION PREP CONTAINER === */
+.session-prep-container {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+.program-summary {
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    text-align: center;
+}
+
+.summary-stat {
+    text-align: center;
+    min-width: 60px;
+}
+
+/* === QUALITY SCORING SECTION === */
+.quality-scoring-section {
+    margin-bottom: var(--spacing-lg);
+}
+
+.quality-gauge {
+    position: relative;
+    height: 50px;
+    background: linear-gradient(90deg, 
+        var(--danger) 0%,     /* Rouge pour scores bas */
+        var(--warning) 50%,   /* Orange pour scores moyens */
+        var(--success) 100%   /* Vert pour bons scores */
+    );
+    border-radius: 25px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.gauge-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: rgba(255,255,255,0.4);
+    border-radius: 25px;
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(2px);
+}
+
+/* === SCORE BREAKDOWN === */
+.score-breakdown-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+}
+
+.score-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius);
+    transition: background-color 0.2s ease;
+}
+
+.score-item:hover {
+    background: var(--bg-card);
+}
+
+.score-label {
+    font-size: var(--font-sm);
+    color: var(--text);
+}
+
+.score-value {
+    font-weight: 600;
+    color: var(--primary);
+    font-size: var(--font-sm);
+}
+
+/* === SUGGESTIONS SECTION === */
+.quality-suggestions {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05));
+    border-left: 4px solid var(--info);
+    padding: var(--spacing-md);
+    border-radius: var(--radius);
+    margin-bottom: var(--spacing-lg);
+}
+
+.quality-suggestions h5 {
+    margin: 0 0 var(--spacing-sm) 0;
+    color: var(--info);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.quality-suggestions ul {
+    margin: 0;
+    padding-left: var(--spacing-lg);
+    color: var(--text);
+}
+
+.quality-suggestions li {
+    margin-bottom: var(--spacing-xs);
+    font-size: var(--font-sm);
+}
+
+/* === OPTIMAL SUGGESTION === */
+.optimal-suggestion {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+    border-left: 4px solid var(--success);
+    padding: var(--spacing-md);
+    border-radius: var(--radius);
+    margin-bottom: var(--spacing-lg);
+    animation: slideInRight 0.5s ease;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* === EXERCISE REORDER LIST === */
+.exercise-reorder-list {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: var(--spacing-md);
+    background: var(--bg-tertiary);
+    min-height: 200px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.exercise-item {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    cursor: move;
+    transition: all 0.2s ease;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.exercise-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-color: var(--primary);
+}
+
+.exercise-item:last-child {
+    margin-bottom: 0;
+}
+
+/* === DRAG HANDLE === */
+.drag-handle {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: var(--font-lg);
+    margin-right: var(--spacing-md);
+    cursor: grab;
+    transition: color 0.2s ease;
+}
+
+.drag-handle:hover {
+    color: var(--primary);
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+/* === EXERCISE NUMBER BADGE === */
+.exercise-number {
+    min-width: 2.5rem;
+    height: 2.5rem;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: var(--spacing-md);
+    transition: background-color 0.3s ease;
+    font-size: var(--font-base);
+}
+
+.exercise-item:hover .exercise-number {
+    background: var(--primary-dark);
+}
+
+/* === EXERCISE INFO === */
+.exercise-info {
+    flex: 1;
+    min-width: 0; /* Permet text overflow */
+}
+
+.exercise-info > div:first-child {
+    font-weight: 500;
+    margin-bottom: var(--spacing-xs);
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.exercise-info > div:last-child {
+    font-size: var(--font-sm);
+    color: var(--text-muted);
+}
+
+/* === ÉTATS DE DRAG === */
+.exercise-item.dragging {
+    transform: scale(1.05) rotate(2deg);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    z-index: 1000;
+    opacity: 0.9;
+    transition: none !important;
+    pointer-events: none;
+}
+
+/* === SCORE DETAILS === */
+.score-details summary {
+    cursor: pointer;
+    color: var(--primary);
+    font-weight: 500;
+    padding: var(--spacing-sm);
+    border-radius: var(--radius);
+    transition: background-color 0.2s ease;
+}
+
+.score-details summary:hover {
+    background: var(--bg-secondary);
+}
+
+.score-details[open] summary {
+    margin-bottom: var(--spacing-sm);
+}
+
+/* === ANIMATIONS === */
+@keyframes scoreImprovement {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+@keyframes scoreDrop {
+    0% { transform: scale(1); }
+    50% { transform: scale(0.95); }
+    100% { transform: scale(1); }
+}
+
+/* === RESPONSIVE MOBILE === */
+@media (max-width: 768px) {
+    .session-prep-container {
+        padding: 0;
+    }
+    
+    .program-summary {
+        padding: var(--spacing-md);
+        margin-bottom: var(--spacing-md);
+    }
+    
+    .quality-gauge {
+        height: 45px;
+    }
+    
+    .score-breakdown-grid {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-sm);
+    }
+    
+    .quality-suggestions,
+    .optimal-suggestion {
+        padding: var(--spacing-sm);
+        margin-bottom: var(--spacing-md);
+    }
+    
+    /* Touch-friendly drag & drop */
+    .exercise-item {
+        padding: var(--spacing-lg) var(--spacing-md);
+        min-height: 60px;
+    }
+    
+    .drag-handle {
+        width: 48px;
+        height: 48px;
+        font-size: 1.4rem;
+    }
+    
+    .exercise-number {
+        min-width: 3rem;
+        height: 3rem;
+        font-size: var(--font-lg);
+    }
+    
+    .exercise-item.dragging {
+        transform: scale(1.08) rotate(1deg);
+    }
+    
+    .summary-stat {
+        min-width: 70px;
+    }
+    
+    /* Améliorer lisibilité mobile */
+    .score-item {
+        padding: var(--spacing-md) var(--spacing-sm);
+    }
+    
+    .score-label,
+    .score-value {
+        font-size: var(--font-xs);
+    }
+}
+
+/* === RESPONSIVE TABLET === */
+@media (min-width: 768px) and (max-width: 1023px) {
+    .score-breakdown-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .exercise-reorder-list {
+        max-height: 350px;
+    }
+}
+
+/* === RESPONSIVE DESKTOP === */
+@media (min-width: 1024px) {
+    .score-breakdown-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .exercise-item {
+        padding: var(--spacing-md) var(--spacing-lg);
+    }
+    
+    .exercise-reorder-list {
+        max-height: 400px;
+    }
+    
+    /* Hover states plus subtils sur desktop */
+    .exercise-item:hover {
+        transform: translateY(-1px);
+    }
+    
+    .drag-handle:hover {
+        transform: scale(1.1);
+    }
+}
+
+/* === ACCESSIBILITÉ === */
+@media (prefers-reduced-motion: reduce) {
+    .exercise-item,
+    .gauge-fill,
+    .exercise-number,
+    .optimal-suggestion {
+        transition: none !important;
+        animation: none !important;
+    }
+    
+    .exercise-item:hover {
+        transform: none;
+    }
+}
+
+/* === CONTRASTE ÉLEVÉ === */
+@media (prefers-contrast: high) {
+    .exercise-item {
+        border-width: 2px;
+    }
+    
+    .quality-gauge {
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
+    }
+    
+    .gauge-fill {
+        backdrop-filter: none;
+        background: rgba(255,255,255,0.6);
+    }
+}
+
+/* === DARK MODE AMÉLIORATIONS === */
+@media (prefers-color-scheme: dark) {
+    .quality-gauge {
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
+    }
+    
+    .exercise-item {
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    
+    .exercise-item:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    
+    .exercise-item.dragging {
+        box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+    }
+}
+
+/* === TOOLTIPS POUR SCORE BREAKDOWN === */
+.score-item[data-tooltip] {
+    position: relative;
+    cursor: help;
+}
+
+.score-item[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    top: -3rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg);
+    color: var(--text);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius);
+    font-size: var(--font-xs);
+    white-space: nowrap;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    border: 1px solid var(--border);
+}
+
+.score-item[data-tooltip]:hover::before {
+    content: '';
+    position: absolute;
+    top: -0.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 0.5rem solid transparent;
+    border-top-color: var(--border);
+    z-index: 1000;
+}
+
+/* === INDICATEURS DE PERFORMANCE === */
+.performance-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-left: var(--spacing-xs);
+}
+
+.performance-indicator.good {
+    background: var(--success);
+}
+
+.performance-indicator.medium {
+    background: var(--warning);
+}
+
+.performance-indicator.poor {
+    background: var(--danger);
+}
+
+/* === FEEDBACK VISUEL AMÉLIORATION === */
+.score-improved {
+    animation: scoreImprovement 0.6s ease;
+}
+
+.score-decreased {
+    animation: scoreDrop 0.6s ease;
+}
+
+/* === LOADING STATES SPÉCIALISÉS === */
+.reorder-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xl);
+    color: var(--text-muted);
+}
+
+.reorder-loading .loading-spinner {
+    width: 30px;
+    height: 30px;
+    margin-right: var(--spacing-md);
+}
+
+/* === FOCUS STATES POUR ACCESSIBILITÉ === */
+.exercise-item:focus-within {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.score-details summary:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* === CORRECTIONS SAFARI MOBILES === */
+@supports (-webkit-touch-callout: none) {
+    .exercise-item {
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+    }
+    
+    .drag-handle {
+        -webkit-touch-callout: none;
+    }
+}

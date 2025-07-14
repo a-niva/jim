@@ -50,6 +50,17 @@ let workoutState = {
     pendingSetData: null
 };
 
+// === VARIABLES PHASE 3.1 - SCORING ===
+let currentScoringData = null;
+let draggedElement = null;
+let lastKnownScore = null;
+
+// Stocke les données de scoring pour utilisation ultérieure
+function storeCurrentScoringData(scoringData) {
+    currentScoringData = scoringData;
+    lastKnownScore = scoringData.currentScore.total;
+}
+
 function transitionTo(state) {
     // CONSERVER LA LOGIQUE EXISTANTE DE NETTOYAGE DES TIMERS
     switch(workoutState.current) {
@@ -1164,8 +1175,6 @@ async function completeOnboarding() {
         // Créer l'utilisateur
         currentUser = await apiPost('/api/users', userData);
         localStorage.setItem('fitness_user_id', currentUser.id);
-        // Assigner aussi à window pour que ProgramBuilder puisse y accéder
-        window.currentUser = currentUser;
         
         // Ajouter à la liste des profils
         const profiles = JSON.parse(localStorage.getItem('fitness_profiles') || '[]');
@@ -1185,7 +1194,7 @@ async function completeOnboarding() {
             // Initialiser le ProgramBuilder avec les données utilisateur
             // Vérifier que programBuilder est chargé
             if (typeof programBuilder !== 'undefined') {
-                programBuilder.initialize(currentUser);
+                programBuilder.initialize(userData);
             } else {
                 console.error('ProgramBuilder non chargé');
                 showToast('Erreur: ProgramBuilder non disponible', 'error');
@@ -2732,117 +2741,388 @@ function showSessionPreview(metadata) {
 
 
 // Fonction helper pour enrichir le modal de démarrage
-function showProgramStartModal(program) {
+
+async function showProgramStartModal(program) {
     if (!program) {
         console.error('Programme invalide pour le modal');
         return;
     }
     
-    // Calculer la durée estimée et le nombre d'exercices
-    const exerciseCount = program.exercises.length;
-    const estimatedDuration = program.session_duration_minutes || 45;
-    const isMLSelected = program.exercises[0]?.ml_selected || false;
-    const formatType = currentWorkoutSession?.formatUsed || 'unknown';
+    // === PHASE 1 : AFFICHAGE LOADING ===
+    showModal('Préparation de votre séance...', `
+        <div style="text-align: center; padding: var(--spacing-xl);">
+            <div class="loading-spinner"></div>
+            <p style="color: var(--text-muted); margin-top: var(--spacing-md);">
+                Analyse intelligente en cours...
+            </p>
+        </div>
+    `);
     
-    // Vérifier si les éléments modal existent
-    const modalElement = document.getElementById('modal');
-    const modalTitle = document.getElementById('modalTitle');
-    const modalBody = document.getElementById('modalBody');
+    // === PHASE 2 : CALCULS SCORING ASYNCHRONES ===
+    let scoringData = null;
+    let userContext = { user_id: currentUser.id, program_id: program.id };
     
-    if (!modalElement || !modalTitle || !modalBody) {
-        // Fallback : utiliser confirm() temporaire
-        const message = `🚀 Démarrer "${program.name}" ?\n\n` +
-                       `📊 ${exerciseCount} exercices (${estimatedDuration}min)\n` +
-                       `${isMLSelected ? '🧠 Sélection ML activée' : '📋 Programme standard'}\n` +
-                       `🎯 Format: ${formatType === 'pool' ? 'Pool dynamique' : 'Liste statique'}`;
+    try {
+        console.log('🔄 Début calcul scoring pour', program.exercises.length, 'exercices');
         
-        if (confirm(message)) {
-            confirmStartProgramWorkout();
-        }
-        return;
+        const [currentScore, optimalOrder] = await Promise.all([
+            SessionQualityEngine.calculateScore(program.exercises, userContext),
+            SessionQualityEngine.generateOptimalOrder(program.exercises, userContext)
+        ]);
+        
+        const optimalScore = await SessionQualityEngine.calculateScore(optimalOrder, userContext);
+        
+        scoringData = { currentScore, optimalOrder, optimalScore };
+        console.log('✅ Scoring terminé:', currentScore.total, '→', optimalScore.total);
+        
+    } catch (error) {
+        console.error('❌ Erreur calcul scoring:', error);
+        // Fallback gracieux
+        scoringData = {
+            currentScore: SessionQualityEngine.getFallbackScore(),
+            optimalOrder: program.exercises,
+            optimalScore: SessionQualityEngine.getFallbackScore()
+        };
     }
     
-    // Créer le contenu du modal enrichi
-    const modalContentHTML = `
-        <div class="program-start-info">
-            <h3>${program.name}</h3>
-            <div class="program-details">
-                <p><strong>Exercices :</strong> ${exerciseCount}</p>
-                <p><strong>Durée estimée :</strong> ${estimatedDuration} min</p>
-                <p><strong>Focus :</strong> ${program.focus_areas?.join(', ') || 'Non spécifié'}</p>
-                ${isMLSelected ? `
-                    <p><strong>🧠 Sélection :</strong> Intelligence ML activée</p>
-                ` : `
-                    <p><strong>📋 Sélection :</strong> Programme standard</p>
-                `}
-                <p><strong>Format :</strong> ${formatType === 'pool' ? 'Pool dynamique' : 'Liste statique'}</p>
+    // === PHASE 3 : CONTENU MODAL ENRICHI ===
+    const exerciseCount = program.exercises.length;
+    const estimatedDuration = program.session_duration_minutes || 
+                             program.exercises.reduce((total, ex) => total + ((ex.sets || 3) * 2.5), 0);
+    const isMLSelected = program.exercises[0]?.ml_selected || false;
+    
+    const modalContent = buildEnhancedModalContent(program, scoringData, {
+        exerciseCount,
+        estimatedDuration: Math.round(estimatedDuration),
+        isMLSelected
+    });
+    
+    // === PHASE 4 : AFFICHAGE FINAL ===
+    showModal('🎯 Préparation séance intelligente', modalContent);
+    
+    // === PHASE 5 : INITIALISATION DRAG & DROP ===
+    setTimeout(() => {
+        initializeExerciseReorder(program.exercises, scoringData);
+        storeCurrentScoringData(scoringData); // Pour réorganisations futures
+    }, 150);
+}
+
+/**
+ * Construit le contenu HTML du modal enrichi
+ * Utilise les variables CSS existantes et la structure cohérente
+ */
+function buildEnhancedModalContent(program, scoringData, metadata) {
+    const { currentScore, optimalScore } = scoringData;
+    const hasOptimalImprovement = optimalScore.total > currentScore.total + 3; // Seuil significatif
+    
+    return `
+        <div class="session-prep-container">
+            <!-- En-tête programme -->
+            <div class="program-summary" style="
+                text-align: center;
+                padding: var(--spacing-lg);
+                background: var(--bg-secondary);
+                border-radius: var(--radius);
+                margin-bottom: var(--spacing-lg);
+            ">
+                <h3 style="margin: 0 0 var(--spacing-sm) 0; color: var(--primary);">
+                    ${program.name}
+                </h3>
+                <div style="display: flex; justify-content: space-around; gap: var(--spacing-md); margin-top: var(--spacing-md);">
+                    <div class="summary-stat">
+                        <div style="font-size: var(--font-xl); font-weight: bold; color: var(--text);">
+                            ${metadata.exerciseCount}
+                        </div>
+                        <div style="font-size: var(--font-sm); color: var(--text-muted);">
+                            exercices
+                        </div>
+                    </div>
+                    <div class="summary-stat">
+                        <div style="font-size: var(--font-xl); font-weight: bold; color: var(--text);">
+                            ~${metadata.estimatedDuration}
+                        </div>
+                        <div style="font-size: var(--font-sm); color: var(--text-muted);">
+                            minutes
+                        </div>
+                    </div>
+                    ${metadata.isMLSelected ? `
+                        <div class="summary-stat">
+                            <div style="font-size: var(--font-xl); color: var(--primary);">
+                                🧠
+                            </div>
+                            <div style="font-size: var(--font-sm); color: var(--primary);">
+                                ML actif
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
             </div>
             
-            ${isMLSelected ? `
-                <div class="ml-info" style="
-                    background: var(--primary-light); 
-                    border-radius: 8px; 
-                    padding: 1rem; 
-                    margin: 1rem 0;
-                    border-left: 4px solid var(--primary);
+            <!-- Jauge scoring principale -->
+            <div class="quality-scoring-section" style="margin-bottom: var(--spacing-lg);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
+                    <h4 style="margin: 0; color: var(--text);">Score de qualité</h4>
+                    <span style="font-size: var(--font-sm); color: var(--text-muted); padding: var(--spacing-xs) var(--spacing-sm); background: var(--bg-tertiary); border-radius: var(--radius);">
+                        ${Math.round(currentScore.confidence * 100)}% confiance
+                    </span>
+                </div>
+                
+                <div class="quality-gauge" style="
+                    position: relative;
+                    height: 50px;
+                    background: linear-gradient(90deg, var(--danger) 0%, var(--warning) 50%, var(--success) 100%);
+                    border-radius: 25px;
+                    overflow: hidden;
+                    box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
                 ">
-                    <h4 style="margin: 0 0 0.5rem 0; color: var(--primary);">
-                        🎯 Exercices sélectionnés intelligemment
-                    </h4>
-                    <p style="margin: 0; font-size: 0.9rem; color: var(--text-muted);">
-                        Basé sur votre récupération musculaire, historique et objectifs
-                    </p>
+                    <div class="gauge-fill" style="
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: ${currentScore.total}%;
+                        height: 100%;
+                        background: rgba(255,255,255,0.4);
+                        border-radius: 25px;
+                        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+                        backdrop-filter: blur(2px);
+                    "></div>
+                    <div style="
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        font-weight: bold;
+                        font-size: var(--font-lg);
+                        color: white;
+                        text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+                        z-index: 2;
+                    ">
+                        ${currentScore.total}/100
+                    </div>
+                </div>
+                
+                <!-- Breakdown détaillé -->
+                <details style="margin-top: var(--spacing-md);" class="score-details">
+                    <summary style="
+                        cursor: pointer;
+                        color: var(--primary);
+                        font-weight: 500;
+                        padding: var(--spacing-sm);
+                        border-radius: var(--radius);
+                        transition: background-color 0.2s ease;
+                    ">
+                        📊 Détail des scores
+                    </summary>
+                    <div style="
+                        margin-top: var(--spacing-sm);
+                        padding: var(--spacing-md);
+                        background: var(--bg-secondary);
+                        border-radius: var(--radius);
+                    ">
+                        ${renderScoreBreakdown(currentScore.breakdown)}
+                    </div>
+                </details>
+            </div>
+            
+            <!-- Suggestions d'amélioration -->
+            ${currentScore.suggestions.length > 0 ? `
+                <div class="quality-suggestions" style="
+                    background: var(--info);
+                    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05));
+                    border-left: 4px solid var(--info);
+                    padding: var(--spacing-md);
+                    border-radius: var(--radius);
+                    margin-bottom: var(--spacing-lg);
+                ">
+                    <h5 style="margin: 0 0 var(--spacing-sm) 0; color: var(--info); display: flex; align-items: center; gap: var(--spacing-sm);">
+                        💡 Suggestions d'optimisation
+                    </h5>
+                    <ul style="margin: 0; padding-left: var(--spacing-lg); color: var(--text);">
+                        ${currentScore.suggestions.map(s => `<li style="margin-bottom: var(--spacing-xs); font-size: var(--font-sm);">${s}</li>`).join('')}
+                    </ul>
                 </div>
             ` : ''}
             
-            <div class="exercise-list" style="margin-top: 1rem; max-height: 200px; overflow-y: auto;">
-                <h4>Programme du jour :</h4>
-                <ul style="list-style: none; padding: 0;">
-                    ${program.exercises.map((ex, index) => `
-                        <li style="
-                            padding: 0.5rem 0; 
-                            border-bottom: 1px solid var(--border);
-                            display: flex;
-                            justify-content: space-between;
-                            align-items: center;
-                        ">
-                            <span>
-                                ${index + 1}. ${ex.exercise_name} 
-                                <small style="color: var(--text-muted);">
-                                    (${ex.sets || 3}×${ex.reps_min || 10}-${ex.reps_max || 12})
-                                </small>
-                            </span>
-                            ${ex.ml_selected && ex.priority_score ? `
-                                <small style="
-                                    background: var(--primary-light);
-                                    color: var(--primary);
-                                    padding: 0.2rem 0.4rem;
-                                    border-radius: 4px;
-                                    font-weight: 500;
-                                ">
-                                    ${ex.priority_score.toFixed(2)}
-                                </small>
-                            ` : ''}
-                        </li>
-                    `).join('')}
-                </ul>
+            <!-- Suggestion ordre optimal -->
+            ${hasOptimalImprovement ? `
+                <div class="optimal-suggestion" style="
+                    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+                    border-left: 4px solid var(--success);
+                    padding: var(--spacing-md);
+                    border-radius: var(--radius);
+                    margin-bottom: var(--spacing-lg);
+                    animation: slideInRight 0.5s ease;
+                ">
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-md);">
+                        <div>
+                            <strong style="color: var(--success);">🎯 Ordre optimal disponible</strong><br>
+                            <small style="color: var(--text-muted);">
+                                Score amélioré : ${currentScore.total} → ${optimalScore.total} (+${optimalScore.total - currentScore.total})
+                            </small>
+                        </div>
+                        <button onclick="applyOptimalOrder()" style="
+                            background: var(--success);
+                            color: white;
+                            border: none;
+                            padding: var(--spacing-sm) var(--spacing-md);
+                            border-radius: var(--radius);
+                            cursor: pointer;
+                            font-weight: 500;
+                            transition: opacity 0.2s ease;
+                        " onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">
+                            Appliquer
+                        </button>
+                    </div>
+                </div>
+            ` : ''}
+            
+            <!-- Liste exercices réorganisable -->
+            <div class="reorder-section">
+                <h5 style="margin: 0 0 var(--spacing-md) 0; color: var(--text); display: flex; align-items: center; justify-content: space-between;">
+                    📋 Ordre des exercices
+                    <small style="color: var(--text-muted); font-weight: normal;">glissez pour réorganiser</small>
+                </h5>
+                
+                <div id="exerciseReorderList" class="exercise-reorder-list" style="
+                    border: 2px dashed var(--border);
+                    border-radius: var(--radius);
+                    padding: var(--spacing-md);
+                    background: var(--bg-tertiary);
+                    min-height: 200px;
+                    max-height: 300px;
+                    overflow-y: auto;
+                ">
+                    ${program.exercises.map((ex, index) => buildExerciseItemHTML(ex, index)).join('')}
+                </div>
+                
+                <div style="text-align: center; margin-top: var(--spacing-md); color: var(--text-muted); font-size: var(--font-sm);">
+                    💡 Réorganisez pour optimiser votre score automatiquement
+                </div>
             </div>
         </div>
         
-        <div class="modal-actions" style="margin-top: 1.5rem; display: flex; gap: 1rem;">
-            <button class="btn btn-secondary" onclick="closeModal()" style="flex: 1;">
-                Annuler
+        <!-- Actions du modal -->
+        <div style="
+            margin-top: var(--spacing-xl);
+            display: flex;
+            gap: var(--spacing-md);
+            padding-top: var(--spacing-lg);
+            border-top: 1px solid var(--border);
+        ">
+            <button onclick="closeModal()" style="
+                flex: 1;
+                background: var(--secondary);
+                color: white;
+                border: none;
+                padding: var(--spacing-md);
+                border-radius: var(--radius);
+                cursor: pointer;
+                font-weight: 500;
+                transition: opacity 0.2s ease;
+            " onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">
+                ❌ Annuler
             </button>
-            <button class="btn btn-primary" onclick="confirmStartProgramWorkout()" style="flex: 2;">
+            <button onclick="confirmStartProgramWorkout()" style="
+                flex: 2;
+                background: var(--primary);
+                color: white;
+                border: none;
+                padding: var(--spacing-md);
+                border-radius: var(--radius);
+                cursor: pointer;
+                font-weight: 500;
+                transition: opacity 0.2s ease;
+            " onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">
                 🚀 Commencer la séance
             </button>
         </div>
     `;
-    
-    // Afficher le modal
-    modalTitle.textContent = 'Démarrage séance programme';
-    modalBody.innerHTML = modalContentHTML;
-    modalElement.style.display = 'flex';
+}
+
+/**
+ * Génère HTML pour un item d'exercice dans la liste réorganisable
+ */
+function buildExerciseItemHTML(exercise, index) {
+    return `
+        <div class="exercise-item" data-exercise-id="${exercise.exercise_id}" data-index="${index}" style="
+            display: flex;
+            align-items: center;
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            cursor: move;
+            transition: all 0.2s ease;
+            touch-action: none;
+        ">
+            <!-- Drag handle -->
+            <div class="drag-handle" style="
+                width: 44px;
+                height: 44px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: var(--text-muted);
+                font-size: var(--font-lg);
+                margin-right: var(--spacing-md);
+                cursor: grab;
+                transition: color 0.2s ease;
+            " onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-muted)'">
+                ⋮⋮
+            </div>
+            
+            <!-- Numéro ordre -->
+            <div class="exercise-number" style="
+                min-width: 2.5rem;
+                height: 2.5rem;
+                background: var(--primary);
+                color: white;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: bold;
+                margin-right: var(--spacing-md);
+                transition: background-color 0.3s ease;
+            ">
+                ${index + 1}
+            </div>
+            
+            <!-- Info exercice -->
+            <div class="exercise-info" style="flex: 1; min-width: 0;">
+                <div style="font-weight: 500; margin-bottom: var(--spacing-xs); color: var(--text);">
+                    ${exercise.exercise_name}
+                </div>
+                <div style="font-size: var(--font-sm); color: var(--text-muted);">
+                    ${exercise.sets || 3}×${exercise.reps_min || 8}-${exercise.reps_max || 12}
+                    ${exercise.predicted_weight ? ` • ${exercise.predicted_weight}kg` : ''}
+                </div>
+            </div>
+            
+            <!-- Score ML si disponible -->
+            ${exercise.ml_selected && exercise.priority_score ? `
+                <div style="
+                    background: var(--primary);
+                    color: white;
+                    padding: var(--spacing-xs) var(--spacing-sm);
+                    border-radius: var(--radius);
+                    font-size: var(--font-xs);
+                    font-weight: 500;
+                ">
+                    ${exercise.priority_score.toFixed(2)}
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
+
+/**
+ * Stocke les données de scoring pour utilisation ultérieure
+ */
+function storeCurrentScoringData(scoringData) {
+    currentScoringData = scoringData;
+    lastKnownScore = scoringData.currentScore.total;
 }
 
 // Nouvelle fonction pour afficher le panneau de preview
@@ -8896,6 +9176,469 @@ function addSwipeToExerciseCards() {
     }, 100);
 }
 
+
+// === FONCTIONS DRAG & DROP INTEGRATION PARFAITE ===
+
+/**
+ * Initialise le système de drag & drop pour réorganisation exercices
+ * @param {Array} originalExercises - Exercices originaux du programme
+ * @param {Object} scoringData - Données de scoring pour recalculs
+ */
+function initializeExerciseReorder(originalExercises, scoringData) {
+    const container = document.getElementById('exerciseReorderList');
+    if (!container) {
+        console.warn('Container exerciseReorderList non trouvé');
+        return;
+    }
+    
+    // Stocker données pour utilisation dans les callbacks
+    container.dataset.originalExercises = JSON.stringify(originalExercises);
+    
+    // Ajouter event listeners pour chaque exercice
+    const exerciseItems = container.querySelectorAll('.exercise-item');
+    exerciseItems.forEach(item => {
+        // Events touch pour mobile (priorité mobile-first)
+        item.addEventListener('touchstart', handleTouchStart, { passive: false });
+        item.addEventListener('touchmove', handleTouchMove, { passive: false });
+        item.addEventListener('touchend', handleTouchEnd, { passive: false });
+        
+        // Events souris pour desktop
+        item.addEventListener('mousedown', handleMouseDown);
+        
+        // Désactiver le drag HTML5 natif
+        item.addEventListener('dragstart', e => e.preventDefault());
+    });
+    
+    // Listeners globaux pour le drag
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    
+    console.log('✅ Drag & drop initialisé pour', exerciseItems.length, 'exercices');
+}
+
+/**
+ * Démarre le drag sur touch mobile
+ */
+function handleTouchStart(e) {
+    if (!e.target.closest('.exercise-item')) return;
+    
+    draggedElement = e.target.closest('.exercise-item');
+    startDragVisualFeedback(draggedElement);
+    
+    // Feedback haptique léger si supporté
+    if (navigator.vibrate) {
+        navigator.vibrate(30);
+    }
+    
+    // Empêcher le scroll pendant le drag
+    e.preventDefault();
+}
+
+/**
+ * Gère le déplacement touch
+ */
+function handleTouchMove(e) {
+    if (!draggedElement) return;
+    e.preventDefault();
+    
+    const touch = e.touches[0];
+    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    const targetItem = elementBelow?.closest('.exercise-item');
+    
+    if (targetItem && targetItem !== draggedElement) {
+        reorderExercisesInDOM(draggedElement, targetItem);
+    }
+}
+
+/**
+ * Termine le drag touch
+ */
+function handleTouchEnd(e) {
+    if (draggedElement) {
+        finalizeDragOperation();
+    }
+}
+
+/**
+ * Démarre le drag souris desktop
+ */
+function handleMouseDown(e) {
+    // Seulement si clic sur la zone de drag ou l'exercice lui-même
+    if (!e.target.closest('.exercise-item')) return;
+    
+    draggedElement = e.target.closest('.exercise-item');
+    startDragVisualFeedback(draggedElement);
+    
+    // Changer curseur
+    document.body.style.cursor = 'grabbing';
+}
+
+/**
+ * Gère le déplacement souris
+ */
+function handleMouseMove(e) {
+    if (!draggedElement) return;
+    
+    const elementBelow = document.elementFromPoint(e.clientX, e.clientY);
+    const targetItem = elementBelow?.closest('.exercise-item');
+    
+    if (targetItem && targetItem !== draggedElement) {
+        reorderExercisesInDOM(draggedElement, targetItem);
+    }
+}
+
+/**
+ * Termine le drag souris
+ */
+function handleMouseUp(e) {
+    if (draggedElement) {
+        finalizeDragOperation();
+    }
+    
+    // Restaurer curseur
+    document.body.style.cursor = '';
+}
+
+/**
+ * Applique le feedback visuel de début de drag
+ */
+function startDragVisualFeedback(element) {
+    element.style.transform = 'scale(1.05) rotate(2deg)';
+    element.style.boxShadow = '0 8px 25px rgba(0,0,0,0.2)';
+    element.style.zIndex = '1000';
+    element.style.opacity = '0.9';
+    
+    // Ajouter classe pour styles CSS
+    element.classList.add('dragging');
+}
+
+/**
+ * Réorganise les éléments dans le DOM
+ */
+function reorderExercisesInDOM(draggedItem, targetItem) {
+    const container = draggedItem.parentNode;
+    const draggedIndex = Array.from(container.children).indexOf(draggedItem);
+    const targetIndex = Array.from(container.children).indexOf(targetItem);
+    
+    // Éviter les mouvements inutiles
+    if (Math.abs(draggedIndex - targetIndex) < 1) return;
+    
+    // Insérer selon la direction
+    if (draggedIndex < targetIndex) {
+        container.insertBefore(draggedItem, targetItem.nextSibling);
+    } else {
+        container.insertBefore(draggedItem, targetItem);
+    }
+    
+    // Mettre à jour immédiatement les numéros
+    updateExerciseNumbers();
+    
+    // Feedback visuel léger pour le mouvement
+    targetItem.style.transition = 'transform 0.2s ease';
+    targetItem.style.transform = 'scale(1.02)';
+    setTimeout(() => {
+        targetItem.style.transform = '';
+        targetItem.style.transition = '';
+    }, 200);
+}
+
+/**
+ * Met à jour les numéros d'ordre des exercices
+ */
+function updateExerciseNumbers() {
+    const container = document.getElementById('exerciseReorderList');
+    if (!container) return;
+    
+    const items = container.querySelectorAll('.exercise-item');
+    items.forEach((item, index) => {
+        const numberElement = item.querySelector('.exercise-number');
+        if (numberElement) {
+            numberElement.textContent = index + 1;
+            
+            // Animation subtile du changement
+            numberElement.style.transition = 'background-color 0.3s ease';
+            numberElement.style.backgroundColor = 'var(--success)';
+            setTimeout(() => {
+                numberElement.style.backgroundColor = 'var(--primary)';
+            }, 300);
+        }
+    });
+}
+
+/**
+ * Finalise l'opération de drag et recalcule le score
+ */
+async function finalizeDragOperation() {
+    if (!draggedElement) return;
+    
+    try {
+        // Restaurer l'apparence visuelle
+        draggedElement.style.transform = '';
+        draggedElement.style.boxShadow = '';
+        draggedElement.style.zIndex = '';
+        draggedElement.style.opacity = '';
+        draggedElement.classList.remove('dragging');
+        
+        // Récupérer le nouvel ordre
+        const newOrder = getCurrentExerciseOrder();
+        if (!newOrder || newOrder.length === 0) {
+            console.warn('Impossible de récupérer nouvel ordre');
+            return;
+        }
+        
+        // Recalculer le score avec le nouvel ordre
+        const userContext = { user_id: currentUser.id };
+        const newScore = await SessionQualityEngine.recalculateAfterReorder(newOrder, userContext);
+        
+        // Mettre à jour l'affichage du score
+        updateScoreDisplay(newScore);
+        
+        // Feedback utilisateur basé sur l'amélioration
+        const scoreDelta = newScore.total - (lastKnownScore || newScore.total);
+        showScoreChangeFeedback(scoreDelta);
+        
+        // Mettre à jour le score de référence
+        lastKnownScore = newScore.total;
+        
+        // Stocker le nouvel ordre dans la session
+        if (currentWorkoutSession && currentWorkoutSession.program) {
+            currentWorkoutSession.program.exercises = newOrder;
+        }
+        
+    } catch (error) {
+        console.error('❌ Erreur finalisation drag:', error);
+        showToast('Erreur lors du recalcul du score', 'error');
+    } finally {
+        draggedElement = null;
+    }
+}
+
+/**
+ * Récupère l'ordre actuel des exercices depuis le DOM
+ */
+function getCurrentExerciseOrder() {
+    const container = document.getElementById('exerciseReorderList');
+    if (!container) return [];
+    
+    try {
+        const originalExercises = JSON.parse(container.dataset.originalExercises || '[]');
+        const items = container.querySelectorAll('.exercise-item');
+        
+        return Array.from(items).map(item => {
+            const exerciseId = parseInt(item.dataset.exerciseId);
+            return originalExercises.find(ex => ex.exercise_id === exerciseId);
+        }).filter(Boolean);
+        
+    } catch (error) {
+        console.error('Erreur récupération ordre exercices:', error);
+        return [];
+    }
+}
+
+/**
+ * Met à jour l'affichage du score dans la jauge
+ */
+function updateScoreDisplay(newScore) {
+    const gaugeFill = document.querySelector('.gauge-fill');
+    const gaugeValue = document.querySelector('.quality-gauge div:last-child');
+    
+    if (gaugeFill) {
+        // Animation fluide de la jauge
+        gaugeFill.style.width = `${newScore.total}%`;
+        
+        // Changement de couleur si amélioration significative
+        if (newScore.total > (lastKnownScore || 0) + 5) {
+            gaugeFill.style.background = 'rgba(16, 185, 129, 0.6)'; // Vert temporaire
+            setTimeout(() => {
+                gaugeFill.style.background = 'rgba(255,255,255,0.4)';
+            }, 1000);
+        }
+    }
+    
+    if (gaugeValue) {
+        gaugeValue.textContent = `${newScore.total}/100`;
+        
+        // Animation du texte si amélioration
+        if (newScore.total > (lastKnownScore || 0)) {
+            gaugeValue.style.animation = 'scoreImprovement 0.6s ease';
+            setTimeout(() => {
+                gaugeValue.style.animation = '';
+            }, 600);
+        }
+    }
+}
+
+/**
+ * Affiche un feedback à l'utilisateur selon le changement de score
+ */
+function showScoreChangeFeedback(scoreDelta) {
+    if (scoreDelta > 5) {
+        showToast(`🎯 Excellent ! Score amélioré de ${scoreDelta} points`, 'success');
+        
+        // Feedback haptique positif
+        if (navigator.vibrate) {
+            navigator.vibrate([50, 100, 50]);
+        }
+    } else if (scoreDelta > 0) {
+        showToast(`📈 Score amélioré de ${scoreDelta} point${scoreDelta > 1 ? 's' : ''}`, 'success');
+    } else if (scoreDelta < -3) {
+        showToast(`📉 Score réduit de ${Math.abs(scoreDelta)} points`, 'warning');
+    }
+    
+    // Pas de feedback pour les petites variations (±1-2 points)
+}
+
+/**
+ * Applique l'ordre optimal suggéré par le ML
+ */
+async function applyOptimalOrder() {
+    if (!currentScoringData || !currentScoringData.optimalOrder) {
+        console.error('Données ordre optimal non disponibles');
+        return;
+    }
+    
+    try {
+        const container = document.getElementById('exerciseReorderList');
+        if (!container) return;
+        
+        // Afficher loading temporaire
+        const originalHTML = container.innerHTML;
+        container.innerHTML = `
+            <div style="text-align: center; padding: var(--spacing-xl); color: var(--text-muted);">
+                <div class="loading-spinner" style="width: 30px; height: 30px;"></div>
+                <p style="margin-top: var(--spacing-md);">Application de l'ordre optimal...</p>
+            </div>
+        `;
+        
+        // Délai pour l'animation
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Régénérer la liste dans l'ordre optimal
+        const optimalHTML = currentScoringData.optimalOrder
+            .map((ex, index) => buildExerciseItemHTML(ex, index))
+            .join('');
+        
+        container.innerHTML = optimalHTML;
+        
+        // Réinitialiser le drag & drop
+        setTimeout(() => {
+            initializeExerciseReorder(currentScoringData.optimalOrder, currentScoringData);
+            updateExerciseNumbers();
+        }, 100);
+        
+        // Mettre à jour le score
+        const newScore = currentScoringData.optimalScore;
+        updateScoreDisplay(newScore);
+        lastKnownScore = newScore.total;
+        
+        // Feedback utilisateur
+        showToast('✨ Ordre optimal appliqué avec succès !', 'success');
+        
+        // Masquer la suggestion d'ordre optimal
+        const suggestion = document.querySelector('.optimal-suggestion');
+        if (suggestion) {
+            suggestion.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+            suggestion.style.opacity = '0';
+            suggestion.style.transform = 'translateX(20px)';
+            setTimeout(() => suggestion.remove(), 500);
+        }
+        
+        // Mettre à jour la session
+        if (currentWorkoutSession && currentWorkoutSession.program) {
+            currentWorkoutSession.program.exercises = currentScoringData.optimalOrder;
+        }
+        
+    } catch (error) {
+        console.error('❌ Erreur application ordre optimal:', error);
+        showToast('Erreur lors de l\'application de l\'ordre optimal', 'error');
+    }
+}
+
+/**
+ * Nettoie les event listeners pour éviter les fuites mémoire
+ */
+function cleanupDragDropListeners() {
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+    
+    const items = document.querySelectorAll('.exercise-item');
+    items.forEach(item => {
+        item.removeEventListener('touchstart', handleTouchStart);
+        item.removeEventListener('touchmove', handleTouchMove);
+        item.removeEventListener('touchend', handleTouchEnd);
+        item.removeEventListener('mousedown', handleMouseDown);
+    });
+}
+
+// ========== PARTIE 4 : ANIMATION STYLES (FIN DE FICHIER) ==========
+// À ajouter AVANT les exports (window.xxx = xxx)
+// LOCALISATION : Juste avant "// ===== EXPOSITION GLOBALE ====="
+
+/**
+ * Animation CSS pour amélioration de score
+ */
+function addScoreAnimations() {
+    if (document.getElementById('score-animations')) return;
+    
+    const styles = document.createElement('style');
+    styles.id = 'score-animations';
+    styles.textContent = `
+        @keyframes scoreImprovement {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes scoreDrop {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.95); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .exercise-item.dragging {
+            transition: none !important;
+            pointer-events: none;
+        }
+        
+        .exercise-item:not(.dragging) {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        /* Améliorations responsive pour le drag */
+        @media (max-width: 768px) {
+            .exercise-item.dragging {
+                transform: scale(1.08) rotate(1deg) !important;
+            }
+        }
+        
+        @media (prefers-reduced-motion: reduce) {
+            .exercise-item,
+            .gauge-fill,
+            .exercise-number {
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+    `;
+    document.head.appendChild(styles);
+}
+
+// Initialiser les animations au chargement
+addScoreAnimations();
+
+
+
 // ===== EXPOSITION GLOBALE =====
 window.showHomePage = showHomePage;
 window.startNewProfile = startNewProfile;
@@ -9034,3 +9777,11 @@ window.getReasonLabel = getReasonLabel;
 window.initSwipeGestures = initSwipeGestures;
 window.addSwipeSupport = addSwipeSupport;
 window.addSwipeToExerciseCards = addSwipeToExerciseCards;
+
+// Exports Phase 3.1
+window.initializeExerciseReorder = initializeExerciseReorder;
+window.applyOptimalOrder = applyOptimalOrder;
+window.buildEnhancedModalContent = buildEnhancedModalContent;
+window.buildExerciseItemHTML = buildExerciseItemHTML;
+window.storeCurrentScoringData = storeCurrentScoringData;
+window.cleanupDragDropListeners = cleanupDragDropListeners;

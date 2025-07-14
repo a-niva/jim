@@ -1,8 +1,8 @@
 # ===== backend/schemas.py - VERSION REFACTORISÉE =====
 from pydantic import BaseModel, validator
 from typing import List, Optional, Dict, Any
-from datetime import datetime, timezone
-
+from datetime import datetime, timezone, timedelta
+from sqlalchemy import func
 
 # ===== SCHEMAS UTILISATEUR =====
 
