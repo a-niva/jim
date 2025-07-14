@@ -680,6 +680,17 @@
             </div>
         </div>
 
+
+        <!-- ================================ -->
+        <!-- PLANNING HEBDOMADAIRE            -->
+        <!-- ================================ -->
+        <div class="view" id="weekly-planning" style="display: none;">
+            <div id="weeklyPlanningContainer">
+                <!-- Le contenu sera généré par WeeklyPlannerView -->
+            </div>
+        </div>
+
+
         <!-- ================================ -->
         <!-- PROFIL                           -->
         <!-- ================================ -->
@@ -713,6 +724,10 @@
         <button class="nav-item" onclick="showView('stats')">
             <span>📊</span>
             <span>Stats</span>
+        </button>
+        <button class="nav-item" onclick="showWeeklyPlanning()">
+            <span>📅</span>
+            <span>Planning</span>
         </button>
         <button class="nav-item" onclick="showView('profile')">
             <span>👤</span>

@@ -9663,6 +9663,18 @@ function addScoreAnimations() {
 // Initialiser les animations au chargement
 addScoreAnimations();
 
+// ===== WEEKLY PLANNER INTEGRATION =====
+async function showWeeklyPlanning() {
+    showView('weekly-planning');
+    if (!window.weeklyPlanner) {
+        window.weeklyPlanner = new WeeklyPlannerView('weeklyPlanningContainer');
+        await window.weeklyPlanner.initialize();
+    } else {
+        await window.weeklyPlanner.refresh();
+    }
+}
+
+
 
 
 // ===== EXPOSITION GLOBALE =====
@@ -9822,3 +9834,5 @@ window.confirmStartWithCurrentOrder = confirmStartProgramWorkout;
 window.renderReorderableExercises = function(exercises) {
     return exercises.map((ex, index) => buildExerciseItemHTML(ex, index)).join('');
 };
+// Export Weekly Planner
+window.showWeeklyPlanning = showWeeklyPlanning;

@@ -1483,10 +1483,10 @@ def generate_comprehensive_program(
                         if can_perform_exercise(ex, list(available_equipment)):
                             available_exercises.append(ex)
                             
-                # Juste après avoir filtré available_exercises
+                # CORRECTION CRITIQUE : Ne créer la session QUE si des exercices sont disponibles
                 if not available_exercises:
-                    logger.warning(f"Aucun exercice trouvé pour focus_area={focus_area}")
-                    continue  # Passer à la session suivante
+                    logger.warning(f"Aucun exercice trouvé pour focus_area={focus_area}, session ignorée")
+                    continue  # Skip cette session complètement
 
                 # Créer pool d'exercices pour cette session
                 exercise_pool = []
@@ -1504,6 +1504,11 @@ def generate_comprehensive_program(
                     }
                     exercise_pool.append(pool_entry)
                 
+                # CORRECTION : Vérifier que exercise_pool n'est pas vide
+                if len(exercise_pool) == 0:
+                    logger.warning(f"Pool d'exercices vide pour focus_area={focus_area}, session ignorée")
+                    continue
+                
                 session = {
                     "day": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday"][session_num % 6],
                     "exercise_pool": exercise_pool,
@@ -1511,6 +1516,9 @@ def generate_comprehensive_program(
                     "target_duration": 60
                 }
                 week_sessions.append(session)
+
+            # CORRECTION ADDITIONNELLE : Log du nombre réel de sessions créées
+            logger.info(f"Semaine {week}: {len(week_sessions)} sessions créées sur {sessions_per_week} demandées")
             
             weekly_structure.append({
                 "week": week,
