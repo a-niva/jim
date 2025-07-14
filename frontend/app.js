@@ -1188,35 +1188,15 @@ async function completeOnboarding() {
         
         showToast('Profil créé avec succès !', 'success');
         
-        // NOUVEAU FLOW: Redirection vers ProgramBuilder au lieu de créer le programme directement
+        // Redirection vers le dashboard sans lancer ProgramBuilder
         setTimeout(() => {
             // Masquer l'onboarding
             document.getElementById('onboarding').classList.remove('active');
             document.getElementById('progressContainer').style.display = 'none';
             
-            // Vérifier que currentUser est bien défini avant d'initialiser ProgramBuilder
-            if (!window.currentUser || !window.currentUser.id) {
-                console.error('currentUser non défini après création');
-                showToast('Erreur: Utilisateur non défini', 'error');
-                showMainInterface();
-                return;
-            }
-            
-            // Initialiser le ProgramBuilder avec les données utilisateur
-            // Vérifier que programBuilder est chargé
-            if (typeof programBuilder !== 'undefined') {
-                // Passer userData enrichie avec l'ID utilisateur
-                const enrichedUserData = {
-                    ...userData,
-                    id: currentUser.id
-                };
-                programBuilder.initialize(enrichedUserData);
-            } else {
-                console.error('ProgramBuilder non chargé');
-                showToast('Erreur: ProgramBuilder non disponible', 'error');
-                showMainInterface();
-            }
-            
+            // Aller directement au dashboard
+            showMainInterface();
+            showToast('Bienvenue ! Créez votre programme personnalisé depuis le tableau de bord.', 'info');
         }, 1000);
         
     } catch (error) {
@@ -1475,7 +1455,7 @@ async function loadProgramStatus() {
         if (!status) {
             // Pas de programme actif, afficher le bouton classique
             document.getElementById('programStatusWidget').innerHTML = `
-                <button class="btn btn-primary" onclick="showView('settings')">
+                <button class="btn btn-primary" onclick="startProgramBuilder()">
                     <i class="fas fa-plus"></i> Créer un programme
                 </button>
             `;
@@ -1599,6 +1579,22 @@ async function loadProgramStatus() {
                 <i class="fas fa-calendar-check"></i> Séance programme
             </button>
         `;
+    }
+}
+
+function startProgramBuilder() {
+    if (!currentUser) {
+        showToast('Veuillez vous connecter d\'abord', 'error');
+        return;
+    }
+    
+    if (window.programBuilder) {
+        window.programBuilder.initialize({
+            ...currentUser,
+            experience_level: currentUser.experience_level
+        });
+    } else {
+        showToast('Module de création non disponible', 'error');
     }
 }
 
