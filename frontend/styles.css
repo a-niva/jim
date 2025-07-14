@@ -117,7 +117,7 @@
 
 html {
     font-size: 16px;
-    -webkit-text-size-adjust: 100%;
+    -webkit-text-size-adjust: none;
     -webkit-tap-highlight-color: transparent;
 }
 

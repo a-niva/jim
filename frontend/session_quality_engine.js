@@ -510,4 +510,4 @@ window.getScoreColor = getScoreColor;
 window.getScoreGradient = getScoreGradient;
 
 // Vérification que les exports sont bien disponibles
-console.log('✅ SessionQualityEngine chargé et exporté globalement');
+console.log('✅ SessionQualityEngine chargé et exporté globalement')

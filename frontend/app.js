@@ -9797,3 +9797,14 @@ window.buildEnhancedModalContent = buildEnhancedModalContent;
 window.buildExerciseItemHTML = buildExerciseItemHTML;
 window.storeCurrentScoringData = storeCurrentScoringData;
 window.cleanupDragDropListeners = cleanupDragDropListeners;
+
+// Alias pour compatibilité tests Phase 3.1
+window.initializePreSessionDragDrop = initializeExerciseReorder;
+window.recalculateScoreAfterReorder = function(fromIndex, toIndex) {
+    // Utiliser la logique existante de réorganisation
+    return finalizeDragOperation();
+};
+window.confirmStartWithCurrentOrder = confirmStartProgramWorkout;
+window.renderReorderableExercises = function(exercises) {
+    return exercises.map((ex, index) => buildExerciseItemHTML(ex, index)).join('');
+};
