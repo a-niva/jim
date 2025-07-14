@@ -1334,7 +1334,7 @@ def start_program_builder(
                 "question": "Combien de séances d'entraînement par semaine souhaitez-vous ?",
                 "type": "single_choice",
                 "options": [
-                    {"value": 1, "label": "3 séances/semaine", "recommended": False}
+                    {"value": 1, "label": "3 séances/semaine", "recommended": False},
                     {"value": 2, "label": "3 séances/semaine", "recommended": user.experience_level == "beginner"},
                     {"value": 3, "label": "3 séances/semaine", "recommended": user.experience_level == "intermediate"},
                     {"value": 4, "label": "4 séances/semaine", "recommended": user.experience_level in ["intermediate", "advanced"]},
