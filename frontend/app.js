@@ -2427,15 +2427,20 @@ async function startProgramWorkout() {
         const activeProgram = await apiGet(`/api/users/${currentUser.id}/programs/active`);
         
         if (!activeProgram) {
-            console.log('Aucun programme actif → Lancement ProgramBuilder');
+            console.log('🎯 Aucun programme actif → Lancement ProgramBuilder');
             showToast('Configuration de votre premier programme...', 'info');
             
-            // Lancer le ProgramBuilder avec les données utilisateur
-            if (window.programBuilder) {
-                await window.programBuilder.initialize(currentUser);
-            } else {
-                console.error('ProgramBuilder non disponible');
-                showToast('Erreur : Module de configuration non chargé', 'error');
+            try {
+                // Lancer le ProgramBuilder avec les données utilisateur
+                if (window.programBuilder) {
+                    await window.programBuilder.initialize(currentUser);
+                } else {
+                    console.error('ProgramBuilder non disponible');
+                    showToast('Module de configuration non chargé - Contactez le support', 'error');
+                }
+            } catch (error) {
+                console.error('Erreur lancement ProgramBuilder:', error);
+                showToast('Erreur lors de la configuration', 'error');
             }
             return;
         }
