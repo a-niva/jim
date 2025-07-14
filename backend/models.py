@@ -113,17 +113,16 @@ class Program(Base):
     base_quality_score = Column(Float, default=0.0)  # Score 0-100
     user_modifications = Column(JSON, default=lambda: [])  # Historique changements
     
-    # ⚠️ AJOUT 1 : format_version MANQUANT
-    format_version = Column(String(10), default="2.0")
+    # VERSION - CHAMP MANQUANT CRITIQUE !
+    format_version = Column(String(10), default="2.0")  # ← AJOUTER CETTE LIGNE
     
-    # ⚠️ AJOUT 2 : Ajout de onupdate pour updated_at
+    # LEGACY - Pour compatibilité avec l'ancien code
+    exercises = Column(JSON, nullable=True, default=lambda: [])  # ← AJOUTER CETTE LIGNE
+    goals = Column(JSON, nullable=True, default=lambda: [])  # ← AJOUTER CETTE LIGNE
+    
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc))
     is_active = Column(Boolean, default=True)
-    
-    # ⚠️ AJOUT 3 (optionnel mais recommandé) : colonnes pour ancien format
-    exercises = Column(JSON, nullable=True)  # Pour compatibilité avec l'ancien format
-    goals = Column(JSON, nullable=True)  # Si utilisé ailleurs dans le code
     
     user = relationship("User", back_populates="programs")
 
