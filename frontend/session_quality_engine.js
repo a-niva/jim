@@ -501,10 +501,13 @@ function getScoreGradient(score) {
     return 'linear-gradient(90deg, var(--text-muted), var(--secondary))';
 }
 
-// Export global pour utilisation dans app.js
-if (typeof window !== 'undefined') {
-    window.SessionQualityEngine = SessionQualityEngine;
-    window.renderScoreBreakdown = renderScoreBreakdown;
-    window.getScoreColor = getScoreColor;
-    window.getScoreGradient = getScoreGradient;
-}
+// Export de la classe principale
+window.SessionQualityEngine = SessionQualityEngine;
+
+// Export des fonctions helper nécessaires dans app.js
+window.renderScoreBreakdown = renderScoreBreakdown;
+window.getScoreColor = getScoreColor;
+window.getScoreGradient = getScoreGradient;
+
+// Vérification que les exports sont bien disponibles
+console.log('✅ SessionQualityEngine chargé et exporté globalement');
