@@ -7575,6 +7575,15 @@ background: rgba(255, 255, 255, 0.02);
     display: none;
 }
 
+/* Responsive desktop large - Afficher la sidebar sur grands écrans */
+@media (min-width: 1200px) {
+    .planner-sidebar {
+        display: flex !important;
+        flex-direction: column;
+        gap: var(--spacing-lg);
+    }
+}
+
 /* Drag & drop états */
 .session-ghost {
     opacity: 0.4;
@@ -7813,8 +7822,7 @@ background: rgba(255, 255, 255, 0.02);
     }
     
     .planner-sidebar {
-        grid-area: sidebar;
-        display: flex;
+        display: flex !important;
         flex-direction: column;
         gap: var(--spacing-lg);
     }
@@ -7969,4 +7977,14 @@ background: rgba(255, 255, 255, 0.02);
 
 #weekly-planning::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.3);
+}
+
+/* CORRECTION - Forcer la grille à prendre toute la largeur */
+.planner-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr) !important;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+    width: 100% !important;
+    min-height: 400px;
 }
