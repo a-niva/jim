@@ -731,12 +731,341 @@ class WeeklyPlannerView {
         window.showModal('Ajouter une séance', modalContent);
     }
     
-    addSessionToDay(date) {
+    async addSessionToDay(date) {
         window.closeModal();
-        window.showToast('Fonction en développement', 'info');
-        // TODO: Implémenter la création de séance avec sélection d'exercices du programme
+        
+        // Validation des contraintes de session
+        const dayData = this.planningData.planning_data.find(day => day.date === date);
+        if (!dayData) {
+            window.showToast('Date invalide', 'error');
+            return;
+        }
+        
+        // Vérifier la limite de séances selon le niveau utilisateur
+        const validationResult = this.validateSessionLimit(dayData);
+        if (!validationResult.allowed) {
+            window.showToast(validationResult.message, 'warning');
+            return;
+        }
+        
+        // Charger le programme actif et afficher la modal de sélection
+        try {
+            window.showToast('Chargement du programme...', 'info');
+            const program = await window.apiGet(`/api/users/${window.currentUser.id}/programs/active`);
+            
+            if (!program) {
+                window.showToast('Aucun programme actif trouvé', 'error');
+                return;
+            }
+            
+            this.showSessionCreationModal(date, program);
+            
+        } catch (error) {
+            console.error('Erreur chargement programme:', error);
+            window.showToast('Erreur lors du chargement du programme', 'error');
+        }
     }
-    
+
+    validateSessionLimit(dayData) {
+        const currentSessionCount = dayData.sessions.length;
+        const userLevel = window.currentUser.experience_level;
+        
+        // Règles selon le niveau
+        const limits = {
+            'beginner': 1,
+            'intermediate': 2, 
+            'advanced': 2
+        };
+        
+        const maxSessions = limits[userLevel] || 1;
+        
+        if (currentSessionCount >= maxSessions) {
+            const levelText = userLevel === 'beginner' ? 'débutant' : 'votre niveau';
+            return {
+                allowed: false,
+                message: `Maximum ${maxSessions} séance(s) par jour pour le niveau ${levelText}`
+            };
+        }
+        
+        return { allowed: true };
+    }
+
+    showSessionCreationModal(date, program) {
+        // Extraire les exercices du pool du programme
+        const exercisePool = this.extractExercisePool(program);
+        
+        if (!exercisePool || exercisePool.length === 0) {
+            window.showToast('Aucun exercice disponible dans le programme', 'error');
+            return;
+        }
+        
+        const dateFormatted = new Date(date).toLocaleDateString('fr-FR', { 
+            weekday: 'long', 
+            day: 'numeric', 
+            month: 'long' 
+        });
+        
+        const modalContent = `
+            <div class="session-creation-modal">
+                <div class="creation-header">
+                    <h3>Nouvelle séance</h3>
+                    <p class="session-date">
+                        <i class="fas fa-calendar"></i> ${dateFormatted}
+                    </p>
+                </div>
+                
+                <div class="exercise-selection-section">
+                    <h4>Sélectionnez les exercices <span class="selection-count">(${exercisePool.length} sélectionnés)</span></h4>
+                    <div class="exercise-list" id="exerciseSelectionList">
+                        ${this.renderExerciseSelectionList(exercisePool)}
+                    </div>
+                </div>
+                
+                <div class="session-preview">
+                    <div class="duration-estimate">
+                        <i class="fas fa-clock"></i>
+                        <span id="estimatedDuration">45</span> minutes estimées
+                    </div>
+                    <div id="recoveryWarnings" class="recovery-warnings-container"></div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button class="btn btn-primary" onclick="weeklyPlanner.createSessionWithExercises('${date}', '${program.id}')">
+                        <i class="fas fa-plus"></i> Créer la séance
+                    </button>
+                    <button class="btn btn-secondary" onclick="window.closeModal()">
+                        Annuler
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        window.showModal(`Séance du ${dateFormatted}`, modalContent);
+        
+        // Valider la récupération après affichage
+        setTimeout(() => {
+            this.validateRecoveryAndUpdateWarnings(date, exercisePool);
+        }, 100);
+    }
+
+    extractExercisePool(program) {
+        // Gérer les deux formats de programme
+        if (program.format === 'comprehensive' && program.weekly_structure) {
+            // Format comprehensive : extraire depuis weekly_structure
+            const currentWeek = program.current_week - 1;
+            if (program.weekly_structure[currentWeek] && program.weekly_structure[currentWeek].sessions) {
+                const currentSession = program.weekly_structure[currentWeek].sessions[0];
+                return currentSession.exercise_pool || [];
+            }
+        }
+        
+        // Format legacy : utiliser exercises directement
+        return program.exercises || [];
+    }
+
+    renderExerciseSelectionList(exercises) {
+        return exercises.map(exercise => {
+            const exerciseId = exercise.exercise_id || exercise.id;
+            const exerciseName = exercise.exercise_name || exercise.name;
+            const muscleGroups = exercise.muscle_groups || [];
+            const sets = exercise.sets || exercise.default_sets || 3;
+            const repsRange = exercise.reps_min && exercise.reps_max 
+                ? `${exercise.reps_min}-${exercise.reps_max}` 
+                : '8-12';
+            
+            return `
+                <div class="exercise-selection-item">
+                    <label class="exercise-checkbox">
+                        <input type="checkbox" 
+                            value="${exerciseId}" 
+                            checked 
+                            onchange="weeklyPlanner.updateExerciseSelection()">
+                        <div class="exercise-info">
+                            <h5>${exerciseName}</h5>
+                            <div class="exercise-details">
+                                <span class="sets-reps">${sets} × ${repsRange}</span>
+                                ${muscleGroups.length > 0 ? `
+                                    <div class="muscle-tags">
+                                        ${muscleGroups.slice(0, 2).map(muscle => 
+                                            `<span class="muscle-tag">${muscle}</span>`
+                                        ).join('')}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </label>
+                </div>
+            `;
+        }).join('');
+    }
+
+    updateExerciseSelection() {
+        const checkboxes = document.querySelectorAll('#exerciseSelectionList input[type="checkbox"]');
+        const selectedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+        
+        // Mettre à jour le compteur
+        const countElement = document.querySelector('.selection-count');
+        if (countElement) {
+            countElement.textContent = `(${selectedCount} sélectionnés)`;
+        }
+        
+        // Calculer la durée estimée
+        const estimatedDuration = selectedCount * 7; // 7 minutes par exercice en moyenne
+        const durationElement = document.getElementById('estimatedDuration');
+        if (durationElement) {
+            durationElement.textContent = Math.max(15, estimatedDuration);
+        }
+        
+        // Revalider les warnings de récupération
+        if (selectedCount > 0) {
+            const selectedExercises = this.getSelectedExercises();
+            const dateInput = document.querySelector('.session-creation-modal');
+            if (dateInput) {
+                // Extraire la date depuis l'onclick du bouton créer
+                const createButton = document.querySelector('.btn-primary[onclick*="createSessionWithExercises"]');
+                if (createButton) {
+                    const dateMatch = createButton.onclick.toString().match(/'([^']+)'/);
+                    if (dateMatch) {
+                        this.validateRecoveryAndUpdateWarnings(dateMatch[1], selectedExercises);
+                    }
+                }
+            }
+        }
+    }
+
+    async validateRecoveryAndUpdateWarnings(date, exercises) {
+        try {
+            // Extraire les muscles principaux des exercices
+            const primaryMuscles = [];
+            exercises.forEach(ex => {
+                if (ex.muscle_groups) {
+                    primaryMuscles.push(...ex.muscle_groups);
+                }
+            });
+            
+            // Vérifier s'il y a des conflits avec les séances existantes
+            const warnings = this.checkMuscleRecoveryConflicts(date, primaryMuscles);
+            
+            const warningsContainer = document.getElementById('recoveryWarnings');
+            if (warningsContainer) {
+                if (warnings.length > 0) {
+                    warningsContainer.innerHTML = `
+                        <div class="warnings-list">
+                            <h5><i class="fas fa-exclamation-triangle"></i> Avertissements récupération</h5>
+                            ${warnings.map(warning => `<p class="warning-item">${warning}</p>`).join('')}
+                        </div>
+                    `;
+                } else {
+                    warningsContainer.innerHTML = `
+                        <div class="no-warnings">
+                            <p><i class="fas fa-check-circle"></i> Aucun conflit de récupération détecté</p>
+                        </div>
+                    `;
+                }
+            }
+            
+        } catch (error) {
+            console.error('Erreur validation récupération:', error);
+        }
+    }
+
+    checkMuscleRecoveryConflicts(targetDate, targetMuscles) {
+        const warnings = [];
+        const targetDateTime = new Date(targetDate).getTime();
+        
+        // Vérifier les 2 jours avant et après
+        for (const day of this.planningData.planning_data) {
+            const dayTime = new Date(day.date).getTime();
+            const hoursDiff = Math.abs(dayTime - targetDateTime) / (1000 * 60 * 60);
+            
+            if (hoursDiff > 0 && hoursDiff < 72) { // 72h = 3 jours
+                for (const session of day.sessions) {
+                    if (session.primary_muscles) {
+                        const conflictMuscles = session.primary_muscles.filter(muscle => 
+                            targetMuscles.includes(muscle)
+                        );
+                        
+                        if (conflictMuscles.length > 0 && hoursDiff < 48) { // 48h = 2 jours
+                            const dayName = new Date(day.date).toLocaleDateString('fr-FR', { weekday: 'long' });
+                            warnings.push(`${conflictMuscles.join(', ')} sollicités ${dayName} (récupération < 48h)`);
+                        }
+                    }
+                }
+            }
+        }
+        
+        return warnings;
+    }
+
+    getSelectedExercises() {
+        const checkboxes = document.querySelectorAll('#exerciseSelectionList input[type="checkbox"]:checked');
+        return Array.from(checkboxes).map(cb => {
+            const exerciseItem = cb.closest('.exercise-selection-item');
+            const exerciseName = exerciseItem.querySelector('h5').textContent;
+            const muscleTagsElements = exerciseItem.querySelectorAll('.muscle-tag');
+            const muscleGroups = Array.from(muscleTagsElements).map(tag => tag.textContent);
+            
+            return {
+                exercise_id: parseInt(cb.value),
+                exercise_name: exerciseName,
+                muscle_groups: muscleGroups,
+                sets: 3, // Valeur par défaut
+                reps_min: 8,
+                reps_max: 12
+            };
+        });
+    }
+
+    async createSessionWithExercises(date, programId) {
+        const selectedExercises = this.getSelectedExercises();
+        
+        if (selectedExercises.length === 0) {
+            window.showToast('Sélectionnez au moins un exercice', 'warning');
+            return;
+        }
+        
+        // Préparer les données de la séance
+        const primaryMuscles = [...new Set(selectedExercises.flatMap(ex => ex.muscle_groups))];
+        const estimatedDuration = selectedExercises.length * 7; // 7 min par exercice
+        
+        const sessionData = {
+            planned_date: date,
+            program_id: parseInt(programId),
+            exercises: selectedExercises,
+            estimated_duration: Math.max(15, estimatedDuration),
+            primary_muscles: primaryMuscles
+        };
+        
+        try {
+            window.closeModal();
+            window.showToast('Création de la séance...', 'info');
+            
+            const result = await window.apiPost(`/api/users/${window.currentUser.id}/planned-sessions`, sessionData);
+            
+            if (result.message) {
+                window.showToast('Séance créée avec succès', 'success');
+                await this.refresh();
+            } else if (result.requires_confirmation) {
+                this.showCreationConfirmation(sessionData, result.warnings);
+            }
+            
+        } catch (error) {
+            console.error('Erreur création séance:', error);
+            window.showToast('Erreur lors de la création de la séance', 'error');
+        }
+    }
+
+    showCreationConfirmation(sessionData, warnings) {
+        const warningText = warnings.join('\n• ');
+        const confirmMessage = `⚠️ Avertissements détectés :\n• ${warningText}\n\nCréer la séance malgré tout ?`;
+        
+        if (confirm(confirmMessage)) {
+            // Forcer la création
+            sessionData.force_creation = true;
+            this.createSessionWithExercises(sessionData.planned_date, sessionData.program_id);
+        }
+    }
+
     async deleteSession(sessionId) {
         if (confirm('Supprimer cette séance planifiée ?')) {
             try {
