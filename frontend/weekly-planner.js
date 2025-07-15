@@ -180,7 +180,7 @@ class WeeklyPlannerView {
             const navigationHTML = this.renderWeekNavigation();
             const overviewHTML = this.renderWeekOverview();
             const weekDaysHTML = this.renderWeekDays();
-            
+                        
             // Structure verticale : header + grid + recovery (en-dessous)
             const recoveryHTML = this.renderRecoveryStatus();
             const optimizationHTML = this.renderOptimizationSuggestions();

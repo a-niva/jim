@@ -7964,3 +7964,80 @@ background: rgba(255, 255, 255, 0.02);
 #weekly-planning::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.3);
 }
+
+/* ========================================
+   WEEKLY PLANNER - OVERRIDE CONTAINER WIDTH
+   ======================================== */
+
+/* Forcer le planning à utiliser toute la largeur */
+#weekly-planning {
+    padding: 0;
+    overflow-y: auto;
+}
+
+#weekly-planning .container,
+#weeklyPlanningContainer {
+    max-width: none !important;
+    width: 100% !important;
+    padding-left: var(--spacing-lg) !important;
+    padding-right: var(--spacing-lg) !important;
+}
+
+/* Header spécifique pour le planning */
+body:has(#weekly-planning.view.active) .header-content {
+    max-width: none !important;
+    padding-left: var(--spacing-lg) !important;
+    padding-right: var(--spacing-lg) !important;
+}
+
+/* Layout du planning en pleine largeur */
+.weekly-planner {
+    max-width: none !important;
+    width: 100% !important;
+    padding: var(--spacing-xl) !important;
+}
+
+.weekly-planner.desktop {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+}
+
+.planner-grid {
+    display: grid !important;
+    grid-template-columns: repeat(7, 1fr) !important;
+    gap: var(--spacing-md);
+    width: 100%;
+    min-height: 400px;
+}
+
+.planner-recovery {
+    display: flex;
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-xl);
+}
+
+.planner-recovery > * {
+    flex: 1;
+}
+
+/* Responsive - moins de colonnes sur écrans plus petits */
+@media (max-width: 1024px) {
+    .planner-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+    }
+    
+    .weekly-planner {
+        padding: var(--spacing-md) !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .planner-grid {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .planner-recovery {
+        flex-direction: column;
+    }
+}
