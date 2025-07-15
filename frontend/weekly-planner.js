@@ -186,6 +186,17 @@ class WeeklyPlannerView {
     }
     
     renderWeekDays() {
+        console.log('🔍 renderWeekDays() - planning_data détaillé:', this.planningData.planning_data);
+        
+        // Analyser chaque jour individuellement
+        this.planningData.planning_data.forEach((day, index) => {
+            console.log(`📅 Jour ${index} (${day.day_name}):`, {
+                date: day.date,
+                sessions: day.sessions,
+                sessionsCount: day.sessions ? day.sessions.length : 'undefined',
+                canAdd: day.can_add_session
+            });
+        });
         return this.planningData.planning_data.map(day => `
             <div class="day-column" data-date="${day.date}">
                 <div class="day-header">
