@@ -7147,30 +7147,6 @@ background: rgba(255, 255, 255, 0.02);
    Remplace complètement la section existante
    ======================================== */
 
-/* Override container pour pleine largeur */
-#weekly-planning {
-    padding: 0 !important;
-    overflow-y: auto;
-}
-
-/* Override container constraints pour weekly planning */
-body #weekly-planning.view.active,
-body #weekly-planning.view.active .container,
-body #weekly-planning.view.active #weeklyPlanningContainer,
-body #weekly-planning.view.active .weekly-planner {
-    max-width: 100vw !important;
-    width: 100vw !important;
-    margin: 0 !important;
-    padding: 0 20px !important;
-    box-sizing: border-box !important;
-}
-
-/* Forcer la grille à utiliser tout l'espace */
-body #weekly-planning.view.active .planner-grid {
-    width: 100% !important;
-    max-width: none !important;
-}
-
 /* Container principal - Layout vertical */
 .weekly-planner {
     display: flex;
@@ -7181,6 +7157,14 @@ body #weekly-planning.view.active .planner-grid {
     margin: 0 auto;
     min-height: calc(100vh - var(--header-height) - var(--bottom-nav-height));
     background: transparent;
+}
+
+/* Ajustement mobile seulement */
+@media (max-width: 768px) {
+    .weekly-planner {
+        padding: var(--spacing-md);
+        max-width: 100%;
+    }
 }
 
 /* Header avec glassmorphism */
@@ -7919,4 +7903,32 @@ body #weekly-planning.view.active .planner-grid {
     margin: 0;
     color: #155724;
     font-size: var(--font-sm);
+}
+
+/* === NO PROGRAM MODAL === */
+.no-program-modal {
+    text-align: center;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.modal-icon {
+    margin-bottom: var(--spacing-lg);
+}
+
+.modal-icon i {
+    font-size: 3rem;
+    color: var(--primary);
+    opacity: 0.8;
+}
+
+.no-program-modal h3 {
+    margin: 0 0 var(--spacing-md) 0;
+    color: var(--text);
+}
+
+.no-program-modal p {
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-bottom: var(--spacing-xl);
 }
