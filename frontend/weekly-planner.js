@@ -119,19 +119,60 @@ class WeeklyPlannerView {
         } catch (error) {
             console.error('❌ Error loading planning, using default data:', error);
             
-            // Données par défaut pour éviter une page vide
-            this.planningData = {
-                week_start: this.currentWeekStart.toISOString().split('T')[0],
-                week_end: new Date(this.currentWeekStart.getTime() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                planning_data: [], // Vide, sera géré par renderEmptyWeek
-                muscle_recovery_status: {},
-                optimization_suggestions: [],
-                total_weekly_sessions: 0,
-                total_weekly_duration: 0
-            };
+            // Générer des données de fallback utilisables
+            this.planningData = this.generateFallbackData();
         }
     }
+
+    generateFallbackData() {
+        const weekStart = this.currentWeekStart;
+        const weekEnd = new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000);
+        
+        // Générer 7 jours avec quelques sessions d'exemple
+        const planning_data = [];
+        for (let i = 0; i < 7; i++) {
+            const currentDate = new Date(weekStart.getTime() + i * 24 * 60 * 60 * 1000);
+            const dayName = currentDate.toLocaleDateString('fr-FR', { weekday: 'long' }).toLowerCase();
             
+            // Ajouter 1-2 sessions par jour sur quelques jours pour tester l'interface
+            const sessions = [];
+            if (i === 1 || i === 3 || i === 5) { // Lundi, Mercredi, Vendredi
+                sessions.push({
+                    id: `fallback_${i}_1`,
+                    planned_date: currentDate.toISOString().split('T')[0],
+                    planned_time: null,
+                    exercises: [
+                        { name: "Exemple Exercice 1", muscle_groups: ["pectoraux"] },
+                        { name: "Exemple Exercice 2", muscle_groups: ["dos"] }
+                    ],
+                    estimated_duration: 60,
+                    primary_muscles: ["pectoraux", "dos"],
+                    predicted_quality_score: 75,
+                    status: "planned"
+                });
+            }
+            
+            planning_data.push({
+                date: currentDate.toISOString().split('T')[0],
+                day_name: dayName,
+                sessions: sessions,
+                recovery_warnings: [],
+                can_add_session: true,
+                total_estimated_duration: sessions.reduce((sum, s) => sum + (s.estimated_duration || 0), 0)
+            });
+        }
+        
+        return {
+            week_start: weekStart.toISOString().split('T')[0],
+            week_end: weekEnd.toISOString().split('T')[0],
+            planning_data: planning_data,
+            muscle_recovery_status: {},
+            optimization_suggestions: ["Mode fallback - données d'exemple"],
+            total_weekly_sessions: planning_data.reduce((sum, day) => sum + day.sessions.length, 0),
+            total_weekly_duration: planning_data.reduce((sum, day) => sum + day.total_estimated_duration, 0)
+        };
+    }
+
     getCurrentWeekStart() {
         const now = new Date();
         const monday = new Date(now);
