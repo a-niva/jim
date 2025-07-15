@@ -617,83 +617,83 @@ class WeeklyPlannerView {
             </div>
         `;
     }
-}
 
-//  Modal de détails session
-showSessionDeepDive(sessionId) {
-    const session = this.findSessionById(sessionId);
-    if (!session) return;
-    
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.innerHTML = `
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <div class="modal-header">
-                <h2>Analyse de la séance</h2>
-                <button class="modal-close" onclick="this.closest('.modal').remove()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="session-deep-dive">
-                    <div class="score-display">
-                        <h3>Score de qualité</h3>
-                        <div class="score-large">${session.predicted_quality_score || 0}/100</div>
-                        <div class="score-breakdown">
-                            <div class="breakdown-item">
-                                <span>Rotation musculaire</span>
-                                <span>${session.muscle_rotation_score || 0}/25</span>
+    //  Modal de détails session
+    showSessionDeepDive(sessionId) {
+        const session = this.findSessionById(sessionId);
+        if (!session) return;
+        
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h2>Analyse de la séance</h2>
+                    <button class="modal-close" onclick="this.closest('.modal').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="session-deep-dive">
+                        <div class="score-display">
+                            <h3>Score de qualité</h3>
+                            <div class="score-large">${session.predicted_quality_score || 0}/100</div>
+                            <div class="score-breakdown">
+                                <div class="breakdown-item">
+                                    <span>Rotation musculaire</span>
+                                    <span>${session.muscle_rotation_score || 0}/25</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span>Récupération</span>
+                                    <span>${session.recovery_score || 0}/25</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span>Progression</span>
+                                    <span>${session.progression_score || 0}/25</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span>Adhérence prédite</span>
+                                    <span>${session.adherence_score || 0}/25</span>
+                                </div>
                             </div>
-                            <div class="breakdown-item">
-                                <span>Récupération</span>
-                                <span>${session.recovery_score || 0}/25</span>
-                            </div>
-                            <div class="breakdown-item">
-                                <span>Progression</span>
-                                <span>${session.progression_score || 0}/25</span>
-                            </div>
-                            <div class="breakdown-item">
-                                <span>Adhérence prédite</span>
-                                <span>${session.adherence_score || 0}/25</span>
-                            </div>
+                        </div>
+                        
+                        <div class="exercises-list">
+                            <h3>Exercices planifiés</h3>
+                            ${session.exercises?.map((ex, idx) => `
+                                <div class="exercise-item">
+                                    <span class="exercise-number">${idx + 1}</span>
+                                    <span class="exercise-name">${ex.name}</span>
+                                    <span class="exercise-sets">${ex.sets} × ${ex.reps}</span>
+                                </div>
+                            `).join('') || '<p>Aucun exercice planifié</p>'}
                         </div>
                     </div>
                     
-                    <div class="exercises-list">
-                        <h3>Exercices planifiés</h3>
-                        ${session.exercises?.map((ex, idx) => `
-                            <div class="exercise-item">
-                                <span class="exercise-number">${idx + 1}</span>
-                                <span class="exercise-name">${ex.name}</span>
-                                <span class="exercise-sets">${ex.sets} × ${ex.reps}</span>
-                            </div>
-                        `).join('') || '<p>Aucun exercice planifié</p>'}
+                    <div class="modal-actions">
+                        <button class="btn btn-primary" onclick="weeklyPlanner.startSession(${session.id})">
+                            Commencer la séance
+                        </button>
+                        <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">
+                            Fermer
+                        </button>
                     </div>
                 </div>
-                
-                <div class="modal-actions">
-                    <button class="btn btn-primary" onclick="weeklyPlanner.startSession(${session.id})">
-                        Commencer la séance
-                    </button>
-                    <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">
-                        Fermer
-                    </button>
-                </div>
             </div>
-        </div>
-    `;
-    
-    modal.onclick = () => modal.remove();
-    document.body.appendChild(modal);
-}
-
-//  Helper pour trouver une session
-findSessionById(sessionId) {
-    for (const day of this.planningData.planning_data) {
-        const session = day.sessions.find(s => s.id == sessionId);
-        if (session) return session;
+        `;
+        
+        modal.onclick = () => modal.remove();
+        document.body.appendChild(modal);
     }
-    return null;
+
+    //  Helper pour trouver une session
+    findSessionById(sessionId) {
+        for (const day of this.planningData.planning_data) {
+            const session = day.sessions.find(s => s.id == sessionId);
+            if (session) return session;
+        }
+        return null;
+    }
 }
 
 // Export global
@@ -754,3 +754,5 @@ class SwipeHandler {
         this.element.removeEventListener('touchend', this.handleTouchEnd);
     }
 }
+
+window.SwipeHandler = SwipeHandler;
