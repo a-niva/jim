@@ -231,9 +231,37 @@ class WeeklyPlannerView {
     }
     
     renderSessionCard(session) {
-        const muscleColors = session.primary_muscles?.map(muscle => 
-            this.muscleColors[muscle] || '#6b7280'
-        ) || ['#6b7280'];
+        // Mapper et nettoyer les noms de muscles
+        const getValidMuscleColor = (muscles) => {
+            if (!muscles || !muscles.length) return '#6366f1'; // Couleur par défaut moderne
+            
+            // Mapping des noms de muscles API vers nos couleurs
+            const muscleMapping = {
+                'pectoraux': '#ec4899',
+                'dos': '#3b82f6', 
+                'jambes': '#10b981',
+                'epaules': '#f59e0b',
+                'bras': '#8b5cf6',
+                'abdominaux': '#ef4444',
+                // Aliases courantes
+                'pecs': '#ec4899',
+                'chest': '#ec4899',
+                'back': '#3b82f6',
+                'legs': '#10b981',
+                'shoulders': '#f59e0b',
+                'arms': '#8b5cf6',
+                'abs': '#ef4444'
+            };
+            
+            for (const muscle of muscles) {
+                const color = muscleMapping[muscle.toLowerCase()];
+                if (color) return color;
+            }
+            
+            return '#6366f1'; // Couleur moderne par défaut
+        };
+
+        const borderColor = getValidMuscleColor(session.primary_muscles);
         
         return `
             <div class="session-card" 
