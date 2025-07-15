@@ -7258,15 +7258,6 @@ background: rgba(255, 255, 255, 0.02);
     letter-spacing: 0.5px;
 }
 
-/* Grille des jours */
-.planner-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: var(--spacing-md);
-    margin-bottom: var(--spacing-xl);
-    width: 100%;
-}
-
 /* Colonne jour avec glassmorphism */
 .day-column {
     background: rgba(255, 255, 255, 0.03);
@@ -7806,7 +7797,7 @@ background: rgba(255, 255, 255, 0.02);
 @media (min-width: 1200px) {
     .weekly-planner {
         display: grid;
-        grid-template-columns: 1fr 320px;  /* ← Garder cette ligne */
+        grid-template-columns: 1fr 320px;
         gap: var(--spacing-xl);
         grid-template-areas:
             "header header"
@@ -7819,11 +7810,14 @@ background: rgba(255, 255, 255, 0.02);
     
     .planner-grid {
         grid-area: grid;
-        min-width: 0;  /* ← AJOUTER CETTE LIGNE */
+        min-width: 0 !important;
+        width: 100% !important;
+        display: grid !important;
+        grid-template-columns: repeat(7, 1fr) !important;
     }
     
     .planner-sidebar {
-        grid-area: sidebar;  /* ← AJOUTER CETTE LIGNE */
+        grid-area: sidebar;
         display: flex !important;
         flex-direction: column;
         gap: var(--spacing-lg);
