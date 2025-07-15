@@ -80,7 +80,8 @@ class WeeklyPlannerView {
             const optimizationHTML = this.renderOptimizationSuggestions ? this.renderOptimizationSuggestions() : '<p>Suggestions en développement</p>';
             
             this.container.innerHTML = `
-                <div class="weekly-planner ${isMobile ? 'mobile' : 'desktop'}">
+                <div class="weekly-planner ${isMobile ? 'mobile' : 'desktop'}" style="display: block !important; height: 100vh !important; background: red !important; padding: 20px;">
+                    <h2 style="color: white;">TEST VISIBILITÉ PLANNING</h2>
                     <div class="planner-header">
                         ${navigationHTML}
                         ${overviewHTML}
@@ -101,6 +102,40 @@ class WeeklyPlannerView {
             
             console.log('✅ HTML injecté dans le conteneur');
             
+            // DIAGNOSTIC VISIBILITÉ
+            console.log('🔍 Conteneur styles:', {
+                display: this.container.style.display,
+                visibility: this.container.style.visibility,
+                height: this.container.offsetHeight,
+                width: this.container.offsetWidth,
+                childrenCount: this.container.children.length
+            });
+
+            // Vérifier le premier enfant (weekly-planner div)
+            const weeklyPlannerDiv = this.container.querySelector('.weekly-planner');
+            if (weeklyPlannerDiv) {
+                console.log('✅ Weekly planner div trouvé:', {
+                    display: getComputedStyle(weeklyPlannerDiv).display,
+                    height: weeklyPlannerDiv.offsetHeight,
+                    childrenCount: weeklyPlannerDiv.children.length
+                });
+            } else {
+                console.error('❌ Weekly planner div NON TROUVÉ !');
+            }
+
+            // Vérifier la grille
+            const plannerGrid = this.container.querySelector('.planner-grid');
+            if (plannerGrid) {
+                console.log('✅ Planner grid trouvé:', {
+                    display: getComputedStyle(plannerGrid).display,
+                    gridTemplateColumns: getComputedStyle(plannerGrid).gridTemplateColumns,
+                    height: plannerGrid.offsetHeight,
+                    childrenCount: plannerGrid.children.length
+                });
+            } else {
+                console.error('❌ Planner grid NON TROUVÉ !');
+            }
+
             // Ajouter les event listeners après le rendu
             this.attachEventListeners();
             console.log('✅ Event listeners attachés');
