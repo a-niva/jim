@@ -17,6 +17,9 @@
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="program-builder.css">
+    <!-- Font Awesome pour les icônes -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
 </head>
 <body>
     <!-- ========================================== -->
@@ -681,16 +684,14 @@
             </div>
         </div>
 
-
         <!-- ================================ -->
-        <!-- PLANNING HEBDOMADAIRE            -->
+        <!-- VUE PLANNING HEBDOMADAIRE       -->
         <!-- ================================ -->
         <div class="view" id="weekly-planning">
-            <div id="weeklyPlanningContainer">
-                <!-- Le contenu sera généré par WeeklyPlannerView -->
+            <div id="weeklyPlanningContainer" class="view-content">
+                <!-- Le contenu sera généré par weekly-planner.js -->
             </div>
         </div>
-
 
         <!-- ================================ -->
         <!-- PROFIL                           -->
@@ -751,14 +752,14 @@
         </div>
     </div>
 
-<!-- ========================================== -->
+    <!-- ========================================== -->
     <!-- SCRIPTS                                    -->
     <!-- ========================================== -->
     <script src="muscle-colors.js"></script>
     <script src="stats-charts.js"></script>
     <script src="session_quality_engine.js"></script>
+    <script src="app.js"></script> <!-- app.js AVANT weekly-planner.js -->
     <script src="weekly-planner.js"></script>
-    <script src="app.js"></script>
     <script src="program-builder.js"></script>
 </body>
 </html>

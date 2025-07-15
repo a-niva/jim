@@ -3096,6 +3096,32 @@ def move_planned_session(
         db.rollback()
         raise HTTPException(status_code=500, detail="Erreur déplacement séance")
 
+
+@app.delete("/api/planned-sessions/{session_id}")
+def delete_planned_session(
+    session_id: int,
+    db: Session = Depends(get_db)
+):
+    """Supprimer une séance planifiée"""
+    planned_session = db.query(PlannedSession).filter(PlannedSession.id == session_id).first()
+    if not planned_session:
+        raise HTTPException(status_code=404, detail="Séance planifiée non trouvée")
+    
+    try:
+        db.delete(planned_session)
+        db.commit()
+        
+        logger.info(f"Séance planifiée {session_id} supprimée")
+        return {
+            "message": "Séance planifiée supprimée avec succès",
+            "session_id": session_id
+        }
+        
+    except Exception as e:
+        logger.error(f"Erreur suppression séance planifiée {session_id}: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Erreur lors de la suppression")
+    
 # ===== FONCTIONS HELPER PLANNING =====
 
 def analyze_muscle_recovery(past_workouts, db):
