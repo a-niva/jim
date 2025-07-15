@@ -44,10 +44,10 @@ class WeeklyPlannerView {
     }
     
 
+
     debugLayout() {
-        console.log('🔍 DEBUG PLANNING LAYOUT:');
+        console.log('🔍 DEBUG PLANNING LAYOUT VERTICAL:');
         
-        // Container principal
         const container = this.container;
         console.log('Container:', {
             id: container.id,
@@ -57,41 +57,52 @@ class WeeklyPlannerView {
             display: getComputedStyle(container).display
         });
         
-        // Weekly planner div
         const weeklyPlanner = container.querySelector('.weekly-planner');
         if (weeklyPlanner) {
             console.log('Weekly planner:', {
                 classes: weeklyPlanner.className,
                 height: weeklyPlanner.offsetHeight,
+                width: weeklyPlanner.offsetWidth,
                 childCount: weeklyPlanner.children.length
             });
-        } else {
-            console.error('❌ No .weekly-planner found!');
         }
         
-        // Grille
         const grid = container.querySelector('.planner-grid');
         if (grid) {
-            console.log('Grid:', {
+            console.log('Grid (vertical):', {
                 visible: grid.offsetHeight > 0,
                 height: grid.offsetHeight,
-                columns: getComputedStyle(grid).gridTemplateColumns,
-                childCount: grid.children.length,
-                children: Array.from(grid.children).map(child => ({
-                    class: child.className,
-                    height: child.offsetHeight,
-                    date: child.dataset.date
-                }))
+                width: grid.offsetWidth,
+                display: getComputedStyle(grid).display,
+                flexDirection: getComputedStyle(grid).flexDirection,
+                childCount: grid.children.length
             });
-        } else {
-            console.error('❌ No .planner-grid found!');
         }
         
-        // Planning data
+        const dayColumns = container.querySelectorAll('.day-column');
+        console.log('Day columns:', dayColumns.length);
+        dayColumns.forEach((col, index) => {
+            console.log(`Day ${index}:`, {
+                width: col.offsetWidth,
+                height: col.offsetHeight,
+                display: getComputedStyle(col).display,
+                sessions: col.querySelectorAll('.session-card').length
+            });
+        });
+        
+        const recovery = container.querySelector('.planner-recovery');
+        if (recovery) {
+            console.log('Recovery section:', {
+                visible: recovery.offsetHeight > 0,
+                height: recovery.offsetHeight,
+                width: recovery.offsetWidth,
+                display: getComputedStyle(recovery).display
+            });
+        }
+        
         console.log('Planning data:', {
             hasData: !!this.planningData,
-            daysCount: this.planningData?.planning_data?.length,
-            firstDay: this.planningData?.planning_data?.[0]
+            daysCount: this.planningData?.planning_data?.length || 0
         });
     }
 
@@ -162,17 +173,11 @@ class WeeklyPlannerView {
 
 
     render() {
-        if (!this.planningData) {
-            this.renderLoading();
-            return;
-        }
-        
-        const isMobile = window.innerWidth <= 768;
-        
         try {
-            // Vérifier que les données sont correctes
+            const isMobile = window.innerWidth <= 768;
+            
             console.log('🔍 Rendering with data:', {
-                hasData: !!this.planningData,
+                hasData: !this.planningData,
                 planningDataLength: this.planningData.planning_data?.length,
                 isMobile: isMobile
             });
@@ -180,11 +185,10 @@ class WeeklyPlannerView {
             const navigationHTML = this.renderWeekNavigation();
             const overviewHTML = this.renderWeekOverview();
             const weekDaysHTML = this.renderWeekDays();
-                        
-            // Structure verticale : header + grid + recovery (en-dessous)
             const recoveryHTML = this.renderRecoveryStatus();
             const optimizationHTML = this.renderOptimizationSuggestions();
 
+            // Structure verticale avec recovery en bas
             let htmlContent = `
                 <div class="weekly-planner ${isMobile ? 'mobile' : 'desktop'}">
                     <div class="planner-header">
@@ -220,11 +224,11 @@ class WeeklyPlannerView {
             this.renderError();
         }
 
-        // À la fin de render(), ajouter :
+        // Debug layout après rendu
         setTimeout(() => {
             this.debugLayout();
         }, 100);
-}
+    }
     
     renderWeekNavigation() {
         const weekStart = new Date(this.planningData.week_start);
@@ -267,43 +271,24 @@ class WeeklyPlannerView {
     }
 
     renderWeekDays() {
+        if (!this.planningData || !this.planningData.planning_data) {
+            return '<div class="error-container"><p>Aucune donnée de planning disponible</p></div>';
+        }
+        
         const today = new Date().toISOString().split('T')[0];
         
-        // Si pas de données, afficher une semaine vide
-        if (!this.planningData?.planning_data || this.planningData.planning_data.length === 0) {
-            console.warn('⚠️ No planning data, rendering empty week');
-            return this.renderEmptyWeek();
-        }
-        
-        // Vérifier que nous avons bien 7 jours
-        if (this.planningData.planning_data.length !== 7) {
-            console.warn(`⚠️ Expected 7 days, got ${this.planningData.planning_data.length}`);
-        }
-        
         const daysHTML = this.planningData.planning_data.map(day => {
-            const dayScore = this.calculateDayScore(day);
-            this.dayScores[day.date] = dayScore;
+            const dayDate = new Date(day.date);
             const isToday = day.date === today;
             
-            let scoreColor = '#10b981';
-            if (dayScore < 40) scoreColor = '#ef4444';
-            else if (dayScore < 70) scoreColor = '#f59e0b';
+            const dayName = dayDate.toLocaleDateString('fr-FR', { weekday: 'short' }).toUpperCase();
+            const dayNumber = dayDate.getDate();
             
             return `
                 <div class="day-column ${isToday ? 'today' : ''}" data-date="${day.date}">
                     <div class="day-header">
-                        <div>
-                            <h3>${this.getDayName(day.day_name)}</h3>
-                            <span class="day-date">${new Date(day.date).getDate()}</span>
-                        </div>
-                        <div class="day-score" style="--score-percent: ${dayScore}%; --score-color: ${scoreColor}">
-                            <div class="day-score-bg"></div>
-                            <div class="day-score-center">${dayScore}</div>
-                        </div>
-                        ${day.recovery_warnings && day.recovery_warnings.length > 0 ? 
-                            `<i class="fas fa-exclamation-triangle warning-icon" title="${day.recovery_warnings.join(', ')}"></i>` 
-                            : ''
-                        }
+                        <div class="day-name">${dayName}</div>
+                        <div class="day-number">${dayNumber}</div>
                     </div>
                     
                     <div class="day-sessions" data-day="${day.date}">
@@ -323,7 +308,10 @@ class WeeklyPlannerView {
                     ${day.recovery_warnings && day.recovery_warnings.length > 0 ? `
                         <div class="day-warnings">
                             ${day.recovery_warnings.map(warning => `
-                                <div class="warning-item">${warning}</div>
+                                <div class="warning-item">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    ${warning}
+                                </div>
                             `).join('')}
                         </div>
                     ` : ''}
@@ -334,63 +322,73 @@ class WeeklyPlannerView {
         console.log('🔍 Generated', this.planningData.planning_data.length, 'day columns');
         return daysHTML;
     }
+
         
+
     renderSessionCard(session) {
         const isTemporary = String(session.id).startsWith('temp_');
         const borderColor = this.getValidMuscleColor(session.primary_muscles);
         const score = session.predicted_quality_score || 75;
         
-        let scoreGradient = `linear-gradient(90deg, #10b981 0%, #10b981 100%)`;
+        // Déterminer la couleur de l'indicateur selon le score
+        let indicatorColor = '#10b981'; // vert par défaut
         if (score < 40) {
-            scoreGradient = `linear-gradient(90deg, #ef4444 0%, #dc2626 100%)`;
+            indicatorColor = '#ef4444'; // rouge
         } else if (score < 70) {
-            scoreGradient = `linear-gradient(90deg, #f59e0b 0%, #d97706 100%)`;
+            indicatorColor = '#f59e0b'; // orange
         }
         
         return `
             <div class="session-card ${isTemporary ? 'session-temporary' : ''}" 
                 data-session-id="${session.id}"
-                data-is-temporary="${isTemporary}"
-                style="border-left-color: ${borderColor}">
-                <div class="session-header">
-                    <span class="session-time">
-                        ${session.planned_time ? 
-                            new Date(`2000-01-01T${session.planned_time}`).toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'}) : 
-                            'Horaire libre'}
-                    </span>
-                    <div class="session-actions">
-                        ${!isTemporary ? `
-                            <button class="action-btn" onclick="weeklyPlanner.showSessionDeepDive('${session.id}')">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button class="action-btn" onclick="weeklyPlanner.deleteSession('${session.id}')">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        ` : `
-                            <span class="temp-badge">Auto</span>
-                        `}
-                    </div>
-                </div>
+                data-is-temporary="${isTemporary}">
                 
                 <div class="session-content">
-                    <div class="session-info">
-                        <span><i class="fas fa-dumbbell"></i> ${session.exercises?.length || 0}</span>
-                        <span><i class="fas fa-clock"></i> ${session.estimated_duration || 45}min</span>
+                    <div class="session-title">
+                        ${session.title || 'Séance ' + session.primary_muscles.join(', ')}
+                        ${isTemporary ? '<span class="temp-badge">TEMP</span>' : ''}
                     </div>
+                    
+                    <div class="session-meta">
+                        <span class="session-time">
+                            <i class="fas fa-clock"></i>
+                            ${session.planned_time ? 
+                                new Date(`2000-01-01T${session.planned_time}`).toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'}) : 
+                                'Libre'}
+                        </span>
+                        <span>
+                            <i class="fas fa-dumbbell"></i>
+                            ${session.exercises?.length || 0} ex.
+                        </span>
+                        <span style="color: ${indicatorColor}">
+                            <i class="fas fa-star"></i>
+                            ${score}%
+                        </span>
+                    </div>
+                    
+                    ${session.primary_muscles && session.primary_muscles.length > 0 ? `
+                        <div class="session-muscles">
+                            ${session.primary_muscles.slice(0, 3).map(muscle => 
+                                `<span class="muscle-tag" style="background: ${this.getValidMuscleColor([muscle])}">${muscle}</span>`
+                            ).join('')}
+                        </div>
+                    ` : ''}
                 </div>
                 
-                <div class="session-score-bar">
-                    <div class="session-score-fill" 
-                        style="width: ${score}%; --score-gradient: ${scoreGradient}"></div>
+                <div class="session-actions">
+                    ${!isTemporary ? `
+                        <button class="action-btn" onclick="weeklyPlanner.editSession('${session.id}')" title="Modifier">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="action-btn" onclick="weeklyPlanner.deleteSession('${session.id}')" title="Supprimer">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    ` : `
+                        <button class="action-btn" onclick="weeklyPlanner.removeTemporarySession('${session.id}')" title="Annuler">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    `}
                 </div>
-                
-                ${session.primary_muscles && session.primary_muscles.length > 0 ? `
-                    <div class="session-muscles">
-                        ${session.primary_muscles.slice(0, 3).map(muscle => 
-                            `<span class="muscle-tag" style="background: ${this.getValidMuscleColor([muscle])}">${muscle}</span>`
-                        ).join('')}
-                    </div>
-                ` : ''}
             </div>
         `;
     }
@@ -479,69 +477,150 @@ class WeeklyPlannerView {
         // Pas d'event listeners spécifiques pour l'instant
     }
     
+
     initSwipeHandlers() {
-        if (window.innerWidth > 768) return;
+        if (window.innerWidth > 768) return; // Pas de swipe sur desktop
         
-        document.querySelectorAll('.session-card').forEach(card => {
-            const sessionId = card.dataset.sessionId;
-            const handler = new SwipeHandler(card, {
-                threshold: 50,
-                onSwipeLeft: () => {
-                    card.classList.add('swipe-left');
-                    setTimeout(() => {
-                        if (confirm('Supprimer cette séance ?')) {
-                            this.deleteSession(sessionId);
-                        } else {
-                            card.classList.remove('swipe-left');
-                        }
-                    }, 300);
-                },
-                onSwipeRight: () => {
-                    this.showSessionDeepDive(sessionId);
+        const sessionCards = this.container.querySelectorAll('.session-card');
+        
+        sessionCards.forEach(card => {
+            let startX = 0;
+            let startY = 0;
+            let currentX = 0;
+            let currentY = 0;
+            let isDragging = false;
+            
+            const handleStart = (e) => {
+                const touch = e.touches ? e.touches[0] : e;
+                startX = touch.clientX;
+                startY = touch.clientY;
+                isDragging = true;
+            };
+            
+            const handleMove = (e) => {
+                if (!isDragging) return;
+                
+                const touch = e.touches ? e.touches[0] : e;
+                currentX = touch.clientX - startX;
+                currentY = touch.clientY - startY;
+                
+                // Seulement swipe horizontal
+                if (Math.abs(currentX) > Math.abs(currentY)) {
+                    e.preventDefault();
+                    card.style.transform = `translateX(${currentX}px)`;
+                    
+                    // Feedback visuel
+                    if (currentX > 50) {
+                        card.classList.add('swipe-right');
+                    } else if (currentX < -50) {
+                        card.classList.add('swipe-left');
+                    } else {
+                        card.classList.remove('swipe-left', 'swipe-right');
+                    }
                 }
-            });
-            this.swipeHandlers.set(sessionId, handler);
+            };
+            
+            const handleEnd = () => {
+                if (!isDragging) return;
+                isDragging = false;
+                
+                // Action selon la direction du swipe
+                if (currentX > 100) {
+                    // Swipe droite : dupliquer
+                    this.duplicateSession(card.dataset.sessionId);
+                } else if (currentX < -100) {
+                    // Swipe gauche : supprimer
+                    this.deleteSession(card.dataset.sessionId);
+                }
+                
+                // Reset
+                card.style.transform = '';
+                card.classList.remove('swipe-left', 'swipe-right');
+                currentX = 0;
+                currentY = 0;
+            };
+            
+            // Touch events
+            card.addEventListener('touchstart', handleStart, { passive: false });
+            card.addEventListener('touchmove', handleMove, { passive: false });
+            card.addEventListener('touchend', handleEnd);
+            
+            // Mouse events pour desktop
+            card.addEventListener('mousedown', handleStart);
+            card.addEventListener('mousemove', handleMove);
+            card.addEventListener('mouseup', handleEnd);
+            card.addEventListener('mouseleave', handleEnd);
         });
-        
-        const header = this.container.querySelector('.week-navigation');
-        if (header) {
-            new SwipeHandler(header, {
-                threshold: 100,
-                onSwipeLeft: () => this.nextWeek(),
-                onSwipeRight: () => this.previousWeek()
-            });
-        }
     }
 
+
     initializeDragDrop() {
-        const dayColumns = this.container.querySelectorAll('.day-sessions');
-        
-        dayColumns.forEach(column => {
-            if (typeof Sortable !== 'undefined') {
-                new Sortable(column, {
-                    group: 'planning',
+        if (typeof Sortable === 'undefined') {
+            console.warn('Sortable.js non disponible, drag & drop désactivé');
+            return;
+        }
+
+        try {
+            // Initialiser le drag & drop pour chaque zone de sessions
+            const dayContainers = this.container.querySelectorAll('.day-sessions');
+            
+            dayContainers.forEach(container => {
+                new Sortable(container, {
+                    group: 'planning-sessions',
                     animation: 150,
                     ghostClass: 'session-ghost',
                     chosenClass: 'session-chosen',
-                    filter: '.session-temporary',
+                    dragClass: 'session-dragging',
+                    
+                    // Ignorer la zone d'ajout
+                    filter: '.add-session-zone',
+                    preventOnFilter: false,
+                    
                     onStart: (evt) => {
-                        if (evt.item.classList.contains('session-temporary')) {
-                            evt.preventDefault();
-                            window.showToast('Les séances auto-générées ne peuvent pas être déplacées', 'info');
-                            return false;
-                        }
                         this.draggedSession = evt.item.dataset.sessionId;
+                        evt.item.classList.add('dragging');
+                        console.log('🟡 Début drag session:', this.draggedSession);
                     },
-                    onEnd: async (evt) => {
-                        if (evt.from !== evt.to) {
-                            await this.handleSessionMove(evt);
+                    
+                    onEnd: (evt) => {
+                        evt.item.classList.remove('dragging');
+                        console.log('🟢 Fin drag session');
+                    },
+                    
+                    onChange: (evt) => {
+                        // Ajouter feedback visuel pendant le drag
+                        const targetDay = evt.to.closest('.day-column');
+                        if (targetDay) {
+                            targetDay.classList.add('drag-over');
+                            setTimeout(() => {
+                                targetDay.classList.remove('drag-over');
+                            }, 300);
+                        }
+                    },
+                    
+                    onAdd: async (evt) => {
+                        const sessionId = evt.item.dataset.sessionId;
+                        const targetDay = evt.to.dataset.day;
+                        const sourceDay = evt.from.dataset.day;
+                        
+                        console.log(`📅 Déplacement session ${sessionId}: ${sourceDay} → ${targetDay}`);
+                        
+                        try {
+                            await this.handleSessionMove(sessionId, sourceDay, targetDay);
+                        } catch (error) {
+                            console.error('❌ Erreur déplacement session:', error);
+                            // Remettre l'élément à sa place d'origine en cas d'erreur
+                            evt.from.appendChild(evt.item);
                         }
                     }
                 });
-            } else {
-                console.warn('SortableJS non disponible - drag & drop désactivé');
-            }
-        });
+            });
+
+            console.log('✅ Drag & drop initialisé pour', dayContainers.length, 'conteneurs');
+            
+        } catch (error) {
+            console.error('❌ Erreur initialisation drag & drop:', error);
+        }
     }
 
     async handleSessionMove(evt) {
