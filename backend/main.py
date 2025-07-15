@@ -2851,6 +2851,76 @@ def get_attendance_calendar(user_id: int, months: int = 6, db: Session = Depends
 
 
 # ===== ENDPOINTS PLANNING HEBDOMADAIRE =====
+def auto_generate_planned_sessions(program, week_start, week_end, db):
+    """Génère automatiquement les séances planifiées à partir du programme"""
+    planned_sessions = []
+    
+    # Calculer combien de jours depuis le début du programme
+    if not program.started_at:
+        # Si programme pas encore démarré, commencer cette semaine
+        days_since_start = 0
+        program.started_at = datetime.now(timezone.utc)
+        db.commit()
+    else:
+        days_since_start = (week_start - program.started_at.date()).days
+    
+    # Distribuer les séances sur la semaine (éviter weekend si possible)
+    weekdays_preferred = [0, 1, 2, 3, 4]  # Lundi à vendredi
+    sessions_per_week = program.sessions_per_week
+    
+    # Jours sélectionnés pour les séances
+    if sessions_per_week <= 5:
+        selected_days = weekdays_preferred[:sessions_per_week]
+    else:
+        # Si >5 séances, utiliser aussi le weekend
+        selected_days = list(range(min(7, sessions_per_week)))
+    
+    # Générer une séance pour chaque jour sélectionné
+    for i, day_offset in enumerate(selected_days):
+        session_date = week_start + timedelta(days=day_offset)
+        
+        # Vérifier que la date est dans la plage demandée
+        if session_date > week_end:
+            continue
+            
+        # Sélectionner les exercices selon la rotation du programme
+        session_exercises = []
+        estimated_duration = program.session_duration_minutes or 60
+        
+        if program.weekly_structure and len(program.weekly_structure) > 0:
+            # Utiliser la structure du programme
+            week_in_program = (days_since_start // 7) % len(program.weekly_structure)
+            week_data = program.weekly_structure[week_in_program]
+            
+            if "sessions" in week_data and len(week_data["sessions"]) > i:
+                session_template = week_data["sessions"][i]
+                session_exercises = session_template.get("exercise_pool", [])
+                estimated_duration = session_template.get("estimated_duration_minutes", estimated_duration)
+        
+        # Détecter les muscles principaux de la séance
+        primary_muscles = []
+        if session_exercises:
+            for ex in session_exercises[:3]:  # Prendre les 3 premiers exercices
+                if "muscle_groups" in ex:
+                    primary_muscles.extend(ex["muscle_groups"])
+        
+        # Créer la séance planifiée temporaire (pas sauvée en DB pour l'instant)
+        planned_session = PlannedSession(
+            user_id=program.user_id,
+            program_id=program.id,
+            planned_date=session_date,
+            planned_time=None,  # Pas d'heure spécifique
+            exercises=session_exercises,
+            estimated_duration=estimated_duration,
+            primary_muscles=list(set(primary_muscles)),  # Dédupliquer
+            predicted_quality_score=75.0,  # Score par défaut
+            status="planned"
+        )
+        
+        planned_sessions.append(planned_session)
+        logger.info(f"Séance auto-générée: {session_date}, {len(session_exercises)} exercices, {estimated_duration}min")
+    
+    return planned_sessions
 
 @app.get("/api/users/{user_id}/weekly-planning")
 def get_weekly_planning(
@@ -2874,6 +2944,19 @@ def get_weekly_planning(
             PlannedSession.planned_date >= week_start_date,
             PlannedSession.planned_date <= week_end_date
         ).order_by(PlannedSession.planned_date).all()
+
+        # Si aucune séance planifiée, auto-générer à partir du programme actif
+        if not planned_sessions:
+            active_program = db.query(Program).filter(
+                Program.user_id == user_id,
+                Program.is_active == True
+            ).first()
+            
+            if active_program and active_program.sessions_per_week > 0:
+                logger.info(f"Auto-génération séances pour user {user_id} depuis programme {active_program.id}")
+                planned_sessions = auto_generate_planned_sessions(
+                    active_program, week_start_date, week_end_date, db
+                )
         
         # Récupérer les séances passées (7 derniers jours) pour analyser récupération
         past_cutoff = week_start_date - timedelta(days=7)
