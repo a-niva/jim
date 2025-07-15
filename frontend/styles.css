@@ -7932,3 +7932,28 @@ background: rgba(255, 255, 255, 0.02);
     line-height: 1.5;
     margin-bottom: var(--spacing-xl);
 }
+
+/* === WEEKLY PLANNER LAYOUT FIX === */
+#weekly-planning.view.active {
+    overflow-x: hidden; /* Éviter scroll horizontal */
+}
+
+#weekly-planning.view.active .container {
+    max-width: none !important; /* Retirer contrainte globale */
+    width: 100% !important;
+    padding: 0 !important;
+}
+
+.weekly-planner {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+/* Forcer container parent à respecter largeur */
+@media (min-width: 900px) {
+    .weekly-planner {
+        width: 900px; /* Largeur fixe sur desktop */
+    }
+}

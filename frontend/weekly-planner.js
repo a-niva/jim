@@ -664,29 +664,35 @@ class WeeklyPlannerView {
         }
     }
 
-    async handleSessionMove(evt) {
-        const sessionId = this.draggedSession;
-        const newDate = evt.to.dataset.day;
+    async handleSessionMove(sessionId, sourceDay, targetDay) {
+        // ✅ Paramètres clairs passés par onAdd
+        console.log(`📅 Déplacement session ${sessionId}: ${sourceDay} → ${targetDay}`);
         
-        const sessionCard = evt.item;
+        // Trouver les éléments depuis le DOM
+        const sessionCard = document.querySelector(`[data-session-id="${sessionId}"]`);
+        if (!sessionCard) {
+            console.error('❌ Session card non trouvée:', sessionId);
+            return;
+        }
+        
         const isTemporary = sessionCard.dataset.isTemporary === 'true';
         
         if (isTemporary) {
             window.showToast('Les séances auto-générées ne peuvent pas être déplacées', 'warning');
-            evt.from.insertBefore(evt.item, evt.from.children[evt.oldDraggableIndex]);
+            await this.refresh(); // Remettre l'affichage en ordre
             return;
         }
         
         try {
             const result = await window.apiPut(`/api/planned-sessions/${sessionId}/move`, {
-                new_date: newDate
+                new_date: targetDay
             });
             
             if (result.success) {
                 window.showToast('Séance déplacée avec succès', 'success');
                 await this.refresh();
             } else if (result.requires_confirmation) {
-                this.showMoveConfirmation(sessionId, newDate, result.warnings);
+                this.showMoveConfirmation(sessionId, targetDay, result.warnings);
             }
         } catch (error) {
             console.error('Erreur déplacement séance:', error);
@@ -764,8 +770,8 @@ class WeeklyPlannerView {
         } catch (error) {
             console.error('Erreur chargement programme:', error);
             
-            // Si erreur 500 ou autre, proposer création programme
-            if (error.message && error.message.includes('500')) {
+            // Si erreur 500 (programme manquant) ou autre, proposer création programme
+            if (error.message && (error.message.includes('500') || error.message.includes('Serveur temporairement indisponible'))) {
                 this.showNoProgramModal();
             } else {
                 window.showToast('Erreur technique temporaire', 'error');
