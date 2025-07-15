@@ -280,6 +280,9 @@ class WeeklyPlannerView {
     }
         
     renderSessionCard(session) {
+        // Détecter si c'est une session temporaire
+        const isTemporary = String(session.id).startsWith('temp_');
+        
         // Mapper et nettoyer les noms de muscles
         const getValidMuscleColor = (muscles) => {
             if (!muscles || !muscles.length) return '#6366f1';
@@ -320,8 +323,9 @@ class WeeklyPlannerView {
         }
         
         return `
-            <div class="session-card" 
+            <div class="session-card ${isTemporary ? 'session-temporary' : ''}" 
                 data-session-id="${session.id}"
+                data-is-temporary="${isTemporary}"
                 style="border-left-color: ${borderColor}">
                 <div class="session-header">
                     <span class="session-time">
@@ -330,15 +334,19 @@ class WeeklyPlannerView {
                             'Horaire libre'}
                     </span>
                     <div class="session-actions">
-                        <button class="action-btn" onclick="weeklyPlanner.showSessionDeepDive(${session.id})">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="action-btn" onclick="weeklyPlanner.editSession(${session.id})">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="action-btn" onclick="weeklyPlanner.deleteSession(${session.id})">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        ${!isTemporary ? `
+                            <button class="action-btn" onclick="weeklyPlanner.showSessionDeepDive('${session.id}')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="action-btn" onclick="weeklyPlanner.editSession('${session.id}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="action-btn" onclick="weeklyPlanner.deleteSession('${session.id}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        ` : `
+                            <span class="temp-badge">Auto</span>
+                        `}
                     </div>
                 </div>
                 
@@ -471,7 +479,6 @@ class WeeklyPlannerView {
 
 
     initializeDragDrop() {
-        // Initialiser SortableJS pour le drag & drop entre jours
         const dayColumns = this.container.querySelectorAll('.day-sessions');
         
         dayColumns.forEach(column => {
@@ -481,7 +488,14 @@ class WeeklyPlannerView {
                     animation: 150,
                     ghostClass: 'session-ghost',
                     chosenClass: 'session-chosen',
+                    filter: '.session-temporary', // NOUVEAU : Exclure les sessions temporaires
                     onStart: (evt) => {
+                        // Vérifier si c'est une session temporaire
+                        if (evt.item.classList.contains('session-temporary')) {
+                            evt.preventDefault();
+                            window.showToast('Les séances auto-générées ne peuvent pas être déplacées', 'info');
+                            return false;
+                        }
                         this.draggedSession = evt.item.dataset.sessionId;
                     },
                     onEnd: async (evt) => {
@@ -492,8 +506,6 @@ class WeeklyPlannerView {
                 });
             } else {
                 console.warn('SortableJS non disponible - drag & drop désactivé');
-                // Fallback : ajouter des boutons up/down pour réorganiser
-                this.addFallbackMoveButtons(column);
             }
         });
     }
@@ -518,9 +530,20 @@ class WeeklyPlannerView {
         const sessionId = this.draggedSession;
         const newDate = evt.to.dataset.day;
         
+        // NOUVEAU : Vérifier si la session est temporaire
+        const sessionCard = evt.item;
+        const isTemporary = sessionCard.dataset.isTemporary === 'true';
+        
+        if (isTemporary) {
+            window.showToast('Les séances auto-générées ne peuvent pas être déplacées', 'warning');
+            // Restaurer la position originale
+            evt.from.insertBefore(evt.item, evt.from.children[evt.oldDraggableIndex]);
+            return;
+        }
+        
         try {
             const result = await window.apiPut(`/api/planned-sessions/${sessionId}/move`, {
-                new_date: newDate
+            new_date: newDate
             });
             
             if (result.success) {
