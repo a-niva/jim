@@ -19,6 +19,10 @@ class WeeklyPlannerView {
             'bras': '#8b5cf6',
             'abdominaux': '#ef4444'
         };
+        
+        //  Scoring et swipe handler
+        this.dayScores = {};
+        this.swipeHandlers = new Map();
     }
     
     async initialize() {
@@ -50,6 +54,42 @@ class WeeklyPlannerView {
         return monday;
     }
     
+    // Calculer le score d'un jour
+    calculateDayScore(dayData) {
+        if (!dayData.sessions || dayData.sessions.length === 0) return 100;
+        
+        let score = 100;
+        const sessions = dayData.sessions;
+        
+        // Pénalité pour ordre non optimal
+        sessions.forEach((session, index) => {
+            if (index > 0) {
+                const prevSession = sessions[index - 1];
+                // Si même groupe musculaire consécutif, pénalité
+                const commonMuscles = session.primary_muscles?.filter(m => 
+                    prevSession.primary_muscles?.includes(m)
+                );
+                if (commonMuscles?.length > 0) {
+                    score -= 15;
+                }
+            }
+        });
+        
+        // Pénalité pour warnings de récupération
+        if (dayData.recovery_warnings?.length > 0) {
+            score -= dayData.recovery_warnings.length * 10;
+        }
+        
+        // Bonus pour nombre optimal de séances (1-2 par jour)
+        if (sessions.length === 1 || sessions.length === 2) {
+            score += 10;
+        } else if (sessions.length > 2) {
+            score -= (sessions.length - 2) * 10;
+        }
+        
+        return Math.max(0, Math.min(100, score));
+    }
+
     render() {
         console.log('🔍 render() appelé, planningData:', this.planningData);
         
@@ -137,6 +177,7 @@ class WeeklyPlannerView {
 
             // Ajouter les event listeners après le rendu
             this.attachEventListeners();
+            this.initSwipeHandlers(); // NOUVEAU
             console.log('✅ Event listeners attachés');
             
         } catch (error) {
@@ -184,58 +225,65 @@ class WeeklyPlannerView {
             </div>
         `;
     }
-    
-    renderWeekDays() {
-        console.log('🔍 renderWeekDays() - planning_data détaillé:', this.planningData.planning_data);
         
-        // Analyser chaque jour individuellement
-        this.planningData.planning_data.forEach((day, index) => {
-            console.log(`📅 Jour ${index} (${day.day_name}):`, {
-                date: day.date,
-                sessions: day.sessions,
-                sessionsCount: day.sessions ? day.sessions.length : 'undefined',
-                canAdd: day.can_add_session
-            });
-        });
-        return this.planningData.planning_data.map(day => `
-            <div class="day-column" data-date="${day.date}">
-                <div class="day-header">
-                    <h3>${this.getDayName(day.day_name)}</h3>
-                    <span class="day-date">${new Date(day.date).getDate()}</span>
-                    ${day.recovery_warnings.length > 0 ? 
-                        `<i class="fas fa-exclamation-triangle warning-icon" title="${day.recovery_warnings.join(', ')}"></i>` 
-                        : ''
-                    }
-                </div>
-                
-                <div class="day-sessions" data-day="${day.date}">
-                    ${day.sessions.map(session => this.renderSessionCard(session)).join('')}
+    renderWeekDays() {
+        const today = new Date().toISOString().split('T')[0];
+        
+        return this.planningData.planning_data.map(day => {
+            const dayScore = this.calculateDayScore(day);
+            this.dayScores[day.date] = dayScore;
+            const isToday = day.date === today;
+            
+            // Couleur du score
+            let scoreColor = '#10b981'; // vert
+            if (dayScore < 40) scoreColor = '#ef4444'; // rouge
+            else if (dayScore < 70) scoreColor = '#f59e0b'; // orange
+            
+            return `
+                <div class="day-column ${isToday ? 'today' : ''}" data-date="${day.date}">
+                    <div class="day-header">
+                        <div>
+                            <h3>${this.getDayName(day.day_name)}</h3>
+                            <span class="day-date">${new Date(day.date).getDate()}</span>
+                        </div>
+                        <div class="day-score" style="--score-percent: ${dayScore}; --score-color: ${scoreColor}">
+                            <div class="day-score-bg"></div>
+                            <div class="day-score-center">${dayScore}</div>
+                        </div>
+                        ${day.recovery_warnings.length > 0 ? 
+                            `<i class="fas fa-exclamation-triangle warning-icon" title="${day.recovery_warnings.join(', ')}"></i>` 
+                            : ''
+                        }
+                    </div>
                     
-                    ${day.can_add_session ? `
-                        <div class="add-session-zone" onclick="weeklyPlanner.addSessionToDay('${day.date}')">
-                            <i class="fas fa-plus"></i>
-                            <span>Ajouter séance</span>
+                    <div class="day-sessions" data-day="${day.date}">
+                        ${day.sessions.map(session => this.renderSessionCard(session)).join('')}
+                        
+                        ${day.can_add_session ? `
+                            <div class="add-session-zone" onclick="weeklyPlanner.addSessionToDay('${day.date}')">
+                                <i class="fas fa-plus"></i>
+                                <span>Ajouter séance</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    ${day.recovery_warnings.length > 0 ? `
+                        <div class="day-warnings">
+                            ${day.recovery_warnings.map(warning => `
+                                <div class="warning-item">${warning}</div>
+                            `).join('')}
                         </div>
                     ` : ''}
                 </div>
-                
-                ${day.recovery_warnings.length > 0 ? `
-                    <div class="day-warnings">
-                        ${day.recovery_warnings.map(warning => `
-                            <div class="warning-item">${warning}</div>
-                        `).join('')}
-                    </div>
-                ` : ''}
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
-    
+        
     renderSessionCard(session) {
         // Mapper et nettoyer les noms de muscles
         const getValidMuscleColor = (muscles) => {
-            if (!muscles || !muscles.length) return '#6366f1'; // Couleur par défaut moderne
+            if (!muscles || !muscles.length) return '#6366f1';
             
-            // Mapping des noms de muscles API vers nos couleurs
             const muscleMapping = {
                 'pectoraux': '#ec4899',
                 'dos': '#3b82f6', 
@@ -243,7 +291,6 @@ class WeeklyPlannerView {
                 'epaules': '#f59e0b',
                 'bras': '#8b5cf6',
                 'abdominaux': '#ef4444',
-                // Aliases courantes
                 'pecs': '#ec4899',
                 'chest': '#ec4899',
                 'back': '#3b82f6',
@@ -258,20 +305,34 @@ class WeeklyPlannerView {
                 if (color) return color;
             }
             
-            return '#6366f1'; // Couleur moderne par défaut
+            return '#6366f1';
         };
 
         const borderColor = getValidMuscleColor(session.primary_muscles);
+        const score = session.predicted_quality_score || 75;
+        
+        // Gradient de score
+        let scoreGradient = `linear-gradient(90deg, #10b981 0%, #10b981 100%)`;
+        if (score < 40) {
+            scoreGradient = `linear-gradient(90deg, #ef4444 0%, #dc2626 100%)`;
+        } else if (score < 70) {
+            scoreGradient = `linear-gradient(90deg, #f59e0b 0%, #d97706 100%)`;
+        }
         
         return `
             <div class="session-card" 
-                 data-session-id="${session.id}"
-                 style="border-left: 4px solid ${muscleColors[0]}">
+                data-session-id="${session.id}"
+                style="border-left-color: ${borderColor}">
                 <div class="session-header">
                     <span class="session-time">
-                        ${session.planned_time ? new Date(`2000-01-01T${session.planned_time}`).toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'}) : 'Pas d\'heure'}
+                        ${session.planned_time ? 
+                            new Date(`2000-01-01T${session.planned_time}`).toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'}) : 
+                            'Horaire libre'}
                     </span>
                     <div class="session-actions">
+                        <button class="action-btn" onclick="weeklyPlanner.showSessionDeepDive(${session.id})">
+                            <i class="fas fa-eye"></i>
+                        </button>
                         <button class="action-btn" onclick="weeklyPlanner.editSession(${session.id})">
                             <i class="fas fa-edit"></i>
                         </button>
@@ -282,23 +343,22 @@ class WeeklyPlannerView {
                 </div>
                 
                 <div class="session-content">
-                    <div class="session-exercises">
-                        ${session.exercises.length} exercices
+                    <div class="session-info">
+                        <span><i class="fas fa-dumbbell"></i> ${session.exercises?.length || 0}</span>
+                        <span><i class="fas fa-clock"></i> ${session.estimated_duration || 45}min</span>
                     </div>
-                    <div class="session-duration">
-                        ${session.estimated_duration || 0} min
-                    </div>
-                    ${session.predicted_quality_score ? `
-                        <div class="session-score">
-                            Score: ${Math.round(session.predicted_quality_score)}/100
-                        </div>
-                    ` : ''}
+                </div>
+                
+                <!-- Mini jauge de score -->
+                <div class="session-score-bar">
+                    <div class="session-score-fill" 
+                        style="width: ${score}%; --score-gradient: ${scoreGradient}"></div>
                 </div>
                 
                 ${session.primary_muscles && session.primary_muscles.length > 0 ? `
                     <div class="session-muscles">
-                        ${session.primary_muscles.map(muscle => `
-                            <span class="muscle-tag" style="background: ${this.muscleColors[muscle] || '#6b7280'}">
+                        ${session.primary_muscles.slice(0, 3).map(muscle => `
+                            <span class="muscle-tag" style="background: ${this.muscleColors[muscle] || 'var(--bg-tertiary)'}22; color: ${this.muscleColors[muscle] || 'var(--text-muted)'}">
                                 ${muscle}
                             </span>
                         `).join('')}
@@ -372,6 +432,44 @@ class WeeklyPlannerView {
         console.log('Event listeners attachés');
     }
     
+    initSwipeHandlers() {
+        // Mobile uniquement
+        if (window.innerWidth > 768) return;
+        
+        // Swipe sur les cards de session
+        document.querySelectorAll('.session-card').forEach(card => {
+            const sessionId = card.dataset.sessionId;
+            const handler = new SwipeHandler(card, {
+                threshold: 50,
+                onSwipeLeft: () => {
+                    card.classList.add('swipe-left');
+                    setTimeout(() => {
+                        if (confirm('Supprimer cette séance ?')) {
+                            this.deleteSession(sessionId);
+                        } else {
+                            card.classList.remove('swipe-left');
+                        }
+                    }, 300);
+                },
+                onSwipeRight: () => {
+                    this.editSession(sessionId);
+                }
+            });
+            this.swipeHandlers.set(sessionId, handler);
+        });
+        
+        // Swipe sur le header pour navigation
+        const header = this.container.querySelector('.week-navigation');
+        if (header) {
+            new SwipeHandler(header, {
+                threshold: 100,
+                onSwipeLeft: () => this.nextWeek(),
+                onSwipeRight: () => this.previousWeek()
+            });
+        }
+    }
+
+
     initializeDragDrop() {
         // Initialiser SortableJS pour le drag & drop entre jours
         const dayColumns = this.container.querySelectorAll('.day-sessions');
@@ -521,5 +619,138 @@ class WeeklyPlannerView {
     }
 }
 
+//  Modal de détails session
+showSessionDeepDive(sessionId) {
+    const session = this.findSessionById(sessionId);
+    if (!session) return;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h2>Analyse de la séance</h2>
+                <button class="modal-close" onclick="this.closest('.modal').remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="session-deep-dive">
+                    <div class="score-display">
+                        <h3>Score de qualité</h3>
+                        <div class="score-large">${session.predicted_quality_score || 0}/100</div>
+                        <div class="score-breakdown">
+                            <div class="breakdown-item">
+                                <span>Rotation musculaire</span>
+                                <span>${session.muscle_rotation_score || 0}/25</span>
+                            </div>
+                            <div class="breakdown-item">
+                                <span>Récupération</span>
+                                <span>${session.recovery_score || 0}/25</span>
+                            </div>
+                            <div class="breakdown-item">
+                                <span>Progression</span>
+                                <span>${session.progression_score || 0}/25</span>
+                            </div>
+                            <div class="breakdown-item">
+                                <span>Adhérence prédite</span>
+                                <span>${session.adherence_score || 0}/25</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="exercises-list">
+                        <h3>Exercices planifiés</h3>
+                        ${session.exercises?.map((ex, idx) => `
+                            <div class="exercise-item">
+                                <span class="exercise-number">${idx + 1}</span>
+                                <span class="exercise-name">${ex.name}</span>
+                                <span class="exercise-sets">${ex.sets} × ${ex.reps}</span>
+                            </div>
+                        `).join('') || '<p>Aucun exercice planifié</p>'}
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button class="btn btn-primary" onclick="weeklyPlanner.startSession(${session.id})">
+                        Commencer la séance
+                    </button>
+                    <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">
+                        Fermer
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    modal.onclick = () => modal.remove();
+    document.body.appendChild(modal);
+}
+
+//  Helper pour trouver une session
+findSessionById(sessionId) {
+    for (const day of this.planningData.planning_data) {
+        const session = day.sessions.find(s => s.id == sessionId);
+        if (session) return session;
+    }
+    return null;
+}
+
 // Export global
 window.WeeklyPlannerView = WeeklyPlannerView;
+
+
+// NOUVEAU : Gestionnaire de swipe générique
+class SwipeHandler {
+    constructor(element, options = {}) {
+        this.element = element;
+        this.threshold = options.threshold || 50;
+        this.onSwipeLeft = options.onSwipeLeft || (() => {});
+        this.onSwipeRight = options.onSwipeRight || (() => {});
+        
+        this.startX = 0;
+        this.startY = 0;
+        this.endX = 0;
+        this.endY = 0;
+        
+        this.element.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: true });
+        this.element.addEventListener('touchmove', this.handleTouchMove.bind(this), { passive: true });
+        this.element.addEventListener('touchend', this.handleTouchEnd.bind(this));
+    }
+    
+    handleTouchStart(e) {
+        this.startX = e.touches[0].clientX;
+        this.startY = e.touches[0].clientY;
+    }
+    
+    handleTouchMove(e) {
+        this.endX = e.touches[0].clientX;
+        this.endY = e.touches[0].clientY;
+    }
+    
+    handleTouchEnd() {
+        const diffX = this.endX - this.startX;
+        const diffY = this.endY - this.startY;
+        
+        // Vérifier que c'est bien un swipe horizontal
+        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > this.threshold) {
+            if (diffX > 0) {
+                this.onSwipeRight();
+            } else {
+                this.onSwipeLeft();
+            }
+        }
+        
+        // Reset
+        this.startX = 0;
+        this.startY = 0;
+        this.endX = 0;
+        this.endY = 0;
+    }
+    
+    destroy() {
+        this.element.removeEventListener('touchstart', this.handleTouchStart);
+        this.element.removeEventListener('touchmove', this.handleTouchMove);
+        this.element.removeEventListener('touchend', this.handleTouchEnd);
+    }
+}

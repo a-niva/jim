@@ -5127,7 +5127,7 @@ function endRest() {
         currentWorkoutSession.totalRestTime += actualRestTime;
         console.log(`Repos terminé (endRest) après ${actualRestTime}s. Total: ${currentWorkoutSession.totalRestTime}s`);
         
-        // NOUVEAU : Sauvegarder la durée réelle en base
+        //  Sauvegarder la durée réelle en base
         updateLastSetRestDuration(actualRestTime);
         
         workoutState.restStartTime = null;
