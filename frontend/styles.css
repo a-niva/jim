@@ -7145,104 +7145,155 @@ background: rgba(255, 255, 255, 0.02);
 
 
 /* ========================================
-   16. WEEKLY PLANNER
-   ======================================== */
+   WEEKLY PLANNER - DESIGN MODERNE
+   ======================================== */
 .weekly-planner {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    padding: var(--spacing-lg);
+    padding: var(--spacing-xl);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    position: relative;
+}
+
+.weekly-planner::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(10px);
+    z-index: -1;
 }
 
 .planner-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--spacing-lg);
-    background: var(--bg-secondary);
-    padding: var(--spacing-lg);
-    border-radius: var(--radius);
+    margin-bottom: var(--spacing-xl);
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    padding: var(--spacing-xl);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
 .week-navigation {
     display: flex;
     align-items: center;
-    gap: var(--spacing-md);
+    gap: var(--spacing-lg);
 }
 
 .week-title {
     margin: 0;
-    font-size: var(--font-xl);
-    color: var(--text);
+    font-size: 2rem;
+    font-weight: 700;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .nav-btn {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     border: none;
-    background: var(--primary);
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
     color: white;
     border-radius: 50%;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+}
+
+.nav-btn:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.6);
 }
 
 .week-overview {
     display: flex;
-    gap: var(--spacing-lg);
+    gap: var(--spacing-xl);
     align-items: center;
 }
 
 .overview-stat {
     text-align: center;
+    padding: var(--spacing-md);
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    backdrop-filter: blur(10px);
 }
 
 .stat-value {
     display: block;
-    font-size: var(--font-xl);
-    font-weight: bold;
-    color: var(--primary);
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #60a5fa;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .stat-label {
     font-size: var(--font-sm);
-    color: var(--text-muted);
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
 }
 
 .planner-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: var(--spacing-md);
+    gap: var(--spacing-lg);
     flex: 1;
+    min-height: 0;
 }
 
 .day-column {
-    background: var(--bg-secondary);
-    border-radius: var(--radius);
-    padding: var(--spacing-md);
-    min-height: 400px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: var(--spacing-lg);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.day-column:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.3);
 }
 
 .day-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--spacing-md);
-    padding-bottom: var(--spacing-sm);
-    border-bottom: 1px solid var(--border);
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .day-header h3 {
     margin: 0;
-    color: var(--text);
+    color: white;
+    font-weight: 600;
+    font-size: 1.1rem;
 }
 
 .day-date {
-    font-size: var(--font-lg);
-    font-weight: bold;
-    color: var(--text-muted);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #60a5fa;
+    background: rgba(96, 165, 250, 0.2);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .warning-icon {
@@ -7250,34 +7301,50 @@ background: rgba(255, 255, 255, 0.02);
 }
 
 .day-sessions {
-    min-height: 300px;
+    min-height: 300px; /* Conservé de l'original */
 }
 
 .session-card {
-    background: var(--bg-card);
-    border-radius: var(--radius);
-    padding: var(--spacing-md);
-    margin-bottom: var(--spacing-sm);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05));
+    backdrop-filter: blur(20px);
+    border-radius: 16px;
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-md);
     cursor: move;
-    transition: all 0.2s ease;
-    border-left: 4px solid var(--primary);
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.session-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--session-color, #6366f1);
+    border-radius: 0 2px 2px 0;
 }
 
 .session-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.4);
 }
 
 .session-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
 }
 
 .session-time {
-    font-weight: bold;
-    color: var(--text);
+    font-weight: 600;
+    color: #60a5fa;
+    font-size: 0.9rem;
 }
 
 .session-actions {
@@ -7304,9 +7371,9 @@ background: rgba(255, 255, 255, 0.02);
 }
 
 .session-content {
-    font-size: var(--font-sm);
-    color: var(--text-muted);
-    margin-bottom: var(--spacing-sm);
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.9rem;
+    line-height: 1.5;
 }
 
 .session-muscles {
@@ -7324,19 +7391,27 @@ background: rgba(255, 255, 255, 0.02);
 }
 
 .add-session-zone {
-    border: 2px dashed var(--border);
-    border-radius: var(--radius);
-    padding: var(--spacing-lg);
+    border: 2px dashed rgba(255, 255, 255, 0.3);
+    border-radius: 16px;
+    padding: var(--spacing-xl);
     text-align: center;
-    color: var(--text-muted);
+    color: rgba(255, 255, 255, 0.6);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .add-session-zone:hover {
-    border-color: var(--primary);
-    color: var(--primary);
-    background: var(--primary-light);
+    border-color: #60a5fa;
+    color: #60a5fa;
+    background: rgba(96, 165, 250, 0.1);
+    transform: scale(1.02);
+}
+
+.add-session-zone i {
+    font-size: 1.5rem;
+    margin-bottom: var(--spacing-sm);
+    display: block;
 }
 
 .day-warnings {
