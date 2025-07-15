@@ -7566,15 +7566,6 @@ background: rgba(255, 255, 255, 0.02);
     display: none;
 }
 
-/* Responsive desktop large - Afficher la sidebar sur grands écrans */
-@media (min-width: 1200px) {
-    .planner-sidebar {
-        display: flex !important;
-        flex-direction: column;
-        gap: var(--spacing-lg);
-    }
-}
-
 /* Drag & drop états */
 .session-ghost {
     opacity: 0.4;
@@ -7796,31 +7787,30 @@ background: rgba(255, 255, 255, 0.02);
 /* Responsive desktop large */
 @media (min-width: 1200px) {
     .weekly-planner {
-        display: grid;
-        grid-template-columns: 1fr 320px;
+        display: flex;
+        flex-direction: column;
         gap: var(--spacing-xl);
-        grid-template-areas:
-            "header header"
-            "grid sidebar";
     }
     
     .planner-header {
         grid-area: header;
-    }
+}
     
     .planner-grid {
-        grid-area: grid;
-        min-width: 0 !important;
-        width: 100% !important;
         display: grid !important;
         grid-template-columns: repeat(7, 1fr) !important;
+        gap: var(--spacing-md);
+        width: 100%;
+        min-height: 400px;
     }
     
-    .planner-sidebar {
-        grid-area: sidebar;
-        display: flex !important;
-        flex-direction: column;
+    .planner-recovery {
+        display: flex;
         gap: var(--spacing-lg);
+    }
+    
+    .planner-recovery > * {
+        flex: 1;
     }
 }
 
@@ -7973,14 +7963,4 @@ background: rgba(255, 255, 255, 0.02);
 
 #weekly-planning::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.3);
-}
-
-/* CORRECTION - Forcer la grille à prendre toute la largeur */
-.planner-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr) !important;
-    gap: var(--spacing-md);
-    margin-bottom: var(--spacing-xl);
-    width: 100% !important;
-    min-height: 400px;
 }

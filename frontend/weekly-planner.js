@@ -181,7 +181,10 @@ class WeeklyPlannerView {
             const overviewHTML = this.renderWeekOverview();
             const weekDaysHTML = this.renderWeekDays();
             
-            // Ne PAS inclure recovery sur mobile ou dans la grille
+            // Structure verticale : header + grid + recovery (en-dessous)
+            const recoveryHTML = this.renderRecoveryStatus();
+            const optimizationHTML = this.renderOptimizationSuggestions();
+
             let htmlContent = `
                 <div class="weekly-planner ${isMobile ? 'mobile' : 'desktop'}">
                     <div class="planner-header">
@@ -191,21 +194,13 @@ class WeeklyPlannerView {
                     
                     <div class="planner-grid">
                         ${weekDaysHTML}
-                    </div>`;
-            
-            // Ajouter sidebar SEULEMENT sur desktop
-            if (!isMobile) {
-                const recoveryHTML = this.renderRecoveryStatus();
-                const optimizationHTML = this.renderOptimizationSuggestions();
-                
-                htmlContent += `
-                    <div class="planner-sidebar">
+                    </div>
+                    
+                    <div class="planner-recovery">
                         ${recoveryHTML}
                         ${optimizationHTML}
-                    </div>`;
-            }
-            
-            htmlContent += `</div>`;
+                    </div>
+                </div>`;
             
             this.container.innerHTML = htmlContent;
             
