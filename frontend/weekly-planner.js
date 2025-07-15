@@ -748,13 +748,14 @@ class WeeklyPlannerView {
             return;
         }
         
-        // Charger le programme actif et afficher la modal de sélection
+        // Charger le programme actif avec gestion d'absence
         try {
-            window.showToast('Chargement du programme...', 'info');
+            window.showToast('Vérification du programme...', 'info');
             const program = await window.apiGet(`/api/users/${window.currentUser.id}/programs/active`);
             
             if (!program) {
-                window.showToast('Aucun programme actif trouvé', 'error');
+                // Aucun programme actif : proposer de créer un programme
+                this.showNoProgramModal();
                 return;
             }
             
@@ -762,8 +763,46 @@ class WeeklyPlannerView {
             
         } catch (error) {
             console.error('Erreur chargement programme:', error);
-            window.showToast('Erreur lors du chargement du programme', 'error');
+            
+            // Si erreur 500 ou autre, proposer création programme
+            if (error.message && error.message.includes('500')) {
+                this.showNoProgramModal();
+            } else {
+                window.showToast('Erreur technique temporaire', 'error');
+            }
         }
+    }
+
+    showNoProgramModal() {
+        const modalContent = `
+            <div class="no-program-modal">
+                <div class="modal-icon">
+                    <i class="fas fa-dumbbell"></i>
+                </div>
+                <h3>Aucun programme d'entraînement</h3>
+                <p>Pour ajouter des séances à votre planning, vous devez d'abord créer un programme personnalisé.</p>
+                
+                <div class="modal-actions">
+                    <button class="btn btn-primary" onclick="weeklyPlanner.redirectToProgramBuilder()">
+                        <i class="fas fa-plus"></i> Créer mon programme
+                    </button>
+                    <button class="btn btn-secondary" onclick="window.closeModal()">
+                        Plus tard
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        window.showModal('Programme requis', modalContent);
+    }
+
+    redirectToProgramBuilder() {
+        window.closeModal();
+        
+        // Rediriger vers la création de programme (selon l'architecture future)
+        // Pour l'instant, redirection vers dashboard avec message explicatif
+        window.showView('dashboard');
+        window.showToast('Créez votre programme depuis le tableau de bord', 'info');
     }
 
     validateSessionLimit(dayData) {
