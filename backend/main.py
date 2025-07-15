@@ -2913,10 +2913,12 @@ def auto_generate_planned_sessions(program, week_start, week_end, db):
             exercises=session_exercises,
             estimated_duration=estimated_duration,
             primary_muscles=list(set(primary_muscles)),  # Dédupliquer
-            predicted_quality_score=75.0,  # Score par défaut
-            status="planned"
+            predicted_quality_score=75.0  # Score par défaut
         )
-        
+        # Ajouter attributs manquants pour objets temporaires
+        planned_session.status = "planned"
+        planned_session.id = None  # Sera géré par format_planned_session
+                
         planned_sessions.append(planned_session)
         logger.info(f"Séance auto-générée: {session_date}, {len(session_exercises)} exercices, {estimated_duration}min")
     
@@ -3161,14 +3163,14 @@ def generate_week_optimization_suggestions(planning_data, muscle_recovery_status
 def format_planned_session(planned_session):
     """Formate une séance planifiée pour l'API"""
     return {
-        "id": planned_session.id,
+        "id": getattr(planned_session, 'id', None) or f"temp_{hash(str(planned_session.planned_date))}",
         "planned_date": planned_session.planned_date.isoformat(),
         "planned_time": planned_session.planned_time.isoformat() if planned_session.planned_time else None,
-        "exercises": planned_session.exercises,
+        "exercises": planned_session.exercises or [],
         "estimated_duration": planned_session.estimated_duration,
-        "primary_muscles": planned_session.primary_muscles,
+        "primary_muscles": planned_session.primary_muscles or [],
         "predicted_quality_score": planned_session.predicted_quality_score,
-        "status": planned_session.status
+        "status": getattr(planned_session, 'status', 'planned')
     }
 
 def validate_session_move(planned_session, new_date, db):

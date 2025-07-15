@@ -80,8 +80,7 @@ class WeeklyPlannerView {
             const optimizationHTML = this.renderOptimizationSuggestions ? this.renderOptimizationSuggestions() : '<p>Suggestions en développement</p>';
             
             this.container.innerHTML = `
-                <div class="weekly-planner ${isMobile ? 'mobile' : 'desktop'}" style="display: block !important; height: 100vh !important; background: red !important; padding: 20px;">
-                    <h2 style="color: white;">TEST VISIBILITÉ PLANNING</h2>
+                <div class="weekly-planner ${isMobile ? 'mobile' : 'desktop'}" style="min-height: 600px; height: auto; display: flex; flex-direction: column;">
                     <div class="planner-header">
                         ${navigationHTML}
                         ${overviewHTML}
