@@ -43,11 +43,84 @@ class WeeklyPlannerView {
         }
     }
     
-    async loadWeeklyPlanning() {
-        const weekStart = this.currentWeekStart.toISOString().split('T')[0];
-        this.planningData = await window.apiGet(`/api/users/${window.currentUser.id}/weekly-planning?week_start=${weekStart}`);
-    }
+
+    debugLayout() {
+        console.log('🔍 DEBUG PLANNING LAYOUT:');
         
+        // Container principal
+        const container = this.container;
+        console.log('Container:', {
+            id: container.id,
+            visible: container.offsetHeight > 0,
+            height: container.offsetHeight,
+            width: container.offsetWidth,
+            display: getComputedStyle(container).display
+        });
+        
+        // Weekly planner div
+        const weeklyPlanner = container.querySelector('.weekly-planner');
+        if (weeklyPlanner) {
+            console.log('Weekly planner:', {
+                classes: weeklyPlanner.className,
+                height: weeklyPlanner.offsetHeight,
+                childCount: weeklyPlanner.children.length
+            });
+        } else {
+            console.error('❌ No .weekly-planner found!');
+        }
+        
+        // Grille
+        const grid = container.querySelector('.planner-grid');
+        if (grid) {
+            console.log('Grid:', {
+                visible: grid.offsetHeight > 0,
+                height: grid.offsetHeight,
+                columns: getComputedStyle(grid).gridTemplateColumns,
+                childCount: grid.children.length,
+                children: Array.from(grid.children).map(child => ({
+                    class: child.className,
+                    height: child.offsetHeight,
+                    date: child.dataset.date
+                }))
+            });
+        } else {
+            console.error('❌ No .planner-grid found!');
+        }
+        
+        // Planning data
+        console.log('Planning data:', {
+            hasData: !!this.planningData,
+            daysCount: this.planningData?.planning_data?.length,
+            firstDay: this.planningData?.planning_data?.[0]
+        });
+    }
+
+    async loadWeeklyPlanning() {
+        try {
+            const weekStart = this.currentWeekStart.toISOString().split('T')[0];
+            this.planningData = await window.apiGet(`/api/users/${window.currentUser.id}/weekly-planning?week_start=${weekStart}`);
+            
+            // Valider les données
+            if (!this.planningData || typeof this.planningData !== 'object') {
+                throw new Error('Invalid planning data received');
+            }
+            
+        } catch (error) {
+            console.error('❌ Error loading planning, using default data:', error);
+            
+            // Données par défaut pour éviter une page vide
+            this.planningData = {
+                week_start: this.currentWeekStart.toISOString().split('T')[0],
+                week_end: new Date(this.currentWeekStart.getTime() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                planning_data: [], // Vide, sera géré par renderEmptyWeek
+                muscle_recovery_status: {},
+                optimization_suggestions: [],
+                total_weekly_sessions: 0,
+                total_weekly_duration: 0
+            };
+        }
+    }
+            
     getCurrentWeekStart() {
         const now = new Date();
         const monday = new Date(now);
@@ -87,6 +160,7 @@ class WeeklyPlannerView {
         return Math.max(0, Math.min(100, score));
     }
 
+
     render() {
         if (!this.planningData) {
             this.renderLoading();
@@ -96,13 +170,19 @@ class WeeklyPlannerView {
         const isMobile = window.innerWidth <= 768;
         
         try {
+            // Vérifier que les données sont correctes
+            console.log('🔍 Rendering with data:', {
+                hasData: !!this.planningData,
+                planningDataLength: this.planningData.planning_data?.length,
+                isMobile: isMobile
+            });
+            
             const navigationHTML = this.renderWeekNavigation();
             const overviewHTML = this.renderWeekOverview();
             const weekDaysHTML = this.renderWeekDays();
-            const recoveryHTML = this.renderRecoveryStatus();
-            const optimizationHTML = this.renderOptimizationSuggestions();
             
-            this.container.innerHTML = `
+            // Ne PAS inclure recovery sur mobile ou dans la grille
+            let htmlContent = `
                 <div class="weekly-planner ${isMobile ? 'mobile' : 'desktop'}">
                     <div class="planner-header">
                         ${navigationHTML}
@@ -111,16 +191,31 @@ class WeeklyPlannerView {
                     
                     <div class="planner-grid">
                         ${weekDaysHTML}
-                    </div>
-                    
-                    ${!isMobile ? `
-                        <div class="planner-sidebar">
-                            ${recoveryHTML}
-                            ${optimizationHTML}
-                        </div>
-                    ` : ''}
-                </div>
-            `;
+                    </div>`;
+            
+            // Ajouter sidebar SEULEMENT sur desktop
+            if (!isMobile) {
+                const recoveryHTML = this.renderRecoveryStatus();
+                const optimizationHTML = this.renderOptimizationSuggestions();
+                
+                htmlContent += `
+                    <div class="planner-sidebar">
+                        ${recoveryHTML}
+                        ${optimizationHTML}
+                    </div>`;
+            }
+            
+            htmlContent += `</div>`;
+            
+            this.container.innerHTML = htmlContent;
+            
+            // Debug : vérifier que la grille est bien rendue
+            const gridElement = this.container.querySelector('.planner-grid');
+            if (gridElement) {
+                console.log('✅ Grid found with', gridElement.children.length, 'days');
+            } else {
+                console.error('❌ Grid not found!');
+            }
             
             this.attachEventListeners();
             this.initSwipeHandlers();
@@ -129,7 +224,12 @@ class WeeklyPlannerView {
             console.error('❌ Erreur dans render():', error);
             this.renderError();
         }
-    }
+
+        // À la fin de render(), ajouter :
+        setTimeout(() => {
+            this.debugLayout();
+        }, 100);
+}
     
     renderWeekNavigation() {
         const weekStart = new Date(this.planningData.week_start);
@@ -170,11 +270,22 @@ class WeeklyPlannerView {
             </div>
         `;
     }
-        
+
     renderWeekDays() {
         const today = new Date().toISOString().split('T')[0];
         
-        return this.planningData.planning_data.map(day => {
+        // Si pas de données, afficher une semaine vide
+        if (!this.planningData?.planning_data || this.planningData.planning_data.length === 0) {
+            console.warn('⚠️ No planning data, rendering empty week');
+            return this.renderEmptyWeek();
+        }
+        
+        // Vérifier que nous avons bien 7 jours
+        if (this.planningData.planning_data.length !== 7) {
+            console.warn(`⚠️ Expected 7 days, got ${this.planningData.planning_data.length}`);
+        }
+        
+        const daysHTML = this.planningData.planning_data.map(day => {
             const dayScore = this.calculateDayScore(day);
             this.dayScores[day.date] = dayScore;
             const isToday = day.date === today;
@@ -190,18 +301,21 @@ class WeeklyPlannerView {
                             <h3>${this.getDayName(day.day_name)}</h3>
                             <span class="day-date">${new Date(day.date).getDate()}</span>
                         </div>
-                        <div class="day-score" style="--score-percent: ${dayScore}; --score-color: ${scoreColor}">
+                        <div class="day-score" style="--score-percent: ${dayScore}%; --score-color: ${scoreColor}">
                             <div class="day-score-bg"></div>
                             <div class="day-score-center">${dayScore}</div>
                         </div>
-                        ${day.recovery_warnings.length > 0 ? 
+                        ${day.recovery_warnings && day.recovery_warnings.length > 0 ? 
                             `<i class="fas fa-exclamation-triangle warning-icon" title="${day.recovery_warnings.join(', ')}"></i>` 
                             : ''
                         }
                     </div>
                     
                     <div class="day-sessions" data-day="${day.date}">
-                        ${day.sessions.map(session => this.renderSessionCard(session)).join('')}
+                        ${day.sessions && day.sessions.length > 0 ? 
+                            day.sessions.map(session => this.renderSessionCard(session)).join('') :
+                            ''
+                        }
                         
                         ${day.can_add_session ? `
                             <div class="add-session-zone" onclick="weeklyPlanner.addSessionToDay('${day.date}')">
@@ -211,7 +325,7 @@ class WeeklyPlannerView {
                         ` : ''}
                     </div>
                     
-                    ${day.recovery_warnings.length > 0 ? `
+                    ${day.recovery_warnings && day.recovery_warnings.length > 0 ? `
                         <div class="day-warnings">
                             ${day.recovery_warnings.map(warning => `
                                 <div class="warning-item">${warning}</div>
@@ -221,6 +335,9 @@ class WeeklyPlannerView {
                 </div>
             `;
         }).join('');
+        
+        console.log('🔍 Generated', this.planningData.planning_data.length, 'day columns');
+        return daysHTML;
     }
         
     renderSessionCard(session) {

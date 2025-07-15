@@ -9665,11 +9665,40 @@ addScoreAnimations();
 
 // ===== WEEKLY PLANNER INTEGRATION =====
 async function showWeeklyPlanning() {
+    console.log('📅 Opening weekly planning view...');
+    
+    // S'assurer que la vue est visible
     showView('weekly-planning');
+    
+    // Attendre que la vue soit visible
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Vérifier que le container existe
+    const container = document.getElementById('weeklyPlanningContainer');
+    if (!container) {
+        console.error('❌ weeklyPlanningContainer not found!');
+        return;
+    }
+    
+    console.log('✅ Container found:', {
+        id: container.id,
+        parent: container.parentElement?.id,
+        visible: container.offsetHeight > 0
+    });
+    
+    // Initialiser ou rafraîchir le planner
     if (!window.weeklyPlanner) {
+        console.log('🆕 Creating new WeeklyPlannerView...');
         window.weeklyPlanner = new WeeklyPlannerView('weeklyPlanningContainer');
-        await window.weeklyPlanner.initialize();
+        
+        try {
+            await window.weeklyPlanner.initialize();
+            console.log('✅ WeeklyPlannerView initialized successfully');
+        } catch (error) {
+            console.error('❌ Failed to initialize WeeklyPlannerView:', error);
+        }
     } else {
+        console.log('🔄 Refreshing existing WeeklyPlannerView...');
         await window.weeklyPlanner.refresh();
     }
 }
