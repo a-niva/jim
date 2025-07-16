@@ -1295,14 +1295,26 @@ def generate_program_exercises(user: User, program: ProgramCreate, db: Session) 
     
     # 6. Sélectionner exercices par focus area
     selected_exercises = []
-    max_exercises_per_focus = 2  # Maximum 2 exercices par focus area
-    
+    max_exercises_per_focus = 2
+
     for focus_area, exercises in exercises_by_focus.items():
         if exercises:
-            # Prendre les premiers exercices (pourrait être randomisé)
             selected = exercises[:max_exercises_per_focus]
             selected_exercises.extend(selected)
             logger.info(f"Sélectionné {len(selected)} exercices pour '{focus_area}'")
+
+    # AJOUTER CETTE DÉDUPLICATION :
+    seen_ids = set()
+    deduplicated_exercises = []
+    for ex in selected_exercises:
+        if ex.id not in seen_ids:
+            deduplicated_exercises.append(ex)
+            seen_ids.add(ex.id)
+        else:
+            logger.info(f"Exercice dupliqué ignoré: {ex.name} (ID: {ex.id})")
+
+    selected_exercises = deduplicated_exercises
+    logger.info(f"Après déduplication: {len(selected_exercises)} exercices uniques")
     
     # 7. Limiter le nombre total d'exercices selon la durée
     duration_limits = {
