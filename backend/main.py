@@ -737,9 +737,10 @@ def get_program_status(user_id: int, db: Session = Depends(get_db)):
         "created_weeks_ago": weeks_elapsed
     }
 
+
 @app.get("/api/users/{user_id}/programs/active")
 def get_active_program(user_id: int, db: Session = Depends(get_db)):
-    """Récupérer le programme actif d'un utilisateur (format ComprehensiveProgram)"""
+    """Récupérer le programme actif d'un utilisateur (format ComprehensiveProgram) - VERSION CORRIGÉE"""
     program = db.query(Program).filter(
         Program.user_id == user_id,
         Program.is_active == True
@@ -748,74 +749,117 @@ def get_active_program(user_id: int, db: Session = Depends(get_db)):
     if not program:
         return None
     
-    # Mettre à jour l'état de progression si le programme est déjà démarré
-    if program.started_at:
-        from datetime import datetime, timezone
-        weeks_elapsed = (datetime.now(timezone.utc) - program.started_at).days // 7
-        program.current_week = min(weeks_elapsed + 1, program.duration_weeks)
-        
-        # Calculer estimated_completion si pas déjà fait
-        if not program.estimated_completion:
-            from datetime import timedelta
-            program.estimated_completion = program.started_at + timedelta(weeks=program.duration_weeks)
+    # CORRECTION: Gestion sécurisée de started_at et calculs timezone
+    try:
+        # Mettre à jour l'état de progression si le programme est déjà démarré
+        if program.started_at:
+            # S'assurer que les datetimes ont les bonnes timezones
+            now_utc = datetime.now(timezone.utc)
             
-        db.commit()
+            # Gérer le cas où started_at n'a pas de timezone
+            if program.started_at.tzinfo is None:
+                program_started = program.started_at.replace(tzinfo=timezone.utc)
+            else:
+                program_started = program.started_at
+                
+            weeks_elapsed = (now_utc - program_started).days // 7
+            program.current_week = min(weeks_elapsed + 1, program.duration_weeks or 8)
+            
+            # Calculer estimated_completion si pas déjà fait
+            if not program.estimated_completion:
+                from datetime import timedelta
+                program.estimated_completion = program_started + timedelta(weeks=program.duration_weeks or 8)
+                
+            db.commit()
+            
+    except Exception as e:
+        # En cas d'erreur dans les calculs de dates, on continue avec des valeurs par défaut
+        logger.warning(f"Erreur calcul dates programme {program.id}: {e}")
+        if not program.current_week:
+            program.current_week = 1
+        if not program.duration_weeks:
+            program.duration_weeks = 8
     
-    # Enrichir avec la session actuelle pour l'interface
+    # Enrichir avec la session actuelle pour l'interface - VERSION SÉCURISÉE
     current_session_exercises = []
-    if program.weekly_structure and len(program.weekly_structure) >= program.current_week:
-        current_week_data = program.weekly_structure[program.current_week - 1]
-        
-        if current_week_data and "sessions" in current_week_data and len(current_week_data["sessions"]) > 0:
-            try:
-                current_session_index = (program.current_session_in_week - 1) % len(current_week_data["sessions"])
+    
+    try:
+        if (hasattr(program, 'weekly_structure') and 
+            program.weekly_structure and 
+            len(program.weekly_structure) >= (program.current_week or 1)):
+            
+            current_week_data = program.weekly_structure[(program.current_week or 1) - 1]
+            
+            if (current_week_data and 
+                "sessions" in current_week_data and 
+                len(current_week_data["sessions"]) > 0):
+                
+                current_session_index = ((program.current_session_in_week or 1) - 1) % len(current_week_data["sessions"])
                 current_session = current_week_data["sessions"][current_session_index]
                 
                 # Convertir exercise_pool pour compatibilité avec l'interface existante
                 if "exercise_pool" in current_session:
                     for pool_exercise in current_session["exercise_pool"]:
-                        exercise_db = db.query(Exercise).filter(Exercise.id == pool_exercise["exercise_id"]).first()
+                        try:
+                            exercise_db = db.query(Exercise).filter(Exercise.id == pool_exercise["exercise_id"]).first()
+                            if exercise_db:
+                                current_session_exercises.append({
+                                    "exercise_id": pool_exercise["exercise_id"],
+                                    "exercise_name": exercise_db.name,
+                                    "sets": pool_exercise.get("sets", 3),
+                                    "reps_min": pool_exercise.get("reps_min", 8),
+                                    "reps_max": pool_exercise.get("reps_max", 12),
+                                    "muscle_groups": pool_exercise.get("muscle_groups", exercise_db.muscle_groups),
+                                    "estimated_duration": pool_exercise.get("estimated_duration_minutes", 15)
+                                })
+                        except Exception as ex_error:
+                            logger.warning(f"Erreur traitement exercice {pool_exercise.get('exercise_id', 'unknown')}: {ex_error}")
+                            continue
+                            
+    except Exception as e:
+        logger.warning(f"Erreur enrichissement session programme {program.id}: {e}")
+        # Fallback: utiliser l'ancien format exercises si disponible
+        if hasattr(program, 'exercises') and program.exercises:
+            try:
+                for ex in program.exercises[:6]:  # Limiter à 6 exercices
+                    if isinstance(ex, dict) and "exercise_id" in ex:
+                        exercise_db = db.query(Exercise).filter(Exercise.id == ex["exercise_id"]).first()
                         if exercise_db:
                             current_session_exercises.append({
-                                "exercise_id": pool_exercise["exercise_id"],
+                                "exercise_id": ex["exercise_id"],
                                 "exercise_name": exercise_db.name,
-                                "sets": pool_exercise.get("sets", 3),
-                                "reps_min": pool_exercise.get("reps_min", 8),
-                                "reps_max": pool_exercise.get("reps_max", 12),
+                                "sets": ex.get("sets", 3),
+                                "reps_min": ex.get("reps", 10) - 2,
+                                "reps_max": ex.get("reps", 10) + 2,
                                 "muscle_groups": exercise_db.muscle_groups,
-                                "equipment_required": exercise_db.equipment_required,
-                                "priority": pool_exercise.get("priority", 3)
+                                "estimated_duration": 15
                             })
-            except (ZeroDivisionError, IndexError) as e:
-                logger.warning(f"Erreur récupération session programme {program.id}: {e}")
-                # Fallback: retourner None pour déclencher ProgramBuilder
-                current_session_exercises = []
-        else:
-            logger.warning(f"Programme {program.id} structure weekly_structure invalide ou sessions vides")
-            # Si structure invalide, on peut soit retourner None soit des exercices par défaut
-            current_session_exercises = []
-        
-    return {
+            except Exception as fallback_error:
+                logger.warning(f"Erreur fallback exercices: {fallback_error}")
+    
+    # Enrichir avec la liste des exercices pour l'interface - même format que l'ancien système
+    enriched_program = {
         "id": program.id,
-        "user_id": program.user_id,
-        "name": program.name,
-        "duration_weeks": program.duration_weeks,
-        "periodization_type": program.periodization_type,
-        "sessions_per_week": program.sessions_per_week,
-        "session_duration_minutes": program.session_duration_minutes,
-        "focus_areas": program.focus_areas,
-        "weekly_structure": program.weekly_structure,
-        "progression_rules": program.progression_rules,
-        "current_week": program.current_week,
-        "current_session_in_week": program.current_session_in_week,
-        "started_at": program.started_at,
-        "estimated_completion": program.estimated_completion,
-        "base_quality_score": program.base_quality_score,
-        "created_at": program.created_at,
-        "is_active": program.is_active,
+        "name": program.name or f"Programme {program.user_id}",
+        "duration_weeks": program.duration_weeks or 8,
+        "sessions_per_week": program.sessions_per_week or 3,
+        "session_duration_minutes": program.session_duration_minutes or 60,
+        "focus_areas": program.focus_areas or ["upper_body", "legs"],
         "exercises": current_session_exercises,  # Pour compatibilité interface
-        "format": "comprehensive"
+        "current_week": program.current_week or 1,
+        "current_session_in_week": program.current_session_in_week or 1,
+        "is_active": program.is_active,
+        "created_at": program.created_at,
+        "format_version": getattr(program, 'format_version', '1.0'),
+        # Champs optionnels pour éviter les erreurs
+        "started_at": program.started_at,
+        "estimated_completion": getattr(program, 'estimated_completion', None),
+        "weekly_structure": getattr(program, 'weekly_structure', []),
+        "progression_rules": getattr(program, 'progression_rules', {}),
+        "base_quality_score": getattr(program, 'base_quality_score', 75.0)
     }
+    
+    return enriched_program
 
 def _get_selection_reason(item):
     """Génère une raison lisible pour la sélection d'un exercice"""
