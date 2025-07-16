@@ -1283,7 +1283,7 @@ def generate_program_exercises(user: User, program: ProgramCreate, db: Session) 
     effective_focus_areas = program.focus_areas
     if not effective_focus_areas or len(effective_focus_areas) == 0:
         logger.warning("Aucune focus_areas définie, utilisation des defaults")
-        effective_focus_areas = ["upper_body", "legs"]
+        effective_focus_areas = ["pectoraux", "dos", "jambes"]
 
     for focus_area in effective_focus_areas:
         matching_exercises = [
@@ -1401,10 +1401,10 @@ def start_program_builder(
             suggested_focus_areas = ["pectoraux", "jambes", "abdominaux"]
             user_insights.append("Programme débutant recommandé avec focus équilibré")
         elif user.experience_level == "intermediate":
-            suggested_focus_areas = ["upper_body", "legs"]
+            suggested_focus_areas = ["pectoraux", "dos", "jambes"]
             user_insights.append("Vous pouvez gérer une intensité modérée à élevée")
         else:  # advanced
-            suggested_focus_areas = ["upper_body", "legs"]
+            suggested_focus_areas = ["pectoraux", "dos", "jambes"]
             user_insights.append("Programme avancé avec périodisation recommandée")
         
         # Adapter selon l'équipement disponible
