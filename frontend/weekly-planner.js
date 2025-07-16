@@ -836,8 +836,15 @@ class WeeklyPlannerView {
     }
 
     showSessionCreationModal(date, program) {
+        // DEBUG: Examiner la structure du programme
+        console.log('🔍 Programme reçu:', program);
+        
         // Extraire les exercices du pool du programme
         const exercisePool = this.extractExercisePool(program);
+        
+        // DEBUG: Vérifier les exercices extraits
+        console.log('📋 Exercices extraits:', exercisePool);
+        console.log('🔢 Nombre d\'exercices uniques:', exercisePool.length);
         
         if (!exercisePool || exercisePool.length === 0) {
             window.showToast('Aucun exercice disponible dans le programme', 'error');
@@ -860,7 +867,7 @@ class WeeklyPlannerView {
                 </div>
                 
                 <div class="exercise-selection-section">
-                    <h4>Sélectionnez les exercices <span class="selection-count">(${exercisePool.length} sélectionnés)</span></h4>
+                    <h4>Sélectionnez les exercices <span class="selection-count">(0 sélectionnés)</span></h4>
                     <div class="exercise-list" id="exerciseSelectionList">
                         ${this.renderExerciseSelectionList(exercisePool)}
                     </div>
@@ -886,26 +893,45 @@ class WeeklyPlannerView {
         `;
         
         window.showModal(`Séance du ${dateFormatted}`, modalContent);
-        
-        // Valider la récupération après affichage
+
+        // Initialiser le compteur ET valider la récupération après affichage
         setTimeout(() => {
+            this.updateExerciseSelection();
             this.validateRecoveryAndUpdateWarnings(date, exercisePool);
         }, 100);
     }
 
     extractExercisePool(program) {
+        let exercises = [];
+        
         // Gérer les deux formats de programme
         if (program.format === 'comprehensive' && program.weekly_structure) {
             // Format comprehensive : extraire depuis weekly_structure
             const currentWeek = program.current_week - 1;
             if (program.weekly_structure[currentWeek] && program.weekly_structure[currentWeek].sessions) {
                 const currentSession = program.weekly_structure[currentWeek].sessions[0];
-                return currentSession.exercise_pool || [];
+                exercises = currentSession.exercise_pool || [];
             }
+        } else {
+            // Format legacy : utiliser exercises directement
+            exercises = program.exercises || [];
         }
         
-        // Format legacy : utiliser exercises directement
-        return program.exercises || [];
+        // Déduplication immédiate basée sur exercise_id
+        return this.deduplicateExercises(exercises);
+    }
+
+    deduplicateExercises(exercises) {
+        const seen = new Set();
+        return exercises.filter(exercise => {
+            const id = exercise.exercise_id || exercise.id;
+            if (seen.has(id)) {
+                console.warn(`Exercice dupliqué détecté et retiré: ${exercise.exercise_name || exercise.name} (ID: ${id})`);
+                return false;
+            }
+            seen.add(id);
+            return true;
+        });
     }
 
     renderExerciseSelectionList(exercises) {
@@ -922,8 +948,7 @@ class WeeklyPlannerView {
                 <div class="exercise-selection-item">
                     <label class="exercise-checkbox">
                         <input type="checkbox" 
-                            value="${exerciseId}" 
-                            checked 
+                            value="${exerciseId}"  
                             onchange="weeklyPlanner.updateExerciseSelection()">
                         <div class="exercise-info">
                             <h5>${exerciseName}</h5>
@@ -947,13 +972,13 @@ class WeeklyPlannerView {
     updateExerciseSelection() {
         const checkboxes = document.querySelectorAll('#exerciseSelectionList input[type="checkbox"]');
         const selectedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
-        
+    
         // Mettre à jour le compteur
         const countElement = document.querySelector('.selection-count');
         if (countElement) {
             countElement.textContent = `(${selectedCount} sélectionnés)`;
         }
-        
+    
         // Calculer la durée estimée
         const estimatedDuration = selectedCount * 7; // 7 minutes par exercice en moyenne
         const durationElement = document.getElementById('estimatedDuration');
@@ -961,19 +986,28 @@ class WeeklyPlannerView {
             durationElement.textContent = Math.max(15, estimatedDuration);
         }
         
+        // Gestion du bouton créer selon sélection
+        const createButton = document.querySelector('.btn-primary[onclick*="createSessionWithExercises"]');
+        if (createButton) {
+            createButton.disabled = selectedCount === 0;
+            createButton.style.opacity = selectedCount === 0 ? '0.5' : '1';
+        }
+    
         // Revalider les warnings de récupération
         if (selectedCount > 0) {
             const selectedExercises = this.getSelectedExercises();
             const dateInput = document.querySelector('.session-creation-modal');
-            if (dateInput) {
-                // Extraire la date depuis l'onclick du bouton créer
-                const createButton = document.querySelector('.btn-primary[onclick*="createSessionWithExercises"]');
-                if (createButton) {
-                    const dateMatch = createButton.onclick.toString().match(/'([^']+)'/);
-                    if (dateMatch) {
-                        this.validateRecoveryAndUpdateWarnings(dateMatch[1], selectedExercises);
-                    }
+            if (dateInput && createButton) {
+                const dateMatch = createButton.onclick.toString().match(/'([^']+)'/);
+                if (dateMatch) {
+                    this.validateRecoveryAndUpdateWarnings(dateMatch[1], selectedExercises);
                 }
+            }
+        } else {
+            // Clear les warnings si aucun exercice sélectionné
+            const warningsContainer = document.getElementById('recoveryWarnings');
+            if (warningsContainer) {
+                warningsContainer.innerHTML = '';
             }
         }
     }
