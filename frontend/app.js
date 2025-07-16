@@ -644,6 +644,7 @@ function showOnboarding() {
     document.getElementById('bottomNav').style.display = 'none';
     document.getElementById('userInitial').style.display = 'none';
     
+    totalSteps = 5; // Définir explicitement le nombre d'étapes
     currentStep = 1;
     showStep(1);
     updateProgressBar();
@@ -1169,7 +1170,11 @@ async function completeOnboarding() {
             weight: parseFloat(document.getElementById('weight').value),
             experience_level: document.querySelector('input[name="experience"]:checked').value,
             equipment_config: collectEquipmentConfig(),
-            prefer_weight_changes_between_sets: document.querySelector('input[name="weightPreference"]:checked').value === 'true'
+            prefer_weight_changes_between_sets: document.querySelector('input[name="weightPreference"]:checked').value === 'true',
+            focus_areas: collectFocusAreas(),
+            sessions_per_week: parseInt(document.getElementById('sessionsPerWeek').value),
+            session_duration: parseInt(document.getElementById('sessionDuration').value),
+            program_name: document.getElementById('programName').value.trim()
         };
                 
         // Créer l'utilisateur
@@ -1189,14 +1194,20 @@ async function completeOnboarding() {
         showToast('Profil créé avec succès !', 'success');
         
         // Redirection vers le dashboard sans lancer ProgramBuilder
+        // Workflow intelligent basé sur les focus_areas
         setTimeout(() => {
-            // Masquer l'onboarding
             document.getElementById('onboarding').classList.remove('active');
             document.getElementById('progressContainer').style.display = 'none';
             
-            // Aller directement au dashboard
-            showMainInterface();
-            showToast('Bienvenue ! Créez votre programme personnalisé depuis le tableau de bord.', 'info');
+            if (userData.focus_areas && userData.focus_areas.length > 0) {
+                // Si focus_areas sélectionnées, aller directement au ProgramBuilder pour affiner
+                showProgramBuilder(userData);
+                showToast('Affinons maintenant votre programme !', 'info');
+            } else {
+                // Si pas de focus_areas, aller au dashboard
+                showMainInterface();
+                showToast('Bienvenue ! Créez votre programme depuis le tableau de bord.', 'info');
+            }
         }, 1000);
         
     } catch (error) {
@@ -1362,6 +1373,39 @@ function collectEquipmentConfig() {
     }
     
     return config;
+}
+
+function collectFocusAreas() {
+    const checkedBoxes = document.querySelectorAll('input[name="focusAreas"]:checked');
+    const focusAreas = Array.from(checkedBoxes).map(cb => cb.value);
+    
+    // Mapping des valeurs HTML vers les clés backend cohérentes
+    const htmlToBackendMapping = {
+        'dos': 'back',
+        'pectoraux': 'upper_body',  // Les pectoraux font partie du haut du corps
+        'bras': 'arms',
+        'epaules': 'shoulders', 
+        'jambes': 'legs',
+        'abdominaux': 'core'
+    };
+    
+    // Logique de groupement intelligent pour éviter trop de fragmentation
+    const mappedAreas = new Set();
+    
+    focusAreas.forEach(area => {
+        const mapped = htmlToBackendMapping[area];
+        if (mapped) {
+            mappedAreas.add(mapped);
+        }
+    });
+    
+    // Si pectoraux OU épaules sélectionnées, regrouper en upper_body
+    if (focusAreas.includes('pectoraux') || focusAreas.includes('epaules')) {
+        mappedAreas.add('upper_body');
+        mappedAreas.delete('shoulders'); // Éviter la redondance
+    }
+    
+    return Array.from(mappedAreas).slice(0, 3); // Max 3 comme demandé
 }
 
 // ===== DASHBOARD =====

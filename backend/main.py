@@ -1237,13 +1237,23 @@ def generate_program_exercises(user: User, program: ProgramCreate, db: Session) 
             equipment_filtered.append(ex)
     
     logger.info(f"Après filtre équipement: {len(equipment_filtered)} exercices")
-    
-    # 5. Grouper par focus_areas
+        
+    # 5. Grouper par focus_areas avec mapping correct
     exercises_by_focus = {}
-    for focus_area in program.focus_areas:
+
+    # Import du mapping existant
+    from backend.constants import exercise_matches_focus_area
+
+    # Fallback si focus_areas vide
+    effective_focus_areas = program.focus_areas
+    if not effective_focus_areas or len(effective_focus_areas) == 0:
+        logger.warning("Aucune focus_areas définie, utilisation des defaults")
+        effective_focus_areas = ["upper_body", "legs"]
+
+    for focus_area in effective_focus_areas:
         matching_exercises = [
             ex for ex in equipment_filtered
-            if ex.muscle_groups and focus_area in ex.muscle_groups
+            if exercise_matches_focus_area(ex.muscle_groups, focus_area)  # ✅ UTILISE LE MAPPING
         ]
         exercises_by_focus[focus_area] = matching_exercises
         logger.info(f"Focus '{focus_area}': {len(matching_exercises)} exercices")

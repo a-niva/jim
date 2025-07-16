@@ -15,6 +15,10 @@ class UserCreate(BaseModel):
     equipment_config: Dict[str, Any]
     prefer_weight_changes_between_sets: bool = True
     sound_notifications_enabled: bool = True
+    focus_areas: Optional[List[str]] = None
+    sessions_per_week: Optional[int] = 3
+    session_duration: Optional[int] = 45
+    program_name: Optional[str] = "Mon programme"
 
 
 class UserResponse(BaseModel):

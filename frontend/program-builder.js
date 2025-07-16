@@ -21,7 +21,11 @@ class ProgramBuilder {
     async initialize(userData) {
         //  Initialiser le ProgramBuilder avec les données utilisateur de l'onboarding
         this.userData = userData;
-        
+        // Présélectionner les focus_areas depuis l'onboarding
+        if (userData.focus_areas && userData.focus_areas.length > 0) {
+            this.selections.focus_areas = [...userData.focus_areas];
+            console.log('Focus areas pré-sélectionnées depuis onboarding:', this.selections.focus_areas);
+        }
         try {
             // Vérifier que currentUser est disponible
             if (!window.currentUser || !window.currentUser.id) {
