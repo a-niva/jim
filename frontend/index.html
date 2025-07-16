@@ -17,6 +17,7 @@
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="program-builder.css">
+    <link rel="stylesheet" href="program-manager.css">
     <!-- Font Awesome pour les icônes -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -692,7 +693,12 @@
                 <!-- Le contenu sera généré par weekly-planner.js -->
             </div>
         </div>
-
+        <!-- ================================ -->
+        <!-- VUE PROGRAM MANAGER              -->
+        <!-- ================================ -->
+        <div id="programManagerView" class="view" style="display: none;">
+            <!-- Le contenu sera injecté par JavaScript -->
+        </div>
         <!-- ================================ -->
         <!-- PROFIL                           -->
         <!-- ================================ -->
@@ -731,6 +737,10 @@
             <span>📅</span>
             <span>Planning</span>
         </button>
+        <button class="nav-item" onclick="showProgramManager()">
+            <span>📋</span>
+            <span>Programme</span>
+        </button>
         <button class="nav-item" onclick="showView('profile')">
             <span>👤</span>
             <span>Profil</span>
@@ -761,5 +771,6 @@
     <script src="app.js"></script> <!-- app.js AVANT weekly-planner.js -->
     <script src="weekly-planner.js"></script>
     <script src="program-builder.js"></script>
+    <script src="program-manager.js"></script>
 </body>
 </html>

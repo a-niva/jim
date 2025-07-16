@@ -592,7 +592,7 @@ function showView(viewName) {
     if (navItem) {
         navItem.classList.add('active');
     }
-    if (['dashboard', 'stats', 'profile', 'home', 'workout'].includes(viewName)) {
+    if (['dashboard', 'stats', 'profile', 'home', 'workout', 'program-manager'].includes(viewName)) {
         document.getElementById('bottomNav').style.display = 'flex';
         
         // Double vérification après un court délai
@@ -9753,6 +9753,38 @@ async function showWeeklyPlanning() {
 }
 
 
+// ===== AFFICHAGE GESTION PROGRAMME =====
+async function showProgramManager() {
+    showView('program-manager');
+    // Gérer la classe active manuellement car showProgramManager n'utilise pas showView('program-manager')
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    const programBtn = document.querySelector('[onclick="showProgramManager()"]');
+    if (programBtn) programBtn.classList.add('active');
+    
+    if (!window.programManager) {
+        window.programManager = new ProgramManagerView();
+    }
+    
+    const initialized = await window.programManager.initialize();
+    if (!initialized) {
+        // Aucun programme v2.0 trouvé, proposer la création
+        showModal('Programme requis', `
+            <div class="modal-content">
+                <p>Vous n'avez pas encore de programme personnalisé.</p>
+                <p>Voulez-vous en créer un maintenant ?</p>
+                
+                <div class="modal-actions">
+                    <button class="btn btn-primary" onclick="closeModal(); showProgramStartOptions();">
+                        <i class="fas fa-plus"></i> Créer un programme
+                    </button>
+                    <button class="btn btn-secondary" onclick="closeModal()">
+                        Plus tard
+                    </button>
+                </div>
+            </div>
+        `);
+    }
+}
 
 
 // ===== EXPOSITION GLOBALE =====
@@ -9915,3 +9947,4 @@ window.renderReorderableExercises = function(exercises) {
 };
 // Export Weekly Planner
 window.showWeeklyPlanning = showWeeklyPlanning;
+window.showProgramManager = showProgramManager;

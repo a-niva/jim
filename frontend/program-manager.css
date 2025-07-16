@@ -1,0 +1,224 @@
+/* ===== PROGRAM MANAGER STYLES ===== */
+.program-manager-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.program-header {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    color: white;
+}
+
+.program-header h2 {
+    margin: 0 0 16px 0;
+    font-size: 28px;
+}
+
+.program-meta {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.progress-bar-container {
+    margin-top: 20px;
+}
+
+.progress-bar {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%);
+    transition: width 0.5s ease;
+}
+
+.progress-text {
+    display: block;
+    margin-top: 8px;
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+.week-navigation {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    margin: 32px 0;
+}
+
+.week-navigation h3 {
+    margin: 0;
+    font-size: 24px;
+}
+
+.btn-nav {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid #e5e7eb;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-nav:hover:not(:disabled) {
+    background: #f3f4f6;
+    transform: scale(1.05);
+}
+
+.btn-nav:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.sessions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 32px;
+}
+
+.session-card {
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 20px;
+    transition: all 0.2s;
+}
+
+.session-card:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.session-card.current {
+    border-color: #8b5cf6;
+    background: linear-gradient(to bottom, #f0f9ff, white);
+}
+
+.session-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.session-header h4 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.session-focus {
+    background: #e5e7eb;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.session-details {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.session-details p {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.exercise-preview {
+    border-top: 1px solid #e5e7eb;
+    padding-top: 16px;
+}
+
+.exercise-item-preview {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    font-size: 14px;
+}
+
+.exercise-name {
+    color: #374151;
+}
+
+.exercise-sets {
+    color: #6b7280;
+    font-weight: 600;
+}
+
+.more {
+    margin: 8px 0 0 0;
+    font-size: 13px;
+    color: #9ca3af;
+    font-style: italic;
+}
+
+.quality-indicator {
+    margin-top: 16px;
+    text-align: center;
+}
+
+.quality-score {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.program-actions {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .program-manager-container {
+        padding: 12px;
+    }
+    
+    .program-header {
+        padding: 16px;
+    }
+    
+    .program-header h2 {
+        font-size: 22px;
+    }
+    
+    .sessions-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .program-actions {
+        flex-direction: column;
+    }
+    
+    .program-actions .btn {
+        width: 100%;
+    }
+}
