@@ -609,7 +609,6 @@ class ProgramBuilder {
         try {
             window.showToast('Activation de votre programme...', 'info');
             
-            // Préparer les données pour persistence
             const activationData = {
                 name: this.generatedProgram.name,
                 sessions_per_week: this.generatedProgram.sessions_per_week,
@@ -623,18 +622,19 @@ class ProgramBuilder {
                 goals: this.selections.goals || ["muscle", "strength"]
             };
             
-            // Persister en base
-            await window.apiPost(
+            const response = await window.apiPost(
                 `/api/users/${window.currentUser.id}/programs/activate-comprehensive`,
                 activationData
             );
             
-            window.showToast('Programme créé et activé avec succès !', 'success');
-            
-            // Retourner au dashboard après délai
-            setTimeout(() => {
-                this.goToDashboard();
-            }, 1500);
+            if (response && response.message) {
+                window.showToast('Programme créé et activé avec succès !', 'success');
+                
+                // Forcer un rechargement complet pour s'assurer que tout est à jour
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            }
             
         } catch (error) {
             console.error('Erreur activation programme:', error);
