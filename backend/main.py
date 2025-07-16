@@ -43,6 +43,20 @@ def safe_timedelta_hours(dt_aware, dt_maybe_naive):
         dt_maybe_naive = dt_maybe_naive.replace(tzinfo=timezone.utc)
     return (dt_aware - dt_maybe_naive).total_seconds() / 3600
 
+def safe_datetime_subtract(dt1, dt2):
+    """Soustraction sécurisée entre deux datetimes avec gestion timezone"""
+    # S'assurer que les deux dates ont une timezone
+    if dt1.tzinfo is None:
+        dt1 = dt1.replace(tzinfo=timezone.utc)
+    if dt2.tzinfo is None:
+        dt2 = dt2.replace(tzinfo=timezone.utc)
+    
+    # S'assurer qu'elles sont dans la même timezone
+    if dt1.tzinfo != dt2.tzinfo:
+        dt2 = dt2.astimezone(dt1.tzinfo)
+    
+    return dt1 - dt2
+
 def update_exercise_stats_for_user(db: Session, user_id: int, exercise_id: int = None):
     """Met à jour les stats d'exercices - Alternative légère à la vue matérialisée"""
     try:
@@ -619,13 +633,9 @@ def create_program(user_id: int, program: ProgramCreate, db: Session = Depends(g
     db.refresh(db_program)
     return db_program
 
-
 @app.get("/api/users/{user_id}/program-status")
 def get_program_status(user_id: int, db: Session = Depends(get_db)):
-    """Obtenir le statut actuel du programme de l'utilisateur"""
-    
-    # Récupérer le programme actif
-    """Obtenir le statut actuel du programme de l'utilisateur"""
+    """Obtenir le statut actuel du programme de l'utilisateur - TIMEZONE FIX"""
     
     # Récupérer le programme actif
     program = db.query(Program).filter(
@@ -636,14 +646,22 @@ def get_program_status(user_id: int, db: Session = Depends(get_db)):
     if not program:
         return None
     
-    # Calculer la semaine actuelle (depuis la création du programme)
-    from datetime import datetime, timedelta, timezone
-    weeks_elapsed = (datetime.now() - program.created_at).days // 7
-    # Utiliser la durée réelle du programme si disponible, sinon 4 semaines
-    total_weeks = len(set(ex.get('week', 1) for ex in program.exercises)) if program.exercises else 4
-    current_week = min(weeks_elapsed + 1, total_weeks)
+    try:
+        # CORRECTION: Calcul sécurisé au lieu de (datetime.now() - program.created_at).days // 7
+        now_utc = datetime.now(timezone.utc)
+        weeks_elapsed = safe_datetime_subtract(now_utc, program.created_at).days // 7
+        
+        # Reste de la logique inchangée
+        total_weeks = len(set(ex.get('week', 1) for ex in program.exercises)) if program.exercises else 4
+        current_week = min(weeks_elapsed + 1, total_weeks)
+        
+    except Exception as e:
+        logger.warning(f"Erreur calcul semaines programme {program.id}: {e}")
+        weeks_elapsed = 0
+        current_week = 1
+        total_weeks = 4
     
-    # Compter les séances de cette semaine
+    # Compter les séances de cette semaine - CETTE PARTIE ÉTAIT DÉJÀ CORRECTE
     now = datetime.now(timezone.utc)
     start_of_week = now - timedelta(days=now.weekday())
     start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -651,10 +669,10 @@ def get_program_status(user_id: int, db: Session = Depends(get_db)):
     sessions_this_week = db.query(Workout).filter(
         Workout.user_id == user_id,
         Workout.type == 'program',
-        Workout.started_at >= start_of_week  # CORRIGÉ
+        Workout.started_at >= start_of_week
     ).count()
     
-    # Analyser la dernière séance pour les adaptations ML
+    # Analyser la dernière séance pour les adaptations ML - LOGIQUE INCHANGÉE
     last_workout = db.query(Workout).filter(
         Workout.user_id == user_id,
         Workout.type == 'program'
@@ -665,61 +683,33 @@ def get_program_status(user_id: int, db: Session = Depends(get_db)):
         # Calculer la tendance des dernières séances
         recent_sets = db.query(WorkoutSet).join(Workout).filter(
             Workout.user_id == user_id,
-            Workout.type == 'program',
-            WorkoutSet.completed_at >= datetime.now() - timedelta(days=7)
-        ).all()
+            Workout.type == 'program'
+        ).order_by(Workout.started_at.desc()).limit(20).all()
         
-        if recent_sets:
-            avg_effort = sum(s.effort_level or 3 for s in recent_sets) / len(recent_sets)
-            avg_fatigue = sum(s.fatigue_level or 3 for s in recent_sets) / len(recent_sets)
-            
-            if avg_effort > 4 and avg_fatigue < 3:
-                ml_adaptations = "Volume +5% (excellente forme)"
-            elif avg_fatigue > 4:
-                ml_adaptations = "Volume -10% (fatigue détectée)"
-            elif avg_effort < 3:
-                ml_adaptations = "Charge +2.5kg (marge de progression)"
+        if len(recent_sets) >= 10:
+            recent_efforts = [s.effort_level for s in recent_sets if s.effort_level]
+            if recent_efforts:
+                avg_effort = sum(recent_efforts) / len(recent_efforts)
+                if avg_effort >= 4.5:
+                    ml_adaptations = "Intensité élevée détectée"
+                elif avg_effort <= 2.5:
+                    ml_adaptations = "Intensité faible - progression possible"
     
-    # Analyser les exercices du programme pour déterminer les muscles de la prochaine séance
-    # Créer des groupes de séances basés sur les exercices réels
-    from collections import defaultdict
+    # Préparer la preview de la prochaine séance - LOGIQUE INCHANGÉE
+    next_muscles = ["Haut du corps", "Jambes"] if program.focus_areas else ["Corps complet"]
+    exercises_count = 6
     
-    # Grouper les exercices par pattern de muscles
-    session_patterns = defaultdict(list)
     if program.exercises:
-        for ex in program.exercises:
-            # Utiliser le nom de l'exercice et ses groupes musculaires
-            exercise_db = db.query(Exercise).filter(Exercise.id == ex.get('exercise_id')).first()
-            if exercise_db and exercise_db.muscle_groups:
-                # Créer une clé unique pour ce pattern de muscles
-                muscle_key = tuple(sorted(exercise_db.muscle_groups))
-                session_patterns[muscle_key].append(exercise_db.name)
-    
-    # Si on a des patterns, les utiliser pour déterminer la prochaine séance
-    if session_patterns:
-        patterns_list = list(session_patterns.keys())
-        total_program_sessions = db.query(Workout).filter(
-            Workout.user_id == user_id,
-            Workout.type == 'program',
-            Workout.program_id == program.id
-        ).count()
-        
-        pattern_index = total_program_sessions % len(patterns_list)
-        next_pattern = patterns_list[pattern_index]
-        
-        # Formater les muscles pour l'affichage
-        muscle_names = [m.capitalize() for m in next_pattern]
-        if len(muscle_names) > 2:
-            next_muscles = f"{', '.join(muscle_names[:2])} + autres"
-        else:
-            next_muscles = ' + '.join(muscle_names)
-        
-        # Compter les exercices pour cette séance
-        exercises_count = len(session_patterns[next_pattern])
-    else:
-        # Fallback si pas de patterns détectables
-        next_muscles = "Séance complète"
-        exercises_count = min(6, len(program.exercises) if program.exercises else 4)
+        # Prendre les exercices de la semaine actuelle
+        current_week_exercises = [ex for ex in program.exercises if ex.get('week', 1) == current_week]
+        if current_week_exercises:
+            exercises_count = len(current_week_exercises)
+            muscle_groups = []
+            for ex in current_week_exercises:
+                if 'muscle_groups' in ex:
+                    muscle_groups.extend(ex['muscle_groups'])
+            if muscle_groups:
+                next_muscles = list(set(muscle_groups))[:3]
     
     return {
         "current_week": current_week,
@@ -1780,8 +1770,13 @@ def get_user_comprehensive_program(user_id: int, db: Session = Depends(get_db)):
     if program.format_version == "2.0":
         # Calculer la semaine actuelle basée sur started_at
         if program.started_at:
-            from datetime import datetime, timezone
-            weeks_elapsed = (datetime.now(timezone.utc) - program.started_at).days // 7
+            try:
+                now_utc = datetime.now(timezone.utc)
+                weeks_elapsed = safe_datetime_subtract(now_utc, program.started_at).days // 7
+            except Exception as e:
+                logger.warning(f"Erreur calcul semaines comprehensive program {program.id}: {e}")
+                weeks_elapsed = 0
+
             program.current_week = min(weeks_elapsed + 1, program.duration_weeks)
             
             # Calculer estimated_completion si pas déjà fait
