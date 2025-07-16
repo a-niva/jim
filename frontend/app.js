@@ -8337,7 +8337,13 @@ function changeExercise() {
         return;
     }
     
-    // Appeler directement la fonction qui existe déjà
+    // En séance libre : retour simple à la sélection
+    if (currentWorkoutSession.type !== 'program') {
+        showExerciseSelection();
+        return;
+    }
+    
+    // En programme : utiliser le système de swap
     showSwapReasonModal(currentExercise.id);
 }
 
