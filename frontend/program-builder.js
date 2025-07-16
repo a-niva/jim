@@ -144,14 +144,17 @@ class ProgramBuilder {
         }
         
         // Contenu selon l'étape
-        if (this.currentStep === this.totalSteps - 1) {
+        if (this.currentStep === 0) {
+            // Première étape : introduction
+            this.renderIntroStep(content);
+        } else if (this.currentStep === this.totalSteps - 1) {
             // Dernière étape : confirmation finale
             this.renderFinalConfirmation(content);
         } else if (this.currentStep === this.totalSteps - 2) {
             // Avant-dernière : preview du programme
             this.renderProgramPreview(content);
         } else {
-            // Étapes normales
+            // Étapes de questions (1 à totalSteps-3)
             this.renderQuestionStep(content, this.currentStep - 1);
         }
     }
