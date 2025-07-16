@@ -644,7 +644,7 @@ function showOnboarding() {
     document.getElementById('bottomNav').style.display = 'none';
     document.getElementById('userInitial').style.display = 'none';
     
-    totalSteps = 5; // Définir explicitement le nombre d'étapes
+    let onboardingTotalSteps = 5; // Définir explicitement le nombre d'étapes
     currentStep = 1;
     showStep(1);
     updateProgressBar();
@@ -784,7 +784,7 @@ function showStep(step) {
 
 function nextStep() {
     if (validateCurrentStep()) {
-        if (currentStep < totalSteps) {
+        if (currentStep < 5) {  // Hardcoder directement puisque c'est fixe
             currentStep++;
             showStep(currentStep);
             updateProgressBar();
@@ -805,7 +805,7 @@ function prevStep() {
 }
 
 function updateProgressBar() {
-    const progress = (currentStep - 1) / (totalSteps - 1) * 100;
+    const progress = (currentStep - 1) / (5 - 1) * 100;  // 5 étapes fixes
     document.getElementById('progressBar').style.width = `${progress}%`;
 }
 

@@ -302,13 +302,33 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     try:
         logger.info(f"📝 Tentative création user: {user.name}")
         logger.info(f"🔍 User data: {user.dict()}")
-        
+       
         db_user = User(**user.dict())
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
-        
+       
         logger.info(f"User créé avec ID: {db_user.id}")
+        
+        # Si des focus_areas sont fournis, créer automatiquement un programme
+        if hasattr(user, 'focus_areas') and user.focus_areas and len(user.focus_areas) > 0:
+            try:
+                program_data = ProgramCreate(
+                    name=getattr(user, 'program_name', 'Mon programme'),
+                    duration_weeks=8,
+                    sessions_per_week=getattr(user, 'sessions_per_week', 3),
+                    session_duration_minutes=getattr(user, 'session_duration', 45),
+                    focus_areas=user.focus_areas,
+                    goals=["muscle", "strength"]
+                )
+                
+                created_program = create_program(db, db_user.id, program_data)
+                logger.info(f"📋 Programme auto-créé pour user {db_user.id}: {created_program.id}")
+                
+            except Exception as e:
+                logger.warning(f"⚠️ Impossible de créer le programme auto: {e}")
+                # Ne pas faire échouer la création de l'user pour autant
+        
         return db_user
     except Exception as e:
         logger.error(f"❌ Erreur création user: {str(e)}")
