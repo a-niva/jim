@@ -968,9 +968,9 @@ def get_next_intelligent_session(user_id: int, db: Session = Depends(get_db)):
             else:
                 raise HTTPException(status_code=400, detail="Format de programme invalide")
         
-        # Vérifier si c'est le nouveau format ComprehensiveProgram
-        if hasattr(program, 'weekly_structure') and program.weekly_structure:
-            # NOUVEAU FORMAT: Utiliser la structure temporelle
+        # 2. Vérifier le format du programme
+        if program.format_version == "2.0" and program.weekly_structure:
+            # NOUVEAU FORMAT v2.0: Utiliser la structure temporelle
             try:
                 # Obtenir la session actuelle dans la structure
                 current_week_data = program.weekly_structure[program.current_week - 1]
@@ -1823,6 +1823,49 @@ def generate_comprehensive_program(
         logger.error(f"Traceback complet: {traceback.format_exc()}")  # Ajouter ceci
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))  # Modifier pour voir l'erreur
+
+@app.post("/api/users/{user_id}/programs/activate-comprehensive")
+def activate_comprehensive_program(
+    user_id: int,
+    program_data: dict,
+    db: Session = Depends(get_db)
+):
+    """Persiste un programme généré par ProgramBuilder"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
+    # Désactiver programmes existants
+    db.query(Program).filter(Program.user_id == user_id).update({"is_active": False})
+    
+    # Créer nouveau programme avec structure avancée
+    new_program = Program(
+        user_id=user_id,
+        name=program_data.get("name", "Programme personnalisé"),
+        sessions_per_week=program_data.get("sessions_per_week", 3),
+        session_duration_minutes=program_data.get("session_duration_minutes", 60),
+        focus_areas=program_data.get("focus_areas", []),
+        duration_weeks=program_data.get("duration_weeks", 8),
+        periodization_type=program_data.get("periodization_type", "linear"),
+        weekly_structure=program_data.get("weekly_structure", []),
+        progression_rules=program_data.get("progression_rules", {}),
+        base_quality_score=program_data.get("base_quality_score", 85.0),
+        format_version="2.0",
+        exercises=[],  # Sera rempli par la logique de sélection
+        goals=program_data.get("goals", ["muscle", "strength"]),
+        is_active=True,
+        current_week=1,
+        current_session_in_week=1
+    )
+    
+    db.add(new_program)
+    db.commit()
+    db.refresh(new_program)
+    
+    logger.info(f"Programme v2.0 activé: {new_program.id} pour user {user_id}")
+    
+    return {"message": "Programme activé", "program_id": new_program.id}
+
 
 @app.get("/api/users/{user_id}/comprehensive-program", response_model=ComprehensiveProgramResponse)
 def get_user_comprehensive_program(user_id: int, db: Session = Depends(get_db)):
@@ -2995,11 +3038,11 @@ def auto_generate_planned_sessions(program, week_start, week_end, db):
         session_exercises = []
         estimated_duration = program.session_duration_minutes or 60
         
-        if program.weekly_structure and len(program.weekly_structure) > 0:
-            # Utiliser la structure du programme
+        if program.format_version == "2.0" and program.weekly_structure and len(program.weekly_structure) > 0:
+            # Format v2.0 - Utiliser la structure du programme
             week_in_program = (days_since_start // 7) % len(program.weekly_structure)
             week_data = program.weekly_structure[week_in_program]
-            
+                    
             if "sessions" in week_data and len(week_data["sessions"]) > i:
                 session_template = week_data["sessions"][i]
                 session_exercises = session_template.get("exercise_pool", [])

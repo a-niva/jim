@@ -114,13 +114,14 @@ class Program(Base):
     user_modifications = Column(JSON, default=lambda: [])  # Historique changements
     
     # VERSION - CHAMP MANQUANT CRITIQUE !
-    format_version = Column(String(10), default="2.0")  # ← AJOUTER CETTE LIGNE
+    format_version = Column(String(10), default="2.0")
     
     # LEGACY - Pour compatibilité avec l'ancien code
-    exercises = Column(JSON, nullable=True, default=lambda: [])  # ← AJOUTER CETTE LIGNE
-    goals = Column(JSON, nullable=True, default=lambda: [])  # ← AJOUTER CETTE LIGNE
+    exercises = Column(JSON, nullable=True, default=lambda: [])
+    goals = Column(JSON, nullable=True, default=lambda: [])
     
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    format_version = Column(String(10), default="1.0") # VERSION - Pour distinguer les formats
     updated_at = Column(DateTime, default=datetime.now(timezone.utc))
     is_active = Column(Boolean, default=True)
     
