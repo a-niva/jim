@@ -3234,7 +3234,6 @@ def analyze_muscle_recovery(past_workouts, db):
     muscle_recovery = {}
     
     for workout in past_workouts:
-        # Récupérer les exercices de la séance
         sets = db.query(WorkoutSet).filter(WorkoutSet.workout_id == workout.id).all()
         
         for workout_set in sets:
@@ -3242,10 +3241,12 @@ def analyze_muscle_recovery(past_workouts, db):
             if exercise and exercise.muscle_groups:
                 for muscle in exercise.muscle_groups:
                     if muscle not in muscle_recovery:
+                        # Utiliser safe_timedelta_hours pour éviter les erreurs timezone
+                        hours_since = safe_timedelta_hours(datetime.now(timezone.utc), workout.started_at)
                         muscle_recovery[muscle] = {
                             "last_trained": workout.started_at.date().isoformat(),
-                            "hours_since": int((datetime.now(timezone.utc) - workout.started_at).total_seconds() / 3600),
-                            "recovery_level": min(1.0, (datetime.now(timezone.utc) - workout.started_at).total_seconds() / (48 * 3600))  # 48h pour récupération complète
+                            "hours_since": int(safe_timedelta_hours(datetime.now(timezone.utc), workout.started_at)),
+                            "recovery_level": min(1.0, safe_timedelta_hours(datetime.now(timezone.utc), workout.started_at) / 48.0)
                         }
     
     return muscle_recovery

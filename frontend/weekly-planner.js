@@ -754,27 +754,38 @@ class WeeklyPlannerView {
             return;
         }
         
-        // Charger le programme actif avec gestion d'absence
+        // Utiliser la sélection intelligente ML
         try {
-            window.showToast('Vérification du programme...', 'info');
-            const program = await window.apiGet(`/api/users/${window.currentUser.id}/programs/active`);
+            window.showToast('Analyse intelligente de vos besoins...', 'info');
             
-            if (!program) {
-                // Aucun programme actif : proposer de créer un programme
-                this.showNoProgramModal();
+            // Appeler l'endpoint ML pour sélection optimale
+            const intelligentSession = await window.apiGet(`/api/users/${window.currentUser.id}/programs/next-session`);
+            
+            if (intelligentSession && intelligentSession.selected_exercises) {
+                console.log('🧠 Sélection ML reçue:', intelligentSession);
+                this.showIntelligentSessionModal(date, intelligentSession);
                 return;
             }
             
-            this.showSessionCreationModal(date, program);
+            // Fallback seulement si ML échoue
+            throw new Error('Sélection ML indisponible');
             
         } catch (error) {
-            console.error('Erreur chargement programme:', error);
+            console.warn('⚠️ Fallback vers programme statique:', error);
             
-            // Si erreur 500 (programme manquant) ou autre, proposer création programme
-            if (error.message && (error.message.includes('500') || error.message.includes('Serveur temporairement indisponible'))) {
-                this.showNoProgramModal();
-            } else {
-                window.showToast('Erreur technique temporaire', 'error');
+            try {
+                const program = await window.apiGet(`/api/users/${window.currentUser.id}/programs/active`);
+                if (!program) {
+                    this.showNoProgramModal();
+                    return;
+                }
+                this.showSessionCreationModal(date, program);
+            } catch (fallbackError) {
+                if (fallbackError.message?.includes('500')) {
+                    this.showNoProgramModal();
+                } else {
+                    window.showToast('Erreur technique temporaire', 'error');
+                }
             }
         }
     }
@@ -908,6 +919,117 @@ class WeeklyPlannerView {
             this.updateExerciseSelection();
             this.validateRecoveryAndUpdateWarnings(date, exercisePool);
         }, 100);
+    }
+
+    showIntelligentSessionModal(date, intelligentSession) {
+        const { selected_exercises, session_metadata } = intelligentSession;
+        
+        const dateFormatted = new Date(date).toLocaleDateString('fr-FR', { 
+            weekday: 'long', 
+            day: 'numeric', 
+            month: 'long' 
+        });
+        
+        // Calculer le score de qualité global
+        const avgScore = selected_exercises.reduce((sum, ex) => sum + (ex.score || 0.75), 0) / selected_exercises.length;
+        const qualityScore = Math.round(avgScore * 100);
+        
+        // Couleur du score
+        let scoreColor = '#10b981'; // vert
+        if (qualityScore < 60) scoreColor = '#ef4444'; // rouge
+        else if (qualityScore < 80) scoreColor = '#f59e0b'; // orange
+        
+        const modalContent = `
+            <div class="intelligent-session-modal">
+                <div class="intelligent-header">
+                    <div class="ai-badge">
+                        <i class="fas fa-brain"></i>
+                        <span>Sélection IA</span>
+                    </div>
+                    <h3>Séance optimisée</h3>
+                    <p class="session-date">
+                        <i class="fas fa-calendar"></i> ${dateFormatted}
+                    </p>
+                    
+                    <div class="quality-indicator">
+                        <div class="quality-score" style="color: ${scoreColor}">
+                            <span class="score-value">${qualityScore}</span>
+                            <span class="score-label">Qualité</span>
+                        </div>
+                        <div class="quality-reason">
+                            ${session_metadata.warnings.length > 0 ? 
+                                `⚠️ ${session_metadata.warnings[0]}` : 
+                                '✅ Optimisé selon votre récupération'
+                            }
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="selected-exercises">
+                    <h4>Exercices sélectionnés (${selected_exercises.length})</h4>
+                    <div class="exercise-list-intelligent">
+                        ${selected_exercises.map((exercise, index) => `
+                            <div class="exercise-item-intelligent" data-exercise-id="${exercise.exercise_id}">
+                                <div class="exercise-number">${index + 1}</div>
+                                <div class="exercise-details">
+                                    <div class="exercise-name">${exercise.exercise_name}</div>
+                                    <div class="exercise-params">
+                                        ${exercise.sets || 3} séries × ${exercise.reps_min || 8}-${exercise.reps_max || 12} reps
+                                    </div>
+                                    <div class="selection-reason">${exercise.selection_reason || 'Optimisé IA'}</div>
+                                </div>
+                                <div class="exercise-score">
+                                    <div class="score-circle" style="background: linear-gradient(${(exercise.score * 360)}deg, ${scoreColor} 0%, #374151 0%)">
+                                        ${Math.round((exercise.score || 0.75) * 100)}
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" onclick="window.closeModal()">
+                        Annuler
+                    </button>
+                    <button class="btn btn-primary" onclick="weeklyPlanner.createIntelligentSession('${date}', ${JSON.stringify(intelligentSession).replace(/"/g, '&quot;')})">
+                        <i class="fas fa-plus"></i>
+                        Créer cette séance
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        window.showModal('Séance Intelligence Artificielle', modalContent);
+    }
+
+    async createIntelligentSession(date, intelligentSession) {
+        const { selected_exercises, session_metadata } = intelligentSession;
+        
+        // Préparer les données pour l'API
+        const sessionData = {
+            planned_date: date,
+            exercises: selected_exercises,
+            estimated_duration: session_metadata.estimated_duration,
+            primary_muscles: Object.keys(session_metadata.muscle_distribution),
+            predicted_quality_score: Math.round(selected_exercises.reduce((sum, ex) => sum + (ex.score || 0.75), 0) / selected_exercises.length * 100)
+        };
+        
+        try {
+            window.closeModal();
+            window.showToast('Création de la séance IA...', 'info');
+            
+            const result = await window.apiPost(`/api/users/${window.currentUser.id}/planned-sessions`, sessionData);
+            
+            if (result.message) {
+                window.showToast(`✨ Séance IA créée avec succès (Score: ${sessionData.predicted_quality_score})`, 'success');
+                await this.refresh();
+            }
+            
+        } catch (error) {
+            console.error('Erreur création séance IA:', error);
+            window.showToast('Erreur lors de la création', 'error');
+        }
     }
 
     extractExercisePool(program) {
