@@ -113,8 +113,8 @@ class ProgramBuilder {
         this.renderStep();
     }
     
+
     renderStep() {
-        // Afficher l'étape actuelle
         const content = document.getElementById('builderContent');
         const currentStepNum = document.getElementById('currentStepNum');
         const prevBtn = document.getElementById('builderPrevBtn');
@@ -122,28 +122,136 @@ class ProgramBuilder {
         
         currentStepNum.textContent = this.currentStep + 1;
         
-        //  Afficher/masquer boutons navigation
+        // Afficher/masquer bouton précédent
         prevBtn.style.display = this.currentStep > 0 ? 'block' : 'none';
         
-        //  Mise à jour barre de progression
-        const progress = ((this.currentStep + 1) / this.totalSteps) * 100;
-        document.getElementById('builderProgress').style.width = `${progress}%`;
-        
-        if (this.currentStep === 0) {
-            //  Étape d'introduction
-            this.renderIntroStep(content);
-        } else if (this.currentStep <= this.recommendations.questionnaire_items.length) {
-            //  Étapes de questionnaire
-            this.renderQuestionStep(content, this.currentStep - 1);
-        } else if (this.currentStep === this.recommendations.questionnaire_items.length + 1) {
-            //  Étape de génération et preview
-            this.renderPreviewStep(content);
+        // ✅ CORRECTION : Logique de boutons simplifiée
+        if (this.currentStep === this.totalSteps - 1) {
+            // Dernière étape : un seul bouton "Activer le programme"
+            nextBtn.textContent = "🚀 Activer le programme";
+            nextBtn.className = "btn btn-primary btn-large";
+            nextBtn.style.background = "linear-gradient(135deg, var(--success), var(--success-dark))";
+        } else if (this.currentStep === this.totalSteps - 2) {
+            // Avant-dernière étape (preview) : "Confirmer et continuer"
+            nextBtn.textContent = "Confirmer et continuer";
+            nextBtn.className = "btn btn-primary";
+            nextBtn.style.background = "";
         } else {
-            //  Étape de confirmation finale
-            this.renderConfirmationStep(content);
+            // Étapes normales : "Continuer"
+            nextBtn.textContent = "Continuer";
+            nextBtn.className = "btn btn-primary";
+            nextBtn.style.background = "";
+        }
+        
+        // Contenu selon l'étape
+        if (this.currentStep === this.totalSteps - 1) {
+            // Dernière étape : confirmation finale
+            this.renderFinalConfirmation(content);
+        } else if (this.currentStep === this.totalSteps - 2) {
+            // Avant-dernière : preview du programme
+            this.renderProgramPreview(content);
+        } else {
+            // Étapes normales
+            this.renderCurrentQuestion(content);
         }
     }
-    
+
+    /**
+     * Rendu de la confirmation finale (remplace les boutons redondants)
+     */
+    renderFinalConfirmation(content) {
+        content.innerHTML = `
+            <div class="confirmation-step">
+                <div class="success-icon">🎉</div>
+                <h3>Programme prêt !</h3>
+                <p class="confirmation-text">
+                    Votre programme personnalisé <strong>"${this.generatedProgram?.name || 'Programme personnalisé'}"</strong> 
+                    est configuré et prêt à être activé.
+                </p>
+                
+                <div class="program-summary-final">
+                    <div class="summary-item">
+                        <strong>${this.selections.training_frequency || 3}</strong>
+                        <span>séances/semaine</span>
+                    </div>
+                    <div class="summary-item">
+                        <strong>${this.selections.session_duration || 60}</strong>
+                        <span>minutes/séance</span>
+                    </div>
+                    <div class="summary-item">
+                        <strong>${this.selections.focus_areas?.length || 0}</strong>
+                        <span>zones ciblées</span>
+                    </div>
+                </div>
+                
+                <div class="next-steps">
+                    <h4>Prochaines étapes :</h4>
+                    <ul>
+                        <li>✅ Accès immédiat au planning hebdomadaire</li>
+                        <li>✅ Séances adaptées à votre progression</li>
+                        <li>✅ Suivi intelligent de votre récupération</li>
+                    </ul>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Amélioration du preview (avant-dernière étape)
+     */
+    renderProgramPreview(content) {
+        if (!this.generatedProgram) {
+            content.innerHTML = `
+                <div class="loading-step">
+                    <div class="loading-spinner"></div>
+                    <p>Génération de votre programme personnalisé...</p>
+                </div>
+            `;
+            return;
+        }
+        
+        content.innerHTML = `
+            <div class="preview-step">
+                <h3>Aperçu de votre programme</h3>
+                <p class="preview-subtitle">Vérifiez que tout correspond à vos attentes</p>
+                
+                <div class="program-overview">
+                    <div class="overview-header">
+                        <h4>${this.generatedProgram.name}</h4>
+                        <div class="overview-stats">
+                            <span class="stat">${this.generatedProgram.duration_weeks} semaines</span>
+                            <span class="stat">${this.generatedProgram.sessions_per_week} séances/sem</span>
+                            <span class="stat">${this.generatedProgram.session_duration_minutes}min/séance</span>
+                        </div>
+                    </div>
+                    
+                    <div class="focus-areas-preview">
+                        <strong>Zones ciblées :</strong>
+                        <div class="focus-tags">
+                            ${this.generatedProgram.focus_areas.map(area => 
+                                `<span class="focus-tag">${this.getFocusAreaName(area)}</span>`
+                            ).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="week-preview">
+                        <strong>Aperçu première semaine :</strong>
+                        ${this.generatedProgram.weekly_structure?.[0] ? 
+                            this.renderWeekPreview(this.generatedProgram.weekly_structure[0]) : 
+                            '<p>Séances générées automatiquement</p>'
+                        }
+                    </div>
+                </div>
+                
+                <div class="preview-actions">
+                    <button class="btn btn-secondary" onclick="programBuilder.regenerateProgram()">
+                        🔄 Régénérer
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
     renderIntroStep(content) {
         // Afficher l'étape d'introduction avec insights ML
         if (!this.recommendations) {

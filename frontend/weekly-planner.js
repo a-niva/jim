@@ -835,14 +835,16 @@ class WeeklyPlannerView {
         return { allowed: true };
     }
 
+    
+    /**
+     * Amélioration du modal de création de séance
+     * Ajoute de meilleures informations et actions
+     */
     showSessionCreationModal(date, program) {
-        // DEBUG: Examiner la structure du programme
         console.log('🔍 Programme reçu:', program);
         
-        // Extraire les exercices du pool du programme
         const exercisePool = this.extractExercisePool(program);
         
-        // DEBUG: Vérifier les exercices extraits
         console.log('📋 Exercices extraits:', exercisePool);
         console.log('🔢 Nombre d\'exercices uniques:', exercisePool.length);
         
@@ -864,10 +866,15 @@ class WeeklyPlannerView {
                     <p class="session-date">
                         <i class="fas fa-calendar"></i> ${dateFormatted}
                     </p>
+                    <p class="session-info">
+                        ${exercisePool.length} exercices disponibles dans votre programme
+                    </p>
                 </div>
                 
                 <div class="exercise-selection-section">
-                    <h4>Sélectionnez les exercices <span class="selection-count">(0 sélectionnés)</span></h4>
+                    <h4>Sélectionnez et ordonnez vos exercices <span class="selection-count">(0 sélectionnés)</span></h4>
+                    <p class="selection-hint">💡 L'ordre de sélection sera l'ordre d'exécution</p>
+                    
                     <div class="exercise-list" id="exerciseSelectionList">
                         ${this.renderExerciseSelectionList(exercisePool)}
                     </div>
@@ -876,13 +883,15 @@ class WeeklyPlannerView {
                 <div class="session-preview">
                     <div class="duration-estimate">
                         <i class="fas fa-clock"></i>
-                        <span id="estimatedDuration">45</span> minutes estimées
+                        <span id="estimatedDuration">0</span> minutes estimées
                     </div>
                     <div id="recoveryWarnings" class="recovery-warnings-container"></div>
                 </div>
                 
                 <div class="modal-actions">
-                    <button class="btn btn-primary" onclick="weeklyPlanner.createSessionWithExercises('${date}', '${program.id}')">
+                    <button class="btn btn-primary" 
+                        onclick="weeklyPlanner.createSessionWithExercises('${date}', '${program.id}')"
+                        disabled>
                         <i class="fas fa-plus"></i> Créer la séance
                     </button>
                     <button class="btn btn-secondary" onclick="window.closeModal()">
@@ -894,7 +903,7 @@ class WeeklyPlannerView {
         
         window.showModal(`Séance du ${dateFormatted}`, modalContent);
 
-        // Initialiser le compteur ET valider la récupération après affichage
+        // Initialiser après affichage
         setTimeout(() => {
             this.updateExerciseSelection();
             this.validateRecoveryAndUpdateWarnings(date, exercisePool);
@@ -906,16 +915,18 @@ class WeeklyPlannerView {
         
         // Gérer les deux formats de programme
         if (program.format === 'comprehensive' && program.weekly_structure) {
-            // Format comprehensive : extraire depuis weekly_structure
+            // Format comprehensive : extraire TOUS les exercices de TOUTES les sessions
             const currentWeek = program.current_week - 1;
             if (program.weekly_structure[currentWeek] && program.weekly_structure[currentWeek].sessions) {
-                // Extraire TOUS les exercices de TOUTES les sessions de la semaine
-                exercises = [];
+                
+                // ✅ CORRECTION : Récupérer TOUTES les sessions, pas seulement [0]
                 program.weekly_structure[currentWeek].sessions.forEach(session => {
                     if (session.exercise_pool) {
                         exercises.push(...session.exercise_pool);
                     }
                 });
+                
+                console.log(`📚 Exercices extraits de ${program.weekly_structure[currentWeek].sessions.length} sessions`);
             }
         } else {
             // Format legacy : utiliser exercises directement
@@ -923,15 +934,19 @@ class WeeklyPlannerView {
         }
         
         // Déduplication immédiate basée sur exercise_id
-        return this.deduplicateExercises(exercises);
+        const deduplicated = this.deduplicateExercises(exercises);
+        console.log(`📊 ${exercises.length} exercices total → ${deduplicated.length} uniques après déduplication`);
+        
+        return deduplicated;
     }
 
+    // ===== AMÉLIORATION déduplication avec plus d'infos =====
     deduplicateExercises(exercises) {
         const seen = new Set();
         return exercises.filter(exercise => {
             const id = exercise.exercise_id || exercise.id;
             if (seen.has(id)) {
-                console.warn(`Exercice dupliqué détecté et retiré: ${exercise.exercise_name || exercise.name} (ID: ${id})`);
+                console.log(`🔄 Dédupliqué: ${exercise.exercise_name || exercise.name} (ID: ${id})`);
                 return false;
             }
             seen.add(id);
@@ -939,66 +954,49 @@ class WeeklyPlannerView {
         });
     }
 
-    renderExerciseSelectionList(exercises) {
-        return exercises.map(exercise => {
-            const exerciseId = exercise.exercise_id || exercise.id;
-            const exerciseName = exercise.exercise_name || exercise.name;
-            const muscleGroups = exercise.muscle_groups || [];
-            const sets = exercise.sets || exercise.default_sets || 3;
-            const repsRange = exercise.reps_min && exercise.reps_max 
-                ? `${exercise.reps_min}-${exercise.reps_max}` 
-                : '8-12';
-            
-            return `
-                <div class="exercise-selection-item">
-                    <label class="exercise-checkbox">
-                        <input type="checkbox" 
-                            value="${exerciseId}"  
-                            onchange="weeklyPlanner.updateExerciseSelection()">
-                        <div class="exercise-info">
-                            <h5>${exerciseName}</h5>
-                            <div class="exercise-details">
-                                <span class="sets-reps">${sets} × ${repsRange}</span>
-                                ${muscleGroups.length > 0 ? `
-                                    <div class="muscle-tags">
-                                        ${muscleGroups.slice(0, 2).map(muscle => 
-                                            `<span class="muscle-tag">${muscle}</span>`
-                                        ).join('')}
-                                    </div>
-                                ` : ''}
-                            </div>
-                        </div>
-                    </label>
-                </div>
-            `;
-        }).join('');
-    }
-
     updateExerciseSelection() {
         const checkboxes = document.querySelectorAll('#exerciseSelectionList input[type="checkbox"]');
         const selectedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
-    
+        
         // Mettre à jour le compteur
         const countElement = document.querySelector('.selection-count');
         if (countElement) {
             countElement.textContent = `(${selectedCount} sélectionnés)`;
         }
-    
-        // Calculer la durée estimée
-        const estimatedDuration = selectedCount * 7; // 7 minutes par exercice en moyenne
+        
+        // ✅ NOUVEAU : Ajouter l'ordre visuel
+        let order = 1;
+        checkboxes.forEach(checkbox => {
+            const exerciseItem = checkbox.closest('.exercise-selection-item');
+            const exerciseLabel = checkbox.closest('.exercise-checkbox');
+            
+            if (checkbox.checked) {
+                // Ajouter l'ordre à l'élément
+                exerciseLabel.setAttribute('data-order', order);
+                exerciseItem.style.order = order; // Pour réorganiser visuellement
+                order++;
+            } else {
+                // Retirer l'ordre
+                exerciseLabel.removeAttribute('data-order');
+                exerciseItem.style.order = ''; 
+            }
+        });
+        
+        // Mettre à jour la durée estimée
+        const estimatedDuration = selectedCount * 7; // 7 min par exercice
         const durationElement = document.getElementById('estimatedDuration');
         if (durationElement) {
             durationElement.textContent = Math.max(15, estimatedDuration);
         }
         
-        // Gestion du bouton créer selon sélection
-        const createButton = document.querySelector('.btn-primary[onclick*="createSessionWithExercises"]');
+        // Activer/désactiver le bouton créer
+        const createButton = document.querySelector('.modal-actions .btn-primary');
         if (createButton) {
             createButton.disabled = selectedCount === 0;
             createButton.style.opacity = selectedCount === 0 ? '0.5' : '1';
         }
-    
-        // Revalider les warnings de récupération
+        
+        // Revalider les warnings de récupération si exercices sélectionnés
         if (selectedCount > 0) {
             const selectedExercises = this.getSelectedExercises();
             const dateInput = document.querySelector('.session-creation-modal');
@@ -1015,6 +1013,45 @@ class WeeklyPlannerView {
                 warningsContainer.innerHTML = '';
             }
         }
+    }
+
+
+    /**
+     * Amélioration du rendu de la liste d'exercices
+     * Ajoute les attributs nécessaires pour l'ordre visuel
+     */
+    renderExerciseSelectionList(exercises) {
+        return exercises.map((exercise, index) => {
+            const exerciseId = exercise.exercise_id || exercise.id;
+            const exerciseName = exercise.exercise_name || exercise.name;
+            const muscleGroups = exercise.muscle_groups || [];
+            const sets = exercise.sets || exercise.default_sets || 3;
+            const repsRange = exercise.reps_min && exercise.reps_max 
+                ? `${exercise.reps_min}-${exercise.reps_max}` 
+                : '8-12';
+            
+            return `
+                <div class="exercise-selection-item" data-exercise-id="${exerciseId}">
+                    <label class="exercise-checkbox">
+                        <input type="checkbox" 
+                            value="${exerciseId}"  
+                            onchange="weeklyPlanner.updateExerciseSelection()">
+                        <div class="exercise-info">
+                            <h5>${exerciseName}</h5>
+                            <div class="exercise-details">
+                                <span class="sets-reps">${sets} × ${repsRange}</span>
+                                ${muscleGroups.length > 0 ? 
+                                    muscleGroups.map(muscle => 
+                                        `<span class="muscle-tag">${muscle}</span>`
+                                    ).join('') : 
+                                    ''
+                                }
+                            </div>
+                        </div>
+                    </label>
+                </div>
+            `;
+        }).join('');
     }
 
     async validateRecoveryAndUpdateWarnings(date, exercises) {
