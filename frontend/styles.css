@@ -7326,7 +7326,7 @@ background: rgba(255, 255, 255, 0.02);
 
 /* Header du jour */
 .day-header {
-    flex: 0 0 120px;
+    flex: 0 0 20px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -7641,7 +7641,7 @@ background: rgba(255, 255, 255, 0.02);
     }
     
     .day-header {
-        flex: 0 0 100px;
+        flex: 0 0 20px;
     }
 }
 
@@ -7946,14 +7946,64 @@ background: rgba(255, 255, 255, 0.02);
 
 .weekly-planner {
     width: 100%;
-    max-width: 900px;
+    max-width: min(900px, 100vw - 2rem); /* Responsive avec marge */
     margin: 0 auto;
     box-sizing: border-box;
+    overflow-x: hidden; /* Empêcher débordement horizontal */
 }
 
-/* Forcer container parent à respecter largeur */
-@media (min-width: 900px) {
+/* Forcer toutes les cartes à respecter la largeur parent */
+.day-column {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden; /* Empêcher débordement contenu */
+}
+
+/* Ajuster header jour pour responsive */
+.day-header {
+    flex: 0 0 100px; /* Réduire largeur fixe */
+    min-width: 0; /* Permettre compression */
+}
+
+/* Zone sessions avec scroll horizontal si nécessaire */
+.day-sessions {
+    min-width: 0; /* Permettre compression */
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+/* Sessions cards ne doivent pas forcer l'élargissement */
+.session-card {
+    flex-shrink: 0; /* Éviter compression excessive */
+    min-width: 200px; /* Largeur minimum */
+    max-width: 300px; /* Largeur maximum */
+}
+
+/* Fix responsive mobile */
+@media (max-width: 768px) {
     .weekly-planner {
-        width: 900px; /* Largeur fixe sur desktop */
+        max-width: 100vw;
+        padding: var(--spacing-sm);
     }
+    
+    .day-header {
+        flex: 0 0 80px; /* Encore plus compact sur mobile */
+    }
+    
+    .session-card {
+        min-width: 150px;
+        max-width: 200px;
+    }
+}
+/* CORRECTION DÉBORDEMENT GLOBAL */
+.planner-grid {
+    width: 100%;
+    overflow-x: hidden;
+}
+
+.planner-header {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
