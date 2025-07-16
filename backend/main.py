@@ -327,22 +327,20 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
         
         # Si des focus_areas sont fournis, créer automatiquement un programme
         if program_data['focus_areas'] and len(program_data['focus_areas']) > 0:
+            # Retirer les champs inexistants et corriger l'ordre des paramètres
             try:
                 program_create = ProgramCreate(
                     name=program_data['program_name'] or 'Mon programme',
-                    duration_weeks=8,
                     sessions_per_week=program_data['sessions_per_week'] or 3,
                     session_duration_minutes=program_data['session_duration'] or 45,
-                    focus_areas=program_data['focus_areas'],
-                    goals=["muscle", "strength"]
+                    focus_areas=program_data['focus_areas']
                 )
                 
-                created_program = create_program(db, db_user.id, program_create)
+                created_program = create_program(db_user.id, program_create, db)
                 logger.info(f"📋 Programme auto-créé pour user {db_user.id}: {created_program.id}")
                 
             except Exception as e:
                 logger.warning(f"⚠️ Impossible de créer le programme auto: {e}")
-                # Ne pas faire échouer la création de l'user pour autant
         
         return db_user
     except Exception as e:

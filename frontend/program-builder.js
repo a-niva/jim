@@ -152,7 +152,7 @@ class ProgramBuilder {
             this.renderProgramPreview(content);
         } else {
             // Étapes normales
-            this.renderCurrentQuestion(content);
+            this.renderQuestionStep(content, this.currentStep - 1);
         }
     }
 
