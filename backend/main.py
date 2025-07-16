@@ -489,7 +489,9 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
     db.query(SetHistory).filter(SetHistory.user_id == user_id).delete(synchronize_session=False)
     db.query(UserCommitment).filter(UserCommitment.user_id == user_id).delete(synchronize_session=False)
     db.query(AdaptiveTargets).filter(AdaptiveTargets.user_id == user_id).delete(synchronize_session=False)
-    
+    db.query(SwapLog).filter(SwapLog.user_id == user_id).delete(synchronize_session=False)
+    db.query(PlannedSession).filter(PlannedSession.user_id == user_id).delete(synchronize_session=False)
+
     # Les workouts/programs ont cascade configuré, donc seront supprimés automatiquement
     db.query(ExerciseCompletionStats).filter(ExerciseCompletionStats.user_id == user_id).delete(synchronize_session=False)
     db.query(UserAdaptationCoefficients).filter(UserAdaptationCoefficients.user_id == user_id).delete(synchronize_session=False)
