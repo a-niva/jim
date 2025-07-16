@@ -1737,15 +1737,17 @@ def generate_comprehensive_program(
                 # Continuer avec optimized_exercise_pool au lieu de available_exercises[:6]
                 for pool_exercise in optimized_exercise_pool:
                     pool_entry = {
-                        "exercise_id": ex.id,
-                        "sets": ex.default_sets,
-                        "reps_min": ex.default_reps_min,
-                        "reps_max": ex.default_reps_max,
-                        "priority": 3,  # Priorité neutre par défaut
+                        "exercise_id": pool_exercise["exercise_id"],  # ← CORRECTION
+                        "exercise_name": pool_exercise["exercise_name"],  # ← AJOUTER 
+                        "sets": pool_exercise.get("sets", 3),  # ← CORRECTION
+                        "reps_min": pool_exercise.get("reps_min", 8),  # ← CORRECTION
+                        "reps_max": pool_exercise.get("reps_max", 12),  # ← CORRECTION
+                        "priority": 3,
                         "constraints": {
                             "min_recovery_hours": 48,
                             "max_frequency_per_week": 2
-                        }
+                        },
+                        "muscle_groups": pool_exercise.get("muscle_groups", [])  # ← AJOUTER
                     }
                     exercise_pool.append(pool_entry)
                 
