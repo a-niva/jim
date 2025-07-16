@@ -331,12 +331,12 @@ class ProgramBuilderSelections(BaseModel):
     
     @validator('focus_areas')
     def validate_focus_areas(cls, v):
-        allowed = ["upper_body", "legs", "core", "back", "shoulders", "arms"]
+        allowed = ["pectoraux", "dos", "epaules", "jambes", "abdominaux", "bras"]
         if not all(area in allowed for area in v):
             raise ValueError(f'Focus areas doivent être dans {allowed}')
         if len(v) < 1 or len(v) > 3:
             raise ValueError('1 à 3 focus areas requis')
-        return v
+        return v 
 
 class ComprehensiveProgramCreate(BaseModel):
     """Schéma pour créer un programme complet"""
