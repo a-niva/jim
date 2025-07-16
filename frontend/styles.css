@@ -7758,152 +7758,242 @@ background: rgba(255, 255, 255, 0.02);
     margin-bottom: var(--spacing-md);
 }
 
+
+
 /* === SESSION CREATION MODAL === */
 .session-creation-modal {
-    max-width: 600px;
-    margin: 0 auto;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
 }
 
 .creation-header {
     text-align: center;
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: 1rem;
+    padding: 1rem 1rem 0.5rem 1rem;
+}
+
+.creation-header h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.25rem;
+    color: var(--text);
 }
 
 .session-date {
     color: var(--text-muted);
-    margin: var(--spacing-sm) 0 0 0;
-    font-size: var(--font-sm);
+    margin: 0;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
 }
 
 .exercise-selection-section {
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: 1rem;
+    padding: 0 1rem;
 }
 
 .exercise-selection-section h4 {
-    margin: 0 0 var(--spacing-md) 0;
+    margin: 0 0 0.75rem 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    font-size: 1rem;
+    color: var(--text);
 }
 
 .selection-count {
-    font-size: var(--font-sm);
+    font-size: 0.85rem;
     color: var(--text-muted);
     font-weight: normal;
+    background: var(--bg-secondary);
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
 }
 
 .exercise-list {
-    max-height: 300px;
+    max-height: 40vh;
+    min-height: 200px;
     overflow-y: auto;
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: var(--spacing-sm);
-    background: var(--bg-light);
+    border-radius: 8px;
+    background: var(--bg-main);
+    padding: 0.5rem;
 }
 
 .exercise-selection-item {
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: 0.5rem;
+}
+
+.exercise-selection-item:last-child {
+    margin-bottom: 0;
 }
 
 .exercise-checkbox {
     display: flex;
     align-items: flex-start;
-    gap: var(--spacing-sm);
+    gap: 0.75rem;
     cursor: pointer;
-    padding: var(--spacing-sm);
-    border-radius: var(--radius);
-    transition: background-color 0.2s;
+    padding: 0.75rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    min-height: 44px;
+    border: 2px solid transparent;
 }
 
 .exercise-checkbox:hover {
-    background: rgba(99, 102, 241, 0.05);
+    background: rgba(99, 102, 241, 0.08);
+    border-color: rgba(99, 102, 241, 0.2);
+}
+
+.exercise-checkbox:active {
+    transform: scale(0.98);
+}
+
+.exercise-checkbox input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    cursor: pointer;
+    flex-shrink: 0;
 }
 
 .exercise-info {
     flex: 1;
+    min-width: 0;
 }
 
 .exercise-info h5 {
-    margin: 0 0 var(--spacing-xs) 0;
-    font-size: var(--font-md);
+    margin: 0 0 0.25rem 0;
+    font-size: 0.95rem;
     color: var(--text);
+    font-weight: 600;
+    line-height: 1.3;
 }
 
 .exercise-details {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
+    gap: 0.5rem;
     flex-wrap: wrap;
 }
 
 .sets-reps {
-    font-size: var(--font-sm);
+    font-size: 0.8rem;
     color: var(--text-muted);
     background: var(--bg-secondary);
-    padding: 2px 6px;
+    padding: 0.2rem 0.5rem;
     border-radius: 4px;
+    font-weight: 500;
 }
 
 .muscle-tags {
     display: flex;
-    gap: 4px;
+    gap: 0.25rem;
     flex-wrap: wrap;
 }
 
 .muscle-tag {
-    font-size: var(--font-xs);
-    padding: 2px 6px;
+    font-size: 0.7rem;
+    padding: 0.15rem 0.4rem;
     background: var(--primary);
     color: white;
-    border-radius: 12px;
+    border-radius: 10px;
+    font-weight: 500;
 }
 
 .session-preview {
     background: var(--bg-light);
-    padding: var(--spacing-md);
-    border-radius: var(--radius);
-    margin-bottom: var(--spacing-lg);
+    padding: 0.75rem;
+    border-radius: 8px;
+    margin: 1rem;
+    border: 1px solid var(--border);
 }
 
 .duration-estimate {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
-    font-weight: 500;
-    margin-bottom: var(--spacing-sm);
+    gap: 0.5rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text);
+    font-size: 0.9rem;
 }
 
-.recovery-warnings-container .warnings-list {
+.duration-estimate i {
+    color: var(--primary);
+}
+
+.recovery-warnings-container {
+    margin-top: 0.5rem;
+}
+
+.warnings-list {
     background: rgba(255, 193, 7, 0.1);
-    border: 1px solid #ffc107;
-    border-radius: var(--radius);
-    padding: var(--spacing-sm);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    border-radius: 6px;
+    padding: 0.5rem;
 }
 
-.recovery-warnings-container .no-warnings {
-    background: rgba(40, 167, 69, 0.1);
-    border: 1px solid #28a745;
-    border-radius: var(--radius);
-    padding: var(--spacing-sm);
-}
-
-.warning-item {
-    margin: var(--spacing-xs) 0;
-    font-size: var(--font-sm);
-    color: #856404;
-}
-
-.warnings-list h5 {
-    margin: 0 0 var(--spacing-xs) 0;
-    color: #856404;
-    font-size: var(--font-sm);
-}
-
-.no-warnings p {
+.warnings-list p {
     margin: 0;
-    color: #155724;
-    font-size: var(--font-sm);
+    font-size: 0.8rem;
+    color: #b45309;
+    line-height: 1.4;
 }
+
+/* Breakpoint tablet et desktop */
+@media (min-width: 768px) {
+    .session-creation-modal {
+        max-width: 500px;
+        margin: 0 auto;
+        padding: 0;
+    }
+    
+    .creation-header {
+        padding: 1.5rem 1.5rem 1rem 1.5rem;
+    }
+    
+    .creation-header h3 {
+        font-size: 1.4rem;
+    }
+    
+    .exercise-selection-section {
+        padding: 0 1.5rem;
+    }
+    
+    .exercise-list {
+        max-height: 350px;
+    }
+    
+    .exercise-checkbox {
+        padding: 1rem;
+    }
+    
+    .exercise-info h5 {
+        font-size: 1rem;
+    }
+    
+    .session-preview {
+        margin: 1.5rem;
+        padding: 1rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .session-creation-modal {
+        max-width: 600px;
+    }
+    
+    .exercise-list {
+        max-height: 400px;
+    }
+}
+
+
+
 
 /* === NO PROGRAM MODAL === */
 .no-program-modal {
@@ -7996,6 +8086,7 @@ background: rgba(255, 255, 255, 0.02);
         max-width: 200px;
     }
 }
+
 /* CORRECTION DÉBORDEMENT GLOBAL */
 .planner-grid {
     width: 100%;
