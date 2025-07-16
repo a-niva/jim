@@ -953,13 +953,42 @@ def get_next_intelligent_session(user_id: int, db: Session = Depends(get_db)):
         
         # Vérifier le format du programme
         if not (program.exercises and isinstance(program.exercises, dict) and program.exercises.get('exercise_pool')):
-            # Ancien format - fallback sur sélection statique
+            # Ancien format - fallback sur sélection statique avec enrichissement
             if program.exercises and isinstance(program.exercises, list):
+                
+                # Enrichir les exercices avec les données de la table Exercise
+                enriched_exercises = []
+                for exercise_data in program.exercises[:6]:
+                    exercise_id = exercise_data.get('exercise_id') if isinstance(exercise_data, dict) else exercise_data
+                    
+                    # Récupérer l'exercice complet depuis la DB
+                    exercise_db = db.query(Exercise).filter(Exercise.id == exercise_id).first()
+                    if exercise_db:
+                        enriched_exercise = {
+                            "exercise_id": exercise_db.id,
+                            "exercise_name": exercise_db.name,
+                            "muscle_groups": exercise_db.muscle_groups or [],
+                            "sets": exercise_data.get('sets', 3) if isinstance(exercise_data, dict) else 3,
+                            "reps_min": exercise_data.get('reps_min', 8) if isinstance(exercise_data, dict) else 8,
+                            "reps_max": exercise_data.get('reps_max', 12) if isinstance(exercise_data, dict) else 12,
+                            "score": 0.75,  # Score par défaut
+                            "selection_reason": "Programme standard"
+                        }
+                        enriched_exercises.append(enriched_exercise)
+                    else:
+                        logger.warning(f"Exercice {exercise_id} non trouvé en DB")
+                
+                if not enriched_exercises:
+                    raise HTTPException(status_code=400, detail="Aucun exercice valide dans le programme")
+                
                 return {
-                    "selected_exercises": program.exercises[:6],  # Prendre les 6 premiers
+                    "selected_exercises": enriched_exercises,
                     "session_metadata": {
                         "ml_used": False,
-                        "reason": "Programme format v1.0"
+                        "reason": "Programme format v1.0",
+                        "estimated_duration": len(enriched_exercises) * 8,
+                        "muscle_distribution": {},
+                        "warnings": []
                     }
                 }
             else:
