@@ -9613,6 +9613,32 @@ function cleanupDragDropListeners() {
     });
 }
 
+/**
+ * Lance le ProgramBuilder avec les données utilisateur
+ */
+async function showProgramBuilder(userData) {
+    try {
+        console.log('🚀 Lancement ProgramBuilder avec données:', userData);
+        
+        // Vérifier que programBuilder est disponible
+        if (!window.programBuilder) {
+            console.error('❌ ProgramBuilder non disponible');
+            showToast('Erreur technique - redirection vers le tableau de bord', 'error');
+            setTimeout(() => showMainInterface(), 2000);
+            return;
+        }
+        
+        // Initialiser le ProgramBuilder
+        await window.programBuilder.initialize(userData);
+        
+    } catch (error) {
+        console.error('❌ Erreur lancement ProgramBuilder:', error);
+        showToast('Erreur lors du lancement du créateur de programme', 'error');
+        
+        // Fallback vers dashboard
+        setTimeout(() => showMainInterface(), 2000);
+    }
+}
 // ========== PARTIE 4 : ANIMATION STYLES (FIN DE FICHIER) ==========
 // À ajouter AVANT les exports (window.xxx = xxx)
 // LOCALISATION : Juste avant "// ===== EXPOSITION GLOBALE ====="
@@ -9732,6 +9758,7 @@ window.showView = showView;
 window.nextStep = nextStep;
 window.prevStep = prevStep;
 window.completeOnboarding = completeOnboarding;
+window.showProgramBuilder = showProgramBuilder;
 window.startFreeWorkout = startFreeWorkout;
 window.startProgramWorkout = startProgramWorkout;
 window.selectExercise = selectExercise;
