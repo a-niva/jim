@@ -909,8 +909,13 @@ class WeeklyPlannerView {
             // Format comprehensive : extraire depuis weekly_structure
             const currentWeek = program.current_week - 1;
             if (program.weekly_structure[currentWeek] && program.weekly_structure[currentWeek].sessions) {
-                const currentSession = program.weekly_structure[currentWeek].sessions[0];
-                exercises = currentSession.exercise_pool || [];
+                // Extraire TOUS les exercices de TOUTES les sessions de la semaine
+                exercises = [];
+                program.weekly_structure[currentWeek].sessions.forEach(session => {
+                    if (session.exercise_pool) {
+                        exercises.push(...session.exercise_pool);
+                    }
+                });
             }
         } else {
             // Format legacy : utiliser exercises directement
