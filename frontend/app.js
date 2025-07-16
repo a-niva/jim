@@ -1379,33 +1379,8 @@ function collectFocusAreas() {
     const checkedBoxes = document.querySelectorAll('input[name="focusAreas"]:checked');
     const focusAreas = Array.from(checkedBoxes).map(cb => cb.value);
     
-    // Mapping des valeurs HTML vers les clés backend cohérentes
-    const htmlToBackendMapping = {
-        'dos': 'back',
-        'pectoraux': 'upper_body',  // Les pectoraux font partie du haut du corps
-        'bras': 'arms',
-        'epaules': 'shoulders', 
-        'jambes': 'legs',
-        'abdominaux': 'core'
-    };
-    
-    // Logique de groupement intelligent pour éviter trop de fragmentation
-    const mappedAreas = new Set();
-    
-    focusAreas.forEach(area => {
-        const mapped = htmlToBackendMapping[area];
-        if (mapped) {
-            mappedAreas.add(mapped);
-        }
-    });
-    
-    // Si pectoraux OU épaules sélectionnées, regrouper en upper_body
-    if (focusAreas.includes('pectoraux') || focusAreas.includes('epaules')) {
-        mappedAreas.add('upper_body');
-        mappedAreas.delete('shoulders'); // Éviter la redondance
-    }
-    
-    return Array.from(mappedAreas).slice(0, 3); // Max 3 comme demandé
+    // Utiliser directement les valeurs d'exercises.json - AUCUN mapping artificiel
+    return focusAreas.slice(0, 3); // Max 3 comme demandé
 }
 
 // ===== DASHBOARD =====
@@ -2671,15 +2646,13 @@ async function regenerateSession() {
 }
 
 function getFocusAreaName(area) {
-    //Convertir les clés focus en noms lisibles
     const names = {
-        'upper_body': 'Haut du corps',
-        'legs': 'Jambes', 
-        'core': 'Abdominaux',
-        'back': 'Dos',
-        'shoulders': 'Épaules',
-        'arms': 'Bras',
-        'general': 'Général'
+        'pectoraux': 'Pectoraux',
+        'dos': 'Dos',
+        'epaules': 'Épaules',
+        'jambes': 'Jambes',
+        'abdominaux': 'Abdominaux',
+        'bras': 'Bras'
     };
     return names[area] || area;
 }

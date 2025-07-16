@@ -210,20 +210,28 @@ class ProgramBuilder {
         // Afficher une question du questionnaire
         const question = this.recommendations.questionnaire_items[questionIndex];
         
+        // Texte de présélection pour focus_selection
+        let preselectText = '';
+        if (question.id === 'focus_selection' && this.userData.focus_areas && this.userData.focus_areas.length > 0) {
+            const preselectNames = this.userData.focus_areas.map(area => this.getFocusAreaName(area)).join(', ');
+            preselectText = `<p class="preselection-hint">💡 Présélectionné depuis votre profil : ${preselectNames}</p>`;
+        }
+    
         content.innerHTML = `
             <div class="question-step">
                 <div class="question-header">
                     <h3>${question.question}</h3>
-                    ${question.min_selections && question.max_selections ? 
-                        `<p class="question-subtitle">Sélectionnez ${question.min_selections} à ${question.max_selections} option(s)</p>` 
+                    ${question.min_selections && question.max_selections ?
+                        `<p class="question-subtitle">Sélectionnez ${question.min_selections} à ${question.max_selections} option(s)</p>`
                         : ''}
+                    ${preselectText}
                 </div>
-                
+            
                 <div class="options-container">
                     ${question.options.map((option, index) => `
-                        <div class="option-card ${option.recommended ? 'recommended' : ''}" 
-                             data-value="${option.value}"
-                             onclick="programBuilder.selectOption('${question.id}', '${option.value}', ${question.type === 'multiple_choice'})">
+                        <div class="option-card ${option.recommended ? 'recommended' : ''}"
+                            data-value="${option.value}"
+                            onclick="programBuilder.selectOption('${question.id}', '${option.value}', ${question.type === 'multiple_choice'})">
                             <div class="option-content">
                                 <div class="option-label">${option.label}</div>
                                 ${option.recommended ? '<div class="recommended-badge">Recommandé</div>' : ''}
@@ -236,7 +244,7 @@ class ProgramBuilder {
                 </div>
             </div>
         `;
-        
+    
         //  Restaurer les sélections précédentes
         this.restoreSelections(question.id);
     }

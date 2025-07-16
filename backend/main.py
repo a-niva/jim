@@ -302,27 +302,42 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     try:
         logger.info(f"📝 Tentative création user: {user.name}")
         logger.info(f"🔍 User data: {user.dict()}")
-       
-        db_user = User(**user.dict())
+        
+        # Extraire les données du programme
+        program_data = {
+            'focus_areas': getattr(user, 'focus_areas', None),
+            'sessions_per_week': getattr(user, 'sessions_per_week', None),
+            'session_duration': getattr(user, 'session_duration', None),
+            'program_name': getattr(user, 'program_name', None)
+        }
+        
+        # Créer un dict User sans les champs programme
+        user_dict = user.dict()
+        # Retirer les champs qui n'appartiennent pas au modèle User
+        for field in ['focus_areas', 'sessions_per_week', 'session_duration', 'program_name']:
+            user_dict.pop(field, None)
+        
+        # Créer l'utilisateur avec uniquement les champs du modèle User
+        db_user = User(**user_dict)
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
-       
+        
         logger.info(f"User créé avec ID: {db_user.id}")
         
         # Si des focus_areas sont fournis, créer automatiquement un programme
-        if hasattr(user, 'focus_areas') and user.focus_areas and len(user.focus_areas) > 0:
+        if program_data['focus_areas'] and len(program_data['focus_areas']) > 0:
             try:
-                program_data = ProgramCreate(
-                    name=getattr(user, 'program_name', 'Mon programme'),
+                program_create = ProgramCreate(
+                    name=program_data['program_name'] or 'Mon programme',
                     duration_weeks=8,
-                    sessions_per_week=getattr(user, 'sessions_per_week', 3),
-                    session_duration_minutes=getattr(user, 'session_duration', 45),
-                    focus_areas=user.focus_areas,
+                    sessions_per_week=program_data['sessions_per_week'] or 3,
+                    session_duration_minutes=program_data['session_duration'] or 45,
+                    focus_areas=program_data['focus_areas'],
                     goals=["muscle", "strength"]
                 )
                 
-                created_program = create_program(db, db_user.id, program_data)
+                created_program = create_program(db, db_user.id, program_create)
                 logger.info(f"📋 Programme auto-créé pour user {db_user.id}: {created_program.id}")
                 
             except Exception as e:
@@ -1339,14 +1354,19 @@ def generate_program_exercises(user: User, program: ProgramCreate, db: Session) 
     }
 
 def determine_rotation_pattern(focus_areas: List[str]) -> List[str]:
-    """Détermine le pattern de rotation optimal"""
-    if set(focus_areas) & {"upper_body", "arms", "shoulders"}:
-        if set(focus_areas) & {"legs", "core"}:
-            return ["upper_body", "lower_body"]
-        else:
-            return ["push", "pull", "full_body"]
-    elif "legs" in focus_areas and len(focus_areas) > 1:
-        return ["upper_body", "lower_body"]
+    """Détermine le pattern de rotation optimal basé sur les muscle_groups réels"""
+    if not focus_areas:
+        return ["full_body"]
+    
+    has_upper = any(area in ["pectoraux", "dos", "epaules", "bras"] for area in focus_areas)
+    has_lower = "jambes" in focus_areas
+    
+    if has_upper and has_lower:
+        return ["push_pull", "jambes"]  # Alterner haut/bas
+    elif has_upper:
+        return ["push", "pull"]  # Séparer poussée/tirage
+    elif has_lower:
+        return ["jambes", "full_body"]  # Jambes + complet
     else:
         return ["full_body"]
 
@@ -1378,7 +1398,7 @@ def start_program_builder(
         
         # Logique basée sur l'expérience
         if user.experience_level == "beginner":
-            suggested_focus_areas = ["upper_body", "legs", "core"]
+            suggested_focus_areas = ["pectoraux", "jambes", "abdominaux"]
             user_insights.append("Programme débutant recommandé avec focus équilibré")
         elif user.experience_level == "intermediate":
             suggested_focus_areas = ["upper_body", "legs"]
@@ -1393,12 +1413,12 @@ def start_program_builder(
             user_insights.append("Équipement limité détecté - focus sur exercices polyarticulaires")
                 
         focus_options = [
-            {"value": "upper_body", "label": "Haut du corps", "recommended": True},
-            {"value": "legs", "label": "Jambes", "recommended": True},
-            {"value": "core", "label": "Abdominaux/Core", "recommended": user.experience_level == "beginner"},
-            {"value": "back", "label": "Dos", "recommended": False},
-            {"value": "shoulders", "label": "Épaules", "recommended": False},
-            {"value": "arms", "label": "Bras", "recommended": False}
+            {"value": "pectoraux", "label": "Pectoraux", "recommended": True},
+            {"value": "dos", "label": "Dos", "recommended": True},
+            {"value": "jambes", "label": "Jambes", "recommended": True},
+            {"value": "epaules", "label": "Épaules", "recommended": user.experience_level == "beginner"},
+            {"value": "bras", "label": "Bras", "recommended": False},
+            {"value": "abdominaux", "label": "Abdominaux", "recommended": user.experience_level == "beginner"}
         ]
 
         # Générer questionnaire adaptatif (8-12 questions)
