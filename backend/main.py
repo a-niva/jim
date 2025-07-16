@@ -303,14 +303,6 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
         logger.info(f"📝 Tentative création user: {user.name}")
         logger.info(f"🔍 User data: {user.dict()}")
         
-        # Extraire les données du programme
-        program_data = {
-            'focus_areas': getattr(user, 'focus_areas', None),
-            'sessions_per_week': getattr(user, 'sessions_per_week', None),
-            'session_duration': getattr(user, 'session_duration', None),
-            'program_name': getattr(user, 'program_name', None)
-        }
-        
         # Créer un dict User sans les champs programme
         user_dict = user.dict()
         # Retirer les champs qui n'appartiennent pas au modèle User
@@ -323,29 +315,13 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(db_user)
         
-        logger.info(f"User créé avec ID: {db_user.id}")
-        
-        # Si des focus_areas sont fournis, créer automatiquement un programme
-        if program_data['focus_areas'] and len(program_data['focus_areas']) > 0:
-            # Retirer les champs inexistants et corriger l'ordre des paramètres
-            try:
-                program_create = ProgramCreate(
-                    name=program_data['program_name'] or 'Mon programme',
-                    sessions_per_week=program_data['sessions_per_week'] or 3,
-                    session_duration_minutes=program_data['session_duration'] or 45,
-                    focus_areas=program_data['focus_areas']
-                )
-                
-                created_program = create_program(db_user.id, program_create, db)
-                logger.info(f"📋 Programme auto-créé pour user {db_user.id}: {created_program.id}")
-                
-            except Exception as e:
-                logger.warning(f"⚠️ Impossible de créer le programme auto: {e}")
+        logger.info(f"✅ User créé avec ID: {db_user.id}")
         
         return db_user
+        
     except Exception as e:
-        logger.error(f"❌ Erreur création user: {str(e)}")
-        logger.error(f"🔍 Type erreur: {type(e).__name__}")
+        logger.error(f"❌ Erreur création user: {e}")
+        logger.error(traceback.format_exc())
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
