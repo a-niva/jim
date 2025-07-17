@@ -7573,3 +7573,12 @@ input:checked+.toggle-slider:before {
         background: linear-gradient(135deg,rgba(99,102,241,.15),rgba(99,102,241,.08))
     }
 }
+
+.weekly-planner .session-card {
+    background: var(--bg-card) !important;
+    color: var(--text) !important;
+}
+
+.weekly-planner .day-column {
+    background: transparent;
+}

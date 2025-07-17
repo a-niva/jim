@@ -28,6 +28,8 @@ class User(Base):
     adaptation_coefficients = relationship("UserAdaptationCoefficients", back_populates="user", cascade="all, delete-orphan")
     performance_states = relationship("PerformanceStates", back_populates="user", cascade="all, delete-orphan")
 
+    comprehensive_program = relationship("ComprehensiveProgram", back_populates="user", uselist=False)
+
 class Exercise(Base):
     __tablename__ = "exercises"
     
@@ -126,6 +128,70 @@ class Program(Base):
     is_active = Column(Boolean, default=True)
     
     user = relationship("User", back_populates="programs")
+
+class ComprehensiveProgram(Base):
+    """Modèle programme v2.0 avec structure temporelle avancée"""
+    __tablename__ = "comprehensive_programs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)  # 1 programme par user
+    
+    # Métadonnées programme
+    name = Column(String(100), nullable=False)
+    duration_weeks = Column(Integer, nullable=False)  # 4-16 semaines
+    periodization_type = Column(String(50), default="linear")  # "linear", "undulating"
+    sessions_per_week = Column(Integer, nullable=False)
+    session_duration_minutes = Column(Integer, nullable=False)
+    focus_areas = Column(JSON, nullable=False)  # ["upper_body", "legs", "core"]
+    
+    # Structure temporelle NOUVELLE
+    weekly_structure = Column(JSON, nullable=False)  
+    # Format: [
+    #   {
+    #     "week": 1, 
+    #     "sessions": [
+    #       {
+    #         "day": "monday", 
+    #         "exercise_pool": [
+    #           {
+    #             "exercise_id": 1,
+    #             "exercise_name": "Développé couché",
+    #             "sets": 3,
+    #             "reps_min": 8,
+    #             "reps_max": 12,
+    #             "muscle_groups": ["pectoraux"],
+    #             "priority": 5
+    #           }
+    #         ],
+    #         "focus": "upper",
+    #         "target_duration": 60,
+    #         "quality_score": 75.0
+    #       }
+    #     ]
+    #   }
+    # ]
+    
+    progression_rules = Column(JSON, nullable=False)  # Règles intensité/volume
+    
+    # État et suivi
+    current_week = Column(Integer, default=1)
+    current_session_in_week = Column(Integer, default=1)
+    started_at = Column(DateTime, nullable=True)
+    estimated_completion = Column(DateTime, nullable=True)
+    
+    # Scoring et qualité
+    base_quality_score = Column(Float, default=75.0)  # Score 0-100
+    user_modifications = Column(JSON, default=lambda: [])  # Historique changements
+    
+    # Version et état
+    format_version = Column(String(10), default="2.0")
+    is_active = Column(Boolean, default=True)
+    
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    
+    # Relations
+    user = relationship("User", back_populates="comprehensive_program")
 
 class Workout(Base):
     __tablename__ = "workouts"

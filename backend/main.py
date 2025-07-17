@@ -18,7 +18,7 @@ from backend.ml_recommendations import FitnessRecommendationEngine
 from backend.ml_engine import FitnessMLEngine, RecoveryTracker, VolumeOptimizer, ProgressionAnalyzer
 from backend.constants import normalize_muscle_group, exercise_matches_focus_area
 from backend.database import engine, get_db, SessionLocal
-from backend.models import Base, User, Exercise, Program, Workout, WorkoutSet, SetHistory, UserCommitment, AdaptiveTargets, UserAdaptationCoefficients, PerformanceStates, ExerciseCompletionStats, SwapLog, PlannedSession
+from backend.models import Base, User, Exercise, Program, Workout, WorkoutSet, SetHistory, UserCommitment, AdaptiveTargets, UserAdaptationCoefficients, PerformanceStates, ExerciseCompletionStats, SwapLog, PlannedSession, ComprehensiveProgram
 from backend.schemas import (
     UserCreate, UserResponse, WorkoutResponse, ProgramCreate, WorkoutCreate, 
     SetCreate, ExerciseResponse, UserPreferenceUpdate,
@@ -30,6 +30,7 @@ from backend.equipment_service import EquipmentService
 from sqlalchemy import extract, and_
 import calendar
 from collections import defaultdict
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -4667,3 +4668,4 @@ def record_ml_feedback(
     except Exception as e:
         logger.error(f"Erreur enregistrement ML feedback: {e}")
         raise HTTPException(status_code=500, detail="Erreur serveur")
+    

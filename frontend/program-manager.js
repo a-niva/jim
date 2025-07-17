@@ -127,13 +127,16 @@ class ProgramManagerView {
                             ${this.renderExercisePreview(session.exercise_pool.slice(0, 3))}
                             ${session.exercise_pool.length > 3 ? `<p class="more">+${session.exercise_pool.length - 3} autres...</p>` : ''}
                         </div>
-                        ${this.program.base_quality_score ? `
-                            <div class="quality-indicator">
-                                <span class="quality-score" style="color: ${this.getScoreColor(this.program.base_quality_score)}">
-                                    <i class="fas fa-star"></i> ${Math.round(this.program.base_quality_score)}%
-                                </span>
+                        <div class="score-display" id="scoreDisplay">
+                            <h3><i class="fas fa-chart-line"></i> Score de Qualité</h3>
+                            <div class="score-gauge">
+                                <div class="score-value" id="currentScore">${Math.round(this.program.base_quality_score || 75)}%</div>
+                                <div class="score-bar">
+                                    <div class="score-fill" id="scoreFill" style="width: ${this.program.base_quality_score || 75}%; background: ${this.getScoreColor(this.program.base_quality_score || 75)}"></div>
+                                </div>
                             </div>
-                        ` : ''}
+                            <div class="score-feedback" id="scoreFeedback">${this.getScoreFeedback(this.program.base_quality_score || 75)}</div>
+                        </div>
                     </div>
                 `).join('')}
             </div>
@@ -141,10 +144,14 @@ class ProgramManagerView {
     }
     
     renderExercisePreview(exercises) {
+        if (!exercises || exercises.length === 0) {
+            return '<p class="no-exercises">Aucun exercice configuré</p>';
+        }
+        
         return exercises.map(ex => `
             <div class="exercise-item-preview">
-                <span class="exercise-name">${this.getExerciseName(ex.exercise_id)}</span>
-                <span class="exercise-sets">${ex.sets}×${ex.reps_min}-${ex.reps_max}</span>
+                <span class="exercise-name">${ex.exercise_name || ex.name || `Exercice #${ex.exercise_id}`}</span>
+                <span class="exercise-sets">${ex.sets || 3}×${ex.reps_min || 8}-${ex.reps_max || 12}</span>
             </div>
         `).join('');
     }
@@ -397,6 +404,37 @@ class ProgramManagerView {
         window.closeModal();
         window.showToast('Modifications enregistrées', 'success');
         this.render(); // Rafraîchir l'affichage
+    }
+
+    getScoreFeedback(score) {
+        if (score >= 80) return '<i class="fas fa-thumbs-up"></i> Excellent programme !';
+        if (score >= 60) return '<i class="fas fa-check"></i> Programme de qualité';
+        return '<i class="fas fa-exclamation-triangle"></i> Programme à optimiser';
+    }
+
+    updateScoreDisplay(newScore, delta) {
+        const scoreValue = document.getElementById('currentScore');
+        const scoreFill = document.getElementById('scoreFill');
+        const scoreFeedback = document.getElementById('scoreFeedback');
+        
+        if (scoreValue) {
+            scoreValue.textContent = `${Math.round(newScore)}%`;
+        }
+        
+        if (scoreFill) {
+            scoreFill.style.width = `${newScore}%`;
+            scoreFill.style.background = this.getScoreColor(newScore);
+        }
+        
+        if (scoreFeedback) {
+            if (delta > 0) {
+                scoreFeedback.innerHTML = `<i class="fas fa-arrow-up"></i> +${Math.round(delta)} points`;
+                scoreFeedback.style.color = '#22c55e';
+            } else if (delta < 0) {
+                scoreFeedback.innerHTML = `<i class="fas fa-arrow-down"></i> ${Math.round(delta)} points`;
+                scoreFeedback.style.color = '#ef4444';
+            }
+        }
     }
 
 }
