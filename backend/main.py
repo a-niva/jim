@@ -1531,6 +1531,34 @@ def start_program_builder(
         logger.error(f"Erreur initialisation ProgramBuilder pour user {user_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Erreur lors de l'initialisation")
 
+
+def calculate_session_quality_score(exercise_pool, user_id, db):
+    """Calcule le score de qualité d'une session côté serveur"""
+    # Version simplifiée pour le backend
+    # Le calcul complet est fait côté frontend via SessionQualityEngine
+    
+    base_score = 75.0
+    
+    # Bonus/pénalités basiques
+    if len(exercise_pool) < 3:
+        base_score -= 10  # Trop peu d'exercices
+    elif len(exercise_pool) > 8:
+        base_score -= 5   # Trop d'exercices
+    
+    # Vérifier la diversité musculaire
+    muscle_groups = set()
+    for ex in exercise_pool:
+        if "muscle_groups" in ex:
+            muscle_groups.update(ex["muscle_groups"])
+    
+    if len(muscle_groups) >= 3:
+        base_score += 10  # Bonne diversité
+    elif len(muscle_groups) == 1:
+        base_score -= 10  # Trop focalisé
+    
+    return max(0, min(100, base_score))
+
+
 def calculate_session_duration(exercises_data, target_duration_minutes):
     """
     Calcule la durée réelle d'une session et ajuste les paramètres pour respecter la durée cible.
@@ -1900,6 +1928,217 @@ def get_user_comprehensive_program(user_id: int, db: Session = Depends(get_db)):
     
     return program
 
+@app.put("/api/programs/{program_id}/reorder-session")
+def reorder_session_exercises(
+    program_id: int,
+    reorder_data: dict,
+    db: Session = Depends(get_db)
+):
+    """Réorganise les exercices d'une séance avec recalcul du score"""
+    program = db.query(Program).filter(Program.id == program_id).first()
+    if not program:
+        raise HTTPException(status_code=404, detail="Programme non trouvé")
+    
+    week_index = reorder_data.get("week_index", 0)
+    session_index = reorder_data.get("session_index", 0)
+    new_order = reorder_data.get("new_exercise_order", [])
+    
+    # Vérifier format v2.0
+    if program.format_version != "2.0" or not program.weekly_structure:
+        raise HTTPException(status_code=400, detail="Cette fonction nécessite un programme v2.0")
+    
+    # Vérifier les indices
+    if week_index >= len(program.weekly_structure):
+        raise HTTPException(status_code=400, detail="Index de semaine invalide")
+    
+    week_data = program.weekly_structure[week_index]
+    if session_index >= len(week_data.get("sessions", [])):
+        raise HTTPException(status_code=400, detail="Index de session invalide")
+    
+    # Réorganiser
+    session = week_data["sessions"][session_index]
+    original_pool = session.get("exercise_pool", [])
+    
+    if len(new_order) != len(original_pool):
+        raise HTTPException(status_code=400, detail="Nombre d'indices incorrect")
+    
+    # Créer le nouvel ordre
+    reordered_pool = []
+    for idx in new_order:
+        if idx < 0 or idx >= len(original_pool):
+            raise HTTPException(status_code=400, detail=f"Index {idx} invalide")
+        reordered_pool.append(original_pool[idx])
+    
+    # Mettre à jour
+    session["exercise_pool"] = reordered_pool
+    
+    # Calculer le score
+    new_score = calculate_session_quality_score(reordered_pool, program.user_id, db)
+    old_score = session.get("quality_score", 75.0)
+    
+    # Sauvegarder le score
+    session["quality_score"] = new_score
+    
+    # Marquer comme modifié et sauvegarder
+    flag_modified(program, "weekly_structure")
+    db.commit()
+    
+    return {
+        "success": True,
+        "new_score": new_score,
+        "score_delta": new_score - old_score,
+        "message": f"Score: {new_score:.0f}% ({new_score - old_score:+.0f})"
+    }
+
+@app.get("/api/programs/{program_id}/exercise-alternatives")
+def get_exercise_alternatives(
+    program_id: int,
+    week_index: int,
+    session_index: int,
+    exercise_index: int,
+    db: Session = Depends(get_db)
+):
+    """Obtient les alternatives scorées pour un exercice"""
+    program = db.query(Program).filter(Program.id == program_id).first()
+    if not program:
+        raise HTTPException(status_code=404, detail="Programme non trouvé")
+    
+    # Récupérer l'exercice actuel
+    try:
+        session = program.weekly_structure[week_index]["sessions"][session_index]
+        current_exercise = session["exercise_pool"][exercise_index]
+    except (KeyError, IndexError):
+        raise HTTPException(status_code=400, detail="Indices invalides")
+    
+    current_id = current_exercise.get("exercise_id")
+    
+    # Récupérer l'exercice de la DB
+    current_ex_db = db.query(Exercise).filter(Exercise.id == current_id).first()
+    if not current_ex_db:
+        raise HTTPException(status_code=404, detail="Exercice non trouvé en base")
+    
+    # Trouver des alternatives (même muscle principal)
+    main_muscle = current_ex_db.muscle_groups[0] if current_ex_db.muscle_groups else None
+    
+    if main_muscle:
+        alternatives = db.query(Exercise).filter(
+            Exercise.id != current_id,
+            Exercise.muscle_groups.contains([main_muscle])
+        ).limit(10).all()
+    else:
+        alternatives = []
+    
+    # Scorer les alternatives
+    user = db.query(User).filter(User.id == program.user_id).first()
+    available_equipment = get_available_equipment(user.equipment_config)
+    
+    scored_alternatives = []
+    for alt in alternatives:
+        score = 100
+        
+        # Pénalité équipement
+        if not can_perform_exercise(alt, available_equipment):
+            score -= 50
+        
+        # Bonus focus areas
+        for muscle in alt.muscle_groups:
+            if muscle in program.focus_areas:
+                score += 10
+                break
+        
+        # Pénalité difficulté
+        if user.experience_level == "beginner" and alt.difficulty == "advanced":
+            score -= 30
+        elif user.experience_level == "advanced" and alt.difficulty == "beginner":
+            score -= 10
+        
+        scored_alternatives.append({
+            "exercise_id": alt.id,
+            "name": alt.name,
+            "muscle_groups": alt.muscle_groups,
+            "equipment_required": alt.equipment_required,
+            "difficulty": alt.difficulty,
+            "score": max(0, min(100, score)),
+            "can_perform": can_perform_exercise(alt, available_equipment)
+        })
+    
+    # Trier par score
+    scored_alternatives.sort(key=lambda x: x["score"], reverse=True)
+    
+    return {
+        "current_exercise": {
+            "id": current_ex_db.id,
+            "name": current_ex_db.name,
+            "muscle_groups": current_ex_db.muscle_groups
+        },
+        "alternatives": scored_alternatives[:5]
+    }
+
+@app.post("/api/programs/{program_id}/swap-exercise")
+def swap_exercise_in_program(
+    program_id: int,
+    swap_data: dict,
+    db: Session = Depends(get_db)
+):
+    """Remplace un exercice dans le programme"""
+    program = db.query(Program).filter(Program.id == program_id).first()
+    if not program:
+        raise HTTPException(status_code=404, detail="Programme non trouvé")
+    
+    week_index = swap_data.get("week_index", 0)
+    session_index = swap_data.get("session_index", 0)
+    exercise_index = swap_data.get("exercise_index", 0)
+    new_exercise_id = swap_data.get("new_exercise_id")
+    
+    if not new_exercise_id:
+        raise HTTPException(status_code=400, detail="ID du nouvel exercice requis")
+    
+    # Récupérer le nouvel exercice
+    new_exercise = db.query(Exercise).filter(Exercise.id == new_exercise_id).first()
+    if not new_exercise:
+        raise HTTPException(status_code=404, detail="Nouvel exercice non trouvé")
+    
+    try:
+        # Accéder à la session
+        session = program.weekly_structure[week_index]["sessions"][session_index]
+        old_exercise = session["exercise_pool"][exercise_index]
+        
+        # Créer la structure du nouvel exercice
+        new_exercise_data = {
+            "exercise_id": new_exercise.id,
+            "exercise_name": new_exercise.name,
+            "sets": old_exercise.get("sets", 3),
+            "reps_min": old_exercise.get("reps_min", 8),
+            "reps_max": old_exercise.get("reps_max", 12),
+            "rest_seconds": old_exercise.get("rest_seconds", 90),
+            "muscle_groups": new_exercise.muscle_groups,
+            "equipment_required": new_exercise.equipment_required,
+            "difficulty": new_exercise.difficulty
+        }
+        
+        # Remplacer
+        session["exercise_pool"][exercise_index] = new_exercise_data
+        
+        # Recalculer le score
+        new_score = calculate_session_quality_score(session["exercise_pool"], program.user_id, db)
+        old_score = session.get("quality_score", 75.0)
+        session["quality_score"] = new_score
+        
+        # Sauvegarder
+        flag_modified(program, "weekly_structure")
+        db.commit()
+        
+        return {
+            "success": True,
+            "new_exercise": new_exercise_data,
+            "score_impact": new_score - old_score,
+            "new_score": new_score,
+            "message": f"Exercice remplacé. Score: {new_score:.0f}% ({new_score - old_score:+.0f})"
+        }
+        
+    except (KeyError, IndexError) as e:
+        raise HTTPException(status_code=400, detail=f"Indices invalides: {str(e)}")
+    
 # ===== ENDPOINTS SÉANCES =====
 
 @app.post("/api/users/{user_id}/workouts")
