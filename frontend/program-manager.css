@@ -91,9 +91,18 @@
 
 .sessions-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit,minmax(300px,1fr));
-    gap: 20px;
-    margin-bottom: 32px
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+    width: 100%;
+}
+
+@media (min-width: 769px) {
+    .sessions-grid {
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        max-width: 1200px;
+        margin: 0 auto 24px auto;
+    }
 }
 
 .session-card.current {
