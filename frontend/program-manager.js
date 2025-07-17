@@ -29,7 +29,7 @@ class ProgramManagerView {
     }
     
     render() {
-        const container = document.getElementById('programManagerView');
+        const container = document.getElementById('program-manager');
         if (!container) {
             console.error("Container programManagerView non trouvé");
             return;
