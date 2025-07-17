@@ -111,6 +111,11 @@ class ProgramBuilder {
                 
         //  Afficher la première étape
         this.renderStep();
+        
+        // Initialiser l'affichage du score
+        setTimeout(() => {
+            this.updateScoreDisplay(this.program.base_quality_score || 0);
+        }, 100);
     }
     
 

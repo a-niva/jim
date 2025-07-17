@@ -389,17 +389,6 @@ class ProgramManagerView {
         }
     }
     
-    updateScoreDisplay(score) {
-        const scoreValue = document.getElementById('currentScore');
-        const scoreFill = document.getElementById('scoreFill');
-        
-        if (scoreValue) scoreValue.textContent = `${Math.round(score)}%`;
-        if (scoreFill) {
-            scoreFill.style.width = `${score}%`;
-            scoreFill.style.backgroundColor = this.getScoreColor(score);
-        }
-    }
-    
     async saveSessionChanges(sessionIndex) {
         window.closeModal();
         window.showToast('Modifications enregistrées', 'success');
@@ -412,10 +401,16 @@ class ProgramManagerView {
         return '<i class="fas fa-exclamation-triangle"></i> Programme à optimiser';
     }
 
-    updateScoreDisplay(newScore, delta) {
+    updateScoreDisplay(newScore, delta = null) {
+        const scoreDisplay = document.getElementById('scoreDisplay');
         const scoreValue = document.getElementById('currentScore');
         const scoreFill = document.getElementById('scoreFill');
         const scoreFeedback = document.getElementById('scoreFeedback');
+        
+        // Afficher la zone de score
+        if (scoreDisplay) {
+            scoreDisplay.style.display = 'block';
+        }
         
         if (scoreValue) {
             scoreValue.textContent = `${Math.round(newScore)}%`;
@@ -426,13 +421,17 @@ class ProgramManagerView {
             scoreFill.style.background = this.getScoreColor(newScore);
         }
         
-        if (scoreFeedback) {
+        // Feedback seulement si delta fourni
+        if (scoreFeedback && delta !== null) {
             if (delta > 0) {
                 scoreFeedback.innerHTML = `<i class="fas fa-arrow-up"></i> +${Math.round(delta)} points`;
                 scoreFeedback.style.color = '#22c55e';
             } else if (delta < 0) {
                 scoreFeedback.innerHTML = `<i class="fas fa-arrow-down"></i> ${Math.round(delta)} points`;
                 scoreFeedback.style.color = '#ef4444';
+            } else {
+                scoreFeedback.innerHTML = this.getScoreFeedback(newScore);
+                scoreFeedback.style.color = '';
             }
         }
     }
