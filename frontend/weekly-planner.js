@@ -372,69 +372,73 @@ class WeeklyPlannerView {
 
         
 
-    renderSessionCard(session) {
-        const isTemporary = String(session.id).startsWith('temp_');
-        const borderColor = this.getValidMuscleColor(session.primary_muscles);
-        const score = session.predicted_quality_score || 75;
+    renderSession(session, date) {
+        const sessionId = session.id || `temp-${date}-${Math.random()}`;
+        const isTemporary = !session.id;
+        const muscles = session.primary_muscles || [];
+        const exercises = session.exercises || [];
+        const score = session.predicted_quality_score || session.quality_score || 75;
         
-        // Déterminer la couleur de l'indicateur selon le score
-        let indicatorColor = '#10b981'; // vert par défaut
-        if (score < 40) {
-            indicatorColor = '#ef4444'; // rouge
-        } else if (score < 70) {
-            indicatorColor = '#f59e0b'; // orange
-        }
+        // Prendre les 3 premiers exercices principaux
+        const mainExercises = exercises.slice(0, 3);
+        const moreCount = exercises.length > 3 ? exercises.length - 3 : 0;
         
         return `
-            <div class="session-card ${isTemporary ? 'session-temporary' : ''}" 
-                data-session-id="${session.id}"
+            <div class="session-card ${isTemporary ? 'temporary' : ''}" 
+                data-session-id="${sessionId}"
                 data-is-temporary="${isTemporary}">
                 
+                <!-- Indicateur de score en bordure -->
+                <div class="session-score-border" style="background: ${this.getScoreGradient(score)}"></div>
+                
+                <div class="session-header">
+                    <div class="session-time">
+                        <i class="fas fa-clock"></i> ${session.estimated_duration || 45} min
+                    </div>
+                    <div class="session-score-badge" style="background: ${this.getScoreColor(score)}">
+                        <span class="score-value">${score}</span>
+                        <span class="score-label">pts</span>
+                    </div>
+                </div>
+                
                 <div class="session-content">
-                    <div class="session-title">
-                        ${session.title || 'Séance ' + session.primary_muscles.join(', ')}
-                        ${isTemporary ? '<span class="temp-badge">TEMP</span>' : ''}
+                    <!-- Muscles principaux -->
+                    <div class="session-muscles">
+                        ${muscles.slice(0, 3).map(muscle => 
+                            `<span class="muscle-tag" style="background: ${this.getValidMuscleColor([muscle])}">${muscle}</span>`
+                        ).join('')}
+                        ${muscles.length > 3 ? `<span class="muscle-more">+${muscles.length - 3}</span>` : ''}
                     </div>
                     
-                    <div class="session-meta">
-                        <span class="session-time">
-                            <i class="fas fa-clock"></i>
-                            ${session.planned_time ? 
-                                new Date(`2000-01-01T${session.planned_time}`).toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'}) : 
-                                'Libre'}
-                        </span>
-                        <span>
-                            <i class="fas fa-dumbbell"></i>
-                            ${session.exercises?.length || 0} ex.
-                        </span>
-                        <span style="color: ${indicatorColor}">
-                            <i class="fas fa-star"></i>
-                            ${score}%
-                        </span>
+                    <!-- Exercices principaux -->
+                    <div class="session-exercises-preview">
+                        ${mainExercises.map(ex => `
+                            <div class="exercise-preview">
+                                <span class="exercise-icon">💪</span>
+                                <span class="exercise-name">${ex.exercise_name || ex.name || 'Exercice'}</span>
+                                <span class="exercise-sets">${ex.sets || 3}×${ex.reps_min || 8}-${ex.reps_max || 12}</span>
+                            </div>
+                        `).join('')}
+                        ${moreCount > 0 ? `
+                            <div class="exercise-more">
+                                <span>+${moreCount} autres exercices</span>
+                            </div>
+                        ` : ''}
                     </div>
-                    
-                    ${session.primary_muscles && session.primary_muscles.length > 0 ? `
-                        <div class="session-muscles">
-                            ${session.primary_muscles.slice(0, 3).map(muscle => 
-                                `<span class="muscle-tag" style="background: ${this.getValidMuscleColor([muscle])}">${muscle}</span>`
-                            ).join('')}
-                        </div>
-                    ` : ''}
                 </div>
                 
                 <div class="session-actions">
+                    <button class="action-btn" onclick="weeklyPlanner.showEnhancedSessionModal('${sessionId}')" title="Voir détails">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="action-btn" onclick="weeklyPlanner.quickEditSession('${sessionId}')" title="Édition rapide">
+                        <i class="fas fa-edit"></i>
+                    </button>
                     ${!isTemporary ? `
-                        <button class="action-btn" onclick="weeklyPlanner.editSession('${session.id}')" title="Modifier">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="action-btn" onclick="weeklyPlanner.deleteSession('${session.id}')" title="Supprimer">
+                        <button class="action-btn danger" onclick="weeklyPlanner.deleteSession('${sessionId}')" title="Supprimer">
                             <i class="fas fa-trash"></i>
                         </button>
-                    ` : `
-                        <button class="action-btn" onclick="weeklyPlanner.removeTemporarySession('${session.id}')" title="Annuler">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    `}
+                    ` : ''}
                 </div>
             </div>
         `;
@@ -1440,6 +1444,167 @@ class WeeklyPlannerView {
         }, 100);
     }
     
+    async showEnhancedSessionModal(sessionId) {
+        const session = this.findSessionById(sessionId);
+        if (!session) return;
+        
+        const exercises = session.exercises || [];
+        const userContext = { user_id: window.currentUser.id };
+        
+        // Calculer le score
+        let currentScore, optimalOrder;
+        try {
+            currentScore = await window.SessionQualityEngine.calculateScore(exercises, userContext);
+            optimalOrder = await window.SessionQualityEngine.generateOptimalOrder(exercises, userContext);
+        } catch (error) {
+            currentScore = { total: session.predicted_quality_score || 75, breakdown: {} };
+            optimalOrder = exercises;
+        }
+        
+        const modalContent = `
+            <div class="enhanced-session-modal">
+                <!-- Header avec onglets -->
+                <div class="modal-tabs">
+                    <button class="tab-btn active" onclick="weeklyPlanner.switchTab('overview')">
+                        <i class="fas fa-eye"></i> Vue d'ensemble
+                    </button>
+                    <button class="tab-btn" onclick="weeklyPlanner.switchTab('exercises')">
+                        <i class="fas fa-dumbbell"></i> Exercices
+                    </button>
+                    <button class="tab-btn" onclick="weeklyPlanner.switchTab('analytics')">
+                        <i class="fas fa-chart-line"></i> Analyse
+                    </button>
+                </div>
+                
+                <!-- Contenu des onglets -->
+                <div class="tab-content active" id="tab-overview">
+                    ${this.renderOverviewTab(session, currentScore)}
+                </div>
+                
+                <div class="tab-content" id="tab-exercises">
+                    ${this.renderExercisesTab(session, exercises)}
+                </div>
+                
+                <div class="tab-content" id="tab-analytics">
+                    ${this.renderAnalyticsTab(session, currentScore)}
+                </div>
+                
+                <!-- Actions -->
+                <div class="modal-actions-sticky">
+                    <button class="btn btn-primary large" onclick="weeklyPlanner.startSessionFromModal('${sessionId}')">
+                        <i class="fas fa-play"></i> Démarrer la séance
+                    </button>
+                    <button class="btn btn-secondary" onclick="window.closeModal()">
+                        Fermer
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        window.showModal('Détails de la séance', modalContent);
+        
+        // Initialiser les interactions
+        setTimeout(() => {
+            this.initializeModalInteractions(sessionId);
+        }, 100);
+    }
+
+    renderExercisesTab(session, exercises) {
+        return `
+            <div class="exercises-tab-content">
+                <div class="exercises-header">
+                    <h4>Exercices de la séance</h4>
+                    <button class="btn-sm btn-primary" onclick="weeklyPlanner.applyOptimalOrder()">
+                        <i class="fas fa-magic"></i> Ordre optimal
+                    </button>
+                </div>
+                
+                <div class="exercise-list-editable" id="editableExerciseList">
+                    ${exercises.map((ex, idx) => `
+                        <div class="exercise-item-rich" data-index="${idx}" data-exercise-id="${ex.exercise_id}">
+                            <span class="drag-handle">
+                                <i class="fas fa-grip-vertical"></i>
+                            </span>
+                            
+                            <div class="exercise-info">
+                                <h5>${ex.exercise_name || ex.name}</h5>
+                                <div class="exercise-details">
+                                    <span class="sets-reps">${ex.sets}×${ex.reps_min}-${ex.reps_max}</span>
+                                    <span class="rest-time"><i class="fas fa-hourglass-half"></i> ${ex.rest_seconds || 90}s</span>
+                                    <span class="muscles">${(ex.muscle_groups || []).join(', ')}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="exercise-actions">
+                                <button class="btn-icon" onclick="weeklyPlanner.swapExercise(${idx})" title="Remplacer">
+                                    <i class="fas fa-exchange-alt"></i>
+                                </button>
+                                <button class="btn-icon danger" onclick="weeklyPlanner.removeExercise(${idx})" title="Supprimer">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <button class="btn-add-exercise" onclick="weeklyPlanner.addExercise()">
+                    <i class="fas fa-plus"></i> Ajouter un exercice
+                </button>
+            </div>
+        `;
+    }
+
+    async swapExercise(exerciseIndex) {
+        // Récupérer le sessionId depuis le modal actif
+        const sessionId = this.currentEditingSessionId;
+        const session = this.findSessionById(sessionId);
+        if (!session) return;
+        
+        try {
+            // Utiliser l'API program pour obtenir les alternatives
+            const programId = window.currentUser.current_program_id;
+            const response = await window.apiGet(
+                `/api/programs/${programId}/exercise-alternatives` +
+                `?week_index=0&session_index=0&exercise_index=${exerciseIndex}`
+            );
+            
+            this.showAlternativesModal(response, sessionId, exerciseIndex);
+            
+        } catch (error) {
+            console.error('Erreur récupération alternatives:', error);
+            window.showToast('Erreur lors du chargement des alternatives', 'error');
+        }
+    }
+
+    initializeModalInteractions(sessionId) {
+        this.currentEditingSessionId = sessionId;
+        
+        // Initialiser Sortable pour le drag & drop
+        const container = document.getElementById('editableExerciseList');
+        if (container && window.Sortable) {
+            new window.Sortable(container, {
+                handle: '.drag-handle',
+                animation: 150,
+                ghostClass: 'sortable-ghost',
+                dragClass: 'sortable-drag',
+                onEnd: async (evt) => {
+                    if (evt.oldIndex !== evt.newIndex) {
+                        await this.reorderExercises(sessionId, evt);
+                    }
+                }
+            });
+        }
+    }
+
+    switchTab(tabName) {
+        // Gérer les onglets
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        
+        document.querySelector(`[onclick="weeklyPlanner.switchTab('${tabName}')"]`).classList.add('active');
+        document.getElementById(`tab-${tabName}`).classList.add('active');
+    }
+        
     async applyOptimalOrderInDeepDive(sessionId) {
         const session = this.findSessionById(sessionId);
         if (!session) return;

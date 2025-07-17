@@ -448,8 +448,10 @@ class ProgramManagerView {
     }
         
     async selectAlternative(sessionIndex, exerciseIndex, newExerciseId) {
+        window.closeModal();
+        
         try {
-            const response = await window.apiPost(
+            const response = await window.apiPut(
                 `/api/programs/${this.program.id}/swap-exercise`,
                 {
                     week_index: this.currentWeekView - 1,
@@ -465,14 +467,20 @@ class ProgramManagerView {
                 session.exercise_pool[exerciseIndex] = response.new_exercise;
                 session.quality_score = response.new_score;
                 
-                // Fermer le modal et rafraîchir
-                window.closeModal();
-                this.render(); // Rafraîchir toute la vue
+                // Rafraîchir l'affichage
+                this.render();
                 
-                window.showToast(response.message, response.score_impact >= 0 ? 'success' : 'warning');
+                // Feedback utilisateur
+                const message = response.score_impact > 0 
+                    ? `✅ Exercice remplacé ! Score +${response.score_impact} points`
+                    : response.score_impact < 0
+                    ? `⚠️ Exercice remplacé. Score ${response.score_impact} points`
+                    : '✅ Exercice remplacé avec succès';
+                    
+                window.showToast(message, response.score_impact >= 0 ? 'success' : 'warning');
             }
         } catch (error) {
-            console.error('Erreur remplacement exercice:', error);
+            console.error('Erreur swap exercice:', error);
             window.showToast('Erreur lors du remplacement', 'error');
         }
     }
