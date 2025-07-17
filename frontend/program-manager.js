@@ -130,7 +130,7 @@ class ProgramManagerView {
                         <div class="score-display" id="scoreDisplay">
                             <h3><i class="fas fa-chart-line"></i> Score de Qualité</h3>
                             <div class="score-gauge">
-                                <div class="score-value" id="currentScore">${Math.round(this.program.base_quality_score || 75)}%</div>
+                                <div class="score-value" id="currentScore">${Math.round(this.program.base_quality_score || 0)}%</div>
                                 <div class="score-bar">
                                     <div class="score-fill" id="scoreFill" style="width: ${this.program.base_quality_score || 75}%; background: ${this.getScoreColor(this.program.base_quality_score || 75)}"></div>
                                 </div>
