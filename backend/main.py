@@ -2024,7 +2024,7 @@ def get_exercise_alternatives(
     if main_muscle:
         alternatives = db.query(Exercise).filter(
             Exercise.id != current_id,
-            Exercise.muscle_groups.contains([main_muscle])
+            cast(Exercise.muscle_groups, JSONB).contains([main_muscle])  # ✅ PostgreSQL compatible
         ).limit(10).all()
     else:
         alternatives = []
