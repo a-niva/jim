@@ -296,7 +296,7 @@ class ProgramManagerView {
             
             if (response.success) {
                 // Mettre à jour le score affiché
-                this.updateScoreDisplay(response.new_score);
+                this.updateScoreDisplay(response.new_score, response.score_delta);
                 
                 // Afficher le feedback
                 const feedback = document.getElementById('scoreFeedback');

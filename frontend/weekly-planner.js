@@ -1542,7 +1542,6 @@ class WeeklyPlannerView {
                 </div>
             </div>
         `;
-        
         window.showModal('Édition de séance', modalContent);
     }
 

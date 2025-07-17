@@ -9443,10 +9443,9 @@ async function finalizeDragOperation() {
         const newScore = await SessionQualityEngine.recalculateAfterReorder(newOrder, userContext);
         
         // Mettre à jour l'affichage du score
-        updateScoreDisplay(newScore);
-        
         // Feedback utilisateur basé sur l'amélioration
         const scoreDelta = newScore.total - (lastKnownScore || newScore.total);
+        updateScoreDisplay(newScore.total, scoreDelta);
         showScoreChangeFeedback(scoreDelta);
         
         // Mettre à jour le score de référence
@@ -9580,7 +9579,8 @@ async function applyOptimalOrder() {
         
         // Mettre à jour le score
         const newScore = currentScoringData.optimalScore;
-        updateScoreDisplay(newScore);
+        const scoreDelta = newScore.total - (currentScoringData.currentScore?.total || 0);
+        updateScoreDisplay(newScore.total, scoreDelta);
         lastKnownScore = newScore.total;
         
         // Feedback utilisateur
