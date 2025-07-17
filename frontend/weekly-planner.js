@@ -248,7 +248,13 @@ class WeeklyPlannerView {
                 </div>`;
             
             this.container.innerHTML = htmlContent;
-            
+            // Initialiser l'affichage du score après le rendu
+            setTimeout(() => {
+                if (this.program && this.program.base_quality_score) {
+                    this.updateScoreDisplay(this.program.base_quality_score);
+                }
+            }, 200);
+                        
             // Debug : vérifier que la grille est bien rendue
             const gridElement = this.container.querySelector('.planner-grid');
             if (gridElement) {
