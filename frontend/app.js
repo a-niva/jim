@@ -615,6 +615,9 @@ function showView(viewName) {
         case 'profile':
             loadProfile();
             break;
+        case 'program-manager':
+            // Initialization handled by showProgramManager()
+            break;
     }
 }
 
