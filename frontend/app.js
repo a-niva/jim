@@ -8350,49 +8350,6 @@ function changeExercise() {
     showSwapReasonModal(currentExercise.id);
 }
 
-// Fonction helper pour procéder aux alternatives (réutilise le système swap)
-function proceedToAlternatives(exerciseId, reason) {
-    closeModal();
-    
-    // Pour l'instant, simuler des alternatives
-    const modalContent = `
-        <div class="alternatives-modal">
-            <div class="modal-header-modern">
-                <h3>Alternatives suggérées</h3>
-                <p>Raison : ${getReasonLabel(reason)}</p>
-            </div>
-            
-            <div class="alternatives-container">
-                <div class="keep-current-option" onclick="keepCurrentWithAdaptation(${exerciseId}, '${reason}')">
-                    <div class="option-icon">✅</div>
-                    <div class="option-content">
-                        <h4>Garder "${currentExercise.name}"</h4>
-                        <p>Continuer avec des adaptations</p>
-                    </div>
-                </div>
-                
-                <div class="divider-text">
-                    <span>ou choisir une alternative</span>
-                </div>
-                
-                <div class="coming-soon">
-                    <div class="coming-icon">🚧</div>
-                    <p>Les alternatives détaillées seront disponibles prochainement</p>
-                </div>
-            </div>
-            
-            <div class="modal-footer-modern">
-                <button class="btn-cancel-modern" onclick="closeModal()">
-                    Retour
-                </button>
-            </div>
-        </div>
-    `;
-    
-    showModal('Choisir une alternative', modalContent);
-}
-
-
 async function initiateSwap(exerciseId) {
     if (!canSwapExercise(exerciseId)) {
         showToast('Impossible de changer cet exercice maintenant', 'warning');
@@ -8677,72 +8634,106 @@ function showSwapReasonModal(exerciseId) {
 async function proceedToAlternatives(exerciseId, reason) {
     closeModal();
     
-    // ===== MAPPING RAISONS FRONTEND → API =====
-    const reasonMap = {
-        'pain': 'pain',
-        'equipment': 'equipment',  
-        'preference': 'preference',
-        'too_hard': 'pain',         // Mapper vers pain
-        'too_easy': 'preference',   // Mapper vers preference  
-        'fatigue': 'pain'           // Mapper vers pain
-    };
-    
-    const apiReason = reasonMap[reason] || 'preference';
-    
-    showModal('Recherche d\'alternatives', `
-        <div class="loading-container">
-            <div class="loading-spinner"></div>
-            <p>Recherche des meilleures alternatives...</p>
-        </div>
-    `);
-    
     try {
-        const alternatives = await apiGet(
-            `/api/exercises/${exerciseId}/alternatives?user_id=${currentUser.id}&reason=${apiReason}&workout_id=${currentWorkout.id}`
+        // Obtenir l'index de l'exercice dans la session
+        let exerciseIndex = -1;
+        if (currentWorkoutSession.program && currentWorkoutSession.program.exercises) {
+            exerciseIndex = currentWorkoutSession.program.exercises.findIndex(ex => ex.exercise_id === exerciseId);
+        }
+        
+        // Appeler l'API pour obtenir les alternatives
+        const response = await apiGet(
+            `/api/exercises/${exerciseId}/alternatives?user_id=${currentUser.id}&reason=${reason}`
         );
         
-        closeModal();
-        showAlternativesModal(exerciseId, reason, alternatives);
+        if (response && response.alternatives) {
+            showAlternativesFromAPI(exerciseId, response.alternatives, reason);
+        } else {
+            // Fallback si l'API ne retourne pas d'alternatives
+            showAlternativesModal(exerciseId, reason);
+        }
         
     } catch (error) {
-        closeModal();
         console.error('Erreur récupération alternatives:', error);
-        showToast('Impossible de récupérer les alternatives', 'error');
+        // Fallback en cas d'erreur
+        showAlternativesModal(exerciseId, reason);
     }
 }
 
-function showAlternativesModal(originalExerciseId, reason, alternatives) {
-    const originalExercise = getCurrentExerciseData(originalExerciseId);
+function showAlternativesFromAPI(originalExerciseId, alternatives, reason) {
+    const currentEx = getCurrentExerciseData(originalExerciseId);
     
     const modalContent = `
-        <div class="alternatives-container">
-            <div class="alternatives-header">
-                <h4>Alternatives à "${originalExercise.name}"</h4>
-                <span class="reason-badge reason-${reason}">${getReasonLabel(reason)}</span>
+        <div class="alternatives-modal">
+            <div class="modal-header-modern">
+                <h3>Alternatives pour "${currentEx.name}"</h3>
+                <p>Raison : ${getReasonLabel(reason)}</p>
             </div>
             
-            ${alternatives.alternatives && alternatives.alternatives.length > 0 ? `
+            <div class="alternatives-container">
+                <div class="keep-current-option" onclick="keepCurrentWithAdaptation(${originalExerciseId}, '${reason}')">
+                    <div class="option-icon">✅</div>
+                    <div class="option-content">
+                        <h4>Garder l'exercice actuel</h4>
+                        <p>Continuer avec des adaptations</p>
+                    </div>
+                </div>
+                
+                <div class="divider-text">
+                    <span>ou choisir une alternative</span>
+                </div>
+                
                 <div class="alternatives-list">
-                    ${alternatives.alternatives.map(alt => `
-                        <div class="alternative-card" onclick="selectAlternative(${originalExerciseId}, ${alt.exercise_id}, '${reason}')">
-                            <div class="alt-header">
-                                <h5>${alt.name}</h5>
-                                <div class="match-score">${Math.round((alt.score || 0) * 100)}%</div>
+                    ${alternatives.map(alt => `
+                        <div class="alternative-option ${alt.score < 50 ? 'low-score' : ''}" 
+                             onclick="selectAlternative(${originalExerciseId}, ${alt.exercise_id}, '${reason}')">
+                            <div class="exercise-details">
+                                <h4>${alt.name}</h4>
+                                <p class="muscle-info">${alt.muscle_groups.join(', ')}</p>
+                                <small class="difficulty">Difficulté: ${alt.difficulty}</small>
                             </div>
-                            <div class="alt-details">
-                                <p class="reason-match">${alt.reason_match || 'Exercice similaire'}</p>
-                                <div class="alt-meta">
-                                    <span class="muscle-groups">${(alt.muscle_groups || []).join(' • ')}</span>
+                            <div class="match-info">
+                                <div class="score-indicator ${alt.score >= 80 ? 'excellent' : alt.score >= 60 ? 'good' : 'average'}">
+                                    ${alt.score}%
                                 </div>
+                                ${alt.reason_match ? `<small>${alt.reason_match}</small>` : ''}
                             </div>
                         </div>
                     `).join('')}
                 </div>
-            ` : `
-                <div class="no-alternatives">
-                    <p>Aucune alternative trouvée. Gardez l'exercice actuel.</p>
+            </div>
+            
+            <div class="modal-footer-modern">
+                <button class="btn-cancel-modern" onclick="closeModal()">
+                    Annuler
+                </button>
+            </div>
+        </div>
+    `;
+    
+    showModal('Choisir une alternative', modalContent);
+}
+
+function showAlternativesModal(exerciseId, reason) {
+    const exercise = getCurrentExerciseData(exerciseId);
+    
+    // Version simplifiée si pas d'alternatives de l'API
+    const modalContent = `
+        <div class="alternatives-container">
+            <h3>Alternatives pour "${exercise.name}"</h3>
+            <p class="reason-display">Raison: ${getReasonLabel(reason)}</p>
+            
+            <div class="alternatives-list">
+                <div class="keep-current-option" onclick="keepCurrentWithAdaptation(${exerciseId}, '${reason}')">
+                    <span>✅ Garder l'exercice actuel</span>
+                    <p>Continuer avec des adaptations</p>
                 </div>
-            `}
+                
+                <div class="alternative-option" onclick="selectAlternativeManual(${exerciseId}, '${reason}')">
+                    <span>🔄 Choisir manuellement</span>
+                    <p>Parcourir la liste complète des exercices</p>
+                </div>
+            </div>
             
             <div class="modal-actions">
                 <button class="btn-secondary" onclick="closeModal()">Annuler</button>
@@ -8751,6 +8742,20 @@ function showAlternativesModal(originalExerciseId, reason, alternatives) {
     `;
     
     showModal('Choisir une alternative', modalContent);
+}
+
+function selectAlternativeManual(originalExerciseId, reason) {
+    closeModal();
+    
+    // Sauvegarder le contexte de swap
+    currentWorkoutSession.pendingSwap = {
+        originalExerciseId: originalExerciseId,
+        reason: reason,
+        timestamp: new Date()
+    };
+    
+    // Afficher la sélection d'exercices avec un flag de swap
+    showExerciseSelection(true);
 }
 
 async function selectAlternative(originalExerciseId, newExerciseId, reason) {
@@ -9922,7 +9927,9 @@ window.getCurrentExerciseData = getCurrentExerciseData;
 window.showSwapReasonModal = showSwapReasonModal;
 window.proceedToAlternatives = proceedToAlternatives;
 window.showAlternativesModal = showAlternativesModal;
+window.showAlternativesFromAPI = showAlternativesFromAPI;
 window.selectAlternative = selectAlternative;
+window.selectAlternativeManual = selectAlternativeManual;
 window.keepCurrentWithAdaptation = keepCurrentWithAdaptation;
 window.getReasonLabel = getReasonLabel;
 

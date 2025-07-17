@@ -28,6 +28,32 @@ class ProgramManagerView {
         }
     }
     
+    attachEventListeners() {
+        // Attendre que le DOM soit prêt
+        setTimeout(() => {
+            document.querySelectorAll('.session-card').forEach((card, sessionIndex) => {
+                const exerciseList = card.querySelector('.exercise-list.sortable');
+                if (!exerciseList || !window.Sortable) return;
+                
+                new window.Sortable(exerciseList, {
+                    handle: '.drag-handle',
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    dragClass: 'sortable-drag',
+                    onEnd: async (evt) => {
+                        if (evt.oldIndex === evt.newIndex) return;
+                        
+                        const newOrder = Array.from(exerciseList.children)
+                            .filter(el => el.classList.contains('exercise-item'))
+                            .map((el, idx) => idx);
+                        
+                        await this.reorderExercises(sessionIndex, newOrder);
+                    }
+                });
+            });
+        }, 100);
+    }
+
     render() {
         const container = document.getElementById('program-manager');
         if (!container) {
@@ -100,8 +126,64 @@ class ProgramManagerView {
                 </div>
             </div>
         `;
+        // Attacher les event listeners après le rendu
+        this.attachEventListeners();
     }
-    
+
+    async swapExercise(sessionIndex, exerciseIndex) {
+        const session = this.program.weekly_structure[this.currentWeekView - 1].sessions[sessionIndex];
+        const currentExercise = session.exercise_pool[exerciseIndex];
+        
+        try {
+            // Utiliser l'endpoint GET existant
+            const response = await window.apiGet(
+                `/api/programs/${this.program.id}/exercise-alternatives` +
+                `?week_index=${this.currentWeekView - 1}` +
+                `&session_index=${sessionIndex}` +
+                `&exercise_index=${exerciseIndex}`
+            );
+            
+            this.showAlternativesModal(response, sessionIndex, exerciseIndex);
+            
+        } catch (error) {
+            console.error('Erreur récupération alternatives:', error);
+            window.showToast('Erreur lors du chargement des alternatives', 'error');
+        }
+    }
+
+    //showAlternativesModal existe dans app.js mais on ajoute une version spécifique) :
+    showAlternativesModal(response, sessionIndex, exerciseIndex) {
+        const alternatives = response.alternatives || [];
+        const currentExercise = response.current_exercise;
+        
+        const modalContent = `
+            <div class="alternatives-modal">
+                <h3>Remplacer "${currentExercise?.name || 'Exercice'}"</h3>
+                <div class="alternatives-list">
+                    ${alternatives.map(alt => `
+                        <div class="alternative-card ${!alt.can_perform ? 'disabled' : ''}" 
+                            onclick="${alt.can_perform ? `window.programManager.selectAlternative(${sessionIndex}, ${exerciseIndex}, ${alt.exercise_id})` : ''}">
+                            <div class="exercise-info">
+                                <h4>${alt.name}</h4>
+                                <p class="muscle-groups">${alt.muscle_groups.join(', ')}</p>
+                                <div class="exercise-meta">
+                                    <small>Difficulté: ${alt.difficulty}</small>
+                                    ${alt.equipment_required?.length ? `<small>• ${alt.equipment_required.join(', ')}</small>` : ''}
+                                </div>
+                            </div>
+                            <div class="score-badge ${alt.score >= 80 ? 'excellent' : alt.score >= 60 ? 'good' : 'average'}">
+                                Score: ${alt.score}
+                            </div>
+                            ${!alt.can_perform ? '<span class="warning"><i class="fas fa-exclamation-triangle"></i> Équipement manquant</span>' : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+        
+        window.showModal('Choisir une alternative', modalContent);
+    }
+
     renderWeekStructure() {
         const weekData = this.program.weekly_structure[this.currentWeekView - 1];
         if (!weekData || !weekData.sessions) {
@@ -111,37 +193,43 @@ class ProgramManagerView {
         return `
             <div class="sessions-grid">
                 ${weekData.sessions.map((session, index) => `
-                    <div class="session-card ${this.isCurrentSession(index + 1) ? 'current' : ''}">
-                    <div class="session-header">
-                        <h4>Séance ${index + 1}</h4>
-                        <span class="session-focus">${this.getFocusLabel(session.focus)}</span>
-                        <button class="btn-icon" onclick="window.programManager.editSession(${index})" title="Modifier">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                    </div>
-                        <div class="session-details">
-                            <p><i class="fas fa-list"></i> ${session.exercise_pool.length} exercices</p>
-                            <p><i class="fas fa-clock"></i> ${session.target_duration || this.program.session_duration_minutes} min</p>
-                        </div>
-                        <div class="exercise-preview">
-                            ${this.renderExercisePreview(session.exercise_pool.slice(0, 3))}
-                            ${session.exercise_pool.length > 3 ? `<p class="more">+${session.exercise_pool.length - 3} autres...</p>` : ''}
-                        </div>
-                        <div class="score-display" id="scoreDisplay">
-                            <h3><i class="fas fa-chart-line"></i> Score de Qualité</h3>
-                            <div class="score-gauge">
-                                <div class="score-value" id="currentScore">${Math.round(this.program.base_quality_score || 0)}%</div>
-                                <div class="score-bar">
-                                    <div class="score-fill" id="scoreFill" style="width: ${this.program.base_quality_score || 75}%; background: ${this.getScoreColor(this.program.base_quality_score || 75)}"></div>
+                    <div class="session-card ${this.isCurrentSession(index + 1) ? 'current' : ''}" data-session-index="${index}">
+                        <div class="session-header">
+                            <div>
+                                <h4>Séance ${index + 1} - ${session.focus}</h4>
+                                <div class="session-score">
+                                    <span class="score-badge" style="background: ${this.getScoreColor(session.quality_score || 75)}">
+                                        Score: ${session.quality_score || 75}/100
+                                    </span>
                                 </div>
                             </div>
-                            <div class="score-feedback" id="scoreFeedback">${this.getScoreFeedback(this.program.base_quality_score || 75)}</div>
+                            <button class="btn-sm" onclick="window.programManager.editSession(${index})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </div>
+                        <div class="session-details">
+                            <p><i class="fas fa-clock"></i> ${session.target_duration || 60} min</p>
+                            <p><i class="fas fa-dumbbell"></i> ${session.exercise_pool?.length || 0} exercices</p>
+                        </div>
+                        <div class="exercise-list sortable" data-session="${index}">
+                            ${session.exercise_pool?.map((ex, exIndex) => `
+                                <div class="exercise-item" data-exercise-index="${exIndex}">
+                                    <span class="drag-handle">
+                                        <i class="fas fa-grip-vertical"></i>
+                                    </span>
+                                    <span class="exercise-name">${ex.exercise_name}</span>
+                                    <span class="exercise-sets">${ex.sets} × ${ex.reps_min}-${ex.reps_max}</span>
+                                    <button class="btn-xs" onclick="window.programManager.swapExercise(${index}, ${exIndex})">
+                                        <i class="fas fa-exchange-alt"></i>
+                                    </button>
+                                </div>
+                            `).join('') || '<p class="no-exercises">Aucun exercice</p>'}
                         </div>
                     </div>
                 `).join('')}
             </div>
         `;
-    }
+        }
     
     renderExercisePreview(exercises) {
         if (!exercises || exercises.length === 0) {
@@ -358,7 +446,7 @@ class ProgramManagerView {
             window.showToast('Erreur lors du chargement des alternatives', 'error');
         }
     }
-    
+        
     async selectAlternative(sessionIndex, exerciseIndex, newExerciseId) {
         try {
             const response = await window.apiPost(
@@ -379,7 +467,7 @@ class ProgramManagerView {
                 
                 // Fermer le modal et rafraîchir
                 window.closeModal();
-                this.editSession(sessionIndex); // Rouvrir l'éditeur avec les changements
+                this.render(); // Rafraîchir toute la vue
                 
                 window.showToast(response.message, response.score_impact >= 0 ? 'success' : 'warning');
             }
@@ -388,7 +476,7 @@ class ProgramManagerView {
             window.showToast('Erreur lors du remplacement', 'error');
         }
     }
-    
+        
     async saveSessionChanges(sessionIndex) {
         window.closeModal();
         window.showToast('Modifications enregistrées', 'success');

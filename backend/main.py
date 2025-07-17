@@ -1559,6 +1559,22 @@ def calculate_session_quality_score(exercise_pool, user_id, db):
     
     return max(0, min(100, base_score))
 
+def calculate_exercise_swap_impact(current_ex, new_ex, program_id, db):
+    """Calcule l'impact d'un swap d'exercice sur le score"""
+    impact = 0
+    
+    # Bonus si équipement plus accessible
+    if "bodyweight" in new_ex.equipment_required:
+        impact += 3
+    
+    # Bonus/malus selon groupes musculaires
+    common_muscles = set(current_ex.muscle_groups) & set(new_ex.muscle_groups)
+    if len(common_muscles) >= len(current_ex.muscle_groups) * 0.7:
+        impact += 2  # Bon remplacement
+    else:
+        impact -= 5  # Mauvais remplacement
+    
+    return impact
 
 def calculate_session_duration(exercises_data, target_duration_minutes):
     """
@@ -4510,7 +4526,6 @@ def get_ml_exercise_patterns(user_id: int, days: int = 60, db: Session = Depends
 
 
 # ===== / ENDPOINTS ML ANALYTICS (fin) =====
-
 
 # Helper function à ajouter
 def get_muscles_for_group(muscle_group: str) -> List[str]:
