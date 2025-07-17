@@ -1507,6 +1507,54 @@ class WeeklyPlannerView {
             </div>
         `;
     }
+
+    async removeTemporarySession(sessionId) {
+        try {
+            const result = await window.apiDelete(`/api/planned-sessions/${sessionId}`);
+            if (result.success) {
+                window.showToast('Séance temporaire supprimée', 'success');
+                await this.refresh();
+            }
+        } catch (error) {
+            console.error('Erreur suppression séance temporaire:', error);
+            window.showToast('Erreur lors de la suppression', 'error');
+        }
+    }
+
+    editSession(sessionId) {
+        const session = this.findSessionById(sessionId);
+        if (!session) {
+            window.showToast('Séance introuvable', 'error');
+            return;
+        }
+        
+        const modalContent = `
+            <div class="session-editor">
+                <h3>Modifier la séance</h3>
+                <div class="session-details">
+                    <p><strong>Date :</strong> ${new Date(session.planned_date).toLocaleDateString('fr-FR')}</p>
+                    <p><strong>Muscles :</strong> ${session.primary_muscles.join(', ')}</p>
+                    <p><strong>Exercices :</strong> ${session.exercises?.length || 0}</p>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" onclick="window.closeModal()">Fermer</button>
+                    <button class="btn btn-primary" onclick="window.programManager?.editSession(0)">Modifier les exercices</button>
+                </div>
+            </div>
+        `;
+        
+        window.showModal('Édition de séance', modalContent);
+    }
+
+    findSessionById(sessionId) {
+        if (!this.planningData?.planning_data) return null;
+        
+        for (const day of this.planningData.planning_data) {
+            const session = day.sessions?.find(s => s.id == sessionId);
+            if (session) return session;
+        }
+        return null;
+    }
 }
 
 // Classe SwipeHandler
