@@ -416,11 +416,7 @@
     font-weight: 600
 }
 
-.session-card {
-    border: 1px solid var(--border)!important
-}
-
-.session-card,.weekly-planner .session-card {
+.weekly-planner .session-card {
     background: var(--bg-card)!important;
     color: var(--text)!important
 }
@@ -432,24 +428,27 @@
     margin: 16px 0
 }
 
+.session-card,.session-card .session-header h4 {
+    color: #1f2937!important;
+    color: var(--text)!important
+}
+
 .session-card {
     background: #fff!important;
-    color: #1f2937!important;
     border: 1px solid #e5e7eb!important;
+    background: var(--bg-card)!important;
+    border: 1px solid var(--border)!important;
     border-radius: 8px;
     padding: 16px;
     transition: all .2s ease;
-    box-shadow: 0 1px 3px rgba(0,0,0,.1)
+    box-shadow: 0 1px 3px rgba(0,0,0,.3)
 }
 
 .session-card:hover {
-    border-color: #3b82f6!important;
-    box-shadow: 0 4px 12px rgba(0,0,0,.1);
-    transform: translateY(-2px)
+    border-color: #3b82f6!important
 }
 
 .session-card .session-header h4 {
-    color: #1f2937!important;
     margin: 0 0 8px
 }
 
@@ -459,4 +458,25 @@
 
 .session-card .exercise-sets,.session-card .session-details {
     color: #6b7280!important
+}
+
+.session-card:hover {
+    border-color: var(--primary)!important;
+    box-shadow: 0 4px 12px rgba(0,0,0,.4);
+    transform: translateY(-2px);
+    background: rgba(99,102,241,.1)!important
+}
+
+.session-card .exercise-name {
+    color: var(--text)!important
+}
+
+.session-card .exercise-sets,.session-card .session-details {
+    color: var(--text-muted)!important
+}
+
+.session-card .session-focus {
+    background: rgba(99,102,241,.2)!important;
+    color: var(--text)!important;
+    border: 1px solid var(--primary)
 }
