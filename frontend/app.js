@@ -592,7 +592,7 @@ function showView(viewName) {
     if (navItem) {
         navItem.classList.add('active');
     }
-    if (['dashboard', 'stats', 'profile', 'home', 'workout', 'program-manager'].includes(viewName)) {
+    if (['dashboard', 'stats', 'profile', 'home', 'workout', 'planning'].includes(viewName)) {
         document.getElementById('bottomNav').style.display = 'flex';
         
         // Double vérification après un court délai
@@ -617,9 +617,6 @@ function showView(viewName) {
             break;
         case 'planning':
             // Initialisation gérée par showPlanning()
-            break;
-        case 'program-manager':
-            // Initialization handled by showProgramManager()
             break;
         }
 }
