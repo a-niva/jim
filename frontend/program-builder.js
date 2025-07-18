@@ -110,7 +110,7 @@ class ProgramBuilder {
         builderContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 
         //  Afficher la première étape
-        await this.renderStep();
+        this.renderStep();
     }
     
 
@@ -152,7 +152,7 @@ class ProgramBuilder {
             this.renderFinalConfirmation(content);
         } else if (this.currentStep === this.totalSteps - 2) {
             // Avant-dernière : preview du programme
-            await this.renderProgramPreview(content);
+            await this.renderPreviewStep(content);
         } else {
             // Étapes de questions (1 à totalSteps-3)
             this.renderQuestionStep(content, this.currentStep - 1);
@@ -378,32 +378,17 @@ class ProgramBuilder {
         //  Restaurer les sélections précédentes
         this.restoreSelections(question.id);
     }
-        
+    
     async renderPreviewStep(content) {
         //  Générer et afficher le preview du programme//  
-        if (!this.generatedProgram) {
-            try {
-                window.showToast('Génération de votre programme...', 'info');
-                
-                //  Générer le programme via l'API
-                this.generatedProgram = await window.apiPost(
-                    `/api/users/${window.currentUser.id}/program-builder/generate`,
-                    this.selections
-                );
-            } catch (error) {
-                console.error('Erreur génération programme:', error);
-                content.innerHTML = `
-                    <div class="error-step">
-                        <h3>❌ Erreur lors de la génération</h3>
-                        <p>Une erreur est survenue. Voulez-vous réessayer ?</p>
-                        <button class="btn btn-primary" onclick="programBuilder.renderPreviewStep(document.getElementById('builderContent'))">
-                            Réessayer
-                        </button>
-                    </div>
-                `;
-                return;
-            }
-        }
+        try {
+            window.showToast('Génération de votre programme...', 'info');
+            
+            //  Générer le programme via l'API
+            this.generatedProgram = await window.apiPost(
+                `/api/users/${window.currentUser.id}/program-builder/generate`,
+                this.selections
+            );
 
             if (this.updateScoreDisplay) {
                 this.updateScoreDisplay(this.generatedProgram.base_quality_score || 0);
@@ -608,7 +593,7 @@ class ProgramBuilder {
         
         if (this.currentStep < this.totalSteps - 1) {
             this.currentStep++;
-            await this.renderStep();
+            this.renderStep();
         } else {
             this.complete();
         }
@@ -618,7 +603,7 @@ class ProgramBuilder {
         //  Revenir à l'étape précédente//  
         if (this.currentStep > 0) {
             this.currentStep--;
-            await this.renderStep();
+            this.renderStep();
         }
     }
     
@@ -630,7 +615,7 @@ class ProgramBuilder {
                 `/api/users/${window.currentUser.id}/program-builder/generate`,
                 this.selections
             );
-            await this.renderStep(); //  Re-render preview
+            this.renderStep(); //  Re-render preview
             window.showToast('Nouveau programme généré !', 'success');
         } catch (error) {
             window.showToast('Erreur lors de la régénération', 'error');
@@ -640,7 +625,7 @@ class ProgramBuilder {
     confirmProgram() {
         //  Confirmer le programme et passer à l'étape finale//  
         this.currentStep++;
-        await this.renderStep();
+        this.renderStep();
     }
     
     async complete() {
