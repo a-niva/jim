@@ -9,7 +9,7 @@ from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy import func, desc, cast, text, distinct
 from sqlalchemy.dialects.postgresql import JSONB
 from typing import List, Optional, Dict, Any
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, date
 from contextlib import asynccontextmanager
 import json
 import os
