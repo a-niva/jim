@@ -627,17 +627,17 @@ def create_program(user_id: int, program: ProgramCreate, db: Session = Depends(g
     # Désactiver les anciens programmes
     db.query(Program).filter(Program.user_id == user_id).update({"is_active": False})
     
-    # Générer les exercices du programme basé sur les focus_areas
-    exercises = generate_program_exercises(user, program, db)
-    
-    db_program = Program(
-        user_id=user_id,
-        name=program.name,
-        sessions_per_week=program.sessions_per_week,
-        session_duration_minutes=program.session_duration_minutes,
-        focus_areas=program.focus_areas,
-        exercises=exercises,
-        is_active=True
+    # Utiliser generate_comprehensive_program directement
+    db_program = generate_comprehensive_program(
+        user_id,
+        ProgramBuilderSelections(
+            training_frequency=program.sessions_per_week,
+            session_duration=program.session_duration_minutes,
+            focus_areas=program.focus_areas,
+            periodization_preference="linear",
+            exercise_variety_preference="balanced"
+        ),
+        db
     )
     
     db.add(db_program)
@@ -821,23 +821,29 @@ def get_active_program(user_id: int, db: Session = Depends(get_db)):
     except Exception as e:
         logger.warning(f"Erreur enrichissement session programme {program.id}: {e}")
         # Fallback: utiliser l'ancien format exercises si disponible
-        if hasattr(program, 'exercises') and program.exercises:
+        # Toujours extraire de weekly_structure
+        current_session_exercises = []
+        if program.weekly_structure and len(program.weekly_structure) > 0:
             try:
-                for ex in program.exercises[:6]:  # Limiter à 6 exercices
-                    if isinstance(ex, dict) and "exercise_id" in ex:
-                        exercise_db = db.query(Exercise).filter(Exercise.id == ex["exercise_id"]).first()
-                        if exercise_db:
+                week_idx = (program.current_week - 1) % len(program.weekly_structure)
+                week_data = program.weekly_structure[week_idx]
+                
+                if "sessions" in week_data and len(week_data["sessions"]) > 0:
+                    session_idx = (program.current_session_in_week - 1) % len(week_data["sessions"])
+                    session = week_data["sessions"][session_idx]
+                    
+                    if "exercise_pool" in session:
+                        for ex in session["exercise_pool"]:
                             current_session_exercises.append({
                                 "exercise_id": ex["exercise_id"],
-                                "exercise_name": exercise_db.name,
+                                "exercise_name": ex.get("exercise_name", ""),
                                 "sets": ex.get("sets", 3),
-                                "reps_min": ex.get("reps", 10) - 2,
-                                "reps_max": ex.get("reps", 10) + 2,
-                                "muscle_groups": exercise_db.muscle_groups,
-                                "estimated_duration": 15
+                                "reps_min": ex.get("reps_min", 8),
+                                "reps_max": ex.get("reps_max", 12),
+                                "muscle_groups": ex.get("muscle_groups", [])
                             })
-            except Exception as fallback_error:
-                logger.warning(f"Erreur fallback exercices: {fallback_error}")
+            except Exception as e:
+                logger.error(f"Erreur extraction exercices v2.0: {e}")
     
     # Enrichir avec la liste des exercices pour l'interface - même format que l'ancien système
     enriched_program = {
@@ -1243,133 +1249,6 @@ def get_next_intelligent_session(user_id: int, db: Session = Depends(get_db)):
             }
         else:
             raise HTTPException(status_code=500, detail="Erreur de sélection d'exercices")
-
-def generate_program_exercises(user: User, program: ProgramCreate, db: Session) -> List[Dict[str, Any]]:
-    """Génère une liste d'exercices pour le programme basé sur les zones focus"""
-    import logging
-    logger = logging.getLogger(__name__)
-    
-    # 1. Récupérer TOUS les exercices une seule fois
-    all_exercises = db.query(Exercise).all()
-    logger.info(f"Total exercices en DB: {len(all_exercises)}")
-    
-    # 2. Obtenir équipement disponible
-    available_equipment = get_available_equipment(user.equipment_config)
-    logger.info(f"Équipement disponible: {available_equipment}")
-    
-    # 3. Filtrer par niveau d'expérience
-    level_mapping = {
-        'beginner': ['beginner', 'intermediate'],
-        'intermediate': ['beginner', 'intermediate', 'advanced'], 
-        'advanced': ['beginner', 'intermediate', 'advanced']
-    }
-    allowed_difficulties = level_mapping.get(user.experience_level, ['beginner'])
-    
-    level_filtered = [
-        ex for ex in all_exercises 
-        if ex.difficulty in allowed_difficulties
-    ]
-    logger.info(f"Après filtre niveau {user.experience_level}: {len(level_filtered)} exercices")
-    
-    # 4. Filtrer par équipement disponible
-    equipment_filtered = []
-    for ex in level_filtered:
-        if can_perform_exercise(ex, available_equipment):
-            equipment_filtered.append(ex)
-    
-    logger.info(f"Après filtre équipement: {len(equipment_filtered)} exercices")
-        
-    # 5. Grouper par focus_areas avec mapping correct
-    exercises_by_focus = {}
-
-    # Import du mapping existant
-    from backend.constants import exercise_matches_focus_area
-
-    # Fallback si focus_areas vide
-    effective_focus_areas = program.focus_areas
-    if not effective_focus_areas or len(effective_focus_areas) == 0:
-        logger.warning("Aucune focus_areas définie, utilisation des defaults")
-        effective_focus_areas = ["pectoraux", "dos", "jambes"]
-
-    for focus_area in effective_focus_areas:
-        matching_exercises = [
-            ex for ex in equipment_filtered
-            if exercise_matches_focus_area(ex.muscle_groups, focus_area)  # ✅ UTILISE LE MAPPING
-        ]
-        exercises_by_focus[focus_area] = matching_exercises
-        logger.info(f"Focus '{focus_area}': {len(matching_exercises)} exercices")
-    
-    # 6. Sélectionner exercices par focus area
-    selected_exercises = []
-    max_exercises_per_focus = 2
-
-    for focus_area, exercises in exercises_by_focus.items():
-        if exercises:
-            selected = exercises[:max_exercises_per_focus]
-            selected_exercises.extend(selected)
-            logger.info(f"Sélectionné {len(selected)} exercices pour '{focus_area}'")
-
-    # AJOUTER CETTE DÉDUPLICATION :
-    seen_ids = set()
-    deduplicated_exercises = []
-    for ex in selected_exercises:
-        if ex.id not in seen_ids:
-            deduplicated_exercises.append(ex)
-            seen_ids.add(ex.id)
-        else:
-            logger.info(f"Exercice dupliqué ignoré: {ex.name} (ID: {ex.id})")
-
-    selected_exercises = deduplicated_exercises
-    logger.info(f"Après déduplication: {len(selected_exercises)} exercices uniques")
-    
-    # 7. Limiter le nombre total d'exercices selon la durée
-    duration_limits = {
-        15: 2,   # 15min = max 2 exercices
-        30: 4,   # 30min = max 4 exercices  
-        45: 6,   # 45min = max 6 exercices
-        60: 8,   # 60min = max 8 exercices
-        90: 10   # 90min = max 10 exercices
-    }
-    
-    max_total = duration_limits.get(program.session_duration_minutes, 6)
-    if len(selected_exercises) > max_total:
-        selected_exercises = selected_exercises[:max_total]
-        logger.info(f"Limité à {max_total} exercices pour {program.session_duration_minutes}min")
-    
-    # Construire le pool d'exercices avec métadonnées ML
-    exercise_pool = []
-    for ex in selected_exercises:
-        # Calculer priorité basée sur focus areas
-        priority = 3  # neutre par défaut
-        if ex.muscle_groups:
-            for muscle in ex.muscle_groups:
-                if muscle.lower() in [fa.lower() for fa in program.focus_areas]:
-                    priority = 5  # prioritaire
-                    break
-        
-        exercise_pool.append({
-            "exercise_id": ex.id,
-            "exercise_name": ex.name,
-            "priority": priority,
-            "constraints": {
-                "min_recovery_hours": 48,
-                "max_frequency_per_week": 2,
-                "required_equipment": ex.equipment_required or []
-            },
-            "default_sets": ex.default_sets,
-            "default_reps_range": [ex.default_reps_min, ex.default_reps_max],
-            "muscle_groups": ex.muscle_groups
-        })
-    
-    # Structure du nouveau format
-    return {
-        "exercise_pool": exercise_pool,
-        "session_templates": {
-            "rotation": determine_rotation_pattern(program.focus_areas),
-            "exercises_per_session": min(6, program.session_duration_minutes // 10),
-            "target_duration": program.session_duration_minutes
-        }
-    }
 
 def determine_rotation_pattern(focus_areas: List[str]) -> List[str]:
     """Détermine le pattern de rotation optimal basé sur les muscle_groups réels"""

@@ -115,15 +115,17 @@ class Program(Base):
     base_quality_score = Column(Float, default=0.0)  # Score 0-100
     user_modifications = Column(JSON, default=lambda: [])  # Historique changements
     
-    # VERSION - CHAMP MANQUANT CRITIQUE !
-    format_version = Column(String(10), default="2.0")
-    
-    # LEGACY - Pour compatibilité avec l'ancien code
-    exercises = Column(JSON, nullable=True, default=lambda: [])
-    goals = Column(JSON, nullable=True, default=lambda: [])
-    
+    # Structure temporelle v2.0
+    weekly_structure = Column(JSON, nullable=False, default=lambda: [])
+    progression_rules = Column(JSON, nullable=False, default=lambda: {})
+        
+    # Métadonnées v2.0
+    started_at = Column(DateTime, nullable=True)
+    estimated_completion = Column(DateTime, nullable=True)
+    base_quality_score = Column(Float, default=75.0)
+        
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
-    format_version = Column(String(10), default="1.0") # VERSION - Pour distinguer les formats
+    format_version = Column(String(10), default="2.0")  # Une seule déclaration
     updated_at = Column(DateTime, default=datetime.now(timezone.utc))
     is_active = Column(Boolean, default=True)
     

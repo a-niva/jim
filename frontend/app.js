@@ -9776,21 +9776,31 @@ async function showWeeklyPlanning() {
 
 // ===== PROGRAM MANAGER INTEGRATION =====
 async function showProgramManager() {
-    if (!window.programManager) {
-        window.programManager = new ProgramManagerView();
-    }
+    console.log('📋 Opening program manager...');
     
-    const success = await window.programManager.initialize();
-    if (!success) {
-        window.showToast('Aucun programme trouvé. Créez votre programme !', 'warning');
-        setTimeout(() => {
-            window.showProgramBuilder();
-        }, 1500);
-        return;
+    try {
+        const activeProgram = await apiGet(`/api/users/${currentUser.id}/programs/active`);
+        
+        if (!activeProgram || !activeProgram.weekly_structure) {
+            console.warn('⚠️ Programme v2.0 requis');
+            showToast('Veuillez créer un nouveau programme', 'warning');
+            // Rediriger vers création de programme
+            return;
+        }
+        
+        showView('program-manager');
+        
+        if (!window.programManager) {
+            const { ProgramManagerView } = await import('./program-manager.js');
+            window.programManager = new ProgramManagerView();
+        }
+        
+        await window.programManager.initialize();
+        
+    } catch (error) {
+        console.error('❌ Erreur program manager:', error);
+        showToast('Erreur lors de l\'ouverture du gestionnaire', 'error');
     }
-    
-    // S'assurer que la vue est affichée
-    showView('program-manager');
 }
 
 
