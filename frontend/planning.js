@@ -23,10 +23,16 @@ class PlanningManager {
     // ===== INITIALISATION =====
     
     async initialize() {
-        this.container = document.getElementById('planningContainer');
         if (!this.container) {
-            console.error('Container planningContainer introuvable');
+            console.error('Container planning introuvable');
             return false;
+        }
+        
+        // S'assurer que la vue parent est visible
+        const planningView = document.getElementById('planning');
+        if (planningView && !planningView.classList.contains('active')) {
+            planningView.classList.add('active');
+            planningView.style.display = 'block';
         }
         
         try {
@@ -935,6 +941,17 @@ document.addEventListener('DOMContentLoaded', () => {
 window.showPlanning = async function() {
     console.log('🔍 showPlanning() appelée');
     window.showView('planning');
+    
+    // CORRECTION: Attendre que showView soit complètement exécuté
+    await new Promise(resolve => setTimeout(resolve, 0));
+    
+    // Vérifier que la vue est bien active
+    const planningView = document.getElementById('planning');
+    if (!planningView.classList.contains('active')) {
+        console.error('❌ La vue planning n\'est pas active après showView');
+        planningView.classList.add('active');
+        planningView.style.display = 'block';
+    }
     
     if (!window.planningManager) {
         console.log('🆕 Création PlanningManager');

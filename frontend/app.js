@@ -586,6 +586,8 @@ function showView(viewName) {
     const view = document.getElementById(viewName);
     if (view) {
         view.classList.add('active');
+        // Forcer l'affichage de la vue
+        view.style.display = 'block';
     }
     
     const navItem = document.querySelector(`[onclick="showView('${viewName}')"]`);
