@@ -1323,22 +1323,18 @@ class WeeklyPlannerView {
     }
 
     async deleteSession(sessionId) {
-        // Vérifier si c'est une session temporaire
-        if (sessionId.toString().startsWith('temp-')) {
-            window.showToast('Les séances auto-générées ne peuvent pas être supprimées', 'info');
-            return;
-        }
-        
         if (!confirm('Êtes-vous sûr de vouloir supprimer cette séance ?')) {
             return;
         }
         
         try {
-            await window.apiDelete(`/api/planned-sessions/${sessionId}`);
-            window.showToast('Séance supprimée', 'success');
-            await this.refresh();
+            const result = await window.apiDelete(`/api/planned-sessions/${sessionId}`);
+            if (result.success) {
+                window.showToast('Séance supprimée', 'success');
+                await this.refresh();
+            }
         } catch (error) {
-            console.error('Erreur suppression:', error);
+            console.error('Erreur suppression séance:', error);
             window.showToast('Erreur lors de la suppression', 'error');
         }
     }

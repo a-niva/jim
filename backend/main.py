@@ -1237,18 +1237,42 @@ def get_next_intelligent_session(user_id: int, db: Session = Depends(get_db)):
         logger.error(f"Erreur sélection intelligente pour user {user_id}: {str(e)}")
         logger.error(f"Type erreur: {type(e).__name__}")
         
-        # Fallback sur sélection basique
-        if program.exercises and isinstance(program.exercises, dict):
-            pool = program.exercises.get('exercise_pool', [])
-            return {
-                "selected_exercises": pool[:6],
-                "session_metadata": {
-                    "ml_used": False,
-                    "reason": f"Erreur ML: {str(e)}"
-                }
-            }
-        else:
-            raise HTTPException(status_code=500, detail="Erreur de sélection d'exercices")
+        # Fallback sur première séance du programme v2.0
+        if program.weekly_structure and len(program.weekly_structure) > 0:
+            try:
+                week_data = program.weekly_structure[0]  # Première semaine
+                if "sessions" in week_data and len(week_data["sessions"]) > 0:
+                    first_session = week_data["sessions"][0]
+                    exercise_pool = first_session.get("exercise_pool", [])
+                    
+                    # Limiter à 6 exercices et enrichir
+                    selected = []
+                    for ex in exercise_pool[:6]:
+                        selected.append({
+                            "exercise_id": ex["exercise_id"],
+                            "exercise_name": ex.get("exercise_name", ""),
+                            "sets": ex.get("sets", 3),
+                            "target_reps": (ex.get("reps_min", 8) + ex.get("reps_max", 12)) // 2,
+                            "predicted_weight": 20.0,  # Poids par défaut
+                            "selection_reason": "Sélection de secours",
+                            "priority_score": 0.5
+                        })
+                    
+                    return {
+                        "selected_exercises": selected,
+                        "session_metadata": {
+                            "ml_used": False,
+                            "reason": f"Fallback suite erreur: {str(e)}",
+                            "estimated_duration": len(selected) * 10,
+                            "muscle_distribution": {},
+                            "warnings": ["Sélection ML indisponible - programme standard utilisé"]
+                        }
+                    }
+            except Exception as fallback_error:
+                logger.error(f"Erreur fallback v2.0: {fallback_error}")
+        
+        # Si tout échoue
+        raise HTTPException(status_code=500, detail="Erreur de sélection d'exercices")
 
 def determine_rotation_pattern(focus_areas: List[str]) -> List[str]:
     """Détermine le pattern de rotation optimal basé sur les muscle_groups réels"""
