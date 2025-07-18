@@ -9770,6 +9770,76 @@ function addScoreAnimations() {
 // Initialiser les animations au chargement
 addScoreAnimations();
 
+// ===== NOUVELLES FONCTIONS PLANNING =====
+
+async function showPlanning() {
+    console.log('🔍 showPlanning() appelée');
+    showView('planning');
+    
+    if (!window.planningManager) {
+        console.log('Initialisation PlanningManager...');
+        // Le PlanningManager sera initialisé par planning.js
+        window.planningManager = new window.PlanningManager('planningContainer');
+        await window.planningManager.initialize();
+    } else {
+        await window.planningManager.refresh();
+    }
+}
+
+async function showProgramInterface() {
+    console.log('🔍 showProgramInterface() appelée');
+    
+    try {
+        // Vérifier si un programme existe
+        const activeProgram = await apiGet(`/api/users/${currentUser.id}/programs/active`);
+        
+        if (!activeProgram || !activeProgram.id) {
+            // Pas de programme = rediriger vers création
+            console.log('Aucun programme actif, redirection vers builder');
+            window.showProgramBuilder();
+            return;
+        }
+        
+        // Programme existe = afficher modal choix séances
+        showProgramChoiceModal(activeProgram);
+        
+    } catch (error) {
+        console.error('Erreur vérification programme:', error);
+        window.showToast('Erreur lors de la vérification du programme', 'error');
+    }
+}
+
+function showProgramChoiceModal(program) {
+    const modalContent = `
+        <div class="program-choice-modal">
+            <h3>Choisir votre séance</h3>
+            <p>Sélectionnez une séance ou planifiez votre semaine :</p>
+            
+            <div class="choice-buttons">
+                <button class="btn btn-primary large" onclick="showNextSession()">
+                    <i class="fas fa-play"></i> Prochaine séance
+                </button>
+                
+                <button class="btn btn-secondary large" onclick="showPlanningFromProgram()">
+                    <i class="fas fa-calendar"></i> Planifier des séances
+                </button>
+            </div>
+        </div>
+    `;
+    
+    showModal('Programme', modalContent);
+}
+
+function showNextSession() {
+    closeModal();
+    // Lancer la prochaine séance du programme
+    startProgramWorkout();
+}
+
+function showPlanningFromProgram() {
+    closeModal();
+    showPlanning();
+}
 
 // ===== EXPOSITION GLOBALE =====
 window.showHomePage = showHomePage;
@@ -9932,3 +10002,9 @@ window.confirmStartWithCurrentOrder = confirmStartProgramWorkout;
 window.renderReorderableExercises = function(exercises) {
     return exercises.map((ex, index) => buildExerciseItemHTML(ex, index)).join('');
 };
+
+window.showPlanning = showPlanning;
+window.showProgramInterface = showProgramInterface;
+window.showProgramChoiceModal = showProgramChoiceModal;
+window.showNextSession = showNextSession;
+window.showPlanningFromProgram = showPlanningFromProgram;
