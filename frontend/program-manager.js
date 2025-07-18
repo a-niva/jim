@@ -119,7 +119,7 @@ class ProgramManagerView {
                         <i class="fas fa-play"></i>
                         Démarrer la séance du jour
                     </button>
-                    <button class="btn btn-secondary" onclick="window.showWeeklyPlanning()">
+                    <button class="btn btn-secondary" onclick="window.showPlanning()">
                         <i class="fas fa-calendar-alt"></i>
                         Voir le planning hebdomadaire
                     </button>

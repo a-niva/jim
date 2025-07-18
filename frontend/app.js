@@ -615,10 +615,13 @@ function showView(viewName) {
         case 'profile':
             loadProfile();
             break;
+        case 'planning':
+            // Initialisation gérée par showPlanning()
+            break;
         case 'program-manager':
             // Initialization handled by showProgramManager()
             break;
-    }
+        }
 }
 
 function showMainInterface() {
@@ -9767,75 +9770,6 @@ function addScoreAnimations() {
 // Initialiser les animations au chargement
 addScoreAnimations();
 
-// ===== WEEKLY PLANNER INTEGRATION =====
-async function showWeeklyPlanning() {
-    console.log('📅 Opening weekly planning view...');
-    
-    // S'assurer que la vue est visible
-    showView('weekly-planning');
-    
-    // Attendre que la vue soit visible
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // Vérifier que le container existe
-    const container = document.getElementById('weeklyPlanningContainer');
-    if (!container) {
-        console.error('❌ weeklyPlanningContainer not found!');
-        return;
-    }
-    
-    console.log('✅ Container found:', {
-        id: container.id,
-        parent: container.parentElement?.id,
-        visible: container.offsetHeight > 0
-    });
-    
-    // Initialiser ou rafraîchir le planner
-    if (!window.weeklyPlanner) {
-        console.log('🆕 Creating new WeeklyPlannerView...');
-        window.weeklyPlanner = new WeeklyPlannerView('weeklyPlanningContainer');
-        
-        try {
-            await window.weeklyPlanner.initialize();
-            console.log('✅ WeeklyPlannerView initialized successfully');
-        } catch (error) {
-            console.error('❌ Failed to initialize WeeklyPlannerView:', error);
-        }
-    } else {
-        console.log('🔄 Refreshing existing WeeklyPlannerView...');
-        await window.weeklyPlanner.refresh();
-    }
-}
-
-// ===== PROGRAM MANAGER INTEGRATION =====
-async function showProgramManager() {
-    console.log('📋 Opening program manager...');
-    
-    try {
-        const activeProgram = await apiGet(`/api/users/${currentUser.id}/programs/active`);
-        
-        if (!activeProgram || !activeProgram.weekly_structure) {
-            console.warn('⚠️ Programme v2.0 requis');
-            showToast('Veuillez créer un nouveau programme', 'warning');
-            // Rediriger vers création de programme
-            return;
-        }
-        
-        showView('program-manager');
-        
-        if (!window.programManager) {
-            const { ProgramManagerView } = await import('./program-manager.js');
-            window.programManager = new ProgramManagerView();
-        }
-        
-        await window.programManager.initialize();
-        
-    } catch (error) {
-        console.error('❌ Erreur program manager:', error);
-        showToast('Erreur lors de l\'ouverture du gestionnaire', 'error');
-    }
-}
-
 
 // ===== EXPOSITION GLOBALE =====
 window.showHomePage = showHomePage;
@@ -9998,6 +9932,3 @@ window.confirmStartWithCurrentOrder = confirmStartProgramWorkout;
 window.renderReorderableExercises = function(exercises) {
     return exercises.map((ex, index) => buildExerciseItemHTML(ex, index)).join('');
 };
-// Export Weekly Planner
-window.showWeeklyPlanning = showWeeklyPlanning;
-window.showProgramManager = showProgramManager;
