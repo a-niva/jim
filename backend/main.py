@@ -1606,63 +1606,6 @@ def calculate_session_duration(exercises_data, target_duration_minutes):
         "adjustments_made": estimated_minutes > target_duration_minutes * 1.1
     }
 
-def create_planned_sessions_for_program(db: Session, program):
-    """Crée les séances planifiées pour les 2 premières semaines du programme"""
-    from datetime import date, timedelta
-    
-    if not program.weekly_structure:
-        return
-    
-    # Démarrer à partir de lundi prochain
-    today = date.today()
-    days_until_monday = (7 - today.weekday()) % 7
-    start_date = today + timedelta(days=days_until_monday if days_until_monday > 0 else 7)
-    
-    # Créer les séances pour les 2 premières semaines seulement
-    weeks_to_create = min(8, len(program.weekly_structure))
-    
-    for week_index in range(weeks_to_create):
-        week_data = program.weekly_structure[week_index]
-        sessions = week_data.get("sessions", [])
-        
-        # Répartir les séances sur la semaine (lundi, mercredi, vendredi par défaut)
-        session_days = [0, 2, 4]  # Lundi=0, Mercredi=2, Vendredi=4
-        
-        for session_index, session_template in enumerate(sessions[:3]):  # Max 3 séances/semaine
-            if session_index >= len(session_days):
-                break
-                
-            session_date = start_date + timedelta(
-                weeks=week_index, 
-                days=session_days[session_index]
-            )
-            
-            # Extraire les infos de la session
-            exercises = session_template.get("exercise_pool", [])
-            duration = session_template.get("estimated_duration_minutes", program.session_duration_minutes)
-            
-            # Détecter les muscles principaux
-            primary_muscles = []
-            for ex in exercises[:3]:
-                if "muscle_groups" in ex:
-                    primary_muscles.extend(ex["muscle_groups"])
-            
-            # Créer la séance planifiée
-            planned_session = PlannedSession(
-                user_id=program.user_id,
-                program_id=program.id,
-                planned_date=session_date,
-                exercises=exercises,
-                estimated_duration=duration,
-                primary_muscles=list(set(primary_muscles)),
-                predicted_quality_score=session_template.get("quality_score", 75.0),
-                status="planned"
-            )
-            
-            db.add(planned_session)
-    
-    db.commit()
-    logger.info(f"Créé {weeks_to_create * min(3, len(sessions))} séances planifiées")
 
 @app.post("/api/users/{user_id}/program-builder/generate", response_model=ComprehensiveProgramResponse)  
 def generate_comprehensive_program(
@@ -1832,84 +1775,6 @@ def generate_comprehensive_program(
         logger.error(f"Traceback complet: {traceback.format_exc()}")  # Ajouter ceci
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))  # Modifier pour voir l'erreur
-
-@app.post("/api/users/{user_id}/programs/activate-comprehensive")
-def activate_comprehensive_program(
-    user_id: int,
-    program_data: dict,
-    db: Session = Depends(get_db)
-):
-    """Persiste un programme généré par ProgramBuilder"""
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
-    
-    # Désactiver programmes existants
-    db.query(Program).filter(Program.user_id == user_id).update({"is_active": False})
-    
-    # Créer nouveau programme avec structure avancée
-    new_program = Program(
-        user_id=user_id,
-        name=program_data.get("name", "Programme personnalisé"),
-        sessions_per_week=program_data.get("sessions_per_week", 3),
-        session_duration_minutes=program_data.get("session_duration_minutes", 60),
-        focus_areas=program_data.get("focus_areas", []),
-        duration_weeks=program_data.get("duration_weeks", 8),
-        periodization_type=program_data.get("periodization_type", "linear"),
-        weekly_structure=program_data.get("weekly_structure", []),
-        progression_rules=program_data.get("progression_rules", {}),
-        base_quality_score=program_data.get("base_quality_score", 85.0),
-        format_version="2.0",
-        #exercises=[],  # Sera rempli par la logique de sélection
-        #goals=program_data.get("goals", ["muscle", "strength"]),
-        is_active=True,
-        current_week=1,
-        current_session_in_week=1
-    )
-
-    db.add(new_program)
-    db.commit()
-    db.refresh(new_program)
-    try:
-        populate_program_planning_intelligent(db, new_program)
-        logger.info(f"Séances planifiées intelligemment créées pour programme {new_program.id} pour user {user_id}")
-    except Exception as e:
-        logger.error(f"Erreur création séances planifiées: {e}")
-        
-    return {"message": "Programme activé", "program_id": new_program.id}
-
-@app.get("/api/users/{user_id}/comprehensive-program", response_model=ComprehensiveProgramResponse)
-def get_user_comprehensive_program(user_id: int, db: Session = Depends(get_db)):
-    """Récupérer le programme complet actuel + état progression"""
-    program = db.query(Program).filter(
-        Program.user_id == user_id,
-        Program.is_active == True
-    ).first()
-    
-    if not program:
-        raise HTTPException(status_code=404, detail="Aucun programme actif trouvé")
-    
-    # Mettre à jour l'état de progression si nécessaire
-    if program.format_version == "2.0":
-        # Calculer la semaine actuelle basée sur started_at
-        if program.started_at:
-            try:
-                now_utc = datetime.now(timezone.utc)
-                weeks_elapsed = safe_datetime_subtract(now_utc, program.started_at).days // 7
-            except Exception as e:
-                logger.warning(f"Erreur calcul semaines comprehensive program {program.id}: {e}")
-                weeks_elapsed = 0
-
-            program.current_week = min(weeks_elapsed + 1, program.duration_weeks)
-            
-            # Calculer estimated_completion si pas déjà fait
-            if not program.estimated_completion:
-                from datetime import timedelta
-                program.estimated_completion = program.started_at + timedelta(weeks=program.duration_weeks)
-                
-            db.commit()
-    
-    return program
 
 @app.put("/api/programs/{program_id}/reorder-session")
 def reorder_session_exercises(
@@ -3383,13 +3248,14 @@ def populate_program_planning_intelligent(db: Session, program):
             # Extraire et adapter les exercices selon l'historique
             exercises = session_template.get("exercise_pool", [])
             
-            # LEVERAGE SessionQualityEngine pour scorer la séance
+            # LEVERAGE fonctions existantes pour scorer et adapter
             try:
-                # Utiliser votre moteur ML existant pour adapter les exercices
+                # Utiliser votre système d'adaptation existant
                 adapted_exercises = adapt_session_exercises(
                     exercises, program.user_id, session_date, db
                 )
-                quality_score = calculate_session_quality_score_ml(
+                # UTILISER votre fonction existante calculate_session_quality_score
+                quality_score = calculate_session_quality_score(
                     adapted_exercises, program.user_id, db
                 )
             except Exception as e:
@@ -3397,8 +3263,8 @@ def populate_program_planning_intelligent(db: Session, program):
                 adapted_exercises = exercises
                 quality_score = session_template.get("quality_score", 75.0)
             
-            # Calculer durée estimée
-            duration = estimate_session_duration_smart(adapted_exercises)
+            # UTILISER votre fonction existante calculate_session_duration
+            duration = calculate_session_duration(adapted_exercises)
             
             # Détecter muscles principaux
             primary_muscles = extract_primary_muscles(adapted_exercises)
@@ -3446,90 +3312,47 @@ def adapt_session_exercises(exercises: list, user_id: int, session_date: date, d
         
         # Si exercice fait récemment, essayer de trouver une alternative
         if ex_id in recent_exercise_ids:
-            # LEVERAGE votre système d'alternatives existant
+            # UTILISER votre endpoint d'alternatives existant
             try:
-                alternatives = get_exercise_alternatives_ml(ex_id, user_id, db)
-                if alternatives and len(alternatives) > 0:
-                    # Prendre la meilleure alternative non récente
-                    best_alt = None
-                    for alt in alternatives[:3]:  # Top 3 alternatives
-                        if alt.get("exercise_id") not in recent_exercise_ids:
-                            best_alt = alt
-                            break
+                # Récupérer alternatives via la base de données (pas d'API call interne)
+                source_exercise = db.query(Exercise).filter(Exercise.id == ex_id).first()
+                if source_exercise and source_exercise.muscle_groups:
+                    main_muscle = source_exercise.muscle_groups[0]
                     
-                    if best_alt:
-                        # Adapter l'exercice avec l'alternative
-                        adapted_ex = ex.copy()
-                        adapted_ex.update({
-                            "exercise_id": best_alt["exercise_id"],
-                            "exercise_name": best_alt["name"],
-                            "muscle_groups": best_alt.get("muscle_groups", ex.get("muscle_groups")),
-                            "adaptation_reason": "Éviter répétition récente"
-                        })
-                        adapted_exercises.append(adapted_ex)
-                        continue
+                    # Chercher alternatives même muscle, non récentes
+                    alternatives = db.query(Exercise).filter(
+                        Exercise.id != ex_id,
+                        cast(Exercise.muscle_groups, JSONB).contains([main_muscle])
+                    ).limit(5).all()
+                    
+                    # Prendre la première alternative non récente
+                    for alt in alternatives:
+                        if alt.id not in recent_exercise_ids:
+                            # Adapter l'exercice avec l'alternative
+                            adapted_ex = ex.copy()
+                            adapted_ex.update({
+                                "exercise_id": alt.id,
+                                "exercise_name": alt.name,
+                                "muscle_groups": alt.muscle_groups,
+                                "adaptation_reason": "Éviter répétition récente"
+                            })
+                            adapted_exercises.append(adapted_ex)
+                            break
+                    else:
+                        # Aucune alternative trouvée, garder l'original
+                        adapted_exercises.append(ex)
+                else:
+                    adapted_exercises.append(ex)
             except Exception as e:
                 logger.warning(f"Erreur alternatives pour exercice {ex_id}: {e}")
+                adapted_exercises.append(ex)
         
         # Garder l'exercice original
         adapted_exercises.append(ex)
     
     return adapted_exercises
 
-def calculate_session_quality_score_ml(exercises: list, user_id: int, db: Session) -> float:
-    """Utilise SessionQualityEngine pour scorer une séance planifiée"""
-    
-    try:
-        # LEVERAGE votre SessionQualityEngine existant
-        # (adapter selon votre implémentation exacte)
-        
-        # Simuler le scoring en attendant l'intégration complète
-        base_score = 75.0
-        
-        # Bonifier selon variété musculaire
-        muscle_groups = set()
-        for ex in exercises:
-            muscle_groups.update(ex.get("muscle_groups", []))
-        
-        variety_bonus = min(15, len(muscle_groups) * 3)  # +3 par groupe musculaire
-        
-        # Bonifier selon balance exercices composés/isolation
-        compound_count = sum(1 for ex in exercises if ex.get("exercise_type") == "compound")
-        isolation_count = len(exercises) - compound_count
-        
-        balance_bonus = 10 if 0.3 <= (compound_count / len(exercises)) <= 0.7 else 0
-        
-        final_score = min(100, base_score + variety_bonus + balance_bonus)
-        
-        return final_score
-        
-    except Exception as e:
-        logger.warning(f"Erreur scoring ML: {e}")
-        return 75.0
-
-def estimate_session_duration_smart(exercises: list) -> int:
-    """Estime intelligemment la durée d'une séance"""
-    
-    total_duration = 0
-    
-    for ex in exercises:
-        sets = ex.get("sets", 3)
-        reps_avg = (ex.get("reps_min", 8) + ex.get("reps_max", 12)) / 2
-        
-        # Temps par série selon type d'exercice
-        exercise_type = ex.get("exercise_type", "compound")
-        if exercise_type == "compound":
-            time_per_set = 3.0  # 3 minutes (exercice + repos)
-        else:
-            time_per_set = 2.0  # 2 minutes (isolation)
-        
-        exercise_duration = sets * time_per_set
-        total_duration += exercise_duration
-    
-    # Ajouter échauffement et transitions
-    total_duration += 8  # 8 minutes échauffement/transitions
-    
-    return int(total_duration)
+# PAS BESOIN DE CES FONCTIONS - UTILISER LES EXISTANTES
 
 def extract_primary_muscles(exercises: list) -> list:
     """Extrait les groupes musculaires principaux d'une séance"""
