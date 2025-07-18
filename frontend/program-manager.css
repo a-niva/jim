@@ -1,20 +1,40 @@
-/* ===== PROGRAM MANAGER CSS - VERSION MODERNISÉE ===== */
+/* =====================================================
+   PLANNING MODERNE - CSS COMPLET MOBILE-FIRST
+   ===================================================== */
 
-/* ========================================= */
-/*             LAYOUT PRINCIPAL              */
-/* ========================================= */
+/* Variables spécifiques au Planning */
+:root {
+    --planning-radius: 20px;
+    --planning-radius-sm: 12px;
+    --planning-radius-lg: 24px;
+    --planning-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    --planning-shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.12);
+    --planning-shadow-active: 0 2px 10px rgba(0, 0, 0, 0.15);
+    --planning-glass: rgba(255, 255, 255, 0.05);
+    --planning-glass-border: rgba(255, 255, 255, 0.1);
+    --planning-spacing: clamp(1rem, 4vw, 2rem);
+    --planning-gap: clamp(0.75rem, 3vw, 1.5rem);
+    --planning-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --planning-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* =====================================================
+   LAYOUT PRINCIPAL & CONTAINER
+   ===================================================== */
 
 .program-manager-container {
-    max-width: 1200px;
+    width: 100%;
+    max-width: 1400px;
     margin: 0 auto;
-    padding: 1.5rem;
-    animation: fadeInUp 0.6s ease-out;
+    padding: var(--planning-spacing);
+    min-height: calc(100vh - var(--header-height) - var(--bottom-nav-height));
+    animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes fadeInUp {
     from {
         opacity: 0;
-        transform: translateY(20px);
+        transform: translateY(30px);
     }
     to {
         opacity: 1;
@@ -22,20 +42,22 @@
     }
 }
 
-/* ========================================= */
-/*            HEADER DU PROGRAMME            */
-/* ========================================= */
+/* =====================================================
+   HEADER PROGRAMME PRINCIPAL
+   ===================================================== */
 
 .program-header {
-    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 2rem;
-    margin-bottom: 2rem;
-    color: var(--text);
     position: relative;
+    background: linear-gradient(135deg, var(--planning-glass), rgba(255, 255, 255, 0.02));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--planning-glass-border);
+    border-radius: var(--planning-radius-lg);
+    padding: clamp(1.5rem, 5vw, 2.5rem);
+    margin-bottom: var(--planning-gap);
     overflow: hidden;
-    transition: all 0.3s ease;
+    transition: var(--planning-transition);
+    animation: slideDown 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
 }
 
 .program-header::before {
@@ -45,82 +67,94 @@
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+    background: linear-gradient(90deg, var(--primary), var(--secondary), var(--primary));
+    background-size: 200% 100%;
+    animation: shimmer 3s infinite;
 }
 
 .program-header:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    transform: translateY(-4px);
+    box-shadow: var(--planning-shadow-hover);
+    border-color: rgba(255, 255, 255, 0.15);
 }
 
 .program-header h2 {
     margin: 0 0 1.5rem 0;
-    font-size: 1.875rem;
+    font-size: clamp(1.5rem, 5vw, 2.25rem);
     font-weight: 700;
-    color: var(--text);
     background: linear-gradient(135deg, var(--primary), var(--secondary));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    line-height: 1.2;
 }
 
-/* ========================================= */
-/*              MÉTA DONNÉES                 */
-/* ========================================= */
+/* =====================================================
+   MÉTADONNÉES PROGRAMME
+   ===================================================== */
 
 .program-meta {
     display: flex;
-    gap: 2rem;
-    margin-bottom: 1.5rem;
     flex-wrap: wrap;
+    gap: clamp(1rem, 3vw, 2rem);
+    margin-bottom: 1.5rem;
 }
 
 .meta-item {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--planning-radius-sm);
     font-size: 0.875rem;
     color: var(--text-muted);
-    transition: color 0.2s ease;
+    transition: var(--planning-transition);
+    border: 1px solid transparent;
 }
 
 .meta-item:hover {
     color: var(--text);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--planning-glass-border);
+    transform: translateY(-2px);
 }
 
 .meta-item i {
     width: 20px;
     color: var(--primary);
-    font-size: 1rem;
-    transition: transform 0.2s ease;
+    font-size: 1.1rem;
+    transition: transform 0.3s var(--planning-bounce);
 }
 
 .meta-item:hover i {
-    transform: scale(1.1);
+    transform: scale(1.2);
 }
 
-/* ========================================= */
-/*            BARRE DE PROGRESSION           */
-/* ========================================= */
+/* =====================================================
+   BARRE DE PROGRESSION PROGRAMME
+   ===================================================== */
 
 .progress-bar-container {
-    margin-top: 1.5rem;
+    margin-top: 2rem;
 }
 
 .progress-bar {
-    height: 10px;
-    background: var(--bg-tertiary);
-    border-radius: 8px;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
     overflow: hidden;
     position: relative;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
-    border-radius: 8px;
-    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    border-radius: 4px;
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
+    overflow: hidden;
 }
 
 .progress-fill::after {
@@ -130,13 +164,8 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
     animation: shimmer 2s infinite;
-}
-
-@keyframes shimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
 }
 
 .progress-text {
@@ -145,48 +174,56 @@
     font-size: 0.8rem;
     color: var(--text-muted);
     text-align: center;
+    font-weight: 500;
 }
 
-/* ========================================= */
-/*           NAVIGATION SEMAINES             */
-/* ========================================= */
+/* =====================================================
+   NAVIGATION SEMAINES
+   ===================================================== */
 
 .week-navigation {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 2rem;
-    margin: 2.5rem 0;
-    padding: 1.5rem;
-    background: var(--bg-secondary);
-    border-radius: 16px;
-    border: 1px solid var(--border);
+    gap: clamp(1rem, 4vw, 2.5rem);
+    margin: var(--planning-gap) 0;
+    padding: clamp(1rem, 3vw, 2rem);
+    background: var(--planning-glass);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--planning-glass-border);
+    border-radius: var(--planning-radius);
+    animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
 }
 
 .week-navigation h3 {
     margin: 0;
-    font-size: 1.5rem;
+    font-size: clamp(1.125rem, 4vw, 1.5rem);
     font-weight: 600;
     color: var(--text);
-    min-width: 200px;
     text-align: center;
+    min-width: clamp(180px, 40vw, 300px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .btn-nav {
-    width: 48px;
-    height: 48px;
+    width: clamp(44px, 10vw, 56px);
+    height: clamp(44px, 10vw, 56px);
     border-radius: 50%;
-    border: 2px solid var(--border);
-    background: var(--bg-card);
+    border: 2px solid var(--planning-glass-border);
+    background: var(--planning-glass);
+    backdrop-filter: blur(10px);
     color: var(--text);
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: var(--planning-transition);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.2rem;
+    font-size: clamp(1rem, 3vw, 1.25rem);
     position: relative;
     overflow: hidden;
+    flex-shrink: 0;
 }
 
 .btn-nav::before {
@@ -198,8 +235,9 @@
     height: 0;
     background: var(--primary);
     border-radius: 50%;
-    transition: all 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     transform: translate(-50%, -50%);
+    z-index: 1;
 }
 
 .btn-nav:hover:not(:disabled)::before {
@@ -210,8 +248,7 @@
 .btn-nav:hover:not(:disabled) {
     border-color: var(--primary);
     transform: scale(1.1);
-    color: white;
-    z-index: 1;
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
 }
 
 .btn-nav:active:not(:disabled) {
@@ -219,7 +256,7 @@
 }
 
 .btn-nav:disabled {
-    opacity: 0.4;
+    opacity: 0.3;
     cursor: not-allowed;
     transform: scale(0.9);
 }
@@ -227,26 +264,31 @@
 .btn-nav i {
     position: relative;
     z-index: 2;
+    transition: color 0.3s ease;
 }
 
-/* ========================================= */
-/*            GRILLE DES SÉANCES             */
-/* ========================================= */
+.btn-nav:hover:not(:disabled) i {
+    color: white;
+}
+
+/* =====================================================
+   GRILLE DES SESSIONS
+   ===================================================== */
 
 .sessions-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 1.5rem;
+    gap: var(--planning-gap);
     margin-bottom: 2rem;
-    width: 100%;
+    animation: staggerIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.6s both;
 }
 
 @media (min-width: 768px) {
     .sessions-grid {
-        grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
         max-width: 1200px;
         margin: 0 auto 2rem;
-        justify-items: center;
+        gap: clamp(1rem, 3vw, 2rem);
     }
 }
 
@@ -257,21 +299,21 @@
     }
 }
 
-/* ========================================= */
-/*              CARTES SÉANCES               */
-/* ========================================= */
+/* =====================================================
+   CARTES DE SESSIONS
+   ===================================================== */
 
 .session-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 1.5rem;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: var(--planning-glass);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--planning-glass-border);
+    border-radius: var(--planning-radius);
+    padding: clamp(1.25rem, 4vw, 2rem);
+    transition: var(--planning-transition);
     position: relative;
     overflow: hidden;
-    max-width: 600px;
-    width: 100%;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    animation: sessionCardIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .session-card::before {
@@ -281,60 +323,67 @@
     left: 0;
     right: 0;
     height: 3px;
-    background: var(--border);
-    transition: all 0.3s ease;
+    background: linear-gradient(90deg, var(--border), var(--primary));
+    transition: var(--planning-transition);
 }
 
 .session-card:hover {
-    border-color: var(--primary);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-    transform: translateY(-4px);
+    transform: translateY(-6px);
+    box-shadow: var(--planning-shadow-hover);
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
 }
 
 .session-card:hover::before {
     background: linear-gradient(90deg, var(--primary), var(--secondary));
+    height: 4px;
+}
+
+.session-card:active {
+    transform: translateY(-2px);
+    transition: transform 0.1s ease;
 }
 
 .session-card.current {
     border-color: var(--primary);
-    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(var(--primary-rgb), 0.05) 100%);
+    background: linear-gradient(135deg, var(--planning-glass), rgba(99, 102, 241, 0.05));
+    box-shadow: 0 0 0 1px var(--primary), var(--planning-shadow);
 }
 
 .session-card.current::before {
     background: linear-gradient(90deg, var(--primary), var(--secondary));
 }
 
-/* ========================================= */
-/*            HEADER DES SÉANCES             */
-/* ========================================= */
+/* =====================================================
+   HEADER DES SESSIONS
+   ===================================================== */
 
 .session-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 1.25rem;
+    margin-bottom: 1.5rem;
     gap: 1rem;
 }
 
-.session-header > div:first-child {
-    flex: 1;
-}
-
 .session-header h4 {
-    margin: 0 0 0.75rem 0;
+    margin: 0 0 0.5rem 0;
     color: var(--text);
-    font-size: 1.125rem;
+    font-size: clamp(1rem, 3vw, 1.25rem);
     font-weight: 600;
+    line-height: 1.3;
+    flex: 1;
 }
 
 .session-score {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    flex-shrink: 0;
 }
 
 .score-badge {
-    padding: 0.375rem 1rem;
+    padding: 0.5rem 1rem;
     border-radius: 20px;
     font-size: 0.75rem;
     font-weight: 600;
@@ -342,39 +391,46 @@
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    transition: all 0.3s ease;
-    animation: scorePopIn 0.5s ease-out;
+    transition: var(--planning-transition);
+    animation: scorePopIn 0.6s var(--planning-bounce);
+    position: relative;
+    overflow: hidden;
 }
 
-@keyframes scorePopIn {
-    0% {
-        opacity: 0;
-        transform: scale(0.8);
-    }
-    100% {
-        opacity: 1;
-        transform: scale(1);
-    }
+.score-badge::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.score-badge:hover::before {
+    left: 100%;
 }
 
 .score-badge:hover {
     transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
-.score-badge::before {
+.score-badge::after {
     content: '⭐';
     font-size: 0.875rem;
 }
 
-/* ========================================= */
-/*           DÉTAILS DES SÉANCES             */
-/* ========================================= */
+/* =====================================================
+   DÉTAILS DES SESSIONS
+   ===================================================== */
 
 .session-details {
     display: flex;
-    gap: 1.5rem;
-    margin-bottom: 1.25rem;
     flex-wrap: wrap;
+    gap: clamp(0.75rem, 2vw, 1.5rem);
+    margin-bottom: 1.5rem;
 }
 
 .session-details p {
@@ -384,21 +440,27 @@
     margin: 0;
     font-size: 0.875rem;
     color: var(--text-muted);
-    transition: color 0.2s ease;
+    transition: var(--planning-transition);
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--planning-radius-sm);
+    background: rgba(255, 255, 255, 0.03);
 }
 
 .session-details p:hover {
     color: var(--text);
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
 }
 
 .session-details i {
     width: 16px;
     color: var(--primary);
+    font-size: 1rem;
 }
 
-/* ========================================= */
-/*           LISTES D'EXERCICES              */
-/* ========================================= */
+/* =====================================================
+   LISTES D'EXERCICES
+   ===================================================== */
 
 .exercise-list {
     display: flex;
@@ -408,20 +470,31 @@
 }
 
 .exercise-list.sortable {
-    min-height: 100px;
+    min-height: 120px;
+    padding: 0.75rem;
+    border: 2px dashed rgba(255, 255, 255, 0.1);
+    border-radius: var(--planning-radius-sm);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.exercise-list.sortable:hover {
+    border-color: var(--primary);
+    background: rgba(99, 102, 241, 0.05);
 }
 
 .exercise-item {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    gap: clamp(0.75rem, 2vw, 1rem);
+    padding: clamp(0.875rem, 3vw, 1.25rem);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--planning-radius-sm);
+    transition: var(--planning-transition);
     position: relative;
     overflow: hidden;
+    cursor: grab;
+    min-height: 60px;
 }
 
 .exercise-item::before {
@@ -434,28 +507,39 @@
     background: var(--primary);
     transform: scaleY(0);
     transition: transform 0.3s ease;
+    transform-origin: bottom;
 }
 
 .exercise-item:hover {
-    background: var(--bg-tertiary);
+    background: rgba(255, 255, 255, 0.1);
     transform: translateX(8px);
     border-color: var(--primary);
+    box-shadow: var(--planning-shadow);
 }
 
 .exercise-item:hover::before {
     transform: scaleY(1);
 }
 
-.exercise-item.dragging {
-    opacity: 0.7;
-    transform: scale(0.98) rotate(2deg);
-    z-index: 1000;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+.exercise-item:active {
+    cursor: grabbing;
 }
 
-/* ========================================= */
-/*            HANDLES DE DRAG                */
-/* ========================================= */
+.exercise-item.dragging {
+    opacity: 0.8;
+    transform: scale(1.02) rotate(2deg);
+    z-index: 1000;
+    box-shadow: var(--planning-shadow-hover);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.exercise-item:last-child {
+    margin-bottom: 0;
+}
+
+/* =====================================================
+   HANDLES DE DRAG & DROP
+   ===================================================== */
 
 .drag-handle {
     display: flex;
@@ -463,16 +547,18 @@
     justify-content: center;
     cursor: move;
     color: var(--text-muted);
-    min-width: 48px;
-    min-height: 48px;
+    min-width: clamp(40px, 8vw, 48px);
+    min-height: clamp(40px, 8vw, 48px);
     touch-action: none;
     border-radius: 8px;
-    transition: all 0.2s ease;
+    transition: var(--planning-transition);
+    flex-shrink: 0;
 }
 
 .drag-handle:hover {
     color: var(--primary);
-    background: rgba(var(--primary-rgb), 0.1);
+    background: rgba(99, 102, 241, 0.1);
+    transform: scale(1.1);
 }
 
 .drag-handle:active {
@@ -480,33 +566,39 @@
 }
 
 .drag-handle i {
-    font-size: 1.125rem;
+    font-size: clamp(1rem, 3vw, 1.25rem);
 }
 
-/* ========================================= */
-/*            INFOS EXERCICES                */
-/* ========================================= */
+/* =====================================================
+   INFORMATIONS EXERCICES
+   ===================================================== */
 
 .exercise-name {
     flex: 1;
     font-weight: 500;
     color: var(--text);
-    font-size: 0.9375rem;
+    font-size: clamp(0.875rem, 2.5vw, 1rem);
+    line-height: 1.4;
+    min-width: 0;
 }
 
 .exercise-sets {
     color: var(--text-muted);
     font-size: 0.875rem;
     font-weight: 500;
-    background: var(--bg-tertiary);
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    transition: all 0.2s ease;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 0.375rem 0.875rem;
+    border-radius: 16px;
+    transition: var(--planning-transition);
+    flex-shrink: 0;
+    border: 1px solid transparent;
 }
 
 .exercise-item:hover .exercise-sets {
-    background: rgba(var(--primary-rgb), 0.1);
+    background: rgba(99, 102, 241, 0.15);
     color: var(--primary);
+    border-color: var(--primary);
+    transform: scale(1.05);
 }
 
 .no-exercises {
@@ -514,253 +606,207 @@
     color: var(--text-muted);
     font-style: italic;
     margin: 2rem 0;
-    padding: 2rem;
-    background: var(--bg-secondary);
-    border-radius: 12px;
-    border: 2px dashed var(--border);
+    padding: clamp(1.5rem, 4vw, 2.5rem);
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--planning-radius);
+    border: 2px dashed rgba(255, 255, 255, 0.1);
+    animation: pulse 2s infinite;
 }
 
-/* ========================================= */
-/*              BOUTONS                      */
-/* ========================================= */
+/* =====================================================
+   BOUTONS UTILITAIRES
+   ===================================================== */
 
 .btn-sm, .btn-xs {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--bg-tertiary);
+    border: 1px solid var(--planning-glass-border);
+    border-radius: var(--planning-radius-sm);
+    background: var(--planning-glass);
+    backdrop-filter: blur(8px);
     color: var(--text);
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     font-size: 0.875rem;
     font-weight: 500;
+    cursor: pointer;
+    transition: var(--planning-transition);
+    text-decoration: none;
     position: relative;
     overflow: hidden;
 }
 
 .btn-sm {
     padding: 0.5rem 1rem;
-    min-height: 40px;
+    min-height: 36px;
 }
 
 .btn-xs {
-    padding: 0.5rem;
-    min-width: 40px;
-    min-height: 40px;
-    font-size: 0.8125rem;
-}
-
-.btn-sm::before, .btn-xs::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 0;
-    height: 0;
-    background: var(--primary);
-    border-radius: 50%;
-    transition: all 0.3s ease;
-    transform: translate(-50%, -50%);
-}
-
-.btn-sm:hover::before, .btn-xs:hover::before {
-    width: 120%;
-    height: 120%;
+    padding: 0.375rem 0.75rem;
+    min-height: 32px;
+    font-size: 0.8rem;
 }
 
 .btn-sm:hover, .btn-xs:hover {
+    background: rgba(255, 255, 255, 0.1);
     border-color: var(--primary);
-    color: white;
-    transform: translateY(-1px);
+    color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: var(--planning-shadow);
 }
 
 .btn-sm:active, .btn-xs:active {
     transform: translateY(0);
 }
 
-.btn-sm i, .btn-xs i {
-    position: relative;
-    z-index: 2;
+/* =====================================================
+   ALTERNATIVES D'EXERCICES
+   ===================================================== */
+
+.alternatives-section {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--planning-glass-border);
 }
-
-/* ========================================= */
-/*           DRAG & DROP ÉTATS               */
-/* ========================================= */
-
-.sortable-ghost {
-    opacity: 0.5;
-    background: rgba(var(--primary-rgb), 0.1);
-    border: 2px dashed var(--primary);
-    transform: scale(0.98);
-}
-
-.sortable-drag {
-    background: var(--bg-elevated);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-    transform: rotate(3deg) scale(1.02);
-    z-index: 1000;
-}
-
-/* ========================================= */
-/*          MODAL ALTERNATIVES               */
-/* ========================================= */
 
 .alternatives-list {
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    max-height: 60vh;
-    overflow-y: auto;
-    padding: 0.5rem;
 }
 
-.alternative-card, .alternative-option {
+.alternative-card {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 1.25rem;
-    background: var(--bg-secondary);
-    border: 2px solid var(--border);
-    border-radius: 12px;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--planning-glass-border);
+    border-radius: var(--planning-radius-sm);
+    transition: var(--planning-transition);
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
 }
 
-.alternative-card::before, .alternative-option::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 4px;
-    background: var(--primary);
-    transform: scaleY(0);
-    transition: transform 0.3s ease;
-}
-
-.alternative-card:hover:not(.disabled), .alternative-option:hover:not(.disabled) {
+.alternative-card:hover {
+    background: rgba(255, 255, 255, 0.08);
     border-color: var(--primary);
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
 }
 
-.alternative-card:hover::before, .alternative-option:hover::before {
-    transform: scaleY(1);
-}
-
-.alternative-card.disabled, .alternative-option.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-}
-
-.exercise-meta {
-    display: flex;
-    gap: 0.75rem;
-    margin-top: 0.5rem;
-    color: var(--text-muted);
-    font-size: 0.8125rem;
-}
-
-.muscle-groups {
-    color: var(--primary);
-    font-size: 0.875rem;
-    margin: 0.5rem 0;
-    font-weight: 500;
-}
-
-.warning {
-    color: var(--danger);
-    font-size: 0.75rem;
+.alternative-option {
     display: flex;
     align-items: center;
-    gap: 0.375rem;
-    font-weight: 500;
+    gap: 0.75rem;
+    flex: 1;
 }
 
-/* ========================================= */
-/*            SCORING DISPLAY                */
-/* ========================================= */
-
-.score-display {
-    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
-    border: 1px solid var(--border);
-    margin: 2rem 0;
-    padding: 1.5rem;
-    border-radius: 16px;
-    color: var(--text);
-    position: relative;
-    overflow: hidden;
+.alternative-meta {
+    font-size: 0.8rem;
+    color: var(--text-muted);
 }
 
-.score-display::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--primary), var(--secondary));
-}
-
-.score-gauge {
-    margin: 1.25rem 0;
-}
-
-.score-value {
-    font-size: 2.5rem;
-    font-weight: 700;
-    text-align: center;
-    margin-bottom: 1rem;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.score-bar {
-    height: 16px;
-    background: var(--bg-tertiary);
-    border-radius: 12px;
-    overflow: hidden;
-    position: relative;
-}
-
-.score-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
-    border-radius: 12px;
-    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-}
-
-.score-fill::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-    animation: shimmer 2s infinite;
-}
+/* =====================================================
+   SCORES ET FEEDBACK
+   ===================================================== */
 
 .score-feedback {
     text-align: center;
-    margin-top: 1rem;
+    margin-top: 1.5rem;
+    padding: 1rem;
+    border-radius: var(--planning-radius-sm);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+    border: 1px solid rgba(16, 185, 129, 0.2);
     font-weight: 600;
     color: var(--text);
+    animation: fadeIn 0.6s ease;
 }
 
-/* ========================================= */
-/*              RESPONSIVE                   */
-/* ========================================= */
+/* =====================================================
+   ANIMATIONS AVANCÉES
+   ===================================================== */
 
-@media (max-width: 768px) {
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+}
+
+@keyframes scorePopIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes sessionCardIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes staggerIn {
+    from {
+        opacity: 0;
+        transform: translateY(40px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0.5;
+    }
+    50% {
+        opacity: 0.8;
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* =====================================================
+   RESPONSIVE MOBILE-FIRST
+   ===================================================== */
+
+@media (max-width: 480px) {
     .program-manager-container {
         padding: 1rem;
     }
@@ -769,22 +815,24 @@
         padding: 1.5rem;
     }
     
-    .program-header h2 {
-        font-size: 1.5rem;
+    .program-meta {
+        gap: 0.75rem;
     }
     
-    .program-meta {
-        gap: 1rem;
+    .meta-item {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
     }
     
     .week-navigation {
         gap: 1rem;
         padding: 1rem;
+        flex-direction: column;
     }
     
     .week-navigation h3 {
-        font-size: 1.25rem;
-        min-width: 150px;
+        font-size: 1.125rem;
+        order: 1;
     }
     
     .btn-nav {
@@ -799,45 +847,64 @@
     }
     
     .session-details {
-        gap: 1rem;
+        gap: 0.5rem;
         flex-direction: column;
     }
     
     .exercise-item {
-        padding: 0.875rem;
+        padding: 0.75rem;
         gap: 0.75rem;
-    }
-    
-    .drag-handle {
-        min-width: 44px;
-        min-height: 44px;
     }
     
     .exercise-name {
         font-size: 0.875rem;
     }
     
-    .alternative-card, .alternative-option {
+    .alternative-card {
         flex-direction: column;
         align-items: flex-start;
-        gap: 1rem;
-    }
-    
-    .alternatives-list {
         gap: 0.75rem;
     }
 }
 
-/* ========================================= */
-/*            ACCESSIBILITÉ                  */
-/* ========================================= */
+@media (min-width: 768px) {
+    .session-card:nth-child(1) { animation-delay: 0.1s; }
+    .session-card:nth-child(2) { animation-delay: 0.2s; }
+    .session-card:nth-child(3) { animation-delay: 0.3s; }
+    .session-card:nth-child(4) { animation-delay: 0.4s; }
+}
+
+/* =====================================================
+   ACCESSIBILITÉ ET PRÉFÉRENCES UTILISATEUR
+   ===================================================== */
 
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
-        scroll-behavior: auto !important;
+    }
+    
+    .session-card:hover {
+        transform: none;
+    }
+    
+    .exercise-item:hover {
+        transform: translateX(4px);
+    }
+}
+
+@media (prefers-contrast: high) {
+    .session-card {
+        border-width: 2px;
+    }
+    
+    .exercise-item {
+        border-width: 2px;
+    }
+    
+    .planning-glass-border {
+        opacity: 0.3;
     }
 }
 
@@ -845,8 +912,51 @@
 .btn-nav:focus-visible,
 .btn-sm:focus-visible,
 .btn-xs:focus-visible,
-.alternative-card:focus-visible,
-.exercise-item:focus-visible {
+.session-card:focus-visible,
+.exercise-item:focus-visible,
+.alternative-card:focus-visible {
     outline: 2px solid var(--primary);
     outline-offset: 2px;
+    border-radius: var(--planning-radius-sm);
+}
+
+/* =====================================================
+   DARK MODE OPTIMIZATIONS
+   ===================================================== */
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --planning-glass: rgba(255, 255, 255, 0.03);
+        --planning-glass-border: rgba(255, 255, 255, 0.08);
+        --planning-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        --planning-shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.4);
+    }
+    
+    .session-card {
+        background: rgba(255, 255, 255, 0.02);
+    }
+    
+    .exercise-item {
+        background: rgba(255, 255, 255, 0.03);
+    }
+}
+
+/* =====================================================
+   LOADING STATES
+   ===================================================== */
+
+.loading-skeleton {
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.05) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: var(--planning-radius-sm);
+}
+
+.session-loading {
+    height: 200px;
+}
+
+.exercise-loading {
+    height: 60px;
+    margin-bottom: 0.75rem;
 }
