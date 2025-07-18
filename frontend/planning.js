@@ -24,17 +24,20 @@ class PlanningManager {
     // ===== INITIALISATION =====
     
     async initialize() {
-        this.container = document.getElementById(this.containerId);
+        this.container = document.getElementById(this.containerId || 'planningContainer');
         if (!this.container) {
-            console.error(`Container ${this.containerId} introuvable`);
+            console.error(`Container ${this.containerId || 'planningContainer'} introuvable`);
             return false;
         }
         
         // S'assurer que la vue parent est visible
         const planningView = document.getElementById('planning');
-        if (planningView && !planningView.classList.contains('active')) {
+        if (planningView) {
             planningView.classList.add('active');
             planningView.style.display = 'block';
+            // Forcer la visibilité
+            planningView.style.visibility = 'visible';
+            planningView.style.opacity = '1';
         }
         
         try {
@@ -942,28 +945,31 @@ document.addEventListener('DOMContentLoaded', () => {
 // Fonction globale pour afficher le planning
 window.showPlanning = async function() {
     console.log('🔍 showPlanning() appelée');
+    
+    // Fermer les modals ouverts
+    if (window.closeModal) window.closeModal();
+    
+    // Afficher la vue planning
     window.showView('planning');
     
-    // CORRECTION: Attendre que showView soit complètement exécuté
-    await new Promise(resolve => setTimeout(resolve, 0));
-    
-    // Vérifier que la vue est bien active
-    const planningView = document.getElementById('planning');
-    if (!planningView.classList.contains('active')) {
-        console.error('❌ La vue planning n\'est pas active après showView');
-        planningView.classList.add('active');
-        planningView.style.display = 'block';
-    }
-    
-    if (!window.planningManager) {
-        console.log('🆕 Création PlanningManager');
-        window.planningManager = new PlanningManager();
-    }
-    
-    const success = await window.planningManager.initialize();
-    if (!success) {
-        console.error('❌ Échec initialisation PlanningManager');
-    }
+    // Forcer l'affichage après un court délai pour éviter la race condition
+    setTimeout(async () => {
+        const planningView = document.getElementById('planning');
+        if (planningView) {
+            planningView.style.display = 'block';
+            planningView.classList.add('active');
+        }
+        
+        if (!window.planningManager) {
+            console.log('🆕 Création PlanningManager');
+            window.planningManager = new PlanningManager();
+        }
+        
+        const success = await window.planningManager.initialize();
+        if (!success) {
+            console.error('❌ Échec initialisation PlanningManager');
+        }
+    }, 100);
 };
 
 // ===== LOGIQUE BOUTON "PROGRAMME" =====
@@ -1229,10 +1235,10 @@ function showNoProgramSessionsModal() {
             </div>
             
             <div class="suggestions">
-                <button class="btn btn-primary" onclick="window.showPlanning()">
+                <button class="btn btn-primary" onclick="window.closeModal(); window.showPlanning();">
                     <i class="fas fa-calendar-plus"></i> Planifier des séances
                 </button>
-                <button class="btn btn-secondary" onclick="window.startFreeWorkout()">
+                <button class="btn btn-secondary" onclick="window.closeModal(); window.startFreeWorkout();">
                     <i class="fas fa-dumbbell"></i> Séance libre
                 </button>
             </div>

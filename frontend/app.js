@@ -5898,9 +5898,19 @@ async function deleteProfile() {
 
 // ===== MODALS =====
 function showModal(title, content) {
-    document.getElementById('modalTitle').textContent = title;
-    document.getElementById('modalBody').innerHTML = content;
-    document.getElementById('modal').style.display = 'flex';
+    // Vérifier que les éléments existent
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+    const modal = document.getElementById('modal');
+    
+    if (!modalTitle || !modalBody || !modal) {
+        console.error('Éléments du modal introuvables - vérifier index.html');
+        return;
+    }
+    
+    modalTitle.textContent = title;
+    modalBody.innerHTML = content;
+    modal.style.display = 'flex';
 }
 
 function closeModal() {
