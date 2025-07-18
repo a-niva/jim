@@ -8664,51 +8664,65 @@ function showAlternativesFromAPI(originalExerciseId, alternatives, reason) {
     const currentEx = getCurrentExerciseData(originalExerciseId);
     
     const modalContent = `
-        <div class="alternatives-modal">
-            <div class="modal-header-modern">
-                <h3>Alternatives pour "${currentEx.name}"</h3>
-                <p>Raison : ${getReasonLabel(reason)}</p>
-            </div>
+        
             
-            <div class="alternatives-container">
-                <div class="keep-current-option" onclick="keepCurrentWithAdaptation(${originalExerciseId}, '${reason}')">
-                    <div class="option-icon">✅</div>
-                    <div class="option-content">
-                        <h4>Garder l'exercice actuel</h4>
-                        <p>Continuer avec des adaptations</p>
-                    </div>
-                </div>
+                Alternatives pour "${currentEx.name}"
+                Raison : ${getReasonLabel(reason)}
                 
-                <div class="divider-text">
-                    <span>ou choisir une alternative</span>
-                </div>
+                    Actuel :
+                    ${currentEx.muscle_groups?.join(', ') || 'N/A'}
                 
-                <div class="alternatives-list">
+            
+            
+            
+                
+                    ✅
+                    
+                        Garder l'exercice actuel
+                        Continuer avec des adaptations automatiques
+                    
+                    +0
+                
+                
+                
+                    ou choisir une alternative
+                
+                
+                
                     ${alternatives.map(alt => `
-                        <div class="alternative-option ${alt.score < 50 ? 'low-score' : ''}" 
-                             onclick="selectAlternative(${originalExerciseId}, ${alt.exercise_id}, '${reason}')">
-                            <div class="exercise-details">
-                                <h4>${alt.name}</h4>
-                                <p class="muscle-info">${alt.muscle_groups.join(', ')}</p>
-                                <small class="difficulty">Difficulté: ${alt.difficulty}</small>
-                            </div>
-                            <div class="match-info">
-                                <div class="score-indicator ${alt.score >= 80 ? 'excellent' : alt.score >= 60 ? 'good' : 'average'}">
+                        
+                            
+                                ${alt.name}
+                                ${alt.muscle_groups.join(', ')}
+                                
+                                    Difficulté: ${alt.difficulty}
+                                    ${alt.equipment_required?.length ? `• ${alt.equipment_required.join(', ')}` : ''}
+                                
+                                ${alt.reason_match ? `${alt.reason_match}` : ''}
+                            
+                            
+                                
                                     ${alt.score}%
-                                </div>
-                                ${alt.reason_match ? `<small>${alt.reason_match}</small>` : ''}
-                            </div>
-                        </div>
+                                
+                                
+                                    ${alt.score_impact > 0 ? '+' : ''}${alt.score_impact || 0}
+                                
+                                Confiance: ${Math.round((alt.confidence || 0.8) * 100)}%
+                            
+                        
                     `).join('')}
-                </div>
-            </div>
+                
             
-            <div class="modal-footer-modern">
-                <button class="btn-cancel-modern" onclick="closeModal()">
+            
+            
+                
                     Annuler
-                </button>
-            </div>
-        </div>
+                
+                
+                    💡 Score = compatibilité avec votre programme actuel
+                
+            
+        
     `;
     
     showModal('Choisir une alternative', modalContent);
@@ -9760,6 +9774,25 @@ async function showWeeklyPlanning() {
     }
 }
 
+// ===== PROGRAM MANAGER INTEGRATION =====
+async function showProgramManager() {
+    if (!window.programManager) {
+        window.programManager = new ProgramManagerView();
+    }
+    
+    const success = await window.programManager.initialize();
+    if (!success) {
+        window.showToast('Aucun programme trouvé. Créez votre programme !', 'warning');
+        setTimeout(() => {
+            window.showProgramBuilder();
+        }, 1500);
+        return;
+    }
+    
+    // S'assurer que la vue est affichée
+    showView('program-manager');
+}
+
 
 // ===== EXPOSITION GLOBALE =====
 window.showHomePage = showHomePage;
@@ -9923,3 +9956,4 @@ window.renderReorderableExercises = function(exercises) {
 };
 // Export Weekly Planner
 window.showWeeklyPlanning = showWeeklyPlanning;
+window.showProgramManager = showProgramManager;

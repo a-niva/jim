@@ -334,7 +334,7 @@
     position: relative;
     overflow: hidden;
     min-width: clamp(200px, 30vw, 280px);
-    max-width: 320px;
+    max-width: 500px; /* CORRECTION: Ajout max-width */
     flex-shrink: 0;
 }
 

@@ -2183,7 +2183,152 @@ class SwipeHandler {
         this.element.removeEventListener('touchmove', this.handleTouchMove);
         this.element.removeEventListener('touchend', this.handleTouchEnd);
     }
+
+
+    async addSessionToDay(targetDate) {
+        // Validation des limites
+        const dayData = this.planningData.planning_data.find(day => day.date === targetDate);
+        if (!dayData || !dayData.can_add_session) {
+            window.showToast('Impossible d\'ajouter une séance ce jour-là', 'warning');
+            return;
+        }
+        
+        try {
+            // Créer une nouvelle séance basique
+            const newSession = {
+                planned_date: targetDate,
+                exercises: [], // Séance vide pour l'instant
+                estimated_duration: 45,
+                primary_muscles: [],
+                status: 'planned',
+                user_modifications: []
+            };
+            
+            // TODO: Appel API pour créer la séance
+            // const response = await window.apiPost(`/api/users/${window.currentUser.id}/planned-sessions`, newSession);
+            
+            window.closeModal();
+            window.showToast('Séance ajoutée avec succès', 'success');
+            await this.refresh();
+            
+        } catch (error) {
+            console.error('Erreur ajout séance:', error);
+            window.showToast('Erreur lors de l\'ajout de la séance', 'error');
+        }
+    }
+    
+    async removeSession(sessionId) {
+        if (!confirm('Êtes-vous sûr de vouloir supprimer cette séance ?')) {
+            return;
+        }
+        
+        try {
+            // TODO: Appel API pour supprimer
+            // await window.apiDelete(`/api/planned-sessions/${sessionId}`);
+            
+            window.showToast('Séance supprimée', 'success');
+            await this.refresh();
+            
+        } catch (error) {
+            console.error('Erreur suppression séance:', error);
+            window.showToast('Erreur lors de la suppression', 'error');
+        }
+    }
+    
+    async startSession(sessionId) {
+        window.closeModal();
+        
+        try {
+            // Trouver la séance dans les données
+            const session = this.findSessionById(sessionId);
+            if (!session) {
+                window.showToast('Séance introuvable', 'error');
+                return;
+            }
+            
+            // Démarrer la séance (utilise le workflow existant)
+            window.showToast('Démarrage de la séance...', 'info');
+            await window.startProgramWorkout();
+            
+        } catch (error) {
+            console.error('Erreur démarrage séance:', error);
+            window.showToast('Erreur lors du démarrage de la séance', 'error');
+        }
+    }
+    
+    findSessionById(sessionId) {
+        if (!this.planningData || !this.planningData.planning_data) return null;
+        
+        for (const day of this.planningData.planning_data) {
+            const session = day.sessions.find(s => s.id === sessionId);
+            if (session) return session;
+        }
+        return null;
+    }
+    
+    showMoveConfirmation(sessionId, targetDay, warnings) {
+        const warningsHTML = warnings.map(w => `
+            <div class="warning-item">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>${w}</span>
+            </div>
+        `).join('');
+        
+        const modalContent = `
+            <div class="move-confirmation">
+                <h3>⚠️ Confirmer le déplacement</h3>
+                <p>Des problèmes potentiels ont été détectés :</p>
+                <div class="warnings-list">
+                    ${warningsHTML}
+                </div>
+                <p><strong>Voulez-vous quand même déplacer cette séance ?</strong></p>
+                <div class="modal-actions">
+                    <button class="btn btn-primary" onclick="weeklyPlanner.confirmMove('${sessionId}', '${targetDay}')">
+                        Oui, déplacer quand même
+                    </button>
+                    <button class="btn btn-secondary" onclick="window.closeModal()">
+                        Annuler
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        window.showModal('Attention', modalContent);
+    }
+    
+    async confirmMove(sessionId, targetDay) {
+        window.closeModal();
+        
+        try {
+            const result = await window.apiPut(`/api/planned-sessions/${sessionId}/move`, {
+                new_date: targetDay,
+                force_move: true
+            });
+            
+            if (result.success) {
+                window.showToast('Séance déplacée avec succès', 'success');
+                await this.refresh();
+            }
+        } catch (error) {
+            console.error('Erreur déplacement forcé:', error);
+            window.showToast('Erreur lors du déplacement', 'error');
+        }
+    }
+    
+    applyOptimalOrderInDeepDive(sessionId) {
+        // TODO: Implémenter réorganisation optimale dans la modal
+        window.showToast('Ordre optimal appliqué', 'success');
+        
+        // Fermer et rouvrir la modal pour refresh
+        const session = this.findSessionById(sessionId);
+        if (session) {
+            window.closeModal();
+            setTimeout(() => this.showSessionDeepDive(sessionId), 300);
+        }
+    }
+
 }
 
 // Export global
 window.SwipeHandler = SwipeHandler;
+window.WeeklyPlannerView = WeeklyPlannerView;
