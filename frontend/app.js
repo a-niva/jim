@@ -577,6 +577,7 @@ function showView(viewName) {
     // Reste du code exactement identique
     document.querySelectorAll('.view, .onboarding').forEach(el => {
         el.classList.remove('active');
+        el.style.display = 'none';
     });
     
     document.querySelectorAll('.nav-item').forEach(el => {
@@ -671,6 +672,7 @@ function showHomePage() {  // ← SUPPRIMER LE PARAMÈTRE
     // Masquer toutes les vues
     document.querySelectorAll('.view').forEach(el => {
         el.classList.remove('active');
+        
     });
     
     // Afficher la page d'accueil
