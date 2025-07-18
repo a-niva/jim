@@ -24,8 +24,9 @@ class PlanningManager {
     // ===== INITIALISATION =====
     
     async initialize() {
+        this.container = document.getElementById(this.containerId);
         if (!this.container) {
-            console.error('Container planning introuvable');
+            console.error(`Container ${this.containerId} introuvable`);
             return false;
         }
         
