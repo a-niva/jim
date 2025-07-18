@@ -379,59 +379,55 @@ class WeeklyPlannerView {
         const exercises = session.exercises || [];
         const score = session.predicted_quality_score || session.quality_score || 75;
         
-        // Prendre les 3 premiers exercices principaux
-        const mainExercises = exercises.slice(0, 3);
-        const moreCount = exercises.length > 3 ? exercises.length - 3 : 0;
+        // Afficher 2-3 exercices principaux au lieu de juste le nombre
+        const mainExercises = exercises.slice(0, 2);
+        const hasMore = exercises.length > 2;
         
         return `
             <div class="session-card ${isTemporary ? 'temporary' : ''}" 
                 data-session-id="${sessionId}"
                 data-is-temporary="${isTemporary}">
                 
-                <!-- Indicateur de score en bordure -->
-                <div class="session-score-border" style="background: ${this.getScoreGradient(score)}"></div>
+                <!-- Indicateur visuel du score -->
+                <div class="session-score-indicator" style="background: ${this.getScoreGradient(score)}"></div>
                 
                 <div class="session-header">
                     <div class="session-time">
-                        <i class="fas fa-clock"></i> ${session.estimated_duration || 45} min
+                        <i class="fas fa-clock"></i> ${session.estimated_duration || 45}min
                     </div>
-                    <div class="session-score-badge" style="background: ${this.getScoreColor(score)}">
+                    <div class="session-score">
                         <span class="score-value">${score}</span>
-                        <span class="score-label">pts</span>
+                        <span class="score-label">/100</span>
                     </div>
                 </div>
                 
                 <div class="session-content">
-                    <!-- Muscles principaux -->
-                    <div class="session-muscles">
-                        ${muscles.slice(0, 3).map(muscle => 
-                            `<span class="muscle-tag" style="background: ${this.getValidMuscleColor([muscle])}">${muscle}</span>`
-                        ).join('')}
-                        ${muscles.length > 3 ? `<span class="muscle-more">+${muscles.length - 3}</span>` : ''}
-                    </div>
+                    <!-- Muscles ciblés -->
+                    ${muscles.length > 0 ? `
+                        <div class="session-muscles">
+                            ${muscles.slice(0, 2).map(muscle => 
+                                `<span class="muscle-tag" style="background: ${this.getValidMuscleColor([muscle])}">${muscle}</span>`
+                            ).join('')}
+                            ${muscles.length > 2 ? `<span class="muscle-more">+${muscles.length - 2}</span>` : ''}
+                        </div>
+                    ` : ''}
                     
                     <!-- Exercices principaux -->
-                    <div class="session-exercises-preview">
-                        ${mainExercises.map(ex => `
-                            <div class="exercise-preview">
-                                <span class="exercise-icon">💪</span>
-                                <span class="exercise-name">${ex.exercise_name || ex.name || 'Exercice'}</span>
-                                <span class="exercise-sets">${ex.sets || 3}×${ex.reps_min || 8}-${ex.reps_max || 12}</span>
-                            </div>
-                        `).join('')}
-                        ${moreCount > 0 ? `
-                            <div class="exercise-more">
-                                <span>+${moreCount} autres exercices</span>
-                            </div>
-                        ` : ''}
-                    </div>
+                    ${exercises.length > 0 ? `
+                        <div class="session-exercises-preview">
+                            ${mainExercises.map(ex => `
+                                <div class="exercise-mini">
+                                    <span class="exercise-name">${ex.exercise_name || ex.name || 'Exercice'}</span>
+                                    <span class="exercise-sets">${ex.sets || 3}×${ex.reps_min || 8}</span>
+                                </div>
+                            `).join('')}
+                            ${hasMore ? `<div class="exercises-more">+${exercises.length - 2} autres</div>` : ''}
+                        </div>
+                    ` : '<p class="no-exercises">Aucun exercice</p>'}
                 </div>
                 
                 <div class="session-actions">
-                    <button class="action-btn" onclick="weeklyPlanner.showEnhancedSessionModal('${sessionId}')" title="Voir détails">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button class="action-btn" onclick="weeklyPlanner.quickEditSession('${sessionId}')" title="Édition rapide">
+                    <button class="action-btn" onclick="weeklyPlanner.showEnhancedDeepDive('${sessionId}')" title="Voir/Éditer">
                         <i class="fas fa-edit"></i>
                     </button>
                     ${!isTemporary ? `
@@ -442,6 +438,13 @@ class WeeklyPlannerView {
                 </div>
             </div>
         `;
+    }
+
+    // Ajouter la méthode helper pour le gradient de score
+    getScoreGradient(score) {
+        if (score >= 80) return 'linear-gradient(135deg, #10b981, #059669)';
+        if (score >= 60) return 'linear-gradient(135deg, #f59e0b, #d97706)';
+        return 'linear-gradient(135deg, #ef4444, #dc2626)';
     }
 
     getValidMuscleColor(muscles) {
@@ -1444,6 +1447,165 @@ class WeeklyPlannerView {
         }, 100);
     }
     
+    async showEnhancedDeepDive(sessionId) {
+        const session = this.findSessionById(sessionId);
+        if (!session) return;
+        
+        const exercises = session.exercises || [];
+        const userContext = { user_id: window.currentUser.id };
+        const programId = window.currentUser.current_program_id;
+        
+        // Calculer le score
+        let currentScore, optimalOrder;
+        try {
+            currentScore = await window.SessionQualityEngine.calculateScore(exercises, userContext);
+            optimalOrder = await window.SessionQualityEngine.generateOptimalOrder(exercises, userContext);
+        } catch (error) {
+            currentScore = { total: session.predicted_quality_score || 75, breakdown: {} };
+            optimalOrder = exercises;
+        }
+        
+        const modalContent = `
+            <div class="enhanced-session-modal">
+                <div class="modal-header-enhanced">
+                    <h3>Séance du ${new Date(this.findSessionDate(sessionId)).toLocaleDateString('fr-FR')}</h3>
+                    <div class="session-meta-enhanced">
+                        <span><i class="fas fa-clock"></i> ${session.estimated_duration || 45} min</span>
+                        <span><i class="fas fa-dumbbell"></i> ${exercises.length} exercices</span>
+                    </div>
+                </div>
+                
+                <!-- Score de qualité avec breakdown -->
+                <div class="quality-section">
+                    <div class="quality-gauge-container">
+                        <div class="quality-header">
+                            <h4>Score de qualité</h4>
+                            ${currentScore.total < optimalOrder.total ? `
+                                <button class="btn-optimize" onclick="weeklyPlanner.applyOptimalOrder('${sessionId}')">
+                                    <i class="fas fa-magic"></i> Optimiser (+${Math.round(optimalOrder.total - currentScore.total)} pts)
+                                </button>
+                            ` : ''}
+                        </div>
+                        <div class="quality-gauge" data-score="${currentScore.total}">
+                            <div class="gauge-fill" style="width: ${currentScore.total}%; background: ${this.getScoreGradient(currentScore.total)}"></div>
+                            <span class="gauge-value">${currentScore.total}/100</span>
+                        </div>
+                        ${currentScore.breakdown ? window.renderScoreBreakdown(currentScore.breakdown) : ''}
+                    </div>
+                </div>
+                
+                <!-- Liste éditable des exercices -->
+                <div class="exercises-section-enhanced">
+                    <div class="exercises-header">
+                        <h4>Exercices</h4>
+                        <span class="drag-hint"><i class="fas fa-info-circle"></i> Glissez pour réorganiser</span>
+                    </div>
+                    
+                    <div class="exercise-list-editable" id="sessionExerciseList" data-session-id="${sessionId}">
+                        ${exercises.map((ex, idx) => `
+                            <div class="exercise-item-editable" data-index="${idx}" data-exercise-id="${ex.exercise_id}">
+                                <span class="drag-handle">
+                                    <i class="fas fa-grip-vertical"></i>
+                                </span>
+                                
+                                <div class="exercise-details-full">
+                                    <h5>${ex.exercise_name || ex.name}</h5>
+                                    <div class="exercise-params">
+                                        <span>${ex.sets}×${ex.reps_min}-${ex.reps_max}</span>
+                                        <span><i class="fas fa-hourglass-half"></i> ${ex.rest_seconds || 90}s</span>
+                                        <span class="muscles">${(ex.muscle_groups || []).join(', ')}</span>
+                                    </div>
+                                </div>
+                                
+                                <button class="btn-swap" onclick="weeklyPlanner.initiateSwap('${sessionId}', ${idx})" title="Remplacer">
+                                    <i class="fas fa-exchange-alt"></i>
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <button class="btn-add-exercise" onclick="weeklyPlanner.addExerciseToSession('${sessionId}')">
+                        <i class="fas fa-plus"></i> Ajouter un exercice
+                    </button>
+                </div>
+                
+                <!-- Actions -->
+                <div class="modal-actions-enhanced">
+                    <button class="btn btn-primary large" onclick="weeklyPlanner.startSessionFromModal('${sessionId}')">
+                        <i class="fas fa-play"></i> Démarrer cette séance
+                    </button>
+                    <button class="btn btn-secondary" onclick="window.closeModal()">
+                        Fermer
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        window.showModal('Détail de la séance', modalContent);
+        
+        // Initialiser le drag & drop après affichage
+        setTimeout(() => this.initializeExerciseReorder(sessionId), 100);
+    }
+
+    // Initialiser le drag & drop dans le modal
+    initializeExerciseReorder(sessionId) {
+        const container = document.getElementById('sessionExerciseList');
+        if (!container || !window.Sortable) return;
+        
+        new window.Sortable(container, {
+            handle: '.drag-handle',
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            dragClass: 'sortable-drag',
+            onEnd: async (evt) => {
+                if (evt.oldIndex === evt.newIndex) return;
+                
+                const newOrder = Array.from(container.children)
+                    .map((el, idx) => idx);
+                    
+                await this.reorderSessionExercises(sessionId, newOrder);
+            }
+        });
+    }
+
+    // Réorganiser les exercices avec appel API
+    async reorderSessionExercises(sessionId, newOrder) {
+        try {
+            const programId = window.currentUser.current_program_id;
+            const response = await window.apiPut(
+                `/api/programs/${programId}/reorder-session`,
+                {
+                    week_index: 0, // À adapter selon le contexte
+                    session_index: 0, // À adapter
+                    new_exercise_order: newOrder
+                }
+            );
+            
+            if (response.success) {
+                // Mettre à jour le score affiché
+                const gauge = document.querySelector('.quality-gauge');
+                if (gauge) {
+                    const fill = gauge.querySelector('.gauge-fill');
+                    const value = gauge.querySelector('.gauge-value');
+                    fill.style.width = `${response.new_score}%`;
+                    value.textContent = `${response.new_score}/100`;
+                }
+                
+                // Feedback utilisateur
+                const delta = response.score_delta;
+                if (delta !== 0) {
+                    window.showToast(
+                        `Score ${delta > 0 ? '+' : ''}${delta} points`,
+                        delta > 0 ? 'success' : 'warning'
+                    );
+                }
+            }
+        } catch (error) {
+            console.error('Erreur réorganisation:', error);
+            window.showToast('Erreur lors de la réorganisation', 'error');
+        }
+    }
+
     async showEnhancedSessionModal(sessionId) {
         const session = this.findSessionById(sessionId);
         if (!session) return;
