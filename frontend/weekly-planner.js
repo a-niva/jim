@@ -1323,17 +1323,26 @@ class WeeklyPlannerView {
     }
 
     async deleteSession(sessionId) {
-        if (confirm('Supprimer cette séance planifiée ?')) {
-            try {
-                await window.apiDelete(`/api/planned-sessions/${sessionId}`);
-                window.showToast('Séance supprimée', 'success');
-                await this.refresh();
-            } catch (error) {
-                window.showToast('Erreur suppression', 'error');
-            }
+        // Vérifier si c'est une session temporaire
+        if (sessionId.toString().startsWith('temp-')) {
+            window.showToast('Les séances auto-générées ne peuvent pas être supprimées', 'info');
+            return;
+        }
+        
+        if (!confirm('Êtes-vous sûr de vouloir supprimer cette séance ?')) {
+            return;
+        }
+        
+        try {
+            await window.apiDelete(`/api/planned-sessions/${sessionId}`);
+            window.showToast('Séance supprimée', 'success');
+            await this.refresh();
+        } catch (error) {
+            console.error('Erreur suppression:', error);
+            window.showToast('Erreur lors de la suppression', 'error');
         }
     }
-    
+        
     showMoveConfirmation(sessionId, newDate, warnings) {
         const warningText = warnings.join('\n');
         if (confirm(`Avertissements:\n${warningText}\n\nConfirmer le déplacement ?`)) {
@@ -1446,7 +1455,7 @@ class WeeklyPlannerView {
             }
         }, 100);
     }
-    
+
     async showEnhancedDeepDive(sessionId) {
         const session = this.findSessionById(sessionId);
         if (!session) return;
@@ -1547,6 +1556,164 @@ class WeeklyPlannerView {
         setTimeout(() => this.initializeExerciseReorder(sessionId), 100);
     }
 
+        async initiateSwap(sessionId, exerciseIndex) {
+        const session = this.findSessionById(sessionId);
+        if (!session || !session.exercises[exerciseIndex]) return;
+        
+        const currentExercise = session.exercises[exerciseIndex];
+        const programId = window.currentUser.current_program_id;
+        
+        if (!programId) {
+            window.showToast('Aucun programme actif trouvé', 'error');
+            return;
+        }
+        
+        try {
+            // Récupérer les alternatives via l'API
+            const response = await window.apiGet(
+                `/api/programs/${programId}/exercise-alternatives` +
+                `?week_index=0&session_index=0&exercise_index=${exerciseIndex}`
+            );
+            
+            this.showSwapModal(response, sessionId, exerciseIndex);
+            
+        } catch (error) {
+            console.error('Erreur récupération alternatives:', error);
+            window.showToast('Erreur lors du chargement des alternatives', 'error');
+        }
+    }
+
+    // Afficher le modal de swap
+    showSwapModal(response, sessionId, exerciseIndex) {
+        const alternatives = response.alternatives || [];
+        const currentExercise = response.current_exercise;
+        
+        const modalContent = `
+            <div class="swap-modal">
+                <h3>Remplacer "${currentExercise?.name || 'Exercice'}"</h3>
+                
+                <div class="alternatives-list">
+                    ${alternatives.length > 0 ? alternatives.map(alt => `
+                        <div class="alternative-card ${!alt.can_perform ? 'disabled' : ''}" 
+                            onclick="${alt.can_perform ? `weeklyPlanner.executeSwap('${sessionId}', ${exerciseIndex}, ${alt.exercise_id})` : ''}">
+                            <div class="alternative-info">
+                                <h4>${alt.name}</h4>
+                                <p>${alt.muscle_groups.join(', ')}</p>
+                                <small>Difficulté: ${alt.difficulty}</small>
+                            </div>
+                            <div class="alternative-score">
+                                <span class="score-badge ${alt.score >= 70 ? 'good' : 'average'}">
+                                    ${alt.score}%
+                                </span>
+                            </div>
+                            ${!alt.can_perform ? '<span class="warning">Équipement manquant</span>' : ''}
+                        </div>
+                    `).join('') : '<p>Aucune alternative disponible</p>'}
+                </div>
+                
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" onclick="window.closeModal()">Annuler</button>
+                </div>
+            </div>
+        `;
+        
+        window.showModal('Choisir une alternative', modalContent);
+    }
+
+    // Exécuter le swap
+    async executeSwap(sessionId, exerciseIndex, newExerciseId) {
+        window.closeModal();
+        
+        try {
+            const programId = window.currentUser.current_program_id;
+            const response = await window.apiPut(
+                `/api/programs/${programId}/swap-exercise`,
+                {
+                    week_index: 0,
+                    session_index: 0,
+                    exercise_index: exerciseIndex,
+                    new_exercise_id: newExerciseId
+                }
+            );
+            
+            if (response.success) {
+                window.showToast('Exercice remplacé avec succès', 'success');
+                await this.refresh();
+                
+                // Rouvrir le modal si nécessaire
+                if (this.currentEditingSessionId) {
+                    this.showEnhancedDeepDive(this.currentEditingSessionId);
+                }
+            }
+        } catch (error) {
+            console.error('Erreur swap:', error);
+            window.showToast('Erreur lors du remplacement', 'error');
+        }
+    }
+
+    async addExerciseToSession(sessionId) {
+        // Stocker le contexte de la session
+        this.pendingExerciseAdd = {
+            sessionId: sessionId,
+            timestamp: new Date()
+        };
+        
+        // Fermer le modal actuel temporairement
+        window.closeModal();
+        
+        // Afficher la sélection d'exercices
+        // Réutiliser la logique existante de sélection
+        window.showExerciseSelection(true); // Flag pour indiquer ajout à session existante
+    }
+
+    // Helper pour gérer l'ajout après sélection
+    async handleExerciseAddToSession(exerciseId) {
+        if (!this.pendingExerciseAdd) return;
+        
+        const { sessionId } = this.pendingExerciseAdd;
+        const session = this.findSessionById(sessionId);
+        
+        if (!session) {
+            window.showToast('Session introuvable', 'error');
+            return;
+        }
+        
+        // Ajouter l'exercice à la session
+        const exercise = await this.getExerciseDetails(exerciseId);
+        if (exercise) {
+            session.exercises.push({
+                exercise_id: exerciseId,
+                exercise_name: exercise.name,
+                sets: 3,
+                reps_min: 8,
+                reps_max: 12,
+                rest_seconds: 90,
+                muscle_groups: exercise.muscle_groups || []
+            });
+            
+            // Sauvegarder et rafraîchir
+            await this.saveSessionChanges(sessionId);
+            window.showToast('Exercice ajouté avec succès', 'success');
+            
+            // Rouvrir le modal d'édition
+            this.showEnhancedDeepDive(sessionId);
+        }
+        
+        // Nettoyer
+        this.pendingExerciseAdd = null;
+    }
+
+    // Helper pour récupérer les détails d'un exercice
+    async getExerciseDetails(exerciseId) {
+        try {
+            const exercises = await window.apiGet(`/api/exercises?user_id=${window.currentUser.id}`);
+            return exercises.find(ex => ex.id === exerciseId);
+        } catch (error) {
+            console.error('Erreur récupération exercice:', error);
+            return null;
+        }
+    }
+
     // Initialiser le drag & drop dans le modal
     initializeExerciseReorder(sessionId) {
         const container = document.getElementById('sessionExerciseList');
@@ -1571,7 +1738,21 @@ class WeeklyPlannerView {
     // Réorganiser les exercices avec appel API
     async reorderSessionExercises(sessionId, newOrder) {
         try {
-            const programId = window.currentUser.current_program_id;
+            // Récupérer le programme actif si pas en cache
+            let programId = window.currentUser.current_program_id;
+            
+            if (!programId) {
+                // Essayer de récupérer le programme actif
+                const activeProgram = await window.apiGet(`/api/users/${window.currentUser.id}/programs/active`);
+                if (activeProgram && activeProgram.id) {
+                    programId = activeProgram.id;
+                    window.currentUser.current_program_id = programId; // Mettre en cache
+                } else {
+                    window.showToast('Aucun programme actif trouvé', 'error');
+                    return;
+                }
+            }
+            
             const response = await window.apiPut(
                 `/api/programs/${programId}/reorder-session`,
                 {
@@ -1886,6 +2067,64 @@ class WeeklyPlannerView {
             if (session) return session;
         }
         return null;
+    }
+
+    // Démarrer une session depuis le modal
+    async startSessionFromModal(sessionId) {
+        window.closeModal();
+        
+        const session = this.findSessionById(sessionId);
+        if (!session || !session.exercises || session.exercises.length === 0) {
+            window.showToast('Cette séance n\'a pas d\'exercices', 'warning');
+            return;
+        }
+        
+        // Préparer les données pour le démarrage
+        const sessionData = {
+            selected_exercises: session.exercises,
+            is_from_program: true,
+            program_id: window.currentUser.current_program_id,
+            session_id: sessionId
+        };
+        
+        // Utiliser la fonction existante
+        await window.startProgramWorkout(sessionData);
+    }
+
+    // Appliquer l'ordre optimal
+    async applyOptimalOrder(sessionId) {
+        const session = this.findSessionById(sessionId);
+        if (!session) return;
+        
+        try {
+            const userContext = { user_id: window.currentUser.id };
+            const optimalOrder = await window.SessionQualityEngine.generateOptimalOrder(
+                session.exercises, 
+                userContext
+            );
+            
+            // Remplacer l'ordre actuel
+            session.exercises = optimalOrder;
+            
+            // Sauvegarder et rafraîchir l'affichage
+            await this.saveSessionChanges(sessionId);
+            window.showToast('Ordre optimisé appliqué !', 'success');
+            
+            // Rafraîchir le modal
+            this.showEnhancedDeepDive(sessionId);
+            
+        } catch (error) {
+            console.error('Erreur optimisation:', error);
+            window.showToast('Erreur lors de l\'optimisation', 'error');
+        }
+    }
+
+    // Sauvegarder les changements d'une session
+    async saveSessionChanges(sessionId) {
+        // À implémenter selon l'API backend
+        console.log('Sauvegarde session:', sessionId);
+        // Pour l'instant, juste rafraîchir
+        await this.refresh();
     }
 }
 
