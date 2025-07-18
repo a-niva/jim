@@ -10013,4 +10013,3 @@ window.showProgramInterface = showProgramInterface;
 window.showProgramChoiceModal = showProgramChoiceModal;
 window.showNextSession = showNextSession;
 window.showPlanningFromProgram = showPlanningFromProgram;
-window.startSessionFromProgram = startSessionFromProgram;
