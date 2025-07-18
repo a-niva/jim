@@ -1606,6 +1606,64 @@ def calculate_session_duration(exercises_data, target_duration_minutes):
         "adjustments_made": estimated_minutes > target_duration_minutes * 1.1
     }
 
+def create_planned_sessions_for_program(db: Session, program):
+    """Crée les séances planifiées pour les 2 premières semaines du programme"""
+    from datetime import date, timedelta
+    
+    if not program.weekly_structure:
+        return
+    
+    # Démarrer à partir de lundi prochain
+    today = date.today()
+    days_until_monday = (7 - today.weekday()) % 7
+    start_date = today + timedelta(days=days_until_monday if days_until_monday > 0 else 7)
+    
+    # Créer les séances pour les 2 premières semaines seulement
+    weeks_to_create = min(8, len(program.weekly_structure))
+    
+    for week_index in range(weeks_to_create):
+        week_data = program.weekly_structure[week_index]
+        sessions = week_data.get("sessions", [])
+        
+        # Répartir les séances sur la semaine (lundi, mercredi, vendredi par défaut)
+        session_days = [0, 2, 4]  # Lundi=0, Mercredi=2, Vendredi=4
+        
+        for session_index, session_template in enumerate(sessions[:3]):  # Max 3 séances/semaine
+            if session_index >= len(session_days):
+                break
+                
+            session_date = start_date + timedelta(
+                weeks=week_index, 
+                days=session_days[session_index]
+            )
+            
+            # Extraire les infos de la session
+            exercises = session_template.get("exercise_pool", [])
+            duration = session_template.get("estimated_duration_minutes", program.session_duration_minutes)
+            
+            # Détecter les muscles principaux
+            primary_muscles = []
+            for ex in exercises[:3]:
+                if "muscle_groups" in ex:
+                    primary_muscles.extend(ex["muscle_groups"])
+            
+            # Créer la séance planifiée
+            planned_session = PlannedSession(
+                user_id=program.user_id,
+                program_id=program.id,
+                planned_date=session_date,
+                exercises=exercises,
+                estimated_duration=duration,
+                primary_muscles=list(set(primary_muscles)),
+                predicted_quality_score=session_template.get("quality_score", 75.0),
+                status="planned"
+            )
+            
+            db.add(planned_session)
+    
+    db.commit()
+    logger.info(f"Créé {weeks_to_create * min(3, len(sessions))} séances planifiées")
+
 @app.post("/api/users/{user_id}/program-builder/generate", response_model=ComprehensiveProgramResponse)  
 def generate_comprehensive_program(
     user_id: int, 
@@ -1808,15 +1866,21 @@ def activate_comprehensive_program(
         current_week=1,
         current_session_in_week=1
     )
-    
+
     db.add(new_program)
     db.commit()
     db.refresh(new_program)
     
+    # NOUVEAU : Créer les séances planifiées automatiquement
+    try:
+        create_planned_sessions_for_program(db, new_program)
+        logger.info(f"Séances planifiées créées pour programme {new_program.id}")
+    except Exception as e:
+        logger.error(f"Erreur création séances planifiées: {e}")
+    
     logger.info(f"Programme v2.0 activé: {new_program.id} pour user {user_id}")
     
     return {"message": "Programme activé", "program_id": new_program.id}
-
 
 @app.get("/api/users/{user_id}/comprehensive-program", response_model=ComprehensiveProgramResponse)
 def get_user_comprehensive_program(user_id: int, db: Session = Depends(get_db)):

@@ -24,6 +24,7 @@
     margin: 0 auto;
     padding: var(--spacing-lg);
     min-height: calc(100vh - var(--header-height) - var(--bottom-nav-height));
+    display: block;
 }
 
 .planning-error {
