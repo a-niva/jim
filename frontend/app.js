@@ -9837,8 +9837,13 @@ function showNextSession() {
 }
 
 function showPlanningFromProgram() {
-    closeModal();
-    showPlanning();
+    console.log('🔍 showPlanningFromProgram() appelée');
+    window.closeModal();
+    
+    // S'assurer que l'onglet Planning s'affiche
+    setTimeout(() => {
+        window.showPlanning();
+    }, 200);
 }
 
 // ===== EXPOSITION GLOBALE =====
@@ -10008,3 +10013,4 @@ window.showProgramInterface = showProgramInterface;
 window.showProgramChoiceModal = showProgramChoiceModal;
 window.showNextSession = showNextSession;
 window.showPlanningFromProgram = showPlanningFromProgram;
+window.startSessionFromProgram = startSessionFromProgram;

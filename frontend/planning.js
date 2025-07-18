@@ -235,10 +235,14 @@ class PlanningManager {
     // ===== DRAG & DROP SÉANCES =====
     
     initializeDragDrop() {
+        // Attendre que SortableJS soit disponible
         if (typeof Sortable === 'undefined') {
-            console.warn('Sortable.js non disponible');
+            console.warn('SortableJS pas encore chargé, retry dans 100ms');
+            setTimeout(() => this.initializeDragDrop(), 100);
             return;
         }
+        
+        console.log('✅ Initialisation drag-drop avec SortableJS');
         
         const dayContainers = this.container.querySelectorAll('.day-sessions');
         
@@ -929,13 +933,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Fonction globale pour afficher le planning
 window.showPlanning = async function() {
+    console.log('🔍 showPlanning() appelée');
     window.showView('planning');
     
     if (!window.planningManager) {
+        console.log('🆕 Création PlanningManager');
         window.planningManager = new PlanningManager();
     }
     
-    await window.planningManager.initialize();
+    const success = await window.planningManager.initialize();
+    if (!success) {
+        console.error('❌ Échec initialisation PlanningManager');
+    }
 };
 
 // ===== LOGIQUE BOUTON "PROGRAMME" =====
@@ -982,37 +991,68 @@ async function checkUserHasActiveProgram() {
  */
 async function showUpcomingSessionsModal() {
     try {
-        // Récupérer les prochaines séances depuis le planning
-        const weekStart = new Date();
-        weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1); // Lundi de cette semaine
+        console.log('🔍 showUpcomingSessionsModal() appelée');
         
+        // Récupérer les prochaines séances
+        const weekStart = new Date();
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1);
         const weekStartStr = weekStart.toISOString().split('T')[0];
-        const planningData = await window.apiGet(
+        
+        const planning = await window.apiGet(
             `/api/users/${window.currentUser.id}/weekly-planning?week_start=${weekStartStr}`
         );
         
-        // Extraire les 3 prochaines séances non complétées
-        const upcomingSessions = getUpcomingSessions(planningData);
-        
-        if (upcomingSessions.length === 0) {
-            // Aucune séance planifiée → proposer de créer ou aller au planning
+        if (!planning || !planning.planning_data) {
             showNoProgramSessionsModal();
             return;
         }
         
+        // Extraire les 3 prochaines séances
+        const upcomingSessions = [];
+        for (const day of planning.planning_data) {
+            for (const session of day.sessions || []) {
+                if (new Date(day.date) >= new Date()) {
+                    upcomingSessions.push({
+                        ...session,
+                        date: day.date,
+                        dayName: new Date(day.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+                    });
+                }
+            }
+        }
+        
+        if (upcomingSessions.length === 0) {
+            showNoProgramSessionsModal();
+            return;
+        }
+        
+        // Afficher le modal de choix
+        const sessionsHtml = upcomingSessions.slice(0, 3).map((session, index) => `
+            <button class="upcoming-session-btn" onclick="window.startSessionFromProgram('${session.id}')">
+                <div class="session-info">
+                    <h4>${session.dayName}</h4>
+                    <p>${session.exercises?.length || 0} exercices • ${session.estimated_duration || 45}min</p>
+                    <div class="session-score">
+                        <div class="score-gauge-mini" style="background: ${getScoreColor(session.predicted_quality_score || 75)}">
+                            ${session.predicted_quality_score || 75}
+                        </div>
+                    </div>
+                </div>
+                <i class="fas fa-play"></i>
+            </button>
+        `).join('');
+        
         const modalContent = `
             <div class="upcoming-sessions-modal">
-                <div class="modal-header-program">
-                    <h3><i class="fas fa-dumbbell"></i> Prochaines séances</h3>
-                    <p>Choisissez votre séance du jour</p>
+                <h3>Choisir votre séance</h3>
+                <p>Sélectionnez une séance ou gérez votre planning :</p>
+                
+                <div class="upcoming-sessions">
+                    ${sessionsHtml}
                 </div>
                 
-                <div class="sessions-list">
-                    ${upcomingSessions.map((session, index) => renderUpcomingSession(session, index)).join('')}
-                </div>
-                
-                <div class="program-actions">
-                    <button class="btn btn-secondary" onclick="window.showPlanning()">
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" onclick="showPlanningFromProgram()">
                         <i class="fas fa-calendar"></i> Voir le planning complet
                     </button>
                     <button class="btn btn-outline" onclick="window.closeModal()">
@@ -1022,11 +1062,11 @@ async function showUpcomingSessionsModal() {
             </div>
         `;
         
-        window.showModal('Votre programme', modalContent);
+        window.showModal('Programme', modalContent);
         
     } catch (error) {
-        console.error('Erreur récupération séances:', error);
-        window.showToast('Erreur lors du chargement des séances', 'error');
+        console.error('Erreur récupération prochaines séances:', error);
+        showNoProgramSessionsModal();
     }
 }
 
