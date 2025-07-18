@@ -3353,19 +3353,6 @@ def get_weekly_planning(
             PlannedSession.planned_date >= week_start_date,
             PlannedSession.planned_date <= week_end_date
         ).order_by(PlannedSession.planned_date).all()
-
-        # Si aucune séance planifiée, auto-générer à partir du programme actif
-        if not planned_sessions:
-            active_program = db.query(Program).filter(
-                Program.user_id == user_id,
-                Program.is_active == True
-            ).first()
-            
-            if active_program and active_program.sessions_per_week > 0:
-                logger.info(f"Auto-génération séances pour user {user_id} depuis programme {active_program.id}")
-                planned_sessions = auto_generate_planned_sessions(
-                    active_program, week_start_date, week_end_date, db
-                )
         
         # Récupérer les séances passées (7 derniers jours) pour analyser récupération
         past_cutoff = week_start_date - timedelta(days=7)

@@ -1727,8 +1727,12 @@ class WeeklyPlannerView {
             onEnd: async (evt) => {
                 if (evt.oldIndex === evt.newIndex) return;
                 
-                const newOrder = Array.from(container.children)
-                    .map((el, idx) => idx);
+                // Ne compter que les éléments avec data-index
+                const exerciseElements = Array.from(container.children)
+                    .filter(el => el.hasAttribute('data-index'));
+                
+                const newOrder = exerciseElements
+                    .map(el => parseInt(el.getAttribute('data-index')));
                     
                 await this.reorderSessionExercises(sessionId, newOrder);
             }
@@ -1754,7 +1758,7 @@ class WeeklyPlannerView {
             }
             
             const response = await window.apiPut(
-                `/api/programs/${programId}/reorder-session`,
+                `/api/programs/${programId}/swap-exercise`,
                 {
                     week_index: 0, // À adapter selon le contexte
                     session_index: 0, // À adapter
