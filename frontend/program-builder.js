@@ -62,7 +62,7 @@ class ProgramBuilder {
         }
     }
     
-    render() {
+    async render() {
         // Afficher l'interface ProgramBuilder
         //  Cacher toutes les autres vues
         document.querySelectorAll('.view').forEach(el => {
@@ -114,7 +114,7 @@ class ProgramBuilder {
     }
     
 
-    async renderStep() {
+    renderStep() {
         const content = document.getElementById('builderContent');
         const currentStepNum = document.getElementById('currentStepNum');
         const prevBtn = document.getElementById('builderPrevBtn');
@@ -152,7 +152,7 @@ class ProgramBuilder {
             this.renderFinalConfirmation(content);
         } else if (this.currentStep === this.totalSteps - 2) {
             // Avant-dernière : preview du programme
-            await this.renderPreviewStep(content);
+            this.renderPreviewStep(content);
         } else {
             // Étapes de questions (1 à totalSteps-3)
             this.renderQuestionStep(content, this.currentStep - 1);
@@ -202,36 +202,21 @@ class ProgramBuilder {
     /**
      * Amélioration du preview (avant-dernière étape)
      */
-    async renderProgramPreview(content) {
+    renderProgramPreview(content) {
         if (!this.generatedProgram) {
-            try {
-                content.innerHTML = `
-                    <div class="loading-step">
-                        <div class="loading-spinner"></div>
-                        <p>Génération de votre programme personnalisé...</p>
-                    </div>
-                `;
-                
-                window.showToast('Génération de votre programme...', 'info');
-                this.generatedProgram = await window.apiPost(
-                    `/api/users/${window.currentUser.id}/program-builder/generate`,
-                    this.selections
-                );
-            } catch (error) {
-                console.error('Erreur génération programme:', error);
-                content.innerHTML = `
-                    <div class="error-step">
-                        <h3>❌ Erreur lors de la génération</h3>
-                        <p>Une erreur est survenue. Voulez-vous réessayer ?</p>
-                        <button class="btn btn-primary" onclick="programBuilder.renderProgramPreview(document.getElementById('builderContent'))">
-                            Réessayer
-                        </button>
-                    </div>
-                `;
-                return;
-            }
+            content.innerHTML = `
+                <div class="loading-step">
+                    <div class="loading-spinner"></div>
+                    <p>Génération de votre programme personnalisé...</p>
+                </div>
+            `;
+            
+            // Générer async sans bloquer l'UI
+            this.generateProgramAsync(content);
+            return;
         }
         
+        // Programme déjà généré, afficher le contenu
         content.innerHTML = `
             <div class="preview-step">
                 <h3>Aperçu de votre programme</h3>
@@ -272,6 +257,33 @@ class ProgramBuilder {
                 </div>
             </div>
         `;
+    }
+
+    async generateProgramAsync(content) {
+        try {
+            window.showToast('Génération de votre programme...', 'info');
+            
+            this.generatedProgram = await window.apiPost(
+                `/api/users/${window.currentUser.id}/program-builder/generate`,
+                this.selections
+            );
+            
+            // Re-render maintenant qu'on a le programme
+            this.renderProgramPreview(content);
+            
+        } catch (error) {
+            console.error('Erreur génération programme:', error);
+            content.innerHTML = `
+                <div class="error-step">
+                    <h3>❌ Erreur lors de la génération</h3>
+                    <p>Une erreur est survenue. Voulez-vous réessayer ?</p>
+                    <button class="btn btn-primary" onclick="programBuilder.renderStep()">
+                        Réessayer
+                    </button>
+                </div>
+            `;
+            window.showToast('Erreur lors de la génération du programme', 'error');
+        }
     }
 
     renderIntroStep(content) {
@@ -584,7 +596,7 @@ class ProgramBuilder {
     
     //  ===== NAVIGATION =====
     
-    nextStep() {
+    async nextStep() {
         //  Passer à l'étape suivante//  
         if (!this.validateCurrentStep()) {
             window.showToast('Veuillez faire une sélection', 'warning');
@@ -599,7 +611,7 @@ class ProgramBuilder {
         }
     }
     
-    previousStep() {
+    async previousStep() {
         //  Revenir à l'étape précédente//  
         if (this.currentStep > 0) {
             this.currentStep--;
@@ -608,21 +620,20 @@ class ProgramBuilder {
     }
     
     async regenerateProgram() {
-        //  Régénérer le programme avec les mêmes sélections//  
         try {
             window.showToast('Régénération en cours...', 'info');
             this.generatedProgram = await window.apiPost(
                 `/api/users/${window.currentUser.id}/program-builder/generate`,
                 this.selections
             );
-            this.renderStep(); //  Re-render preview
+            this.renderStep(); // PAS await - va juste re-render avec le nouveau programme
             window.showToast('Nouveau programme généré !', 'success');
         } catch (error) {
             window.showToast('Erreur lors de la régénération', 'error');
         }
     }
     
-    confirmProgram() {
+    async confirmProgram() {
         //  Confirmer le programme et passer à l'étape finale//  
         this.currentStep++;
         this.renderStep();
