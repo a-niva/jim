@@ -1802,8 +1802,8 @@ def activate_comprehensive_program(
         progression_rules=program_data.get("progression_rules", {}),
         base_quality_score=program_data.get("base_quality_score", 85.0),
         format_version="2.0",
-        exercises=[],  # Sera rempli par la logique de sélection
-        goals=program_data.get("goals", ["muscle", "strength"]),
+        #exercises=[],  # Sera rempli par la logique de sélection
+        #goals=program_data.get("goals", ["muscle", "strength"]),
         is_active=True,
         current_week=1,
         current_session_in_week=1
