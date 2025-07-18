@@ -340,7 +340,7 @@ class WeeklyPlannerView {
                     
                     <div class="day-sessions" data-day="${day.date}">
                         ${day.sessions && day.sessions.length > 0 ? 
-                            day.sessions.map(session => this.renderSessionCard(session)).join('') :
+                            day.sessions.map(session => this.renderSession(session, day.date)).join(''):
                             ''
                         }
                         
