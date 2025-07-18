@@ -855,9 +855,137 @@ class PlanningManager {
         }
     }
     
-    showAddSessionModal(date = null) {
-        // TODO: Implémenter modal d'ajout de séance
-        window.showToast('Fonction à implémenter', 'info');
+    async showAddSessionModal(date = null) {
+        const targetDate = date || new Date().toISOString().split('T')[0];
+        
+        try {
+            // Utiliser la fonction existante pour récupérer le programme
+            const program = await window.apiGet(`/api/users/${window.currentUser.id}/programs/active`);
+            
+            if (!program?.weekly_structure) {
+                window.showToast('Créez d\'abord un programme pour ajouter des séances', 'warning');
+                return;
+            }
+            
+            // Extraire tous les exercices disponibles (même logique que les autres modals)
+            const allExercises = [];
+            for (const day of program.weekly_structure) {
+                allExercises.push(...(day.exercises || []));
+            }
+            
+            const uniqueExercises = allExercises.filter((ex, index, arr) => 
+                arr.findIndex(e => e.exercise_id === ex.exercise_id) === index
+            );
+            
+            const modalContent = `
+                <div class="add-session-modal">
+                    <h3><i class="fas fa-plus"></i> Créer une séance</h3>
+                    <p>Date : <strong>${new Date(targetDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</strong></p>
+                    
+                    <div class="exercise-selection">
+                        <h4>Sélectionner les exercices</h4>
+                        <div class="exercise-grid" id="exerciseSelectionGrid">
+                            ${uniqueExercises.map(ex => `
+                                <label class="exercise-checkbox">
+                                    <input type="checkbox" value="${ex.exercise_id}" data-exercise='${JSON.stringify(ex)}'>
+                                    <div class="exercise-card">
+                                        <strong>${ex.exercise_name}</strong>
+                                        <small>${ex.muscle_group} • ${ex.sets || 3}×${ex.reps_min || 8}-${ex.reps_max || 12}</small>
+                                    </div>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="session-preview" id="sessionPreview">
+                        <p>Sélectionnez des exercices pour voir l'aperçu</p>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button class="btn btn-primary" id="createSessionBtn" disabled onclick="planningManager.createSession('${targetDate}')">
+                            Créer la séance
+                        </button>
+                        <button class="btn btn-secondary" onclick="window.closeModal()">
+                            Annuler
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            window.showModal('Nouvelle séance', modalContent);
+            
+            // Initialiser l'interactivité avec les fonctions existantes
+            this.initializeSessionCreation();
+            
+        } catch (error) {
+            console.error('Erreur ouverture modal ajout:', error);
+            window.showToast('Erreur lors de l\'ouverture du modal', 'error');
+        }
+    }
+
+    initializeSessionCreation() {
+        const checkboxes = document.querySelectorAll('#exerciseSelectionGrid input[type="checkbox"]');
+        const createBtn = document.getElementById('createSessionBtn');
+        const previewDiv = document.getElementById('sessionPreview');
+        
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', () => {
+                const selected = Array.from(document.querySelectorAll('#exerciseSelectionGrid input:checked'));
+                
+                if (selected.length === 0) {
+                    previewDiv.innerHTML = '<p>Sélectionnez des exercices pour voir l\'aperçu</p>';
+                    createBtn.disabled = true;
+                    return;
+                }
+                
+                const exercises = selected.map(input => JSON.parse(input.dataset.exercise));
+                const duration = this.calculateSessionDuration(exercises);
+                
+                previewDiv.innerHTML = `
+                    <div class="session-summary">
+                        <p><strong>${exercises.length} exercices</strong> • <strong>${duration} minutes</strong></p>
+                        <div class="exercise-list">
+                            ${exercises.map(ex => `
+                                <div class="exercise-item">${ex.exercise_name}</div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                
+                createBtn.disabled = false;
+            });
+        });
+    }
+
+    async createSession(targetDate) {
+        const selected = Array.from(document.querySelectorAll('#exerciseSelectionGrid input:checked'));
+        
+        if (selected.length === 0) {
+            window.showToast('Sélectionnez au moins un exercice', 'warning');
+            return;
+        }
+        
+        try {
+            const exercises = selected.map(input => JSON.parse(input.dataset.exercise));
+            
+            const sessionData = {
+                planned_date: targetDate,
+                exercises: exercises,
+                estimated_duration: parseInt(this.calculateSessionDuration(exercises)),
+                primary_muscles: [...new Set(exercises.map(ex => ex.muscle_group))],
+                status: 'planned'
+            };
+            
+            await window.apiPost(`/api/users/${window.currentUser.id}/planned-sessions`, sessionData);
+            
+            window.closeModal();
+            window.showToast('Séance créée avec succès', 'success');
+            await this.refresh();
+            
+        } catch (error) {
+            console.error('Erreur création séance:', error);
+            window.showToast('Erreur lors de la création', 'error');
+        }
     }
     
     showAddExerciseModal(sessionId) {
