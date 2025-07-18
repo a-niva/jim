@@ -5914,7 +5914,10 @@ function showModal(title, content) {
 }
 
 function closeModal() {
-    document.getElementById('modal').style.display = 'none';
+    const modal = document.getElementById('modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
 }
 
 // ===== UTILITAIRES =====
