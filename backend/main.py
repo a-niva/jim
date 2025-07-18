@@ -898,6 +898,9 @@ def get_next_intelligent_session(user_id: int, db: Session = Depends(get_db)):
     
     if not program:
         raise HTTPException(status_code=404, detail="Aucun programme actif")
+
+    if program.format_version != "2.0" or not program.weekly_structure:
+        raise HTTPException(status_code=400, detail="Programme v2.0 requis - veuillez recréer votre programme")
     
     try:
         recovery_tracker = RecoveryTracker(db)
