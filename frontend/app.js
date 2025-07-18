@@ -1467,6 +1467,10 @@ async function loadDashboard() {
         // Charger le statut du programme
         await loadProgramStatus();
     }
+    // Mettre à jour le statut du bouton Programme
+    if (window.updateProgramCardStatus) {
+        await updateProgramCardStatus();
+    }
 }
 
 
@@ -5597,6 +5601,34 @@ async function loadProfile() {
         window.workoutAudio.isEnabled = currentUser.sound_notifications_enabled ?? true;
     }
 }
+
+/**
+ * Met à jour la description du bouton Programme selon l'état
+ */
+async function updateProgramCardStatus() {
+    try {
+        if (!window.currentUser) return;
+        
+        const descElement = document.getElementById('programCardDescription');
+        if (!descElement) return;
+        
+        const activeProgram = await window.apiGet(`/api/users/${window.currentUser.id}/programs/active`);
+        
+        if (activeProgram && activeProgram.id) {
+            descElement.textContent = "Gérer mon programme";
+        } else {
+            descElement.textContent = "Créer mon programme";  
+        }
+        
+    } catch (error) {
+        console.error('Erreur status programme:', error);
+        const descElement = document.getElementById('programCardDescription');
+        if (descElement) {
+            descElement.textContent = "Mon programme d'entraînement";
+        }
+    }
+}
+
 
 async function toggleWeightPreference() {
     const toggle = document.getElementById('weightPreferenceToggle');
@@ -9914,6 +9946,7 @@ window.apiPut = apiPut;
 window.apiDelete = apiDelete;
 window.loadStats = loadStats;
 window.loadProfile = loadProfile;
+window.updateProgramCardStatus = updateProgramCardStatus;
 window.currentUser = currentUser;
 window.showView = showView;
 

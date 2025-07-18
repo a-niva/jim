@@ -279,10 +279,10 @@
                     <p>Choisissez vos exercices librement</p>
                 </div>
                 
-                <div class="action-card" onclick="startProgramWorkout()">
+                <div class="action-card" onclick="showProgramInterface()">
                     <div class="action-icon">📋</div>
-                    <h3>Séance programme</h3>
-                    <p>Suivez votre programme personnalisé</p>
+                    <h3>Programme</h3>
+                    <p id="programCardDescription">Mon programme d'entraînement</p>
                 </div>
             </div>
             
@@ -689,14 +689,6 @@
         <div class="view" id="planning" style="display: none;">
             <div id="planningContainer">
                 <!-- Contenu généré par planning.js -->
-            </div>
-        </div>
-        <!-- ================================ -->
-        <!-- VUE PLANNING HEBDOMADAIRE       -->
-        <!-- ================================ -->
-        <div class="view" id="weekly-planning">
-            <div id="weeklyPlanningContainer" class="view-content">
-                <!-- Le contenu sera généré par weekly-planner.js -->
             </div>
         </div>
         <!-- ================================ -->
