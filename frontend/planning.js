@@ -4,7 +4,8 @@
  */
 
 class PlanningManager {
-    constructor() {
+    constructor(containerId = 'planningContainer') {
+        this.containerId = containerId;
         this.container = null;
         this.currentWeek = this.getCurrentWeek();
         this.weeksData = new Map(); // Cache des semaines
