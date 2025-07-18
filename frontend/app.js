@@ -1597,8 +1597,9 @@ async function loadProgramStatus() {
         console.error('Erreur chargement statut programme:', error);
         // Fallback silencieux
         document.getElementById('programStatusWidget').innerHTML = `
-            <button class="btn btn-primary btn-large" onclick="startProgramWorkout()">
-                <i class="fas fa-calendar-check"></i> Séance programme
+            <button class="dashboard-card program-card" onclick="showProgramInterface()">
+                <h3><i class="fas fa-dumbbell"></i> Programme</h3>
+                <p id="programCardDescription">Mon programme d'entraînement</p>
             </button>
         `;
     }

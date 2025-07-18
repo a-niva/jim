@@ -16,6 +16,7 @@
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="program-builder.css">
     <link rel="stylesheet" href="program-manager.css">
+    <link rel="stylesheet" href="planning.css">
     <!-- Font Awesome pour les icônes -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -682,7 +683,14 @@
                 <button class="btn btn-primary" onclick="showView('dashboard')">Commencer</button>
             </div>
         </div>
-
+        <!-- ================================ -->
+        <!-- PLANNING - VUE VERTICALE         -->
+        <!-- ================================ -->
+        <div class="view" id="planning" style="display: none;">
+            <div id="planningContainer">
+                <!-- Contenu généré par planning.js -->
+            </div>
+        </div>
         <!-- ================================ -->
         <!-- VUE PLANNING HEBDOMADAIRE       -->
         <!-- ================================ -->
@@ -731,7 +739,7 @@
             <span>📊</span>
             <span>Stats</span>
         </button>
-        <button class="nav-item" onclick="showWeeklyPlanning()">
+        <button class="nav-item" onclick="showPlanning()">
             <span>📅</span>
             <span>Planning</span>
         </button>
@@ -763,6 +771,7 @@
     <script src="stats-charts.js"></script>
     <script src="session_quality_engine.js"></script>
     <script src="app.js"></script> <!-- app.js AVANT weekly-planner.js -->
+    <script src="planning.js"></script>
     <script src="weekly-planner.js"></script>
     <script src="program-builder.js"></script>
     <script src="program-manager.js"></script>

@@ -74,3 +74,6 @@ node_modules/
 *.pid
 *.seed
 *.pid.lock
+
+
+continue.config.json

@@ -1,0 +1,1141 @@
+/* =====================================================
+   PLANNING STYLES - Design cohérent et moderne
+   ===================================================== */
+
+/* Variables spécifiques Planning */
+:root {
+    --planning-bg: var(--bg-card);
+    --planning-border: var(--border);
+    --planning-radius: 12px;
+    --planning-spacing: 1rem;
+    --planning-gap: 0.75rem;
+    --planning-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    --planning-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.15);
+    --planning-transition: all 0.2s ease;
+}
+
+/* =====================================================
+   CONTAINER PRINCIPAL
+   ===================================================== */
+
+#planningContainer {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--spacing-lg);
+    min-height: calc(100vh - var(--header-height) - var(--bottom-nav-height));
+}
+
+.planning-error {
+    text-align: center;
+    padding: var(--spacing-xl);
+    background: var(--planning-bg);
+    border-radius: var(--planning-radius);
+    border: 1px solid var(--planning-border);
+}
+
+.planning-error h3 {
+    color: var(--danger);
+    margin-bottom: var(--spacing-md);
+}
+
+/* =====================================================
+   HEADER PLANNING
+   ===================================================== */
+
+.planning-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-xl);
+    padding: var(--spacing-lg);
+    background: var(--planning-bg);
+    border-radius: var(--planning-radius);
+    border: 1px solid var(--planning-border);
+    box-shadow: var(--planning-shadow);
+}
+
+.planning-header h2 {
+    margin: 0;
+    color: var(--text);
+    font-size: 1.5rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.planning-header h2 i {
+    color: var(--primary);
+}
+
+.planning-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.planning-actions .btn {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+}
+
+/* =====================================================
+   CONTENEUR SEMAINES
+   ===================================================== */
+
+.weeks-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+}
+
+.week-section {
+    background: var(--planning-bg);
+    border: 1px solid var(--planning-border);
+    border-radius: var(--planning-radius);
+    overflow: hidden;
+    box-shadow: var(--planning-shadow);
+    transition: var(--planning-transition);
+}
+
+.week-section.current-week {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1px var(--primary), var(--planning-shadow);
+}
+
+.week-section:hover {
+    box-shadow: var(--planning-shadow-hover);
+}
+
+/* =====================================================
+   HEADER SEMAINE
+   ===================================================== */
+
+.week-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-lg);
+    background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+    border-bottom: 1px solid var(--planning-border);
+}
+
+.week-header h3 {
+    margin: 0;
+    color: var(--text);
+    font-size: 1.1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.current-badge {
+    background: var(--primary);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.week-score {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.week-gauge {
+    width: 60px;
+    height: 6px;
+    background: var(--bg-tertiary);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.week-gauge-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--success), var(--primary));
+    transition: var(--planning-transition);
+}
+
+/* =====================================================
+   GRILLE JOURS
+   ===================================================== */
+
+.days-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--planning-gap);
+    padding: var(--spacing-lg);
+}
+
+@media (min-width: 768px) {
+    .days-grid {
+        grid-template-columns: repeat(7, 1fr);
+    }
+}
+
+/* =====================================================
+   CARTES JOUR
+   ===================================================== */
+
+.day-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--planning-border);
+    border-radius: var(--planning-radius);
+    overflow: hidden;
+    transition: var(--planning-transition);
+    min-height: 120px;
+}
+
+.day-card.today {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1px var(--primary);
+}
+
+.day-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--planning-shadow-hover);
+}
+
+.day-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--planning-border);
+}
+
+.day-name {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-transform: capitalize;
+    font-weight: 500;
+}
+
+.day-number {
+    font-size: 1.1rem;
+    color: var(--text);
+    font-weight: 600;
+}
+
+.day-card.today .day-name,
+.day-card.today .day-number {
+    color: var(--primary);
+}
+
+/* =====================================================
+   SÉANCES
+   ===================================================== */
+
+.day-sessions {
+    padding: var(--spacing-sm);
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.session-card {
+    background: var(--planning-bg);
+    border: 1px solid var(--planning-border);
+    border-radius: var(--planning-radius);
+    padding: var(--spacing-sm);
+    cursor: pointer;
+    transition: var(--planning-transition);
+    position: relative;
+}
+
+.session-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-1px);
+    box-shadow: var(--planning-shadow);
+}
+
+.session-card.session-dragging {
+    opacity: 0.8;
+    transform: rotate(2deg);
+    box-shadow: var(--planning-shadow-hover);
+}
+
+.session-card.session-ghost {
+    opacity: 0.3;
+    background: var(--primary-light);
+}
+
+.session-card.session-chosen {
+    border-color: var(--primary);
+}
+
+.session-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--spacing-xs);
+}
+
+.session-score {
+    display: flex;
+    align-items: center;
+}
+
+.score-gauge {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.session-delete {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--planning-transition);
+    font-size: 0.8rem;
+}
+
+.session-delete:hover {
+    background: var(--danger);
+    color: white;
+}
+
+.session-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.session-meta {
+    display: flex;
+    gap: var(--spacing-sm);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.session-meta span {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.session-muscles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-top: 0.25rem;
+}
+
+.muscle-tag {
+    background: var(--primary);
+    color: white;
+    padding: 0.125rem 0.375rem;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+
+.muscle-tag.small {
+    padding: 0.1rem 0.3rem;
+    font-size: 0.65rem;
+}
+
+.muscle-more {
+    background: var(--text-muted);
+    color: white;
+    padding: 0.125rem 0.375rem;
+    border-radius: 8px;
+    font-size: 0.7rem;
+}
+
+/* =====================================================
+   ZONE AJOUT SÉANCE
+   ===================================================== */
+
+.add-session-zone {
+    border: 2px dashed var(--planning-border);
+    border-radius: var(--planning-radius);
+    padding: var(--spacing-md);
+    text-align: center;
+    cursor: pointer;
+    transition: var(--planning-transition);
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs);
+    min-height: 60px;
+    justify-content: center;
+}
+
+.add-session-zone:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-light);
+}
+
+.add-session-zone i {
+    font-size: 1.2rem;
+    margin-bottom: 0.25rem;
+}
+
+/* =====================================================
+   WARNINGS JOUR
+   ===================================================== */
+
+.day-warnings {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: rgba(239, 68, 68, 0.1);
+    border-top: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.warning-item {
+    color: var(--danger);
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* =====================================================
+   MODAL ÉDITION SÉANCE
+   ===================================================== */
+
+.session-edit-modal {
+    max-width: 800px;
+    width: 100%;
+}
+
+.session-edit-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-lg);
+    border-bottom: 1px solid var(--planning-border);
+}
+
+.session-edit-header h3 {
+    margin: 0;
+    color: var(--text);
+    font-size: 1.25rem;
+}
+
+.session-live-stats {
+    display: flex;
+    gap: var(--spacing-lg);
+    align-items: flex-end;
+}
+
+.live-score,
+.live-duration {
+    text-align: center;
+}
+
+.live-score label,
+.live-duration label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+}
+
+.score-display .score-gauge {
+    width: 48px;
+    height: 48px;
+    font-size: 0.9rem;
+}
+
+.duration-display {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: var(--text);
+    font-weight: 600;
+}
+
+.duration-display i {
+    color: var(--primary);
+}
+
+/* =====================================================
+   SECTION EXERCICES
+   ===================================================== */
+
+.exercises-section {
+    margin-bottom: var(--spacing-xl);
+}
+
+.exercises-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.exercises-header h4 {
+    margin: 0;
+    color: var(--text);
+    font-size: 1.1rem;
+}
+
+.exercises-list {
+    border: 1px solid var(--planning-border);
+    border-radius: var(--planning-radius);
+    overflow: hidden;
+    background: var(--bg-secondary);
+}
+
+.exercise-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--planning-border);
+    background: var(--planning-bg);
+    transition: var(--planning-transition);
+}
+
+.exercise-item:last-child {
+    border-bottom: none;
+}
+
+.exercise-item:hover {
+    background: var(--bg-secondary);
+}
+
+.exercise-item.exercise-ghost {
+    opacity: 0.4;
+    background: var(--primary-light);
+}
+
+.exercise-item.exercise-chosen {
+    background: var(--primary-light);
+}
+
+.exercise-drag-handle {
+    cursor: grab;
+    color: var(--text-muted);
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: var(--planning-transition);
+}
+
+.exercise-drag-handle:hover {
+    background: var(--bg-tertiary);
+    color: var(--text);
+}
+
+.exercise-drag-handle:active {
+    cursor: grabbing;
+}
+
+.exercise-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.exercise-name {
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.25rem;
+}
+
+.exercise-params {
+    display: flex;
+    gap: var(--spacing-sm);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+}
+
+.exercise-params span {
+    background: var(--bg-tertiary);
+    padding: 0.125rem 0.375rem;
+    border-radius: 4px;
+}
+
+.exercise-muscles {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.exercise-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+}
+
+.btn-action {
+    background: none;
+    border: 1px solid var(--planning-border);
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0.375rem;
+    border-radius: 6px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--planning-transition);
+    font-size: 0.85rem;
+}
+
+.btn-action:hover {
+    background: var(--bg-secondary);
+    color: var(--text);
+}
+
+.btn-swap:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.btn-delete:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+.btn-add {
+    margin-top: var(--spacing-md);
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-md);
+}
+
+/* =====================================================
+   MODAL SWAP EXERCICES
+   ===================================================== */
+
+.swap-modal {
+    max-width: 600px;
+    width: 100%;
+}
+
+.swap-header {
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 1px solid var(--planning-border);
+}
+
+.swap-header h3 {
+    margin: 0 0 var(--spacing-sm) 0;
+    color: var(--text);
+}
+
+.alternatives-list {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid var(--planning-border);
+    border-radius: var(--planning-radius);
+    background: var(--bg-secondary);
+}
+
+.alternative-item {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--planning-border);
+    cursor: pointer;
+    transition: var(--planning-transition);
+    background: var(--planning-bg);
+}
+
+.alternative-item:last-child {
+    border-bottom: none;
+}
+
+.alternative-item:hover {
+    background: var(--primary-light);
+    border-color: var(--primary);
+}
+
+.alternative-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-sm);
+}
+
+.alternative-name {
+    font-weight: 600;
+    color: var(--text);
+}
+
+.alternative-score .score-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    color: white;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.alternative-details {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xs);
+}
+
+.alternative-muscles,
+.alternative-equipment {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+}
+
+.equipment-tag {
+    background: var(--bg-tertiary);
+    color: var(--text-muted);
+    padding: 0.125rem 0.375rem;
+    border-radius: 8px;
+    font-size: 0.7rem;
+}
+
+.alternative-reason {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* =====================================================
+   MODALS CONFIRMATION
+   ===================================================== */
+
+.delete-confirmation,
+.move-confirmation {
+    text-align: center;
+    max-width: 400px;
+}
+
+.delete-confirmation h3,
+.move-confirmation h3 {
+    margin: 0 0 var(--spacing-md) 0;
+    color: var(--text);
+}
+
+.session-preview {
+    background: var(--bg-secondary);
+    padding: var(--spacing-md);
+    border-radius: var(--planning-radius);
+    margin: var(--spacing-md) 0;
+    color: var(--text-muted);
+}
+
+.warnings-list {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: var(--planning-radius);
+    padding: var(--spacing-md);
+    margin: var(--spacing-md) 0;
+}
+
+.warnings-list .warning-item {
+    color: var(--danger);
+    margin-bottom: var(--spacing-xs);
+}
+
+.warnings-list .warning-item:last-child {
+    margin-bottom: 0;
+}
+
+/* =====================================================
+   RESPONSIVE
+   ===================================================== */
+
+@media (max-width: 768px) {
+    #planningContainer {
+        padding: var(--spacing-md);
+    }
+    
+    .planning-header {
+        flex-direction: column;
+        gap: var(--spacing-md);
+        align-items: stretch;
+    }
+    
+    .planning-actions {
+        justify-content: center;
+    }
+    
+    .week-header {
+        flex-direction: column;
+        gap: var(--spacing-sm);
+        align-items: stretch;
+    }
+    
+    .week-score {
+        justify-content: center;
+    }
+    
+    .days-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .session-edit-header {
+        flex-direction: column;
+        gap: var(--spacing-md);
+        align-items: stretch;
+    }
+    
+    .session-live-stats {
+        justify-content: space-around;
+    }
+    
+    .exercise-params {
+        flex-wrap: wrap;
+    }
+    
+    .alternative-details {
+        flex-direction: column;
+        gap: var(--spacing-xs);
+    }
+    
+    .modal-actions {
+        flex-direction: column;
+    }
+}
+
+/* =====================================================
+   ANIMATIONS
+   ===================================================== */
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.week-section {
+    animation: slideIn 0.3s ease;
+}
+
+.week-section:nth-child(1) { animation-delay: 0.05s; }
+.week-section:nth-child(2) { animation-delay: 0.1s; }
+.week-section:nth-child(3) { animation-delay: 0.15s; }
+.week-section:nth-child(4) { animation-delay: 0.2s; }
+
+/* =====================================================
+   DARK MODE
+   ===================================================== */
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --planning-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        --planning-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
+}
+
+/* =====================================================
+   ACCESSIBILITÉ
+   ===================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    
+    .session-card:hover,
+    .day-card:hover,
+    .week-section:hover {
+        transform: none;
+    }
+}
+
+.session-card:focus,
+.add-session-zone:focus,
+.alternative-item:focus,
+.btn-action:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* =====================================================
+   MODALS BOUTON PROGRAMME
+   ===================================================== */
+
+.upcoming-sessions-modal {
+    max-width: 500px;
+    width: 100%;
+}
+
+.modal-header-program {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+    padding-bottom: var(--spacing-lg);
+    border-bottom: 1px solid var(--planning-border);
+}
+
+.modal-header-program h3 {
+    margin: 0 0 var(--spacing-sm) 0;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+}
+
+.modal-header-program h3 i {
+    color: var(--primary);
+}
+
+.modal-header-program p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.sessions-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+}
+
+.upcoming-session-card {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+    background: var(--bg-secondary);
+    border: 1px solid var(--planning-border);
+    border-radius: var(--planning-radius);
+    cursor: pointer;
+    transition: var(--planning-transition);
+    position: relative;
+}
+
+.upcoming-session-card:hover {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    transform: translateY(-2px);
+    box-shadow: var(--planning-shadow);
+}
+
+.upcoming-session-card.today {
+    border-color: var(--success);
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.session-badge {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+}
+
+.today-badge,
+.next-badge {
+    background: var(--success);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.next-badge {
+    background: var(--primary);
+}
+
+.session-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.session-date {
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: var(--spacing-xs);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.session-date i {
+    color: var(--primary);
+    font-size: 0.9rem;
+}
+
+.session-meta-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xs);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.session-meta-row span {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.session-score-mini {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-weight: 600;
+}
+
+.score-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.session-muscles-mini {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.muscle-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.muscles-text {
+    margin-left: 0.25rem;
+}
+
+.session-action {
+    color: var(--primary);
+    font-size: 1.2rem;
+    transition: var(--planning-transition);
+}
+
+.upcoming-session-card:hover .session-action {
+    transform: scale(1.1);
+}
+
+.program-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.program-actions .btn {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+/* Modal pas de séances */
+.no-sessions-modal {
+    max-width: 400px;
+    text-align: center;
+}
+
+.empty-state {
+    margin-bottom: var(--spacing-xl);
+}
+
+.empty-state i {
+    font-size: 3rem;
+    color: var(--text-muted);
+    margin-bottom: var(--spacing-md);
+}
+
+.empty-state h3 {
+    margin: 0 0 var(--spacing-sm) 0;
+    color: var(--text);
+}
+
+.empty-state p {
+    margin: 0;
+    color: var(--text-muted);
+}
+
+.suggestions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.suggestions .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+}
+
+/* =====================================================
+   RESPONSIVE MODALS PROGRAMME
+   ===================================================== */
+
+@media (max-width: 768px) {
+    .upcoming-session-card {
+        padding: var(--spacing-md);
+    }
+    
+    .session-meta-row {
+        flex-wrap: wrap;
+        gap: var(--spacing-sm);
+    }
+    
+    .program-actions {
+        flex-direction: column;
+    }
+    
+    .suggestions {
+        gap: var(--spacing-sm);
+    }
+}
+
+/* =====================================================
+   ÉTATS SPÉCIAUX
+   ===================================================== */
+
+.planning-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+    color: var(--text-muted);
+}
+
+.planning-empty {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--text-muted);
+}
+
+.planning-empty h3 {
+    margin: 0 0 var(--spacing-md) 0;
+    color: var(--text);
+}
