@@ -228,6 +228,7 @@ class PlanningManager {
         `;
     }
     
+
     renderDay(day) {
         const isToday = day.date === new Date().toISOString().split('T')[0];
         const sessionsHtml = day.sessions
@@ -236,13 +237,25 @@ class PlanningManager {
         
         const addZoneHtml = day.canAddSession && day.sessions.length < this.maxSessionsPerDay 
             ? `<div class="add-session-zone" onclick="planningManager.showAddSessionModal('${day.date}')">
-                 <i class="fas fa-plus"></i>
-                 <span>Ajouter séance</span>
-               </div>`
+                <i class="fas fa-plus"></i>
+                <span>Ajouter séance</span>
+            </div>`
+            : '';
+        
+        // CORRECTION : Ajouter clic sur jour vide pour faciliter ajout de séance
+        const dayClickHandler = day.sessions.length === 0 && day.canAddSession
+            ? `onclick="planningManager.showAddSessionModal('${day.date}')"` 
+            : '';
+        
+        const dayStyle = day.sessions.length === 0 && day.canAddSession
+            ? 'cursor: pointer; border: 2px dashed var(--planning-border); opacity: 0.7;' 
             : '';
         
         return `
-            <div class="day-card ${isToday ? 'today' : ''}" data-date="${day.date}">
+            <div class="day-card ${isToday ? 'today' : ''}" 
+                data-date="${day.date}" 
+                ${dayClickHandler}
+                style="${dayStyle}">
                 <div class="day-header">
                     <span class="day-name">${day.dayName}</span>
                     <span class="day-number">${day.dayNumber}</span>
@@ -261,26 +274,32 @@ class PlanningManager {
             </div>
         `;
     }
-    
+
     renderSession(session, date) {
+        // Protection contre données undefined/malformées
+        const sessionId = session.id || session.session_id || `temp-${Date.now()}`;
         const score = session.predicted_quality_score || session.quality_score || 75;
         const duration = session.estimated_duration || 45;
         const exerciseCount = session.exercises?.length || 0;
+        const primaryMuscles = session.primary_muscles || session.muscle_groups || [];
+        
+        // Utiliser les fonctions existantes de session_quality_engine.js et muscle-colors.js
+        const scoreGradient = window.getScoreGradient ? window.getScoreGradient(score) : this.getScoreGradient(score);
         
         return `
             <div class="session-card" 
-                 data-session-id="${session.id}" 
-                 data-date="${date}"
-                 onclick="planningManager.handleSessionClick('${session.id}')">
+                data-session-id="${sessionId}" 
+                data-date="${date}"
+                onclick="planningManager.handleSessionClick('${sessionId}')">
                 
                 <div class="session-header">
                     <div class="session-score">
-                        <div class="score-gauge" style="background: ${this.getScoreGradient(score)}">
+                        <div class="score-gauge" style="background: ${scoreGradient}">
                             <span>${score}</span>
                         </div>
                     </div>
                     <button class="session-delete" 
-                            onclick="event.stopPropagation(); planningManager.handleDeleteSession('${session.id}')"
+                            onclick="event.stopPropagation(); planningManager.handleDeleteSession('${sessionId}')"
                             title="Supprimer">
                         <i class="fas fa-times"></i>
                     </button>
@@ -292,19 +311,23 @@ class PlanningManager {
                         <span><i class="fas fa-dumbbell"></i> ${exerciseCount} ex.</span>
                     </div>
                     
-                    ${session.primary_muscles?.length > 0 ? `
+                    ${primaryMuscles.length > 0 ? `
                         <div class="session-muscles">
-                            ${session.primary_muscles.slice(0, 3).map(muscle => 
-                                `<span class="muscle-tag" style="background: ${this.getMuscleColor(muscle)}">${muscle}</span>`
-                            ).join('')}
-                            ${session.primary_muscles.length > 3 ? `<span class="muscle-more">+${session.primary_muscles.length - 3}</span>` : ''}
+                            ${primaryMuscles.slice(0, 3).map(muscle => {
+                                // Utiliser la fonction de muscle-colors.js si disponible
+                                const color = window.MuscleColors?.getMuscleColor ? 
+                                    window.MuscleColors.getMuscleColor(muscle) : 
+                                    this.getMuscleColor(muscle);
+                                return `<span class="muscle-tag" style="background: ${color}">${muscle}</span>`;
+                            }).join('')}
+                            ${primaryMuscles.length > 3 ? `<span class="muscle-more">+${primaryMuscles.length - 3}</span>` : ''}
                         </div>
                     ` : ''}
                 </div>
             </div>
         `;
     }
-    
+        
     // ===== DRAG & DROP SÉANCES =====
     
     initializeDragDrop() {
@@ -426,40 +449,78 @@ class PlanningManager {
         await this.showSessionEditModal(session);
     }
     
+
     async handleDeleteSession(sessionId) {
-        const session = this.findSessionById(sessionId);
-        if (!session) return;
-        
-        const modalContent = `
-            <div class="delete-confirmation">
-                <h3>🗑️ Supprimer la séance</h3>
-                <p>Êtes-vous sûr de vouloir supprimer cette séance ?</p>
-                <div class="session-preview">
-                    <strong>${session.exercises?.length || 0} exercices</strong> • 
-                    <strong>${session.estimated_duration || 45} minutes</strong>
+        try {
+            // Protection événement - utiliser try/catch au cas où event n'existe pas
+            if (typeof event !== 'undefined') {
+                event.stopPropagation();
+            }
+            
+            const session = this.findSessionById(sessionId);
+            if (!session) {
+                console.warn('Séance introuvable:', sessionId);
+                window.showToast('Séance introuvable', 'warning');
+                return;
+            }
+            
+            const modalContent = `
+                <div class="delete-confirmation">
+                    <h3>🗑️ Supprimer la séance</h3>
+                    <p>Êtes-vous sûr de vouloir supprimer cette séance ?</p>
+                    <div class="session-preview">
+                        <strong>${session.exercises?.length || 0} exercices</strong> • 
+                        <strong>${session.estimated_duration || 45} minutes</strong>
+                        ${session.primary_muscles?.length > 0 ? `<br><small>Muscles: ${session.primary_muscles.join(', ')}</small>` : ''}
+                    </div>
+                    <div class="modal-actions">
+                        <button class="btn btn-danger" onclick="planningManager.confirmDelete('${sessionId}')">
+                            <i class="fas fa-trash"></i> Supprimer
+                        </button>
+                        <button class="btn btn-secondary" onclick="window.closeModal()">
+                            <i class="fas fa-times"></i> Annuler
+                        </button>
+                    </div>
                 </div>
-                <div class="modal-actions">
-                    <button class="btn btn-danger" onclick="planningManager.confirmDelete('${sessionId}')">
-                        Supprimer
-                    </button>
-                    <button class="btn btn-secondary" onclick="window.closeModal()">
-                        Annuler
-                    </button>
-                </div>
-            </div>
-        `;
-        
-        window.showModal('Confirmation', modalContent);
+            `;
+            
+            window.showModal('Confirmation', modalContent);
+            
+        } catch (error) {
+            console.error('❌ Erreur handleDeleteSession:', error);
+            window.showToast('Erreur lors de l\'ouverture', 'error');
+        }
     }
     
     async confirmDelete(sessionId) {
         try {
-            await window.apiDelete(`/api/planned-sessions/${sessionId}`);
+            console.log('🗑️ Suppression séance:', sessionId);
+            
+            // CORRECTION : Tester les deux endpoints possibles
+            try {
+                await window.apiDelete(`/api/planned-sessions/${sessionId}`);
+            } catch (error) {
+                if (error.message?.includes('404')) {
+                    // Fallback sur endpoint utilisateur
+                    await window.apiDelete(`/api/users/${window.currentUser.id}/planned-sessions/${sessionId}`);
+                } else {
+                    throw error;
+                }
+            }
+            
             window.closeModal();
             window.showToast('Séance supprimée', 'success');
             await this.refresh();
+            
         } catch (error) {
-            window.showToast('Erreur lors de la suppression', 'error');
+            console.error('❌ Erreur suppression:', error);
+            if (error.message?.includes('404')) {
+                window.showToast('Séance déjà supprimée', 'info');
+                window.closeModal();
+                await this.refresh(); // Rafraîchir quand même
+            } else {
+                window.showToast('Erreur lors de la suppression', 'error');
+            }
         }
     }
     
@@ -917,27 +978,22 @@ class PlanningManager {
         }
     }
     
+
     async showAddSessionModal(date = null) {
         const targetDate = date || new Date().toISOString().split('T')[0];
         
         try {
-            // Utiliser la fonction existante pour récupérer le programme
-            const program = await window.apiGet(`/api/users/${window.currentUser.id}/programs/active`);
+            console.log('🔍 Ouverture modal ajout séance pour:', targetDate);
             
-            if (!program?.weekly_structure) {
-                window.showToast('Créez d\'abord un programme pour ajouter des séances', 'warning');
+            // CORRECTION : Utiliser l'endpoint existant /api/exercises avec user_id
+            const exercisesResponse = await window.apiGet(`/api/exercises?user_id=${window.currentUser.id}`);
+            
+            if (!exercisesResponse || exercisesResponse.length === 0) {
+                window.showToast('Aucun exercice disponible. Vérifiez votre configuration d\'équipement.', 'warning');
                 return;
             }
             
-            // Extraire tous les exercices disponibles (même logique que les autres modals)
-            const allExercises = [];
-            for (const day of program.weekly_structure) {
-                allExercises.push(...(day.exercises || []));
-            }
-            
-            const uniqueExercises = allExercises.filter((ex, index, arr) => 
-                arr.findIndex(e => e.exercise_id === ex.exercise_id) === index
-            );
+            console.log(`✅ ${exercisesResponse.length} exercices récupérés`);
             
             const modalContent = `
                 <div class="add-session-modal">
@@ -945,30 +1001,45 @@ class PlanningManager {
                     <p>Date : <strong>${new Date(targetDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</strong></p>
                     
                     <div class="exercise-selection">
-                        <h4>Sélectionner les exercices</h4>
-                        <div class="exercise-grid" id="exerciseSelectionGrid">
-                            ${uniqueExercises.map(ex => `
-                                <label class="exercise-checkbox">
-                                    <input type="checkbox" value="${ex.exercise_id}" data-exercise='${JSON.stringify(ex)}'>
-                                    <div class="exercise-card">
-                                        <strong>${ex.exercise_name}</strong>
-                                        <small>${ex.muscle_group} • ${ex.sets || 3}×${ex.reps_min || 8}-${ex.reps_max || 12}</small>
-                                    </div>
-                                </label>
-                            `).join('')}
+                        <h4>Sélectionner les exercices (${exercisesResponse.length} disponibles)</h4>
+                        <div class="exercise-grid" id="exerciseSelectionGrid" style="max-height: 300px; overflow-y: auto;">
+                            ${exercisesResponse.map(ex => {
+                                // Utiliser la structure réelle de la DB
+                                const muscleGroups = ex.muscle_groups?.join(', ') || ex.body_part || 'Mixte';
+                                const exerciseData = {
+                                    exercise_id: ex.id,
+                                    exercise_name: ex.name,
+                                    muscle_group: ex.body_part || ex.muscle_groups?.[0] || 'mixte',
+                                    muscle_groups: ex.muscle_groups || [ex.body_part],
+                                    sets: 3,
+                                    reps_min: 8,
+                                    reps_max: 12,
+                                    rest_seconds: 90
+                                };
+                                
+                                return `
+                                    <label class="exercise-checkbox">
+                                        <input type="checkbox" value="${ex.id}" data-exercise='${JSON.stringify(exerciseData)}'>
+                                        <div class="exercise-card">
+                                            <strong>${ex.name}</strong>
+                                            <small>${muscleGroups} • 3×8-12</small>
+                                        </div>
+                                    </label>
+                                `;
+                            }).join('')}
                         </div>
                     </div>
                     
                     <div class="session-preview" id="sessionPreview">
-                        <p>Sélectionnez des exercices pour voir l'aperçu</p>
+                        <p><em>Sélectionnez des exercices pour voir l'aperçu de la séance</em></p>
                     </div>
                     
                     <div class="modal-actions">
                         <button class="btn btn-primary" id="createSessionBtn" disabled onclick="planningManager.createSession('${targetDate}')">
-                            Créer la séance
+                            <i class="fas fa-plus"></i> Créer la séance
                         </button>
                         <button class="btn btn-secondary" onclick="window.closeModal()">
-                            Annuler
+                            <i class="fas fa-times"></i> Annuler
                         </button>
                     </div>
                 </div>
@@ -976,11 +1047,11 @@ class PlanningManager {
             
             window.showModal('Nouvelle séance', modalContent);
             
-            // Initialiser l'interactivité avec les fonctions existantes
+            // Initialiser l'interactivité
             this.initializeSessionCreation();
             
         } catch (error) {
-            console.error('Erreur ouverture modal ajout:', error);
+            console.error('❌ Erreur ouverture modal ajout:', error);
             window.showToast('Erreur lors de l\'ouverture du modal', 'error');
         }
     }
@@ -990,33 +1061,70 @@ class PlanningManager {
         const createBtn = document.getElementById('createSessionBtn');
         const previewDiv = document.getElementById('sessionPreview');
         
+        if (!checkboxes.length || !createBtn || !previewDiv) {
+            console.error('❌ Éléments modal introuvables');
+            return;
+        }
+        
         checkboxes.forEach(checkbox => {
             checkbox.addEventListener('change', () => {
                 const selected = Array.from(document.querySelectorAll('#exerciseSelectionGrid input:checked'));
                 
                 if (selected.length === 0) {
-                    previewDiv.innerHTML = '<p>Sélectionnez des exercices pour voir l\'aperçu</p>';
+                    previewDiv.innerHTML = '<p><em>Sélectionnez des exercices pour voir l\'aperçu de la séance</em></p>';
                     createBtn.disabled = true;
+                    createBtn.innerHTML = '<i class="fas fa-plus"></i> Créer la séance';
                     return;
                 }
                 
-                const exercises = selected.map(input => JSON.parse(input.dataset.exercise));
-                const duration = this.calculateSessionDuration(exercises);
-                
-                previewDiv.innerHTML = `
-                    <div class="session-summary">
-                        <p><strong>${exercises.length} exercices</strong> • <strong>${duration} minutes</strong></p>
-                        <div class="exercise-list">
-                            ${exercises.map(ex => `
-                                <div class="exercise-item">${ex.exercise_name}</div>
-                            `).join('')}
+                try {
+                    const exercises = selected.map(input => JSON.parse(input.dataset.exercise));
+                    const duration = this.calculateSessionDuration(exercises);
+                    const muscles = [...new Set(exercises.map(ex => ex.muscle_group))].filter(Boolean);
+                    
+                    previewDiv.innerHTML = `
+                        <div class="session-summary">
+                            <div class="summary-stats">
+                                <span class="stat"><i class="fas fa-dumbbell"></i> <strong>${exercises.length}</strong> exercices</span>
+                                <span class="stat"><i class="fas fa-clock"></i> <strong>${duration}</strong> minutes</span>
+                                <span class="stat"><i class="fas fa-muscle"></i> <strong>${muscles.length}</strong> groupes</span>
+                            </div>
+                            <div class="exercise-preview">
+                                <strong>Exercices sélectionnés :</strong>
+                                <div class="exercise-list">
+                                    ${exercises.map(ex => `
+                                        <div class="exercise-preview-item">
+                                            <span class="exercise-name">${ex.exercise_name}</span>
+                                            <span class="exercise-details">${ex.sets}×${ex.reps_min}-${ex.reps_max}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            ${muscles.length > 0 ? `
+                                <div class="muscle-distribution">
+                                    <strong>Groupes musculaires :</strong>
+                                    ${muscles.map(muscle => {
+                                        const color = window.MuscleColors?.getMuscleColor ? 
+                                            window.MuscleColors.getMuscleColor(muscle) : '#6b7280';
+                                        return `<span class="muscle-tag" style="background: ${color}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem;">${muscle}</span>`;
+                                    }).join(' ')}
+                                </div>
+                            ` : ''}
                         </div>
-                    </div>
-                `;
-                
-                createBtn.disabled = false;
+                    `;
+                    
+                    createBtn.disabled = false;
+                    createBtn.innerHTML = `<i class="fas fa-plus"></i> Créer la séance (${exercises.length} ex.)`;
+                    
+                } catch (error) {
+                    console.error('❌ Erreur preview séance:', error);
+                    previewDiv.innerHTML = '<p style="color: var(--danger);">⚠️ Erreur dans la sélection</p>';
+                    createBtn.disabled = true;
+                }
             });
         });
+        
+        console.log('✅ Modal création séance initialisé');
     }
 
     async createSession(targetDate) {
@@ -1028,25 +1136,66 @@ class PlanningManager {
         }
         
         try {
-            const exercises = selected.map(input => JSON.parse(input.dataset.exercise));
+            console.log(`🔧 Création séance avec ${selected.length} exercices`);
+            
+            const exercises = selected.map(input => {
+                try {
+                    return JSON.parse(input.dataset.exercise);
+                } catch (e) {
+                    console.error('Erreur parsing exercice:', e, input.dataset.exercise);
+                    return null;
+                }
+            }).filter(Boolean);
+            
+            if (exercises.length === 0) {
+                window.showToast('Erreur dans la sélection d\'exercices', 'error');
+                return;
+            }
+            
+            // Calculer métadonnées avec fonctions existantes
+            const duration = this.calculateSessionDuration(exercises);
+            const primaryMuscles = [...new Set(exercises.map(ex => ex.muscle_group))].filter(Boolean);
             
             const sessionData = {
+                user_id: window.currentUser.id,
                 planned_date: targetDate,
                 exercises: exercises,
-                estimated_duration: parseInt(this.calculateSessionDuration(exercises)),
-                primary_muscles: [...new Set(exercises.map(ex => ex.muscle_group))],
+                estimated_duration: parseInt(duration),
+                primary_muscles: primaryMuscles,
                 status: 'planned'
             };
             
-            await window.apiPost(`/api/users/${window.currentUser.id}/planned-sessions`, sessionData);
+            console.log('📤 Envoi données séance:', sessionData);
+            
+            // CORRECTION : Endpoint correctif - vérifier si /api/planned-sessions existe
+            let response;
+            try {
+                response = await window.apiPost('/api/planned-sessions', sessionData);
+            } catch (error) {
+                if (error.message?.includes('404')) {
+                    // Fallback sur endpoint utilisateur
+                    console.log('🔄 Fallback sur endpoint utilisateur');
+                    response = await window.apiPost(`/api/users/${window.currentUser.id}/planned-sessions`, sessionData);
+                } else {
+                    throw error;
+                }
+            }
+            
+            console.log('✅ Séance créée:', response);
             
             window.closeModal();
             window.showToast('Séance créée avec succès', 'success');
             await this.refresh();
             
         } catch (error) {
-            console.error('Erreur création séance:', error);
-            window.showToast('Erreur lors de la création', 'error');
+            console.error('❌ Erreur création séance:', error);
+            if (error.message?.includes('404')) {
+                window.showToast('Fonctionnalité en cours de développement', 'info');
+            } else if (error.message?.includes('500')) {
+                window.showToast('Erreur serveur. Réessayez plus tard.', 'error');
+            } else {
+                window.showToast('Erreur lors de la création', 'error');
+            }
         }
     }
     
@@ -1109,7 +1258,7 @@ class PlanningManager {
     
     initializeEventListeners() {
         // Les event listeners sont définis inline dans le HTML pour plus de simplicité
-        
+
         // détecter changement de taille d'écran pour swipe
         window.addEventListener('resize', () => {
             this.isSwipeEnabled = window.innerWidth <= 768;
