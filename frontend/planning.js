@@ -144,7 +144,24 @@ class PlanningManager {
             const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
             
             // Récupérer les séances pour ce jour avec validation
-            const daySessions = this.weeklyStructure[dayName] || [];
+            // Gérer les deux formats possibles de weekly_structure
+            let daySessions = [];
+
+            // Format direct par jour : { "monday": [...], "tuesday": [...] }
+            if (this.weeklyStructure[dayName]) {
+                daySessions = this.weeklyStructure[dayName];
+            } 
+            // Format avec semaines : [{ week: 1, sessions: [...] }]
+            else if (Array.isArray(this.weeklyStructure)) {
+                // Trouver la semaine courante
+                const currentWeekIndex = Math.floor((new Date() - new Date(this.activeProgram.started_at)) / (7 * 24 * 60 * 60 * 1000));
+                const weekData = this.weeklyStructure[currentWeekIndex % this.weeklyStructure.length];
+                
+                if (weekData && weekData.sessions) {
+                    // Filtrer les sessions pour ce jour
+                    daySessions = weekData.sessions.filter(s => s.day === dayName);
+                }
+            }
             
             // Valider et formater chaque session
             const formattedSessions = daySessions.map((session, index) => {
@@ -861,16 +878,19 @@ class PlanningManager {
 
     // Extraction des muscles avec validation
     extractPrimaryMuscles(exercises) {
-        if (!exercises || !Array.isArray(exercises) || exercises.length === 0) {
-            console.warn('⚠️ Pas d\'exercices pour extraction muscles');
-            return ['général'];
-        }
-        
         const muscleCount = {};
         
         exercises.forEach(ex => {
-            const muscle = ex.primary_muscle || ex.muscle_name || 'autre';
-            muscleCount[muscle] = (muscleCount[muscle] || 0) + 1;
+            // Utiliser muscle_groups si disponible (comme dans le backend)
+            if (ex.muscle_groups && Array.isArray(ex.muscle_groups)) {
+                ex.muscle_groups.forEach(muscle => {
+                    muscleCount[muscle] = (muscleCount[muscle] || 0) + 1;
+                });
+            } else {
+                // Fallback sur primary_muscle ou muscle_name
+                const muscle = ex.primary_muscle || ex.muscle_name || 'autre';
+                muscleCount[muscle] = (muscleCount[muscle] || 0) + 1;
+            }
         });
         
         // Retourner les 3 muscles les plus fréquents
@@ -2425,12 +2445,17 @@ class PlanningManager {
                 return;
             }
             
-            // Calculer la durée estimée
+            // Calculer la durée estimée - utiliser la logique du backend
             const estimatedDuration = exercises.reduce((total, ex) => {
                 const sets = ex.sets || 3;
-                const restTime = (ex.rest_seconds || 90) * (sets - 1) / 60;
-                const workTime = sets * 1.5; // Estimation 1.5min par série
-                return total + restTime + workTime;
+                const restSeconds = ex.rest_seconds || 90;
+                
+                // Logique identique à calculate_session_duration du backend
+                const restTime = (restSeconds * (sets - 1)) / 60;
+                const workTime = sets * 2; // 2min par série (plus réaliste que 1.5)
+                const setupTime = 1; // 1min de préparation par exercice
+                
+                return total + restTime + workTime + setupTime;
             }, 0);
             
             // Préparer la nouvelle session
@@ -2900,77 +2925,6 @@ window.showPlanning = async function() {
 // ===== LOGIQUE BOUTON "PROGRAMME" =====
 
 /**
- * Gère le bouton "Programme" sur le dashboard
- * - Si pas de programme → création de programme
- * - Si programme existe → choix entre les 3 prochaines séances
- */
-async function showProgramInterface() {
-    console.log('🔍 showProgramInterface() appelée');
-    
-    try {
-        // Vérifier si un programme existe
-        let activeProgram = null;
-        
-        try {
-            activeProgram = await apiGet(`/api/users/${currentUser.id}/programs/active`);
-        } catch (error) {
-            if (error.status === 404) {
-                console.log('📋 Aucun programme actif (404)');
-            } else {
-                throw error; // Propager autres erreurs
-            }
-        }
-        
-        if (!activeProgram || !activeProgram.id) {
-            console.log('🆕 Création nouveau programme nécessaire');
-            
-            // Récupérer TOUTES les données utilisateur nécessaires
-            const userDetails = await apiGet(`/api/users/${currentUser.id}`);
-            
-            // Validation des données requises
-            if (!userDetails.experience_level || !userDetails.equipment_config) {
-                console.warn('⚠️ Données utilisateur incomplètes');
-                window.showToast('Veuillez compléter votre profil', 'warning');
-                // Rediriger vers profil ?
-                return;
-            }
-            
-            const userDataForBuilder = {
-                // Données essentielles
-                experience_level: userDetails.experience_level,
-                equipment_config: userDetails.equipment_config,
-                
-                // Données physiques
-                bodyweight: userDetails.weight || 70,
-                height: userDetails.height || 170,
-                
-                // Préférences d'entraînement
-                focus_areas: userDetails.focus_areas || [],
-                sessions_per_week: userDetails.sessions_per_week || 3,
-                session_duration: userDetails.session_duration || 45,
-                prefer_weight_changes_between_sets: userDetails.prefer_weight_changes_between_sets || false,
-                
-                // Données supplémentaires
-                onboarding_data: userDetails.onboarding_data || {},
-                created_at: userDetails.created_at
-            };
-            
-            console.log('📊 Données utilisateur préparées:', userDataForBuilder);
-            await window.showProgramBuilder(userDataForBuilder);
-            return;
-        }
-        
-        // Programme existe = afficher modal choix séances
-        console.log('✅ Programme actif trouvé:', activeProgram.name);
-        showProgramChoiceModal(activeProgram);
-        
-    } catch (error) {
-        console.error('❌ Erreur vérification programme:', error);
-        window.showToast('Erreur lors de la vérification du programme', 'error');
-    }
-}
-
-/**
  * Vérifie si l'utilisateur a un programme actif
  */
 async function checkUserHasActiveProgram() {
@@ -3279,5 +3233,3 @@ function getMuscleColor(muscle) {
 }
 
 console.log('✅ Planning.js chargé avec logique Programme');
-
-window.showProgramInterface = showProgramInterface;

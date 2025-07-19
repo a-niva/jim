@@ -9805,34 +9805,64 @@ async function showProgramInterface() {
     
     try {
         // Vérifier si un programme existe
-        const activeProgram = await apiGet(`/api/users/${currentUser.id}/programs/active`);
+        let activeProgram = null;
+        
+        try {
+            activeProgram = await apiGet(`/api/users/${currentUser.id}/programs/active`);
+        } catch (error) {
+            if (error.status === 404) {
+                console.log('📋 Aucun programme actif (404)');
+            } else {
+                throw error; // Propager autres erreurs
+            }
+        }
         
         if (!activeProgram || !activeProgram.id) {
-            console.log('Aucun programme actif, récupération données utilisateur');
+            console.log('🆕 Création nouveau programme nécessaire');
             
-            // CORRECTIF : Récupérer les données complètes de l'utilisateur
+            // Récupérer TOUTES les données utilisateur nécessaires
             const userDetails = await apiGet(`/api/users/${currentUser.id}`);
             
+            // Validation des données requises
+            if (!userDetails.experience_level || !userDetails.equipment_config) {
+                console.warn('⚠️ Données utilisateur incomplètes');
+                window.showToast('Veuillez compléter votre profil', 'warning');
+                // Optionnel : rediriger vers profil
+                // showProfileSettings();
+                return;
+            }
+            
             const userDataForBuilder = {
+                // Données essentielles
                 experience_level: userDetails.experience_level,
                 equipment_config: userDetails.equipment_config,
-                bodyweight: userDetails.weight,
-                height: userDetails.height,
+                
+                // Données physiques
+                bodyweight: userDetails.weight || 70,
+                height: userDetails.height || 170,
+                
+                // Préférences d'entraînement
                 focus_areas: userDetails.focus_areas || [],
                 sessions_per_week: userDetails.sessions_per_week || 3,
                 session_duration: userDetails.session_duration || 45,
-                prefer_weight_changes_between_sets: userDetails.prefer_weight_changes_between_sets
+                prefer_weight_changes_between_sets: userDetails.prefer_weight_changes_between_sets || false,
+                
+                // Données supplémentaires
+                onboarding_data: userDetails.onboarding_data || {},
+                created_at: userDetails.created_at
             };
             
+            console.log('📊 Données utilisateur préparées:', userDataForBuilder);
             await window.showProgramBuilder(userDataForBuilder);
             return;
         }
         
         // Programme existe = afficher modal choix séances
+        console.log('✅ Programme actif trouvé:', activeProgram.name);
         showProgramChoiceModal(activeProgram);
         
     } catch (error) {
-        console.error('Erreur vérification programme:', error);
+        console.error('❌ Erreur vérification programme:', error);
         window.showToast('Erreur lors de la vérification du programme', 'error');
     }
 }

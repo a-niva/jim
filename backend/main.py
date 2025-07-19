@@ -1780,8 +1780,7 @@ def generate_comprehensive_program(
 def update_program(
     program_id: int,
     update_data: dict,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_optional)
+    db: Session = Depends(get_db)
 ):
     """Mettre à jour un programme (notamment weekly_structure)"""
     try:
@@ -1789,11 +1788,7 @@ def update_program(
         program = db.query(Program).filter(Program.id == program_id).first()
         if not program:
             raise HTTPException(status_code=404, detail="Programme non trouvé")
-        
-        # Vérifier que l'utilisateur est propriétaire
-        if current_user and program.user_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Non autorisé")
-        
+                
         # Logger pour debug
         logger.info(f"Mise à jour programme {program_id}")
         logger.debug(f"Données reçues: {update_data}")
