@@ -4,55 +4,40 @@
  */
 
 class PlanningManager {
-    constructor() {
-        this.weeksData = new Map();
-        this.currentWeek = this.getMonday(new Date());
-        this.activeProgram = null; // Programme actif de l'utilisateur
-        this.weeklyStructure = null; // Structure hebdomadaire du programme
-    }
+    constructor(containerId = 'planningContainer') {
+        this.containerId = containerId;
+        this.container = null;
+        this.currentWeek = this.getCurrentWeek();
+        this.weeksData = new Map(); // Cache des semaines
+        this.draggedSession = null;
+        this.swapMode = null; // Pour le système de swap exercices
+        
+        // Configuration
+        this.maxSessionsPerDay = 2;
+        this.weeksToShow = 8; // 4 semaines passées + 4 futures
+        
+        // Bind methods
+        this.handleSessionClick = this.handleSessionClick.bind(this);
+        this.handleDeleteSession = this.handleDeleteSession.bind(this);
 
-    async init() {
-        try {
-            console.log('🚀 Initialisation PlanningManager avec Programme v2.0');
-            
-            // Charger le programme actif AVANT de charger les semaines
-            await this.loadActiveProgram();
-            
-            if (!this.activeProgram) {
-                console.warn('⚠️ Aucun programme actif trouvé');
-                this.showNoProgramMessage();
-                return;
-            }
-            
-            // Charger les données de planning basées sur le programme
-            await this.loadWeeksData();
-            this.render();
-            this.initializeDragDrop();
-            
-            console.log('✅ PlanningManager initialisé avec programme:', this.activeProgram.name);
-        } catch (error) {
-            console.error('❌ Erreur initialisation PlanningManager:', error);
-            this.showError('Erreur lors du chargement du planning');
-        }
+        // Nouvelles propriétés pour navigation
+        this.activeWeekIndex = 0; // Index de la semaine active
+        this.weekKeys = []; // Liste ordonnée des clés de semaines
+        this.isCurrentWeekVisible = true; // Pour gérer le bouton "Aujourd'hui"
+        
+        // Support swipe mobile
+        this.touchStartX = 0;
+        this.touchEndX = 0;
+        this.isSwipeEnabled = window.innerWidth <= 768;
+        
+        // Bind nouveaux methods
+        this.navigateToWeek = this.navigateToWeek.bind(this);
+        this.goToToday = this.goToToday.bind(this);
+        this.handleTouchStart = this.handleTouchStart.bind(this);
+        this.handleTouchMove = this.handleTouchMove.bind(this);
+        this.handleTouchEnd = this.handleTouchEnd.bind(this);
     }
-
-    // NOUVELLE FONCTION - Charger le programme actif
-    async loadActiveProgram() {
-        try {
-            const response = await window.apiGet(`/api/users/${window.currentUser.id}/programs/active`);
-            if (response && response.program) {
-                this.activeProgram = response.program;
-                this.weeklyStructure = response.program.weekly_structure || {};
-                console.log('📋 Programme actif chargé:', this.activeProgram.name);
-                console.log('📅 Structure hebdomadaire:', this.weeklyStructure);
-            }
-        } catch (error) {
-            console.error('❌ Erreur chargement programme actif:', error);
-            this.activeProgram = null;
-            this.weeklyStructure = null;
-        }
-    }
-
+    
     // ===== INITIALISATION =====
     
     async initialize() {
@@ -94,87 +79,65 @@ class PlanningManager {
     }
     
     async loadWeeksData() {
-        const startDate = new Date(this.currentWeek);
-        startDate.setDate(startDate.getDate() - (3 * 7)); // 3 semaines avant
-        
-        this.weeksData.clear();
-        
-        for (let i = 0; i < 8; i++) { // 8 semaines au total
-            const weekStart = new Date(startDate);
-            weekStart.setDate(weekStart.getDate() + (i * 7));
-            const weekKey = this.getWeekKey(weekStart);
+        try {
+            this.weeksData.clear();
             
-            try {
-                // Utiliser weekly_structure du programme pour générer les données
-                const weekData = this.generateWeekDataFromProgram(weekStart);
-                this.weeksData.set(weekKey, weekData);
-                
-                console.log(`✅ Semaine ${weekKey} générée depuis le programme`);
-            } catch (error) {
-                console.error(`❌ Erreur génération semaine ${weekKey}:`, error);
-                this.weeksData.set(weekKey, this.generateEmptyWeek(weekStart));
+            // Calculer les 8 semaines (4 passées + 4 futures)
+            const weeks = [];
+            for (let i = -4; i < 4; i++) {
+                const weekStart = new Date(this.currentWeek);
+                weekStart.setDate(this.currentWeek.getDate() + (i * 7));
+                weeks.push(weekStart);
             }
+            
+            // Charger les données pour chaque semaine
+            for (const weekStart of weeks) {
+                const weekKey = this.getWeekKey(weekStart);
+                const weekStartStr = weekStart.toISOString().split('T')[0];
+                
+                try {
+                    console.log('📡 Chargement semaine:', weekStartStr);
+                    const weekData = await window.apiGet(
+                        `/api/users/${window.currentUser.id}/weekly-planning?week_start=${weekStartStr}`
+                    );
+                    
+                    console.log('📊 Données reçues pour', weekKey, ':', weekData);
+                    
+                    // CORRECTION : Adapter la structure des données API au format frontend
+                    if (weekData && weekData.planning_data) {
+                        // Transformer day_name en dayName pour compatibilité
+                        const adaptedData = {
+                            planning_data: weekData.planning_data.map(day => ({
+                                ...day,
+                                dayName: day.day_name || day.dayName || new Date(day.date).toLocaleDateString('fr-FR', { weekday: 'long' }),
+                                dayNumber: day.dayNumber || new Date(day.date).getDate(),
+                                canAddSession: day.can_add_session !== undefined ? day.can_add_session : true,
+                                warnings: day.recovery_warnings || day.warnings || []
+                            })),
+                            week_score: weekData.week_score || 0
+                        };
+                        
+                        this.weeksData.set(weekKey, adaptedData);
+                        console.log('✅ Semaine', weekKey, 'chargée avec', adaptedData.planning_data.length, 'jours');
+                    } else {
+                        console.warn('⚠️ Données invalides pour', weekKey, '- génération vide');
+                        this.weeksData.set(weekKey, this.generateEmptyWeek(weekStart));
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ Erreur chargement semaine', weekKey, ':', error);
+                    this.weeksData.set(weekKey, this.generateEmptyWeek(weekStart));
+                }
+            }
+            
+            console.log('📋 Total semaines chargées:', this.weeksData.size);
+            
+        } catch (error) {
+            console.error('❌ Erreur critique loadWeeksData:', error);
+            throw error;
         }
-        
-        console.log(`📋 Total semaines chargées: ${this.weeksData.size}`);
     }
-
-
-    // 4. NOUVELLE FONCTION - Générer les données d'une semaine depuis weekly_structure
-    generateWeekDataFromProgram(weekStart) {
-        const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekEnd.getDate() + 6);
-        
-        const daysData = [];
-        const allSessions = [];
-        
-        // Parcourir les 7 jours de la semaine
-        for (let i = 0; i < 7; i++) {
-            const currentDate = new Date(weekStart);
-            currentDate.setDate(currentDate.getDate() + i);
-            const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-            
-            // Récupérer les séances planifiées pour ce jour depuis weekly_structure
-            const daySessions = this.weeklyStructure[dayName] || [];
-            
-            // Formater les séances pour l'affichage
-            const formattedSessions = daySessions.map((session, index) => ({
-                id: `${this.activeProgram.id}_${dayName}_${index}`,
-                program_id: this.activeProgram.id,
-                day_name: dayName,
-                session_index: index,
-                planned_date: currentDate.toISOString().split('T')[0],
-                exercises: session.exercises || [],
-                estimated_duration: session.duration || 60,
-                primary_muscles: session.primary_muscles || this.extractPrimaryMuscles(session.exercises),
-                predicted_quality_score: session.quality_score || 75,
-                session_type: session.session_type || 'standard',
-                status: 'planned'
-            }));
-            
-            allSessions.push(...formattedSessions);
-            
-            daysData.push({
-                date: currentDate.toISOString().split('T')[0],
-                dayName: dayName,
-                dayNumber: currentDate.getDate(),
-                sessions: formattedSessions,
-                canAddSession: formattedSessions.length < 2, // Maximum 2 séances par jour
-                warnings: this.validateDayRecovery(formattedSessions, currentDate)
-            });
-        }
-        
-        return {
-            week_start: weekStart.toISOString().split('T')[0],
-            week_end: weekEnd.toISOString().split('T')[0],
-            planning_data: daysData,
-            muscle_recovery_status: this.calculateMuscleRecovery(allSessions),
-            optimization_suggestions: this.generateOptimizationSuggestions(allSessions),
-            total_weekly_sessions: allSessions.length,
-            total_weekly_duration: allSessions.reduce((sum, s) => sum + (s.estimated_duration || 0), 0)
-        };
-    }
-
+    
     async loadWeekData(weekStart) {
         try {
             const weekStartStr = weekStart.toISOString().split('T')[0];
@@ -358,127 +321,6 @@ class PlanningManager {
         `;
     }
 
-
-    // MODIFIER showAddSessionModal() pour simplifier le header
-    async showAddSessionModal(targetDate) {
-        try {
-            const formattedDate = new Date(targetDate).toLocaleDateString('fr-FR', {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long'
-            });
-            
-            const exercisesResponse = await window.apiGet(`/api/exercises?user_id=${window.currentUser.id}`);
-            
-            // Grouper les exercices par muscle
-            const exercisesByMuscle = {};
-            exercisesResponse.forEach(exercise => {
-                const muscle = exercise.muscle_groups?.[0] || 'Autres';
-                if (!exercisesByMuscle[muscle]) {
-                    exercisesByMuscle[muscle] = [];
-                }
-                exercisesByMuscle[muscle].push(exercise);
-            });
-            
-            // Générer HTML pour chaque groupe musculaire
-            const muscleGroupsHtml = Object.entries(exercisesByMuscle).map(([muscle, exercises]) => {
-                const color = window.MuscleColors?.getMuscleColor ? 
-                    window.MuscleColors.getMuscleColor(muscle) : '#6b7280';
-                
-                return `
-                    <div class="exercise-group">
-                        <h5 class="muscle-group-header" style="border-left: 4px solid ${color};">
-                            ${muscle.charAt(0).toUpperCase() + muscle.slice(1)} (${exercises.length})
-                        </h5>
-                        <div class="exercise-group-grid">
-                            ${exercises.map(ex => {
-                                const exerciseData = {
-                                    exercise_id: ex.id,
-                                    exercise_name: ex.name,
-                                    muscle_groups: ex.muscle_groups || [muscle],
-                                    sets: ex.default_sets || 3,
-                                    reps_min: ex.default_reps_min || 8,
-                                    reps_max: ex.default_reps_max || 12,
-                                    rest_seconds: ex.base_rest_time_seconds || 90,
-                                    equipment_required: ex.equipment_required || [],
-                                    difficulty: ex.difficulty
-                                };
-                                
-                                return `
-                                    <label class="exercise-option">
-                                        <input type="checkbox" 
-                                            value="${ex.id}"
-                                            data-exercise='${JSON.stringify(exerciseData).replace(/'/g, '&apos;')}'>
-                                        <div class="exercise-option-card">
-                                            <div class="exercise-name">${ex.name}</div>
-                                            <div class="exercise-details">
-                                                ${ex.default_sets}×${ex.default_reps_min}-${ex.default_reps_max}
-                                            </div>
-                                        </div>
-                                    </label>
-                                `;
-                            }).join('')}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            
-            const modalContent = `
-                <div class="add-session-modal-v2">
-                    <div class="modal-header-section">
-                        <h3><i class="fas fa-plus-circle"></i> Créer une séance</h3>
-                        <div class="session-date-info">
-                            <i class="fas fa-calendar"></i>
-                            <span>${formattedDate}</span>
-                        </div>
-                    </div>
-                    
-                    <div class="modal-body-section">
-                        <div class="session-content-wrapper">
-                            <div class="selection-section">
-                                <div class="section-header">
-                                    <h4><i class="fas fa-dumbbell"></i> Exercices disponibles (${exercisesResponse.length})</h4>
-                                    <div class="selection-counter">
-                                        <span id="selectedCount">0</span> sélectionné(s)
-                                    </div>
-                                </div>
-                                
-                                <div class="exercise-groups-container" id="exerciseSelectionGrid">
-                                    ${muscleGroupsHtml}
-                                </div>
-                            </div>
-                            
-                            <div class="preview-section">
-                                <h4><i class="fas fa-eye"></i> Aperçu de la séance</h4>
-                                <div class="session-preview" id="sessionPreview">
-                                    <div class="empty-preview">
-                                        <i class="fas fa-hand-pointer"></i>
-                                        <p>Sélectionnez des exercices pour voir l'aperçu</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="modal-actions-section">
-                        <button class="btn btn-secondary" onclick="window.closeModal()">
-                            <i class="fas fa-times"></i> Annuler
-                        </button>
-                        <button class="btn btn-primary" id="createSessionBtn" disabled onclick="planningManager.createSession('${targetDate}')">
-                            <i class="fas fa-plus"></i> Créer la séance
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-            window.showModal('', modalContent); // Titre vide car inclus dans le contenu
-            this.initializeSessionCreation();
-            
-        } catch (error) {
-            console.error('❌ Erreur ouverture modal ajout:', error);
-            window.showToast('Erreur lors de l\'ouverture du modal', 'error');
-        }
-    }
 
     renderSession(session, date) {
         // Protection maximale contre les données manquantes
@@ -705,28 +547,22 @@ class PlanningManager {
             window.showToast('Erreur lors de l\'ouverture', 'error');
         }
     }
-
+    
     async confirmDelete(sessionId) {
         try {
-            console.log('🗑️ Suppression séance depuis le programme:', sessionId);
+            console.log('🗑️ Suppression séance:', sessionId);
             
-            // Parser l'ID pour retrouver la position dans weekly_structure
-            const [programId, dayName, sessionIndex] = sessionId.split('_');
-            
-            if (!this.weeklyStructure[dayName] || !this.weeklyStructure[dayName][parseInt(sessionIndex)]) {
-                window.showToast('Séance introuvable', 'error');
-                return;
+            // CORRECTION : Tester les deux endpoints possibles
+            try {
+                await window.apiDelete(`/api/planned-sessions/${sessionId}`);
+            } catch (error) {
+                if (error.message?.includes('404')) {
+                    // Fallback sur endpoint utilisateur
+                    await window.apiDelete(`/api/users/${window.currentUser.id}/planned-sessions/${sessionId}`);
+                } else {
+                    throw error;
+                }
             }
-            
-            // Supprimer de weekly_structure
-            this.weeklyStructure[dayName].splice(parseInt(sessionIndex), 1);
-            
-            // Mettre à jour le programme
-            const updateData = {
-                weekly_structure: this.weeklyStructure
-            };
-            
-            await window.apiPut(`/api/programs/${this.activeProgram.id}`, updateData);
             
             window.closeModal();
             window.showToast('Séance supprimée', 'success');
@@ -734,309 +570,16 @@ class PlanningManager {
             
         } catch (error) {
             console.error('❌ Erreur suppression:', error);
-            window.showToast('Erreur lors de la suppression', 'error');
+            if (error.message?.includes('404')) {
+                window.showToast('Séance déjà supprimée', 'info');
+                window.closeModal();
+                await this.refresh(); // Rafraîchir quand même
+            } else {
+                window.showToast('Erreur lors de la suppression', 'error');
+            }
         }
     }
     
-    // 7. CORRIGER handleSessionDrop() pour déplacer dans weekly_structure
-    async handleSessionDrop(sessionElement, targetDate, targetDayElement) {
-        const sessionId = sessionElement.dataset.sessionId;
-        const originalDate = sessionElement.dataset.date;
-        
-        if (originalDate === targetDate) {
-            console.log('📍 Même jour, pas de changement');
-            return;
-        }
-        
-        try {
-            console.log(`🔄 Déplacement séance ${sessionId} vers ${targetDate}`);
-            
-            // Parser les informations de la session
-            const [programId, oldDayName, sessionIndex] = sessionId.split('_');
-            const newDayName = new Date(targetDate).toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-            
-            // Récupérer la session depuis l'ancienne position
-            const sessionToMove = this.weeklyStructure[oldDayName]?.[parseInt(sessionIndex)];
-            if (!sessionToMove) {
-                throw new Error('Session introuvable dans weekly_structure');
-            }
-            
-            // Vérifier les contraintes
-            const targetDaySessions = this.weeklyStructure[newDayName] || [];
-            if (targetDaySessions.length >= 2) {
-                window.showToast('Maximum 2 séances par jour', 'warning');
-                this.refresh(); // Rafraîchir pour annuler le drag visuel
-                return;
-            }
-            
-            // Effectuer le déplacement dans weekly_structure
-            this.weeklyStructure[oldDayName].splice(parseInt(sessionIndex), 1);
-            if (!this.weeklyStructure[newDayName]) {
-                this.weeklyStructure[newDayName] = [];
-            }
-            this.weeklyStructure[newDayName].push({
-                ...sessionToMove,
-                moved_date: targetDate
-            });
-            
-            // Mettre à jour le programme
-            const updateData = {
-                weekly_structure: this.weeklyStructure
-            };
-            
-            await window.apiPut(`/api/programs/${this.activeProgram.id}`, updateData);
-            
-            window.showToast('Séance déplacée avec succès', 'success');
-            await this.refresh();
-            
-        } catch (error) {
-            console.error('❌ Erreur déplacement séance:', error);
-            window.showToast('Erreur lors du déplacement', 'error');
-            await this.refresh(); // Rafraîchir pour annuler le drag
-        }
-    }
-
-    // 8. NOUVELLE FONCTION - Afficher message si pas de programme
-    showNoProgramMessage() {
-        const container = document.getElementById('weeksContainer');
-        if (!container) return;
-        
-        container.innerHTML = `
-            <div class="planning-empty">
-                <i class="fas fa-calendar-times" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
-                <h3>Aucun programme actif</h3>
-                <p>Créez d'abord un programme pour utiliser le planning</p>
-                <button class="btn btn-primary" onclick="window.showProgramBuilder()">
-                    <i class="fas fa-plus"></i> Créer un programme
-                </button>
-            </div>
-        `;
-    }
-
-    async showEditSessionModal(sessionId) {
-        try {
-            const [programId, dayName, sessionIndex] = sessionId.split('_');
-            const session = this.weeklyStructure[dayName]?.[parseInt(sessionIndex)];
-            
-            if (!session) {
-                window.showToast('Séance introuvable', 'error');
-                return;
-            }
-            
-            const exercises = session.exercises || [];
-            const duration = session.duration || this.calculateSessionDurationLocal(exercises);
-            const score = session.quality_score || 75;
-            
-            // Utiliser les fonctions existantes de SessionQualityEngine si disponibles
-            const scoreColor = window.SessionQualityEngine?.getScoreColor ? 
-                window.SessionQualityEngine.getScoreColor(score) : '#10b981';
-            
-            const modalContent = `
-                <div class="session-edit-modal">
-                    <div class="session-edit-header">
-                        <h3>Modifier la séance</h3>
-                        <div class="session-live-stats">
-                            <div class="live-score">
-                                <label>Score qualité</label>
-                                <div class="score-display">
-                                    <div class="score-gauge" style="background: conic-gradient(${scoreColor} ${score * 3.6}deg, var(--bg-tertiary) 0)">
-                                        <span>${score}%</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="live-duration">
-                                <label>Durée estimée</label>
-                                <div class="duration-display" id="liveDuration">
-                                    <i class="fas fa-clock"></i>
-                                    <span id="durationValue">${duration}</span> min
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="exercises-section">
-                        <div class="exercises-header">
-                            <h4>Exercices (${exercises.length})</h4>
-                            <div class="exercise-actions">
-                                <button class="btn btn-sm btn-secondary" onclick="planningManager.optimizeSessionOrder('${sessionId}')">
-                                    <i class="fas fa-magic"></i> Ordre optimal
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div class="exercises-list" id="sessionExercisesList">
-                            ${exercises.map((ex, index) => this.renderEditableExercise(ex, index, sessionId)).join('')}
-                        </div>
-                    </div>
-                    
-                    <div class="modal-actions">
-                        <button class="btn btn-primary" onclick="planningManager.startSessionFromProgram('${sessionId}')">
-                            <i class="fas fa-play"></i> Démarrer la séance
-                        </button>
-                        <button class="btn btn-secondary" onclick="window.closeModal()">
-                            Fermer
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-            window.showModal('Séance', modalContent);
-            
-            // Initialiser drag & drop pour les exercices
-            setTimeout(() => {
-                this.initializeExerciseDragDrop(sessionId);
-            }, 100);
-            
-        } catch (error) {
-            console.error('❌ Erreur showEditSessionModal:', error);
-            window.showToast('Erreur lors de l\'ouverture', 'error');
-        }
-    }
-
-
-    // 10. NOUVELLE FONCTION - Optimiser l'ordre des exercices via le backend
-    async optimizeSessionOrder(sessionId) {
-        try {
-            const [programId, dayName, sessionIndex] = sessionId.split('_');
-            
-            // Utiliser l'endpoint Programme existant pour réorganiser
-            const response = await window.apiPut(`/api/programs/${this.activeProgram.id}/reorder-session`, {
-                day_name: dayName,
-                session_index: parseInt(sessionIndex)
-            });
-            
-            if (response.optimized_session) {
-                // Mettre à jour weekly_structure avec la session optimisée
-                this.weeklyStructure[dayName][parseInt(sessionIndex)] = response.optimized_session;
-                
-                // Rafraîchir l'affichage
-                const container = document.getElementById('sessionExercisesList');
-                if (container) {
-                    container.innerHTML = response.optimized_session.exercises
-                        .map((ex, index) => this.renderEditableExercise(ex, index, sessionId))
-                        .join('');
-                }
-                
-                window.showToast(`Ordre optimisé (score: ${response.new_score}%)`, 'success');
-            }
-            
-        } catch (error) {
-            console.error('❌ Erreur optimisation ordre:', error);
-            window.showToast('Erreur lors de l\'optimisation', 'error');
-        }
-    }
-
-    // 11. NOUVELLE FONCTION - Démarrer une séance depuis le programme
-    async startSessionFromProgram(sessionId) {
-        try {
-            const [programId, dayName, sessionIndex] = sessionId.split('_');
-            
-            // Récupérer la prochaine session intelligente via l'API
-            const response = await window.apiGet(`/api/programs/${this.activeProgram.id}/next-session`);
-            
-            if (response.selected_exercises) {
-                // Démarrer la séance avec les exercices optimisés par le ML
-                window.setupComprehensiveWorkout(response);
-                window.showView('workout');
-                window.closeModal();
-            }
-            
-        } catch (error) {
-            console.error('❌ Erreur démarrage séance:', error);
-            window.showToast('Erreur lors du démarrage', 'error');
-        }
-    }
-
-    // 12. FONCTIONS UTILITAIRES pour l'architecture Programme v2.0
-    extractPrimaryMuscles(exercises) {
-        const muscles = new Set();
-        exercises.forEach(ex => {
-            if (ex.muscle_groups) {
-                ex.muscle_groups.forEach(m => muscles.add(m));
-            }
-        });
-        return Array.from(muscles);
-    }
-
-    calculateSessionDurationLocal(exercises) {
-        // Calcul local simple en attendant la réponse du backend
-        let totalDuration = 0;
-        exercises.forEach(ex => {
-            const sets = ex.sets || 3;
-            const restTime = (ex.rest_seconds || 90) / 60;
-            const exerciseTime = sets * 2.5; // Estimation
-            totalDuration += exerciseTime + (restTime * (sets - 1));
-        });
-        return Math.round(totalDuration);
-    }
-
-    calculateMuscleRecovery(sessions) {
-        // Logique simplifiée en attendant l'implémentation backend
-        const recovery = {};
-        const today = new Date();
-        
-        sessions.forEach(session => {
-            const sessionDate = new Date(session.planned_date);
-            const daysSince = Math.floor((today - sessionDate) / (1000 * 60 * 60 * 24));
-            
-            session.primary_muscles.forEach(muscle => {
-                if (!recovery[muscle] || daysSince < recovery[muscle].days_since) {
-                    recovery[muscle] = {
-                        last_trained: session.planned_date,
-                        days_since: daysSince,
-                        ready: daysSince >= 2 // Repos minimum 48h
-                    };
-                }
-            });
-        });
-        
-        return recovery;
-    }
-
-    generateOptimizationSuggestions(sessions) {
-        const suggestions = [];
-        
-        // Vérifier la distribution musculaire
-        const muscleCount = {};
-        sessions.forEach(s => {
-            s.primary_muscles.forEach(m => {
-                muscleCount[m] = (muscleCount[m] || 0) + 1;
-            });
-        });
-        
-        // Suggérer si déséquilibre
-        const counts = Object.values(muscleCount);
-        if (counts.length > 0) {
-            const max = Math.max(...counts);
-            const min = Math.min(...counts);
-            if (max > min * 2) {
-                suggestions.push('Équilibrer la répartition entre groupes musculaires');
-            }
-        }
-        
-        return suggestions;
-    }
-
-    validateDayRecovery(sessions, date) {
-        const warnings = [];
-        
-        if (sessions.length > 2) {
-            warnings.push('Plus de 2 séances prévues');
-        }
-        
-        // Vérifier les muscles travaillés
-        const muscles = new Set();
-        sessions.forEach(s => {
-            s.primary_muscles.forEach(m => muscles.add(m));
-        });
-        
-        if (muscles.size > 3) {
-            warnings.push('Trop de groupes musculaires différents');
-        }
-        
-        return warnings;
-    }
-
     // ===== MODAL ÉDITION SÉANCE =====
     
     async showSessionEditModal(session) {
@@ -1882,402 +1425,137 @@ class PlanningManager {
         const previewDiv = document.getElementById('sessionPreview');
         const selectedCounter = document.getElementById('selectedCount');
         
-        // Récupération des préférences utilisateur depuis le programme
-        const userPreferredDuration = this.activeProgram?.session_duration || 
-                                    window.currentUser?.onboarding_data?.session_duration || 60;
-        const maxExercises = Math.min(8, Math.floor(userPreferredDuration / 7));
+        // Récupération des limites utilisateur
+        const userPreferredDuration = window.currentUser?.onboarding_data?.session_duration || 60;
+        const maxExercises = Math.min(8, Math.floor(userPreferredDuration / 7)); // ~7 min par exercice minimum
+        const minDuration = 30;
+        const maxDuration = userPreferredDuration + 15; // Tolérance de 15 minutes
         
         if (!checkboxes.length || !createBtn || !previewDiv) {
             console.error('❌ Éléments modal introuvables');
             return;
         }
         
-        // Stocker la référence pour le drag & drop
-        this.currentSortable = null;
-        
-        // Fonction de mise à jour de l'aperçu
-        const updatePreview = async () => {
-            const selected = Array.from(document.querySelectorAll('#exerciseSelectionGrid input:checked'));
-            
-            if (selectedCounter) {
-                selectedCounter.textContent = selected.length;
-                const remainingSlots = maxExercises - selected.length;
-                if (remainingSlots <= 2 && remainingSlots > 0) {
-                    selectedCounter.parentElement.innerHTML = `
-                        <span id="selectedCount">${selected.length}</span> / ${maxExercises} max
-                    `;
-                }
-            }
-            
-            if (selected.length === 0) {
-                previewDiv.innerHTML = `
-                    <div class="empty-preview">
-                        <i class="fas fa-hand-pointer"></i>
-                        <p>Sélectionnez des exercices pour voir l'aperçu</p>
-                    </div>
-                `;
-                createBtn.disabled = true;
-                createBtn.innerHTML = '<i class="fas fa-plus"></i> Créer la séance';
-                return;
-            }
-            
-            try {
-                const exercises = selected.map(input => JSON.parse(input.dataset.exercise));
-                
-                // Créer une structure de session temporaire pour le calcul
-                const tempSession = {
-                    exercises: exercises.map(ex => ({
-                        exercise_id: ex.exercise_id,
-                        exercise_name: ex.exercise_name,
-                        sets: ex.sets || 3,
-                        reps_min: ex.reps_min || 8,
-                        reps_max: ex.reps_max || 12,
-                        rest_seconds: ex.rest_seconds || 90
-                    }))
-                };
-                
-                // Calculer le score et la durée via l'API si possible
-                let qualityScore = 75;
-                let duration = this.calculateSessionDurationLocal(tempSession.exercises);
-                
-                try {
-                    // Appeler l'endpoint de calcul de score du programme
-                    const scoreResponse = await window.apiPost(
-                        `/api/programs/${this.activeProgram.id}/calculate-session-score`,
-                        { session: tempSession }
-                    );
-                    
-                    if (scoreResponse) {
-                        qualityScore = Math.round(scoreResponse.quality_score || 75);
-                        duration = scoreResponse.estimated_duration || duration;
-                    }
-                } catch (e) {
-                    console.warn('Calcul score en mode dégradé:', e);
-                }
-                
-                const muscles = [...new Set(exercises.flatMap(ex => ex.muscle_groups || []))]
-                    .filter(Boolean)
-                    .map(muscle => muscle.charAt(0).toUpperCase() + muscle.slice(1));
-                
-                const scoreColor = window.SessionQualityEngine?.getScoreColor ? 
-                    window.SessionQualityEngine.getScoreColor(qualityScore) : '#10b981';
-                
-                previewDiv.innerHTML = `
-                    <div class="session-summary-v2">
-                        <div class="summary-stats">
-                            <div class="stat-item">
-                                <i class="fas fa-dumbbell"></i>
-                                <span class="stat-value">${exercises.length}</span>
-                                <span class="stat-label">exercices</span>
-                            </div>
-                            <div class="stat-item">
-                                <i class="fas fa-clock"></i>
-                                <span class="stat-value">${duration}</span>
-                                <span class="stat-label">minutes</span>
-                            </div>
-                            <div class="stat-item">
-                                <i class="fas fa-muscle"></i>
-                                <span class="stat-value">${muscles.length}</span>
-                                <span class="stat-label">groupes</span>
-                            </div>
-                            <div class="stat-item quality-score">
-                                <i class="fas fa-star" style="color: ${scoreColor}"></i>
-                                <span class="stat-value" style="color: ${scoreColor}" data-score="${qualityScore}">${qualityScore}%</span>
-                                <span class="stat-label">qualité</span>
-                            </div>
-                        </div>
-                        
-                        <div class="exercise-list-preview">
-                            <h5><i class="fas fa-list"></i> Exercices sélectionnés</h5>
-                            <div class="exercises-sortable" id="previewExercisesList">
-                                ${exercises.map((ex, index) => `
-                                    <div class="exercise-preview-item" 
-                                        data-exercise-id="${ex.exercise_id}"
-                                        data-exercise='${JSON.stringify(ex).replace(/'/g, '&apos;')}'>
-                                        <span class="exercise-drag-handle">
-                                            <i class="fas fa-grip-vertical"></i>
-                                        </span>
-                                        <span class="exercise-number">${index + 1}</span>
-                                        <div class="exercise-info">
-                                            <div class="exercise-name">${ex.exercise_name}</div>
-                                            <div class="exercise-params">${ex.sets || 3}×${ex.reps_min || 8}-${ex.reps_max || 12}</div>
-                                        </div>
-                                        <button class="exercise-remove" 
-                                                onclick="planningManager.removeExerciseFromPreview('${ex.exercise_id}')"
-                                                title="Retirer de la séance">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                        
-                        ${muscles.length > 0 ? `
-                            <div class="muscle-groups-preview">
-                                <h5><i class="fas fa-crosshairs"></i> Groupes musculaires</h5>
-                                <div class="muscle-tags">
-                                    ${muscles.map(muscle => {
-                                        const muscleKey = muscle.toLowerCase();
-                                        const color = window.MuscleColors?.getMuscleColor ? 
-                                            window.MuscleColors.getMuscleColor(muscleKey) : '#6b7280';
-                                        return `<span class="muscle-tag-preview" style="background: ${color}">${muscle}</span>`;
-                                    }).join('')}
-                                </div>
-                            </div>
-                        ` : ''}
-                    </div>
-                `;
-                
-                // Initialiser le drag & drop
-                this.initializePreviewDragDrop();
-                
-                // Initialiser le swipe sur mobile
-                if ('ontouchstart' in window) {
-                    this.initializeMobileSwipe();
-                }
-                
-                createBtn.disabled = false;
-                createBtn.innerHTML = `<i class="fas fa-plus"></i> Créer la séance (${exercises.length} ex.)`;
-                
-            } catch (error) {
-                console.error('❌ Erreur preview séance:', error);
-                previewDiv.innerHTML = '<div class="error-preview"><i class="fas fa-exclamation-triangle"></i> Erreur dans la sélection</div>';
-                createBtn.disabled = true;
-            }
-        };
-        
-        // Gestionnaire pour les checkboxes avec débounce pour éviter trop d'appels API
-        let updateTimeout;
         checkboxes.forEach(checkbox => {
             checkbox.addEventListener('change', (event) => {
                 const selected = Array.from(document.querySelectorAll('#exerciseSelectionGrid input:checked'));
                 
-                // Vérifier les limites
+                // Vérification des limites avant d'accepter la sélection
                 if (event.target.checked && selected.length > maxExercises) {
                     event.target.checked = false;
                     window.showToast(`Maximum ${maxExercises} exercices pour une séance de ${userPreferredDuration} minutes`, 'warning');
                     return;
                 }
                 
-                // Debounce pour éviter trop d'appels API
-                clearTimeout(updateTimeout);
-                updateTimeout = setTimeout(() => {
-                    updatePreview();
-                }, 300);
+                // Vérification de la durée estimée
+                if (event.target.checked) {
+                    const tempExercises = selected.map(input => JSON.parse(input.dataset.exercise));
+                    const estimatedDuration = this.calculateSessionDuration(tempExercises);
+                    
+                    if (estimatedDuration > maxDuration) {
+                        event.target.checked = false;
+                        window.showToast(`Cette sélection dépasserait ${maxDuration} minutes`, 'warning');
+                        return;
+                    }
+                }
+                
+                // Mettre à jour le compteur
+                const updatedSelected = Array.from(document.querySelectorAll('#exerciseSelectionGrid input:checked'));
+                if (selectedCounter) {
+                    selectedCounter.textContent = updatedSelected.length;
+                }
+                
+                // Ajout d'un indicateur de limite dans le bouton
+                const remainingSlots = maxExercises - updatedSelected.length;
+                if (remainingSlots <= 2 && remainingSlots > 0) {
+                    selectedCounter.parentElement.innerHTML = `
+                        <span id="selectedCount">${updatedSelected.length}</span> / ${maxExercises} max
+                    `;
+                }
+                
+                // Reste du code existant sans modification...
+                if (updatedSelected.length === 0) {
+                    previewDiv.innerHTML = `
+                        <div class="empty-preview">
+                            <i class="fas fa-hand-pointer"></i>
+                            <p>Sélectionnez des exercices pour voir l'aperçu</p>
+                        </div>
+                    `;
+                    createBtn.disabled = true;
+                    createBtn.innerHTML = '<i class="fas fa-plus"></i> Créer la séance';
+                    return;
+                }
+                
+                try {
+                    const exercises = selected.map(input => JSON.parse(input.dataset.exercise));
+                    const duration = this.calculateSessionDuration(exercises);
+                    const muscles = [...new Set(exercises.flatMap(ex => ex.muscle_groups || []))]
+                        .filter(Boolean)
+                        .map(muscle => muscle.charAt(0).toUpperCase() + muscle.slice(1));
+                    
+                    previewDiv.innerHTML = `
+                        <div class="session-summary-v2">
+                            <div class="summary-stats">
+                                <div class="stat-item">
+                                    <i class="fas fa-dumbbell"></i>
+                                    <span class="stat-value">${exercises.length}</span>
+                                    <span class="stat-label">exercices</span>
+                                </div>
+                                <div class="stat-item">
+                                    <i class="fas fa-clock"></i>
+                                    <span class="stat-value">${duration}</span>
+                                    <span class="stat-label">minutes</span>
+                                </div>
+                                <div class="stat-item">
+                                    <i class="fas fa-muscle"></i>
+                                    <span class="stat-value">${muscles.length}</span>
+                                    <span class="stat-label">groupes</span>
+                                </div>
+                            </div>
+                            
+                            <div class="exercise-list-preview">
+                                <h5><i class="fas fa-list"></i> Exercices sélectionnés</h5>
+                                <div class="exercises-grid">
+                                    ${exercises.map((ex, index) => `
+                                        <div class="exercise-preview-item">
+                                            <span class="exercise-number">${index + 1}</span>
+                                            <div class="exercise-info">
+                                                <div class="exercise-name">${ex.exercise_name}</div>
+                                                <div class="exercise-params">${ex.sets}×${ex.reps_min}-${ex.reps_max}</div>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            
+                            ${muscles.length > 0 ? `
+                                <div class="muscle-groups-preview">
+                                    <h5><i class="fas fa-crosshairs"></i> Groupes musculaires</h5>
+                                    <div class="muscle-tags">
+                                        ${muscles.map(muscle => {
+                                            const muscleKey = muscle.toLowerCase(); // Convertir en minuscule pour la couleur
+                                            const color = window.MuscleColors?.getMuscleColor ? 
+                                                window.MuscleColors.getMuscleColor(muscleKey) : '#6b7280';
+                                            return `<span class="muscle-tag-preview" style="background: ${color}">${muscle}</span>`;
+                                        }).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                    
+                    createBtn.disabled = false;
+                    createBtn.innerHTML = `<i class="fas fa-plus"></i> Créer la séance (${exercises.length} ex.)`;
+                    
+                } catch (error) {
+                    console.error('❌ Erreur preview séance:', error);
+                    previewDiv.innerHTML = '<div class="error-preview"><i class="fas fa-exclamation-triangle"></i> Erreur dans la sélection</div>';
+                    createBtn.disabled = true;
+                }
             });
         });
         
-        // Mise à jour initiale
-        updatePreview();
-        
         console.log('✅ Modal création séance initialisé avec', checkboxes.length, 'exercices');
-    }
-
-
-    // AJOUTER fonction pour retirer un exercice de l'aperçu
-    removeExerciseFromPreview(exerciseId) {
-        const checkbox = document.querySelector(`#exerciseSelectionGrid input[value="${exerciseId}"]`);
-        if (checkbox) {
-            checkbox.checked = false;
-            checkbox.dispatchEvent(new Event('change'));
-        }
-    }
-
-    // AJOUTER initialisation du drag & drop pour l'aperçu
-    initializePreviewDragDrop() {
-        const container = document.getElementById('previewExercisesList');
-        if (!container || !window.Sortable) return;
-        
-        // Détruire l'instance précédente si elle existe
-        if (this.currentSortable) {
-            this.currentSortable.destroy();
-        }
-        
-        this.currentSortable = new Sortable(container, {
-            animation: 150,
-            handle: '.exercise-drag-handle',
-            ghostClass: 'exercise-ghost',
-            chosenClass: 'exercise-chosen',
-            dragClass: 'exercise-dragging',
-            onEnd: async (evt) => {
-                // Mettre à jour les numéros
-                this.updateExerciseNumbers();
-                
-                // Recalculer le score avec le nouvel ordre
-                const exercises = this.getPreviewExercises();
-                
-                // Créer une session temporaire pour le recalcul
-                const tempSession = {
-                    exercises: exercises.map(ex => ({
-                        exercise_id: ex.exercise_id,
-                        exercise_name: ex.exercise_name,
-                        sets: ex.sets || 3,
-                        reps_min: ex.reps_min || 8,
-                        reps_max: ex.reps_max || 12,
-                        rest_seconds: ex.rest_seconds || 90
-                    }))
-                };
-                
-                try {
-                    const scoreResponse = await window.apiPost(
-                        `/api/programs/${this.activeProgram.id}/calculate-session-score`,
-                        { session: tempSession }
-                    );
-                    
-                    if (scoreResponse && scoreResponse.quality_score) {
-                        const newScore = Math.round(scoreResponse.quality_score);
-                        this.updateScoreDisplay(newScore);
-                    }
-                } catch (e) {
-                    console.warn('Mise à jour score impossible:', e);
-                }
-            }
-        });
-    }
-
-    // AJOUTER mise à jour animée du score
-    updateScoreDisplay(newScore) {
-        const scoreElement = document.querySelector('.quality-score .stat-value');
-        if (!scoreElement) return;
-        
-        const oldScore = parseInt(scoreElement.dataset.score) || 75;
-        const scoreColor = window.SessionQualityEngine?.getScoreColor ? 
-            window.SessionQualityEngine.getScoreColor(newScore) : '#10b981';
-        
-        // Animation du changement de score
-        scoreElement.style.transform = 'scale(1.2)';
-        scoreElement.textContent = `${newScore}%`;
-        scoreElement.style.color = scoreColor;
-        scoreElement.dataset.score = newScore;
-        
-        const iconElement = document.querySelector('.quality-score i');
-        if (iconElement) {
-            iconElement.style.color = scoreColor;
-        }
-        
-        // Afficher le delta si significatif
-        const delta = newScore - oldScore;
-        if (Math.abs(delta) > 0) {
-            const deltaElement = document.createElement('span');
-            deltaElement.className = 'score-delta';
-            deltaElement.textContent = delta > 0 ? `+${delta}` : `${delta}`;
-            deltaElement.style.color = delta > 0 ? '#10b981' : '#ef4444';
-            scoreElement.parentElement.appendChild(deltaElement);
-            
-            setTimeout(() => {
-                deltaElement.style.opacity = '0';
-                setTimeout(() => deltaElement.remove(), 300);
-            }, 2000);
-        }
-        
-        setTimeout(() => {
-            scoreElement.style.transform = 'scale(1)';
-        }, 300);
-    }
-
-    // AJOUTER support swipe mobile
-    initializeMobileSwipe() {
-        const items = document.querySelectorAll('.exercise-preview-item');
-        
-        items.forEach(item => {
-            let startX = 0;
-            let currentX = 0;
-            let isDragging = false;
-            
-            const handleStart = (e) => {
-                // Ne pas interférer avec le drag & drop
-                if (e.target.closest('.exercise-drag-handle')) return;
-                
-                const touch = e.type.includes('touch') ? e.touches[0] : e;
-                startX = touch.clientX;
-                isDragging = true;
-                item.style.transition = 'none';
-            };
-            
-            const handleMove = (e) => {
-                if (!isDragging) return;
-                e.preventDefault();
-                
-                const touch = e.type.includes('touch') ? e.touches[0] : e;
-                currentX = touch.clientX;
-                const diff = startX - currentX;
-                
-                if (diff > 0) {
-                    item.style.transform = `translateX(-${Math.min(diff, 100)}px)`;
-                    item.style.opacity = Math.max(0.3, 1 - (diff / 200));
-                    
-                    // Afficher indicateur visuel
-                    if (diff > 50) {
-                        item.classList.add('swipe-delete');
-                    } else {
-                        item.classList.remove('swipe-delete');
-                    }
-                }
-            };
-            
-            const handleEnd = (e) => {
-                if (!isDragging) return;
-                isDragging = false;
-                
-                const diff = startX - currentX;
-                item.style.transition = 'all 0.3s ease';
-                
-                if (diff > 80) {
-                    // Swipe suffisant pour supprimer avec animation
-                    item.style.transform = 'translateX(-120%)';
-                    item.style.opacity = '0';
-                    
-                    // Vibration feedback si disponible
-                    if (navigator.vibrate) {
-                        navigator.vibrate(50);
-                    }
-                    
-                    setTimeout(() => {
-                        const exerciseId = item.dataset.exerciseId;
-                        this.removeExerciseFromPreview(exerciseId);
-                    }, 300);
-                } else {
-                    // Annuler le swipe
-                    item.style.transform = '';
-                    item.style.opacity = '';
-                    item.classList.remove('swipe-delete');
-                }
-            };
-            
-            // Support tactile
-            item.addEventListener('touchstart', handleStart, { passive: true });
-            item.addEventListener('touchmove', handleMove, { passive: false });
-            item.addEventListener('touchend', handleEnd);
-        });
-    }
-
-    // AJOUTER mise à jour des numéros après réorganisation
-    updateExerciseNumbers() {
-        const items = document.querySelectorAll('.exercise-preview-item');
-        items.forEach((item, index) => {
-            const numberElement = item.querySelector('.exercise-number');
-            if (numberElement) {
-                // Animation du changement de numéro
-                numberElement.style.transform = 'scale(0.8)';
-                setTimeout(() => {
-                    numberElement.textContent = index + 1;
-                    numberElement.style.transform = 'scale(1)';
-                }, 150);
-            }
-        });
-    }
-
-    // AJOUTER récupération des exercices depuis l'aperçu dans l'ordre actuel
-    getPreviewExercises() {
-        const items = document.querySelectorAll('.exercise-preview-item');
-        return Array.from(items).map(item => {
-            try {
-                return JSON.parse(item.dataset.exercise);
-            } catch (e) {
-                console.error('Erreur parsing exercice preview:', e);
-                return null;
-            }
-        }).filter(Boolean);
     }
 
     async createSession(targetDate) {
@@ -2288,19 +1566,14 @@ class PlanningManager {
             return;
         }
         
-        if (!this.activeProgram) {
-            window.showToast('Aucun programme actif', 'error');
-            return;
-        }
-        
         try {
-            console.log(`🔧 Création séance dans le programme pour ${targetDate}`);
+            console.log(`🔧 Création séance avec ${selected.length} exercices`);
             
             const exercises = selected.map(input => {
                 try {
                     return JSON.parse(input.dataset.exercise);
                 } catch (e) {
-                    console.error('Erreur parsing exercice:', e);
+                    console.error('Erreur parsing exercice:', e, input.dataset.exercise);
                     return null;
                 }
             }).filter(Boolean);
@@ -2310,52 +1583,36 @@ class PlanningManager {
                 return;
             }
             
-            // Déterminer le jour de la semaine
-            const dayDate = new Date(targetDate);
-            const dayName = dayDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+            // Calculer métadonnées avec fonctions existantes
+            const duration = this.calculateSessionDuration(exercises);
+            const primaryMuscles = [...new Set(exercises.map(ex => ex.muscle_group))].filter(Boolean);
             
-            // Préparer la nouvelle session
-            const newSession = {
-                exercises: exercises.map(ex => ({
-                    exercise_id: ex.exercise_id,
-                    exercise_name: ex.exercise_name,
-                    sets: ex.sets || 3,
-                    reps_min: ex.reps_min || 8,
-                    reps_max: ex.reps_max || 12,
-                    rest_seconds: ex.rest_seconds || 90
-                })),
-                session_type: 'custom',
-                created_date: targetDate
+            const sessionData = {
+                user_id: window.currentUser.id,
+                planned_date: targetDate,
+                exercises: exercises,
+                estimated_duration: parseInt(duration),
+                primary_muscles: primaryMuscles,
+                status: 'planned'
             };
             
-            // Mettre à jour weekly_structure localement
-            if (!this.weeklyStructure[dayName]) {
-                this.weeklyStructure[dayName] = [];
+            console.log('📤 Envoi données séance:', sessionData);
+            
+            // CORRECTION : Endpoint correctif - vérifier si /api/planned-sessions existe
+            let response;
+            try {
+                response = await window.apiPost('/api/planned-sessions', sessionData);
+            } catch (error) {
+                if (error.message?.includes('404')) {
+                    // Fallback sur endpoint utilisateur
+                    console.log('🔄 Fallback sur endpoint utilisateur');
+                    response = await window.apiPost(`/api/users/${window.currentUser.id}/planned-sessions`, sessionData);
+                } else {
+                    throw error;
+                }
             }
-            this.weeklyStructure[dayName].push(newSession);
             
-            // Préparer les données pour la mise à jour du programme
-            const updateData = {
-                weekly_structure: this.weeklyStructure
-            };
-            
-            console.log('📤 Mise à jour du programme avec nouvelle session:', updateData);
-            
-            // Utiliser l'endpoint de mise à jour du programme
-            const response = await window.apiPut(`/api/programs/${this.activeProgram.id}`, updateData);
-            
-            console.log('✅ Programme mis à jour avec nouvelle séance');
-            
-            // Si le backend retourne les calculs ML, les utiliser
-            if (response.updated_session) {
-                const sessionIndex = this.weeklyStructure[dayName].length - 1;
-                this.weeklyStructure[dayName][sessionIndex] = {
-                    ...newSession,
-                    duration: response.updated_session.estimated_duration,
-                    quality_score: response.updated_session.predicted_quality_score,
-                    primary_muscles: response.updated_session.primary_muscles
-                };
-            }
+            console.log('✅ Séance créée:', response);
             
             window.closeModal();
             window.showToast('Séance créée avec succès', 'success');
@@ -2363,7 +1620,13 @@ class PlanningManager {
             
         } catch (error) {
             console.error('❌ Erreur création séance:', error);
-            window.showToast('Erreur lors de la création', 'error');
+            if (error.message?.includes('404')) {
+                window.showToast('Fonctionnalité en cours de développement', 'info');
+            } else if (error.message?.includes('500')) {
+                window.showToast('Erreur serveur. Réessayez plus tard.', 'error');
+            } else {
+                window.showToast('Erreur lors de la création', 'error');
+            }
         }
     }
     
