@@ -1841,6 +1841,39 @@ def update_program(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Erreur serveur: {str(e)}")
 
+@app.post("/api/programs/{program_id}/calculate-session-score")
+def calculate_session_score_endpoint(
+    program_id: int,
+    score_data: dict,
+    db: Session = Depends(get_db)
+):
+    """Calculer le score d'une session"""
+    try:
+        program = db.query(Program).filter(Program.id == program_id).first()
+        if not program:
+            raise HTTPException(status_code=404, detail="Programme non trouvé")
+        
+        exercises = score_data.get("exercises", [])
+        if not exercises:
+            return {"score": 75.0, "message": "Pas d'exercices fournis"}
+        
+        # Utiliser la fonction existante
+        score = calculate_session_quality_score(exercises, program.user_id, db)
+        
+        return {
+            "score": score,
+            "breakdown": {
+                "exercise_count": len(exercises),
+                "muscle_diversity": len(set(ex.get("muscle_name", "autre") for ex in exercises)),
+                "base_score": 75.0,
+                "final_score": score
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Erreur calcul score: {str(e)}")
+        return {"score": 75.0, "error": str(e)}
+    
 @app.put("/api/programs/{program_id}/reorder-session")
 def reorder_session_exercises(
     program_id: int,
