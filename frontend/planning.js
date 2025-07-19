@@ -920,6 +920,12 @@ class PlanningManager {
 
     // Extraction des muscles avec validation
     extractPrimaryMuscles(exercises) {
+        // Validation robuste
+        if (!exercises || !Array.isArray(exercises) || exercises.length === 0) {
+            console.warn('⚠️ Pas d\'exercices pour extraction muscles');
+            return ['général'];
+        }
+        
         const muscleCount = {};
         
         exercises.forEach(ex => {
@@ -1994,7 +2000,15 @@ class PlanningManager {
                         </div>
                         
                         <div class="preview-section">
-                            <h4><i class="fas fa-eye"></i> Aperçu de la séance</h4>
+                            <div class="preview-header">
+                                <h4><i class="fas fa-eye"></i> Aperçu de la séance</h4>
+                                <button class="btn-magic-icon" id="optimizeBtn" 
+                                        style="display: none;" 
+                                        onclick="window.planningManager.optimizeExerciseOrder()"
+                                        title="Optimiser l'ordre des exercices">
+                                    <i class="fas fa-magic"></i>
+                                </button>
+                            </div>
                             <div class="session-preview" id="sessionPreview">
                                 <div class="empty-preview">
                                     <i class="fas fa-hand-pointer"></i>
@@ -2007,11 +2021,6 @@ class PlanningManager {
                     <div class="modal-actions-section">
                         <button class="btn btn-secondary" onclick="window.closeModal()">
                             <i class="fas fa-times"></i> Annuler
-                        </button>
-                        <button class="btn btn-magic" id="optimizeBtn" style="display: none;" 
-                                onclick="planningManager.optimizeExerciseOrder('${targetDate}')" 
-                                title="Optimiser l'ordre des exercices">
-                            <i class="fas fa-magic"></i> Optimiser
                         </button>
                         <button class="btn btn-primary" id="createSessionBtn" disabled onclick="planningManager.createSession('${targetDate}')">
                             <i class="fas fa-plus"></i> Créer la séance
@@ -2194,25 +2203,13 @@ class PlanningManager {
                 
                 createBtn.disabled = false;
                 createBtn.innerHTML = `<i class="fas fa-plus"></i> Créer la séance (${exercises.length} ex.)`;
-                // Ajouter le bouton d'optimisation si plus de 2 exercices
-                if (exercises.length >= 2) {
-                    const modalActions = createBtn.parentElement;
-                    if (modalActions && !document.getElementById('optimizeBtn')) {
-                        const optimizeBtn = document.createElement('button');
-                        optimizeBtn.id = 'optimizeBtn';
-                        optimizeBtn.className = 'btn btn-magic';
-                        optimizeBtn.innerHTML = '<i class="fas fa-magic"></i> Optimiser l\'ordre';
-                        optimizeBtn.title = 'Optimiser l\'ordre des exercices pour maximiser le score';
-                        optimizeBtn.onclick = () => self.optimizeExerciseOrder();
-                        
-                        // Insérer avant le bouton créer
-                        modalActions.insertBefore(optimizeBtn, createBtn);
-                    }
-                } else {
-                    // Retirer le bouton si moins de 2 exercices
-                    const optimizeBtn = document.getElementById('optimizeBtn');
-                    if (optimizeBtn) {
-                        optimizeBtn.remove();
+                // Afficher/masquer le bouton d'optimisation
+                const optimizeBtn = document.getElementById('optimizeBtn');
+                if (optimizeBtn) {
+                    if (exercises.length >= 2) {
+                        optimizeBtn.style.display = 'flex';
+                    } else {
+                        optimizeBtn.style.display = 'none';
                     }
                 }
                 
@@ -2648,7 +2645,8 @@ class PlanningManager {
                             this.animateScoreChange(scoreElement, oldScore, newScore);
                             
                             // Mettre à jour la couleur
-                            const newColor = this.getScoreColor(newScore);
+                            const newColor = this.getScoreColor ? this.getScoreColor(newScore) : 
+                                (newScore >= 85 ? '#10b981' : newScore >= 70 ? '#f59e0b' : '#ef4444');
                             scoreElement.style.color = newColor;
                             scoreElement.previousElementSibling.style.color = newColor; // l'icône
                         }
@@ -2861,38 +2859,43 @@ class PlanningManager {
                     </div>
                     
                     <div class="modal-body-section">
-                        <div class="session-content-wrapper">
-                            <div class="selection-section">
-                                <div class="section-header">
-                                    <h4><i class="fas fa-dumbbell"></i> Exercices disponibles (${exercisesResponse.length})</h4>
-                                    <div class="selection-counter">
-                                        <span id="selectedCount">0</span> sélectionné(s)
-                                    </div>
-                                </div>
-                                
-                                <div class="exercise-groups-container" id="exerciseSelectionGrid">
-                                    ${muscleGroupsHtml}
+                        <div class="selection-section">
+                            <div class="section-header">
+                                <h4><i class="fas fa-dumbbell"></i> Exercices disponibles (${exercisesResponse.length})</h4>
+                                <div class="selection-counter">
+                                    <span id="selectedCount">0</span> sélectionné(s)
                                 </div>
                             </div>
                             
-                            <div class="preview-section">
+                            <div class="exercise-groups-container" id="exerciseSelectionGrid">
+                                ${muscleGroupsHtml}
+                            </div>
+                        </div>
+                        
+                        <div class="preview-section">
+                            <div class="preview-header">
                                 <h4><i class="fas fa-eye"></i> Aperçu de la séance</h4>
-                                <div class="session-preview" id="sessionPreview">
-                                    <div class="empty-preview">
-                                        <i class="fas fa-hand-pointer"></i>
-                                        <p>Sélectionnez des exercices pour voir l'aperçu</p>
-                                    </div>
+                                <button class="btn-magic-icon" id="optimizeBtn" 
+                                        style="display: none;" 
+                                        onclick="window.planningManager.optimizeExerciseOrder()"
+                                        title="Optimiser l'ordre des exercices">
+                                    <i class="fas fa-magic"></i>
+                                </button>
+                            </div>
+                            <div class="session-preview" id="sessionPreview">
+                                <div class="empty-preview">
+                                    <i class="fas fa-hand-pointer"></i>
+                                    <p>Sélectionnez des exercices pour voir l'aperçu</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="modal-actions-section" id="modalActions">
+                    <div class="modal-actions-section">
                         <button class="btn btn-secondary" onclick="window.closeModal()">
                             <i class="fas fa-times"></i> Annuler
                         </button>
-                        <!-- Le bouton optimiser sera ajouté dynamiquement -->
-                        <button class="btn btn-primary" id="createSessionBtn" disabled onclick="window.planningManager.createSession('${targetDate}')">
+                        <button class="btn btn-primary" id="createSessionBtn" disabled onclick="planningManager.createSession('${targetDate}')">
                             <i class="fas fa-plus"></i> Créer la séance
                         </button>
                     </div>
