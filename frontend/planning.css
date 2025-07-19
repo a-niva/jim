@@ -1320,3 +1320,413 @@
     margin: 0 0 var(--spacing-md) 0;
     color: var(--text);
 }
+
+/* =====================================================
+   STYLES POUR NOUVEAU MODAL CRÉATION SÉANCE
+   À AJOUTER DANS planning.css
+   ===================================================== */
+
+/* Modal v2 - Design organisé */
+.add-session-modal-v2 {
+    max-width: 800px;
+    width: 100%;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-header-section {
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--planning-border);
+    background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+}
+
+.modal-header-section h3 {
+    margin: 0 0 var(--spacing-sm) 0;
+    color: var(--text);
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.modal-header-section h3 i {
+    color: var(--primary);
+}
+
+.session-date-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-top: var(--spacing-xs);
+}
+
+.session-date-info i {
+    color: var(--primary);
+}
+
+/* Corps du modal */
+.modal-body-section {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-lg);
+}
+
+/* Section sélection */
+.selection-section {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--planning-border);
+}
+
+.section-header h4 {
+    margin: 0;
+    color: var(--text);
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.section-header h4 i {
+    color: var(--primary);
+    font-size: 1rem;
+}
+
+.selection-counter {
+    background: var(--primary);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+/* Container des groupes d'exercices */
+.exercise-groups-container {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid var(--planning-border);
+    border-radius: var(--planning-radius);
+    background: var(--bg-secondary);
+    padding: var(--spacing-md);
+}
+
+/* Groupes musculaires */
+.exercise-group {
+    margin-bottom: var(--spacing-lg);
+}
+
+.exercise-group:last-child {
+    margin-bottom: 0;
+}
+
+.muscle-group-header {
+    margin: 0 0 var(--spacing-md) 0;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--bg-tertiary);
+    border-radius: var(--planning-radius);
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text);
+    border-left: 4px solid var(--primary);
+}
+
+.exercise-group-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--spacing-sm);
+}
+
+/* Options d'exercices */
+.exercise-option {
+    display: block;
+    cursor: pointer;
+    transition: var(--planning-transition);
+}
+
+.exercise-option input[type="checkbox"] {
+    display: none;
+}
+
+.exercise-option-card {
+    padding: var(--spacing-sm);
+    background: var(--planning-bg);
+    border: 2px solid var(--planning-border);
+    border-radius: var(--planning-radius);
+    transition: var(--planning-transition);
+    text-align: center;
+}
+
+.exercise-option:hover .exercise-option-card {
+    border-color: var(--primary);
+    background: var(--primary-light, rgba(59, 130, 246, 0.1));
+}
+
+.exercise-option input:checked + .exercise-option-card {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: white;
+}
+
+.exercise-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+}
+
+.exercise-details {
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+/* Section aperçu */
+.preview-section {
+    border-top: 1px solid var(--planning-border);
+    padding-top: var(--spacing-lg);
+}
+
+.preview-section h4 {
+    margin: 0 0 var(--spacing-md) 0;
+    color: var(--text);
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.preview-section h4 i {
+    color: var(--primary);
+}
+
+.session-preview {
+    background: var(--bg-secondary);
+    border: 1px solid var(--planning-border);
+    border-radius: var(--planning-radius);
+    padding: var(--spacing-lg);
+    min-height: 150px;
+}
+
+/* État vide */
+.empty-preview {
+    text-align: center;
+    color: var(--text-muted);
+    padding: var(--spacing-xl);
+}
+
+.empty-preview i {
+    font-size: 2rem;
+    margin-bottom: var(--spacing-md);
+    opacity: 0.5;
+}
+
+.empty-preview p {
+    margin: 0;
+    font-style: italic;
+}
+
+/* Aperçu de session v2 */
+.session-summary-v2 {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.summary-stats {
+    display: flex;
+    justify-content: space-around;
+    background: var(--bg-tertiary);
+    padding: var(--spacing-md);
+    border-radius: var(--planning-radius);
+}
+
+.stat-item {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.stat-item i {
+    color: var(--primary);
+    font-size: 1.2rem;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Liste d'exercices preview */
+.exercise-list-preview h5,
+.muscle-groups-preview h5 {
+    margin: 0 0 var(--spacing-sm) 0;
+    color: var(--text);
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.exercise-list-preview h5 i,
+.muscle-groups-preview h5 i {
+    color: var(--primary);
+    font-size: 0.9rem;
+}
+
+.exercises-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: var(--spacing-xs);
+}
+
+.exercise-preview-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-xs);
+    background: var(--planning-bg);
+    border-radius: 6px;
+    border: 1px solid var(--planning-border);
+}
+
+.exercise-number {
+    background: var(--primary);
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.exercise-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.exercise-preview-item .exercise-name {
+    font-weight: 500;
+    font-size: 0.85rem;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.exercise-preview-item .exercise-params {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+/* Tags musculaires preview */
+.muscle-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.muscle-tag-preview {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    color: white;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Actions du modal */
+.modal-actions-section {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+    border-top: 1px solid var(--planning-border);
+    background: var(--bg-secondary);
+}
+
+.modal-actions-section .btn {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-weight: 500;
+}
+
+/* État d'erreur */
+.error-preview {
+    text-align: center;
+    color: var(--danger);
+    padding: var(--spacing-lg);
+}
+
+.error-preview i {
+    font-size: 2rem;
+    margin-bottom: var(--spacing-sm);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .add-session-modal-v2 {
+        max-width: 95vw;
+        max-height: 95vh;
+    }
+    
+    .modal-body-section {
+        padding: var(--spacing-md);
+        gap: var(--spacing-md);
+    }
+    
+    .exercise-group-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .exercises-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .summary-stats {
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+    
+    .stat-item {
+        flex-direction: row;
+        justify-content: space-between;
+        text-align: left;
+    }
+    
+    .modal-actions-section {
+        flex-direction: column;
+    }
+}

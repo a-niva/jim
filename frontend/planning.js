@@ -79,16 +79,62 @@ class PlanningManager {
     }
     
     async loadWeeksData() {
-        const startDate = new Date(this.currentWeek);
-        startDate.setDate(startDate.getDate() - (3 * 7)); // 3 semaines avant
-        
-        for (let i = 0; i < this.weeksToShow; i++) {
-            const weekStart = new Date(startDate);
-            weekStart.setDate(weekStart.getDate() + (i * 7));
+        try {
+            this.weeksData.clear();
             
-            const weekKey = this.getWeekKey(weekStart);
-            const weekData = await this.loadWeekData(weekStart);
-            this.weeksData.set(weekKey, weekData);
+            // Calculer les 8 semaines (4 passées + 4 futures)
+            const weeks = [];
+            for (let i = -4; i < 4; i++) {
+                const weekStart = new Date(this.currentWeek);
+                weekStart.setDate(this.currentWeek.getDate() + (i * 7));
+                weeks.push(weekStart);
+            }
+            
+            // Charger les données pour chaque semaine
+            for (const weekStart of weeks) {
+                const weekKey = this.getWeekKey(weekStart);
+                const weekStartStr = weekStart.toISOString().split('T')[0];
+                
+                try {
+                    console.log('📡 Chargement semaine:', weekStartStr);
+                    const weekData = await window.apiGet(
+                        `/api/users/${window.currentUser.id}/weekly-planning?week_start=${weekStartStr}`
+                    );
+                    
+                    console.log('📊 Données reçues pour', weekKey, ':', weekData);
+                    
+                    // CORRECTION : Adapter la structure des données API au format frontend
+                    if (weekData && weekData.planning_data) {
+                        // Transformer day_name en dayName pour compatibilité
+                        const adaptedData = {
+                            planning_data: weekData.planning_data.map(day => ({
+                                ...day,
+                                dayName: day.day_name || day.dayName || new Date(day.date).toLocaleDateString('fr-FR', { weekday: 'long' }),
+                                dayNumber: day.dayNumber || new Date(day.date).getDate(),
+                                canAddSession: day.can_add_session !== undefined ? day.can_add_session : true,
+                                warnings: day.recovery_warnings || day.warnings || []
+                            })),
+                            week_score: weekData.week_score || 0
+                        };
+                        
+                        this.weeksData.set(weekKey, adaptedData);
+                        console.log('✅ Semaine', weekKey, 'chargée avec', adaptedData.planning_data.length, 'jours');
+                    } else {
+                        console.warn('⚠️ Données invalides pour', weekKey, '- génération vide');
+                        this.weeksData.set(weekKey, this.generateEmptyWeek(weekStart));
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ Erreur chargement semaine', weekKey, ':', error);
+                    this.weeksData.set(weekKey, this.generateEmptyWeek(weekStart));
+                }
+            }
+            
+            console.log('📋 Total semaines chargées:', this.weeksData.size);
+            
+        } catch (error) {
+            console.error('❌ Erreur critique loadWeeksData:', error);
+            throw error;
         }
     }
     
@@ -275,16 +321,27 @@ class PlanningManager {
         `;
     }
 
+
     renderSession(session, date) {
-        // Protection contre données undefined/malformées
+        // Protection maximale contre les données manquantes
+        if (!session) {
+            console.warn('Session null/undefined');
+            return '';
+        }
+        
+        console.log('🎨 Rendu session:', session);
+        
+        // CORRECTION : Gestion flexible des IDs (string/number)
         const sessionId = session.id || session.session_id || `temp-${Date.now()}`;
         const score = session.predicted_quality_score || session.quality_score || 75;
         const duration = session.estimated_duration || 45;
-        const exerciseCount = session.exercises?.length || 0;
+        const exerciseCount = (session.exercises && Array.isArray(session.exercises)) ? session.exercises.length : 0;
         const primaryMuscles = session.primary_muscles || session.muscle_groups || [];
         
-        // Utiliser les fonctions existantes de session_quality_engine.js et muscle-colors.js
-        const scoreGradient = window.getScoreGradient ? window.getScoreGradient(score) : this.getScoreGradient(score);
+        // Utiliser les fonctions existantes avec fallback
+        const scoreGradient = window.getScoreGradient ? 
+            window.getScoreGradient(score) : 
+            `linear-gradient(135deg, ${score >= 75 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444'}, #6b7280)`;
         
         return `
             <div class="session-card" 
@@ -311,13 +368,12 @@ class PlanningManager {
                         <span><i class="fas fa-dumbbell"></i> ${exerciseCount} ex.</span>
                     </div>
                     
-                    ${primaryMuscles.length > 0 ? `
+                    ${Array.isArray(primaryMuscles) && primaryMuscles.length > 0 ? `
                         <div class="session-muscles">
                             ${primaryMuscles.slice(0, 3).map(muscle => {
-                                // Utiliser la fonction de muscle-colors.js si disponible
                                 const color = window.MuscleColors?.getMuscleColor ? 
                                     window.MuscleColors.getMuscleColor(muscle) : 
-                                    this.getMuscleColor(muscle);
+                                    '#6b7280';
                                 return `<span class="muscle-tag" style="background: ${color}">${muscle}</span>`;
                             }).join('')}
                             ${primaryMuscles.length > 3 ? `<span class="muscle-more">+${primaryMuscles.length - 3}</span>` : ''}
@@ -907,13 +963,35 @@ class PlanningManager {
         this.render();
     }
     
+
     findSessionById(sessionId) {
+        console.log('🔍 Recherche session:', sessionId, 'dans', this.weeksData.size, 'semaines');
+        
         for (const [weekKey, weekData] of this.weeksData.entries()) {
+            console.log('🔍 Vérification semaine:', weekKey, 'avec', weekData?.planning_data?.length || 0, 'jours');
+            
+            if (!weekData || !weekData.planning_data) continue;
+            
             for (const day of weekData.planning_data) {
-                const session = day.sessions.find(s => s.id === sessionId);
-                if (session) return session;
+                if (!day.sessions) continue;
+                
+                for (const session of day.sessions) {
+                    console.log('🔍 Session trouvée:', {
+                        id: session.id,
+                        sessionId: sessionId,
+                        match: session.id == sessionId
+                    });
+                    
+                    // CORRECTION : Comparaison flexible pour gérer String vs Number
+                    if (session.id == sessionId || session.id === sessionId) {
+                        console.log('✅ Session trouvée!', session);
+                        return session;
+                    }
+                }
             }
         }
+        
+        console.warn('❌ Session non trouvée:', sessionId);
         return null;
     }
     
@@ -985,7 +1063,6 @@ class PlanningManager {
         try {
             console.log('🔍 Ouverture modal ajout séance pour:', targetDate);
             
-            // CORRECTION : Utiliser l'endpoint existant /api/exercises avec user_id
             const exercisesResponse = await window.apiGet(`/api/exercises?user_id=${window.currentUser.id}`);
             
             if (!exercisesResponse || exercisesResponse.length === 0) {
@@ -993,19 +1070,28 @@ class PlanningManager {
                 return;
             }
             
-            console.log(`✅ ${exercisesResponse.length} exercices récupérés`);
+            // Grouper les exercices par muscle pour organisation
+            const exercisesByMuscle = {};
+            exercisesResponse.forEach(ex => {
+                const muscle = ex.body_part || ex.muscle_groups?.[0] || 'Autres';
+                if (!exercisesByMuscle[muscle]) {
+                    exercisesByMuscle[muscle] = [];
+                }
+                exercisesByMuscle[muscle].push(ex);
+            });
             
-            const modalContent = `
-                <div class="add-session-modal">
-                    <h3><i class="fas fa-plus"></i> Créer une séance</h3>
-                    <p>Date : <strong>${new Date(targetDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</strong></p>
-                    
-                    <div class="exercise-selection">
-                        <h4>Sélectionner les exercices (${exercisesResponse.length} disponibles)</h4>
-                        <div class="exercise-grid" id="exerciseSelectionGrid" style="max-height: 300px; overflow-y: auto;">
-                            ${exercisesResponse.map(ex => {
-                                // Utiliser la structure réelle de la DB
-                                const muscleGroups = ex.muscle_groups?.join(', ') || ex.body_part || 'Mixte';
+            // Générer HTML organisé par groupe musculaire
+            const muscleGroupsHtml = Object.entries(exercisesByMuscle).map(([muscle, exercises]) => {
+                const color = window.MuscleColors?.getMuscleColor ? 
+                    window.MuscleColors.getMuscleColor(muscle) : '#6b7280';
+                
+                return `
+                    <div class="exercise-group">
+                        <h5 class="muscle-group-header" style="border-left: 4px solid ${color};">
+                            ${muscle.charAt(0).toUpperCase() + muscle.slice(1)} (${exercises.length})
+                        </h5>
+                        <div class="exercise-group-grid">
+                            ${exercises.map(ex => {
                                 const exerciseData = {
                                     exercise_id: ex.id,
                                     exercise_name: ex.name,
@@ -1018,36 +1104,71 @@ class PlanningManager {
                                 };
                                 
                                 return `
-                                    <label class="exercise-checkbox">
+                                    <label class="exercise-option">
                                         <input type="checkbox" value="${ex.id}" data-exercise='${JSON.stringify(exerciseData)}'>
-                                        <div class="exercise-card">
-                                            <strong>${ex.name}</strong>
-                                            <small>${muscleGroups} • 3×8-12</small>
+                                        <div class="exercise-option-card">
+                                            <div class="exercise-name">${ex.name}</div>
+                                            <div class="exercise-details">3×8-12</div>
                                         </div>
                                     </label>
                                 `;
                             }).join('')}
                         </div>
                     </div>
-                    
-                    <div class="session-preview" id="sessionPreview">
-                        <p><em>Sélectionnez des exercices pour voir l'aperçu de la séance</em></p>
+                `;
+            }).join('');
+            
+            const modalContent = `
+                <div class="add-session-modal-v2">
+                    <div class="modal-header-section">
+                        <h3><i class="fas fa-plus-circle"></i> Créer une séance</h3>
+                        <div class="session-date-info">
+                            <i class="fas fa-calendar"></i>
+                            <span>${new Date(targetDate).toLocaleDateString('fr-FR', { 
+                                weekday: 'long', 
+                                day: 'numeric', 
+                                month: 'long' 
+                            })}</span>
+                        </div>
                     </div>
                     
-                    <div class="modal-actions">
-                        <button class="btn btn-primary" id="createSessionBtn" disabled onclick="planningManager.createSession('${targetDate}')">
-                            <i class="fas fa-plus"></i> Créer la séance
-                        </button>
+                    <div class="modal-body-section">
+                        <div class="selection-section">
+                            <div class="section-header">
+                                <h4><i class="fas fa-dumbbell"></i> Exercices disponibles (${exercisesResponse.length})</h4>
+                                <div class="selection-counter">
+                                    <span id="selectedCount">0</span> sélectionné(s)
+                                </div>
+                            </div>
+                            
+                            <div class="exercise-groups-container" id="exerciseSelectionGrid">
+                                ${muscleGroupsHtml}
+                            </div>
+                        </div>
+                        
+                        <div class="preview-section">
+                            <h4><i class="fas fa-eye"></i> Aperçu de la séance</h4>
+                            <div class="session-preview" id="sessionPreview">
+                                <div class="empty-preview">
+                                    <i class="fas fa-hand-pointer"></i>
+                                    <p>Sélectionnez des exercices pour voir l'aperçu</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-actions-section">
                         <button class="btn btn-secondary" onclick="window.closeModal()">
                             <i class="fas fa-times"></i> Annuler
+                        </button>
+                        <button class="btn btn-primary" id="createSessionBtn" disabled onclick="planningManager.createSession('${targetDate}')">
+                            <i class="fas fa-plus"></i> Créer la séance
                         </button>
                     </div>
                 </div>
             `;
             
             window.showModal('Nouvelle séance', modalContent);
-            
-            // Initialiser l'interactivité
             this.initializeSessionCreation();
             
         } catch (error) {
@@ -1060,6 +1181,7 @@ class PlanningManager {
         const checkboxes = document.querySelectorAll('#exerciseSelectionGrid input[type="checkbox"]');
         const createBtn = document.getElementById('createSessionBtn');
         const previewDiv = document.getElementById('sessionPreview');
+        const selectedCounter = document.getElementById('selectedCount');
         
         if (!checkboxes.length || !createBtn || !previewDiv) {
             console.error('❌ Éléments modal introuvables');
@@ -1070,8 +1192,18 @@ class PlanningManager {
             checkbox.addEventListener('change', () => {
                 const selected = Array.from(document.querySelectorAll('#exerciseSelectionGrid input:checked'));
                 
+                // Mettre à jour le compteur
+                if (selectedCounter) {
+                    selectedCounter.textContent = selected.length;
+                }
+                
                 if (selected.length === 0) {
-                    previewDiv.innerHTML = '<p><em>Sélectionnez des exercices pour voir l\'aperçu de la séance</em></p>';
+                    previewDiv.innerHTML = `
+                        <div class="empty-preview">
+                            <i class="fas fa-hand-pointer"></i>
+                            <p>Sélectionnez des exercices pour voir l'aperçu</p>
+                        </div>
+                    `;
                     createBtn.disabled = true;
                     createBtn.innerHTML = '<i class="fas fa-plus"></i> Créer la séance';
                     return;
@@ -1083,31 +1215,50 @@ class PlanningManager {
                     const muscles = [...new Set(exercises.map(ex => ex.muscle_group))].filter(Boolean);
                     
                     previewDiv.innerHTML = `
-                        <div class="session-summary">
+                        <div class="session-summary-v2">
                             <div class="summary-stats">
-                                <span class="stat"><i class="fas fa-dumbbell"></i> <strong>${exercises.length}</strong> exercices</span>
-                                <span class="stat"><i class="fas fa-clock"></i> <strong>${duration}</strong> minutes</span>
-                                <span class="stat"><i class="fas fa-muscle"></i> <strong>${muscles.length}</strong> groupes</span>
+                                <div class="stat-item">
+                                    <i class="fas fa-dumbbell"></i>
+                                    <span class="stat-value">${exercises.length}</span>
+                                    <span class="stat-label">exercices</span>
+                                </div>
+                                <div class="stat-item">
+                                    <i class="fas fa-clock"></i>
+                                    <span class="stat-value">${duration}</span>
+                                    <span class="stat-label">minutes</span>
+                                </div>
+                                <div class="stat-item">
+                                    <i class="fas fa-muscle"></i>
+                                    <span class="stat-value">${muscles.length}</span>
+                                    <span class="stat-label">groupes</span>
+                                </div>
                             </div>
-                            <div class="exercise-preview">
-                                <strong>Exercices sélectionnés :</strong>
-                                <div class="exercise-list">
-                                    ${exercises.map(ex => `
+                            
+                            <div class="exercise-list-preview">
+                                <h5><i class="fas fa-list"></i> Exercices sélectionnés</h5>
+                                <div class="exercises-grid">
+                                    ${exercises.map((ex, index) => `
                                         <div class="exercise-preview-item">
-                                            <span class="exercise-name">${ex.exercise_name}</span>
-                                            <span class="exercise-details">${ex.sets}×${ex.reps_min}-${ex.reps_max}</span>
+                                            <span class="exercise-number">${index + 1}</span>
+                                            <div class="exercise-info">
+                                                <div class="exercise-name">${ex.exercise_name}</div>
+                                                <div class="exercise-params">${ex.sets}×${ex.reps_min}-${ex.reps_max}</div>
+                                            </div>
                                         </div>
                                     `).join('')}
                                 </div>
                             </div>
+                            
                             ${muscles.length > 0 ? `
-                                <div class="muscle-distribution">
-                                    <strong>Groupes musculaires :</strong>
-                                    ${muscles.map(muscle => {
-                                        const color = window.MuscleColors?.getMuscleColor ? 
-                                            window.MuscleColors.getMuscleColor(muscle) : '#6b7280';
-                                        return `<span class="muscle-tag" style="background: ${color}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem;">${muscle}</span>`;
-                                    }).join(' ')}
+                                <div class="muscle-groups-preview">
+                                    <h5><i class="fas fa-crosshairs"></i> Groupes musculaires</h5>
+                                    <div class="muscle-tags">
+                                        ${muscles.map(muscle => {
+                                            const color = window.MuscleColors?.getMuscleColor ? 
+                                                window.MuscleColors.getMuscleColor(muscle) : '#6b7280';
+                                            return `<span class="muscle-tag-preview" style="background: ${color}">${muscle}</span>`;
+                                        }).join('')}
+                                    </div>
                                 </div>
                             ` : ''}
                         </div>
@@ -1118,13 +1269,13 @@ class PlanningManager {
                     
                 } catch (error) {
                     console.error('❌ Erreur preview séance:', error);
-                    previewDiv.innerHTML = '<p style="color: var(--danger);">⚠️ Erreur dans la sélection</p>';
+                    previewDiv.innerHTML = '<div class="error-preview"><i class="fas fa-exclamation-triangle"></i> Erreur dans la sélection</div>';
                     createBtn.disabled = true;
                 }
             });
         });
         
-        console.log('✅ Modal création séance initialisé');
+        console.log('✅ Modal création séance initialisé avec', checkboxes.length, 'exercices');
     }
 
     async createSession(targetDate) {
