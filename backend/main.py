@@ -1776,6 +1776,71 @@ def generate_comprehensive_program(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))  # Modifier pour voir l'erreur
 
+@app.put("/api/programs/{program_id}")
+def update_program(
+    program_id: int,
+    update_data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_optional)
+):
+    """Mettre à jour un programme (notamment weekly_structure)"""
+    try:
+        # Récupérer le programme
+        program = db.query(Program).filter(Program.id == program_id).first()
+        if not program:
+            raise HTTPException(status_code=404, detail="Programme non trouvé")
+        
+        # Vérifier que l'utilisateur est propriétaire
+        if current_user and program.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Non autorisé")
+        
+        # Logger pour debug
+        logger.info(f"Mise à jour programme {program_id}")
+        logger.debug(f"Données reçues: {update_data}")
+        
+        # Mettre à jour weekly_structure si présent
+        if "weekly_structure" in update_data:
+            # Validation basique
+            if not isinstance(update_data["weekly_structure"], dict):
+                raise HTTPException(status_code=400, detail="weekly_structure doit être un objet")
+            
+            # Vérifier que les jours sont valides
+            valid_days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+            for day in update_data["weekly_structure"].keys():
+                if day not in valid_days and not day.isdigit():
+                    logger.warning(f"Jour invalide ignoré: {day}")
+            
+            program.weekly_structure = update_data["weekly_structure"]
+            logger.info(f"weekly_structure mis à jour avec {len(update_data['weekly_structure'])} jours")
+        
+        # Mettre à jour d'autres champs si nécessaire
+        if "name" in update_data:
+            program.name = update_data["name"]
+        
+        if "duration_weeks" in update_data:
+            program.duration_weeks = update_data["duration_weeks"]
+        
+        # Sauvegarder
+        db.commit()
+        db.refresh(program)
+        
+        return {
+            "message": "Programme mis à jour avec succès",
+            "program": {
+                "id": program.id,
+                "name": program.name,
+                "weekly_structure": program.weekly_structure,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erreur mise à jour programme {program_id}: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Erreur serveur: {str(e)}")
+
 @app.put("/api/programs/{program_id}/reorder-session")
 def reorder_session_exercises(
     program_id: int,
