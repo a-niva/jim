@@ -89,38 +89,80 @@ class PlanningManager {
     // 3. AJOUTER cette nouvelle méthode pour charger le programme actif
     async loadActiveProgram() {
         try {
-            console.log('📋 Chargement du programme actif...');
             const response = await window.apiGet(`/api/users/${window.currentUser.id}/programs/active`);
-            
-            // Validation robuste de la réponse
-            if (response && response.id) {
-                this.activeProgram = response;
-                
-                // Validation de weekly_structure
-                if (!response.weekly_structure || typeof response.weekly_structure !== 'object') {
-                    console.warn('⚠️ weekly_structure manquant ou invalide, initialisation vide');
-                    this.weeklyStructure = {};
+            // CORRECTIF : Le backend retourne directement l'objet programme
+            if (response && response.id) {  // ← Vérifier .id au lieu de .program
+                this.activeProgram = response;  // ← Utiliser response directement
+                // Convertir le format si nécessaire
+                if (response.weekly_structure) {
+                    // Si c'est un array avec indices numériques, convertir en objet par jour
+                    if (Array.isArray(response.weekly_structure)) {
+                        this.weeklyStructure = this.convertArrayToWeeklyStructure(response.weekly_structure);
+                    } else if (typeof response.weekly_structure === 'object') {
+                        // Vérifier si les clés sont numériques
+                        const keys = Object.keys(response.weekly_structure);
+                        if (keys.every(k => !isNaN(k))) {
+                            // Clés numériques, probablement un format de semaines
+                            this.weeklyStructure = this.convertNumericToWeeklyStructure(response.weekly_structure);
+                        } else {
+                            // Format correct avec jours de la semaine
+                            this.weeklyStructure = response.weekly_structure;
+                        }
+                    }
                 } else {
-                    this.weeklyStructure = response.weekly_structure;
-                    console.log('✅ Structure hebdomadaire chargée:', Object.keys(this.weeklyStructure));
+                    this.weeklyStructure = {};
                 }
-                
-                console.log('📋 Programme actif:', this.activeProgram.name);
+
+                console.log('📅 Structure convertie:', this.weeklyStructure);
+                console.log('📋 Programme actif chargé:', this.activeProgram.name);
+                console.log('📅 Structure hebdomadaire:', this.weeklyStructure);
             } else {
-                console.warn('⚠️ Aucun programme actif trouvé');
                 this.activeProgram = null;
-                this.weeklyStructure = {};
+                this.weeklyStructure = null;
             }
         } catch (error) {
-            console.error('❌ Erreur chargement programme:', error);
+            console.error('❌ Erreur chargement programme actif:', error);
             this.activeProgram = null;
-            this.weeklyStructure = {};
-            
-            // Ne pas bloquer l'utilisateur
-            if (error.status !== 404) {
-                window.showToast('Erreur de connexion au serveur', 'error');
-            }
+            this.weeklyStructure = null;
         }
+    }
+
+    convertArrayToWeeklyStructure(arrayStructure) {
+        console.log('🔄 Conversion array vers weekly_structure');
+        const weeklyStructure = {};
+        const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+        
+        // Si c'est un array de semaines
+        if (arrayStructure.length > 0 && arrayStructure[0].sessions) {
+            // Format: [{week: 1, sessions: [...]}, ...]
+            const firstWeek = arrayStructure[0];
+            firstWeek.sessions.forEach((session, index) => {
+                const dayName = session.day || days[index % 7];
+                if (!weeklyStructure[dayName]) {
+                    weeklyStructure[dayName] = [];
+                }
+                weeklyStructure[dayName].push(session);
+            });
+        }
+        
+        return weeklyStructure;
+    }
+
+    convertNumericToWeeklyStructure(numericStructure) {
+        console.log('🔄 Conversion clés numériques vers jours');
+        const weeklyStructure = {};
+        const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+        
+        // Parcourir les clés numériques
+        Object.keys(numericStructure).forEach(key => {
+            const dayIndex = parseInt(key);
+            if (dayIndex >= 0 && dayIndex < 7) {
+                const dayName = days[dayIndex];
+                weeklyStructure[dayName] = numericStructure[key] || [];
+            }
+        });
+        
+        return weeklyStructure;
     }
 
     generateWeekDataFromProgram(weekStart) {
@@ -1966,6 +2008,11 @@ class PlanningManager {
                         <button class="btn btn-secondary" onclick="window.closeModal()">
                             <i class="fas fa-times"></i> Annuler
                         </button>
+                        <button class="btn btn-magic" id="optimizeBtn" style="display: none;" 
+                                onclick="planningManager.optimizeExerciseOrder('${targetDate}')" 
+                                title="Optimiser l'ordre des exercices">
+                            <i class="fas fa-magic"></i> Optimiser
+                        </button>
                         <button class="btn btn-primary" id="createSessionBtn" disabled onclick="planningManager.createSession('${targetDate}')">
                             <i class="fas fa-plus"></i> Créer la séance
                         </button>
@@ -2146,6 +2193,27 @@ class PlanningManager {
                 
                 createBtn.disabled = false;
                 createBtn.innerHTML = `<i class="fas fa-plus"></i> Créer la séance (${exercises.length} ex.)`;
+                // Ajouter le bouton d'optimisation si plus de 2 exercices
+                if (exercises.length >= 2) {
+                    const modalActions = createBtn.parentElement;
+                    if (modalActions && !document.getElementById('optimizeBtn')) {
+                        const optimizeBtn = document.createElement('button');
+                        optimizeBtn.id = 'optimizeBtn';
+                        optimizeBtn.className = 'btn btn-magic';
+                        optimizeBtn.innerHTML = '<i class="fas fa-magic"></i> Optimiser l\'ordre';
+                        optimizeBtn.title = 'Optimiser l\'ordre des exercices pour maximiser le score';
+                        optimizeBtn.onclick = () => planningManager.optimizeExerciseOrder();
+                        
+                        // Insérer avant le bouton créer
+                        modalActions.insertBefore(optimizeBtn, createBtn);
+                    }
+                } else {
+                    // Retirer le bouton si moins de 2 exercices
+                    const optimizeBtn = document.getElementById('optimizeBtn');
+                    if (optimizeBtn) {
+                        optimizeBtn.remove();
+                    }
+                }
                 
             } catch (error) {
                 console.error('❌ Erreur preview séance:', error);
@@ -2515,11 +2583,208 @@ class PlanningManager {
         }
     }
     
-    //showAddExerciseModal(sessionId) {
-    //    // TODO: Implémenter modal d'ajout d'exercice
-    //    window.showToast('Fonction à implémenter', 'info');
-    //}
-    
+    async optimizeExerciseOrder() {
+        // Récupérer les exercices depuis le preview (déjà ordonnés)
+        const previewItems = document.querySelectorAll('#previewExercisesList .exercise-preview-item');
+        
+        if (previewItems.length < 2) {
+            window.showToast('Sélectionnez au moins 2 exercices', 'warning');
+            return;
+        }
+        
+        try {
+            console.log('🎯 Optimisation de l\'ordre des exercices...');
+            
+            // Extraire les exercices dans l'ordre actuel
+            const exercises = Array.from(previewItems).map(item => {
+                try {
+                    return JSON.parse(item.dataset.exercise);
+                } catch (e) {
+                    console.error('Erreur parsing exercice:', e);
+                    return null;
+                }
+            }).filter(Boolean);
+            
+            // Essayer l'endpoint d'optimisation s'il existe
+            if (this.activeProgram) {
+                try {
+                    const response = await window.apiPost(
+                        `/api/programs/${this.activeProgram.id}/optimize-session-order`,
+                        { exercises }
+                    );
+                    
+                    if (response.optimized_order && Array.isArray(response.optimized_order)) {
+                        // Réorganiser les éléments dans le preview
+                        const container = document.getElementById('previewExercisesList');
+                        const itemsMap = new Map();
+                        
+                        // Créer une map des éléments par ID
+                        previewItems.forEach(item => {
+                            const id = item.dataset.exerciseId;
+                            itemsMap.set(id, item);
+                        });
+                        
+                        // Réorganiser selon l'ordre optimisé
+                        response.optimized_order.forEach((exerciseId, index) => {
+                            const item = itemsMap.get(String(exerciseId));
+                            if (item) {
+                                container.appendChild(item);
+                                // Mettre à jour le numéro
+                                const numberSpan = item.querySelector('.exercise-number');
+                                if (numberSpan) {
+                                    numberSpan.textContent = index + 1;
+                                }
+                            }
+                        });
+                        
+                        // Animer le changement de score
+                        const scoreElement = document.querySelector('.quality-score .stat-value');
+                        if (scoreElement && response.optimized_score) {
+                            const oldScore = parseInt(scoreElement.dataset.score) || 75;
+                            const newScore = Math.round(response.optimized_score);
+                            
+                            // Animation du score
+                            this.animateScoreChange(scoreElement, oldScore, newScore);
+                            
+                            // Mettre à jour la couleur
+                            const newColor = this.getScoreColor(newScore);
+                            scoreElement.style.color = newColor;
+                            scoreElement.previousElementSibling.style.color = newColor; // l'icône
+                        }
+                        
+                        window.showToast(
+                            `Score optimisé : ${Math.round(response.optimized_score)}% (+${Math.round(response.score_improvement)}%)`, 
+                            'success'
+                        );
+                    }
+                } catch (error) {
+                    console.log('Endpoint optimisation non disponible, utilisation du tri local');
+                    this.optimizeLocally();
+                }
+            } else {
+                this.optimizeLocally();
+            }
+            
+        } catch (error) {
+            console.error('❌ Erreur optimisation:', error);
+            window.showToast('Erreur lors de l\'optimisation', 'error');
+        }
+    }
+
+    optimizeLocally() {
+        console.log('🔧 Optimisation locale de l\'ordre');
+        
+        const container = document.getElementById('previewExercisesList');
+        const items = Array.from(container.querySelectorAll('.exercise-preview-item'));
+        
+        if (items.length < 2) return;
+        
+        // Extraire les données
+        const exercises = items.map(item => ({
+            element: item,
+            data: JSON.parse(item.dataset.exercise)
+        }));
+        
+        // Grouper par muscle principal
+        const byMuscle = {};
+        exercises.forEach(item => {
+            const muscles = item.data.muscle_groups || [];
+            const primaryMuscle = muscles[0] || 'autre';
+            
+            if (!byMuscle[primaryMuscle]) {
+                byMuscle[primaryMuscle] = [];
+            }
+            byMuscle[primaryMuscle].push(item);
+        });
+        
+        // Créer un ordre alterné entre groupes musculaires
+        const muscleGroups = Object.keys(byMuscle);
+        const optimized = [];
+        
+        // Distribuer en alternant les groupes
+        let maxLength = Math.max(...muscleGroups.map(m => byMuscle[m].length));
+        
+        for (let i = 0; i < maxLength; i++) {
+            muscleGroups.forEach(muscle => {
+                if (byMuscle[muscle][i]) {
+                    optimized.push(byMuscle[muscle][i]);
+                }
+            });
+        }
+        
+        // Réorganiser dans le DOM
+        optimized.forEach((item, index) => {
+            container.appendChild(item.element);
+            // Mettre à jour le numéro
+            const numberSpan = item.element.querySelector('.exercise-number');
+            if (numberSpan) {
+                numberSpan.textContent = index + 1;
+            }
+        });
+        
+        // Recalculer le score localement
+        const newScore = this.calculateLocalScore(optimized.map(item => item.data));
+        
+        // Animer le changement
+        const scoreElement = document.querySelector('.quality-score .stat-value');
+        if (scoreElement) {
+            const oldScore = parseInt(scoreElement.dataset.score) || 75;
+            this.animateScoreChange(scoreElement, oldScore, newScore);
+            
+            const newColor = this.getScoreColor(newScore);
+            scoreElement.style.color = newColor;
+            scoreElement.previousElementSibling.style.color = newColor;
+        }
+        
+        window.showToast('Ordre optimisé localement', 'success');
+    }
+
+    animateScoreChange(element, fromScore, toScore) {
+        const duration = 600;
+        const startTime = Date.now();
+        
+        const animate = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Easing function
+            const easeOutQuad = t => t * (2 - t);
+            const easedProgress = easeOutQuad(progress);
+            
+            const currentScore = Math.round(fromScore + (toScore - fromScore) * easedProgress);
+            element.textContent = `${currentScore}%`;
+            element.dataset.score = currentScore;
+            
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            }
+        };
+        
+        requestAnimationFrame(animate);
+    }
+
+    calculateLocalScore(exercises) {
+        // Calcul simple basé sur l'alternance des groupes musculaires
+        let score = 75;
+        
+        // Bonus pour diversité
+        const uniqueMuscles = new Set(exercises.flatMap(ex => ex.muscle_groups || []));
+        score += Math.min(uniqueMuscles.size * 3, 15);
+        
+        // Bonus pour non-répétition consécutive du même muscle
+        for (let i = 1; i < exercises.length; i++) {
+            const prevMuscles = exercises[i-1].muscle_groups || [];
+            const currMuscles = exercises[i].muscle_groups || [];
+            
+            const hasOverlap = prevMuscles.some(m => currMuscles.includes(m));
+            if (!hasOverlap) {
+                score += 1;
+            }
+        }
+        
+        return Math.min(Math.round(score), 95);
+    }
+
     // ADAPTER showAddExerciseModal() si nécessaire
     async showAddExerciseModal(targetDate) {
         try {
@@ -2621,10 +2886,11 @@ class PlanningManager {
                         </div>
                     </div>
                     
-                    <div class="modal-actions-section">
+                    <div class="modal-actions-section" id="modalActions">
                         <button class="btn btn-secondary" onclick="window.closeModal()">
                             <i class="fas fa-times"></i> Annuler
                         </button>
+                        <!-- Le bouton optimiser sera ajouté dynamiquement -->
                         <button class="btn btn-primary" id="createSessionBtn" disabled onclick="planningManager.createSession('${targetDate}')">
                             <i class="fas fa-plus"></i> Créer la séance
                         </button>
