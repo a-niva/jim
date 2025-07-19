@@ -1425,21 +1425,56 @@ class PlanningManager {
         const previewDiv = document.getElementById('sessionPreview');
         const selectedCounter = document.getElementById('selectedCount');
         
+        // Récupération des limites utilisateur
+        const userPreferredDuration = window.currentUser?.onboarding_data?.session_duration || 60;
+        const maxExercises = Math.min(8, Math.floor(userPreferredDuration / 7)); // ~7 min par exercice minimum
+        const minDuration = 30;
+        const maxDuration = userPreferredDuration + 15; // Tolérance de 15 minutes
+        
         if (!checkboxes.length || !createBtn || !previewDiv) {
             console.error('❌ Éléments modal introuvables');
             return;
         }
         
         checkboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', () => {
+            checkbox.addEventListener('change', (event) => {
                 const selected = Array.from(document.querySelectorAll('#exerciseSelectionGrid input:checked'));
                 
-                // Mettre à jour le compteur
-                if (selectedCounter) {
-                    selectedCounter.textContent = selected.length;
+                // Vérification des limites avant d'accepter la sélection
+                if (event.target.checked && selected.length > maxExercises) {
+                    event.target.checked = false;
+                    window.showToast(`Maximum ${maxExercises} exercices pour une séance de ${userPreferredDuration} minutes`, 'warning');
+                    return;
                 }
                 
-                if (selected.length === 0) {
+                // Vérification de la durée estimée
+                if (event.target.checked) {
+                    const tempExercises = selected.map(input => JSON.parse(input.dataset.exercise));
+                    const estimatedDuration = this.calculateSessionDuration(tempExercises);
+                    
+                    if (estimatedDuration > maxDuration) {
+                        event.target.checked = false;
+                        window.showToast(`Cette sélection dépasserait ${maxDuration} minutes`, 'warning');
+                        return;
+                    }
+                }
+                
+                // Mettre à jour le compteur
+                const updatedSelected = Array.from(document.querySelectorAll('#exerciseSelectionGrid input:checked'));
+                if (selectedCounter) {
+                    selectedCounter.textContent = updatedSelected.length;
+                }
+                
+                // Ajout d'un indicateur de limite dans le bouton
+                const remainingSlots = maxExercises - updatedSelected.length;
+                if (remainingSlots <= 2 && remainingSlots > 0) {
+                    selectedCounter.parentElement.innerHTML = `
+                        <span id="selectedCount">${updatedSelected.length}</span> / ${maxExercises} max
+                    `;
+                }
+                
+                // Reste du code existant sans modification...
+                if (updatedSelected.length === 0) {
                     previewDiv.innerHTML = `
                         <div class="empty-preview">
                             <i class="fas fa-hand-pointer"></i>
@@ -1454,7 +1489,9 @@ class PlanningManager {
                 try {
                     const exercises = selected.map(input => JSON.parse(input.dataset.exercise));
                     const duration = this.calculateSessionDuration(exercises);
-                    const muscles = [...new Set(exercises.map(ex => ex.muscle_group))].filter(Boolean);
+                    const muscles = [...new Set(exercises.flatMap(ex => ex.muscle_groups || []))]
+                        .filter(Boolean)
+                        .map(muscle => muscle.charAt(0).toUpperCase() + muscle.slice(1));
                     
                     previewDiv.innerHTML = `
                         <div class="session-summary-v2">
@@ -1496,8 +1533,9 @@ class PlanningManager {
                                     <h5><i class="fas fa-crosshairs"></i> Groupes musculaires</h5>
                                     <div class="muscle-tags">
                                         ${muscles.map(muscle => {
+                                            const muscleKey = muscle.toLowerCase(); // Convertir en minuscule pour la couleur
                                             const color = window.MuscleColors?.getMuscleColor ? 
-                                                window.MuscleColors.getMuscleColor(muscle) : '#6b7280';
+                                                window.MuscleColors.getMuscleColor(muscleKey) : '#6b7280';
                                             return `<span class="muscle-tag-preview" style="background: ${color}">${muscle}</span>`;
                                         }).join('')}
                                     </div>

@@ -1373,7 +1373,7 @@
     flex: 1;
     overflow: hidden;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;  /* Changé de column à row */
     gap: var(--spacing-lg);
     padding: var(--spacing-lg);
 }
@@ -1384,6 +1384,7 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    min-width: 0;  /* Important pour le flex */
 }
 
 .section-header {
@@ -1498,8 +1499,12 @@
 
 /* Section aperçu */
 .preview-section {
-    border-top: 1px solid var(--planning-border);
-    padding-top: var(--spacing-lg);
+    width: 350px;  /* Largeur fixe */
+    flex-shrink: 0;  /* Empêche le rétrécissement */
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--planning-border);
+    padding-left: var(--spacing-lg);
 }
 
 .preview-section h4 {
@@ -1520,7 +1525,9 @@
     border: 1px solid var(--planning-border);
     border-radius: var(--planning-radius);
     padding: var(--spacing-lg);
-    min-height: 150px;
+    flex: 1;
+    overflow-y: auto;
+    max-height: 400px;  /* Même hauteur que la liste */
 }
 
 /* État vide */
@@ -1705,6 +1712,25 @@
     .modal-body-section {
         padding: var(--spacing-md);
         gap: var(--spacing-md);
+        flex-direction: column;
+    }
+
+    .selection-section {
+        max-height: 300px;  /* Hauteur réduite sur mobile */
+    }
+
+    .preview-section {
+        width: 100%;  /* Pleine largeur sur mobile */
+        border-left: none;
+        border-top: 1px solid var(--planning-border);
+        padding-left: 0;
+        padding-top: var(--spacing-lg);
+        max-height: 250px;
+    }
+
+    .exercise-groups-container,
+    .session-preview {
+        max-height: 200px;  /* Hauteurs réduites pour mobile */
     }
     
     .exercise-group-grid {
