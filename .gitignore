@@ -77,3 +77,7 @@ node_modules/
 
 
 continue.config.json
+
+# Mapping Mermaid
+mapper.py
+mapper.mmd.mmd
