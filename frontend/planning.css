@@ -86,11 +86,14 @@
 /* =====================================================
    CONTENEUR SEMAINES
    ===================================================== */
+/* =====================================================
+   CONCEPT 1 : VUE SEMAINE UNIQUE VERTICALE
+   ===================================================== */
 
+/* Container semaines - Une seule visible */
 .weeks-container {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xl);
+    position: relative;
+    overflow: hidden;
 }
 
 .week-section {
@@ -100,6 +103,14 @@
     overflow: hidden;
     box-shadow: var(--planning-shadow);
     transition: var(--planning-transition);
+    /* Masquer toutes les semaines par défaut */
+    display: none;
+}
+
+/* Seule la semaine active est visible */
+.week-section.active {
+    display: block;
+    animation: slideInWeek 0.3s ease-out;
 }
 
 .week-section.current-week {
@@ -107,8 +118,213 @@
     box-shadow: 0 0 0 1px var(--primary), var(--planning-shadow);
 }
 
-.week-section:hover {
-    box-shadow: var(--planning-shadow-hover);
+/* Animation d'entrée semaine */
+@keyframes slideInWeek {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* =====================================================
+   NAVIGATION SEMAINES
+   ===================================================== */
+
+.week-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--planning-bg);
+    border-radius: var(--planning-radius);
+    border: 1px solid var(--planning-border);
+    box-shadow: var(--planning-shadow);
+}
+
+.nav-buttons {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.nav-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: var(--planning-transition);
+    font-size: 1.2rem;
+}
+
+.nav-btn:hover {
+    background: var(--primary);
+    color: white;
+    transform: scale(1.1);
+}
+
+.nav-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.week-indicator {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text);
+    text-align: center;
+    min-width: 200px;
+}
+
+/* Bouton Aujourd'hui avec animation pulse */
+.today-btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--planning-transition);
+    animation: pulseToday 2s infinite;
+}
+
+.today-btn:hover {
+    background: var(--primary-dark, #0056b3);
+    transform: scale(1.05);
+}
+
+/* Animation pulse pour bouton Aujourd'hui */
+@keyframes pulseToday {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(var(--primary-rgb, 0, 123, 255), 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(var(--primary-rgb, 0, 123, 255), 0);
+    }
+}
+
+/* =====================================================
+   GRILLE JOURS - AFFICHAGE VERTICAL
+   ===================================================== */
+
+.days-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--planning-gap);
+    padding: var(--spacing-lg);
+}
+
+/* =====================================================
+   CARTES JOUR - HOVER ELEVATION
+   ===================================================== */
+
+.day-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--planning-border);
+    border-radius: var(--planning-radius);
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 80px;
+    cursor: pointer;
+}
+
+.day-card.today {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1px var(--primary);
+}
+
+/* Hover elevation avec animation fluide */
+.day-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border-color: var(--primary);
+}
+
+.day-card:active {
+    transform: translateY(-2px);
+    transition: transform 0.1s ease;
+}
+
+/* =====================================================
+   SUPPORT SWIPE MOBILE
+   ===================================================== */
+
+.weeks-container {
+    touch-action: pan-y; /* Permettre scroll vertical, contrôler horizontal */
+    position: relative;
+}
+
+/* Indicateur de swipe subtil */
+.swipe-indicator {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.5rem;
+    color: var(--text-muted);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.swipe-indicator.left {
+    left: 10px;
+}
+
+.swipe-indicator.right {
+    right: 10px;
+}
+
+.weeks-container.swiping .swipe-indicator {
+    opacity: 0.6;
+}
+
+/* =====================================================
+   RESPONSIVE MOBILE
+   ===================================================== */
+
+@media (max-width: 768px) {
+    .week-navigation {
+        padding: var(--spacing-sm);
+    }
+    
+    .week-indicator {
+        min-width: 150px;
+        font-size: 0.9rem;
+    }
+    
+    .nav-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
+    }
+    
+    .today-btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+    }
+    
+    .days-grid {
+        padding: var(--spacing-md);
+        gap: var(--spacing-sm);
+    }
+    
+    .day-card:hover {
+        /* Réduire l'effet hover sur mobile */
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
 }
 
 /* =====================================================
@@ -169,42 +385,6 @@
    GRILLE JOURS
    ===================================================== */
 
-.days-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: var(--planning-gap);
-    padding: var(--spacing-lg);
-}
-
-@media (min-width: 768px) {
-    .days-grid {
-        grid-template-columns: repeat(7, 1fr);
-    }
-}
-
-/* =====================================================
-   CARTES JOUR
-   ===================================================== */
-
-.day-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--planning-border);
-    border-radius: var(--planning-radius);
-    overflow: hidden;
-    transition: var(--planning-transition);
-    min-height: 120px;
-}
-
-.day-card.today {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 1px var(--primary);
-}
-
-.day-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--planning-shadow-hover);
-}
-
 .day-header {
     display: flex;
     justify-content: space-between;
@@ -227,8 +407,8 @@
     font-weight: 600;
 }
 
-.day-card.today .day-name,
-.day-card.today .day-number {
+.day-name,
+.day-number {
     color: var(--primary);
 }
 

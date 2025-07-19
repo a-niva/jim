@@ -19,6 +19,23 @@ class PlanningManager {
         // Bind methods
         this.handleSessionClick = this.handleSessionClick.bind(this);
         this.handleDeleteSession = this.handleDeleteSession.bind(this);
+
+        // Nouvelles propriétés pour navigation
+        this.activeWeekIndex = 0; // Index de la semaine active
+        this.weekKeys = []; // Liste ordonnée des clés de semaines
+        this.isCurrentWeekVisible = true; // Pour gérer le bouton "Aujourd'hui"
+        
+        // Support swipe mobile
+        this.touchStartX = 0;
+        this.touchEndX = 0;
+        this.isSwipeEnabled = window.innerWidth <= 768;
+        
+        // Bind nouveaux methods
+        this.navigateToWeek = this.navigateToWeek.bind(this);
+        this.goToToday = this.goToToday.bind(this);
+        this.handleTouchStart = this.handleTouchStart.bind(this);
+        this.handleTouchMove = this.handleTouchMove.bind(this);
+        this.handleTouchEnd = this.handleTouchEnd.bind(this);
     }
     
     // ===== INITIALISATION =====
@@ -108,9 +125,20 @@ class PlanningManager {
     
     // ===== RENDU INTERFACE =====
     
+
     render() {
-        const weeksHtml = Array.from(this.weeksData.entries())
-            .map(([weekKey, weekData]) => this.renderWeek(weekKey, weekData))
+        // Trier les semaines par date
+        this.weekKeys = Array.from(this.weeksData.keys()).sort();
+        
+        // Trouver l'index de la semaine courante
+        const currentWeekKey = this.getWeekKey(this.currentWeek);
+        this.activeWeekIndex = this.weekKeys.indexOf(currentWeekKey);
+        if (this.activeWeekIndex === -1) this.activeWeekIndex = 0;
+        
+        this.updateCurrentWeekVisibility();
+        
+        const weeksHtml = this.weekKeys
+            .map((weekKey, index) => this.renderWeek(weekKey, this.weeksData.get(weekKey), index))
             .join('');
         
         this.container.innerHTML = `
@@ -126,15 +154,45 @@ class PlanningManager {
                 </div>
             </div>
             
-            <div class="weeks-container">
+            <div class="week-navigation">
+                <div class="nav-buttons">
+                    <button class="nav-btn" onclick="planningManager.navigateToWeek(-1)" id="prevWeekBtn">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                </div>
+                
+                <div class="week-indicator" id="weekIndicator">
+                    <!-- Sera mis à jour dynamiquement -->
+                </div>
+                
+                <div class="nav-buttons">
+                    <button class="today-btn" onclick="planningManager.goToToday()" 
+                            id="todayBtn" style="display: none;">
+                        <i class="fas fa-home"></i> Aujourd'hui
+                    </button>
+                    <button class="nav-btn" onclick="planningManager.navigateToWeek(1)" id="nextWeekBtn">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="weeks-container" id="weeksContainer">
+                <div class="swipe-indicator left" id="swipeLeft">
+                    <i class="fas fa-chevron-left"></i>
+                </div>
+                <div class="swipe-indicator right" id="swipeRight">
+                    <i class="fas fa-chevron-right"></i>
+                </div>
                 ${weeksHtml}
             </div>
         `;
         
+        this.updateWeekDisplay();
         this.initializeDragDrop();
+        this.initializeSwipe();
     }
     
-    renderWeek(weekKey, weekData) {
+    renderWeek(weekKey, weekData, index) {
         const isCurrentWeek = weekKey === this.getWeekKey(this.currentWeek);
         const weekStart = this.parseWeekKey(weekKey);
         const weekEnd = new Date(weekStart);
@@ -144,8 +202,12 @@ class PlanningManager {
             .map(day => this.renderDay(day))
             .join('');
         
+        // AJOUTER cette ligne pour gérer la classe active
+        const isActive = index === this.activeWeekIndex;
+        
         return `
-            <div class="week-section ${isCurrentWeek ? 'current-week' : ''}" data-week="${weekKey}">
+            <div class="week-section ${isCurrentWeek ? 'current-week' : ''} ${isActive ? 'active' : ''}" 
+                 data-week="${weekKey}" data-index="${index}">
                 <div class="week-header">
                     <h3>
                         ${weekStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} - 
@@ -1047,6 +1109,11 @@ class PlanningManager {
     
     initializeEventListeners() {
         // Les event listeners sont définis inline dans le HTML pour plus de simplicité
+        
+        // détecter changement de taille d'écran pour swipe
+        window.addEventListener('resize', () => {
+            this.isSwipeEnabled = window.innerWidth <= 768;
+        });
     }
     
     renderError() {
@@ -1060,6 +1127,175 @@ class PlanningManager {
             </div>
         `;
     }
+
+
+    /**
+     * Navigation entre semaines
+     */
+    navigateToWeek(direction) {
+        const newIndex = this.activeWeekIndex + direction;
+        
+        if (newIndex >= 0 && newIndex < this.weekKeys.length) {
+            this.activeWeekIndex = newIndex;
+            this.updateWeekDisplay();
+            this.updateCurrentWeekVisibility();
+        }
+    }
+
+    /**
+     * Retour à la semaine courante
+     */
+    goToToday() {
+        const currentWeekKey = this.getWeekKey(this.currentWeek);
+        const currentIndex = this.weekKeys.indexOf(currentWeekKey);
+        
+        if (currentIndex !== -1) {
+            this.activeWeekIndex = currentIndex;
+            this.updateWeekDisplay();
+            this.updateCurrentWeekVisibility();
+        }
+    }
+
+    /**
+     * Met à jour l'affichage de la semaine active
+     */
+    updateWeekDisplay() {
+        // Masquer toutes les semaines
+        document.querySelectorAll('.week-section').forEach(week => {
+            week.classList.remove('active');
+        });
+        
+        // Afficher la semaine active
+        const activeWeek = document.querySelector(`[data-index="${this.activeWeekIndex}"]`);
+        if (activeWeek) {
+            activeWeek.classList.add('active');
+        }
+        
+        // Mettre à jour l'indicateur
+        this.updateWeekIndicator();
+        
+        // Mettre à jour les boutons de navigation
+        this.updateNavigationButtons();
+    }
+
+    /**
+     * Met à jour l'indicateur de semaine
+     */
+    updateWeekIndicator() {
+        const indicator = document.getElementById('weekIndicator');
+        if (!indicator) return;
+        
+        const weekKey = this.weekKeys[this.activeWeekIndex];
+        if (!weekKey) return;
+        
+        const weekStart = this.parseWeekKey(weekKey);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        
+        const isCurrentWeek = weekKey === this.getWeekKey(this.currentWeek);
+        
+        indicator.innerHTML = `
+            ${weekStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} - 
+            ${weekEnd.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+            ${isCurrentWeek ? '<br><small style="color: var(--primary);">Cette semaine</small>' : ''}
+        `;
+    }
+
+    /**
+     * Met à jour l'état des boutons de navigation
+     */
+    updateNavigationButtons() {
+        const prevBtn = document.getElementById('prevWeekBtn');
+        const nextBtn = document.getElementById('nextWeekBtn');
+        
+        if (prevBtn) {
+            prevBtn.disabled = this.activeWeekIndex <= 0;
+        }
+        
+        if (nextBtn) {
+            nextBtn.disabled = this.activeWeekIndex >= this.weekKeys.length - 1;
+        }
+    }
+
+    /**
+     * Gère la visibilité du bouton "Aujourd'hui"
+     */
+    updateCurrentWeekVisibility() {
+        const currentWeekKey = this.getWeekKey(this.currentWeek);
+        const activeWeekKey = this.weekKeys[this.activeWeekIndex];
+        
+        this.isCurrentWeekVisible = (currentWeekKey === activeWeekKey);
+        
+        const todayBtn = document.getElementById('todayBtn');
+        if (todayBtn) {
+            todayBtn.style.display = this.isCurrentWeekVisible ? 'none' : 'inline-block';
+        }
+    }
+
+    /**
+     * Initialise le support swipe mobile
+     */
+    initializeSwipe() {
+        if (!this.isSwipeEnabled) return;
+        
+        const container = document.getElementById('weeksContainer');
+        if (!container) return;
+        
+        container.addEventListener('touchstart', this.handleTouchStart, { passive: true });
+        container.addEventListener('touchmove', this.handleTouchMove, { passive: false });
+        container.addEventListener('touchend', this.handleTouchEnd, { passive: true });
+    }
+
+    /**
+     * Gestion du début de swipe
+     */
+    handleTouchStart(e) {
+        this.touchStartX = e.touches[0].clientX;
+    }
+
+    /**
+     * Gestion du mouvement de swipe
+     */
+    handleTouchMove(e) {
+        if (!this.touchStartX) return;
+        
+        this.touchEndX = e.touches[0].clientX;
+        const diffX = this.touchStartX - this.touchEndX;
+        
+        // Afficher les indicateurs de swipe
+        const container = document.getElementById('weeksContainer');
+        if (Math.abs(diffX) > 30) {
+            container.classList.add('swiping');
+            e.preventDefault(); // Empêcher le scroll horizontal
+        }
+    }
+
+    /**
+     * Gestion de la fin de swipe
+     */
+    handleTouchEnd(e) {
+        const container = document.getElementById('weeksContainer');
+        container.classList.remove('swiping');
+        
+        if (!this.touchStartX || !this.touchEndX) return;
+        
+        const diffX = this.touchStartX - this.touchEndX;
+        const minSwipeDistance = 50;
+        
+        if (Math.abs(diffX) > minSwipeDistance) {
+            if (diffX > 0) {
+                // Swipe vers la gauche = semaine suivante
+                this.navigateToWeek(1);
+            } else {
+                // Swipe vers la droite = semaine précédente
+                this.navigateToWeek(-1);
+            }
+        }
+        
+        // Reset
+        this.touchStartX = 0;
+        this.touchEndX = 0;
+    } 
 }
 
 // Export global
