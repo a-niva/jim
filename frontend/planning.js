@@ -90,11 +90,15 @@ class PlanningManager {
     async loadActiveProgram() {
         try {
             const response = await window.apiGet(`/api/users/${window.currentUser.id}/programs/active`);
-            if (response && response.program) {
-                this.activeProgram = response.program;
-                this.weeklyStructure = response.program.weekly_structure || {};
+            // CORRECTIF : Le backend retourne directement l'objet programme
+            if (response && response.id) {  // ← Vérifier .id au lieu de .program
+                this.activeProgram = response;  // ← Utiliser response directement
+                this.weeklyStructure = response.weekly_structure || {};
                 console.log('📋 Programme actif chargé:', this.activeProgram.name);
                 console.log('📅 Structure hebdomadaire:', this.weeklyStructure);
+            } else {
+                this.activeProgram = null;
+                this.weeklyStructure = null;
             }
         } catch (error) {
             console.error('❌ Erreur chargement programme actif:', error);
