@@ -641,38 +641,19 @@ class ProgramBuilder {
     
     async complete() {
         try {
-            window.showToast('Activation de votre programme...', 'info');
+            // Le programme est déjà généré et activé !
+            // Pas besoin d'appel API supplémentaire
             
-            const activationData = {
-                name: this.generatedProgram.name,
-                sessions_per_week: this.generatedProgram.sessions_per_week,
-                session_duration_minutes: this.generatedProgram.session_duration_minutes,
-                focus_areas: this.generatedProgram.focus_areas,
-                duration_weeks: this.generatedProgram.duration_weeks,
-                weekly_structure: this.generatedProgram.weekly_structure,
-                progression_rules: this.generatedProgram.progression_rules || {},
-                base_quality_score: this.generatedProgram.base_quality_score || 85.0,
-                periodization_type: this.generatedProgram.periodization_type || "linear",
-                goals: this.selections.goals || ["muscle", "strength"]
-            };
+            window.showToast('Programme créé et activé avec succès !', 'success');
             
-            const response = await window.apiPost(
-                `/api/users/${window.currentUser.id}/programs/activate-comprehensive`,
-                activationData
-            );
-            
-            if (response && response.message) {
-                window.showToast('Programme créé et activé avec succès !', 'success');
-                
-                // Forcer un rechargement complet pour s'assurer que tout est à jour
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1500);
-            }
+            // Forcer un rechargement complet pour s'assurer que tout est à jour
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
             
         } catch (error) {
-            console.error('Erreur activation programme:', error);
-            window.showToast('Erreur lors de l\'activation. Veuillez réessayer.', 'error');
+            console.error('Erreur finalisation programme:', error);
+            window.showToast('Erreur lors de la finalisation. Veuillez réessayer.', 'error');
         }
     }
     
