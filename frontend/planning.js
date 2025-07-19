@@ -204,21 +204,28 @@ class PlanningManager {
                     daySessions = weekData.sessions.filter(s => s.day === dayName);
                 }
             }
-            
-            // Valider et formater chaque session
+
+            // Formater les séances pour l'affichage
             const formattedSessions = daySessions.map((session, index) => {
-                // Validation des données de session
-                if (!session.exercises || !Array.isArray(session.exercises)) {
-                    console.warn(`⚠️ Session ${dayName}[${index}] sans exercices valides`);
-                    session.exercises = [];
+                // Gérer les deux formats possibles : exercises ou exercise_pool
+                let exercises = [];
+                
+                if (session.exercise_pool && Array.isArray(session.exercise_pool)) {
+                    // Format v2.0 avec exercise_pool
+                    exercises = session.exercise_pool.map(ex => ({
+                        exercise_id: ex.exercise_id,
+                        exercise_name: ex.exercise_name || ex.name || 'Exercice',
+                        sets: ex.sets || ex.default_sets || 3,
+                        reps_min: ex.reps_min || ex.default_reps_min || 8,
+                        reps_max: ex.reps_max || ex.default_reps_max || 12,
+                        rest_seconds: ex.rest_seconds || 90,
+                        muscle_groups: ex.muscle_groups || [],
+                        primary_muscle: ex.muscle_groups ? ex.muscle_groups[0] : 'autre'
+                    }));
+                } else if (session.exercises && Array.isArray(session.exercises)) {
+                    // Format avec exercises direct
+                    exercises = session.exercises;
                 }
-                
-                const duration = session.estimated_duration || 
-                            session.duration || 
-                            this.calculateSessionDuration(session.exercises);
-                
-                totalSessions++;
-                totalDuration += duration;
                 
                 return {
                     id: `${this.activeProgram.id}_${dayName}_${index}`,
@@ -226,11 +233,14 @@ class PlanningManager {
                     day_name: dayName,
                     session_index: index,
                     planned_date: currentDate.toISOString().split('T')[0],
-                    exercises: session.exercises,
-                    estimated_duration: duration,
-                    primary_muscles: session.primary_muscles || this.extractPrimaryMuscles(session.exercises),
+                    exercises: exercises,
+                    estimated_duration: session.estimated_duration || 
+                                    session.duration || 
+                                    session.target_duration ||
+                                    this.calculateSessionDuration(exercises),
+                    primary_muscles: session.primary_muscles || this.extractPrimaryMuscles(exercises),
                     predicted_quality_score: session.quality_score || session.predicted_quality_score || 75,
-                    session_type: session.session_type || 'custom',
+                    session_type: session.session_type || session.focus || 'custom',
                     status: 'planned'
                 };
             });
@@ -929,10 +939,14 @@ class PlanningManager {
         const muscleCount = {};
         
         exercises.forEach(ex => {
-            // Utiliser muscle_groups si disponible (comme dans le backend)
+            if (!ex || typeof ex !== 'object') return;
+            
+            // Utiliser muscle_groups si disponible (format v2.0)
             if (ex.muscle_groups && Array.isArray(ex.muscle_groups)) {
                 ex.muscle_groups.forEach(muscle => {
-                    muscleCount[muscle] = (muscleCount[muscle] || 0) + 1;
+                    if (muscle) {
+                        muscleCount[muscle] = (muscleCount[muscle] || 0) + 1;
+                    }
                 });
             } else {
                 // Fallback sur primary_muscle ou muscle_name
@@ -2524,22 +2538,25 @@ class PlanningManager {
                 return total + restTime + workTime + setupTime;
             }, 0);
             
-            // Préparer la nouvelle session
+            // Préparer la nouvelle session au format v2.0
             const newSession = {
-                exercises: exercises.map(ex => ({
+                exercise_pool: exercises.map(ex => ({
                     exercise_id: ex.exercise_id,
-                    exercise_name: ex.exercise_name,
+                    exercise_name: ex.exercise_name || ex.name,
                     sets: ex.sets || 3,
                     reps_min: ex.reps_min || 8,
                     reps_max: ex.reps_max || 12,
                     rest_seconds: ex.rest_seconds || 90,
-                    equipment: ex.equipment || 'none'
+                    muscle_groups: ex.muscle_groups || [ex.primary_muscle || 'autre'],
+                    equipment_required: ex.equipment_required || ex.equipment || []
                 })),
                 session_type: 'custom',
                 created_date: targetDate,
                 estimated_duration: Math.round(estimatedDuration),
+                target_duration: Math.round(estimatedDuration),
                 primary_muscles: this.extractPrimaryMuscles(exercises),
-                quality_score: 75 // Score par défaut
+                quality_score: 75,
+                focus: this.extractPrimaryMuscles(exercises)[0] || 'général'
             };
             
             console.log('📝 Nouvelle session créée:', newSession);
