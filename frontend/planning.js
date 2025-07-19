@@ -1773,17 +1773,6 @@ class PlanningManager {
         `;
     }
 
-    // 13. UTILITAIRES pour Programme v2.0
-    extractPrimaryMuscles(exercises) {
-        const muscles = new Set();
-        exercises.forEach(ex => {
-            if (ex.muscle_groups) {
-                ex.muscle_groups.forEach(m => muscles.add(m));
-            }
-        });
-        return Array.from(muscles);
-    }
-
     calculateMuscleRecovery(sessions) {
         const recovery = {};
         const today = new Date();
