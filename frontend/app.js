@@ -9808,9 +9808,24 @@ async function showProgramInterface() {
         const activeProgram = await apiGet(`/api/users/${currentUser.id}/programs/active`);
         
         if (!activeProgram || !activeProgram.id) {
-            // Pas de programme = rediriger vers création
-            console.log('Aucun programme actif, redirection vers builder');
-            window.showProgramBuilder();
+            console.log('Aucun programme actif, récupération données utilisateur');
+            
+            // SOLUTION : Récupérer les données complètes de l'utilisateur
+            const userDetails = await apiGet(`/api/users/${currentUser.id}`);
+            
+            const userDataForBuilder = {
+                experience_level: userDetails.experience_level,
+                goals: userDetails.goals || ["muscle", "strength"],
+                equipment_config: userDetails.equipment_config,
+                bodyweight: userDetails.weight,
+                height: userDetails.height,
+                focus_areas: userDetails.focus_areas || [],
+                sessions_per_week: userDetails.sessions_per_week || 3,
+                session_duration: userDetails.session_duration || 45,
+                prefer_weight_changes_between_sets: userDetails.prefer_weight_changes_between_sets
+            };
+            
+            await window.showProgramBuilder(userDataForBuilder);
             return;
         }
         
