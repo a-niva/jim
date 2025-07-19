@@ -2030,6 +2030,7 @@ class PlanningManager {
     }
 
     initializeSessionCreation() {
+        const self = this;
         const checkboxes = document.querySelectorAll('#exerciseSelectionGrid input[type="checkbox"]');
         const createBtn = document.getElementById('createSessionBtn');
         const previewDiv = document.getElementById('sessionPreview');
@@ -2158,7 +2159,7 @@ class PlanningManager {
                                             <div class="exercise-params">${ex.sets || 3}×${ex.reps_min || 8}-${ex.reps_max || 12}</div>
                                         </div>
                                         <button class="exercise-remove" 
-                                                onclick="planningManager.removeExerciseFromPreview('${ex.exercise_id}')"
+                                                onclick="window.planningManager.removeExerciseFromPreview('${ex.exercise_id}')"
                                                 title="Retirer de la séance">
                                             <i class="fas fa-times"></i>
                                         </button>
@@ -2202,7 +2203,7 @@ class PlanningManager {
                         optimizeBtn.className = 'btn btn-magic';
                         optimizeBtn.innerHTML = '<i class="fas fa-magic"></i> Optimiser l\'ordre';
                         optimizeBtn.title = 'Optimiser l\'ordre des exercices pour maximiser le score';
-                        optimizeBtn.onclick = () => planningManager.optimizeExerciseOrder();
+                        optimizeBtn.onclick = () => self.optimizeExerciseOrder();
                         
                         // Insérer avant le bouton créer
                         modalActions.insertBefore(optimizeBtn, createBtn);
@@ -2891,7 +2892,7 @@ class PlanningManager {
                             <i class="fas fa-times"></i> Annuler
                         </button>
                         <!-- Le bouton optimiser sera ajouté dynamiquement -->
-                        <button class="btn btn-primary" id="createSessionBtn" disabled onclick="planningManager.createSession('${targetDate}')">
+                        <button class="btn btn-primary" id="createSessionBtn" disabled onclick="window.planningManager.createSession('${targetDate}')">
                             <i class="fas fa-plus"></i> Créer la séance
                         </button>
                     </div>
