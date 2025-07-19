@@ -89,113 +89,23 @@ class PlanningManager {
     // 3. AJOUTER cette nouvelle méthode pour charger le programme actif
     async loadActiveProgram() {
         try {
-            console.log('📋 Chargement du programme actif...');
             const response = await window.apiGet(`/api/users/${window.currentUser.id}/programs/active`);
-            
-            // Validation robuste de la réponse
-            if (response && response.id) {
-                this.activeProgram = response;
-                
-                // Validation de weekly_structure
-                if (!response.weekly_structure || typeof response.weekly_structure !== 'object') {
-                    console.warn('⚠️ weekly_structure manquant ou invalide, initialisation vide');
-                    this.weeklyStructure = {};
-                } else {
-                    this.weeklyStructure = response.weekly_structure;
-                    console.log('✅ Structure hebdomadaire chargée:', Object.keys(this.weeklyStructure));
-                }
-                
-                console.log('📋 Programme actif:', this.activeProgram.name);
+            // CORRECTIF : Le backend retourne directement l'objet programme
+            if (response && response.id) {  // ← Vérifier .id au lieu de .program
+                this.activeProgram = response;  // ← Utiliser response directement
+                this.weeklyStructure = response.weekly_structure || {};
+                console.log('📋 Programme actif chargé:', this.activeProgram.name);
+                console.log('📅 Structure hebdomadaire:', this.weeklyStructure);
             } else {
-                console.warn('⚠️ Aucun programme actif trouvé');
                 this.activeProgram = null;
-                this.weeklyStructure = {};
+                this.weeklyStructure = null;
             }
         } catch (error) {
-            console.error('❌ Erreur chargement programme:', error);
+            console.error('❌ Erreur chargement programme actif:', error);
             this.activeProgram = null;
-            this.weeklyStructure = {};
-            
-            // Ne pas bloquer l'utilisateur
-            if (error.status !== 404) {
-                window.showToast('Erreur de connexion au serveur', 'error');
-            }
+            this.weeklyStructure = null;
         }
     }
-
-    generateWeekDataFromProgram(weekStart) {
-        console.log('📅 Génération données semaine:', weekStart.toISOString().split('T')[0]);
-        
-        if (!this.activeProgram || !this.weeklyStructure) {
-            console.warn('⚠️ Pas de programme actif, génération semaine vide');
-            return this.generateEmptyWeek(weekStart);
-        }
-        
-        const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekEnd.getDate() + 6);
-        
-        const daysData = [];
-        let totalSessions = 0;
-        let totalDuration = 0;
-        
-        for (let i = 0; i < 7; i++) {
-            const currentDate = new Date(weekStart);
-            currentDate.setDate(currentDate.getDate() + i);
-            const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-            
-            // Récupérer les séances pour ce jour avec validation
-            const daySessions = this.weeklyStructure[dayName] || [];
-            
-            // Valider et formater chaque session
-            const formattedSessions = daySessions.map((session, index) => {
-                // Validation des données de session
-                if (!session.exercises || !Array.isArray(session.exercises)) {
-                    console.warn(`⚠️ Session ${dayName}[${index}] sans exercices valides`);
-                    session.exercises = [];
-                }
-                
-                const duration = session.estimated_duration || 
-                            session.duration || 
-                            this.calculateSessionDuration(session.exercises);
-                
-                totalSessions++;
-                totalDuration += duration;
-                
-                return {
-                    id: `${this.activeProgram.id}_${dayName}_${index}`,
-                    program_id: this.activeProgram.id,
-                    day_name: dayName,
-                    session_index: index,
-                    planned_date: currentDate.toISOString().split('T')[0],
-                    exercises: session.exercises,
-                    estimated_duration: duration,
-                    primary_muscles: session.primary_muscles || this.extractPrimaryMuscles(session.exercises),
-                    predicted_quality_score: session.quality_score || session.predicted_quality_score || 75,
-                    session_type: session.session_type || 'custom',
-                    status: 'planned'
-                };
-            });
-            
-            daysData.push({
-                date: currentDate.toISOString().split('T')[0],
-                dayName: dayName,
-                dayNumber: currentDate.getDate(),
-                sessions: formattedSessions,
-                canAddSession: formattedSessions.length < 2, // Max 2 séances/jour
-                warnings: [] // Peut être enrichi avec logique de récupération
-            });
-        }
-        
-        console.log(`✅ Semaine générée: ${totalSessions} séances, ${totalDuration}min total`);
-        
-        return {
-            planning_data: daysData,
-            week_score: Math.round(totalDuration / 60), // Score basé sur heures d'entraînement
-            total_sessions: totalSessions,
-            total_duration: totalDuration
-        };
-    }
-
 
     getCurrentWeek() {
         const now = new Date();
@@ -555,42 +465,55 @@ class PlanningManager {
                     const targetDate = evt.to.dataset.day;
                     const sourceDate = evt.from.dataset.day;
                     
-                    console.log('🎯 Drag&Drop détecté:', { sessionId, sourceDate, targetDate });
-                    
-                    // Vérifier la limite avant même d'essayer
+                    // Vérifier la limite de séances par jour
                     const targetSessions = evt.to.querySelectorAll('.session-card').length;
                     if (targetSessions > this.maxSessionsPerDay) {
-                        console.warn('⚠️ Limite séances/jour atteinte');
                         window.showToast('Maximum 2 séances par jour', 'warning');
-                        evt.from.appendChild(evt.item);
+                        evt.from.appendChild(evt.item); // Remettre à l'origine
                         return;
                     }
                     
-                    try {
-                        // Désactiver temporairement le drag&drop pendant l'opération
-                        evt.to.classList.add('updating');
-                        evt.from.classList.add('updating');
-                        
-                        await this.handleSessionMove(sessionId, targetDate, sourceDate);
-                        
-                    } catch (error) {
-                        console.error('❌ Erreur déplacement, annulation:', error);
-                        
-                        // Remettre l'élément à sa place d'origine
-                        evt.from.appendChild(evt.item);
-                        
-                        // Message d'erreur contextuel
-                        if (error.message.includes('Limite')) {
-                            // Déjà géré par handleSessionMove
-                        } else if (error.message.includes('réseau')) {
-                            window.showToast('Problème de connexion', 'error');
-                        } else {
+                    // NOUVEAU : Gérer le déplacement dans weekly_structure
+                    if (this.activeProgram && this.weeklyStructure) {
+                        try {
+                            const [programId, oldDayName, sessionIndex] = sessionId.split('_');
+                            const newDate = new Date(targetDate);
+                            const newDayName = newDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+                            
+                            // Récupérer la session depuis l'ancienne position
+                            const sessionToMove = this.weeklyStructure[oldDayName]?.[parseInt(sessionIndex)];
+                            if (!sessionToMove) {
+                                throw new Error('Session introuvable dans weekly_structure');
+                            }
+                            
+                            // Effectuer le déplacement
+                            this.weeklyStructure[oldDayName].splice(parseInt(sessionIndex), 1);
+                            if (!this.weeklyStructure[newDayName]) {
+                                this.weeklyStructure[newDayName] = [];
+                            }
+                            this.weeklyStructure[newDayName].push({
+                                ...sessionToMove,
+                                moved_date: targetDate
+                            });
+                            
+                            // Mettre à jour le programme
+                            const updateData = {
+                                weekly_structure: this.weeklyStructure
+                            };
+                            
+                            await window.apiPut(`/api/programs/${this.activeProgram.id}`, updateData);
+                            
+                            window.showToast('Séance déplacée avec succès', 'success');
+                            await this.refresh();
+                            
+                        } catch (error) {
+                            console.error('❌ Erreur déplacement séance:', error);
                             window.showToast('Erreur lors du déplacement', 'error');
+                            evt.from.appendChild(evt.item); // Remettre à l'origine
                         }
-                    } finally {
-                        // Réactiver le drag&drop
-                        evt.to.classList.remove('updating');
-                        evt.from.classList.remove('updating');
+                    } else {
+                        // Fallback sur l'ancienne logique si pas de programme actif
+                        await this.handleSessionMove(sessionId, targetDate, sourceDate);
                     }
                 }
             });
@@ -654,89 +577,50 @@ class PlanningManager {
     // NOUVELLE MÉTHODE pour gérer le déplacement dans weekly_structure
     async handleSessionMove(sessionId, targetDate, sourceDate) {
         try {
-            console.log('🔄 Déplacement session:', { sessionId, de: sourceDate, vers: targetDate });
-            
             if (!this.activeProgram || !this.weeklyStructure) {
                 throw new Error('Pas de programme actif ou structure manquante');
             }
             
-            // Parser et valider l'ID
-            const idParts = sessionId.split('_');
-            if (idParts.length !== 3) {
-                throw new Error(`Format ID invalide: ${sessionId}`);
-            }
-            
-            const [programId, oldDayName, sessionIndex] = idParts;
-            
-            // Validation du programme
-            if (programId != this.activeProgram.id) {
-                throw new Error('ID programme ne correspond pas');
-            }
-            
+            // Parser l'ID pour récupérer les infos
+            const [programId, oldDayName, sessionIndex] = sessionId.split('_');
             const newDate = new Date(targetDate);
             const newDayName = newDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
             
-            console.log('📊 Déplacement:', {
+            console.log('🔄 Déplacement session:', {
                 de: oldDayName,
                 vers: newDayName,
                 index: sessionIndex
             });
             
-            // Vérifier que la session source existe
-            if (!this.weeklyStructure[oldDayName] || !this.weeklyStructure[oldDayName][parseInt(sessionIndex)]) {
-                throw new Error(`Session source introuvable: ${oldDayName}[${sessionIndex}]`);
-            }
-            
             // Récupérer la session à déplacer
-            const sessionToMove = this.weeklyStructure[oldDayName][parseInt(sessionIndex)];
-            
-            // Vérifier la limite de séances sur le jour cible
-            const targetDaySessions = this.weeklyStructure[newDayName] || [];
-            if (targetDaySessions.length >= 2 && oldDayName !== newDayName) {
-                window.showToast('Maximum 2 séances par jour sur le jour cible', 'warning');
-                throw new Error('Limite séances/jour atteinte');
+            const sessionToMove = this.weeklyStructure[oldDayName]?.[parseInt(sessionIndex)];
+            if (!sessionToMove) {
+                throw new Error('Session introuvable dans weekly_structure');
             }
             
-            // Sauvegarder pour rollback
-            const previousStructure = JSON.parse(JSON.stringify(this.weeklyStructure));
-            
-            try {
-                // Effectuer le déplacement
-                this.weeklyStructure[oldDayName].splice(parseInt(sessionIndex), 1);
-                
-                if (!this.weeklyStructure[newDayName]) {
-                    this.weeklyStructure[newDayName] = [];
-                }
-                
-                this.weeklyStructure[newDayName].push({
-                    ...sessionToMove,
-                    moved_date: targetDate,
-                    moved_from: oldDayName
-                });
-                
-                console.log('📝 Structure mise à jour localement');
-                
-                // Mettre à jour le programme
-                const updateData = {
-                    weekly_structure: this.weeklyStructure
-                };
-                
-                await window.apiPut(`/api/programs/${this.activeProgram.id}`, updateData);
-                
-                console.log('✅ Séance déplacée avec succès');
-                window.showToast('Séance déplacée avec succès', 'success');
-                await this.refresh();
-                
-            } catch (error) {
-                // Rollback
-                console.error('❌ Erreur sauvegarde, rollback:', error);
-                this.weeklyStructure = previousStructure;
-                throw error;
+            // Effectuer le déplacement
+            this.weeklyStructure[oldDayName].splice(parseInt(sessionIndex), 1);
+            if (!this.weeklyStructure[newDayName]) {
+                this.weeklyStructure[newDayName] = [];
             }
+            this.weeklyStructure[newDayName].push({
+                ...sessionToMove,
+                moved_date: targetDate
+            });
+            
+            // Mettre à jour le programme
+            const updateData = {
+                weekly_structure: this.weeklyStructure
+            };
+            
+            await window.apiPut(`/api/programs/${this.activeProgram.id}`, updateData);
+            
+            window.showToast('Séance déplacée avec succès', 'success');
+            await this.refresh();
             
         } catch (error) {
-            console.error('❌ Erreur déplacement séance:', error);
-            throw error; // Propagé pour gestion dans initializeDragDrop
+            console.error('❌ Erreur déplacement séance Programme v2.0:', error);
+            throw error;
         }
     }
 
@@ -796,143 +680,34 @@ class PlanningManager {
     // 7. REMPLACER confirmDelete() par cette version qui supprime de weekly_structure
     async confirmDelete(sessionId) {
         try {
-            console.log('🗑️ Demande suppression séance:', sessionId);
+            console.log('🗑️ Suppression séance depuis le programme:', sessionId);
             
-            // Validation de l'ID
-            const idParts = sessionId.split('_');
-            if (idParts.length !== 3) {
-                console.error('❌ Format ID invalide:', sessionId);
-                window.showToast('Erreur: session invalide', 'error');
-                return;
-            }
-            
-            const [programId, dayName, sessionIndex] = idParts;
-            
-            // Vérifications
-            if (!this.activeProgram || programId != this.activeProgram.id) {
-                window.showToast('Programme non trouvé', 'error');
-                return;
-            }
+            // Parser l'ID pour retrouver la position dans weekly_structure
+            const [programId, dayName, sessionIndex] = sessionId.split('_');
             
             if (!this.weeklyStructure[dayName] || !this.weeklyStructure[dayName][parseInt(sessionIndex)]) {
                 window.showToast('Séance introuvable', 'error');
                 return;
             }
             
-            // Récupérer info session pour log
-            const sessionToDelete = this.weeklyStructure[dayName][parseInt(sessionIndex)];
-            console.log('📋 Session à supprimer:', {
-                jour: dayName,
-                exercices: sessionToDelete.exercises?.length || 0,
-                durée: sessionToDelete.estimated_duration
-            });
+            // Supprimer de weekly_structure
+            this.weeklyStructure[dayName].splice(parseInt(sessionIndex), 1);
             
-            // Sauvegarder pour rollback
-            const previousStructure = JSON.parse(JSON.stringify(this.weeklyStructure));
+            // Mettre à jour le programme
+            const updateData = {
+                weekly_structure: this.weeklyStructure
+            };
             
-            try {
-                // Supprimer de weekly_structure
-                this.weeklyStructure[dayName].splice(parseInt(sessionIndex), 1);
-                
-                // Mettre à jour le programme
-                const updateData = {
-                    weekly_structure: this.weeklyStructure
-                };
-                
-                await window.apiPut(`/api/programs/${this.activeProgram.id}`, updateData);
-                
-                console.log('✅ Séance supprimée avec succès');
-                window.closeModal();
-                window.showToast('Séance supprimée', 'success');
-                await this.refresh();
-                
-            } catch (error) {
-                // Rollback
-                console.error('❌ Erreur suppression, rollback:', error);
-                this.weeklyStructure = previousStructure;
-                window.showToast('Erreur lors de la suppression', 'error');
-            }
+            await window.apiPut(`/api/programs/${this.activeProgram.id}`, updateData);
+            
+            window.closeModal();
+            window.showToast('Séance supprimée', 'success');
+            await this.refresh();
             
         } catch (error) {
             console.error('❌ Erreur suppression:', error);
             window.showToast('Erreur lors de la suppression', 'error');
         }
-    }
-
-    // Extraction des muscles avec validation
-    extractPrimaryMuscles(exercises) {
-        if (!exercises || !Array.isArray(exercises) || exercises.length === 0) {
-            console.warn('⚠️ Pas d\'exercices pour extraction muscles');
-            return ['général'];
-        }
-        
-        const muscleCount = {};
-        
-        exercises.forEach(ex => {
-            const muscle = ex.primary_muscle || ex.muscle_name || 'autre';
-            muscleCount[muscle] = (muscleCount[muscle] || 0) + 1;
-        });
-        
-        // Retourner les 3 muscles les plus fréquents
-        const topMuscles = Object.entries(muscleCount)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 3)
-            .map(([muscle]) => muscle);
-        
-        return topMuscles.length > 0 ? topMuscles : ['général'];
-    }
-
-    // Calcul durée avec validation
-    calculateSessionDuration(exercises) {
-        if (!exercises || !Array.isArray(exercises)) {
-            console.warn('⚠️ Exercices invalides pour calcul durée');
-            return 45; // Durée par défaut
-        }
-        
-        const duration = exercises.reduce((total, ex) => {
-            // Validation exercice
-            if (!ex || typeof ex !== 'object') return total;
-            
-            const sets = parseInt(ex.sets) || 3;
-            const restSeconds = parseInt(ex.rest_seconds) || 90;
-            
-            // Calcul conservateur
-            const restTime = (restSeconds * (sets - 1)) / 60;
-            const workTime = sets * 1.5; // 1.5min par série
-            const setupTime = 1; // 1min de préparation
-            
-            return total + restTime + workTime + setupTime;
-        }, 0);
-        
-        // Arrondir et borner entre 15 et 120 minutes
-        return Math.max(15, Math.min(120, Math.round(duration)));
-    }
-
-    // Génération semaine vide (fallback)
-    generateEmptyWeek(weekStart) {
-        console.log('📋 Génération semaine vide pour:', weekStart);
-        const days = [];
-        
-        for (let i = 0; i < 7; i++) {
-            const date = new Date(weekStart);
-            date.setDate(date.getDate() + i);
-            
-            days.push({
-                date: date.toISOString().split('T')[0],
-                dayName: date.toLocaleDateString('fr-FR', { weekday: 'long' }),
-                dayNumber: date.getDate(),
-                sessions: [],
-                canAddSession: true,
-                warnings: []
-            });
-        }
-        
-        return { 
-            planning_data: days, 
-            week_score: 0,
-            total_sessions: 0,
-            total_duration: 0
-        };
     }
     
     // ===== MODAL ÉDITION SÉANCE =====
@@ -1521,38 +1296,10 @@ class PlanningManager {
     }
     
     // ===== UTILITAIRES =====
-
+    
     async refresh() {
-        try {
-            console.log('🔄 Actualisation du planning...');
-            
-            // Sauvegarder l'état actuel pour rollback si erreur
-            const previousProgram = this.activeProgram;
-            const previousStructure = this.weeklyStructure;
-            
-            try {
-                // Recharger le programme actif
-                await this.loadActiveProgram();
-                
-                // Recharger les semaines depuis weekly_structure
-                await this.loadWeeksData();
-                
-                // Re-render l'interface
-                this.render();
-                
-                console.log('✅ Planning actualisé avec succès');
-            } catch (error) {
-                // Rollback en cas d'erreur
-                console.error('❌ Erreur actualisation, rollback:', error);
-                this.activeProgram = previousProgram;
-                this.weeklyStructure = previousStructure;
-                throw error;
-            }
-            
-        } catch (error) {
-            console.error('❌ Erreur actualisation complète:', error);
-            window.showToast('Erreur lors de l\'actualisation', 'error');
-        }
+        await this.loadWeeksData();
+        this.render();
     }
     
 
@@ -2381,30 +2128,14 @@ class PlanningManager {
             return;
         }
         
-        // Validation de weekly_structure
-        if (!this.weeklyStructure || typeof this.weeklyStructure !== 'object') {
-            console.error('❌ weekly_structure invalide:', this.weeklyStructure);
-            window.showToast('Structure du programme invalide', 'error');
-            return;
-        }
-        
         try {
-            console.log(`🔧 Création séance pour ${targetDate}`);
-            console.log(`📊 ${selected.length} exercices sélectionnés`);
+            console.log(`🔧 Création séance dans le programme pour ${targetDate}`);
             
             const exercises = selected.map(input => {
                 try {
-                    const exerciseData = JSON.parse(input.dataset.exercise);
-                    
-                    // Validation des données d'exercice
-                    if (!exerciseData.exercise_id || !exerciseData.exercise_name) {
-                        console.warn('⚠️ Exercice invalide ignoré:', exerciseData);
-                        return null;
-                    }
-                    
-                    return exerciseData;
+                    return JSON.parse(input.dataset.exercise);
                 } catch (e) {
-                    console.error('❌ Erreur parsing exercice:', e);
+                    console.error('Erreur parsing exercice:', e);
                     return null;
                 }
             }).filter(Boolean);
@@ -2414,16 +2145,9 @@ class PlanningManager {
                 return;
             }
             
-            // Déterminer le jour et vérifier la limite
+            // Déterminer le jour de la semaine
             const dayDate = new Date(targetDate);
             const dayName = dayDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-            
-            // Vérifier limite de séances par jour
-            const existingSessions = this.weeklyStructure[dayName] || [];
-            if (existingSessions.length >= 2) {
-                window.showToast('Maximum 2 séances par jour atteint', 'warning');
-                return;
-            }
             
             // Calculer la durée estimée
             const estimatedDuration = exercises.reduce((total, ex) => {
@@ -2441,17 +2165,13 @@ class PlanningManager {
                     sets: ex.sets || 3,
                     reps_min: ex.reps_min || 8,
                     reps_max: ex.reps_max || 12,
-                    rest_seconds: ex.rest_seconds || 90,
-                    equipment: ex.equipment || 'none'
+                    rest_seconds: ex.rest_seconds || 90
                 })),
                 session_type: 'custom',
                 created_date: targetDate,
                 estimated_duration: Math.round(estimatedDuration),
-                primary_muscles: this.extractPrimaryMuscles(exercises),
-                quality_score: 75 // Score par défaut
+                primary_muscles: this.extractPrimaryMuscles(exercises)
             };
-            
-            console.log('📝 Nouvelle session créée:', newSession);
             
             // Mettre à jour weekly_structure localement
             if (!this.weeklyStructure[dayName]) {
@@ -2459,30 +2179,21 @@ class PlanningManager {
             }
             this.weeklyStructure[dayName].push(newSession);
             
-            // Préparer les données pour la mise à jour
+            // Préparer les données pour la mise à jour du programme
             const updateData = {
                 weekly_structure: this.weeklyStructure
             };
             
-            console.log('📤 Envoi mise à jour programme...');
+            console.log('📤 Mise à jour du programme avec nouvelle session:', updateData);
             
-            // Sauvegarder l'état pour rollback
-            const previousStructure = JSON.parse(JSON.stringify(this.weeklyStructure));
+            // Utiliser l'endpoint de mise à jour du programme
+            const response = await window.apiPut(`/api/programs/${this.activeProgram.id}`, updateData);
             
-            try {
-                const response = await window.apiPut(`/api/programs/${this.activeProgram.id}`, updateData);
-                console.log('✅ Programme mis à jour avec succès');
-                
-                window.closeModal();
-                window.showToast('Séance créée avec succès', 'success');
-                await this.refresh();
-                
-            } catch (error) {
-                // Rollback en cas d'erreur
-                console.error('❌ Erreur sauvegarde, rollback:', error);
-                this.weeklyStructure = previousStructure;
-                throw error;
-            }
+            console.log('✅ Programme mis à jour avec nouvelle séance');
+            
+            window.closeModal();
+            window.showToast('Séance créée avec succès', 'success');
+            await this.refresh();
             
         } catch (error) {
             console.error('❌ Erreur création séance:', error);
@@ -2904,71 +2615,24 @@ window.showPlanning = async function() {
  * - Si pas de programme → création de programme
  * - Si programme existe → choix entre les 3 prochaines séances
  */
-async function showProgramInterface() {
-    console.log('🔍 showProgramInterface() appelée');
-    
+window.showProgramInterface = async function() {
     try {
-        // Vérifier si un programme existe
-        let activeProgram = null;
+        // Vérifier si l'utilisateur a un programme actif
+        const hasActiveProgram = await checkUserHasActiveProgram();
         
-        try {
-            activeProgram = await apiGet(`/api/users/${currentUser.id}/programs/active`);
-        } catch (error) {
-            if (error.status === 404) {
-                console.log('📋 Aucun programme actif (404)');
-            } else {
-                throw error; // Propager autres erreurs
-            }
+        if (!hasActiveProgram) {
+            // Pas de programme → lancer la création
+            await window.showProgramBuilder();
+        } else {
+            // Programme existe → afficher les prochaines séances
+            await showUpcomingSessionsModal();
         }
-        
-        if (!activeProgram || !activeProgram.id) {
-            console.log('🆕 Création nouveau programme nécessaire');
-            
-            // Récupérer TOUTES les données utilisateur nécessaires
-            const userDetails = await apiGet(`/api/users/${currentUser.id}`);
-            
-            // Validation des données requises
-            if (!userDetails.experience_level || !userDetails.equipment_config) {
-                console.warn('⚠️ Données utilisateur incomplètes');
-                window.showToast('Veuillez compléter votre profil', 'warning');
-                // Rediriger vers profil ?
-                return;
-            }
-            
-            const userDataForBuilder = {
-                // Données essentielles
-                experience_level: userDetails.experience_level,
-                equipment_config: userDetails.equipment_config,
-                
-                // Données physiques
-                bodyweight: userDetails.weight || 70,
-                height: userDetails.height || 170,
-                
-                // Préférences d'entraînement
-                focus_areas: userDetails.focus_areas || [],
-                sessions_per_week: userDetails.sessions_per_week || 3,
-                session_duration: userDetails.session_duration || 45,
-                prefer_weight_changes_between_sets: userDetails.prefer_weight_changes_between_sets || false,
-                
-                // Données supplémentaires
-                onboarding_data: userDetails.onboarding_data || {},
-                created_at: userDetails.created_at
-            };
-            
-            console.log('📊 Données utilisateur préparées:', userDataForBuilder);
-            await window.showProgramBuilder(userDataForBuilder);
-            return;
-        }
-        
-        // Programme existe = afficher modal choix séances
-        console.log('✅ Programme actif trouvé:', activeProgram.name);
-        showProgramChoiceModal(activeProgram);
         
     } catch (error) {
-        console.error('❌ Erreur vérification programme:', error);
-        window.showToast('Erreur lors de la vérification du programme', 'error');
+        console.error('Erreur interface programme:', error);
+        window.showToast('Erreur lors du chargement', 'error');
     }
-}
+};
 
 /**
  * Vérifie si l'utilisateur a un programme actif
@@ -2988,88 +2652,54 @@ async function checkUserHasActiveProgram() {
  */
 async function showUpcomingSessionsModal() {
     try {
-        console.log('🔍 Recherche prochaines séances...');
+        console.log('🔍 showUpcomingSessionsModal() appelée');
         
-        // Récupérer le programme actif
-        const activeProgram = await window.apiGet(
-            `/api/users/${window.currentUser.id}/programs/active`
+        // Récupérer les prochaines séances
+        const weekStart = new Date();
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1);
+        const weekStartStr = weekStart.toISOString().split('T')[0];
+        
+        const planning = await window.apiGet(
+            `/api/users/${window.currentUser.id}/weekly-planning?week_start=${weekStartStr}`
         );
         
-        if (!activeProgram || !activeProgram.weekly_structure) {
-            console.warn('⚠️ Pas de programme ou structure invalide');
-            showNoProgramSessionsModal();
-            return;
-        }
-        
-        // Valider weekly_structure
-        if (typeof activeProgram.weekly_structure !== 'object') {
-            console.error('❌ Format weekly_structure invalide:', activeProgram.weekly_structure);
+        if (!planning || !planning.planning_data) {
             showNoProgramSessionsModal();
             return;
         }
         
         // Extraire les 3 prochaines séances
-        const today = new Date();
         const upcomingSessions = [];
-        
-        console.log('📅 Recherche sur 7 prochains jours...');
-        
-        // Parcourir les 7 prochains jours
-        for (let i = 0; i < 7 && upcomingSessions.length < 3; i++) {
-            const checkDate = new Date(today);
-            checkDate.setDate(checkDate.getDate() + i);
-            const dayName = checkDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-            
-            const daySessions = activeProgram.weekly_structure[dayName] || [];
-            
-            daySessions.forEach((session, index) => {
-                if (upcomingSessions.length < 3) {
-                    // Validation session
-                    if (!session.exercises || session.exercises.length === 0) {
-                        console.warn(`⚠️ Session ${dayName}[${index}] sans exercices, ignorée`);
-                        return;
-                    }
-                    
+        for (const day of planning.planning_data) {
+            for (const session of day.sessions || []) {
+                if (new Date(day.date) >= new Date()) {
                     upcomingSessions.push({
-                        id: `${activeProgram.id}_${dayName}_${index}`,
-                        date: checkDate.toISOString().split('T')[0],
-                        dayName: checkDate.toLocaleDateString('fr-FR', { 
-                            weekday: 'long', 
-                            day: 'numeric', 
-                            month: 'long' 
-                        }),
-                        exercises: session.exercises,
-                        estimated_duration: session.estimated_duration || 45,
-                        predicted_quality_score: session.quality_score || 75,
-                        is_today: i === 0
+                        ...session,
+                        date: day.date,
+                        dayName: new Date(day.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
                     });
                 }
-            });
+            }
         }
-        
-        console.log(`✅ ${upcomingSessions.length} séances trouvées`);
         
         if (upcomingSessions.length === 0) {
             showNoProgramSessionsModal();
             return;
         }
         
-        // Générer le HTML des sessions
-        const sessionsHtml = upcomingSessions.map((session, index) => `
-            <button class="upcoming-session-btn ${session.is_today ? 'today' : ''}" 
-                    onclick="window.startSessionFromProgram('${session.id}')">
+        // Afficher le modal de choix
+        const sessionsHtml = upcomingSessions.slice(0, 3).map((session, index) => `
+            <button class="upcoming-session-btn" onclick="window.startSessionFromProgram('${session.id}')">
                 <div class="session-info">
                     <h4>${session.dayName}</h4>
-                    <p>${session.exercises?.length || 0} exercices • ${session.estimated_duration}min</p>
+                    <p>${session.exercises?.length || 0} exercices • ${session.estimated_duration || 45}min</p>
                     <div class="session-score">
-                        <div class="score-gauge-mini" 
-                             style="background: ${getScoreColor(session.predicted_quality_score)}">
-                            ${session.predicted_quality_score}
+                        <div class="score-gauge-mini" style="background: ${getScoreColor(session.predicted_quality_score || 75)}">
+                            ${session.predicted_quality_score || 75}
                         </div>
                     </div>
                 </div>
                 <i class="fas fa-play"></i>
-                ${session.is_today ? '<span class="today-badge">Aujourd\'hui</span>' : ''}
             </button>
         `).join('');
         
@@ -3096,7 +2726,7 @@ async function showUpcomingSessionsModal() {
         window.showModal('Programme', modalContent);
         
     } catch (error) {
-        console.error('❌ Erreur récupération prochaines séances:', error);
+        console.error('Erreur récupération prochaines séances:', error);
         showNoProgramSessionsModal();
     }
 }
@@ -3279,5 +2909,3 @@ function getMuscleColor(muscle) {
 }
 
 console.log('✅ Planning.js chargé avec logique Programme');
-
-window.showProgramInterface = showProgramInterface;
