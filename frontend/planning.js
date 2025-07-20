@@ -207,25 +207,8 @@ class PlanningManager {
 
             // Formater les séances pour l'affichage
             const formattedSessions = daySessions.map((session, index) => {
-                // Gérer les deux formats possibles : exercises ou exercise_pool
-                let exercises = [];
-                
-                if (session.exercise_pool && Array.isArray(session.exercise_pool)) {
-                    // Format v2.0 avec exercise_pool
-                    exercises = session.exercise_pool.map(ex => ({
-                        exercise_id: ex.exercise_id,
-                        exercise_name: ex.exercise_name || ex.name || 'Exercice',
-                        sets: ex.sets || ex.default_sets || 3,
-                        reps_min: ex.reps_min || ex.default_reps_min || 8,
-                        reps_max: ex.reps_max || ex.default_reps_max || 12,
-                        rest_seconds: ex.rest_seconds || 90,
-                        muscle_groups: ex.muscle_groups || [],
-                        primary_muscle: ex.muscle_groups ? ex.muscle_groups[0] : 'autre'
-                    }));
-                } else if (session.exercises && Array.isArray(session.exercises)) {
-                    // Format avec exercises direct
-                    exercises = session.exercises;
-                }
+                // Format v2.0 uniquement - exercise_pool est la source de vérité
+                const exercise_pool = session.exercise_pool || [];
                 
                 return {
                     id: `${this.activeProgram.id}_${dayName}_${index}`,
@@ -233,12 +216,12 @@ class PlanningManager {
                     day_name: dayName,
                     session_index: index,
                     planned_date: currentDate.toISOString().split('T')[0],
-                    exercises: exercises,
+                    exercise_pool: session.exercise_pool || [],
                     estimated_duration: session.estimated_duration || 
                                     session.duration || 
                                     session.target_duration ||
-                                    this.calculateSessionDuration(exercises),
-                    primary_muscles: session.primary_muscles || this.extractPrimaryMuscles(exercises),
+                                    this.calculateSessionDuration(session.exercise_pool || []),
+                    primary_muscles: session.primary_muscles || this.extractPrimaryMuscles(session.exercise_pool || []),
                     predicted_quality_score: session.quality_score || session.predicted_quality_score || 75,
                     session_type: session.session_type || session.focus || 'custom',
                     status: 'planned'
@@ -552,7 +535,7 @@ class PlanningManager {
         const sessionId = session.id || session.session_id || `temp-${Date.now()}`;
         const score = session.predicted_quality_score || session.quality_score || 75;
         const duration = session.estimated_duration || 45;
-        const exerciseCount = (session.exercises && Array.isArray(session.exercises)) ? session.exercises.length : 0;
+        const exerciseCount = (session.exercise_pool && Array.isArray(session.exercise_pool)) ? session.exercise_pool.length : 0;
         const primaryMuscles = session.primary_muscles || session.muscle_groups || [];
         
         // Utiliser les fonctions existantes avec fallback
@@ -891,9 +874,9 @@ class PlanningManager {
             // Récupérer info session pour log
             const sessionToDelete = this.weeklyStructure[dayName][parseInt(sessionIndex)];
             console.log('📋 Session à supprimer:', {
-                jour: dayName,
-                exercices: sessionToDelete.exercises?.length || 0,
-                durée: sessionToDelete.estimated_duration
+                jour: session.day_name,
+                exercices: session.exercise_pool?.length || 0,
+                durée: session.estimated_duration
             });
             
             // Sauvegarder pour rollback
@@ -929,10 +912,10 @@ class PlanningManager {
     }
 
     // Extraction des muscles avec validation
-    extractPrimaryMuscles(exercises) {
-        // Validation robuste
-        if (!exercises || !Array.isArray(exercises) || exercises.length === 0) {
-            console.warn('⚠️ Pas d\'exercices pour extraction muscles');
+    extractPrimaryMuscles(exercise_pool) {
+        // Validation robuste pour exercise_pool
+        if (!exercise_pool || !Array.isArray(exercise_pool) || exercise_pool.length === 0) {
+            console.warn('⚠️ Pas d\'exercise_pool pour extraction muscles');
             return ['général'];
         }
         
@@ -965,13 +948,13 @@ class PlanningManager {
     }
 
     // Calcul durée avec validation
-    calculateSessionDuration(exercises) {
-        if (!exercises || !Array.isArray(exercises)) {
-            console.warn('⚠️ Exercices invalides pour calcul durée');
+    calculateSessionDuration(exercise_pool) {
+        if (!exercise_pool || !Array.isArray(exercise_pool)) {
+            console.warn('⚠️ exercise_pool invalide pour calcul durée');
             return 45; // Durée par défaut
         }
         
-        const duration = exercises.reduce((total, ex) => {
+        const duration = exercise_pool.reduce((total, ex) => {
             // Validation exercice
             if (!ex || typeof ex !== 'object') return total;
             
@@ -1021,7 +1004,8 @@ class PlanningManager {
     
     // 9. ADAPTER showSessionEditModal() existant pour utiliser Programme v2.0
     async showSessionEditModal(session) {
-        const exercises = session.exercises || [];
+        // Utiliser exercise_pool comme source de vérité
+        const exercises = session.exercise_pool || [];
         
         // Calculer le scoring avec fallback
         let currentScore;
@@ -1088,7 +1072,7 @@ class PlanningManager {
                                     <i class="fas fa-magic"></i> Ordre optimal
                                 </button>
                             ` : ''}
-                            <button class="btn btn-sm btn-primary" onclick="planningManager.saveSessionLocal('${session.id}')">
+                            <button class="btn btn-sm btn-primary" onclick="planningManager.refresh('${session.id}')">
                                 <i class="fas fa-save"></i> Sauvegarder
                             </button>
                         </div>
@@ -2609,12 +2593,12 @@ class PlanningManager {
                 }
             }).filter(Boolean);
             
-            // Essayer l'endpoint d'optimisation s'il existe
+            // Essayer l'endpoint d'optimisation avec fallback
             if (this.activeProgram) {
                 try {
                     const response = await window.apiPost(
                         `/api/programs/${this.activeProgram.id}/optimize-session-order`,
-                        { exercises }
+                        { exercise_pool: exercises } // Utiliser exercise_pool au lieu de exercises
                     );
                     
                     if (response.optimized_order && Array.isArray(response.optimized_order)) {
@@ -2736,7 +2720,7 @@ class PlanningManager {
             const oldScore = parseInt(scoreElement.dataset.score) || 75;
             this.animateScoreChange(scoreElement, oldScore, newScore);
             
-            const newColor = this.getScoreColor(newScore);
+            const newColor = window.getScoreColor?.(newScore) ?? '#6b7280';
             scoreElement.style.color = newColor;
             scoreElement.previousElementSibling.style.color = newColor;
         }
@@ -3417,41 +3401,49 @@ function renderUpcomingSession(session, index) {
 window.startSessionFromProgram = async function(sessionId) {
     try {
         window.closeModal();
-        
+       
         // Utiliser la même logique que le planning
         if (!window.planningManager) {
             window.planningManager = new PlanningManager();
         }
+       
+        // Récupérer la session depuis le planning manager (format v2.0)
+        const session = window.planningManager.findSessionById(sessionId);
         
-        // Simuler les données de session pour compatibility
-        const sessionData = await window.apiGet(`/api/planned-sessions/${sessionId}`);
-        
-        if (!sessionData?.exercises?.length) {
-            window.showToast('Cette séance n\'a pas d\'exercices', 'warning');
+        if (!session) {
+            window.showToast('Session introuvable', 'error');
             return;
         }
         
-        // Utiliser startProgramWorkout existant
-        const workoutData = {
-            selected_exercises: sessionData.exercises,
-            is_from_program: true,
-            program_id: window.currentUser.current_program_id,
-            session_id: sessionId,
-            session_type: 'planned'
-        };
+        // Convertir exercise_pool vers le format attendu par startProgramWorkout
+        const exercises = session.exercise_pool || [];
         
+        if (exercises.length === 0) {
+            window.showToast('Cette séance n\'a pas d\'exercices', 'warning');
+            return;
+        }
+       
+        // Adapter pour startProgramWorkout existant
+        const workoutData = {
+            selected_exercises: exercises, // exercise_pool converti
+            is_from_program: true,
+            program_id: window.currentUser.current_program_id || session.program_id,
+            session_id: sessionId,
+            session_type: session.session_type || 'planned'
+        };
+       
         window.currentWorkoutSession = {
             program: {
-                id: window.currentUser.current_program_id,
-                exercises: sessionData.exercises,
-                session_duration_minutes: sessionData.estimated_duration
+                id: window.currentUser.current_program_id || session.program_id,
+                exercises: exercises, // exercise_pool pour compatibilité
+                session_duration_minutes: session.estimated_duration || 45
             },
             sessionId: sessionId,
             planned: true
         };
-        
+       
         await window.startProgramWorkout(workoutData);
-        
+       
     } catch (error) {
         console.error('Erreur démarrage séance depuis programme:', error);
         window.showToast('Erreur lors du démarrage', 'error');
