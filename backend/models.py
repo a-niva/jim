@@ -426,46 +426,6 @@ class AdaptiveTargets(Base):
     
     user = relationship("User")
 
-
-class PlannedSession(Base):
-    """Séances planifiées pour le planning hebdomadaire"""
-    __tablename__ = "planned_sessions"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    program_id = Column(Integer, ForeignKey("programs.id"), nullable=True)
-    
-    # Timing
-    planned_date = Column(Date, nullable=False, index=True)
-    planned_time = Column(Time, nullable=True)  # Optionnel
-    week_number = Column(Integer, nullable=True)  # Dans le programme
-    session_number_in_week = Column(Integer, nullable=True)  # 1-7
-    
-    # Contenu
-    exercises = Column(JSON, nullable=False, default=lambda: [])
-    estimated_duration = Column(Integer, nullable=True)  # minutes
-    primary_muscles = Column(JSON, nullable=True, default=lambda: [])  # Pour warnings récupération
-    
-    # Scoring et état
-    predicted_quality_score = Column(Float, nullable=True)
-    actual_quality_score = Column(Float, nullable=True)  # Après réalisation
-    status = Column(String(20), default="planned")  # planned, completed, skipped, moved
-    
-    # Métadonnées
-    created_at = Column(DateTime, default=datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=datetime.now(timezone.utc))
-    completed_at = Column(DateTime, nullable=True)
-    
-    # Relations
-    user = relationship("User")
-    program = relationship("Program")
-    
-    # Index composé pour les requêtes fréquentes
-    __table_args__ = (
-        Index('idx_user_planned_date', 'user_id', 'planned_date'),
-        Index('idx_user_program_week', 'user_id', 'program_id', 'week_number'),
-    )
-
 class UserAdaptationCoefficients(Base):
     """Coefficients d'adaptation personnalisés pour chaque utilisateur"""
     __tablename__ = "user_adaptation_coefficients"
