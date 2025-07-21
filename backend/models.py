@@ -118,12 +118,46 @@ class Program(Base):
     # Structure temporelle v2.0
     weekly_structure = Column(JSON, nullable=False, default=lambda: [])
     progression_rules = Column(JSON, nullable=False, default=lambda: {})
-        
+    
+    # NOUVEAU : Planning réel avec dates
+    schedule = Column(JSON, nullable=False, default=lambda: {})
+    # Format du schedule :
+    # {
+    #   "2025-01-25": {
+    #     "session_ref": "0_1",  # week_index_session_index
+    #     "time": "18:00",
+    #     "status": "planned",  # planned, completed, skipped, in_progress
+    #     "predicted_score": 85,
+    #     "actual_score": null,
+    #     "exercises_snapshot": [...],  # Copie des exercices au moment de la planification
+    #     "modifications": [],  # Historique des changements pour cette instance
+    #     "started_at": null,
+    #     "completed_at": null
+    #   }
+    # }
+    
+    # NOUVEAU : Métriques précalculées
+    schedule_metadata = Column(JSON, nullable=False, default=lambda: {})
+    # Format :
+    # {
+    #   "total_sessions_planned": 48,
+    #   "sessions_completed": 12,
+    #   "sessions_skipped": 2,
+    #   "average_actual_score": 87.5,
+    #   "average_predicted_score": 85.0,
+    #   "completion_rate": 25,
+    #   "muscle_distribution": {"pectoraux": 35, "dos": 30, ...},
+    #   "last_metrics_update": "2025-01-20T10:00:00Z",
+    #   "next_sessions": [  # Cache des 3 prochaines pour performance
+    #     {"date": "2025-01-25", "muscles": ["pectoraux"], "score": 85}
+    #   ]
+    # }
+    
     # Métadonnées v2.0
     started_at = Column(DateTime, nullable=True)
     estimated_completion = Column(DateTime, nullable=True)
     base_quality_score = Column(Float, default=75.0)
-        
+    
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
     format_version = Column(String(10), default="2.0")  # Une seule déclaration
     updated_at = Column(DateTime, default=datetime.now(timezone.utc))

@@ -85,6 +85,10 @@ class ProgramResponse(BaseModel):
     created_at: datetime
     is_active: bool
     
+    # NOUVEAU : Champs schedule
+    schedule: Optional[Dict[str, Any]] = {}
+    schedule_metadata: Optional[Dict[str, Any]] = {}
+    
     class Config:
         from_attributes = True
 

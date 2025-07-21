@@ -4841,3 +4841,78 @@ def record_ml_feedback(
         logger.error(f"Erreur enregistrement ML feedback: {e}")
         raise HTTPException(status_code=500, detail="Erreur serveur")
     
+def update_program_schedule_metadata(program: Program, db: Session):
+    """Met à jour les métriques précalculées du schedule"""
+    
+    if not program.schedule:
+        return
+    
+    metadata = {
+        "total_sessions_planned": 0,
+        "sessions_completed": 0,
+        "sessions_skipped": 0,
+        "sessions_in_progress": 0,
+        "total_actual_score": 0,
+        "total_predicted_score": 0,
+        "muscle_distribution": {},
+        "last_metrics_update": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Calculer les métriques depuis le schedule
+    for date, session in program.schedule.items():
+        metadata["total_sessions_planned"] += 1
+        
+        status = session.get("status", "planned")
+        if status == "completed":
+            metadata["sessions_completed"] += 1
+            if session.get("actual_score"):
+                metadata["total_actual_score"] += session["actual_score"]
+        elif status == "skipped":
+            metadata["sessions_skipped"] += 1
+        elif status == "in_progress":
+            metadata["sessions_in_progress"] += 1
+            
+        if session.get("predicted_score"):
+            metadata["total_predicted_score"] += session["predicted_score"]
+        
+        # Distribution musculaire
+        exercises = session.get("exercises_snapshot", [])
+        for ex in exercises:
+            for muscle in ex.get("muscle_groups", []):
+                metadata["muscle_distribution"][muscle] = metadata["muscle_distribution"].get(muscle, 0) + 1
+    
+    # Moyennes
+    if metadata["sessions_completed"] > 0:
+        metadata["average_actual_score"] = metadata["total_actual_score"] / metadata["sessions_completed"]
+        metadata["completion_rate"] = (metadata["sessions_completed"] / metadata["total_sessions_planned"]) * 100
+    
+    if metadata["total_sessions_planned"] > 0:
+        metadata["average_predicted_score"] = metadata["total_predicted_score"] / metadata["total_sessions_planned"]
+    
+    # Calculer les 3 prochaines séances
+    today = datetime.now(timezone.utc).date()
+    next_sessions = []
+    
+    for date_str in sorted(program.schedule.keys()):
+        session_date = datetime.fromisoformat(date_str).date()
+        if session_date >= today and program.schedule[date_str].get("status") == "planned":
+            session = program.schedule[date_str]
+            muscles = set()
+            for ex in session.get("exercises_snapshot", []):
+                muscles.update(ex.get("muscle_groups", []))
+            
+            next_sessions.append({
+                "date": date_str,
+                "muscles": list(muscles),
+                "predicted_score": session.get("predicted_score", 75)
+            })
+            
+            if len(next_sessions) >= 3:
+                break
+    
+    metadata["next_sessions"] = next_sessions
+    
+    # Sauvegarder
+    program.schedule_metadata = metadata
+    flag_modified(program, "schedule_metadata")
+    db.commit()
