@@ -869,6 +869,377 @@ def get_active_program(user_id: int, db: Session = Depends(get_db)):
     
     return enriched_program
 
+@app.post("/api/programs/{program_id}/generate-schedule")
+def generate_program_schedule(
+    program_id: int,
+    options: dict = {},
+    db: Session = Depends(get_db)
+):
+    """Générer ou régénérer le schedule d'un programme"""
+    
+    # Récupérer le programme
+    program = db.query(Program).filter(Program.id == program_id).first()
+    if not program:
+        raise HTTPException(status_code=404, detail="Programme non trouvé")
+    
+    try:
+        # Options pour la génération
+        force_regenerate = options.get("force_regenerate", False)
+        
+        # Si un schedule existe déjà et qu'on ne force pas, retourner erreur
+        if program.schedule and not force_regenerate:
+            raise HTTPException(
+                status_code=400, 
+                detail="Le schedule existe déjà. Utilisez force_regenerate=true pour régénérer"
+            )
+        
+        # Si on régénère, sauvegarder l'ancien schedule
+        if force_regenerate and program.schedule:
+            if not program.schedule_metadata:
+                program.schedule_metadata = {}
+            program.schedule_metadata["previous_schedule"] = program.schedule
+            program.schedule_metadata["regenerated_at"] = datetime.now(timezone.utc).isoformat()
+        
+        # Générer le nouveau schedule
+        populate_program_planning_intelligent(db, program)
+        
+        # Rafraîchir pour récupérer les modifications
+        db.refresh(program)
+        
+        return {
+            "message": "Schedule généré avec succès",
+            "program_id": program.id,
+            "sessions_count": len(program.schedule),
+            "duration_weeks": program.duration_weeks,
+            "schedule_metadata": program.schedule_metadata
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erreur génération schedule pour programme {program_id}: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Erreur lors de la génération du schedule")
+
+@app.get("/api/programs/{program_id}/schedule")
+def get_program_schedule(
+    program_id: int,
+    week_start: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Récupérer le schedule d'un programme pour une semaine donnée"""
+    
+    program = db.query(Program).filter(Program.id == program_id).first()
+    if not program:
+        raise HTTPException(status_code=404, detail="Programme non trouvé")
+    
+    if not program.schedule:
+        raise HTTPException(status_code=404, detail="Aucun schedule généré pour ce programme")
+    
+    # Si week_start est fourni, filtrer pour cette semaine
+    if week_start:
+        try:
+            start_date = datetime.fromisoformat(week_start).date()
+            end_date = start_date + timedelta(days=6)
+            
+            week_schedule = {
+                date_str: session_data 
+                for date_str, session_data in program.schedule.items()
+                if start_date <= datetime.fromisoformat(date_str).date() <= end_date
+            }
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Format de date invalide. Utilisez YYYY-MM-DD")
+    else:
+        # Retourner tout le schedule
+        week_schedule = program.schedule
+    
+    # Analyser la récupération musculaire pour la semaine
+    muscle_recovery = {}
+    if week_schedule:
+        for date_str, session in sorted(week_schedule.items()):
+            session_date = datetime.fromisoformat(date_str).date()
+            muscles = session.get("primary_muscles", [])
+            
+            for muscle in muscles:
+                if muscle not in muscle_recovery:
+                    muscle_recovery[muscle] = []
+                muscle_recovery[muscle].append(session_date)
+    
+    # Calculer les warnings de récupération
+    recovery_warnings = calculate_recovery_warnings(muscle_recovery)
+    
+    return {
+        "program_id": program_id,
+        "week_start": week_start,
+        "schedule": week_schedule,
+        "total_sessions": len(week_schedule),
+        "muscle_recovery_status": recovery_warnings,
+        "schedule_metadata": program.schedule_metadata
+    }
+
+@app.put("/api/programs/{program_id}/schedule/{date}")
+def update_program_schedule(
+    program_id: int,
+    date: str,
+    update_data: dict,
+    db: Session = Depends(get_db)
+):
+    """Mettre à jour une séance dans le schedule (déplacer, modifier status, etc.)"""
+    
+    program = db.query(Program).filter(Program.id == program_id).first()
+    if not program:
+        raise HTTPException(status_code=404, detail="Programme non trouvé")
+    
+    if not program.schedule:
+        program.schedule = {}
+    
+    # Valider la date
+    try:
+        session_date = datetime.fromisoformat(date).date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Format de date invalide")
+    
+    # Si c'est un déplacement
+    if "move_from" in update_data:
+        old_date = update_data["move_from"]
+        
+        # Vérifier que l'ancienne date existe
+        if old_date not in program.schedule:
+            raise HTTPException(status_code=404, detail="Session source non trouvée")
+        
+        # Valider le déplacement
+        target_date = session_date
+        
+        # Vérifier max 2 séances par jour
+        same_day_sessions = sum(
+            1 for d, s in program.schedule.items()
+            if datetime.fromisoformat(d).date() == target_date and s.get("status") != "cancelled"
+        )
+        
+        if same_day_sessions >= 2 and old_date != date:
+            raise HTTPException(
+                status_code=400, 
+                detail="Maximum 2 séances par jour"
+            )
+        
+        # Effectuer le déplacement
+        session_data = program.schedule.pop(old_date)
+        session_data["moved_from"] = old_date
+        session_data["moved_at"] = datetime.now(timezone.utc).isoformat()
+        
+        # Ajouter l'historique de modification
+        if "modifications" not in session_data:
+            session_data["modifications"] = []
+        session_data["modifications"].append({
+            "type": "moved",
+            "from": old_date,
+            "to": date,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
+        
+        program.schedule[date] = session_data
+        
+    # Si c'est une mise à jour de status
+    elif "status" in update_data:
+        if date not in program.schedule:
+            raise HTTPException(status_code=404, detail="Session non trouvée")
+        
+        old_status = program.schedule[date].get("status", "planned")
+        new_status = update_data["status"]
+        
+        if new_status not in ["planned", "in_progress", "completed", "skipped", "cancelled"]:
+            raise HTTPException(status_code=400, detail="Status invalide")
+        
+        program.schedule[date]["status"] = new_status
+        
+        # Timestamps selon le status
+        if new_status == "in_progress":
+            program.schedule[date]["started_at"] = datetime.now(timezone.utc).isoformat()
+        elif new_status == "completed":
+            program.schedule[date]["completed_at"] = datetime.now(timezone.utc).isoformat()
+            if "actual_score" in update_data:
+                program.schedule[date]["actual_score"] = update_data["actual_score"]
+        
+        # Historique
+        if "modifications" not in program.schedule[date]:
+            program.schedule[date]["modifications"] = []
+        program.schedule[date]["modifications"].append({
+            "type": "status_change",
+            "from": old_status,
+            "to": new_status,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
+    
+    # Si c'est une modification d'exercices
+    elif "exercises" in update_data:
+        if date not in program.schedule:
+            raise HTTPException(status_code=404, detail="Session non trouvée")
+        
+        program.schedule[date]["exercises_snapshot"] = update_data["exercises"]
+        program.schedule[date]["modified_at"] = datetime.now(timezone.utc).isoformat()
+        
+        # Recalculer le score
+        new_score = calculate_session_quality_score(
+            update_data["exercises"], 
+            program.user_id, 
+            session_date, 
+            db
+        )
+        program.schedule[date]["predicted_score"] = new_score
+    
+    # Mettre à jour les métadonnées
+    flag_modified(program, "schedule")
+    update_program_schedule_metadata(program, db)
+    
+    db.commit()
+    
+    return {
+        "message": "Schedule mis à jour",
+        "date": date,
+        "session": program.schedule.get(date),
+        "schedule_metadata": program.schedule_metadata
+    }
+
+@app.post("/api/programs/{program_id}/schedule")
+def add_to_program_schedule(
+    program_id: int,
+    session_data: dict,
+    db: Session = Depends(get_db)
+):
+    """Ajouter une nouvelle séance au schedule"""
+    
+    program = db.query(Program).filter(Program.id == program_id).first()
+    if not program:
+        raise HTTPException(status_code=404, detail="Programme non trouvé")
+    
+    if not program.schedule:
+        program.schedule = {}
+    
+    # Valider les données requises
+    if "date" not in session_data:
+        raise HTTPException(status_code=400, detail="Date requise")
+    
+    date_str = session_data["date"]
+    
+    try:
+        session_date = datetime.fromisoformat(date_str).date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Format de date invalide")
+    
+    # Vérifier que la date n'existe pas déjà
+    if date_str in program.schedule:
+        raise HTTPException(status_code=400, detail="Une séance existe déjà à cette date")
+    
+    # Vérifier max 2 séances par jour
+    same_day_sessions = sum(
+        1 for d, s in program.schedule.items()
+        if datetime.fromisoformat(d).date() == session_date
+    )
+    
+    if same_day_sessions >= 2:
+        raise HTTPException(status_code=400, detail="Maximum 2 séances par jour")
+    
+    # Créer la séance
+    exercises = session_data.get("exercises", [])
+    
+    # Si pas d'exercices fournis, utiliser une session du template
+    if not exercises and program.weekly_structure:
+        # Prendre la première session disponible comme template
+        if isinstance(program.weekly_structure, dict):
+            for day, sessions in program.weekly_structure.items():
+                if sessions:
+                    exercises = sessions[0].get("exercise_pool", [])
+                    break
+        elif isinstance(program.weekly_structure, list) and program.weekly_structure:
+            if program.weekly_structure[0].get("sessions"):
+                exercises = program.weekly_structure[0]["sessions"][0].get("exercise_pool", [])
+    
+    # Adapter les exercices pour éviter répétitions
+    adapted_exercises = adapt_session_exercises(
+        exercises, program.user_id, session_date, db
+    )
+    
+    # Calculer le score prédictif
+    quality_score = calculate_session_quality_score(
+        adapted_exercises, program.user_id, session_date, db
+    )
+    
+    # Créer l'entrée du schedule
+    new_session = {
+        "session_ref": f"manual_{len(program.schedule)}",
+        "time": session_data.get("time", "18:00"),
+        "status": "planned",
+        "predicted_score": quality_score,
+        "actual_score": None,
+        "exercises_snapshot": adapted_exercises,
+        "primary_muscles": extract_primary_muscles(adapted_exercises),
+        "estimated_duration": session_data.get("duration", 60),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "modifications": []
+    }
+    
+    program.schedule[date_str] = new_session
+    
+    # Mettre à jour les métadonnées
+    flag_modified(program, "schedule")
+    update_program_schedule_metadata(program, db)
+    
+    db.commit()
+    
+    return {
+        "message": "Séance ajoutée au schedule",
+        "date": date_str,
+        "session": new_session,
+        "total_sessions": len(program.schedule)
+    }
+
+@app.delete("/api/programs/{program_id}/schedule/{date}")
+def remove_from_schedule(
+    program_id: int,
+    date: str,
+    db: Session = Depends(get_db)
+):
+    """Supprimer une séance du schedule"""
+    
+    program = db.query(Program).filter(Program.id == program_id).first()
+    if not program:
+        raise HTTPException(status_code=404, detail="Programme non trouvé")
+    
+    if not program.schedule or date not in program.schedule:
+        raise HTTPException(status_code=404, detail="Séance non trouvée")
+    
+    # Sauvegarder les infos de la séance supprimée
+    deleted_session = program.schedule[date]
+    
+    # Supprimer la séance
+    del program.schedule[date]
+    
+    # Mettre à jour les métadonnées
+    flag_modified(program, "schedule")
+    update_program_schedule_metadata(program, db)
+    
+    # Ajouter dans l'historique des métadonnées
+    if not program.schedule_metadata:
+        program.schedule_metadata = {}
+    
+    if "deleted_sessions" not in program.schedule_metadata:
+        program.schedule_metadata["deleted_sessions"] = []
+    
+    program.schedule_metadata["deleted_sessions"].append({
+        "date": date,
+        "deleted_at": datetime.now(timezone.utc).isoformat(),
+        "session_data": deleted_session
+    })
+    
+    flag_modified(program, "schedule_metadata")
+    db.commit()
+    
+    return {
+        "message": "Séance supprimée du schedule",
+        "date": date,
+        "remaining_sessions": len(program.schedule)
+    }
+
 def _get_selection_reason(item):
     """Génère une raison lisible pour la sélection d'un exercice"""
     reasons = []
@@ -1766,7 +2137,12 @@ def generate_comprehensive_program(
         db.add(db_program)
         db.commit()
         db.refresh(db_program)
-        
+
+        # Générer le schedule initial après la création du programme
+        logger.info(f"Génération du schedule pour le programme {db_program.id}")
+        populate_program_planning_intelligent(db, db_program)
+        db.refresh(db_program)  # Rafraîchir pour récupérer le schedule mis à jour
+                
         logger.info(f"Programme complet créé pour user {user_id}: {db_program.id}")
         return db_program
         
