@@ -165,89 +165,104 @@ class PlanningManager {
         return weeklyStructure;
     }
 
-    generateWeekDataFromProgram(weekStart) {
-        console.log('📅 Génération données semaine:', weekStart.toISOString().split('T')[0]);
+    async generateWeekDataFromProgram(weekStart) {
+        console.log('📅 Génération données semaine depuis schedule:', weekStart.toISOString().split('T')[0]);
         
-        if (!this.activeProgram || !this.weeklyStructure) {
-            console.warn('⚠️ Pas de programme actif, génération semaine vide');
+        if (!this.activeProgram) {
+            console.warn('⚠️ Pas de programme actif');
             return this.generateEmptyWeek(weekStart);
         }
         
-        const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekEnd.getDate() + 6);
-        
-        const daysData = [];
-        let totalSessions = 0;
-        let totalDuration = 0;
-        
-        for (let i = 0; i < 7; i++) {
-            const currentDate = new Date(weekStart);
-            currentDate.setDate(currentDate.getDate() + i);
-            const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+        try {
+            // Récupérer le schedule de la semaine depuis l'API
+            const response = await window.apiGet(
+                `/api/programs/${this.activeProgram.id}/schedule?week_start=${weekStart.toISOString().split('T')[0]}`
+            );
             
-            // Récupérer les séances pour ce jour avec validation
-            // Gérer les deux formats possibles de weekly_structure
-            let daySessions = [];
-
-            // Format direct par jour : { "monday": [...], "tuesday": [...] }
-            if (this.weeklyStructure[dayName]) {
-                daySessions = this.weeklyStructure[dayName];
-            } 
-            // Format avec semaines : [{ week: 1, sessions: [...] }]
-            else if (Array.isArray(this.weeklyStructure)) {
-                // Trouver la semaine courante
-                const currentWeekIndex = Math.floor((new Date() - new Date(this.activeProgram.started_at)) / (7 * 24 * 60 * 60 * 1000));
-                const weekData = this.weeklyStructure[currentWeekIndex % this.weeklyStructure.length];
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            
+            const daysData = [];
+            let totalSessions = 0;
+            let totalDuration = 0;
+            
+            // Générer les données pour chaque jour
+            for (let i = 0; i < 7; i++) {
+                const currentDate = new Date(weekStart);
+                currentDate.setDate(currentDate.getDate() + i);
+                const dateStr = currentDate.toISOString().split('T')[0];
                 
-                if (weekData && weekData.sessions) {
-                    // Filtrer les sessions pour ce jour
-                    daySessions = weekData.sessions.filter(s => s.day === dayName);
+                // Récupérer la session du schedule pour cette date
+                const sessionData = response.schedule[dateStr];
+                const sessions = [];
+                
+                if (sessionData && sessionData.status !== 'cancelled') {
+                    // Convertir en format attendu par l'UI
+                    const session = {
+                        id: sessionData.session_ref || `${this.activeProgram.id}_${dateStr}`,
+                        date: dateStr,
+                        time: sessionData.time || null,
+                        status: sessionData.status || 'planned',
+                        exercises: sessionData.exercises_snapshot || [],
+                        estimated_duration: sessionData.estimated_duration || 
+                            this.calculateSessionDuration(sessionData.exercises_snapshot),
+                        primary_muscles: this.extractPrimaryMuscles(sessionData.exercises_snapshot),
+                        predicted_quality_score: sessionData.predicted_score,
+                        actual_quality_score: sessionData.actual_score,
+                        modifications: sessionData.modifications || []
+                    };
+                    
+                    sessions.push(session);
+                    totalSessions++;
+                    totalDuration += session.estimated_duration || 0;
                 }
-            }
-
-            // Formater les séances pour l'affichage
-            const formattedSessions = daySessions.map((session, index) => {
-                // Format v2.0 uniquement - exercise_pool est la source de vérité
-                const exercise_pool = session.exercise_pool || [];
                 
-                return {
-                    id: `${this.activeProgram.id}_${dayName}_${index}`,
-                    program_id: this.activeProgram.id,
-                    day_name: dayName,
-                    session_index: index,
-                    planned_date: currentDate.toISOString().split('T')[0],
-                    exercise_pool: session.exercise_pool || [],
-                    estimated_duration: session.estimated_duration || 
-                                    session.duration || 
-                                    session.target_duration ||
-                                    this.calculateSessionDuration(session.exercise_pool || []),
-                    primary_muscles: session.primary_muscles || this.extractPrimaryMuscles(session.exercise_pool || []),
-                    predicted_quality_score: session.quality_score || session.predicted_quality_score || 75,
-                    session_type: session.session_type || session.focus || 'custom',
-                    status: 'planned'
-                };
-            });
+                daysData.push({
+                    date: dateStr,
+                    dayName: currentDate.toLocaleDateString('fr-FR', { weekday: 'long' }),
+                    sessions: sessions,
+                    isToday: this.isToday(currentDate),
+                    isPast: currentDate < new Date(new Date().setHours(0,0,0,0))
+                });
+            }
             
-            daysData.push({
-                date: currentDate.toISOString().split('T')[0],
-                dayName: dayName,
-                dayNumber: currentDate.getDate(),
-                sessions: formattedSessions,
-                canAddSession: formattedSessions.length < 2, // Max 2 séances/jour
-                warnings: [] // Peut être enrichi avec logique de récupération
-            });
+            return {
+                weekStart: weekStart.toISOString().split('T')[0],
+                weekEnd: weekEnd.toISOString().split('T')[0], 
+                planning_data: daysData,
+                muscle_recovery_status: response.muscle_recovery_status || {},
+                optimization_suggestions: [],
+                total_weekly_sessions: totalSessions,
+                total_weekly_duration: totalDuration,
+                schedule_metadata: response.schedule_metadata || {}
+            };
+            
+        } catch (error) {
+            console.error('❌ Erreur récupération schedule:', error);
+            // Fallback sur génération vide
+            return this.generateEmptyWeek(weekStart);
         }
-        
-        console.log(`✅ Semaine générée: ${totalSessions} séances, ${totalDuration}min total`);
-        
-        return {
-            planning_data: daysData,
-            week_score: Math.round(totalDuration / 60), // Score basé sur heures d'entraînement
-            total_sessions: totalSessions,
-            total_duration: totalDuration
-        };
     }
 
+    calculateSessionDuration(exercises) {
+        if (!exercises || exercises.length === 0) return 45;
+        return exercises.reduce((total, ex) => {
+            const sets = ex.sets || 3;
+            const duration = sets * 3; // ~3min par série
+            return total + duration;
+        }, 10); // 10 min échauffement
+    }
+
+    extractPrimaryMuscles(exercises) {
+        if (!exercises || exercises.length === 0) return [];
+        const muscles = new Set();
+        exercises.forEach(ex => {
+            if (ex.muscle_groups) {
+                ex.muscle_groups.forEach(m => muscles.add(m));
+            }
+        });
+        return Array.from(muscles).slice(0, 3); // Top 3
+    }
 
     getCurrentWeek() {
         const now = new Date();
@@ -623,7 +638,15 @@ class PlanningManager {
                         evt.to.classList.add('updating');
                         evt.from.classList.add('updating');
                         
-                        await this.handleSessionMove(sessionId, targetDate, sourceDate);
+                        // Au lieu d'appeler handleSessionMove qui modifie weekly_structure
+                        // Appeler directement l'endpoint schedule
+                        await window.apiPut(`/api/programs/${this.activeProgram.id}/schedule/${targetDate}`, {
+                            move_from: sourceDate
+                        });
+
+                        console.log('✅ Séance déplacée dans le schedule');
+                        window.showToast('Séance déplacée avec succès', 'success');
+                        await this.refresh();
                         
                     } catch (error) {
                         console.error('❌ Erreur déplacement, annulation:', error);
@@ -754,28 +777,19 @@ class PlanningManager {
             
             try {
                 // Effectuer le déplacement
-                this.weeklyStructure[oldDayName].splice(parseInt(sessionIndex), 1);
-                
-                if (!this.weeklyStructure[newDayName]) {
-                    this.weeklyStructure[newDayName] = [];
+                // Extraire l'ancienne date depuis l'ID
+                const oldDate = this.findDateForSession(sessionId);
+                if (!oldDate) {
+                    throw new Error(`Date source introuvable pour session ${sessionId}`);
                 }
-                
-                this.weeklyStructure[newDayName].push({
-                    ...sessionToMove,
-                    moved_date: targetDate,
-                    moved_from: oldDayName
+
+                // Appeler l'endpoint de mise à jour du schedule
+                await window.apiPut(`/api/programs/${this.activeProgram.id}/schedule/${targetDate}`, {
+                    move_from: oldDate,
+                    session_ref: sessionId
                 });
-                
-                console.log('📝 Structure mise à jour localement');
-                
-                // Mettre à jour le programme
-                const updateData = {
-                    weekly_structure: this.weeklyStructure
-                };
-                
-                await window.apiPut(`/api/programs/${this.activeProgram.id}`, updateData);
-                
-                console.log('✅ Séance déplacée avec succès');
+
+                console.log('✅ Séance déplacée dans le schedule');
                 window.showToast('Séance déplacée avec succès', 'success');
                 await this.refresh();
                 
@@ -1652,44 +1666,61 @@ class PlanningManager {
         console.warn('❌ Session non trouvée:', sessionId);
         return null;
     }
-        
+
+    findDateForSession(sessionId) {
+        // Chercher dans les données actuelles de la semaine
+        for (const [weekKey, weekData] of this.weeksData.entries()) {
+            if (weekData?.planning_data) {
+                for (const day of weekData.planning_data) {
+                    if (day.sessions) {
+                        for (const session of day.sessions) {
+                            if (session.id == sessionId) {
+                                return day.date;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+            
     async saveSessionChanges(sessionId, changes) {
         try {
-            console.log('💾 Sauvegarde session v2.0:', sessionId, changes);
+            console.log('💾 Sauvegarde session dans schedule:', sessionId, changes);
             
-            // Parser l'ID pour récupérer les indices Programme v2.0
-            const sessionParts = sessionId.split('_');
-            if (sessionParts.length === 3) {
-                // Format : programId_weekIndex_sessionIndex
-                const [programId, weekIndex, sessionIndex] = sessionParts.map(Number);
-                
-                // Utiliser endpoint Programme v2.0 existant via adaptation
-                const response = await window.apiPut(
-                    `/api/programs/${programId}/reorder-session`,
-                    {
-                        week_index: weekIndex,
-                        session_index: sessionIndex,
-                        new_exercise_order: changes.exercises ? 
-                            changes.exercises.map((ex, idx) => idx) : []
-                    }
-                );
-                
-                console.log('✅ Sauvegarde v2.0 réussie');
-                return response;
-            } else {
-                // Fallback : mode local temporaire
-                console.warn('⚠️ Format sessionId non v2.0, sauvegarde locale');
-                this.saveToLocalStorage(sessionId, changes);
-                return { success: true, local: true };
+            // Trouver la date de la session
+            const sessionDate = this.findDateForSession(sessionId);
+            if (!sessionDate) {
+                throw new Error('Date de session introuvable');
             }
             
-        } catch (error) {
-            console.error('❌ Erreur sauvegarde:', error);
+            // Mettre à jour via l'endpoint schedule
+            const response = await window.apiPut(
+                `/api/programs/${this.activeProgram.id}/schedule/${sessionDate}`,
+                {
+                    exercises: changes.exercises || [],
+                    status: changes.status,
+                    modifications: [{
+                        type: 'manual_edit',
+                        timestamp: new Date().toISOString(),
+                        changes: changes
+                    }]
+                }
+            );
             
-            // Fallback local en cas d'échec
-            this.saveToLocalStorage(sessionId, changes);
-            window.showToast('Modifications sauvegardées localement', 'info');
-            return { success: true, local: true };
+            console.log('✅ Session mise à jour dans le schedule');
+            window.showToast('Modifications enregistrées', 'success');
+            
+            // Rafraîchir l'affichage
+            await this.refresh();
+            
+            return response;
+            
+        } catch (error) {
+            console.error('❌ Erreur sauvegarde session:', error);
+            window.showToast('Erreur lors de la sauvegarde', 'error');
+            throw error;
         }
     }
 
@@ -1713,6 +1744,20 @@ class PlanningManager {
             // Si c'est une session du programme
             if (sessionId.includes('_') && this.activeProgram) {
                 const [programId, dayName, sessionIndex] = sessionId.split('_');
+                
+                // AJOUT : Mettre à jour le status dans le schedule
+                const sessionDate = this.findDateForSession(sessionId);
+                if (sessionDate) {
+                    try {
+                        await window.apiPut(
+                            `/api/programs/${programId}/schedule/${sessionDate}`,
+                            { status: 'in_progress' }
+                        );
+                    } catch (error) {
+                        console.warn('Impossible de mettre à jour le status:', error);
+                        // Continuer même si la mise à jour échoue
+                    }
+                }
                 
                 // Utiliser l'endpoint next-session du programme
                 const response = await window.apiGet(`/api/programs/${programId}/next-session`);
