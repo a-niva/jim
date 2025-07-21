@@ -647,7 +647,7 @@ def create_program(user_id: int, program: ProgramCreate, db: Session = Depends(g
 
 @app.get("/api/users/{user_id}/program-status")
 def get_program_status(user_id: int, db: Session = Depends(get_db)):
-    """Obtenir le statut actuel du programme de l'utilisateur - TIMEZONE FIX"""
+    """Obtenir le statut actuel du programme de l'utilisateur - VERSION SCHEDULE"""
     
     # Récupérer le programme actif
     program = db.query(Program).filter(
@@ -658,13 +658,53 @@ def get_program_status(user_id: int, db: Session = Depends(get_db)):
     if not program:
         return None
     
+    # NOUVEAU : Calculer depuis schedule si disponible
+    if program.schedule:
+        total_sessions = len(program.schedule)
+        completed_sessions = len([
+            s for s in program.schedule.values() 
+            if s.get("status") == "completed"
+        ])
+        in_progress_sessions = len([
+            s for s in program.schedule.values() 
+            if s.get("status") == "in_progress"
+        ])
+        
+        completion_rate = (completed_sessions / total_sessions * 100) if total_sessions > 0 else 0
+        
+        # Calculer semaine actuelle depuis le schedule
+        today = datetime.now(timezone.utc).date().isoformat()
+        current_week = 1
+        for date_str in sorted(program.schedule.keys()):
+            if date_str <= today:
+                # Estimer la semaine en fonction de la date
+                session_date = datetime.fromisoformat(date_str).date()
+                if program.started_at:
+                    start_date = program.started_at.date() if program.started_at.tzinfo else program.started_at.replace(tzinfo=timezone.utc).date()
+                    days_diff = (session_date - start_date).days
+                    current_week = max(1, days_diff // 7 + 1)
+        
+        return {
+            "total_sessions": total_sessions,
+            "completed_sessions": completed_sessions,
+            "in_progress_sessions": in_progress_sessions,
+            "completion_rate": completion_rate,
+            "current_week": current_week,
+            "program_name": program.name,
+            "duration_weeks": program.duration_weeks,
+            "using_schedule": True
+        }
+    
+    # FALLBACK : Ancienne logique si pas de schedule
     try:
-        # CORRECTION: Calcul sécurisé au lieu de (datetime.now() - program.created_at).days // 7
         now_utc = datetime.now(timezone.utc)
         weeks_elapsed = safe_datetime_subtract(now_utc, program.created_at).days // 7
         
-        # Reste de la logique inchangée
-        total_weeks = len(set(ex.get('week', 1) for ex in program.exercises)) if program.exercises else 4
+        # Utiliser weekly_structure au lieu de program.exercises
+        if program.weekly_structure:
+            total_weeks = len(program.weekly_structure) if isinstance(program.weekly_structure, list) else 4
+        else:
+            total_weeks = 4
         current_week = min(weeks_elapsed + 1, total_weeks)
         
     except Exception as e:
@@ -673,70 +713,24 @@ def get_program_status(user_id: int, db: Session = Depends(get_db)):
         current_week = 1
         total_weeks = 4
     
-    # Compter les séances de cette semaine - CETTE PARTIE ÉTAIT DÉJÀ CORRECTE
+    # Calculer les séances depuis les workouts réels
     now = datetime.now(timezone.utc)
-    start_of_week = now - timedelta(days=now.weekday())
-    start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
-    
-    sessions_this_week = db.query(Workout).filter(
+    week_start = now - timedelta(days=now.weekday())
+    week_workouts = db.query(Workout).filter(
         Workout.user_id == user_id,
-        Workout.type == 'program',
-        Workout.started_at >= start_of_week
+        Workout.program_id == program.id,
+        Workout.started_at >= week_start,
+        Workout.status.in_(["completed", "active"])
     ).count()
     
-    # Analyser la dernière séance pour les adaptations ML - LOGIQUE INCHANGÉE
-    last_workout = db.query(Workout).filter(
-        Workout.user_id == user_id,
-        Workout.type == 'program'
-    ).order_by(Workout.started_at.desc()).first()
-    
-    ml_adaptations = "Standard"
-    if last_workout:
-        # Calculer la tendance des dernières séances
-        recent_sets = db.query(WorkoutSet).join(Workout).filter(
-            Workout.user_id == user_id,
-            Workout.type == 'program'
-        ).order_by(Workout.started_at.desc()).limit(20).all()
-        
-        if len(recent_sets) >= 10:
-            recent_efforts = [s.effort_level for s in recent_sets if s.effort_level]
-            if recent_efforts:
-                avg_effort = sum(recent_efforts) / len(recent_efforts)
-                if avg_effort >= 4.5:
-                    ml_adaptations = "Intensité élevée détectée"
-                elif avg_effort <= 2.5:
-                    ml_adaptations = "Intensité faible - progression possible"
-    
-    # Préparer la preview de la prochaine séance - LOGIQUE INCHANGÉE
-    next_muscles = ["Haut du corps", "Jambes"] if program.focus_areas else ["Corps complet"]
-    exercises_count = 6
-    
-    if program.exercises:
-        # Prendre les exercices de la semaine actuelle
-        current_week_exercises = [ex for ex in program.exercises if ex.get('week', 1) == current_week]
-        if current_week_exercises:
-            exercises_count = len(current_week_exercises)
-            muscle_groups = []
-            for ex in current_week_exercises:
-                if 'muscle_groups' in ex:
-                    muscle_groups.extend(ex['muscle_groups'])
-            if muscle_groups:
-                next_muscles = list(set(muscle_groups))[:3]
-    
     return {
+        "total_sessions": program.sessions_per_week * (program.duration_weeks or 4),
+        "completed_sessions": week_workouts,
+        "completion_rate": 0,  # Difficile à calculer sans schedule
         "current_week": current_week,
-        "total_weeks": total_weeks,
-        "sessions_this_week": sessions_this_week,
-        "target_sessions": program.sessions_per_week,
-        "next_session_preview": {
-            "muscles": next_muscles,
-            "exercises_count": exercises_count,
-            "estimated_duration": program.session_duration_minutes,
-            "ml_adaptations": ml_adaptations
-        },
-        "on_track": sessions_this_week >= max(1, int(program.sessions_per_week * ((datetime.now().weekday() + 1) / 7))),
         "program_name": program.name,
-        "created_weeks_ago": weeks_elapsed
+        "duration_weeks": total_weeks,
+        "using_schedule": False
     }
 
 
@@ -863,7 +857,10 @@ def get_active_program(user_id: int, db: Session = Depends(get_db)):
         "estimated_completion": getattr(program, 'estimated_completion', None),
         "weekly_structure": getattr(program, 'weekly_structure', []),
         "progression_rules": getattr(program, 'progression_rules', {}),
-        "base_quality_score": getattr(program, 'base_quality_score', 75.0)
+        "base_quality_score": getattr(program, 'base_quality_score', 75.0),
+        # NOUVEAU : Ajouter le schedule
+        "schedule": getattr(program, 'schedule', {}),
+        "schedule_metadata": getattr(program, 'schedule_metadata', {})
     }
     
     return enriched_program
@@ -1008,18 +1005,21 @@ def update_program_schedule(
         
         # Valider le déplacement
         target_date = session_date
-        
-        # Vérifier max 2 séances par jour
-        same_day_sessions = sum(
-            1 for d, s in program.schedule.items()
-            if datetime.fromisoformat(d).date() == target_date and s.get("status") != "cancelled"
+
+        # Validation complète du déplacement de session
+        validation_result = _validate_session_move_schedule(
+            program, old_date, date, db
         )
         
-        if same_day_sessions >= 2 and old_date != date:
+        if not validation_result["allowed"]:
             raise HTTPException(
                 status_code=400, 
-                detail="Maximum 2 séances par jour"
+                detail=validation_result["reason"]
             )
+        
+        # Enregistrer les warnings même si autorisé
+        if validation_result.get("warnings"):
+            logger.info(f"Warnings déplacement {old_date} → {date}: {validation_result['warnings']}")
         
         # Effectuer le déplacement
         session_data = program.schedule.pop(old_date)
@@ -1097,6 +1097,65 @@ def update_program_schedule(
         "date": date,
         "session": program.schedule.get(date),
         "schedule_metadata": program.schedule_metadata
+    }
+
+def _validate_session_move_schedule(program, old_date: str, new_date: str, db: Session):
+    """Valide le déplacement d'une session dans le schedule avec toutes les règles métier"""
+    
+    try:
+        old_session_date = datetime.fromisoformat(old_date).date()
+        new_session_date = datetime.fromisoformat(new_date).date()
+    except ValueError:
+        return {"allowed": False, "reason": "Format de date invalide"}
+    
+    warnings = []
+    
+    # 1. Vérifier max 2 séances par jour
+    same_day_sessions = sum(
+        1 for d, s in program.schedule.items()
+        if (datetime.fromisoformat(d).date() == new_session_date and 
+            s.get("status") not in ["cancelled", "completed"] and 
+            d != old_date)  # Exclure la session qu'on déplace
+    )
+    
+    if same_day_sessions >= 2:
+        return {"allowed": False, "reason": "Maximum 2 séances par jour autorisées"}
+    
+    # 2. Vérifier récupération musculaire
+    if old_date in program.schedule:
+        session = program.schedule[old_date]
+        primary_muscles = session.get("primary_muscles", [])
+        
+        # Chercher d'autres séances des mêmes muscles dans les 48h
+        for date_str, other_session in program.schedule.items():
+            if date_str == old_date or date_str == new_date:
+                continue
+                
+            try:
+                other_date = datetime.fromisoformat(date_str).date()
+                days_diff = abs((new_session_date - other_date).days)
+                
+                if days_diff < 2:  # Moins de 48h
+                    other_muscles = other_session.get("primary_muscles", [])
+                    overlap = set(primary_muscles) & set(other_muscles)
+                    
+                    if overlap:
+                        warnings.append(
+                            f"Récupération musculaire: {', '.join(overlap)} "
+                            f"travaillés il y a {days_diff} jour(s)"
+                        )
+            except ValueError:
+                continue
+    
+    # 3. Vérifier que la nouvelle date n'est pas dans le passé
+    today = datetime.now(timezone.utc).date()
+    if new_session_date < today:
+        return {"allowed": False, "reason": "Impossible de planifier dans le passé"}
+    
+    return {
+        "allowed": True,
+        "warnings": warnings,
+        "validation_type": "schedule_move"
     }
 
 @app.post("/api/programs/{program_id}/schedule")
@@ -2143,6 +2202,16 @@ def generate_comprehensive_program(
         db.refresh(db_program)  # Rafraîchir pour récupérer le schedule mis à jour
                 
         logger.info(f"Programme complet créé pour user {user_id}: {db_program.id}")
+
+        # NOUVEAU : Générer automatiquement le schedule
+        try:
+            # Appeler populate_program_planning_intelligent pour créer le schedule
+            populate_program_planning_intelligent(db, db_program)
+            logger.info(f"Schedule généré automatiquement pour programme {db_program.id}")
+        except Exception as e:
+            logger.warning(f"Impossible de générer le schedule pour programme {db_program.id}: {e}")
+            # Ne pas faire échouer la création du programme si le schedule échoue
+        
         return db_program
         
     except Exception as e:
@@ -2482,6 +2551,19 @@ def start_workout(user_id: int, workout: WorkoutCreate, db: Session = Depends(ge
     db.add(db_workout)
     db.commit()
     db.refresh(db_workout)
+    
+    # NOUVEAU : Mettre à jour le schedule si c'est un workout de programme
+    if workout.program_id:
+        program = db.query(Program).filter(Program.id == workout.program_id).first()
+        if program and program.schedule:
+            today = datetime.now(timezone.utc).date().isoformat()
+            if today in program.schedule and program.schedule[today].get("status") == "planned":
+                program.schedule[today]["status"] = "in_progress"
+                program.schedule[today]["started_at"] = datetime.now(timezone.utc).isoformat()
+                flag_modified(program, "schedule")
+                db.commit()
+                logger.info(f"Schedule mis à jour: session {today} démarrée")
+    
     return {"message": "Séance démarrée", "workout": db_workout}
 
 @app.get("/api/users/{user_id}/workouts/active")
@@ -3601,11 +3683,9 @@ def populate_program_planning_intelligent(db: Session, program):
     start_date = today + timedelta(days=days_until_monday if days_until_monday > 0 else 7)
     
     # Analyser la structure pour optimiser l'espacement
-    # Si weekly_structure est un dict avec jours
     if isinstance(program.weekly_structure, dict):
         days_with_sessions = [day for day, sessions in program.weekly_structure.items() if sessions]
         sessions_per_week = len(days_with_sessions)
-    # Si c'est un array
     elif isinstance(program.weekly_structure, list) and program.weekly_structure:
         sessions_per_week = len(program.weekly_structure[0].get("sessions", []))
     else:
@@ -3625,13 +3705,12 @@ def populate_program_planning_intelligent(db: Session, program):
             date_str = session_date.isoformat()
             
             # Extraire la session template appropriée
+            session_template = None
             if isinstance(program.weekly_structure, dict):
                 day_name = session_date.strftime('%A').lower()
                 day_sessions = program.weekly_structure.get(day_name, [])
                 if session_index < len(day_sessions):
                     session_template = day_sessions[session_index]
-                else:
-                    continue
             else:
                 # Format array
                 week_template_index = week_index % len(program.weekly_structure)
@@ -3639,40 +3718,40 @@ def populate_program_planning_intelligent(db: Session, program):
                 week_sessions = week_data.get("sessions", [])
                 if session_index < len(week_sessions):
                     session_template = week_sessions[session_index]
-                else:
-                    continue
             
-            # Adapter les exercices
-            exercises = session_template.get("exercise_pool", [])
+            if not session_template:
+                continue
+            
+            # Adapter les exercices pour éviter répétitions
+            base_exercises = session_template.get("exercise_pool", [])
             adapted_exercises = adapt_session_exercises(
-                exercises, program.user_id, session_date, db
+                base_exercises, program.user_id, session_date, db
             )
             
-            # Calculer le score prédictif
+            # Calculer le score prédictif ML
             quality_score = calculate_session_quality_score(
                 adapted_exercises, program.user_id, session_date, db
             )
             
-            # Ajouter au schedule
+            # Créer l'entrée du schedule
             program.schedule[date_str] = {
                 "session_ref": f"{week_index}_{session_index}",
-                "time": "18:00",  # Par défaut, pourra être modifié
+                "time": "18:00",  # Heure par défaut
                 "status": "planned",
                 "predicted_score": quality_score,
                 "actual_score": None,
                 "exercises_snapshot": adapted_exercises,
-                "modifications": [],
-                "primary_muscles": extract_primary_muscles(adapted_exercises)
+                "primary_muscles": extract_primary_muscles(adapted_exercises),
+                "estimated_duration": session_template.get("estimated_duration_minutes", 60),
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "modifications": []
             }
     
-    # Mettre à jour les métriques
+    # Mettre à jour les métadonnées
+    flag_modified(program, "schedule")
     update_program_schedule_metadata(program, db)
     
-    # Sauvegarder
-    flag_modified(program, "schedule")
-    db.commit()
-    
-    logger.info(f"Schedule généré pour programme {program.id}: {len(program.schedule)} séances")
+    logger.info(f"Schedule généré: {len(program.schedule)} séances pour programme {program.id}")
 
 def adapt_session_exercises(exercises: list, user_id: int, session_date: date, db: Session) -> list:
     """Adapte les exercices selon l'historique récent de l'utilisateur"""
@@ -3757,10 +3836,9 @@ def extract_primary_muscles(exercises: list) -> list:
     
     return primary_muscles
 
-# Endpoint principal
 @app.post("/api/users/{user_id}/populate-planning-intelligent")
 def populate_user_planning_intelligent(user_id: int, db: Session = Depends(get_db)):
-    """Crée intelligemment les séances planifiées pour tout le programme"""
+    """Crée intelligemment le schedule complet pour le programme actif"""
     
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -3775,20 +3853,51 @@ def populate_user_planning_intelligent(user_id: int, db: Session = Depends(get_d
         raise HTTPException(status_code=404, detail="Aucun programme actif trouvé")
     
     try:
-        # Remplacer l'appel direct par :
+        # Vérifier que le programme a la structure nécessaire
+        if not program.weekly_structure:
+            raise HTTPException(status_code=400, detail="Programme sans structure weekly_structure")
+        
+        # Si un schedule existe déjà, le sauvegarder
+        if program.schedule:
+            if not program.schedule_metadata:
+                program.schedule_metadata = {}
+            program.schedule_metadata["previous_schedule_backup"] = program.schedule
+            program.schedule_metadata["regenerated_at"] = datetime.now(timezone.utc).isoformat()
+        
+        # Générer le nouveau schedule complet
         populate_program_planning_intelligent(db, program)
-
-        # Au lieu de compter les PlannedSession, compter dans schedule :
+        
+        # Mettre à jour les métadonnées du programme
+        program.started_at = datetime.now(timezone.utc)
+        flag_modified(program, "schedule")
+        flag_modified(program, "schedule_metadata")
+        
+        db.commit()
+        db.refresh(program)
+        
+        # Compter les sessions créées
         total_sessions = len(program.schedule)
-
+        completed_sessions = len([
+            s for s in program.schedule.values() 
+            if s.get("status") == "completed"
+        ])
+        
         return {
             "message": f"Planning intelligent créé avec {total_sessions} séances",
             "total_sessions": total_sessions,
-            "duration_weeks": program.duration_weeks
+            "completed_sessions": completed_sessions,
+            "duration_weeks": program.duration_weeks,
+            "sessions_per_week": program.sessions_per_week,
+            "start_date": min(program.schedule.keys()) if program.schedule else None,
+            "end_date": max(program.schedule.keys()) if program.schedule else None,
+            "schedule_metadata": program.schedule_metadata
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Erreur création planning intelligent: {e}")
+        db.rollback()
         raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
 
 # ===== FONCTIONS HELPER PLANNING =====
@@ -3834,115 +3943,43 @@ def generate_week_optimization_suggestions(planning_data, muscle_recovery_status
     
     return suggestions
 
-@app.get("/api/users/{user_id}/stats/volume-burndown/{period}")
-def get_volume_burndown(
-    user_id: int,
-    period: str,  # week, month, quarter, year
-    db: Session = Depends(get_db)
-):
-    """Graphique 7: Burndown chart volume avec différentes périodes - CORRIGÉ"""
-    now = datetime.now(timezone.utc)
+@app.get("/api/users/{user_id}/volume-burndown")
+def get_volume_burndown(user_id: int, db: Session = Depends(get_db)):
+    """Graphique burndown du volume depuis le schedule"""
     
-    # Récupérer l'utilisateur pour avoir sa date de création
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    program = db.query(Program).filter(
+        Program.user_id == user_id,
+        Program.is_active == True
+    ).first()
     
-    # Déterminer les dates selon la période - TOUJOURS AVEC TIMEZONE
-    if period == "week":
-        start_date = now - timedelta(days=now.weekday())
-        start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
-        end_date = start_date + timedelta(days=6)
-        end_date = end_date.replace(hour=23, minute=59, second=59, tzinfo=timezone.utc)
-        days_in_period = 7
-    elif period == "month":
-        start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
-        # Calculer le dernier jour du mois
-        if now.month == 12:
-            end_date = now.replace(year=now.year + 1, month=1, day=1, tzinfo=timezone.utc) - timedelta(days=1)
-        else:
-            end_date = now.replace(month=now.month + 1, day=1, tzinfo=timezone.utc) - timedelta(days=1)
-        end_date = end_date.replace(hour=23, minute=59, second=59, tzinfo=timezone.utc)
-        days_in_period = (end_date - start_date).days + 1
-    elif period == "quarter":
-        quarter = (now.month - 1) // 3
-        start_date = datetime(now.year, quarter * 3 + 1, 1, tzinfo=timezone.utc)
-        # Calcul plus précis de la fin du trimestre
-        if quarter < 3:
-            end_date = datetime(now.year, (quarter + 1) * 3 + 1, 1, tzinfo=timezone.utc) - timedelta(days=1)
-        else:
-            end_date = datetime(now.year, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
-        days_in_period = (end_date - start_date).days + 1
-    else:  # year
-        start_date = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
-        end_date = now.replace(month=12, day=31, hour=23, minute=59, second=59, tzinfo=timezone.utc)
-        days_in_period = 365
+    if not program or not program.schedule:
+        return {"error": "Pas de programme actif avec schedule"}
     
-    # Ajuster start_date si l'utilisateur a été créé après - GARDER TIMEZONE
-    user_created_date = user.created_at.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
-    if user_created_date > start_date:
-        start_date = user_created_date
-        # Recalculer days_in_period
-        days_in_period = (end_date - start_date).days + 1
+    # Calculer volumes depuis schedule
+    planned_volume = 0
+    completed_volume = 0
+    burndown_data = []
     
-    # Récupérer les targets adaptatifs
-    targets = db.query(AdaptiveTargets).filter(
-        AdaptiveTargets.user_id == user_id
-    ).all()
-    
-    total_target_volume = sum(t.target_volume for t in targets if t.target_volume is not None) * (days_in_period / 7)
-    
-    # Calculer le volume réalisé jour par jour
-    daily_volumes = []
-    cumulative_volume = 0
-    
-    current = start_date
-    while current <= min(end_date, now):
-        day_sets = db.query(WorkoutSet).join(Workout).filter(
-            Workout.user_id == user_id,
-            func.date(Workout.started_at) == current.date()
-        ).all()
+    for date_str in sorted(program.schedule.keys()):
+        session = program.schedule[date_str]
+        session_volume = len(session.get("exercises_snapshot", []))
+        planned_volume += session_volume
         
-        ml_engine = FitnessRecommendationEngine(db)
-        day_volume = 0
-        for s in day_sets:
-            exercise = db.query(Exercise).filter(Exercise.id == s.exercise_id).first()
-            if exercise:
-                # Récupérer l'user depuis le workout
-                workout = db.query(Workout).filter(Workout.id == s.workout_id).first()
-                if workout:
-                    user_obj = db.query(User).filter(User.id == workout.user_id).first()
-                    if user_obj:
-                        day_volume += ml_engine.calculate_exercise_volume(s.weight, s.reps, exercise, user_obj)
+        if session.get("status") == "completed":
+            completed_volume += session_volume
         
-        cumulative_volume += day_volume
-        
-        daily_volumes.append({
-            "date": current.date().isoformat(),
-            "dailyVolume": day_volume,
-            "cumulativeVolume": cumulative_volume,
-            "remainingTarget": max(0, total_target_volume - cumulative_volume),
-            "percentComplete": (cumulative_volume / total_target_volume * 100) if total_target_volume > 0 else 0
+        burndown_data.append({
+            "date": date_str,
+            "planned_cumulative": planned_volume,
+            "completed_cumulative": completed_volume,
+            "remaining": planned_volume - completed_volume
         })
-        
-        current += timedelta(days=1)
-    
-    # Projection pour les jours restants
-    days_elapsed = (now - start_date).days + 1
-    days_remaining = max(1, days_in_period - days_elapsed)
-    daily_rate_needed = (total_target_volume - cumulative_volume) / days_remaining if days_remaining > 0 else 0
     
     return {
-        "period": period,
-        "startDate": start_date.isoformat(),
-        "endDate": end_date.isoformat(),
-        "targetVolume": round(total_target_volume),
-        "currentVolume": round(cumulative_volume),
-        "dailyVolumes": daily_volumes,
-        "projection": {
-            "dailyRateNeeded": round(daily_rate_needed),
-            "onTrack": cumulative_volume >= (total_target_volume * days_elapsed / days_in_period)
-        }
+        "total_planned": planned_volume,
+        "total_completed": completed_volume,
+        "completion_rate": (completed_volume / planned_volume * 100) if planned_volume > 0 else 0,
+        "burndown_data": burndown_data
     }
 
 
