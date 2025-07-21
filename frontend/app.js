@@ -5093,14 +5093,23 @@ async function finishExercise() {
                 const totalExercises = currentWorkoutSession.program.exercises.length;
                 const actualScore = Math.round((completedExercises / totalExercises) * 100);
                 
-                // Mettre à jour le status dans le schedule
+                // Calculer la durée réelle
+                const sessionStartTime = currentWorkoutSession.startTime || currentWorkout.started_at || new Date();
+                const sessionDuration = Math.round((new Date() - new Date(sessionStartTime)) / 60000); // en minutes
+                
+                // Mettre à jour le status dans le schedule avec toutes les données
                 await apiPut(`/api/programs/${currentWorkoutSession.program.id}/schedule/${currentWorkoutSession.scheduleDate}`, {
                     status: 'completed',
-                    actual_score: actualScore
+                    actual_score: actualScore,
+                    completed_at: new Date().toISOString(),
+                    actual_duration: sessionDuration,
+                    exercises_completed: completedExercises,
+                    total_exercises: totalExercises
                 });
-                console.log('✅ Schedule mis à jour : session complétée');
+                console.log('✅ Schedule mis à jour : session complétée avec score', actualScore);
             } catch (error) {
-                console.error('Erreur mise à jour schedule:', error);
+                console.error('❌ Erreur mise à jour schedule:', error);
+                // Ne pas bloquer l'utilisateur si la sauvegarde échoue
             }
         }
         

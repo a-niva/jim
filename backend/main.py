@@ -3567,13 +3567,25 @@ def get_personal_records(user_id: int, db: Session = Depends(get_db)):
 
 @app.get("/api/users/{user_id}/stats/attendance-calendar")
 def get_attendance_calendar(user_id: int, months: int = 6, db: Session = Depends(get_db)):
-    """Graphique 5: Calendrier d'assiduité avec séances manquées"""
+    """Graphique 5: Calendrier d'assiduité avec séances manquées - VERSION OPTIMISÉE"""
     cutoff_date = datetime.now(timezone.utc) - timedelta(days=months * 30)
     
-    # Récupérer toutes les séances
-    workouts = db.query(Workout).filter(
+    # OPTIMISATION : Query unique avec jointures pour réduire les requêtes DB
+    # Récupérer workouts avec sets et exercises en une seule query
+    workouts_with_sets = db.query(
+        Workout.id,
+        Workout.started_at,
+        Workout.total_duration_minutes,
+        func.count(WorkoutSet.id).label('total_sets'),
+        func.sum(WorkoutSet.weight * WorkoutSet.reps).label('total_volume_simple')
+    ).outerjoin(
+        WorkoutSet, Workout.id == WorkoutSet.workout_id
+    ).filter(
         Workout.user_id == user_id,
-        Workout.started_at >= cutoff_date
+        Workout.started_at >= cutoff_date,
+        Workout.status == 'completed'  # Seulement les séances terminées
+    ).group_by(
+        Workout.id, Workout.started_at, Workout.total_duration_minutes
     ).all()
     
     # Récupérer l'engagement utilisateur
@@ -3583,34 +3595,28 @@ def get_attendance_calendar(user_id: int, months: int = 6, db: Session = Depends
     
     target_per_week = commitment.sessions_per_week if commitment else 3
     
-    # Organiser par date
+    # OPTIMISATION : Calcul simplifié du volume sans ML pour performance
     calendar_data = defaultdict(lambda: {"workouts": 0, "volume": 0, "duration": 0})
     
-    for workout in workouts:
-        date_key = workout.started_at.date().isoformat()
+    for workout_data in workouts_with_sets:
+        date_key = workout_data.started_at.date().isoformat()
         calendar_data[date_key]["workouts"] += 1
         
-        if workout.total_duration_minutes:
-            calendar_data[date_key]["duration"] += workout.total_duration_minutes
+        if workout_data.total_duration_minutes:
+            calendar_data[date_key]["duration"] += workout_data.total_duration_minutes
         
-        # Calculer le volume total
-        sets = db.query(WorkoutSet).filter(WorkoutSet.workout_id == workout.id).all()
-        ml_engine = FitnessRecommendationEngine(db)
-        volume = 0
-        for s in sets:
-            exercise = db.query(Exercise).filter(Exercise.id == s.exercise_id).first()
-            if exercise:
-                user = db.query(User).filter(User.id == user_id).first()
-                volume += ml_engine.calculate_exercise_volume(s.weight, s.reps, exercise, user)
-        calendar_data[date_key]["volume"] += volume
+        # Volume simplifié (poids × reps) au lieu du calcul ML complexe
+        if workout_data.total_volume_simple:
+            calendar_data[date_key]["volume"] += float(workout_data.total_volume_simple)
     
-    # Identifier les semaines avec séances manquantes
+    # Identifier les semaines avec séances manquées - INCHANGÉ
     weeks_analysis = []
     current_date = datetime.now(timezone.utc).date()
     
     for week_offset in range(months * 4):
         week_start = current_date - timedelta(days=current_date.weekday() + week_offset * 7)
         week_end = week_start + timedelta(days=6)
+        
         # Ne pas compter les semaines avant la création du profil
         user = db.query(User).filter(User.id == user_id).first()
         if user and week_end < user.created_at.date():
@@ -3637,6 +3643,38 @@ def get_attendance_calendar(user_id: int, months: int = 6, db: Session = Depends
         "targetPerWeek": target_per_week
     }
 
+def _enrich_attendance_with_schedule_data(calendar_data: dict, user_id: int, db: Session) -> dict:
+    """Enrichit le calendrier avec les données du schedule pour comparaison planifié vs réalisé"""
+    
+    # Récupérer le programme actif avec son schedule
+    program = db.query(Program).filter(
+        Program.user_id == user_id,
+        Program.is_active == True
+    ).first()
+    
+    if not program or not program.schedule:
+        return calendar_data
+    
+    # Ajouter les séances planifiées vs réalisées
+    enriched_data = calendar_data.copy()
+    
+    for date_str, session in program.schedule.items():
+        session_date = datetime.fromisoformat(date_str).date()
+        date_key = session_date.isoformat()
+        
+        if date_key not in enriched_data:
+            enriched_data[date_key] = {"workouts": 0, "volume": 0, "duration": 0}
+        
+        # Ajouter info planning
+        enriched_data[date_key]["planned"] = True
+        enriched_data[date_key]["status"] = session.get("status", "planned")
+        enriched_data[date_key]["predicted_score"] = session.get("predicted_score", 0)
+        
+        # Marquer les séances manquées
+        if session.get("status") == "planned" and session_date < datetime.now(timezone.utc).date():
+            enriched_data[date_key]["missed_planned"] = True
+    
+    return enriched_data
 
 # ===== ENDPOINTS PLANNING HEBDOMADAIRE =====
 def calculate_optimal_session_spacing(sessions_per_week: int, muscle_groups_per_session: dict) -> list:
@@ -3916,32 +3954,6 @@ def calculate_recovery_warnings(day_sessions, muscle_recovery_status, session_da
                         warnings.append(f"{muscle.capitalize()}: {hours_needed}h de récupération recommandées")
     
     return warnings
-
-def generate_week_optimization_suggestions(planning_data, muscle_recovery_status):
-    """Génère des suggestions d'optimisation pour la semaine"""
-    suggestions = []
-    
-    # Analyser la distribution des séances
-    session_count = sum(len(day["sessions"]) for day in planning_data)
-    
-    if session_count == 0:
-        suggestions.append("Aucune séance planifiée cette semaine")
-    elif session_count < 3:
-        suggestions.append("Augmentez la fréquence d'entraînement pour de meilleurs résultats")
-    elif session_count > 6:
-        suggestions.append("Attention à la surcharge - considérez des jours de repos")
-    
-    # Analyser l'espacement des séances
-    consecutive_days = 0
-    for day in planning_data:
-        if day["sessions"]:
-            consecutive_days += 1
-        else:
-            if consecutive_days > 3:
-                suggestions.append("Évitez plus de 3 jours consécutifs d'entraînement")
-            consecutive_days = 0
-    
-    return suggestions
 
 @app.get("/api/users/{user_id}/volume-burndown")
 def get_volume_burndown(user_id: int, db: Session = Depends(get_db)):

@@ -165,85 +165,6 @@ class PlanningManager {
         return weeklyStructure;
     }
 
-    async generateWeekDataFromProgram(weekStart) {
-        console.log('📅 Génération données semaine depuis schedule:', weekStart.toISOString().split('T')[0]);
-        
-        if (!this.activeProgram) {
-            console.warn('⚠️ Pas de programme actif');
-            return this.generateEmptyWeek(weekStart);
-        }
-        
-        try {
-            // Récupérer le schedule de la semaine depuis l'API
-            const response = await window.apiGet(
-                `/api/programs/${this.activeProgram.id}/schedule?week_start=${weekStart.toISOString().split('T')[0]}`
-            );
-            
-            const weekEnd = new Date(weekStart);
-            weekEnd.setDate(weekEnd.getDate() + 6);
-            
-            const daysData = [];
-            let totalSessions = 0;
-            let totalDuration = 0;
-            
-            // Générer les données pour chaque jour
-            for (let i = 0; i < 7; i++) {
-                const currentDate = new Date(weekStart);
-                currentDate.setDate(currentDate.getDate() + i);
-                const dateStr = currentDate.toISOString().split('T')[0];
-                
-                // Récupérer la session du schedule pour cette date
-                const sessionData = response.schedule[dateStr];
-                const sessions = [];
-                
-                if (sessionData && sessionData.status !== 'cancelled') {
-                    // Convertir en format attendu par l'UI
-                    const session = {
-                        id: sessionData.session_ref || `${this.activeProgram.id}_${dateStr}`,
-                        date: dateStr,
-                        time: sessionData.time || null,
-                        status: sessionData.status || 'planned',
-                        exercises: sessionData.exercises_snapshot || [],
-                        estimated_duration: sessionData.estimated_duration || 
-                            this.calculateSessionDuration(sessionData.exercises_snapshot),
-                        primary_muscles: this.extractPrimaryMuscles(sessionData.exercises_snapshot),
-                        predicted_quality_score: sessionData.predicted_score,
-                        actual_quality_score: sessionData.actual_score,
-                        modifications: sessionData.modifications || []
-                    };
-                    
-                    sessions.push(session);
-                    totalSessions++;
-                    totalDuration += session.estimated_duration || 0;
-                }
-                
-                daysData.push({
-                    date: dateStr,
-                    dayName: currentDate.toLocaleDateString('fr-FR', { weekday: 'long' }),
-                    sessions: sessions,
-                    isToday: this.isToday(currentDate),
-                    isPast: currentDate < new Date(new Date().setHours(0,0,0,0))
-                });
-            }
-            
-            return {
-                weekStart: weekStart.toISOString().split('T')[0],
-                weekEnd: weekEnd.toISOString().split('T')[0], 
-                planning_data: daysData,
-                muscle_recovery_status: response.muscle_recovery_status || {},
-                optimization_suggestions: [],
-                total_weekly_sessions: totalSessions,
-                total_weekly_duration: totalDuration,
-                schedule_metadata: response.schedule_metadata || {}
-            };
-            
-        } catch (error) {
-            console.error('❌ Erreur récupération schedule:', error);
-            // Fallback sur génération vide
-            return this.generateEmptyWeek(weekStart);
-        }
-    }
-
     calculateSessionDuration(exercises) {
         if (!exercises || exercises.length === 0) return 45;
         return exercises.reduce((total, ex) => {
@@ -296,61 +217,6 @@ class PlanningManager {
         }
         
         console.log(`📋 Total semaines chargées: ${this.weeksData.size}`);
-    }
-
-
-    // 5. AJOUTER cette nouvelle méthode pour générer les données depuis weekly_structure
-    generateWeekDataFromProgram(weekStart) {
-        const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekEnd.getDate() + 6);
-        
-        const daysData = [];
-        const allSessions = [];
-        
-        for (let i = 0; i < 7; i++) {
-            const currentDate = new Date(weekStart);
-            currentDate.setDate(currentDate.getDate() + i);
-            const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-            
-            // Récupérer les séances planifiées pour ce jour depuis weekly_structure
-            const daySessions = this.weeklyStructure[dayName] || [];
-            
-            // Formater les séances pour l'affichage
-            const formattedSessions = daySessions.map((session, index) => ({
-                id: `${this.activeProgram.id}_${dayName}_${index}`,
-                program_id: this.activeProgram.id,
-                day_name: dayName,
-                session_index: index,
-                planned_date: currentDate.toISOString().split('T')[0],
-                exercises: session.exercises || [],
-                estimated_duration: session.duration || this.calculateSessionDuration(session.exercises || []),
-                primary_muscles: session.primary_muscles || this.extractPrimaryMuscles(session.exercises),
-                predicted_quality_score: session.quality_score || 75,
-                session_type: session.session_type || 'custom',
-                status: 'planned'
-            }));
-            
-            allSessions.push(...formattedSessions);
-            
-            daysData.push({
-                date: currentDate.toISOString().split('T')[0],
-                dayName: dayName,
-                dayNumber: currentDate.getDate(),
-                sessions: formattedSessions,
-                canAddSession: formattedSessions.length < 2,
-                warnings: this.validateDayRecovery(formattedSessions, currentDate)
-            });
-        }
-        
-        return {
-            week_start: weekStart.toISOString().split('T')[0],
-            week_end: weekEnd.toISOString().split('T')[0],
-            planning_data: daysData,
-            muscle_recovery_status: this.calculateMuscleRecovery(allSessions),
-            optimization_suggestions: this.generateOptimizationSuggestions(allSessions),
-            total_weekly_sessions: allSessions.length,
-            total_weekly_duration: allSessions.reduce((sum, s) => sum + (s.estimated_duration || 0), 0)
-        };
     }
 
     async loadWeekData(weekStart) {
@@ -671,61 +537,7 @@ class PlanningManager {
             });
         });
     }
-    
-    async moveSession(sessionId, sourceDate, targetDate) {
-        try {
-            const result = await window.apiPut(`/api/planned-sessions/${sessionId}/move`, {
-                new_date: targetDate
-            });
-            
-            if (result.success) {
-                window.showToast('Séance déplacée', 'success');
-                await this.refresh();
-            } else if (result.warnings?.length > 0) {
-                this.showMoveConfirmation(sessionId, targetDate, result.warnings);
-            }
-        } catch (error) {
-            throw error;
-        }
-    }
-    
-    showMoveConfirmation(sessionId, targetDate, warnings) {
-        const warningsHtml = warnings.map(w => `<div class="warning-item">${w}</div>`).join('');
-        
-        const modalContent = `
-            <div class="move-confirmation">
-                <h3>⚠️ Confirmer le déplacement</h3>
-                <div class="warnings-list">${warningsHtml}</div>
-                <p>Voulez-vous quand même déplacer cette séance ?</p>
-                <div class="modal-actions">
-                    <button class="btn btn-primary" onclick="planningManager.confirmMove('${sessionId}', '${targetDate}')">
-                        Déplacer quand même
-                    </button>
-                    <button class="btn btn-secondary" onclick="window.closeModal()">
-                        Annuler
-                    </button>
-                </div>
-            </div>
-        `;
-        
-        window.showModal('Attention', modalContent);
-    }
-    
-    async confirmMove(sessionId, targetDate) {
-        try {
-            await window.apiPut(`/api/planned-sessions/${sessionId}/move`, {
-                new_date: targetDate,
-                force_move: true
-            });
-            
-            window.closeModal();
-            window.showToast('Séance déplacée', 'success');
-            await this.refresh();
-        } catch (error) {
-            window.showToast('Erreur lors du déplacement', 'error');
-        }
-    }
-    
+       
     // NOUVELLE MÉTHODE pour gérer le déplacement dans weekly_structure
     async handleSessionMove(sessionId, targetDate, sourceDate) {
         try {
@@ -2537,7 +2349,10 @@ class PlanningManager {
             if (!this.weeklyStructure[dayName]) {
                 this.weeklyStructure[dayName] = [];
             }
-            this.weeklyStructure[dayName].push(newSession);
+            await this.saveSessionChanges(sessionId, {
+                moved_to_date: targetDate,
+                status: 'planned'
+            });
             
             // Préparer les données pour la mise à jour
             const updateData = {
