@@ -2446,28 +2446,6 @@ async function startFreeWorkout() {
 
 
 async function startProgramWorkout() {
-    // AJOUT : Détection du format et redirection appropriée
-    const activeProgram = await apiGet(`/api/users/${currentUser.id}/programs/active`);
-    
-    if (!activeProgram) {
-        showToast('Aucun programme actif', 'warning');
-        return;
-    }
-    
-    // Si format v2.0 avec schedule, utiliser le flow moderne
-    if (activeProgram.format_version === "2.0" && activeProgram.schedule) {
-        const today = new Date().toISOString().split('T')[0];
-        
-        if (activeProgram.schedule[today]) {
-            // Il y a une séance aujourd'hui, la démarrer
-            confirmStartProgramWorkout();
-        } else {
-            // Pas de séance aujourd'hui, proposer les prochaines
-            showUpcomingSessionsModal();
-        }
-        return;
-    }
-
     if (!currentUser) {
         showToast('Veuillez vous connecter', 'error');
         return;
@@ -2498,7 +2476,26 @@ async function startProgramWorkout() {
             return;
         }
         
-        // Nouveau format ComprehensiveProgram - Obtenir sélection intelligente
+        // Si format v2.0 avec schedule, utiliser le flow moderne
+        if (activeProgram.format_version === "2.0" && activeProgram.schedule) {
+            const today = new Date().toISOString().split('T')[0];
+            
+            if (activeProgram.schedule[today]) {
+                // Il y a une séance aujourd'hui, la démarrer
+                confirmStartProgramWorkout();
+            } else {
+                // Pas de séance aujourd'hui, proposer les prochaines
+                if (window.showUpcomingSessionsModal) {
+                    window.showUpcomingSessionsModal();
+                } else {
+                    // Fallback si planning.js n'est pas chargé
+                    showToast('Pas de séance prévue aujourd\'hui', 'info');
+                }
+            }
+            return;
+        }
+        
+        // Ancien format ou pas de schedule - flow normal
         try {
             showToast('Préparation de votre séance personnalisée...', 'info');
             

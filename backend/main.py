@@ -18,7 +18,7 @@ from backend.ml_recommendations import FitnessRecommendationEngine
 from backend.ml_engine import FitnessMLEngine, RecoveryTracker, VolumeOptimizer, ProgressionAnalyzer
 from backend.constants import normalize_muscle_group, exercise_matches_focus_area
 from backend.database import engine, get_db, SessionLocal
-from backend.models import Base, User, Exercise, Program, Workout, WorkoutSet, SetHistory, UserCommitment, AdaptiveTargets, UserAdaptationCoefficients, PerformanceStates, ExerciseCompletionStats, SwapLog, PlannedSession, ComprehensiveProgram
+from backend.models import Base, User, Exercise, Program, Workout, WorkoutSet, SetHistory, UserCommitment, AdaptiveTargets, UserAdaptationCoefficients, PerformanceStates, ExerciseCompletionStats, SwapLog, ComprehensiveProgram
 from backend.schemas import (
     UserCreate, UserResponse, WorkoutResponse, ProgramCreate, WorkoutCreate, 
     SetCreate, ExerciseResponse, UserPreferenceUpdate,
@@ -769,7 +769,6 @@ def get_active_program(user_id: int, db: Session = Depends(get_db)):
             
             # Calculer estimated_completion si pas déjà fait
             if not program.estimated_completion:
-                from datetime import timedelta
                 program.estimated_completion = program_started + timedelta(weeks=program.duration_weeks or 8)
                 
             db.commit()
@@ -3558,80 +3557,6 @@ def get_attendance_calendar(user_id: int, months: int = 6, db: Session = Depends
 
 
 # ===== ENDPOINTS PLANNING HEBDOMADAIRE =====
-def auto_generate_planned_sessions(program, week_start, week_end, db):
-    """Génère automatiquement les séances planifiées à partir du programme"""
-    planned_sessions = []
-    
-    # Calculer combien de jours depuis le début du programme
-    if not program.started_at:
-        # Si programme pas encore démarré, commencer cette semaine
-        days_since_start = 0
-        program.started_at = datetime.now(timezone.utc)
-        db.commit()
-    else:
-        days_since_start = (week_start - program.started_at.date()).days
-    
-    # Distribuer les séances sur la semaine (éviter weekend si possible)
-    weekdays_preferred = [0, 1, 2, 3, 4]  # Lundi à vendredi
-    sessions_per_week = program.sessions_per_week
-    
-    # Jours sélectionnés pour les séances
-    if sessions_per_week <= 5:
-        selected_days = weekdays_preferred[:sessions_per_week]
-    else:
-        # Si >5 séances, utiliser aussi le weekend
-        selected_days = list(range(min(7, sessions_per_week)))
-    
-    # Générer une séance pour chaque jour sélectionné
-    for i, day_offset in enumerate(selected_days):
-        session_date = week_start + timedelta(days=day_offset)
-        
-        # Vérifier que la date est dans la plage demandée
-        if session_date > week_end:
-            continue
-            
-        # Sélectionner les exercices selon la rotation du programme
-        session_exercises = []
-        estimated_duration = program.session_duration_minutes or 60
-        
-        if program.format_version == "2.0" and program.weekly_structure and len(program.weekly_structure) > 0:
-            # Format v2.0 - Utiliser la structure du programme
-            week_in_program = (days_since_start // 7) % len(program.weekly_structure)
-            week_data = program.weekly_structure[week_in_program]
-                    
-            if "sessions" in week_data and len(week_data["sessions"]) > i:
-                session_template = week_data["sessions"][i]
-                session_exercises = session_template.get("exercise_pool", [])
-                estimated_duration = session_template.get("estimated_duration_minutes", estimated_duration)
-        
-        # Détecter les muscles principaux de la séance
-        primary_muscles = []
-        if session_exercises:
-            for ex in session_exercises[:3]:  # Prendre les 3 premiers exercices
-                if "muscle_groups" in ex:
-                    primary_muscles.extend(ex["muscle_groups"])
-        
-        # Créer la séance planifiée temporaire (pas sauvée en DB pour l'instant)
-        planned_session = PlannedSession(
-            user_id=program.user_id,
-            program_id=program.id,
-            planned_date=session_date,
-            planned_time=None,  # Pas d'heure spécifique
-            exercises=session_exercises,
-            estimated_duration=estimated_duration,
-            primary_muscles=list(set(primary_muscles)),  # Dédupliquer
-            predicted_quality_score=75.0  # Score par défaut
-        )
-        # Ajouter attributs manquants pour objets temporaires
-        planned_session.status = "planned"
-        planned_session.id = None  # Sera géré par format_planned_session
-                
-        planned_sessions.append(planned_session)
-        logger.info(f"Séance auto-générée: {session_date}, {len(session_exercises)} exercices, {estimated_duration}min")
-    
-    return planned_sessions
-
-
 def calculate_optimal_session_spacing(sessions_per_week: int, muscle_groups_per_session: dict) -> list:
     """Calcule l'espacement optimal des séances selon la récupération musculaire"""
     
@@ -3669,12 +3594,7 @@ def populate_program_planning_intelligent(db: Session, program):
     if not program.weekly_structure or not program.duration_weeks:
         logger.warning(f"Programme {program.id} sans structure complète")
         return
-    
-    # NE PLUS supprimer les PlannedSession
-    # db.query(PlannedSession).filter(PlannedSession.user_id == program.user_id).delete()
-    
-    from datetime import date, timedelta
-    
+        
     # Démarrer à partir de lundi prochain
     today = date.today()
     days_until_monday = (7 - today.weekday()) % 7
@@ -3871,215 +3791,7 @@ def populate_user_planning_intelligent(user_id: int, db: Session = Depends(get_d
         logger.error(f"Erreur création planning intelligent: {e}")
         raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
 
-
-@app.get("/api/users/{user_id}/weekly-planning")
-def get_weekly_planning(
-    user_id: int, 
-    week_start: str = Query(..., description="Date début semaine YYYY-MM-DD"), 
-    db: Session = Depends(get_db)
-):
-    """Récupérer le planning hebdomadaire avec scores et warnings récupération"""
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
-    
-    try:
-        from datetime import datetime, timedelta
-        week_start_date = datetime.fromisoformat(week_start).date()
-        week_end_date = week_start_date + timedelta(days=6)
-        
-        # Récupérer les séances planifiées de la semaine
-        planned_sessions = db.query(PlannedSession).filter(
-            PlannedSession.user_id == user_id,
-            PlannedSession.planned_date >= week_start_date,
-            PlannedSession.planned_date <= week_end_date
-        ).order_by(PlannedSession.planned_date).all()
-        
-        # Récupérer les séances passées (7 derniers jours) pour analyser récupération
-        past_cutoff = week_start_date - timedelta(days=7)
-        past_workouts = db.query(Workout).filter(
-            Workout.user_id == user_id,
-            Workout.started_at >= past_cutoff,
-            Workout.completed_at.isnot(None)
-        ).all()
-        
-        # Analyser l'état de récupération musculaire
-        muscle_recovery_status = analyze_muscle_recovery(past_workouts, db)
-        
-        # Générer les données du planning pour chaque jour
-        planning_data = []
-        for day_offset in range(7):
-            current_date = week_start_date + timedelta(days=day_offset)
-            day_sessions = [s for s in planned_sessions if s.planned_date == current_date]
-            
-            # Calculer warnings de récupération pour ce jour
-            warnings = calculate_recovery_warnings(day_sessions, muscle_recovery_status, current_date)
-            
-            planning_data.append({
-                "date": current_date.isoformat(),
-                "day_name": current_date.strftime("%A").lower(),
-                "sessions": [format_planned_session(s) for s in day_sessions],
-                "recovery_warnings": warnings,
-                "can_add_session": len(day_sessions) < 2,  # Max 2 sessions/jour
-                "total_estimated_duration": sum(s.estimated_duration or 0 for s in day_sessions)
-            })
-        
-        # Générer recommandations d'optimisation
-        optimization_suggestions = generate_week_optimization_suggestions(
-            planning_data, muscle_recovery_status
-        )
-        
-        return {
-            "week_start": week_start_date.isoformat(),
-            "week_end": week_end_date.isoformat(),
-            "planning_data": planning_data,
-            "muscle_recovery_status": muscle_recovery_status,
-            "optimization_suggestions": optimization_suggestions,
-            "total_weekly_sessions": len(planned_sessions),
-            "total_weekly_duration": sum(s.estimated_duration or 0 for s in planned_sessions)
-        }
-        
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Format de date invalide")
-    except Exception as e:
-        logger.error(f"Erreur récupération planning user {user_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Erreur serveur")
-
-@app.post("/api/users/{user_id}/planned-sessions")
-def create_planned_session(
-    user_id: int,
-    session_data: dict,
-    db: Session = Depends(get_db)
-):
-    """Créer une nouvelle séance planifiée"""
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
-    
-    try:
-        planned_session = PlannedSession(
-            user_id=user_id,
-            program_id=session_data.get("program_id"),
-            planned_date=datetime.fromisoformat(session_data["planned_date"]).date(),
-            planned_time=datetime.fromisoformat(session_data["planned_time"]).time() if session_data.get("planned_time") else None,
-            exercises=session_data.get("exercises", []),
-            estimated_duration=session_data.get("estimated_duration"),
-            primary_muscles=session_data.get("primary_muscles", [])
-        )
-        
-        # Calculer score prédictif avec SessionQualityEngine
-        if session_data.get("exercises"):
-            # À implémenter : calcul score prédictif
-            planned_session.predicted_quality_score = 75.0  # Placeholder
-        
-        db.add(planned_session)
-        db.commit()
-        db.refresh(planned_session)
-        
-        return {
-            "message": "Séance planifiée créée avec succès",
-            "planned_session": format_planned_session(planned_session)
-        }
-        
-    except Exception as e:
-        logger.error(f"Erreur création séance planifiée: {str(e)}")
-        db.rollback()
-        raise HTTPException(status_code=500, detail="Erreur création séance")
-
-@app.put("/api/planned-sessions/{session_id}/move")
-def move_planned_session(
-    session_id: int,
-    move_data: dict,
-    db: Session = Depends(get_db)
-):
-    """Déplacer une séance planifiée vers une autre date"""
-    planned_session = db.query(PlannedSession).filter(PlannedSession.id == session_id).first()
-    if not planned_session:
-        raise HTTPException(status_code=404, detail="Séance planifiée non trouvée")
-    
-    try:
-        new_date = datetime.fromisoformat(move_data["new_date"]).date()
-        new_time = datetime.fromisoformat(move_data["new_time"]).time() if move_data.get("new_time") else planned_session.planned_time
-        
-        # Valider les contraintes de récupération
-        validation_result = validate_session_move(planned_session, new_date, db)
-        
-        if not validation_result["allowed"] and not move_data.get("force_move", False):
-            return {
-                "success": False,
-                "warnings": validation_result["warnings"],
-                "requires_confirmation": True
-            }
-        
-        # Effectuer le déplacement
-        old_date = planned_session.planned_date
-        planned_session.planned_date = new_date
-        planned_session.planned_time = new_time
-        planned_session.updated_at = datetime.now(timezone.utc)
-        
-        db.commit()
-        
-        return {
-            "success": True,
-            "message": f"Séance déplacée du {old_date} au {new_date}",
-            "updated_session": format_planned_session(planned_session),
-            "warnings": validation_result.get("warnings", [])
-        }
-        
-    except Exception as e:
-        logger.error(f"Erreur déplacement séance {session_id}: {str(e)}")
-        db.rollback()
-        raise HTTPException(status_code=500, detail="Erreur déplacement séance")
-
-
-@app.delete("/api/planned-sessions/{session_id}")
-def delete_planned_session(
-    session_id: int,
-    db: Session = Depends(get_db)
-):
-    """Supprimer une séance planifiée"""
-    planned_session = db.query(PlannedSession).filter(PlannedSession.id == session_id).first()
-    if not planned_session:
-        raise HTTPException(status_code=404, detail="Séance planifiée non trouvée")
-    
-    try:
-        db.delete(planned_session)
-        db.commit()
-        
-        logger.info(f"Séance planifiée {session_id} supprimée")
-        return {
-            "message": "Séance planifiée supprimée avec succès",
-            "session_id": session_id
-        }
-        
-    except Exception as e:
-        logger.error(f"Erreur suppression séance planifiée {session_id}: {str(e)}")
-        db.rollback()
-        raise HTTPException(status_code=500, detail="Erreur lors de la suppression")
-    
 # ===== FONCTIONS HELPER PLANNING =====
-
-def analyze_muscle_recovery(past_workouts, db):
-    """Analyse l'état de récupération de chaque groupe musculaire"""
-    muscle_recovery = {}
-    
-    for workout in past_workouts:
-        sets = db.query(WorkoutSet).filter(WorkoutSet.workout_id == workout.id).all()
-        
-        for workout_set in sets:
-            exercise = db.query(Exercise).filter(Exercise.id == workout_set.exercise_id).first()
-            if exercise and exercise.muscle_groups:
-                for muscle in exercise.muscle_groups:
-                    if muscle not in muscle_recovery:
-                        # Utiliser safe_timedelta_hours pour éviter les erreurs timezone
-                        hours_since = safe_timedelta_hours(datetime.now(timezone.utc), workout.started_at)
-                        muscle_recovery[muscle] = {
-                            "last_trained": workout.started_at.date().isoformat(),
-                            "hours_since": int(safe_timedelta_hours(datetime.now(timezone.utc), workout.started_at)),
-                            "recovery_level": min(1.0, safe_timedelta_hours(datetime.now(timezone.utc), workout.started_at) / 48.0)
-                        }
-    
-    return muscle_recovery
 
 def calculate_recovery_warnings(day_sessions, muscle_recovery_status, session_date):
     """Calcule les warnings de récupération pour une journée"""
@@ -4121,38 +3833,6 @@ def generate_week_optimization_suggestions(planning_data, muscle_recovery_status
             consecutive_days = 0
     
     return suggestions
-
-def format_planned_session(planned_session):
-    """Formate une séance planifiée pour l'API"""
-    return {
-        "id": getattr(planned_session, 'id', None) or f"temp_{hash(str(planned_session.planned_date))}",
-        "planned_date": planned_session.planned_date.isoformat(),
-        "planned_time": planned_session.planned_time.isoformat() if planned_session.planned_time else None,
-        "exercises": planned_session.exercises or [],
-        "estimated_duration": planned_session.estimated_duration,
-        "primary_muscles": planned_session.primary_muscles or [],
-        "predicted_quality_score": planned_session.predicted_quality_score,
-        "status": getattr(planned_session, 'status', 'planned')
-    }
-
-def validate_session_move(planned_session, new_date, db):
-    """Valide le déplacement d'une séance selon les contraintes de récupération"""
-    warnings = []
-    
-    # Vérifier s'il y a déjà des séances ce jour-là
-    existing_sessions = db.query(PlannedSession).filter(
-        PlannedSession.user_id == planned_session.user_id,
-        PlannedSession.planned_date == new_date,
-        PlannedSession.id != planned_session.id
-    ).count()
-    
-    if existing_sessions >= 2:
-        warnings.append("Déjà 2 séances planifiées ce jour")
-        return {"allowed": False, "warnings": warnings}
-    
-    # Autres validations peuvent être ajoutées ici
-    
-    return {"allowed": True, "warnings": warnings}
 
 @app.get("/api/users/{user_id}/stats/volume-burndown/{period}")
 def get_volume_burndown(

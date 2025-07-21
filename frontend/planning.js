@@ -284,13 +284,13 @@ class PlanningManager {
             const weekKey = this.getWeekKey(weekStart);
             
             try {
-                // CHANGEMENT : Utiliser weekly_structure du programme au lieu de l'API planning
-                const weekData = this.generateWeekDataFromProgram(weekStart);
+                // CHANGEMENT : Utiliser generateWeekDataFromProgram async qui lit le schedule
+                const weekData = await this.generateWeekDataFromProgram(weekStart);
                 this.weeksData.set(weekKey, weekData);
                 
-                console.log(`✅ Semaine ${weekKey} générée depuis le programme`);
+                console.log(`✅ Semaine ${weekKey} chargée depuis le schedule`);
             } catch (error) {
-                console.error(`❌ Erreur génération semaine ${weekKey}:`, error);
+                console.error(`❌ Erreur chargement semaine ${weekKey}:`, error);
                 this.weeksData.set(weekKey, this.generateEmptyWeek(weekStart));
             }
         }
@@ -731,78 +731,32 @@ class PlanningManager {
         try {
             console.log('🔄 Déplacement session:', { sessionId, de: sourceDate, vers: targetDate });
             
-            if (!this.activeProgram || !this.weeklyStructure) {
-                throw new Error('Pas de programme actif ou structure manquante');
+            if (!this.activeProgram) {
+                throw new Error('Pas de programme actif');
             }
             
-            // Parser et valider l'ID
-            const idParts = sessionId.split('_');
-            if (idParts.length !== 3) {
-                throw new Error(`Format ID invalide: ${sessionId}`);
-            }
-            
-            const [programId, oldDayName, sessionIndex] = idParts;
-            
-            // Validation du programme
-            if (programId != this.activeProgram.id) {
-                throw new Error('ID programme ne correspond pas');
-            }
-            
-            const newDate = new Date(targetDate);
-            const newDayName = newDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-            
-            console.log('📊 Déplacement:', {
-                de: oldDayName,
-                vers: newDayName,
-                index: sessionIndex
+            // Appeler directement l'endpoint de mise à jour du schedule
+            await window.apiPut(`/api/programs/${this.activeProgram.id}/schedule/${targetDate}`, {
+                move_from: sourceDate
             });
             
-            // Vérifier que la session source existe
-            if (!this.weeklyStructure[oldDayName] || !this.weeklyStructure[oldDayName][parseInt(sessionIndex)]) {
-                throw new Error(`Session source introuvable: ${oldDayName}[${sessionIndex}]`);
-            }
-            
-            // Récupérer la session à déplacer
-            const sessionToMove = this.weeklyStructure[oldDayName][parseInt(sessionIndex)];
-            
-            // Vérifier la limite de séances sur le jour cible
-            const targetDaySessions = this.weeklyStructure[newDayName] || [];
-            if (targetDaySessions.length >= 2 && oldDayName !== newDayName) {
-                window.showToast('Maximum 2 séances par jour sur le jour cible', 'warning');
-                throw new Error('Limite séances/jour atteinte');
-            }
-            
-            // Sauvegarder pour rollback
-            const previousStructure = JSON.parse(JSON.stringify(this.weeklyStructure));
-            
-            try {
-                // Effectuer le déplacement
-                // Extraire l'ancienne date depuis l'ID
-                const oldDate = this.findDateForSession(sessionId);
-                if (!oldDate) {
-                    throw new Error(`Date source introuvable pour session ${sessionId}`);
-                }
-
-                // Appeler l'endpoint de mise à jour du schedule
-                await window.apiPut(`/api/programs/${this.activeProgram.id}/schedule/${targetDate}`, {
-                    move_from: oldDate,
-                    session_ref: sessionId
-                });
-
-                console.log('✅ Séance déplacée dans le schedule');
-                window.showToast('Séance déplacée avec succès', 'success');
-                await this.refresh();
-                
-            } catch (error) {
-                // Rollback
-                console.error('❌ Erreur sauvegarde, rollback:', error);
-                this.weeklyStructure = previousStructure;
-                throw error;
-            }
+            console.log('✅ Séance déplacée dans le schedule');
+            window.showToast('Séance déplacée avec succès', 'success');
+            await this.refresh();
             
         } catch (error) {
             console.error('❌ Erreur déplacement séance:', error);
-            throw error; // Propagé pour gestion dans initializeDragDrop
+            
+            // Gestion des erreurs spécifiques du backend
+            if (error.message?.includes('Maximum 2 séances')) {
+                window.showToast('Maximum 2 séances par jour', 'warning');
+            } else if (error.message?.includes('Session source non trouvée')) {
+                window.showToast('Session source introuvable', 'error');
+            } else {
+                window.showToast('Erreur lors du déplacement', 'error');
+            }
+            
+            throw error; // Propagé pour que le drag&drop annule
         }
     }
 
@@ -3546,3 +3500,6 @@ function getMuscleColor(muscle) {
 }
 
 console.log('✅ Planning.js chargé avec logique Programme');
+
+// Exposer la fonction globalement pour app.js
+window.showUpcomingSessionsModal = showUpcomingSessionsModal;
