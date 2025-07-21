@@ -2446,6 +2446,28 @@ async function startFreeWorkout() {
 
 
 async function startProgramWorkout() {
+    // AJOUT : Détection du format et redirection appropriée
+    const activeProgram = await apiGet(`/api/users/${currentUser.id}/programs/active`);
+    
+    if (!activeProgram) {
+        showToast('Aucun programme actif', 'warning');
+        return;
+    }
+    
+    // Si format v2.0 avec schedule, utiliser le flow moderne
+    if (activeProgram.format_version === "2.0" && activeProgram.schedule) {
+        const today = new Date().toISOString().split('T')[0];
+        
+        if (activeProgram.schedule[today]) {
+            // Il y a une séance aujourd'hui, la démarrer
+            confirmStartProgramWorkout();
+        } else {
+            // Pas de séance aujourd'hui, proposer les prochaines
+            showUpcomingSessionsModal();
+        }
+        return;
+    }
+
     if (!currentUser) {
         showToast('Veuillez vous connecter', 'error');
         return;
@@ -3423,17 +3445,49 @@ function setupFreeWorkout() {
 }
 
 async function setupProgramWorkout(program) {
+    // AJOUT : Récupérer la session du jour depuis le schedule
+    let todayExercises = null;
+    let todayDate = null;
+    
+    if (program.schedule) {
+        // Chercher la session d'aujourd'hui dans le schedule
+        todayDate = new Date().toISOString().split('T')[0];
+        const todaySession = program.schedule[todayDate];
+        
+        if (todaySession && todaySession.exercises_snapshot) {
+            console.log('📅 Session du jour trouvée dans le schedule');
+            todayExercises = todaySession.exercises_snapshot;
+            
+            // Stocker la date pour mise à jour ultérieure du status
+            currentWorkoutSession.scheduleDate = todayDate;
+            
+            // Mettre à jour le status à "in_progress" si pas déjà fait
+            if (todaySession.status === 'planned') {
+                try {
+                    await apiPut(`/api/programs/${program.id}/schedule/${todayDate}`, {
+                        status: 'in_progress'
+                    });
+                } catch (error) {
+                    console.warn('Impossible de mettre à jour le status:', error);
+                }
+            }
+        }
+    }
+    
+    // Fallback sur program.exercises si pas de session aujourd'hui
+    const exercises = todayExercises || program.exercises;
+    
     // Vérification de sécurité
-    if (!program || !program.exercises) {
+    if (!program || !exercises) {
         console.error('Programme invalide:', program);
-        showToast('Erreur : programme invalide', 'error');
+        showToast('Erreur : programme invalide ou pas de séance aujourd\'hui', 'error');
         return;
     }
     
     // Configurer le titre SI L'ÉLÉMENT EXISTE
     const workoutTitle = document.getElementById('workoutTitle');
     if (workoutTitle) {
-        workoutTitle.textContent = 'Séance programme';
+        workoutTitle.textContent = todayExercises ? 'Séance du jour' : 'Séance programme';
     }
     
     // Cacher la sélection d'exercices SI ELLE EXISTE
@@ -3442,8 +3496,11 @@ async function setupProgramWorkout(program) {
         exerciseSelection.style.display = 'none';
     }
     
-    // Stocker le programme dans la session - CONSERVER TOUTES LES PROPRIÉTÉS
-    currentWorkoutSession.program = program;
+    // Stocker le programme dans la session avec les exercices du jour
+    currentWorkoutSession.program = {
+        ...program,
+        exercises: exercises  // Utiliser les exercices du schedule ou fallback
+    };
     currentWorkoutSession.programExercises = {};
     currentWorkoutSession.completedExercisesCount = 0;
     currentWorkoutSession.type = 'program'; // Important pour les vérifications
@@ -5029,6 +5086,26 @@ async function finishExercise() {
         const remainingExercises = currentWorkoutSession.program.exercises.filter(ex => 
             !currentWorkoutSession.programExercises[ex.exercise_id].isCompleted
         );
+        
+        // AJOUT : Si tous les exercices sont terminés, mettre à jour le schedule
+        if (remainingExercises.length === 0 && currentWorkoutSession.scheduleDate) {
+            try {
+                // Calculer le score réel de la session
+                const completedExercises = Object.values(currentWorkoutSession.programExercises)
+                    .filter(ex => ex.isCompleted).length;
+                const totalExercises = currentWorkoutSession.program.exercises.length;
+                const actualScore = Math.round((completedExercises / totalExercises) * 100);
+                
+                // Mettre à jour le status dans le schedule
+                await apiPut(`/api/programs/${currentWorkoutSession.program.id}/schedule/${currentWorkoutSession.scheduleDate}`, {
+                    status: 'completed',
+                    actual_score: actualScore
+                });
+                console.log('✅ Schedule mis à jour : session complétée');
+            } catch (error) {
+                console.error('Erreur mise à jour schedule:', error);
+            }
+        }
         
         if (remainingExercises.length > 0) {
             const nextExercise = remainingExercises[0];
@@ -7171,8 +7248,25 @@ function updateExerciseProgress() {
 }
 
 function getCurrentProgramExercisesCount() {
-    // TODO: Récupérer le nombre d'exercices du programme actuel
-    return 3; // Placeholder
+    // Si pas de session programme active
+    if (!currentWorkoutSession.program) {
+        return 0;
+    }
+    
+    // Si on a une date de schedule, compter depuis la session du jour
+    if (currentWorkoutSession.scheduleDate && currentWorkoutSession.program.schedule) {
+        const todaySession = currentWorkoutSession.program.schedule[currentWorkoutSession.scheduleDate];
+        if (todaySession && todaySession.exercises_snapshot) {
+            return todaySession.exercises_snapshot.length;
+        }
+    }
+    
+    // Fallback sur program.exercises
+    if (currentWorkoutSession.program.exercises) {
+        return currentWorkoutSession.program.exercises.length;
+    }
+    
+    return 0;
 }
 
 // ===== GESTION D'ERREURS ET VALIDATION =====
