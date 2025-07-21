@@ -3288,14 +3288,14 @@ def calculate_optimal_session_spacing(sessions_per_week: int, muscle_groups_per_
     return optimized_pattern
 
 def populate_program_planning_intelligent(db: Session, program):
-    """Crée intelligemment les séances planifiées pour tout le programme"""
+    """Génère intelligemment le schedule du programme"""
     
     if not program.weekly_structure or not program.duration_weeks:
         logger.warning(f"Programme {program.id} sans structure complète")
         return
     
-    # Supprimer les anciennes séances planifiées
-    db.query(PlannedSession).filter(PlannedSession.user_id == program.user_id).delete()
+    # NE PLUS supprimer les PlannedSession
+    # db.query(PlannedSession).filter(PlannedSession.user_id == program.user_id).delete()
     
     from datetime import date, timedelta
     
@@ -3305,80 +3305,78 @@ def populate_program_planning_intelligent(db: Session, program):
     start_date = today + timedelta(days=days_until_monday if days_until_monday > 0 else 7)
     
     # Analyser la structure pour optimiser l'espacement
-    sample_week = program.weekly_structure[0]
-    sessions = sample_week.get("sessions", [])
-    sessions_per_week = len(sessions)
-    
-    # Extraire les groupes musculaires par session pour optimisation
-    muscle_groups_per_session = {}
-    for i, session in enumerate(sessions):
-        muscles = set()
-        for ex in session.get("exercise_pool", [])[:3]:  # Top 3 exercices
-            muscles.update(ex.get("muscle_groups", []))
-        muscle_groups_per_session[i] = list(muscles)
+    # Si weekly_structure est un dict avec jours
+    if isinstance(program.weekly_structure, dict):
+        days_with_sessions = [day for day, sessions in program.weekly_structure.items() if sessions]
+        sessions_per_week = len(days_with_sessions)
+    # Si c'est un array
+    elif isinstance(program.weekly_structure, list) and program.weekly_structure:
+        sessions_per_week = len(program.weekly_structure[0].get("sessions", []))
+    else:
+        sessions_per_week = program.sessions_per_week or 3
     
     # Calculer l'espacement optimal
-    optimal_spacing = calculate_optimal_session_spacing(sessions_per_week, muscle_groups_per_session)
+    optimal_spacing = calculate_optimal_session_spacing(sessions_per_week, {})
     
-    sessions_created = 0
+    # Initialiser le schedule
+    if not program.schedule:
+        program.schedule = {}
     
-    # Créer séances pour toute la durée du programme
+    # Générer les séances pour toute la durée
     for week_index in range(program.duration_weeks):
-        # Utiliser la structure cyclique (répéter si plus de semaines que dans weekly_structure)
-        week_template_index = week_index % len(program.weekly_structure)
-        week_data = program.weekly_structure[week_template_index]
-        week_sessions = week_data.get("sessions", [])
-        
-        for session_index, session_template in enumerate(week_sessions):
-            if session_index >= len(optimal_spacing):
-                break
-                
-            session_date = start_date + timedelta(
-                weeks=week_index,
-                days=optimal_spacing[session_index]
-            )
+        for session_index, day_offset in enumerate(optimal_spacing):
+            session_date = start_date + timedelta(weeks=week_index, days=day_offset)
+            date_str = session_date.isoformat()
             
-            # Extraire et adapter les exercices selon l'historique
+            # Extraire la session template appropriée
+            if isinstance(program.weekly_structure, dict):
+                day_name = session_date.strftime('%A').lower()
+                day_sessions = program.weekly_structure.get(day_name, [])
+                if session_index < len(day_sessions):
+                    session_template = day_sessions[session_index]
+                else:
+                    continue
+            else:
+                # Format array
+                week_template_index = week_index % len(program.weekly_structure)
+                week_data = program.weekly_structure[week_template_index]
+                week_sessions = week_data.get("sessions", [])
+                if session_index < len(week_sessions):
+                    session_template = week_sessions[session_index]
+                else:
+                    continue
+            
+            # Adapter les exercices
             exercises = session_template.get("exercise_pool", [])
-            
-            # LEVERAGE fonctions existantes pour scorer et adapter
-            try:
-                # Utiliser votre système d'adaptation existant
-                adapted_exercises = adapt_session_exercises(
-                    exercises, program.user_id, session_date, db
-                )
-                # UTILISER votre fonction existante calculate_session_quality_score
-                quality_score = calculate_session_quality_score(
-                    adapted_exercises, program.user_id, db
-                )
-            except Exception as e:
-                logger.warning(f"Erreur ML adaptation: {e}")
-                adapted_exercises = exercises
-                quality_score = session_template.get("quality_score", 75.0)
-            
-            # UTILISER votre fonction existante calculate_session_duration
-            duration = calculate_session_duration(adapted_exercises)
-            
-            # Détecter muscles principaux
-            primary_muscles = extract_primary_muscles(adapted_exercises)
-            
-            # Créer la séance planifiée
-            planned_session = PlannedSession(
-                user_id=program.user_id,
-                program_id=program.id,
-                planned_date=session_date,
-                exercises=adapted_exercises,
-                estimated_duration=duration,
-                primary_muscles=primary_muscles,
-                predicted_quality_score=quality_score,
-                status="planned"
+            adapted_exercises = adapt_session_exercises(
+                exercises, program.user_id, session_date, db
             )
             
-            db.add(planned_session)
-            sessions_created += 1
+            # Calculer le score prédictif
+            quality_score = calculate_session_quality_score(
+                adapted_exercises, program.user_id, session_date, db
+            )
+            
+            # Ajouter au schedule
+            program.schedule[date_str] = {
+                "session_ref": f"{week_index}_{session_index}",
+                "time": "18:00",  # Par défaut, pourra être modifié
+                "status": "planned",
+                "predicted_score": quality_score,
+                "actual_score": None,
+                "exercises_snapshot": adapted_exercises,
+                "modifications": [],
+                "primary_muscles": extract_primary_muscles(adapted_exercises)
+            }
     
+    # Mettre à jour les métriques
+    update_program_schedule_metadata(program, db)
+    
+    # Sauvegarder
+    flag_modified(program, "schedule")
     db.commit()
-    logger.info(f"✅ Créé {sessions_created} séances sur {program.duration_weeks} semaines avec espacement optimal")
+    
+    logger.info(f"Schedule généré pour programme {program.id}: {len(program.schedule)} séances")
 
 def adapt_session_exercises(exercises: list, user_id: int, session_date: date, db: Session) -> list:
     """Adapte les exercices selon l'historique récent de l'utilisateur"""
@@ -3481,19 +3479,16 @@ def populate_user_planning_intelligent(user_id: int, db: Session = Depends(get_d
         raise HTTPException(status_code=404, detail="Aucun programme actif trouvé")
     
     try:
+        # Remplacer l'appel direct par :
         populate_program_planning_intelligent(db, program)
-        
-        # Compter les séances créées
-        total_sessions = db.query(PlannedSession).filter(
-            PlannedSession.user_id == user_id
-        ).count()
-        
+
+        # Au lieu de compter les PlannedSession, compter dans schedule :
+        total_sessions = len(program.schedule)
+
         return {
-            "message": "Planning intelligent créé avec succès",
-            "total_sessions_created": total_sessions,
-            "program_duration_weeks": program.duration_weeks,
-            "sessions_per_week": len(program.weekly_structure[0].get("sessions", [])),
-            "adaptations_applied": "Espacement optimal + ML + Anti-répétition"
+            "message": f"Planning intelligent créé avec {total_sessions} séances",
+            "total_sessions": total_sessions,
+            "duration_weeks": program.duration_weeks
         }
         
     except Exception as e:
