@@ -2065,11 +2065,10 @@ class PlanningManager {
                 `;
             }).join('');
             
-
             const modalContent = `
                 <div class="add-session-modal-v2">
                     <div class="modal-header-section">
-                        <h3><i class="fas fa-plus"></i> Créer une séance</h3>
+                        <h3><i class="fas fa-plus-circle"></i> Créer une séance</h3>
                         <div class="session-date-info">
                             <i class="fas fa-calendar"></i>
                             <span>${formattedDate}</span>
@@ -2080,9 +2079,12 @@ class PlanningManager {
                         <div class="selection-section">
                             <div class="section-header">
                                 <h4><i class="fas fa-dumbbell"></i> Exercices disponibles (${exercisesResponse.length})</h4>
-                                <div class="selection-counter">
-                                    <span id="selectedCount">0</span> sélectionné(s)
-                                </div>
+                                <div class="selection-counter" id="selectedCount">0</div>
+                            </div>
+                            
+                            <div class="exercise-search">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="exerciseSearch" placeholder="Rechercher un exercice...">
                             </div>
                             
                             <div class="exercise-groups-container" id="exerciseSelectionGrid">
@@ -2094,9 +2096,8 @@ class PlanningManager {
                             <div class="preview-header">
                                 <h4><i class="fas fa-eye"></i> Aperçu de la séance</h4>
                                 <button class="btn-magic-icon" id="optimizeBtn" 
-                                        style="display: none;" 
                                         onclick="window.planningManager.optimizeExerciseOrder()"
-                                        title="Optimiser l'ordre">
+                                        title="Optimiser l'ordre des exercices">
                                     <i class="fas fa-magic"></i>
                                 </button>
                             </div>
@@ -2130,12 +2131,14 @@ class PlanningManager {
     }
 
     initializeSessionCreation() {
+        const self = this;
         const checkboxes = document.querySelectorAll('#exerciseSelectionGrid input[type="checkbox"]');
         const createBtn = document.getElementById('createSessionBtn');
         const previewDiv = document.getElementById('sessionPreview');
         const selectedCounter = document.getElementById('selectedCount');
+        const searchInput = document.getElementById('exerciseSearch');
+        const optimizeBtn = document.getElementById('optimizeBtn');
         
-        // Récupération des préférences utilisateur
         const userPreferredDuration = this.activeProgram?.session_duration || 
                                     window.currentUser?.onboarding_data?.session_duration || 60;
         const maxExercises = Math.min(8, Math.floor(userPreferredDuration / 7));
@@ -2145,15 +2148,36 @@ class PlanningManager {
             return;
         }
         
-        // Stocker la référence pour le drag & drop
-        this.currentSortable = null;
+        // NOUVEAU : Tri initial des exercices par scoring
+        this.sortExercisesByContribution();
         
-        // Fonction de mise à jour de l'aperçu
-        const updatePreview = () => {
+        // NOUVEAU : Recherche d'exercices
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                this.filterExercises(e.target.value);
+            });
+        }
+        
+        // Fonction de mise à jour animée
+        const updatePreview = async () => {
             const selected = Array.from(document.querySelectorAll('#exerciseSelectionGrid input:checked'));
             
             if (selectedCounter) {
+                // Animation du compteur
+                selectedCounter.style.transform = 'scale(1.2)';
                 selectedCounter.textContent = selected.length;
+                setTimeout(() => {
+                    selectedCounter.style.transform = 'scale(1)';
+                }, 200);
+            }
+            
+            // Gérer l'affichage de la baguette magique
+            if (optimizeBtn) {
+                if (selected.length >= 2) {
+                    optimizeBtn.classList.add('show');
+                } else {
+                    optimizeBtn.classList.remove('show');
+                }
             }
             
             if (selected.length === 0) {
@@ -2164,90 +2188,48 @@ class PlanningManager {
                     </div>
                 `;
                 createBtn.disabled = true;
-                createBtn.innerHTML = '<i class="fas fa-plus"></i> Créer la séance';
                 return;
             }
             
             try {
-                // CORRECTION : Validation robuste des exercices
-                const exercises = selected.map(input => {
-                    try {
-                        if (!input.dataset.exercise) {
-                            console.warn('⚠️ Input sans data-exercise:', input);
-                            return null;
-                        }
-                        // CORRECTION : Décoder les caractères d'échappement HTML
-                        const jsonData = input.dataset.exercise.replace(/&apos;/g, "'");
-                        return JSON.parse(jsonData);
-                    } catch (e) {
-                        console.error('Erreur parsing exercice:', e);
-                        console.log('Données brutes:', input.dataset.exercise);
-                        return null;
-                    }
-                }).filter(Boolean);
-                
-                if (exercises.length === 0) {
-                    throw new Error('Aucun exercice valide sélectionné');
-                }
-                
+                const exercises = selected.map(input => JSON.parse(input.dataset.exercise));
                 const duration = this.calculateSessionDuration(exercises);
                 const muscles = [...new Set(exercises.flatMap(ex => ex.muscle_groups || []))]
                     .filter(Boolean)
                     .map(muscle => muscle.charAt(0).toUpperCase() + muscle.slice(1));
                 
-                // Calcul de score avec fallback
-                let qualityScore = 75;
-                if (window.SessionQualityEngine && window.SessionQualityEngine.calculateSessionScore) {
-                    try {
-                        const scoreData = window.SessionQualityEngine.calculateSessionScore(exercises);
-                        qualityScore = Math.round(scoreData.total || 75);
-                    } catch (e) {
-                        console.warn('Calcul score fallback:', e);
-                        qualityScore = this.calculatePreviewQualityScoreFallback(exercises);
-                    }
-                } else {
-                    qualityScore = this.calculatePreviewQualityScoreFallback(exercises);
-                }
+                // Calcul score avec animation
+                let qualityScore = this.calculateLocalScore(exercises);
                 
-                // Obtenir la couleur du score
-                const scoreColor = window.SessionQualityEngine?.getScoreColor ? 
-                    window.SessionQualityEngine.getScoreColor(qualityScore) : 
-                    (qualityScore >= 85 ? '#10b981' : qualityScore >= 70 ? '#f59e0b' : '#ef4444');
+                const scoreColor = this.getScoreColor ? this.getScoreColor(qualityScore) : '#10b981';
                 
                 previewDiv.innerHTML = `
                     <div class="session-summary-v2">
                         <div class="summary-stats">
                             <div class="stat-item">
-                                <i class="fas fa-dumbbell"></i>
-                                <span class="stat-value">${exercises.length}</span>
+                                <i class="fas fa-dumbbell" style="color: var(--primary);"></i>
+                                <span class="stat-value" data-value="${exercises.length}">${exercises.length}</span>
                                 <span class="stat-label">exercices</span>
                             </div>
                             <div class="stat-item">
-                                <i class="fas fa-clock"></i>
-                                <span class="stat-value">${duration}</span>
+                                <i class="fas fa-clock" style="color: var(--warning);"></i>
+                                <span class="stat-value" data-value="${duration}">${duration}</span>
                                 <span class="stat-label">minutes</span>
                             </div>
                             <div class="stat-item">
-                                <i class="fas fa-muscle"></i>
-                                <span class="stat-value">${muscles.length}</span>
+                                <i class="fas fa-muscle" style="color: var(--info);"></i>
+                                <span class="stat-value" data-value="${muscles.length}">${muscles.length}</span>
                                 <span class="stat-label">groupes</span>
                             </div>
                             <div class="stat-item quality-score">
-                                <i class="fas fa-star" style="color: ${scoreColor}"></i>
-                                <span class="stat-value" style="color: ${scoreColor}" data-score="${qualityScore}">${qualityScore}%</span>
+                                <i class="fas fa-star" style="color: ${scoreColor};"></i>
+                                <span class="stat-value updated" style="color: ${scoreColor};" data-score="${qualityScore}">${qualityScore}%</span>
                                 <span class="stat-label">qualité</span>
                             </div>
                         </div>
                         
                         <div class="exercise-list-preview">
-                            <div class="preview-header">
-                                <h5><i class="fas fa-list"></i> Exercices sélectionnés</h5>
-                                ${exercises.length >= 2 ? `
-                                    <button class="btn btn-outline btn-sm" onclick="planningManager.optimizePreviewOrder()" title="Optimiser l'ordre">
-                                        <i class="fas fa-magic"></i>
-                                    </button>
-                                ` : ''}
-                            </div>
+                            <h5><i class="fas fa-list"></i> Exercices sélectionnés</h5>
                             <div class="exercises-sortable" id="previewExercisesList">
                                 ${exercises.map((ex, index) => `
                                     <div class="exercise-preview-item" 
@@ -2259,11 +2241,11 @@ class PlanningManager {
                                         <span class="exercise-number">${index + 1}</span>
                                         <div class="exercise-info">
                                             <div class="exercise-name">${ex.exercise_name}</div>
-                                            <div class="exercise-params">${ex.sets || 3} × ${ex.reps_min || 8}-${ex.reps_max || 12}</div>
+                                            <div class="exercise-params">${ex.sets || 3}×${ex.reps_min || 8}-${ex.reps_max || 12}</div>
                                         </div>
-                                        <button class="btn btn-sm btn-outline btn-danger exercise-remove" 
-                                                onclick="planningManager.removeExerciseFromPreview('${ex.exercise_id}')"
-                                                title="Retirer cet exercice">
+                                        <button class="exercise-remove" 
+                                                onclick="window.planningManager.removeExerciseFromPreview('${ex.exercise_id}')"
+                                                title="Retirer de la séance">
                                             <i class="fas fa-times"></i>
                                         </button>
                                     </div>
@@ -2273,12 +2255,13 @@ class PlanningManager {
                         
                         ${muscles.length > 0 ? `
                             <div class="muscle-groups-preview">
-                                <h5><i class="fas fa-muscle"></i> Groupes musculaires</h5>
+                                <h5><i class="fas fa-crosshairs"></i> Groupes musculaires</h5>
                                 <div class="muscle-tags">
                                     ${muscles.map(muscle => {
+                                        const muscleKey = muscle.toLowerCase();
                                         const color = window.MuscleColors?.getMuscleColor ? 
-                                            window.MuscleColors.getMuscleColor(muscle.toLowerCase()) : '#6b7280';
-                                        return `<span class="muscle-tag-preview" style="background-color: ${color}">${muscle}</span>`;
+                                            window.MuscleColors.getMuscleColor(muscleKey) : '#6b7280';
+                                        return `<span class="muscle-tag-preview" style="background: ${color}">${muscle}</span>`;
                                     }).join('')}
                                 </div>
                             </div>
@@ -2286,66 +2269,104 @@ class PlanningManager {
                     </div>
                 `;
                 
-                createBtn.disabled = false;
-                createBtn.innerHTML = `<i class="fas fa-plus"></i> Créer la séance (${exercises.length} exercices)`;
+                // Initialiser drag & drop
+                this.initializePreviewDragDrop();
                 
-                // Initialiser le drag & drop après mise à jour du DOM
-                setTimeout(() => this.initializePreviewDragDrop(), 100);
+                createBtn.disabled = false;
+                createBtn.innerHTML = `<i class="fas fa-plus"></i> Créer la séance (${exercises.length} ex.)`;
                 
             } catch (error) {
                 console.error('❌ Erreur preview séance:', error);
-                previewDiv.innerHTML = `
-                    <div class="error-preview">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <p>Erreur dans la sélection</p>
-                    </div>
-                `;
+                previewDiv.innerHTML = '<div class="error-preview"><i class="fas fa-exclamation-triangle"></i> Erreur dans la sélection</div>';
                 createBtn.disabled = true;
             }
         };
         
-        // Gestionnaire pour les checkboxes avec validation
+        // Event listeners avec debounce
+        let updateTimeout;
         checkboxes.forEach(checkbox => {
             checkbox.addEventListener('change', (event) => {
                 const selected = Array.from(document.querySelectorAll('#exerciseSelectionGrid input:checked'));
                 
-                // Vérifier les limites
                 if (event.target.checked && selected.length > maxExercises) {
                     event.target.checked = false;
-                    window.showToast(`Maximum ${maxExercises} exercices pour une séance de ${userPreferredDuration} minutes`, 'warning');
+                    window.showToast(`Maximum ${maxExercises} exercices`, 'warning');
                     return;
                 }
                 
-                // Vérifier la durée estimée si nécessaire
-                if (event.target.checked && selected.length > 4) {
-                    try {
-                        const tempExercises = selected.map(input => {
-                            if (!input.dataset.exercise) return null;
-                            const jsonData = input.dataset.exercise.replace(/&apos;/g, "'");
-                            return JSON.parse(jsonData);
-                        }).filter(Boolean);
-                        
-                        const estimatedDuration = this.calculateSessionDuration(tempExercises);
-                        const maxDuration = userPreferredDuration + 15; // Tolérance
-                        
-                        if (estimatedDuration > maxDuration) {
-                            event.target.checked = false;
-                            window.showToast(`Cette sélection dépasserait ${maxDuration} minutes`, 'warning');
-                            return;
-                        }
-                    } catch (e) {
-                        console.warn('⚠️ Erreur validation durée:', e);
-                    }
-                }
-                
-                updatePreview();
+                clearTimeout(updateTimeout);
+                updateTimeout = setTimeout(updatePreview, 150);
             });
         });
         
-        // Mise à jour initiale
         updatePreview();
+        console.log('✅ Modal création initialisé');
+    }
+
+    // NOUVELLES MÉTHODES à ajouter :
+
+    sortExercisesByContribution() {
+        // Trier les exercices par contribution potentielle au score
+        const groups = document.querySelectorAll('.exercise-group');
+        groups.forEach(group => {
+            const grid = group.querySelector('.exercise-group-grid');
+            const options = Array.from(grid.querySelectorAll('.exercise-option'));
+            
+            options.sort((a, b) => {
+                const exerciseA = JSON.parse(a.querySelector('input').dataset.exercise);
+                const exerciseB = JSON.parse(b.querySelector('input').dataset.exercise);
+                
+                // Score basé sur nombre de muscles + difficulté
+                const scoreA = (exerciseA.muscle_groups?.length || 1) * 10 + (exerciseA.difficulty || 1);
+                const scoreB = (exerciseB.muscle_groups?.length || 1) * 10 + (exerciseB.difficulty || 1);
+                
+                return scoreB - scoreA;
+            });
+            
+            // Réorganiser dans le DOM
+            options.forEach(option => grid.appendChild(option));
+        });
+    }
+
+    filterExercises(searchTerm) {
+        const container = document.getElementById('exerciseSelectionGrid');
+        const groups = container.querySelectorAll('.exercise-group');
+        const term = searchTerm.toLowerCase().trim();
         
-        console.log('✅ Modal création séance initialisé avec', checkboxes.length, 'exercices');
+        if (!term) {
+            // Afficher tout
+            groups.forEach(group => {
+                group.style.display = 'block';
+                group.querySelectorAll('.exercise-option').forEach(option => {
+                    option.classList.remove('hidden');
+                });
+            });
+            container.classList.remove('searching');
+            return;
+        }
+        
+        container.classList.add('searching');
+        
+        groups.forEach(group => {
+            const options = group.querySelectorAll('.exercise-option');
+            let hasMatch = false;
+            
+            options.forEach(option => {
+                const exercise = JSON.parse(option.querySelector('input').dataset.exercise);
+                const matches = exercise.exercise_name.toLowerCase().includes(term);
+                
+                if (matches) {
+                    option.classList.remove('hidden');
+                    hasMatch = true;
+                } else {
+                    option.classList.add('hidden');
+                }
+            });
+            
+            group.style.display = hasMatch ? 'block' : 'none';
+            if (hasMatch) group.classList.add('match');
+            else group.classList.remove('match');
+        });
     }
 
     // Fonction helper pour calcul de score fallback
