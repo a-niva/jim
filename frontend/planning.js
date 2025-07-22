@@ -626,16 +626,12 @@ class PlanningManager {
         
     async confirmDelete(sessionId) {
         try {
-            console.log('🗑️ Suppression séance:', sessionId);
-            
-            // Trouver la date de la session
+            // ✅ CORRECTIF : Utiliser le nouvel endpoint schedule
             const sessionDate = this.findDateForSession(sessionId);
             if (!sessionDate) {
-                window.showToast('Session introuvable', 'error');
-                return;
+                throw new Error('Date de session introuvable');
             }
             
-            // NOUVEAU : Utiliser l'endpoint schedule
             await window.apiDelete(`/api/programs/${this.activeProgram.id}/schedule/${sessionDate}`);
             
             window.closeModal();

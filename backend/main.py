@@ -1706,24 +1706,6 @@ def get_next_intelligent_session(user_id: int, db: Session = Depends(get_db)):
         # Si tout échoue
         raise HTTPException(status_code=500, detail="Erreur de sélection d'exercices")
 
-def determine_rotation_pattern(focus_areas: List[str]) -> List[str]:
-    """Détermine le pattern de rotation optimal basé sur les muscle_groups réels"""
-    if not focus_areas:
-        return ["full_body"]
-    
-    has_upper = any(area in ["pectoraux", "dos", "epaules", "bras"] for area in focus_areas)
-    has_lower = "jambes" in focus_areas
-    
-    if has_upper and has_lower:
-        return ["push_pull", "jambes"]  # Alterner haut/bas
-    elif has_upper:
-        return ["push", "pull"]  # Séparer poussée/tirage
-    elif has_lower:
-        return ["jambes", "full_body"]  # Jambes + complet
-    else:
-        return ["full_body"]
-
-
 
 # ===== NOUVEAUX ENDPOINTS PROGRAM BUILDER =====
 @app.post("/api/users/{user_id}/program-builder/start", response_model=ProgramBuilderRecommendations)
