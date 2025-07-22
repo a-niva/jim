@@ -514,50 +514,105 @@ class PlanningManager {
         const sessionId = session.id || session.session_id || `temp-${Date.now()}`;
         const score = session.predicted_quality_score || session.quality_score || 75;
         const duration = session.estimated_duration || 45;
-        const exerciseCount = (session.exercise_pool && Array.isArray(session.exercise_pool)) ? session.exercise_pool.length : 0;
+        
+        // CORRECTION PRINCIPALE : Unifier exercises vs exercise_pool
+        const exercises = session.exercises || session.exercise_pool || [];
+        const exerciseCount = Array.isArray(exercises) ? exercises.length : 0;
+        
         const primaryMuscles = session.primary_muscles || session.muscle_groups || [];
+        const status = session.status || 'planned';
         
         // Utiliser les fonctions existantes avec fallback
         const scoreGradient = window.getScoreGradient ? 
             window.getScoreGradient(score) : 
-            `linear-gradient(135deg, ${score >= 75 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444'}, #6b7280)`;
+            `linear-gradient(135deg, ${score >= 75 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444'} 0%, ${score >= 75 ? '#059669' : score >= 50 ? '#d97706' : '#dc2626'} 100%)`;
+        
+        // Générer les badges musculaires
+        const muscleColors = {
+            'chest': 'var(--muscle-chest)', 'back': 'var(--muscle-back)', 
+            'shoulders': 'var(--muscle-shoulders)', 'arms': 'var(--muscle-arms)',
+            'legs': 'var(--muscle-legs)', 'core': 'var(--muscle-core)',
+            'biceps': 'var(--muscle-arms)', 'triceps': 'var(--muscle-arms)',
+            'pectoraux': 'var(--muscle-chest)', 'dos': 'var(--muscle-back)',
+            'jambes': 'var(--muscle-legs)', 'bras': 'var(--muscle-arms)',
+            'abdominaux': 'var(--muscle-core)', 'epaules': 'var(--muscle-shoulders)'
+        };
+        
+        const musclesBadges = primaryMuscles.slice(0, 3).map(muscle => {
+            const color = muscleColors[muscle.toLowerCase()] || '#6b7280';
+            return `<span class="muscle-badge" style="background-color: ${color}">${muscle}</span>`;
+        }).join('');
+        
+        // Badge de statut
+        const statusBadges = {
+            'planned': '<span class="status-badge planned">Planifiée</span>',
+            'in_progress': '<span class="status-badge in-progress">En cours</span>',
+            'completed': '<span class="status-badge completed">Terminée</span>',
+            'skipped': '<span class="status-badge skipped">Ignorée</span>'
+        };
+        const statusBadge = statusBadges[status] || statusBadges['planned'];
         
         return `
-            <div class="session-card" 
+            <div class="session-card ${status}" 
                 data-session-id="${sessionId}" 
-                data-date="${date}"
-                onclick="planningManager.handleSessionClick('${sessionId}')">
+                onclick="planningManager.showSessionEditModal(planningManager.findSessionById('${sessionId}'))">
                 
                 <div class="session-header">
                     <div class="session-score">
                         <div class="score-gauge" style="background: ${scoreGradient}">
-                            <span>${score}</span>
+                            <span class="score-value">${Math.round(score)}</span>
                         </div>
                     </div>
-                    <button class="session-delete" 
-                            onclick="event.stopPropagation(); planningManager.handleDeleteSession('${sessionId}')"
-                            title="Supprimer">
-                        <i class="fas fa-times"></i>
-                    </button>
+                    
+                    <div class="session-main-info">
+                        <div class="session-stats">
+                            <div class="session-duration">
+                                <i class="fas fa-clock"></i>
+                                <span class="duration-text">${duration}min</span>
+                            </div>
+                            <div class="session-exercises-count">
+                                <i class="fas fa-dumbbell"></i>
+                                <span class="exercises-text">${exerciseCount} ex.</span>
+                            </div>
+                        </div>
+                        ${statusBadge}
+                    </div>
+                    
+                    <div class="session-actions">
+                        <button class="session-action-btn" 
+                                onclick="event.stopPropagation(); planningManager.showSessionEditModal(planningManager.findSessionById('${sessionId}'))"
+                                title="Éditer la séance">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="session-action-btn" 
+                                onclick="event.stopPropagation(); planningManager.deleteSession('${sessionId}')"
+                                title="Supprimer la séance">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="session-content">
-                    <div class="session-meta">
-                        <span><i class="fas fa-clock"></i> ${duration}min</span>
-                        <span><i class="fas fa-dumbbell"></i> ${exerciseCount} ex.</span>
+                    <div class="session-muscles">
+                        ${musclesBadges}
                     </div>
                     
-                    ${Array.isArray(primaryMuscles) && primaryMuscles.length > 0 ? `
-                        <div class="session-muscles">
-                            ${primaryMuscles.slice(0, 3).map(muscle => {
-                                const color = window.MuscleColors?.getMuscleColor ? 
-                                    window.MuscleColors.getMuscleColor(muscle) : 
-                                    '#6b7280';
-                                return `<span class="muscle-tag" style="background: ${color}">${muscle}</span>`;
-                            }).join('')}
-                            ${primaryMuscles.length > 3 ? `<span class="muscle-more">+${primaryMuscles.length - 3}</span>` : ''}
+                    ${exerciseCount > 0 ? `
+                        <div class="session-exercises-preview">
+                            ${exercises.slice(0, 3).map(ex => `
+                                <div class="exercise-preview-item">
+                                    <span class="exercise-name">${ex.name || ex.exercise_name || 'Exercice'}</span>
+                                    <span class="exercise-sets">${ex.default_sets || ex.sets || 3}×${ex.default_reps_min || ex.reps || 10}</span>
+                                </div>
+                            `).join('')}
+                            ${exerciseCount > 3 ? `<div class="more-exercises">+${exerciseCount - 3} autres</div>` : ''}
                         </div>
-                    ` : ''}
+                    ` : `
+                        <div class="session-empty">
+                            <i class="fas fa-plus-circle"></i>
+                            <span>Aucun exercice</span>
+                        </div>
+                    `}
                 </div>
             </div>
         `;
@@ -836,42 +891,62 @@ class PlanningManager {
     
     // 9. ADAPTER showSessionEditModal() existant pour utiliser Programme v2.0
     async showSessionEditModal(session) {
-        // Utiliser exercise_pool comme source de vérité
-        const exercises = session.exercise_pool || [];
+        if (!session) {
+            window.showToast('Session non trouvée', 'error');
+            return;
+        }
         
-        // Calculer le scoring avec fallback
+        console.log('🔍 Ouverture modal édition pour session:', session);
+        
+        // CORRECTION : Unifier exercises vs exercise_pool
+        const exercises = session.exercises || session.exercise_pool || [];
+        
+        if (!Array.isArray(exercises)) {
+            console.error('❌ Format exercises invalide:', exercises);
+            window.showToast('Erreur: format de session invalide', 'error');
+            return;
+        }
+        
+        console.log(`📊 ${exercises.length} exercices dans la session`);
+        
+        // Mode dégradé pour le scoring
         let currentScore;
         try {
-            // Si session depuis programme, essayer d'utiliser l'endpoint de calcul
-            if (this.activeProgram && session.program_id) {
-                const scoreResponse = await window.apiPost(
-                    `/api/programs/${this.activeProgram.id}/calculate-session-score`,
-                    { session: { exercises } }
-                );
-                currentScore = {
-                    total: Math.round(scoreResponse.quality_score || 75),
-                    breakdown: scoreResponse.breakdown || {},
-                    suggestions: scoreResponse.suggestions || [],
-                    confidence: scoreResponse.confidence || 0.7
-                };
-            } else {
-                // Fallback sur SessionQualityEngine local
+            if (window.SessionQualityEngine && window.getUserContext) {
                 const userContext = await window.getUserContext();
                 currentScore = await window.SessionQualityEngine.calculateScore(exercises, userContext);
+            } else {
+                throw new Error('SessionQualityEngine non disponible');
             }
         } catch (error) {
-            console.warn('⚠️ Calcul score en mode dégradé:', error);
+            console.warn('⚠️ SessionQualityEngine non disponible, utilisation score basique:', error);
+            // Fallback avec scoring basique
             currentScore = {
                 total: session.predicted_quality_score || 75,
-                breakdown: {},
-                suggestions: ["Calcul de score temporairement indisponible"],
+                breakdown: {
+                    muscleRotationScore: 20,
+                    recoveryScore: 20,
+                    progressionScore: 20,
+                    adherenceScore: 15
+                },
+                suggestions: ["Scoring avancé temporairement indisponible"],
                 confidence: 0.5
             };
         }
         
-        const duration = this.calculateSessionDuration(exercises);
+        // Calculer la durée
+        const duration = exercises.reduce((total, ex) => {
+            const sets = ex.default_sets || ex.sets || 3;
+            const restTime = (ex.rest_seconds || 90) / 60; // Convertir en minutes
+            const exerciseTime = sets * 1.5; // 1.5 min par série en moyenne
+            return total + exerciseTime + restTime;
+        }, 0);
         
-        // Le reste du modal reste identique mais avec ajout d'un bouton d'optimisation
+        // Gradient pour le score
+        const scoreGradient = window.getScoreGradient ? 
+            window.getScoreGradient(currentScore.total) : 
+            `linear-gradient(135deg, ${currentScore.total >= 75 ? '#10b981' : currentScore.total >= 50 ? '#f59e0b' : '#ef4444'} 0%, ${currentScore.total >= 75 ? '#059669' : currentScore.total >= 50 ? '#d97706' : '#dc2626'} 100%)`;
+        
         const modalContent = `
             <div class="session-edit-modal">
                 <div class="session-edit-header">
@@ -880,8 +955,8 @@ class PlanningManager {
                         <div class="live-score">
                             <label>Score qualité</label>
                             <div class="score-display" id="liveScore">
-                                <div class="score-gauge" style="background: ${this.getScoreGradient(currentScore.total)}">
-                                    <span id="scoreValue">${currentScore.total}</span>
+                                <div class="score-gauge" style="background: ${scoreGradient}">
+                                    <span id="scoreValue">${Math.round(currentScore.total)}</span>
                                 </div>
                             </div>
                         </div>
@@ -889,7 +964,7 @@ class PlanningManager {
                             <label>Durée estimée</label>
                             <div class="duration-display" id="liveDuration">
                                 <i class="fas fa-clock"></i>
-                                <span id="durationValue">${duration}</span> min
+                                <span id="durationValue">${Math.round(duration)}</span> min
                             </div>
                         </div>
                     </div>
@@ -899,19 +974,56 @@ class PlanningManager {
                     <div class="exercises-header">
                         <h4>Exercices (${exercises.length})</h4>
                         <div class="exercise-actions">
-                            ${this.activeProgram ? `
-                                <button class="btn btn-sm btn-secondary" onclick="planningManager.optimizeSessionOrder('${session.id}')">
-                                    <i class="fas fa-magic"></i> Ordre optimal
-                                </button>
-                            ` : ''}
-                            <button class="btn btn-sm btn-primary" onclick="planningManager.refresh('${session.id}')">
+                            <button class="btn btn-sm btn-secondary" onclick="planningManager.applyOptimalOrder('${session.id}')" 
+                                    title="Optimiser l'ordre des exercices">
+                                <i class="fas fa-magic"></i> Ordre optimal
+                            </button>
+                            <button class="btn btn-sm btn-primary" onclick="planningManager.saveSessionChanges('${session.id}')">
                                 <i class="fas fa-save"></i> Sauvegarder
                             </button>
                         </div>
                     </div>
                     
                     <div class="exercises-list" id="sessionExercisesList">
-                        ${exercises.map((ex, index) => this.renderEditableExercise(ex, index, session.id)).join('')}
+                        ${exercises.length > 0 ? exercises.map((ex, index) => `
+                            <div class="exercise-edit-item" data-exercise-index="${index}">
+                                <div class="exercise-drag-handle">
+                                    <i class="fas fa-grip-vertical"></i>
+                                </div>
+                                <div class="exercise-info">
+                                    <div class="exercise-name">${ex.name || ex.exercise_name || 'Exercice sans nom'}</div>
+                                    <div class="exercise-details">
+                                        ${ex.default_sets || ex.sets || 3} séries × 
+                                        ${ex.default_reps_min || ex.reps || 8}-${ex.default_reps_max || ex.reps || 12} reps
+                                    </div>
+                                    <div class="exercise-muscles">
+                                        ${(ex.muscle_groups || []).join(', ')}
+                                    </div>
+                                </div>
+                                <div class="exercise-actions">
+                                    <button class="btn btn-sm btn-outline" onclick="planningManager.editExercise('${session.id}', ${index})"
+                                            title="Modifier l'exercice">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline btn-danger" onclick="planningManager.removeExercise('${session.id}', ${index})"
+                                            title="Supprimer l'exercice">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('') : `
+                            <div class="exercises-empty">
+                                <i class="fas fa-dumbbell"></i>
+                                <p>Aucun exercice dans cette séance</p>
+                            </div>
+                        `}
+                    </div>
+                    
+                    <div class="add-exercise-section">
+                        <button class="btn btn-outline btn-sm" onclick="planningManager.showAddExerciseModal('${session.id}')"
+                                title="Ajouter un exercice à la séance">
+                            <i class="fas fa-plus"></i> Ajouter un exercice
+                        </button>
                     </div>
                 </div>
                 
@@ -920,20 +1032,32 @@ class PlanningManager {
                         <i class="fas fa-play"></i> Démarrer la séance
                     </button>
                     <button class="btn btn-secondary" onclick="window.closeModal()">
-                        Fermer
+                        <i class="fas fa-times"></i> Fermer
                     </button>
                 </div>
             </div>
         `;
         
-        window.showModal('Séance', modalContent);
+        window.showModal('', modalContent);
         
-        // Initialiser drag & drop pour les exercices
-        setTimeout(() => {
-            this.initializeExerciseDragDrop(session.id);
-        }, 100);
+        // Initialiser le drag & drop si SortableJS est disponible
+        if (typeof Sortable !== 'undefined') {
+            const exercisesList = document.getElementById('sessionExercisesList');
+            if (exercisesList) {
+                new Sortable(exercisesList, {
+                    animation: 150,
+                    handle: '.exercise-drag-handle',
+                    onEnd: function(evt) {
+                        if (evt.oldIndex !== evt.newIndex) {
+                            console.log(`🔄 Exercice déplacé: ${evt.oldIndex} → ${evt.newIndex}`);
+                            planningManager.reorderExercise(session.id, evt.oldIndex, evt.newIndex);
+                        }
+                    }
+                });
+            }
+        }
     }
-    
+        
 
     // 10. AJOUTER fonction pour optimiser l'ordre (si programme actif)
     async optimizeSessionOrder(sessionId) {
@@ -1687,115 +1811,52 @@ class PlanningManager {
     async applyOptimalOrder(sessionId) {
         try {
             const session = this.findSessionById(sessionId);
-            if (!session?.exercises?.length) {
+            if (!session) {
+                window.showToast('Session non trouvée', 'error');
+                return;
+            }
+            
+            // CORRECTION : Unifier exercises vs exercise_pool
+            const exercises = session.exercises || session.exercise_pool || [];
+            
+            if (!Array.isArray(exercises) || exercises.length === 0) {
                 window.showToast('Aucun exercice à réorganiser', 'warning');
                 return;
             }
         
-            if (session.exercises.length < 2) {
+            if (exercises.length < 2) {
                 window.showToast('Au moins 2 exercices requis', 'info');
                 return;
             }
         
-            console.log('🎯 Optimisation ordre pour:', session.exercises.length, 'exercices');
+            console.log('🎯 Optimisation ordre pour:', exercises.length, 'exercices');
         
-            // Si on a un programme actif, utiliser l'endpoint v2.0
-            if (this.activeProgram && sessionId.includes('_')) {
-                try {
-                    // CORRECTION: sessionId format réel = "2025-07-30_0" (date_index)
-                    const parts = sessionId.split('_');
-                    if (parts.length >= 2) {
-                        // CORRECTION: Utiliser l'ID du programme actif, pas le sessionId
-                        const programId = this.activeProgram.id;
-                        const sessionDate = parts[0]; // "2025-07-30"
-                        const sessionIndex = parseInt(parts[1]); // 0
-                    
-                        console.log('🔧 Données optimisation:', {
-                            programId: programId,
-                            sessionDate: sessionDate,
-                            sessionIndex: sessionIndex,
-                            programFormat: this.activeProgram.format_version
-                        });
-                    
-                        // CORRECTION: Adapter selon le format du programme
-                        let weekIndex = 0;
-                        let finalSessionIndex = sessionIndex;
-                        
-                        // Si le programme utilise weekly_structure comme objet (jours de semaine)
-                        if (this.activeProgram.weekly_structure && 
-                            typeof this.activeProgram.weekly_structure === 'object' && 
-                            !Array.isArray(this.activeProgram.weekly_structure)) {
-                            
-                            // Convertir la date en jour de semaine pour trouver l'index
-                            const sessionDateObj = new Date(sessionDate);
-                            const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-                            const dayName = dayNames[sessionDateObj.getDay()];
-                            
-                            console.log('📅 Session day:', dayName);
-                            
-                            // Pour les programmes v2.0 avec structure par jours, 
-                            // on utilise sessionIndex directement et weekIndex = 0
-                            weekIndex = 0;
-                            finalSessionIndex = sessionIndex;
-                        }
-                    
-                        // Créer l'ordre actuel (indices 0, 1, 2, ...)
-                        const currentOrder = session.exercises.map((_, idx) => idx);
-                    
-                        console.log('📤 Envoi optimisation:', {
-                            url: `/api/programs/${programId}/reorder-session`,
-                            data: {
-                                week_index: weekIndex,
-                                session_index: finalSessionIndex,
-                                new_exercise_order: currentOrder
-                            }
-                        });
-                    
-                        // Appeler l'endpoint correct
-                        const response = await window.apiPut(
-                            `/api/programs/${programId}/reorder-session`,
-                            {
-                                week_index: weekIndex,
-                                session_index: finalSessionIndex,
-                                new_exercise_order: currentOrder
-                            }
-                        );
-                    
-                        if (response && response.success) {
-                            window.showToast(
-                                `Ordre optimisé (score: ${Math.round(response.new_score)}%)`,
-                                'success'
-                            );
-                        
-                            // Actualiser les données
-                            await this.refresh();
-                            return;
-                        } else {
-                            console.warn('⚠️ Réponse API inattendue:', response);
-                        }
-                    }
-                } catch (apiError) {
-                    console.warn('⚠️ API optimisation échouée, fallback local:', apiError);
-                    console.warn('Détails erreur:', {
-                        message: apiError.message,
-                        status: apiError.status,
-                        response: apiError.response
-                    });
-                }
-            }
+            // CORRECTION: L'endpoint backend ne fonctionne pas avec les programmes schedule
+            // Utiliser directement l'optimisation locale pour les sessions depuis schedule
+            console.log('🔄 Backend optimisation non compatible avec schedule, utilisation optimisation locale');
+            
+            // Note: L'endpoint /api/programs/{id}/reorder-session attend un format weekly_structure array
+            // mais nos programmes utilisent schedule avec un format différent
+            // TODO: Créer un endpoint spécifique pour optimiser les sessions du schedule
         
             // Fallback : Optimisation locale
             console.log('🔄 Utilisation optimisation locale');
             
             // Vérifier si la fonction d'optimisation locale existe
             if (typeof this.optimizeExercisesLocally === 'function') {
-                const optimized = this.optimizeExercisesLocally(session.exercises);
-                session.exercises = optimized.exercises;
+                const optimized = this.optimizeExercisesLocally(exercises);
+                
+                // CORRECTION : Mettre à jour le bon champ
+                if (session.exercises) {
+                    session.exercises = optimized.exercises;
+                } else if (session.exercise_pool) {
+                    session.exercise_pool = optimized.exercises;
+                }
             
                 // Mettre à jour l'affichage si on est dans un modal d'édition
                 const container = document.getElementById('sessionExercisesList');
                 if (container && typeof this.renderEditableExercise === 'function') {
-                    container.innerHTML = session.exercises
+                    container.innerHTML = optimized.exercises
                         .map((ex, index) => this.renderEditableExercise(ex, index, sessionId))
                         .join('');
                     
@@ -1819,7 +1880,7 @@ class PlanningManager {
                 console.warn('⚠️ Aucune fonction d\'optimisation locale disponible');
                 
                 // Ordre basique : exercices composés d'abord, puis isolation
-                const reordered = [...session.exercises].sort((a, b) => {
+                const reordered = [...exercises].sort((a, b) => {
                     const aIsCompound = a.exercise_type === 'compound' || 
                                     (a.muscle_groups && a.muscle_groups.length > 1);
                     const bIsCompound = b.exercise_type === 'compound' || 
@@ -1830,7 +1891,13 @@ class PlanningManager {
                     return 0;
                 });
                 
-                session.exercises = reordered;
+                // CORRECTION : Mettre à jour le bon champ
+                if (session.exercises) {
+                    session.exercises = reordered;
+                } else if (session.exercise_pool) {
+                    session.exercise_pool = reordered;
+                }
+                
                 window.showToast('Ordre basique appliqué (composés → isolation)', 'info');
             }
         
