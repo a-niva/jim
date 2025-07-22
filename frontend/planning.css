@@ -683,10 +683,9 @@
 }
 
 .exercises-list {
-    border: 1px solid var(--planning-border);
-    border-radius: var(--planning-radius);
-    overflow: hidden;
-    background: var(--bg-secondary);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem; /* RÉDUIT de 0.5rem */
 }
 
 .exercise-item {
@@ -1336,22 +1335,25 @@
 
 /* Header compact et propre */
 .modal-header-section {
-    padding: 1rem 1.5rem 0.75rem 1.5rem;
+    padding: 0.75rem 1.25rem; /* RÉDUIT de 1rem 1.5rem */
     border-bottom: 1px solid var(--planning-border);
     background: var(--bg-secondary);
     flex-shrink: 0;
     position: relative;
+    display: flex;
+    align-items: center; /* AJOUT pour alignement vertical */
+    justify-content: space-between; /* AJOUT */
 }
 
 .modal-header-section h3 {
-    margin: 0 0 0.4rem 0;
+    margin: 0; /* SUPPRIMÉ margin-bottom */
     color: var(--text);
-    font-size: 1.3rem;
+    font-size: 1.1rem; /* RÉDUIT de 1.3rem */
     font-weight: 700;
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    padding-right: 2rem; /* Espace pour la croix */
+    gap: 0.5rem; /* RÉDUIT de 0.6rem */
+    padding-right: 0; /* SUPPRIMÉ le padding-right: 2rem */
 }
 
 .modal-header-section h3 i {
@@ -1362,31 +1364,40 @@
 .session-date-info {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.3rem; /* RÉDUIT de 0.4rem */
     color: var(--text-muted);
-    font-size: 0.8rem;
+    font-size: 0.75rem; /* RÉDUIT de 0.8rem */
     margin: 0;
+    margin-right: 2rem; /* AJOUT pour espace avec la croix */
 }
 
 .session-date-info i {
     color: var(--text-muted);
-    font-size: 0.8rem;
+    font-size: 0.75rem;
 }
 
 /* Corps vertical avec scroll optimisé */
 .modal-body-section {
     flex: 1;
     overflow-y: auto;
-    padding: 1.5rem;
+    padding: 1rem; /* RÉDUIT de 1.5rem */
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1rem; /* RÉDUIT de 1.5rem */
     min-height: 0;
 }
 
 /* Section exercices avec toggle */
 .selection-section {
-    flex-shrink: 0;
+    flex: 1.5; /* Plus d'espace pour la sélection */
+    min-width: 0; /* Pour permettre le shrink */
+}
+
+/* AJOUT : Layout en colonnes optimisé */
+.session-content-wrapper {
+    display: flex;
+    gap: 1rem;
+    height: 100%;
 }
 
 .section-header {
@@ -1497,12 +1508,29 @@
 
 /* Grid exercices avec largeur calculée */
 .exercise-groups-container {
-    max-height: 250px;
-    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); /* RÉDUIT de 180px */
+    gap: 0.75rem; /* RÉDUIT de 1rem */
+    max-height: 400px; /* AJOUT pour limiter la hauteur */
+    overflow-y: auto; /* AJOUT pour scroll si nécessaire */
+    padding-right: 0.5rem; /* AJOUT pour espace scrollbar */
+}
+
+.muscle-group {
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    padding: 0.75rem; /* RÉDUIT de 1rem */
     border: 1px solid var(--planning-border);
-    border-radius: 6px;
-    background: var(--bg-secondary);
-    padding: 0.6rem;
+}
+
+.muscle-group h5 {
+    margin: 0 0 0.5rem 0; /* RÉDUIT de 0.75rem */
+    font-size: 0.85rem; /* RÉDUIT de 0.9rem */
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem; /* RÉDUIT de 0.5rem */
 }
 
 .exercise-group {
@@ -1532,9 +1560,16 @@
 }
 
 .exercise-option {
-    width: calc(50% - 0.2rem);
+    display: flex;
+    align-items: center;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--planning-border);
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem; /* RÉDUIT de 0.6rem 0.85rem */
     cursor: pointer;
     transition: all 0.2s ease;
+    position: relative;
+    gap: 0.5rem; /* RÉDUIT de 0.65rem */
 }
 
 .exercise-option input[type="checkbox"] {
@@ -1571,8 +1606,8 @@
 
 .exercise-name {
     font-weight: 600;
-    font-size: 0.75rem;
-    margin-bottom: 0.15rem;
+    font-size: 0.7rem; /* RÉDUIT de 0.75rem */
+    margin-bottom: 0.1rem; /* RÉDUIT de 0.15rem */
     line-height: 1.1;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1581,14 +1616,15 @@
 }
 
 .exercise-details {
-    font-size: 0.65rem;
+    font-size: 0.6rem; /* RÉDUIT de 0.65rem */
     opacity: 0.8;
     line-height: 1;
 }
 
 /* Section aperçu avec header sur même ligne */
 .preview-section {
-    flex-shrink: 0;
+    flex: 1; /* Moins d'espace pour l'aperçu */
+    min-width: 250px; /* Largeur minimale */
 }
 
 .preview-header {
@@ -1684,14 +1720,14 @@
     gap: 1.25rem;
 }
 
+/* Stats compactes 2x2 */
 .summary-stats {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
-    gap: 0.75rem;
+    display: flex; /* CHANGÉ de grid */
+    gap: 0.5rem; /* RÉDUIT de 0.75rem */
     background: var(--bg-tertiary);
-    padding: 0.85rem;
+    padding: 0.5rem; /* RÉDUIT de 0.85rem */
     border-radius: 6px;
+    justify-content: space-around; /* AJOUT */
 }
 
 .stat-item {
@@ -1699,26 +1735,26 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.2rem;
+    gap: 0; /* RÉDUIT de 0.2rem */
+    padding: 0.25rem; /* AJOUT */
+    flex: 1; /* AJOUT */
+    max-width: 80px; /* AJOUT pour limiter la largeur */
 }
 
 .stat-item i {
-    font-size: 1.1rem;
-    margin-bottom: 0.1rem;
+    font-size: 0.9rem; /* RÉDUIT de 1.1rem */
+    margin-bottom: 0; /* RÉDUIT de 0.1rem */
 }
 
 .stat-value {
-    font-size: 1.3rem;
+    font-size: 1rem; /* RÉDUIT de 1.3rem */
     font-weight: 700;
-    transition: all 0.3s ease;
+    line-height: 1; /* AJOUT */
 }
 
 .stat-label {
-    font-size: 0.65rem;
+    font-size: 0.65rem; /* AJOUT pour réduire */
     color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    font-weight: 500;
 }
 
 /* Animation score avec pulse */
