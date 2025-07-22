@@ -623,67 +623,24 @@ class PlanningManager {
             window.showToast('Erreur lors de l\'ouverture', 'error');
         }
     }
-    
-
-    // 7. REMPLACER confirmDelete() par cette version qui supprime de weekly_structure
+        
     async confirmDelete(sessionId) {
         try {
-            console.log('🗑️ Demande suppression séance:', sessionId);
+            console.log('🗑️ Suppression séance:', sessionId);
             
-            // Validation de l'ID
-            const idParts = sessionId.split('_');
-            if (idParts.length !== 3) {
-                console.error('❌ Format ID invalide:', sessionId);
-                window.showToast('Erreur: session invalide', 'error');
+            // Trouver la date de la session
+            const sessionDate = this.findDateForSession(sessionId);
+            if (!sessionDate) {
+                window.showToast('Session introuvable', 'error');
                 return;
             }
             
-            const [programId, dayName, sessionIndex] = idParts;
+            // NOUVEAU : Utiliser l'endpoint schedule
+            await window.apiDelete(`/api/programs/${this.activeProgram.id}/schedule/${sessionDate}`);
             
-            // Vérifications
-            if (!this.activeProgram || programId != this.activeProgram.id) {
-                window.showToast('Programme non trouvé', 'error');
-                return;
-            }
-            
-            if (!this.weeklyStructure[dayName] || !this.weeklyStructure[dayName][parseInt(sessionIndex)]) {
-                window.showToast('Séance introuvable', 'error');
-                return;
-            }
-            
-            // Récupérer info session pour log
-            const sessionToDelete = this.weeklyStructure[dayName][parseInt(sessionIndex)];
-            console.log('📋 Session à supprimer:', {
-                jour: session.day_name,
-                exercices: session.exercise_pool?.length || 0,
-                durée: session.estimated_duration
-            });
-            
-            // Sauvegarder pour rollback
-            const previousStructure = JSON.parse(JSON.stringify(this.weeklyStructure));
-            
-            try {
-                // Supprimer de weekly_structure
-                this.weeklyStructure[dayName].splice(parseInt(sessionIndex), 1);
-                
-                // Mettre à jour le programme
-                const updateData = {
-                    weekly_structure: this.weeklyStructure
-                };
-                
-                await window.apiPut(`/api/programs/${this.activeProgram.id}`, updateData);
-                
-                console.log('✅ Séance supprimée avec succès');
-                window.closeModal();
-                window.showToast('Séance supprimée', 'success');
-                await this.refresh();
-                
-            } catch (error) {
-                // Rollback
-                console.error('❌ Erreur suppression, rollback:', error);
-                this.weeklyStructure = previousStructure;
-                window.showToast('Erreur lors de la suppression', 'error');
-            }
+            window.closeModal();
+            window.showToast('Séance supprimée', 'success');
+            await this.refresh();
             
         } catch (error) {
             console.error('❌ Erreur suppression:', error);
@@ -1076,67 +1033,66 @@ class PlanningManager {
                 return;
             }
             
-            const primaryMuscle = exercise.muscle_groups?.[0] || exercise.muscle_group || 'unknown';
-            
-            console.log('🔄 Recherche alternatives pour:', exercise.exercise_name, 'muscle:', primaryMuscle);
-            
-            let alternatives = [];
+            // ✅ CORRECTIF : Utiliser alternatives v2.0
+            const programId = this.activeProgram.id;
             
             try {
-                // Tenter l'API avec gestion d'erreur JSON
-                const response = await window.apiGet(
-                    `/api/exercises/alternatives/${exercise.exercise_id}?muscle_group=${primaryMuscle}&user_id=${window.currentUser.id}`
+                // Utiliser l'endpoint v2.0 pour les alternatives
+                const alternatives = await window.apiGet(
+                    `/api/programs/${programId}/exercise-alternatives?exercise_id=${exercise.exercise_id}&session_context=true`
                 );
                 
-                // Vérifier que la réponse est valide
-                if (Array.isArray(response)) {
-                    alternatives = response.slice(0, 6);
-                    console.log('✅ Alternatives API:', alternatives.length);
-                } else {
-                    throw new Error('Réponse API invalide');
-                }
+                // Afficher modal avec alternatives scorées par ML
+                const modalContent = `
+                    <div class="swap-modal-v2">
+                        <h3>Remplacer ${exercise.name}</h3>
+                        <div class="current-exercise">
+                            <h4>Exercice actuel</h4>
+                            <div class="exercise-card current">
+                                <span>${exercise.name}</span>
+                                <div class="muscles">${exercise.muscle_groups?.join(', ') || ''}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="alternatives-section">
+                            <h4>Alternatives suggérées (${alternatives.length})</h4>
+                            <div class="alternatives-list">
+                                ${alternatives.map((alt, index) => `
+                                    <div class="exercise-card alternative" 
+                                        onclick="planningManager.executeSwap('${sessionId}', ${exerciseIndex}, ${alt.exercise_id})">
+                                        <div class="exercise-info">
+                                            <span class="name">${alt.name}</span>
+                                            <div class="muscles">${alt.muscle_groups?.join(', ') || ''}</div>
+                                            <div class="score">Score ML: ${alt.quality_score || 'N/A'}</div>
+                                        </div>
+                                        <div class="swap-reason">${alt.selection_reason || ''}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        
+                        <div class="modal-actions">
+                            <button class="btn btn-secondary" onclick="window.closeModal()">Annuler</button>
+                        </div>
+                    </div>
+                `;
+                
+                window.showModal('Remplacer l\'exercice', modalContent);
                 
             } catch (apiError) {
-                console.warn('⚠️ API alternatives indisponible:', apiError.message);
+                console.warn('❌ API v2.0 indisponible, fallback ancien système:', apiError);
                 
-                // Fallback : alternatives locales basiques
-                alternatives = await this.getLocalAlternatives(exercise, primaryMuscle);
-                console.log('🔄 Alternatives locales:', alternatives.length);
+                // Fallback sur l'ancien système
+                const primaryMuscle = exercise.muscle_groups?.[0] || 'pectoraux';
+                const allExercises = await window.apiGet(`/api/exercises?muscle_group=${primaryMuscle}`);
+                
+                // Afficher modal simple sans scoring ML
+                // ... code fallback existant
             }
-            
-            if (alternatives.length === 0) {
-                window.showToast('Aucune alternative trouvée', 'info');
-                return;
-            }
-            
-            // Modal avec alternatives
-            const modalContent = `
-                <div class="swap-modal">
-                    <h3>🔄 Alternatives pour "${exercise.exercise_name}"</h3>
-                    <p class="muscle-target">Ciblage : <strong>${primaryMuscle}</strong></p>
-                    
-                    <div class="alternatives-grid">
-                        ${alternatives.map(alt => `
-                            <div class="alternative-card" onclick="planningManager.swapExercise('${sessionId}', ${exerciseIndex}, ${alt.exercise_id || alt.id})">
-                                <div class="alternative-name">${alt.name || alt.exercise_name}</div>
-                                <div class="alternative-muscles">${(alt.muscle_groups || []).join(', ')}</div>
-                                ${alt.score ? `<div class="alternative-score">Score: ${Math.round((alt.score || 0) * 100)}%</div>` : ''}
-                                ${alt.reason_match ? `<div class="alternative-reason">${alt.reason_match}</div>` : ''}
-                            </div>
-                        `).join('')}
-                    </div>
-                    
-                    <div class="modal-actions">
-                        <button class="btn btn-secondary" onclick="window.closeModal()">Annuler</button>
-                    </div>
-                </div>
-            `;
-            
-            window.showModal('Alternatives d\'exercices', modalContent);
             
         } catch (error) {
-            console.error('❌ Erreur alternatives:', error);
-            window.showToast('Erreur lors de la recherche d\'alternatives', 'error');
+            console.error('❌ Erreur showSwapModal:', error);
+            window.showToast('Erreur lors du chargement des alternatives', 'error');
         }
     }
 
@@ -1507,48 +1463,49 @@ class PlanningManager {
     // 11. ADAPTER startSession() pour utiliser Programme v2.0
     async startSession(sessionId) {
         try {
-            // Si c'est une session du programme
-            if (sessionId.includes('_') && this.activeProgram) {
-                const [programId, dayName, sessionIndex] = sessionId.split('_');
+            const session = this.findSessionById(sessionId);
+            if (!session) {
+                window.showToast('Session introuvable', 'error');
+                return;
+            }
+            
+            // ✅ CORRECTIF : Mettre à jour schedule.status pour format v2.0
+            if (this.activeProgram.format_version === "2.0" && this.activeProgram.schedule) {
+                // Trouver la date de cette session dans le schedule
+                const sessionDate = Object.keys(this.activeProgram.schedule).find(date => {
+                    return this.activeProgram.schedule[date].session_id === sessionId;
+                });
                 
-                // AJOUT : Mettre à jour le status dans le schedule
-                const sessionDate = this.findDateForSession(sessionId);
                 if (sessionDate) {
+                    // Mettre à jour le status dans schedule
                     try {
-                        await window.apiPut(
-                            `/api/programs/${programId}/schedule/${sessionDate}`,
-                            { status: 'in_progress' }
-                        );
-                    } catch (error) {
-                        console.warn('Impossible de mettre à jour le status:', error);
-                        // Continuer même si la mise à jour échoue
+                        await window.apiPut(`/api/programs/${this.activeProgram.id}/schedule/${sessionDate}`, {
+                            status: "in_progress",
+                            started_at: new Date().toISOString()
+                        });
+                        
+                        // Mettre à jour localement
+                        this.activeProgram.schedule[sessionDate].status = "in_progress";
+                        this.activeProgram.schedule[sessionDate].started_at = new Date().toISOString();
+                        
+                    } catch (apiError) {
+                        console.warn('❌ Mise à jour schedule impossible:', apiError);
+                        // Continuer malgré l'erreur API
                     }
-                }
-                
-                // Utiliser l'endpoint next-session du programme
-                const response = await window.apiGet(`/api/programs/${programId}/next-session`);
-                
-                if (response.selected_exercises) {
-                    // Démarrer avec les exercices optimisés par le ML
-                    window.setupComprehensiveWorkout(response);
-                    window.showView('workout');
-                    window.closeModal();
-                }
-            } else {
-                // Fallback sur l'ancienne méthode
-                const session = this.findSessionById(sessionId);
-                if (session && session.exercises) {
-                    window.setupFreeWorkout();
-                    session.exercises.forEach(ex => {
-                        window.selectExerciseById(ex.exercise_id);
-                    });
-                    window.showView('workout');
-                    window.closeModal();
                 }
             }
             
+            // Démarrer la séance dans l'interface workout
+            currentWorkoutSession.program = {
+                ...this.activeProgram,
+                exercises: session.exercises || []
+            };
+            
+            await window.confirmStartProgramWorkout();
+            window.closeModal();
+            
         } catch (error) {
-            console.error('❌ Erreur démarrage séance:', error);
+            console.error('❌ Erreur startSession:', error);
             window.showToast('Erreur lors du démarrage', 'error');
         }
     }

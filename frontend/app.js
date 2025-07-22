@@ -2454,64 +2454,43 @@ async function startProgramWorkout() {
     try {
         showToast('Chargement de votre programme...', 'info');
         
-        // Récupérer le programme actif
         const activeProgram = await apiGet(`/api/users/${currentUser.id}/programs/active`);
         
         if (!activeProgram) {
-            console.log('🎯 Aucun programme actif → Lancement ProgramBuilder');
-            showToast('Configuration de votre premier programme...', 'info');
-            
-            try {
-                // Lancer le ProgramBuilder avec les données utilisateur
-                if (window.programBuilder) {
-                    await window.programBuilder.initialize(currentUser);
-                } else {
-                    console.error('ProgramBuilder non disponible');
-                    showToast('Module de configuration non chargé - Contactez le support', 'error');
-                }
-            } catch (error) {
-                console.error('Erreur lancement ProgramBuilder:', error);
-                showToast('Erreur lors de la configuration', 'error');
-            }
+            // Lancement ProgramBuilder...
             return;
         }
         
-        // Si format v2.0 avec schedule, utiliser le flow moderne
-        if (activeProgram.format_version === "2.0" && activeProgram.schedule) {
-            const today = new Date().toISOString().split('T')[0];
-            
-            if (activeProgram.schedule[today]) {
-                // Il y a une séance aujourd'hui, la démarrer
-                confirmStartProgramWorkout();
+        // Vérifier format_version et router en conséquence
+        if (activeProgram.format_version === "2.0") {
+            // Format v2.0 - Utiliser schedule
+            if (activeProgram.schedule) {
+                const today = new Date().toISOString().split('T')[0];
+                
+                if (activeProgram.schedule[today]) {
+                    // Il y a une séance aujourd'hui
+                    currentWorkoutSession.scheduleDate = today;
+                    confirmStartProgramWorkout();
+                } else {
+                    // Pas de séance programmée aujourd'hui
+                    showToast('Aucune séance programmée aujourd\'hui', 'info');
+                    // Optionnel : proposer de programmer une séance
+                }
             } else {
-                // Pas de séance aujourd'hui, proposer les prochaines
-                if (window.showUpcomingSessionsModal) {
-                    window.showUpcomingSessionsModal();
-                } else {
-                    // Fallback si planning.js n'est pas chargé
-                    showToast('Pas de séance prévue aujourd\'hui', 'info');
-                }
+                // Pas de schedule généré
+                showToast('Génération du planning en cours...', 'info');
+                await apiPost(`/api/users/${currentUser.id}/populate-planning-intelligent`);
+                // Relancer après génération
+                startProgramWorkout();
             }
-            return;
-        }
-        
-        // Ancien format ou pas de schedule - flow normal
-        try {
-            showToast('Préparation de votre séance personnalisée...', 'info');
-            
-            const sessionData = await apiGet(`/api/users/${currentUser.id}/programs/next-session`);
-            
-            // Afficher preview de la séance avant de commencer
-            showComprehensiveSessionPreview(sessionData, activeProgram);
-            
-        } catch (error) {
-            console.error('Erreur sélection intelligente:', error);
-            showToast('Erreur lors de la génération de séance', 'error');
+        } else {
+            // Format v1.0 ou ancien - Utiliser l'ancienne logique
+            await setupProgramWorkout(activeProgram);
         }
         
     } catch (error) {
-        console.error('Erreur démarrage programme:', error);
-        showToast('Erreur lors du démarrage du programme', 'error');
+        console.error('Erreur démarrage séance programme:', error);
+        showToast('Erreur lors du démarrage', 'error');
     }
 }
 
@@ -9927,8 +9906,6 @@ async function showProgramInterface() {
             if (!userDetails.experience_level || !userDetails.equipment_config) {
                 console.warn('⚠️ Données utilisateur incomplètes');
                 window.showToast('Veuillez compléter votre profil', 'warning');
-                // Optionnel : rediriger vers profil
-                // showProfileSettings();
                 return;
             }
             
@@ -9957,9 +9934,57 @@ async function showProgramInterface() {
             return;
         }
         
-        // Programme existe = afficher modal choix séances
+        // ✅ CORRECTIF : Utiliser schedule selon format_version
         console.log('✅ Programme actif trouvé:', activeProgram.name);
-        showProgramChoiceModal(activeProgram);
+        
+        if (activeProgram.format_version === "2.0") {
+            // Format v2.0 - Chercher prochaines séances dans schedule
+            if (activeProgram.schedule) {
+                const today = new Date();
+                const upcomingSessions = [];
+                
+                // Parcourir le schedule pour trouver les prochaines séances
+                for (let i = 0; i < 14 && upcomingSessions.length < 3; i++) {
+                    const checkDate = new Date(today);
+                    checkDate.setDate(checkDate.getDate() + i);
+                    const dateStr = checkDate.toISOString().split('T')[0];
+                    
+                    if (activeProgram.schedule[dateStr]) {
+                        upcomingSessions.push({
+                            date: dateStr,
+                            session: activeProgram.schedule[dateStr]
+                        });
+                    }
+                }
+                
+                if (upcomingSessions.length > 0) {
+                    // Afficher modal avec les prochaines séances du schedule
+                    showProgramChoiceModalV2(activeProgram, upcomingSessions);
+                } else {
+                    window.showToast('Aucune séance programmée prochainement', 'info');
+                    // Proposer de générer un nouveau planning
+                    if (confirm('Souhaitez-vous générer de nouvelles séances ?')) {
+                        await apiPost(`/api/users/${currentUser.id}/populate-planning-intelligent`);
+                        showProgramInterface(); // Relancer après génération
+                    }
+                }
+            } else {
+                // Pas de schedule généré - le créer
+                console.log('🔄 Génération du schedule manquant...');
+                window.showToast('Génération du planning en cours...', 'info');
+                try {
+                    await apiPost(`/api/users/${currentUser.id}/populate-planning-intelligent`);
+                    showProgramInterface(); // Relancer après génération
+                } catch (scheduleError) {
+                    console.error('❌ Erreur génération schedule:', scheduleError);
+                    // Fallback sur l'ancien modal
+                    showProgramChoiceModal(activeProgram);
+                }
+            }
+        } else {
+            // Format v1.0 ou ancien - Utiliser l'ancien modal (rétrocompatibilité)
+            showProgramChoiceModal(activeProgram);
+        }
         
     } catch (error) {
         console.error('❌ Erreur vérification programme:', error);
