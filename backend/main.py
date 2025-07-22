@@ -960,26 +960,8 @@ def get_program_schedule(
                     muscle_recovery[muscle] = []
                 muscle_recovery[muscle].append(session_date)
     
-    # Calculer les warnings de récupération - Version simplifiée pour le schedule
-    recovery_warnings = []
-    if week_schedule:
-        for date_str, session in sorted(week_schedule.items()):
-            session_date = datetime.fromisoformat(date_str).date()
-            session_muscles = session.get("primary_muscles", [])
-            
-            # Vérifier si des muscles sont surutilisés
-            for muscle in session_muscles:
-                # Compter les séances récentes avec ce muscle
-                recent_sessions = 0
-                check_date = session_date - timedelta(days=2)  # 48h avant
-                
-                for check_date_str, check_session in week_schedule.items():
-                    if datetime.fromisoformat(check_date_str).date() >= check_date:
-                        if muscle in check_session.get("primary_muscles", []):
-                            recent_sessions += 1
-                
-                if recent_sessions > 1:
-                    recovery_warnings.append(f"{muscle.capitalize()}: récupération insuffisante (<48h)")
+    # Calculer les warnings de récupération
+    recovery_warnings = calculate_recovery_warnings(muscle_recovery)
     
     return {
         "program_id": program_id,
@@ -3938,18 +3920,58 @@ def populate_user_planning_intelligent(user_id: int, db: Session = Depends(get_d
 
 # ===== FONCTIONS HELPER PLANNING =====
 
-def calculate_recovery_warnings(day_sessions, muscle_recovery_status, session_date):
-    """Calcule les warnings de récupération pour une journée"""
+def calculate_recovery_warnings(data, muscle_recovery_status=None, session_date=None):
+    """
+    Calcule les warnings de récupération - Version flexible
+    
+    Usage 1 (original): calculate_recovery_warnings(day_sessions, muscle_recovery_status, session_date)
+    Usage 2 (schedule): calculate_recovery_warnings(muscle_recovery_dict)
+    """
     warnings = []
     
+    # NOUVEAU USAGE : Dictionnaire muscle -> [dates] depuis schedule
+    if muscle_recovery_status is None and session_date is None:
+        # data est un dict {"muscle": [date1, date2, ...]}
+        muscle_dates = data
+        
+        for muscle, dates in muscle_dates.items():
+            if len(dates) < 2:
+                continue  # Pas assez de données pour analyser
+                
+            # Trier les dates
+            sorted_dates = sorted(dates)
+            
+            # Vérifier l'espacement entre séances consécutives
+            for i in range(1, len(sorted_dates)):
+                prev_date = sorted_dates[i-1]
+                curr_date = sorted_dates[i]
+                days_between = (curr_date - prev_date).days
+                
+                if days_between < 2:  # Moins de 48h
+                    hours_between = days_between * 24
+                    if hours_between < 48:
+                        needed_hours = 48 - hours_between
+                        warnings.append(
+                            f"{muscle.capitalize()}: seulement {hours_between}h de récupération "
+                            f"(recommandé: 48h, manque {needed_hours}h)"
+                        )
+        
+        return warnings
+    
+    # USAGE ORIGINAL : Analyse d'une journée spécifique
+    day_sessions = data  # Premier paramètre est day_sessions
+    
     for session in day_sessions:
-        if session.primary_muscles:
+        if hasattr(session, 'primary_muscles') and session.primary_muscles:
             for muscle in session.primary_muscles:
                 if muscle in muscle_recovery_status:
                     recovery_info = muscle_recovery_status[muscle]
-                    if recovery_info["recovery_level"] < 0.7:  # <70% récupéré
-                        hours_needed = int((0.7 - recovery_info["recovery_level"]) * 48)
-                        warnings.append(f"{muscle.capitalize()}: {hours_needed}h de récupération recommandées")
+                    if recovery_info.get("recovery_level", 1.0) < 0.7:  # <70% récupéré
+                        recovery_level = recovery_info.get("recovery_level", 0.5)
+                        hours_needed = int((0.7 - recovery_level) * 48)
+                        warnings.append(
+                            f"{muscle.capitalize()}: {hours_needed}h de récupération recommandées"
+                        )
     
     return warnings
 
