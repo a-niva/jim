@@ -3586,6 +3586,18 @@ async function setupProgramWorkout(program) {
     const firstExercise = program.exercises[0];
     if (firstExercise) {
         // Attendre que la sélection soit terminée avant de continuer
+        // Prendre le premier exercice non complété
+        const firstExercise = program.exercises[0];
+        if (firstExercise) {
+            // === NOUVEAU : RESET VARIABLES AVANT PREMIER EXERCICE ===
+            currentSet = 1;
+            currentWorkoutSession.currentSetNumber = 1;
+            currentWorkoutSession.isStartingExtraSet = false;
+            console.log(`🔧 setupProgramWorkout(): Variables resetées pour premier exercice`);
+            
+            // Attendre que la sélection soit terminée avant de continuer
+            await selectProgramExercise(firstExercise.exercise_id, true);
+        }
         await selectProgramExercise(firstExercise.exercise_id, true);
     }
     
@@ -3625,16 +3637,6 @@ async function selectExerciseById(exerciseId) {
 async function selectExercise(exercise, skipValidation = false) {
     // Pour le setup initial, on peut skipper la validation
     if (!skipValidation && !validateSessionState(true)) return;
-    
-    // === NOUVEAU : RESET PROPRE DES VARIABLES ===
-    // Reset uniquement si c'est un nouvel exercice (pas skipValidation)
-    if (!skipValidation) {
-        currentSet = 1;
-        currentWorkoutSession.currentSetNumber = 1;
-        currentWorkoutSession.isStartingExtraSet = false; // Reset du flag
-        
-        console.log(`🔧 selectExercise(${exercise.name}): Variables resetées - currentSet=${currentSet}`);
-    }
     
     // Vérifier que l'exercice est valide
     if (!exercise || !exercise.id) {

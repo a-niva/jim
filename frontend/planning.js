@@ -221,37 +221,131 @@ class PlanningManager {
     async loadWeekData(weekStart) {
         try {
             if (!this.activeProgram) {
-                console.warn('⚠️ Pas de programme actif pour loadWeekData');
+                console.warn('Pas de programme actif, génération semaine vide');
                 return this.generateEmptyWeek(weekStart);
             }
-
+            
             const weekStartStr = weekStart.toISOString().split('T')[0];
+            
+            // CORRECTION : Utiliser le bon endpoint existant
             const response = await window.apiGet(
                 `/api/programs/${this.activeProgram.id}/schedule?week_start=${weekStartStr}`
             );
             
-            return response || this.generateEmptyWeek(weekStart);
+            // CORRECTION : Transformer le format schedule vers planning_data
+            return this.transformScheduleToWeekData(response, weekStart);
+            
         } catch (error) {
             console.warn('Erreur chargement semaine, utilisation fallback:', error);
             return this.generateEmptyWeek(weekStart);
         }
     }
-    
-    generateEmptyWeek(weekStart) {
+
+    transformScheduleToWeekData(scheduleResponse, weekStart) {
         const days = [];
+        
+        // ADAPTATION : scheduleResponse.schedule contient les sessions par date
+        const scheduleData = scheduleResponse?.schedule || {};
+        
         for (let i = 0; i < 7; i++) {
             const date = new Date(weekStart);
             date.setDate(weekStart.getDate() + i);
+            const dateStr = date.toISOString().split('T')[0];
+            
+            // Chercher les sessions dans scheduleData pour cette date
+            const sessions = [];
+            if (scheduleData[dateStr]) {
+                const sessionData = scheduleData[dateStr];
+                sessions.push({
+                    id: `${dateStr}_0`,
+                    date: dateStr,
+                    exercises: sessionData.exercises_snapshot || [],
+                    estimated_duration: sessionData.estimated_duration || 60,
+                    muscle_groups: sessionData.primary_muscles || [],
+                    status: sessionData.status || 'planned',
+                    predicted_quality_score: sessionData.predicted_score || 75,
+                    time: sessionData.time || '18:00'
+                });
+            }
+            
             days.push({
-                date: date.toISOString().split('T')[0],
+                date: dateStr,
                 dayName: date.toLocaleDateString('fr-FR', { weekday: 'long' }),
                 dayNumber: date.getDate(),
-                sessions: [],
-                canAddSession: true,
+                sessions: sessions,
+                canAddSession: sessions.length < 2,
+                warnings: this.extractWarningsFromRecoveryStatus(scheduleResponse.muscle_recovery_status, dateStr)
+            });
+        }
+        
+        return { 
+            planning_data: days, 
+            week_score: this.calculateWeekScore(scheduleResponse)
+        };
+    }
+
+    // Helpers pour extraire les données
+    extractWarningsFromRecoveryStatus(recoveryStatus, dateStr) {
+        // Transformer les warnings de récupération musculaire pour ce jour
+        const warnings = [];
+        if (recoveryStatus) {
+            for (const [muscle, warning] of Object.entries(recoveryStatus)) {
+                if (warning.includes(dateStr)) {
+                    warnings.push(`Récupération ${muscle} : ${warning}`);
+                }
+            }
+        }
+        return warnings;
+    }
+
+    calculateWeekScore(scheduleResponse) {
+        // Calculer le score de la semaine depuis les scores des sessions
+        const sessions = Object.values(scheduleResponse?.schedule || {});
+        if (sessions.length === 0) return 0;
+        
+        const avgScore = sessions.reduce((sum, session) => {
+            return sum + (session.predicted_score || 0);
+        }, 0) / sessions.length;
+        
+        return Math.round(avgScore);
+    }
+
+    generateWeekDataFromProgram(weekStart) {
+        const days = [];
+        
+        for (let i = 0; i < 7; i++) {
+            const date = new Date(weekStart);
+            date.setDate(weekStart.getDate() + i);
+            const dateStr = date.toISOString().split('T')[0];
+            const dayName = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'][i];
+            
+            // Récupérer les sessions depuis weekly_structure
+            const sessionTemplates = this.activeProgram.weekly_structure[dayName] || [];
+            
+            // Vérifier si il y a une session dans le schedule pour cette date
+            const scheduleSession = this.activeProgram.schedule?.[dateStr];
+            
+            const sessions = sessionTemplates.map((template, index) => ({
+                id: `${dateStr}_${index}`,
+                date: dateStr,
+                exercises: template.exercises || [],
+                estimated_duration: template.estimated_duration || 60,
+                muscle_groups: template.primary_muscles || [],
+                status: scheduleSession?.status || 'planned',
+                predicted_quality_score: template.predicted_score || 75
+            }));
+            
+            days.push({
+                date: dateStr,
+                dayName: date.toLocaleDateString('fr-FR', { weekday: 'long' }),
+                dayNumber: date.getDate(),
+                sessions: sessions,
+                canAddSession: sessions.length < 2,
                 warnings: []
             });
         }
-        return { planning_data: days, week_score: 0 };
+        
+        return { planning_data: days, week_score: 75 };
     }
     
     // ===== RENDU INTERFACE =====
