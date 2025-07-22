@@ -205,8 +205,7 @@ class PlanningManager {
             const weekKey = this.getWeekKey(weekStart);
             
             try {
-                // CHANGEMENT : Utiliser generateWeekDataFromProgram async qui lit le schedule
-                const weekData = await this.generateWeekDataFromProgram(weekStart);
+                const weekData = await this.loadWeekData(weekStart);
                 this.weeksData.set(weekKey, weekData);
                 
                 console.log(`✅ Semaine ${weekKey} chargée depuis le schedule`);

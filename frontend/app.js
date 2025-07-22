@@ -10024,7 +10024,7 @@ async function showProgramInterface() {
                 
                 if (upcomingSessions.length > 0) {
                     // Afficher modal avec les prochaines séances du schedule
-                    showProgramChoiceModalV2(activeProgram, upcomingSessions);
+                    showProgramChoiceModal(activeProgram, upcomingSessions);
                 } else {
                     window.showToast('Aucune séance programmée prochainement', 'info');
                     // Proposer de générer un nouveau planning
