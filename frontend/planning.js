@@ -373,7 +373,7 @@ class PlanningManager {
                     <button class="btn btn-primary" onclick="planningManager.showAddSessionModal()">
                         <i class="fas fa-plus"></i> Nouvelle séance
                     </button>
-                    <button class="btn btn-secondary" onclick="planningManager.refresh()">
+                    <button class="btn btn-sm btn-primary" onclick="planningManager.saveSessionChanges('${session.id}')">
                         <i class="fas fa-sync-alt"></i> Actualiser
                     </button>
                 </div>
@@ -504,7 +504,7 @@ class PlanningManager {
     renderSession(session) {
         console.log('🎨 Rendu session:', session);
         
-        const exercises = session.exercises || [];
+        const exercises = session.exercise_pool || session.exercises || [];
         const muscleGroups = session.muscle_groups || [];
         const status = session.status || 'planned';
         const quality = session.predicted_quality_score || 75;
@@ -874,7 +874,7 @@ class PlanningManager {
     async showSessionEditModal(session) {
         console.log('🔍 Ouverture modal édition pour session:', session);
         
-        const exercises = session.exercises || [];
+        const exercises = session.exercise_pool || session.exercises || [];
         console.log('📊', exercises.length, 'exercices dans la session');
         
         // Calcul de score avec fallback
@@ -1050,6 +1050,13 @@ class PlanningManager {
     }
 
     renderEditableExercise(exercise, index, sessionId) {
+        const exerciseId = exercise.exercise_id || exercise.id || 'unknown';
+        const exerciseName = exercise.exercise_name || exercise.name || `Exercice ${index + 1}`;
+        const sets = exercise.sets || 3;
+        const repsMin = exercise.reps_min || exercise.rep_min || 8;
+        const repsMax = exercise.reps_max || exercise.rep_max || 12;
+        const restSeconds = exercise.rest_seconds || exercise.rest || 90;
+        const muscleGroups = exercise.muscle_groups || exercise.muscles || [];
         const duration = this.calculateExerciseDuration(exercise);
         
         return `
@@ -1579,7 +1586,21 @@ class PlanningManager {
         return null;
     }
             
-    async saveSessionChanges(sessionId, changes) {
+    async saveSessionChanges(sessionId, changes = null) {
+        if (!changes) {
+            const exerciseItems = document.querySelectorAll('#sessionExercisesList .exercise-item');
+            const exercises = Array.from(exerciseItems).map(item => ({
+                exercise_id: parseInt(item.dataset.exerciseId),
+                exercise_name: item.querySelector('.exercise-name')?.textContent || 'Exercise',
+                sets: 3, reps_min: 8, reps_max: 12, rest_seconds: 90
+            }));
+            changes = { exercises };
+        }
+        
+        if (!changes.exercises || !Array.isArray(changes.exercises)) {
+            throw new Error('Format changes invalide');
+        }
+
         try {
             console.log('💾 Sauvegarde session dans schedule:', sessionId, changes);
             
@@ -2040,17 +2061,14 @@ class PlanningManager {
                 `;
             }).join('');
             
+
             const modalContent = `
                 <div class="add-session-modal-v2">
                     <div class="modal-header-section">
-                        <h3><i class="fas fa-plus-circle"></i> Créer une séance</h3>
+                        <h3><i class="fas fa-plus"></i> Créer une séance</h3>
                         <div class="session-date-info">
                             <i class="fas fa-calendar"></i>
-                            <span>${new Date(targetDate).toLocaleDateString('fr-FR', { 
-                                weekday: 'long', 
-                                day: 'numeric', 
-                                month: 'long' 
-                            })}</span>
+                            <span>${formattedDate}</span>
                         </div>
                     </div>
                     
@@ -2074,7 +2092,7 @@ class PlanningManager {
                                 <button class="btn-magic-icon" id="optimizeBtn" 
                                         style="display: none;" 
                                         onclick="window.planningManager.optimizeExerciseOrder()"
-                                        title="Optimiser l'ordre des exercices">
+                                        title="Optimiser l'ordre">
                                     <i class="fas fa-magic"></i>
                                 </button>
                             </div>
@@ -2098,7 +2116,7 @@ class PlanningManager {
                 </div>
             `;
             
-            window.showModal('Nouvelle séance', modalContent);
+            window.showModal('', modalContent); // Titre vide car inclus dans le contenu
             this.initializeSessionCreation();
             
         } catch (error) {
@@ -2136,9 +2154,45 @@ class PlanningManager {
             
             if (selected.length === 0) {
                 previewDiv.innerHTML = `
-                    <div class="empty-preview">
-                        <i class="fas fa-hand-pointer"></i>
-                        <p>Sélectionnez des exercices pour voir l'aperçu</p>
+                    <div class="session-summary-compact">
+                        <div class="summary-stats-inline">
+                            <span class="stat-compact"><strong>${exercises.length}</strong> exercices</span>
+                            <span class="stat-compact"><strong>${duration}</strong> minutes</span>
+                            <span class="stat-compact"><strong>${muscles.length}</strong> groupes</span>
+                            <span class="stat-compact quality-stat"><strong style="color: ${scoreColor}">${qualityScore}%</strong> qualité</span>
+                        </div>
+                        
+                        <div class="exercise-list-preview">
+                            <div class="exercises-sortable" id="previewExercisesList">
+                                ${exercises.map((ex, index) => `
+                                    <div class="exercise-preview-item" 
+                                        data-exercise-id="${ex.exercise_id}"
+                                        data-exercise='${JSON.stringify(ex).replace(/'/g, '&apos;')}'>
+                                        <span class="exercise-drag-handle"><i class="fas fa-grip-vertical"></i></span>
+                                        <span class="exercise-number">${index + 1}</span>
+                                        <div class="exercise-info">
+                                            <div class="exercise-name">${ex.exercise_name}</div>
+                                            <div class="exercise-params">${ex.sets || 3}×${ex.reps_min || 8}-${ex.reps_max || 12}</div>
+                                        </div>
+                                        <button class="exercise-remove" onclick="window.planningManager.removeExerciseFromPreview('${ex.exercise_id}')" title="Retirer">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        
+                        ${muscles.length > 0 ? `
+                            <div class="muscle-groups-preview">
+                                <div class="muscle-tags">
+                                    ${muscles.map(muscle => {
+                                        const color = window.MuscleColors?.getMuscleColor ? 
+                                            window.MuscleColors.getMuscleColor(muscle.toLowerCase()) : '#6b7280';
+                                        return `<span class="muscle-tag-preview" style="background: ${color}">${muscle}</span>`;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
                     </div>
                 `;
                 createBtn.disabled = true;
@@ -3386,6 +3440,185 @@ class PlanningManager {
         this.touchEndX = 0;
     } 
 
+    // ===== NOUVELLES FONCTIONS À AJOUTER EN FIN DE planning.js =====
+
+    // Animation baguette magique
+    showMagicButtonIfNeeded(exerciseCount) {
+        const optimizeBtn = document.getElementById('optimizeBtn');
+        if (!optimizeBtn) return;
+        
+        if (exerciseCount >= 2) {
+            optimizeBtn.style.display = 'flex';
+            setTimeout(() => {
+                optimizeBtn.style.opacity = '1';
+                optimizeBtn.style.animation = 'pulse-magic 2s infinite';
+            }, 50);
+        } else {
+            optimizeBtn.style.opacity = '0';
+            setTimeout(() => optimizeBtn.style.display = 'none', 300);
+        }
+    }
+
+    // Modal d'ajout d'exercice à séance existante
+    async showAddExerciseToSession(sessionId) {
+        try {
+            console.log('🔍 Ajout exercice à la session:', sessionId);
+            
+            const session = this.findSessionById(sessionId);
+            if (!session) {
+                window.showToast('Session introuvable', 'error');
+                return;
+            }
+            
+            const exercisesResponse = await window.apiGet(`/api/exercises?user_id=${window.currentUser.id}`);
+            
+            // Exclure les exercices déjà présents
+            const currentExerciseIds = (session.exercise_pool || session.exercises || [])
+                .map(ex => ex.exercise_id || ex.id)
+                .filter(Boolean);
+            
+            const availableExercises = exercisesResponse.filter(ex => 
+                !currentExerciseIds.includes(ex.id)
+            );
+            
+            if (availableExercises.length === 0) {
+                window.showToast('Tous les exercices sont déjà dans cette séance', 'info');
+                return;
+            }
+            
+            // Grouper par muscle
+            const exercisesByMuscle = {};
+            availableExercises.forEach(exercise => {
+                const muscle = exercise.muscle_groups?.[0] || exercise.body_part || 'Autres';
+                if (!exercisesByMuscle[muscle]) {
+                    exercisesByMuscle[muscle] = [];
+                }
+                exercisesByMuscle[muscle].push(exercise);
+            });
+            
+            const muscleGroupsHtml = Object.entries(exercisesByMuscle).map(([muscle, exercises]) => {
+                const color = window.MuscleColors?.getMuscleColor ? 
+                    window.MuscleColors.getMuscleColor(muscle) : '#6b7280';
+                
+                return `
+                    <div class="exercise-group">
+                        <h5 class="muscle-group-header" style="border-left: 4px solid ${color};">
+                            ${muscle.charAt(0).toUpperCase() + muscle.slice(1)} (${exercises.length})
+                        </h5>
+                        <div class="exercise-group-grid">
+                            ${exercises.map(ex => `
+                                <label class="exercise-option">
+                                    <input type="radio" name="newExercise" value="${ex.id}" 
+                                        data-exercise='${JSON.stringify({
+                                            exercise_id: ex.id,
+                                            exercise_name: ex.name,
+                                            muscle_groups: ex.muscle_groups || [muscle],
+                                            sets: 3,
+                                            reps_min: 8,
+                                            reps_max: 12,
+                                            rest_seconds: 90
+                                        }).replace(/'/g, '&apos;')}'>
+                                    <div class="exercise-option-card">
+                                        <div class="exercise-name">${ex.name}</div>
+                                        <div class="exercise-details">3×8-12</div>
+                                    </div>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            const modalContent = `
+                <div class="add-exercise-modal">
+                    <div class="modal-header-section">
+                        <h3><i class="fas fa-plus"></i> Ajouter un exercice</h3>
+                        <p>Sélectionnez un exercice à ajouter à cette séance</p>
+                    </div>
+                    
+                    <div class="modal-body-section">
+                        <div class="exercise-groups-container" style="max-height: 400px; overflow-y: auto;">
+                            ${muscleGroupsHtml}
+                        </div>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button class="btn btn-primary" id="addExerciseBtn" disabled 
+                                onclick="planningManager.addExerciseToSession('${sessionId}')">
+                            <i class="fas fa-plus"></i> Ajouter
+                        </button>
+                        <button class="btn btn-secondary" onclick="window.closeModal()">
+                            <i class="fas fa-times"></i> Annuler
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            window.showModal('', modalContent);
+            
+            // Activer le bouton quand un exercice est sélectionné
+            setTimeout(() => {
+                const radios = document.querySelectorAll('input[name="newExercise"]');
+                const addBtn = document.getElementById('addExerciseBtn');
+                
+                radios.forEach(radio => {
+                    radio.addEventListener('change', () => {
+                        addBtn.disabled = !document.querySelector('input[name="newExercise"]:checked');
+                    });
+                });
+            }, 100);
+            
+        } catch (error) {
+            console.error('❌ Erreur ouverture modal ajout exercice:', error);
+            window.showToast('Erreur lors de l\'ouverture', 'error');
+        }
+    }
+
+    // Ajouter effectivement l'exercice
+    async addExerciseToSession(sessionId) {
+        try {
+            const selectedRadio = document.querySelector('input[name="newExercise"]:checked');
+            if (!selectedRadio) {
+                window.showToast('Sélectionnez un exercice', 'warning');
+                return;
+            }
+            
+            const newExercise = JSON.parse(selectedRadio.dataset.exercise);
+            const session = this.findSessionById(sessionId);
+            
+            if (!session) {
+                window.showToast('Session introuvable', 'error');
+                return;
+            }
+            
+            // Ajouter l'exercice selon le format
+            if (session.exercise_pool) {
+                session.exercise_pool.push(newExercise);
+            } else if (session.exercises) {
+                session.exercises.push(newExercise);
+            } else {
+                session.exercise_pool = [newExercise];
+            }
+            
+            // Sauvegarder les modifications
+            const exercises = session.exercise_pool || session.exercises;
+            await this.saveSessionChanges(sessionId, { exercises });
+            
+            window.closeModal();
+            window.showToast(`${newExercise.exercise_name} ajouté à la séance`, 'success');
+            
+            // Rafraîchir le modal d'édition s'il est ouvert
+            const sessionModal = document.querySelector('.session-edit-modal');
+            if (sessionModal) {
+                await this.showSessionEditModal(session);
+            }
+            
+        } catch (error) {
+            console.error('❌ Erreur ajout exercice:', error);
+            window.showToast('Erreur lors de l\'ajout', 'error');
+        }
+    }
+
     async ensureActiveProgram() {
     if (this.activeProgram && this.activeProgram.id) {
         return this.activeProgram;
@@ -3761,6 +3994,8 @@ function getMuscleColor(muscle) {
     };
     return colors[muscle.toLowerCase()] || '#6b7280';
 }
+
+
 
 console.log('✅ Planning.js chargé avec logique Programme');
 
