@@ -3626,6 +3626,16 @@ async function selectExercise(exercise, skipValidation = false) {
     // Pour le setup initial, on peut skipper la validation
     if (!skipValidation && !validateSessionState(true)) return;
     
+    // === NOUVEAU : RESET PROPRE DES VARIABLES ===
+    // Reset uniquement si c'est un nouvel exercice (pas skipValidation)
+    if (!skipValidation) {
+        currentSet = 1;
+        currentWorkoutSession.currentSetNumber = 1;
+        currentWorkoutSession.isStartingExtraSet = false; // Reset du flag
+        
+        console.log(`🔧 selectExercise(${exercise.name}): Variables resetées - currentSet=${currentSet}`);
+    }
+    
     // Vérifier que l'exercice est valide
     if (!exercise || !exercise.id) {
         console.error('Exercice invalide:', exercise);
@@ -7923,7 +7933,19 @@ function adjustDuration(delta) {
 }
 
 // ===== EXÉCUTION D'UNE SÉRIE =====
-async function executeSet() {
+function executeSet() {
+    // === NOUVEAU : VALIDATION PRÉALABLE ===
+    console.log(`🔧 executeSet(): currentSet=${currentSet}, currentSetNumber=${currentWorkoutSession.currentSetNumber}`);
+    
+    // Synchroniser les variables avant exécution
+    currentWorkoutSession.currentSetNumber = currentSet;
+    
+    // Si incohérence détectée, corriger
+    if (currentSet > currentWorkoutSession.totalSets) {
+        console.warn(`🔧 ANOMALIE: currentSet(${currentSet}) > totalSets(${currentWorkoutSession.totalSets}), correction à totalSets`);
+        currentSet = currentWorkoutSession.totalSets;
+        currentWorkoutSession.currentSetNumber = currentSet;
+    }
     if (!validateSessionState()) return;
     
     // Calculer la durée réelle avec timestamps précis
@@ -8350,7 +8372,15 @@ function completeRest() {
     } else {
         // Cas normal : passage à la série suivante
         currentSet++;
-        currentWorkoutSession.currentSetNumber = currentSet;
+        currentWorkoutSession.currentSetNumber = currentSet; // ← Cette ligne existe déjà
+
+        // === NOUVEAU : VALIDATION DE COHÉRENCE ===
+        // S'assurer que les variables restent synchronisées
+        if (currentSet !== currentWorkoutSession.currentSetNumber) {
+            console.warn(`🔧 SYNC: currentSet(${currentSet}) != currentSetNumber(${currentWorkoutSession.currentSetNumber}), correction`);
+            currentWorkoutSession.currentSetNumber = currentSet;
+        }
+
         updateSeriesDots();
         
         // Mettre à jour les compteurs d'en-tête
@@ -8460,14 +8490,17 @@ function addExtraSet() {
 
 // ===== GESTION DES SÉRIES SUPPLEMENTAIRES =====
 function handleExtraSet() {
-    // 1. Incrémenter le total comme l'ancienne version
+    // 1. Incrémenter le total
     currentWorkoutSession.totalSets++;
-    
-    // 2. GARDER la logique de l'ancienne version pour currentSet
+
+    // 2. === NOUVEAU : SYNCHRONISATION STRICTE ===
     currentSet = currentWorkoutSession.totalSets;
-    
-    // 3. Flag pour indiquer qu'on démarre une série supplémentaire (évite bug endRest)
+    currentWorkoutSession.currentSetNumber = currentSet;
+
+    // 3. Flag pour les séries supplémentaires
     currentWorkoutSession.isStartingExtraSet = true;
+
+    console.log(`🔧 addExtraSet(): currentSet=${currentSet}, totalSets=${currentWorkoutSession.totalSets}, flag=${currentWorkoutSession.isStartingExtraSet}`);
     
     // 4. Mettre à jour l'interface EXACTEMENT comme l'ancienne version
     updateSeriesDots();
