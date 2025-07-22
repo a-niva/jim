@@ -1491,12 +1491,22 @@ class PlanningManager {
                 }
             }
             
+            if (!window.currentWorkoutSession) {
+                // Initialiser si nécessaire
+                window.currentWorkoutSession = {
+                    type: 'program',
+                    program: null,
+                    programExercises: {}
+                };
+            }
+            
             // Démarrer la séance dans l'interface workout
-            currentWorkoutSession.program = {
+            window.currentWorkoutSession.program = {
                 ...this.activeProgram,
                 exercises: session.exercises || []
             };
             
+            // Utiliser window. pour accéder à la fonction globale
             await window.confirmStartProgramWorkout();
             window.closeModal();
             
@@ -2337,10 +2347,6 @@ class PlanningManager {
             if (!this.weeklyStructure[dayName]) {
                 this.weeklyStructure[dayName] = [];
             }
-            await this.saveSessionChanges(sessionId, {
-                moved_to_date: targetDate,
-                status: 'planned'
-            });
             
             // Préparer les données pour la mise à jour
             const updateData = {
