@@ -1050,7 +1050,7 @@ class PlanningManager {
                     onEnd: function(evt) {
                         if (evt.oldIndex !== evt.newIndex) {
                             console.log(`🔄 Exercice déplacé: ${evt.oldIndex} → ${evt.newIndex}`);
-                            planningManager.reorderExercise(session.id, evt.oldIndex, evt.newIndex);
+                            planningManager.reorderExercises(session.id, evt.oldIndex, evt.newIndex);
                         }
                     }
                 });
@@ -2477,9 +2477,12 @@ class PlanningManager {
         const items = document.querySelectorAll('.exercise-preview-item');
         return Array.from(items).map(item => {
             try {
-                return JSON.parse(item.dataset.exercise);
+                // CORRECTION: Décoder les caractères d'échappement HTML
+                const jsonData = item.dataset.exercise.replace(/&apos;/g, "'");
+                return JSON.parse(jsonData);
             } catch (e) {
                 console.error('Erreur parsing exercice preview:', e);
+                console.log('Données brutes:', item.dataset.exercise);
                 return null;
             }
         }).filter(Boolean);
@@ -2489,6 +2492,8 @@ class PlanningManager {
 
     // 6. REMPLACER createSession() par cette version qui modifie weekly_structure
     async createSession(targetDate) {
+        const normalizedDate = new Date(targetDate).toISOString().split('T')[0];
+
         const selected = Array.from(document.querySelectorAll('#exerciseSelectionGrid input:checked'));
         
         if (selected.length === 0) {
@@ -2591,7 +2596,7 @@ class PlanningManager {
 
             // Préparer les données pour l'endpoint schedule
             const scheduleData = {
-                date: targetDate,
+                date: normalizedDate,
                 exercises: newSession.exercise_pool,
                 estimated_duration: newSession.estimated_duration,
                 primary_muscles: newSession.primary_muscles,
