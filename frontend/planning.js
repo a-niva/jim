@@ -220,9 +220,14 @@ class PlanningManager {
 
     async loadWeekData(weekStart) {
         try {
+            if (!this.activeProgram) {
+                console.warn('⚠️ Pas de programme actif pour loadWeekData');
+                return this.generateEmptyWeek(weekStart);
+            }
+
             const weekStartStr = weekStart.toISOString().split('T')[0];
             const response = await window.apiGet(
-                `/api/users/${window.currentUser.id}/weekly-planning?week_start=${weekStartStr}`
+                `/api/programs/${this.activeProgram.id}/schedule?week_start=${weekStartStr}`
             );
             
             return response || this.generateEmptyWeek(weekStart);
@@ -2262,6 +2267,12 @@ class PlanningManager {
             window.showToast('Aucun programme actif', 'error');
             return;
         }
+        try {
+            await this.ensureActiveProgram();
+        } catch (error) {
+            window.showToast('Impossible de charger le programme', 'error');
+            return;
+        }
         
         // Validation de weekly_structure
         if (!this.weeklyStructure || typeof this.weeklyStructure !== 'object') {
@@ -2295,16 +2306,16 @@ class PlanningManager {
                 window.showToast('Erreur dans la sélection d\'exercices', 'error');
                 return;
             }
-            
-            // Déterminer le jour et vérifier la limite
-            const dayDate = new Date(targetDate);
-            const dayName = dayDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-            
-            // Vérifier limite de séances par jour
-            const existingSessions = this.weeklyStructure[dayName] || [];
-            if (existingSessions.length >= 2) {
-                window.showToast('Maximum 2 séances par jour atteint', 'warning');
-                return;
+            // Vérifier limite de séances par jour via l'API
+            try {
+                const existingSchedule = await window.apiGet(`/api/programs/${this.activeProgram.id}/schedule?week_start=${targetDate}`);
+                const daySchedule = existingSchedule.planning_data?.find(day => day.date === targetDate);
+                if (daySchedule && daySchedule.sessions && daySchedule.sessions.length >= 2) {
+                    window.showToast('Maximum 2 séances par jour atteint', 'warning');
+                    return;
+                }
+            } catch (error) {
+                console.warn('⚠️ Impossible de vérifier les séances existantes, continuation...');
             }
             
             // Calculer la durée estimée - utiliser la logique du backend
@@ -2343,33 +2354,38 @@ class PlanningManager {
             
             console.log('📝 Nouvelle session créée:', newSession);
             
-            // Mettre à jour weekly_structure localement
-            if (!this.weeklyStructure[dayName]) {
-                this.weeklyStructure[dayName] = [];
-            }
-            
-            // Préparer les données pour la mise à jour
-            const updateData = {
-                weekly_structure: this.weeklyStructure
+            console.log('📤 Envoi ajout au planning...');
+
+            // Préparer les données pour l'endpoint schedule
+            const scheduleData = {
+                date: targetDate,
+                exercises: newSession.exercise_pool,
+                estimated_duration: newSession.estimated_duration,
+                primary_muscles: newSession.primary_muscles,
+                quality_score: newSession.quality_score,
+                status: 'planned',
+                session_type: 'custom'
             };
-            
-            console.log('📤 Envoi mise à jour programme...');
-            
-            // Sauvegarder l'état pour rollback
-            const previousStructure = JSON.parse(JSON.stringify(this.weeklyStructure));
-            
+
             try {
-                const response = await window.apiPut(`/api/programs/${this.activeProgram.id}`, updateData);
-                console.log('✅ Programme mis à jour avec succès');
+                const response = await window.apiPost(`/api/programs/${this.activeProgram.id}/schedule`, scheduleData);
+                console.log('✅ Séance ajoutée au planning avec succès');
                 
                 window.closeModal();
                 window.showToast('Séance créée avec succès', 'success');
                 await this.refresh();
                 
             } catch (error) {
-                // Rollback en cas d'erreur
-                console.error('❌ Erreur sauvegarde, rollback:', error);
-                this.weeklyStructure = previousStructure;
+                console.error('❌ Erreur ajout planning:', error);
+                
+                // Messages d'erreur plus précis
+                if (error.message?.includes('400') && error.message?.includes('existe déjà')) {
+                    window.showToast('Une séance existe déjà à cette date', 'warning');
+                } else if (error.message?.includes('400') && error.message?.includes('Maximum')) {
+                    window.showToast('Maximum 2 séances par jour atteint', 'warning');
+                } else {
+                    window.showToast('Erreur lors de la création', 'error');
+                }
                 throw error;
             }
             
@@ -2950,6 +2966,25 @@ class PlanningManager {
         this.touchStartX = 0;
         this.touchEndX = 0;
     } 
+
+    async ensureActiveProgram() {
+    if (this.activeProgram && this.activeProgram.id) {
+        return this.activeProgram;
+    }
+    
+    console.log('🔄 Rechargement du programme actif...');
+    try {
+        await this.loadActiveProgram();
+        if (!this.activeProgram) {
+            throw new Error('Aucun programme actif trouvé');
+        }
+        return this.activeProgram;
+    } catch (error) {
+        console.error('❌ Impossible de charger le programme actif:', error);
+        throw new Error('Aucun programme actif disponible');
+    }
+}
+
 }
 
 // Export global

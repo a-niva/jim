@@ -6018,7 +6018,9 @@ async function deleteProfile() {
         localStorage.removeItem('fitness_user_id');
         currentUser = null;
         showToast('Profil supprimé', 'info');
-        showHomePage();
+        setTimeout(() => {
+            showHomePage();
+        }, 800);
     } catch (error) {
         console.error('Erreur suppression profil:', error);
         showToast('Erreur lors de la suppression', 'error');
