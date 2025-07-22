@@ -1691,77 +1691,149 @@ class PlanningManager {
                 window.showToast('Aucun exercice à réorganiser', 'warning');
                 return;
             }
-            
+        
             if (session.exercises.length < 2) {
                 window.showToast('Au moins 2 exercices requis', 'info');
                 return;
             }
-            
+        
             console.log('🎯 Optimisation ordre pour:', session.exercises.length, 'exercices');
-            
+        
             // Si on a un programme actif, utiliser l'endpoint v2.0
             if (this.activeProgram && sessionId.includes('_')) {
                 try {
-                    // Parser le sessionId format: "programId_dayName_sessionIndex"
+                    // CORRECTION: sessionId format réel = "2025-07-30_0" (date_index)
                     const parts = sessionId.split('_');
-                    if (parts.length >= 3) {
-                        const programId = parts[0];
-                        const dayName = parts[1];
-                        const sessionIndex = parseInt(parts[2]);
+                    if (parts.length >= 2) {
+                        // CORRECTION: Utiliser l'ID du programme actif, pas le sessionId
+                        const programId = this.activeProgram.id;
+                        const sessionDate = parts[0]; // "2025-07-30"
+                        const sessionIndex = parseInt(parts[1]); // 0
+                    
+                        console.log('🔧 Données optimisation:', {
+                            programId: programId,
+                            sessionDate: sessionDate,
+                            sessionIndex: sessionIndex,
+                            programFormat: this.activeProgram.format_version
+                        });
+                    
+                        // CORRECTION: Adapter selon le format du programme
+                        let weekIndex = 0;
+                        let finalSessionIndex = sessionIndex;
                         
-                        // Trouver l'index de la semaine (si applicable)
-                        const weekIndex = 0; // Pour l'instant toujours 0
-                        
+                        // Si le programme utilise weekly_structure comme objet (jours de semaine)
+                        if (this.activeProgram.weekly_structure && 
+                            typeof this.activeProgram.weekly_structure === 'object' && 
+                            !Array.isArray(this.activeProgram.weekly_structure)) {
+                            
+                            // Convertir la date en jour de semaine pour trouver l'index
+                            const sessionDateObj = new Date(sessionDate);
+                            const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                            const dayName = dayNames[sessionDateObj.getDay()];
+                            
+                            console.log('📅 Session day:', dayName);
+                            
+                            // Pour les programmes v2.0 avec structure par jours, 
+                            // on utilise sessionIndex directement et weekIndex = 0
+                            weekIndex = 0;
+                            finalSessionIndex = sessionIndex;
+                        }
+                    
                         // Créer l'ordre actuel (indices 0, 1, 2, ...)
                         const currentOrder = session.exercises.map((_, idx) => idx);
-                        
+                    
+                        console.log('📤 Envoi optimisation:', {
+                            url: `/api/programs/${programId}/reorder-session`,
+                            data: {
+                                week_index: weekIndex,
+                                session_index: finalSessionIndex,
+                                new_exercise_order: currentOrder
+                            }
+                        });
+                    
                         // Appeler l'endpoint correct
                         const response = await window.apiPut(
                             `/api/programs/${programId}/reorder-session`,
                             {
                                 week_index: weekIndex,
-                                session_index: sessionIndex,
+                                session_index: finalSessionIndex,
                                 new_exercise_order: currentOrder
                             }
                         );
-                        
-                        if (response.success) {
+                    
+                        if (response && response.success) {
                             window.showToast(
-                                `Ordre optimisé (score: ${response.new_score}%)`, 
+                                `Ordre optimisé (score: ${Math.round(response.new_score)}%)`,
                                 'success'
                             );
-                            
-                            // Pas besoin de mettre à jour manuellement, refresh fera le travail
+                        
+                            // Actualiser les données
                             await this.refresh();
                             return;
+                        } else {
+                            console.warn('⚠️ Réponse API inattendue:', response);
                         }
                     }
                 } catch (apiError) {
                     console.warn('⚠️ API optimisation échouée, fallback local:', apiError);
+                    console.warn('Détails erreur:', {
+                        message: apiError.message,
+                        status: apiError.status,
+                        response: apiError.response
+                    });
                 }
             }
-            
+        
             // Fallback : Optimisation locale
-            const optimized = this.optimizeExercisesLocally(session.exercises);
-            session.exercises = optimized.exercises;
+            console.log('🔄 Utilisation optimisation locale');
             
-            // Mettre à jour l'affichage
-            const container = document.getElementById('sessionExercisesList');
-            if (container) {
-                container.innerHTML = session.exercises
-                    .map((ex, index) => this.renderEditableExercise(ex, index, sessionId))
-                    .join('');
-                this.initializeExerciseDragDrop(sessionId);
+            // Vérifier si la fonction d'optimisation locale existe
+            if (typeof this.optimizeExercisesLocally === 'function') {
+                const optimized = this.optimizeExercisesLocally(session.exercises);
+                session.exercises = optimized.exercises;
+            
+                // Mettre à jour l'affichage si on est dans un modal d'édition
+                const container = document.getElementById('sessionExercisesList');
+                if (container && typeof this.renderEditableExercise === 'function') {
+                    container.innerHTML = session.exercises
+                        .map((ex, index) => this.renderEditableExercise(ex, index, sessionId))
+                        .join('');
+                    
+                    // Réinitialiser le drag&drop si la fonction existe
+                    if (typeof this.initializeExerciseDragDrop === 'function') {
+                        this.initializeExerciseDragDrop(sessionId);
+                    }
+                }
+            
+                // Sauvegarder localement si la fonction existe
+                if (typeof this.saveSessionToLocalStorage === 'function') {
+                    this.saveSessionToLocalStorage(sessionId, session);
+                }
+            
+                const message = optimized.improvement > 0 ?
+                    `Ordre optimisé (+${optimized.improvement} points estimés)` :
+                    'Ordre optimisé';
+                window.showToast(message, 'success');
+            } else {
+                // Fallback basique si aucune optimisation locale disponible
+                console.warn('⚠️ Aucune fonction d\'optimisation locale disponible');
+                
+                // Ordre basique : exercices composés d'abord, puis isolation
+                const reordered = [...session.exercises].sort((a, b) => {
+                    const aIsCompound = a.exercise_type === 'compound' || 
+                                    (a.muscle_groups && a.muscle_groups.length > 1);
+                    const bIsCompound = b.exercise_type === 'compound' || 
+                                    (b.muscle_groups && b.muscle_groups.length > 1);
+                    
+                    if (aIsCompound && !bIsCompound) return -1;
+                    if (!aIsCompound && bIsCompound) return 1;
+                    return 0;
+                });
+                
+                session.exercises = reordered;
+                window.showToast('Ordre basique appliqué (composés → isolation)', 'info');
             }
-            
-            // Sauvegarder localement
-            this.saveSessionToLocalStorage(sessionId, session);
-            
-            const message = optimized.improvement > 0 ?
-                `Ordre optimisé (+${optimized.improvement} points estimés)` :
-                'Ordre optimisé';
-            window.showToast(message, 'success');
-            
+        
         } catch (error) {
             console.error('❌ Erreur optimisation:', error);
             window.showToast('Erreur lors de l\'optimisation', 'error');
