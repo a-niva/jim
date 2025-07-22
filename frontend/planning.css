@@ -1331,24 +1331,27 @@
     max-height: 90vh;
     display: flex;
     flex-direction: column;
+    position: relative;
 }
 
 /* Header compact et propre */
 .modal-header-section {
-    padding: 1.25rem 1.5rem 1rem 1.5rem;
+    padding: 1rem 1.5rem 0.75rem 1.5rem;
     border-bottom: 1px solid var(--planning-border);
     background: var(--bg-secondary);
     flex-shrink: 0;
+    position: relative;
 }
 
 .modal-header-section h3 {
-    margin: 0 0 0.5rem 0;
+    margin: 0 0 0.4rem 0;
     color: var(--text);
-    font-size: 1.4rem;
+    font-size: 1.3rem;
     font-weight: 700;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.6rem;
+    padding-right: 2rem; /* Espace pour la croix */
 }
 
 .modal-header-section h3 i {
@@ -1359,9 +1362,9 @@
 .session-date-info {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.4rem;
     color: var(--text-muted);
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     margin: 0;
 }
 
@@ -1381,7 +1384,7 @@
     min-height: 0;
 }
 
-/* Section exercices compacte */
+/* Section exercices avec toggle */
 .selection-section {
     flex-shrink: 0;
 }
@@ -1391,11 +1394,19 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+}
+
+.section-header:hover {
+    background: var(--bg-tertiary);
 }
 
 .section-header h4 {
     margin: 0;
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     font-weight: 600;
     color: var(--text);
     display: flex;
@@ -1408,32 +1419,65 @@
     font-size: 1rem;
 }
 
+.section-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.toggle-icon {
+    color: var(--text-muted);
+    transition: transform 0.2s ease;
+    font-size: 0.9rem;
+}
+
+.toggle-icon.open {
+    transform: rotate(180deg);
+}
+
 .selection-counter {
     background: var(--primary);
     color: white;
-    padding: 0.3rem 0.8rem;
-    border-radius: 15px;
-    font-size: 0.8rem;
+    padding: 0.25rem 0.7rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
     font-weight: 600;
-    min-width: 60px;
+    min-width: 50px;
     text-align: center;
 }
 
-/* Barre de recherche discrète */
+/* Container exercices collapsible */
+.exercises-container-wrapper {
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.exercises-container-wrapper.collapsed {
+    max-height: 0;
+    opacity: 0;
+    margin-bottom: 0;
+}
+
+.exercises-container-wrapper.expanded {
+    max-height: 350px;
+    opacity: 1;
+    margin-bottom: 1rem;
+}
+
+/* Barre de recherche compacte */
 .exercise-search {
     position: relative;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
 }
 
 .exercise-search input {
     width: 100%;
-    padding: 0.6rem 0.8rem 0.6rem 2.5rem;
+    padding: 0.5rem 0.7rem 0.5rem 2.2rem;
     border: 1px solid var(--planning-border);
-    border-radius: 8px;
+    border-radius: 6px;
     background: var(--bg-secondary);
     color: var(--text);
-    font-size: 0.9rem;
-    transition: all 0.2s ease;
+    font-size: 0.85rem;
 }
 
 .exercise-search input:focus {
@@ -1444,21 +1488,21 @@
 
 .exercise-search i {
     position: absolute;
-    left: 0.8rem;
+    left: 0.7rem;
     top: 50%;
     transform: translateY(-50%);
     color: var(--text-muted);
-    font-size: 0.9rem;
+    font-size: 0.8rem;
 }
 
-/* Grid exercices 2 colonnes optimisé */
+/* Grid exercices avec largeur calculée */
 .exercise-groups-container {
-    max-height: 300px;
+    max-height: 250px;
     overflow-y: auto;
     border: 1px solid var(--planning-border);
-    border-radius: 8px;
+    border-radius: 6px;
     background: var(--bg-secondary);
-    padding: 0.75rem; /* Réduire le padding */
+    padding: 0.6rem;
 }
 
 .exercise-group {
@@ -1481,13 +1525,14 @@
 }
 
 .exercise-group-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
-    margin: 0 -0.25rem; /* Utiliser l'espace des marges */
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0;
 }
 
 .exercise-option {
+    width: calc(50% - 0.2rem);
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -1497,14 +1542,17 @@
 }
 
 .exercise-option-card {
-    padding: 0.6rem 0.5rem; /* Réduire le padding horizontal */
+    padding: 0.5rem;
     background: var(--planning-bg);
-    border: 1.5px solid var(--planning-border);
-    border-radius: 6px;
+    border: 1px solid var(--planning-border);
+    border-radius: 5px;
     transition: all 0.2s ease;
     text-align: left;
     position: relative;
-    min-height: 60px; /* Hauteur minimale pour consistance */
+    height: 50px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .exercise-option:hover .exercise-option-card {
@@ -1523,15 +1571,19 @@
 
 .exercise-name {
     font-weight: 600;
-    font-size: 0.85rem;
-    margin-bottom: 0.25rem;
-    line-height: 1.2;
+    font-size: 0.75rem;
+    margin-bottom: 0.15rem;
+    line-height: 1.1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
 }
 
 .exercise-details {
-    font-size: 0.7rem; /* Plus petit pour gagner en place */
+    font-size: 0.65rem;
     opacity: 0.8;
-    line-height: 1.1;
+    line-height: 1;
 }
 
 /* Section aperçu avec header sur même ligne */
@@ -1548,7 +1600,7 @@
 
 .preview-header h4 {
     margin: 0;
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     font-weight: 600;
     color: var(--text);
     display: flex;
@@ -1625,7 +1677,7 @@
     opacity: 0.5;
 }
 
-/* Stats compactes et animées */
+/* Stats compactes 2x2 */
 .session-summary-v2 {
     display: flex;
     flex-direction: column;
@@ -1634,11 +1686,12 @@
 
 .summary-stats {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 0.75rem;
     background: var(--bg-tertiary);
-    padding: 1rem;
-    border-radius: 8px;
+    padding: 0.85rem;
+    border-radius: 6px;
 }
 
 .stat-item {
@@ -1646,25 +1699,25 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.3rem;
+    gap: 0.2rem;
 }
 
 .stat-item i {
-    font-size: 1.3rem;
-    margin-bottom: 0.2rem;
+    font-size: 1.1rem;
+    margin-bottom: 0.1rem;
 }
 
 .stat-value {
-    font-size: 1.6rem;
+    font-size: 1.3rem;
     font-weight: 700;
     transition: all 0.3s ease;
 }
 
 .stat-label {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
     font-weight: 500;
 }
 
@@ -1695,7 +1748,7 @@
     pointer-events: none;
 }
 
-/* Liste exercices avec drag-drop */
+/* Liste exercices avec noms tronqués */
 .exercise-list-preview h5 {
     margin: 0 0 0.75rem 0;
     font-size: 1rem;
@@ -1709,23 +1762,24 @@
 .exercises-sortable {
     display: flex;
     flex-direction: column;
-    gap: 0.6rem;
-    max-height: 200px;
+    gap: 0.5rem;
+    max-height: 180px;
     overflow-y: auto;
-    padding-right: 0.5rem;
+    padding-right: 0.3rem;
 }
 
 .exercise-preview-item {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.8rem;
+    gap: 0.6rem;
+    padding: 0.6rem;
     background: var(--planning-bg);
     border: 1px solid var(--planning-border);
-    border-radius: 6px;
+    border-radius: 5px;
     transition: all 0.2s ease;
     position: relative;
     cursor: grab;
+    min-height: 50px;
 }
 
 .exercise-preview-item:hover {
@@ -1755,56 +1809,60 @@
 .exercise-number {
     background: var(--primary);
     color: white;
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     font-weight: 600;
     flex-shrink: 0;
-    transition: all 0.2s ease;
 }
 
 .exercise-info {
     flex: 1;
     min-width: 0;
+    padding-right: 2rem; /* Espace pour la croix */
 }
 
 .exercise-preview-item .exercise-name {
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     margin: 0;
     color: var(--text);
     line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
 }
 
 .exercise-preview-item .exercise-params {
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     color: var(--text-muted);
-    margin: 0.25rem 0 0 0;
+    margin: 0.2rem 0 0 0;
     line-height: 1.1;
 }
 
 /* Bouton suppression avec animation */
 .exercise-remove {
     position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
+    top: 0.4rem;
+    right: 0.4rem;
     background: none;
     border: 1px solid var(--text-muted);
     color: var(--text-muted);
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
-    font-size: 0.7rem;
-    opacity: 0.7;
+    font-size: 0.6rem;
+    opacity: 0.6;
 }
 
 .exercise-preview-item:hover .exercise-remove {
@@ -1818,9 +1876,9 @@
     transform: scale(1.1);
 }
 
-/* Groupes musculaires en bas */
+/* Groupes musculaires compacts */
 .muscle-groups-preview {
-    padding-top: 0.75rem;
+    padding-top: 0.6rem;
     border-top: 1px solid var(--planning-border);
 }
 
@@ -1837,14 +1895,14 @@
 .muscle-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.6rem;
+    gap: 0.4rem;
 }
 
 .muscle-tag-preview {
-    padding: 0.4rem 0.8rem;
-    border-radius: 15px;
+    padding: 0.3rem 0.6rem;
+    border-radius: 12px;
     color: white;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     font-weight: 600;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     transition: transform 0.2s ease;
@@ -1879,27 +1937,28 @@
     transform: translateY(-1px);
 }
 
-/* Responsive optimisé */
+/* Responsive ajusté */
 @media (max-width: 768px) {
     .add-session-modal-v2 {
-        width: 100vw;
-        height: 100vh;
-        max-width: none;
-        max-height: none;
-        border-radius: 0;
+        max-width: 700px;
+        width: 90vw;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        position: relative;
     }
     
     .modal-body-section {
         padding: 1rem;
     }
     
-    .exercise-group-grid {
-        grid-template-columns: 1fr;
+    .exercise-option {
+        width: 100%;
     }
     
     .summary-stats {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 0.75rem;
+        grid-template-columns: repeat(4, 1fr);
+        grid-template-rows: 1fr;
     }
     
     .exercises-sortable {
