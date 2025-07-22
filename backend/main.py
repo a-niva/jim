@@ -960,8 +960,26 @@ def get_program_schedule(
                     muscle_recovery[muscle] = []
                 muscle_recovery[muscle].append(session_date)
     
-    # Calculer les warnings de récupération
-    recovery_warnings = calculate_recovery_warnings(muscle_recovery)
+    # Calculer les warnings de récupération - Version simplifiée pour le schedule
+    recovery_warnings = []
+    if week_schedule:
+        for date_str, session in sorted(week_schedule.items()):
+            session_date = datetime.fromisoformat(date_str).date()
+            session_muscles = session.get("primary_muscles", [])
+            
+            # Vérifier si des muscles sont surutilisés
+            for muscle in session_muscles:
+                # Compter les séances récentes avec ce muscle
+                recent_sessions = 0
+                check_date = session_date - timedelta(days=2)  # 48h avant
+                
+                for check_date_str, check_session in week_schedule.items():
+                    if datetime.fromisoformat(check_date_str).date() >= check_date:
+                        if muscle in check_session.get("primary_muscles", []):
+                            recent_sessions += 1
+                
+                if recent_sessions > 1:
+                    recovery_warnings.append(f"{muscle.capitalize()}: récupération insuffisante (<48h)")
     
     return {
         "program_id": program_id,
