@@ -1080,8 +1080,7 @@ def update_program_schedule(
         # Recalculer le score
         new_score = calculate_session_quality_score(
             update_data["exercises"], 
-            program.user_id, 
-            session_date, 
+            program.user_id,
             db
         )
         program.schedule[date]["predicted_score"] = new_score
@@ -1219,7 +1218,7 @@ def add_to_program_schedule(
     
     # Calculer le score prédictif
     quality_score = calculate_session_quality_score(
-        adapted_exercises, program.user_id, session_date, db
+        adapted_exercises, program.user_id, db
     )
     
     # Créer l'entrée du schedule
@@ -3750,7 +3749,7 @@ def populate_program_planning_intelligent(db: Session, program):
             
             # Calculer le score prédictif ML
             quality_score = calculate_session_quality_score(
-                adapted_exercises, program.user_id, session_date, db
+                adapted_exercises, program.user_id, db
             )
             
             # Créer l'entrée du schedule

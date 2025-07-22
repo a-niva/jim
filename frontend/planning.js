@@ -1465,7 +1465,7 @@ class PlanningManager {
                 return;
             }
             
-            // ✅ CORRECTIF : Mettre à jour schedule.status pour format v2.0
+            // Mettre à jour schedule.status pour format v2.0
             if (this.activeProgram.format_version === "2.0" && this.activeProgram.schedule) {
                 // Trouver la date de cette session dans le schedule
                 const sessionDate = Object.keys(this.activeProgram.schedule).find(date => {
