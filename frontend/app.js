@@ -2736,40 +2736,100 @@ currentWorkoutSession.pendingSwap = null;
     startWorkoutTimer();
 }
 
-function showSessionPreview(metadata) {
-    if (!metadata) return;
+function showSessionPreview(sessionData, program) {
+    // ✅ CORRECTIF : Adapter selon format_version et schedule
+    let metadata = null;
+    let exercises = [];
+    
+    if (program?.format_version === "2.0" && program.schedule) {
+        // Format v2.0 - Extraire depuis schedule
+        const today = new Date().toISOString().split('T')[0];
+        const todaySession = program.schedule[today];
+        
+        if (todaySession) {
+            metadata = todaySession.session_metadata || {};
+            exercises = todaySession.exercises_snapshot || [];
+            
+            // Enrichir avec données du schedule
+            metadata.estimated_duration = todaySession.estimated_duration || metadata.estimated_duration;
+            metadata.predicted_score = todaySession.predicted_score || null;
+            metadata.status = todaySession.status || 'planned';
+        }
+    } else {
+        // Format legacy - Utiliser les données passées en paramètre
+        metadata = sessionData || {};
+        exercises = sessionData?.selected_exercises || [];
+    }
+    
+    if (!metadata && !exercises.length) {
+        console.warn('❌ Aucune donnée pour showSessionPreview');
+        return;
+    }
+    
+    // Calculer les stats d'affichage
+    const exercisesCount = exercises.length;
+    const estimatedDuration = metadata.estimated_duration || metadata.target_duration || 45;
+    const muscleDistribution = metadata.muscle_distribution || {};
+    const predictedScore = metadata.predicted_score;
+    const mlConfidence = metadata.ml_confidence;
     
     const previewHTML = `
         <div class="session-preview">
             <div class="preview-header">
-                <h4>📊 Aperçu de votre séance personnalisée</h4>
-                ${metadata.ml_confidence ? `<span class="ml-confidence">Confiance ML: ${Math.round(metadata.ml_confidence * 100)}%</span>` : ''}
+                <h4>📊 Aperçu de votre séance${program?.format_version === "2.0" ? ' programmée' : ' personnalisée'}</h4>
+                ${mlConfidence ? `<span class="ml-confidence">Confiance ML: ${Math.round(mlConfidence * 100)}%</span>` : ''}
+                ${predictedScore ? `<span class="predicted-score">Score prédit: ${Math.round(predictedScore)}/100</span>` : ''}
             </div>
+            
+            <div class="preview-stats">
+                <div class="stat-item">
+                    <div class="stat-value">${exercisesCount}</div>
+                    <div class="stat-label">Exercices</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${estimatedDuration}min</div>
+                    <div class="stat-label">Durée estimée</div>
+                </div>
+                ${predictedScore ? `
+                    <div class="stat-item">
+                        <div class="stat-value">${Math.round(predictedScore)}</div>
+                        <div class="stat-label">Score prédit</div>
+                    </div>
+                ` : ''}
+            </div>
+            
             <div class="preview-content">
-                ${metadata.muscle_distribution ? `
+                ${Object.keys(muscleDistribution).length > 0 ? `
                     <div class="muscle-distribution">
                         <h5>Répartition musculaire</h5>
                         <div class="distribution-bar">
-                            ${generateMuscleDistribution(metadata.muscle_distribution)}
+                            ${generateMuscleDistribution(muscleDistribution)}
                         </div>
                     </div>
                 ` : ''}
-                ${metadata.estimated_duration ? `
-                    <p><i class="fas fa-clock"></i> Durée estimée: ${metadata.estimated_duration} min</p>
-                ` : ''}
+                
                 ${metadata.warnings && metadata.warnings.length > 0 ? `
                     <div class="session-warnings">
                         ${metadata.warnings.map(w => `<p class="warning"><i class="fas fa-exclamation-triangle"></i> ${w}</p>`).join('')}
                     </div>
                 ` : ''}
+                
+                ${program?.format_version === "2.0" ? `
+                    <div class="schedule-info">
+                        <p><i class="fas fa-calendar"></i> Séance du ${new Date().toLocaleDateString('fr-FR')}</p>
+                        ${metadata.status ? `<p><i class="fas fa-info-circle"></i> Statut: ${metadata.status}</p>` : ''}
+                    </div>
+                ` : ''}
             </div>
-            <button class="btn-secondary" onclick="regenerateSession()">
-                <i class="fas fa-sync"></i> Régénérer la sélection
-            </button>
+            
+            ${program?.format_version !== "2.0" ? `
+                <button class="btn-secondary" onclick="regenerateSession()">
+                    <i class="fas fa-sync"></i> Régénérer la sélection
+                </button>
+            ` : ''}
         </div>
     `;
     
-    // Afficher le preview dans un toast ou modal temporaire
     // Créer un conteneur temporaire pour le preview
     const previewContainer = document.createElement('div');
     previewContainer.innerHTML = previewHTML;
@@ -2780,16 +2840,21 @@ function showSessionPreview(metadata) {
         z-index: 1000;
         max-width: 400px;
         animation: slideIn 0.3s ease;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: var(--spacing-md);
+        box-shadow: var(--shadow-lg);
     `;
 
     // Ajouter au body
     document.body.appendChild(previewContainer);
 
-    // Retirer après 5 secondes
+    // Retirer après 6 secondes (un peu plus pour lire les nouvelles infos)
     setTimeout(() => {
         previewContainer.style.animation = 'slideOut 0.3s ease';
         setTimeout(() => previewContainer.remove(), 300);
-    }, 5000);
+    }, 6000);
 }
 
 
