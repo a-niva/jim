@@ -373,7 +373,7 @@ class PlanningManager {
                     <button class="btn btn-primary" onclick="planningManager.showAddSessionModal()">
                         <i class="fas fa-plus"></i> Nouvelle séance
                     </button>
-                    <button class="btn btn-sm btn-primary" onclick="planningManager.refreshPlanning()">
+                    <button class="btn btn-sm btn-primary" onclick="planningManager.refresh()">
                         <i class="fas fa-sync-alt"></i> Actualiser
                     </button>
                 </div>
@@ -2002,7 +2002,11 @@ class PlanningManager {
 
     async showAddSessionModal(date = null) {
         const targetDate = date || new Date().toISOString().split('T')[0];
-        
+        const formattedDate = new Date(targetDate).toLocaleDateString('fr-FR', {
+            weekday: 'long',
+            day: 'numeric', 
+            month: 'long'
+        });
         try {
             console.log('🔍 Ouverture modal ajout séance pour:', targetDate);
             
@@ -2154,45 +2158,9 @@ class PlanningManager {
             
             if (selected.length === 0) {
                 previewDiv.innerHTML = `
-                    <div class="session-summary-compact">
-                        <div class="summary-stats-inline">
-                            <span class="stat-compact"><strong>${exercises.length}</strong> exercices</span>
-                            <span class="stat-compact"><strong>${duration}</strong> minutes</span>
-                            <span class="stat-compact"><strong>${muscles.length}</strong> groupes</span>
-                            <span class="stat-compact quality-stat"><strong style="color: ${scoreColor}">${qualityScore}%</strong> qualité</span>
-                        </div>
-                        
-                        <div class="exercise-list-preview">
-                            <div class="exercises-sortable" id="previewExercisesList">
-                                ${exercises.map((ex, index) => `
-                                    <div class="exercise-preview-item" 
-                                        data-exercise-id="${ex.exercise_id}"
-                                        data-exercise='${JSON.stringify(ex).replace(/'/g, '&apos;')}'>
-                                        <span class="exercise-drag-handle"><i class="fas fa-grip-vertical"></i></span>
-                                        <span class="exercise-number">${index + 1}</span>
-                                        <div class="exercise-info">
-                                            <div class="exercise-name">${ex.exercise_name}</div>
-                                            <div class="exercise-params">${ex.sets || 3}×${ex.reps_min || 8}-${ex.reps_max || 12}</div>
-                                        </div>
-                                        <button class="exercise-remove" onclick="window.planningManager.removeExerciseFromPreview('${ex.exercise_id}')" title="Retirer">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                        
-                        ${muscles.length > 0 ? `
-                            <div class="muscle-groups-preview">
-                                <div class="muscle-tags">
-                                    ${muscles.map(muscle => {
-                                        const color = window.MuscleColors?.getMuscleColor ? 
-                                            window.MuscleColors.getMuscleColor(muscle.toLowerCase()) : '#6b7280';
-                                        return `<span class="muscle-tag-preview" style="background: ${color}">${muscle}</span>`;
-                                    }).join('')}
-                                </div>
-                            </div>
-                        ` : ''}
+                    <div class="empty-preview">
+                        <i class="fas fa-hand-pointer"></i>
+                        <p>Sélectionnez des exercices pour voir l'aperçu</p>
                     </div>
                 `;
                 createBtn.disabled = true;
