@@ -6060,6 +6060,7 @@ function closeModal() {
     const modal = document.getElementById('modal');
     if (modal) {
         modal.style.display = 'none';
+        modal.classList.remove('planning-modal'); // Retirer la classe spéciale
     }
 }
 
