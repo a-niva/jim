@@ -373,7 +373,7 @@ class PlanningManager {
                     <button class="btn btn-primary" onclick="planningManager.showAddSessionModal()">
                         <i class="fas fa-plus"></i> Nouvelle séance
                     </button>
-                    <button class="btn btn-sm btn-primary" onclick="planningManager.saveSessionChanges('${session.id}')">
+                    <button class="btn btn-sm btn-primary" onclick="planningManager.refreshPlanning()">
                         <i class="fas fa-sync-alt"></i> Actualiser
                     </button>
                 </div>
