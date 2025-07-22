@@ -2123,12 +2123,21 @@ class PlanningManager {
     }
         
 
-    async showAddSessionModal(targetDate) {
+    async showAddSessionModal(targetDate, sessionIdToEdit = null) {
         try {
             const exercisesResponse = await window.apiGet(`/api/exercises`);
             if (!exercisesResponse || exercisesResponse.length === 0) {
                 window.showToast('Aucun exercice disponible', 'error');
                 return;
+            }
+            
+            // Si on édite une session, récupérer les exercices déjà sélectionnés
+            let existingExerciseIds = [];
+            if (sessionIdToEdit) {
+                const session = this.sessions.find(s => s.id === sessionIdToEdit);
+                if (session && session.exercises) {
+                    existingExerciseIds = session.exercises.map(ex => ex.exercise_id);
+                }
             }
             
             const date = new Date(targetDate);
@@ -2172,15 +2181,20 @@ class PlanningManager {
                                     difficulty: ex.difficulty
                                 };
                                 
+                                // Désactiver si déjà dans la session
+                                const isDisabled = existingExerciseIds.includes(ex.id);
+                                
                                 return `
-                                    <label class="exercise-option">
+                                    <label class="exercise-option ${isDisabled ? 'disabled' : ''}">
                                         <input type="checkbox" 
                                             value="${ex.id}"
-                                            data-exercise='${JSON.stringify(exerciseData).replace(/'/g, '&apos;')}'>
+                                            data-exercise='${JSON.stringify(exerciseData).replace(/'/g, '&apos;')}'
+                                            ${isDisabled ? 'disabled' : ''}>
                                         <div class="exercise-option-card">
                                             <div class="exercise-name">${ex.name}</div>
                                             <div class="exercise-details">
                                                 ${ex.default_sets}×${ex.default_reps_min}-${ex.default_reps_max}
+                                                ${isDisabled ? '<span class="already-added">(Déjà ajouté)</span>' : ''}
                                             </div>
                                         </div>
                                     </label>
@@ -2191,10 +2205,13 @@ class PlanningManager {
                 `;
             }).join('');
             
+            const modalTitle = sessionIdToEdit ? 'Ajouter des exercices' : 'Créer une séance';
+            const buttonText = sessionIdToEdit ? 'Ajouter à la séance' : 'Créer la séance';
+            
             const modalContent = `
                 <div class="add-session-modal-v2">
                     <div class="modal-header-section">
-                        <h3><i class="fas fa-plus-circle"></i> Créer une séance</h3>
+                        <h3><i class="fas fa-plus-circle"></i> ${modalTitle}</h3>
                         <div class="session-date-info">
                             <i class="fas fa-calendar"></i>
                             <span>${formattedDate}</span>
@@ -2251,14 +2268,16 @@ class PlanningManager {
                         <button class="btn btn-secondary" onclick="window.closeModal()">
                             <i class="fas fa-times"></i> Annuler
                         </button>
-                        <button class="btn btn-primary" id="createSessionBtn" disabled onclick="planningManager.createSession('${targetDate}')">
-                            <i class="fas fa-plus"></i> Créer la séance
+                        <button class="btn btn-primary" id="createSessionBtn" 
+                                disabled 
+                                onclick="planningManager.${sessionIdToEdit ? `addExercisesToSession('${sessionIdToEdit}')` : `createSession('${targetDate}')`}">
+                            <i class="fas fa-plus"></i> ${buttonText}
                         </button>
                     </div>
                 </div>
             `;
             
-            window.showModal('', modalContent); // Titre vide car inclus dans le contenu
+            window.showModal('', modalContent);
             
             // Ajouter classe spéciale au modal pour le styling
             const modal = document.getElementById('modal');
@@ -2266,11 +2285,70 @@ class PlanningManager {
                 modal.classList.add('planning-modal');
             }
             
-            this.initializeSessionCreation();
+            this.initializeSessionCreation(sessionIdToEdit);
             
         } catch (error) {
             console.error('❌ Erreur ouverture modal ajout:', error);
             window.showToast('Erreur lors de l\'ouverture du modal', 'error');
+        }
+    }
+
+    async addExercisesToSession(sessionId) {
+        try {
+            const session = this.sessions.find(s => s.id === sessionId);
+            if (!session) {
+                window.showToast('Session introuvable', 'error');
+                return;
+            }
+            
+            const selected = Array.from(document.querySelectorAll('#exerciseSelectionGrid input:checked'));
+            if (selected.length === 0) {
+                window.showToast('Aucun exercice sélectionné', 'warning');
+                return;
+            }
+            
+            const newExercises = selected.map(input => {
+                try {
+                    const jsonData = input.dataset.exercise.replace(/&apos;/g, "'");
+                    return JSON.parse(jsonData);
+                } catch (e) {
+                    return null;
+                }
+            }).filter(Boolean);
+            
+            // Ajouter les nouveaux exercices à la session
+            session.exercises = session.exercises || [];
+            session.exercises.push(...newExercises);
+            
+            // Recalculer le score
+            if (window.SessionQualityEngine) {
+                try {
+                    const scoreData = await window.SessionQualityEngine.calculateSessionScore(session.exercises);
+                    session.predicted_quality_score = Math.round(scoreData.total || 75);
+                } catch (e) {
+                    console.warn('Calcul score fallback:', e);
+                }
+            }
+            
+            // Sauvegarder
+            try {
+                await this.saveSessionChanges(sessionId, session);
+                window.showToast(`${newExercises.length} exercice(s) ajouté(s)`, 'success');
+            } catch (e) {
+                console.warn('Sauvegarde locale:', e);
+                this.saveSessionToLocalStorage(sessionId, session);
+            }
+            
+            window.closeModal();
+            
+            // Rouvrir le modal d'édition
+            setTimeout(() => {
+                this.showSessionEditModal(session);
+            }, 300);
+            
+        } catch (error) {
+            console.error('❌ Erreur ajout exercices:', error);
+            window.showToast('Erreur lors de l\'ajout', 'error');
         }
     }
 
@@ -2299,8 +2377,8 @@ class PlanningManager {
     }
 
     // MODIFIER la méthode initializeSessionCreation
-    initializeSessionCreation() {
-        const checkboxes = document.querySelectorAll('#exerciseSelectionGrid input[type="checkbox"]');
+    initializeSessionCreation(sessionIdToEdit = null) {
+        const checkboxes = document.querySelectorAll('#exerciseSelectionGrid input[type="checkbox"]:not(:disabled)');
         const createBtn = document.getElementById('createSessionBtn');
         const previewDiv = document.getElementById('sessionPreview');
         const selectedCounter = document.getElementById('selectedCount');
@@ -2309,7 +2387,7 @@ class PlanningManager {
         
         const userPreferredDuration = this.activeProgram?.session_duration || 
                                     window.currentUser?.onboarding_data?.session_duration || 60;
-        const maxExercises = Math.min(8, Math.floor(userPreferredDuration / 7));
+        const maxExercises = sessionIdToEdit ? 4 : Math.min(8, Math.floor(userPreferredDuration / 7));
         
         if (!checkboxes.length || !createBtn || !previewDiv) {
             console.error('❌ Éléments modal introuvables');
@@ -2323,7 +2401,7 @@ class PlanningManager {
                 const groups = document.querySelectorAll('.exercise-group');
                 
                 groups.forEach(group => {
-                    const options = group.querySelectorAll('.exercise-option');
+                    const options = group.querySelectorAll('.exercise-option:not(.disabled)');
                     let hasVisibleOption = false;
                     
                     options.forEach(option => {
@@ -2463,7 +2541,8 @@ class PlanningManager {
                 }
                 
                 createBtn.disabled = false;
-                createBtn.innerHTML = `<i class="fas fa-plus"></i> Créer la séance (${exercises.length} ex.)`;
+                const buttonText = sessionIdToEdit ? 'Ajouter à la séance' : 'Créer la séance';
+                createBtn.innerHTML = `<i class="fas fa-plus"></i> ${buttonText} (${exercises.length} ex.)`;
                 
             } catch (error) {
                 console.error('❌ Erreur preview séance:', error);
@@ -2479,7 +2558,10 @@ class PlanningManager {
                 
                 if (event.target.checked && selected.length > maxExercises) {
                     event.target.checked = false;
-                    window.showToast(`Maximum ${maxExercises} exercices pour une séance de ${userPreferredDuration} minutes`, 'warning');
+                    const message = sessionIdToEdit ? 
+                        `Maximum ${maxExercises} exercices supplémentaires` :
+                        `Maximum ${maxExercises} exercices pour une séance de ${userPreferredDuration} minutes`;
+                    window.showToast(message, 'warning');
                     return;
                 }
                 
@@ -2691,16 +2773,6 @@ class PlanningManager {
         }
     }
 
-
-    // AJOUTER fonction pour retirer un exercice de l'aperçu
-    removeExerciseFromPreview(exerciseId) {
-        const checkbox = document.querySelector(`#exerciseSelectionGrid input[value="${exerciseId}"]`);
-        if (checkbox) {
-            checkbox.checked = false;
-            checkbox.dispatchEvent(new Event('change'));
-        }
-    }
-
     // Fonction pour optimiser l'ordre dans l'aperçu
     async optimizePreviewOrder() {
         const previewItems = document.querySelectorAll('#previewExercisesList .exercise-preview-item');
@@ -2856,7 +2928,7 @@ class PlanningManager {
         }, 300);
     }
 
-    // AJOUTER support swipe mobile
+    // Support swipe mobile
     initializeMobileSwipe() {
         const items = document.querySelectorAll('.exercise-preview-item');
         
@@ -3210,6 +3282,9 @@ class PlanningManager {
                 }, 600);
             }
             
+            // Réinitialiser le drag & drop
+            this.initializePreviewDragDrop();
+            
             window.showToast('Ordre optimisé pour une meilleure performance', 'success');
             
         } catch (error) {
@@ -3333,177 +3408,20 @@ class PlanningManager {
     }
 
     // ADAPTER showAddExerciseModal() si nécessaire
-    async showAddExerciseModal(sessionId, existingExerciseIds = []) {
-        try {
-            const session = this.findSessionById(sessionId);
-            if (!session) {
-                window.showToast('Session introuvable', 'error');
-                return;
-            }
-            
-            // Récupérer les IDs des exercices déjà dans la session
-            const currentExercises = session.exercise_pool || session.exercises || [];
-            const excludeIds = currentExercises.map(ex => ex.exercise_id || ex.id);
-            
-            const exercisesResponse = await window.apiGet(`/api/exercises`);
-            if (!exercisesResponse || exercisesResponse.length === 0) {
-                window.showToast('Aucun exercice disponible', 'error');
-                return;
-            }
-            
-            // Filtrer les exercices déjà présents
-            const availableExercises = exercisesResponse.filter(ex => 
-                !excludeIds.includes(ex.id)
-            );
-            
-            if (availableExercises.length === 0) {
-                window.showToast('Tous les exercices sont déjà dans la séance', 'info');
-                return;
-            }
-            
-            // Organiser par groupe musculaire
-            const exercisesByMuscle = {};
-            availableExercises.forEach(exercise => {
-                const muscle = exercise.muscle_groups?.[0] || 'Autres';
-                if (!exercisesByMuscle[muscle]) {
-                    exercisesByMuscle[muscle] = [];
-                }
-                exercisesByMuscle[muscle].push(exercise);
-            });
-            
-            // Générer HTML (utiliser le même style que création)
-            const muscleGroupsHtml = Object.entries(exercisesByMuscle).map(([muscle, exercises]) => {
-                const color = window.MuscleColors?.getMuscleColor ? 
-                    window.MuscleColors.getMuscleColor(muscle) : '#6b7280';
-                
-                return `
-                    <div class="exercise-group">
-                        <h5 class="muscle-group-header" style="border-left: 4px solid ${color};">
-                            ${muscle.charAt(0).toUpperCase() + muscle.slice(1)} (${exercises.length})
-                        </h5>
-                        <div class="exercise-group-grid">
-                            ${exercises.map(ex => {
-                                const exerciseData = {
-                                    exercise_id: ex.id,
-                                    exercise_name: ex.name,
-                                    muscle_groups: ex.muscle_groups || [muscle],
-                                    sets: ex.default_sets || 3,
-                                    reps_min: ex.default_reps_min || 8,
-                                    reps_max: ex.default_reps_max || 12,
-                                    rest_seconds: ex.base_rest_time_seconds || 90
-                                };
-                                
-                                return `
-                                    <label class="exercise-option">
-                                        <input type="radio" 
-                                            name="newExercise"
-                                            value="${ex.id}"
-                                            data-exercise='${JSON.stringify(exerciseData).replace(/'/g, '&apos;')}'>
-                                        <div class="exercise-option-card">
-                                            <div class="exercise-name">${ex.name}</div>
-                                            <div class="exercise-details">
-                                                ${ex.default_sets}×${ex.default_reps_min}-${ex.default_reps_max}
-                                            </div>
-                                        </div>
-                                    </label>
-                                `;
-                            }).join('')}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            
-            const modalContent = `
-                <div class="add-session-modal-v2">
-                    <div class="modal-header-section">
-                        <h3><i class="fas fa-plus-circle"></i> Ajouter un exercice</h3>
-                        <div class="session-date-info">
-                            <i class="fas fa-info-circle"></i>
-                            <span>Sélectionnez un exercice à ajouter</span>
-                        </div>
-                    </div>
-                    
-                    <div class="modal-body-section">
-                        <div class="selection-section">
-                            <div class="section-header">
-                                <h4><i class="fas fa-dumbbell"></i> Exercices disponibles (${availableExercises.length})</h4>
-                            </div>
-                            
-                            <div class="exercise-search-container">
-                                <i class="fas fa-search search-icon"></i>
-                                <input type="text" 
-                                    id="addExerciseSearch" 
-                                    placeholder="Rechercher un exercice..." 
-                                    class="exercise-search-input">
-                            </div>
-                            
-                            <div class="exercises-container-wrapper expanded">
-                                <div class="exercise-groups-container" id="addExerciseGrid">
-                                    ${muscleGroupsHtml}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="modal-actions-section">
-                        <button class="btn btn-secondary" onclick="window.closeModal()">
-                            <i class="fas fa-times"></i> Annuler
-                        </button>
-                        <button class="btn btn-primary" id="addExerciseBtn" disabled 
-                                onclick="planningManager.addExerciseToSession('${sessionId}')">
-                            <i class="fas fa-plus"></i> Ajouter
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-            window.showModal('', modalContent);
-            
-            // Ajouter classe spéciale au modal
-            const modal = document.getElementById('modal');
-            if (modal) {
-                modal.classList.add('planning-modal');
-            }
-            
-            // Initialiser recherche et sélection
-            setTimeout(() => {
-                const radios = document.querySelectorAll('input[name="newExercise"]');
-                const addBtn = document.getElementById('addExerciseBtn');
-                const searchInput = document.getElementById('addExerciseSearch');
-                
-                radios.forEach(radio => {
-                    radio.addEventListener('change', () => {
-                        addBtn.disabled = !document.querySelector('input[name="newExercise"]:checked');
-                    });
-                });
-                
-                // Recherche
-                if (searchInput) {
-                    searchInput.addEventListener('input', (e) => {
-                        const term = e.target.value.toLowerCase().trim();
-                        const groups = document.querySelectorAll('#addExerciseGrid .exercise-group');
-                        
-                        groups.forEach(group => {
-                            const options = group.querySelectorAll('.exercise-option');
-                            let hasVisibleOption = false;
-                            
-                            options.forEach(option => {
-                                const exerciseName = option.querySelector('.exercise-name').textContent.toLowerCase();
-                                const isVisible = !term || exerciseName.includes(term);
-                                option.style.display = isVisible ? 'block' : 'none';
-                                if (isVisible) hasVisibleOption = true;
-                            });
-                            
-                            group.style.display = hasVisibleOption ? 'block' : 'none';
-                        });
-                    });
-                }
-            }, 100);
-            
-        } catch (error) {
-            console.error('❌ Erreur ouverture modal ajout exercice:', error);
-            window.showToast('Erreur lors de l\'ouverture', 'error');
+    async showAddExerciseModal(sessionId) {
+        const session = this.sessions.find(s => s.id === sessionId);
+        if (!session) {
+            window.showToast('Session introuvable', 'error');
+            return;
         }
+        
+        // Fermer le modal actuel
+        window.closeModal();
+        
+        // Ouvrir le modal d'ajout avec le sessionId
+        setTimeout(() => {
+            this.showAddSessionModal(session.date, sessionId);
+        }, 300);
     }
 
     // ===== HELPERS =====

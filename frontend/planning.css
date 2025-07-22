@@ -25,7 +25,6 @@
     padding: var(--spacing-lg);
     min-height: calc(100vh - var(--header-height) - var(--bottom-nav-height));
     display: block;
-    overflow-x: hidden; /* Empêcher scroll horizontal */
 }
 
 .planning-error {
@@ -85,25 +84,345 @@
 }
 
 /* =====================================================
-   MODAL CRÉATION/ÉDITION SÉANCE UNIFIÉ
+   CONTENEUR SEMAINES
    ===================================================== */
 
-/* Container principal du modal personnalisé */
-.add-session-modal-v2,
-.edit-session-modal-v2 {
-    max-width: 800px;
-    width: 90vw;
+.weeks-container {
+    position: relative;
+    overflow: hidden;
+}
+
+.week-section {
+    background: var(--planning-bg);
+    border: 1px solid var(--planning-border);
+    border-radius: var(--planning-radius);
+    overflow: hidden;
+    box-shadow: var(--planning-shadow);
+    transition: var(--planning-transition);
+    display: none;
+}
+
+.week-section.active {
+    display: block;
+    animation: slideInWeek 0.3s ease-out;
+}
+
+.week-section.current-week {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1px var(--primary), var(--planning-shadow);
+}
+
+@keyframes slideInWeek {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* =====================================================
+   NAVIGATION SEMAINES
+   ===================================================== */
+
+.week-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--planning-bg);
+    border-radius: var(--planning-radius);
+    border: 1px solid var(--planning-border);
+    box-shadow: var(--planning-shadow);
+}
+
+.nav-buttons {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.nav-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: var(--planning-transition);
+    font-size: 1.2rem;
+}
+
+.nav-btn:hover {
+    background: var(--primary);
+    color: white;
+    transform: scale(1.1);
+}
+
+.nav-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.week-indicator {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text);
+    text-align: center;
+    min-width: 200px;
+}
+
+.today-btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--planning-transition);
+    animation: pulseToday 2s infinite;
+}
+
+.today-btn:hover {
+    background: var(--primary-dark, #0056b3);
+    transform: scale(1.05);
+}
+
+@keyframes pulseToday {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(var(--primary-rgb, 0, 123, 255), 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(var(--primary-rgb, 0, 123, 255), 0);
+    }
+}
+
+/* =====================================================
+   GRILLE JOURS - AFFICHAGE VERTICAL
+   ===================================================== */
+
+.week-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-lg);
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--planning-border);
+}
+
+.week-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.week-score {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.score-badge {
+    background: var(--primary);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.days-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--spacing-lg);
+    padding: var(--spacing-lg);
+}
+
+.day-card {
+    background: var(--bg-secondary);
+    border-radius: var(--planning-radius);
+    padding: var(--spacing-lg);
+    border: 1px solid var(--planning-border);
+    transition: var(--planning-transition);
+}
+
+.day-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--planning-shadow-hover);
+}
+
+.day-card.today {
+    border-color: var(--primary);
+    background: linear-gradient(135deg, var(--primary-light) 0%, var(--bg-secondary) 100%);
+}
+
+.day-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.day-date {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.day-indicator {
+    background: var(--primary);
+    color: white;
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+/* =====================================================
+   SESSIONS DANS LES JOURS
+   ===================================================== */
+
+.sessions-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.session-card {
+    background: var(--planning-bg);
+    border: 1px solid var(--planning-border);
+    border-radius: 8px;
+    padding: var(--spacing-md);
+    cursor: pointer;
+    transition: var(--planning-transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.session-card:hover {
+    border-color: var(--primary);
+    transform: translateX(4px);
+    box-shadow: var(--planning-shadow);
+}
+
+.session-card.completed {
+    opacity: 0.7;
+    background: var(--bg-tertiary);
+}
+
+.session-card.completed::after {
+    content: '✓';
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    color: var(--success);
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.session-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--spacing-sm);
+}
+
+.session-title {
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.session-quality {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.9rem;
+}
+
+.quality-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--success);
+}
+
+.exercise-count {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: var(--spacing-xs);
+}
+
+.session-muscles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+}
+
+.muscle-tag {
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: white;
+    background: var(--primary);
+}
+
+/* =====================================================
+   ZONES D'AJOUT
+   ===================================================== */
+
+.add-session-zone {
+    border: 2px dashed var(--planning-border);
+    border-radius: 8px;
+    padding: var(--spacing-lg);
+    text-align: center;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: var(--planning-transition);
+    background: var(--bg-tertiary);
+}
+
+.add-session-zone:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-light);
+}
+
+.add-session-zone i {
+    font-size: 1.5rem;
+    margin-bottom: var(--spacing-sm);
+    display: block;
+}
+
+/* =====================================================
+   MODAL CRÉATION SÉANCE - LAYOUT VERTICAL
+   ===================================================== */
+
+.add-session-modal-v2 {
+    max-width: 750px;
+    width: 95vw;
     max-height: 85vh;
     display: flex;
     flex-direction: column;
     position: relative;
-    margin: 0 auto;
-    overflow-x: hidden; /* Empêcher scroll horizontal */
+    overflow: hidden;
 }
 
-/* Header aligné avec croix de fermeture */
+/* Header avec alignement croix */
 .modal-header-section {
-    padding: 0.75rem 3rem 0.75rem 1.5rem; /* Plus d'espace à droite pour la croix */
+    padding: 0.75rem 3rem 0.75rem 1.5rem;
     border-bottom: 1px solid var(--planning-border);
     background: var(--bg-secondary);
     flex-shrink: 0;
@@ -131,7 +450,7 @@
     gap: 0.3rem;
     color: var(--text-muted);
     font-size: 0.8rem;
-    margin: 0.3rem 0 0 2rem; /* Indentation sous le titre */
+    margin: 0.3rem 0 0 2rem;
     opacity: 0.8;
 }
 
@@ -140,34 +459,23 @@
     font-size: 0.75rem;
 }
 
-/* Corps du modal en colonnes */
+/* Corps du modal - tout vertical */
 .modal-body-section {
     flex: 1;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     padding: 1.5rem;
     display: flex;
+    flex-direction: column;
     gap: 1.5rem;
     min-height: 0;
 }
 
-/* Layout deux colonnes : sélection à gauche, aperçu à droite */
+/* Section sélection exercices */
 .selection-section {
-    flex: 1.2;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    overflow: hidden;
+    flex-shrink: 0;
 }
 
-.preview-section {
-    flex: 0.8;
-    display: flex;
-    flex-direction: column;
-    min-width: 280px;
-    overflow: hidden;
-}
-
-/* Header de section avec toggle */
 .section-header {
     display: flex;
     justify-content: space-between;
@@ -189,7 +497,7 @@
 
 .section-header h4 {
     margin: 0;
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     font-weight: 600;
     color: var(--text);
     display: flex;
@@ -199,7 +507,7 @@
 
 .section-header h4 i {
     color: var(--primary);
-    font-size: 1rem;
+    font-size: 0.95rem;
 }
 
 .section-toggle {
@@ -209,22 +517,23 @@
 }
 
 .selection-counter {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: var(--text-muted);
-    transition: transform 0.2s ease;
+    font-weight: 500;
+    transition: all 0.2s ease;
 }
 
 .toggle-icon {
     color: var(--text-muted);
     transition: transform 0.2s ease;
-    font-size: 1rem;
+    font-size: 0.9rem;
 }
 
 .toggle-icon.open {
     transform: rotate(180deg);
 }
 
-/* Barre de recherche */
+/* Barre de recherche discrète */
 .exercise-search-container {
     position: relative;
     margin-bottom: 1rem;
@@ -236,18 +545,24 @@
     top: 50%;
     transform: translateY(-50%);
     color: var(--text-muted);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    pointer-events: none;
 }
 
 .exercise-search-input {
     width: 100%;
-    padding: 0.6rem 0.75rem 0.6rem 2.25rem;
+    padding: 0.5rem 0.75rem 0.5rem 2rem;
     border: 1px solid var(--planning-border);
     border-radius: 6px;
     background: var(--bg-tertiary);
     color: var(--text);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     transition: all 0.2s ease;
+}
+
+.exercise-search-input::placeholder {
+    color: var(--text-muted);
+    opacity: 0.7;
 }
 
 .exercise-search-input:focus {
@@ -263,75 +578,79 @@
 }
 
 .exercises-container-wrapper.expanded {
-    max-height: 400px;
+    max-height: 350px;
 }
 
 .exercises-container-wrapper.collapsed {
     max-height: 0;
 }
 
-/* Grille d'exercices en 2 colonnes */
+/* Grille exercices 2 colonnes */
 .exercise-groups-container {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
     overflow-y: auto;
-    overflow-x: hidden; /* Empêcher scroll horizontal */
+    overflow-x: hidden;
     padding-right: 0.5rem;
+    max-height: 350px;
 }
 
 .exercise-group {
-    margin-bottom: 1rem;
-    overflow: hidden; /* Empêcher débordement */
+    margin-bottom: 0.75rem;
+}
+
+.exercise-group:last-child {
+    margin-bottom: 0;
 }
 
 .muscle-group-header {
-    margin: 0 0 0.75rem 0;
-    padding: 0.5rem 0.75rem;
+    margin: 0 0 0.5rem 0;
+    padding: 0.4rem 0.6rem;
     background: var(--bg-tertiary);
     border-radius: 6px;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 600;
     color: var(--text);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    border-left: 3px solid var(--primary);
 }
 
 .exercise-group-grid {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.4rem;
 }
 
-/* Options d'exercices compactes */
+/* Options exercices */
 .exercise-option {
     display: block;
     cursor: pointer;
-    overflow: hidden;
 }
 
-.exercise-option input[type="checkbox"],
-.exercise-option input[type="radio"] {
+.exercise-option.disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.exercise-option input[type="checkbox"] {
     display: none;
 }
 
 .exercise-option-card {
-    padding: 0.6rem 0.8rem;
+    padding: 0.5rem 0.7rem;
     background: var(--bg-tertiary);
     border: 1px solid var(--planning-border);
-    border-radius: 6px;
+    border-radius: 5px;
     transition: all 0.2s ease;
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
-    overflow: hidden;
+    gap: 0.15rem;
 }
 
-.exercise-option:hover .exercise-option-card {
+.exercise-option:not(.disabled):hover .exercise-option-card {
     border-color: var(--primary);
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
 }
 
 .exercise-option input:checked + .exercise-option-card {
@@ -339,44 +658,43 @@
     background: var(--primary);
     color: white;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 3px 10px rgba(59, 130, 246, 0.25);
+}
+
+.exercise-option.disabled .exercise-option-card {
+    background: var(--bg-tertiary);
+    border-color: var(--border);
+    color: var(--text-muted);
+}
+
+.already-added {
+    font-size: 0.6rem;
+    opacity: 0.8;
+    display: block;
+    margin-top: 0.1rem;
 }
 
 .exercise-name {
     font-weight: 600;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     line-height: 1.2;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    max-width: 100%;
 }
 
 .exercise-details {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     opacity: 0.8;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.exercise-option-card .exercise-name {
-    font-weight: 600;
-    font-size: 0.8rem;
-    line-height: 1.2;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.exercise-option-card .exercise-details {
-    font-size: 0.7rem;
-    opacity: 0.8;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    line-height: 1;
 }
 
 /* Section aperçu */
+.preview-section {
+    flex-shrink: 0;
+}
+
 .preview-header {
     display: flex;
     justify-content: space-between;
@@ -386,7 +704,7 @@
 
 .preview-header h4 {
     margin: 0;
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     font-weight: 600;
     color: var(--text);
     display: flex;
@@ -396,16 +714,16 @@
 
 .preview-header h4 i {
     color: var(--primary);
-    font-size: 1rem;
+    font-size: 0.95rem;
 }
 
-/* Bouton magique animé */
+/* Baguette magique */
 .btn-magic-icon {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
-    width: 36px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     cursor: pointer;
     display: flex;
@@ -414,7 +732,7 @@
     transition: all 0.3s ease;
     opacity: 0;
     transform: scale(0.8);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
 }
 
 .btn-magic-icon.show {
@@ -424,17 +742,23 @@
 
 .btn-magic-icon:hover {
     transform: scale(1.1) rotate(15deg);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.5);
 }
 
 .btn-magic-icon i {
-    font-size: 16px;
+    font-size: 14px;
     animation: sparkle 2s ease-in-out infinite;
 }
 
 @keyframes sparkle {
-    0%, 100% { opacity: 1; transform: rotate(0deg); }
-    50% { opacity: 0.7; transform: rotate(180deg) scale(1.1); }
+    0%, 100% { 
+        opacity: 1; 
+        transform: rotate(0deg);
+    }
+    50% { 
+        opacity: 0.7; 
+        transform: rotate(180deg) scale(1.1);
+    }
 }
 
 /* Container aperçu */
@@ -443,7 +767,6 @@
     border: 1px solid var(--planning-border);
     border-radius: 8px;
     padding: 1.25rem;
-    overflow: hidden;
 }
 
 .empty-preview {
@@ -458,15 +781,25 @@
     opacity: 0.5;
 }
 
-/* Stats compactes en ligne */
+.empty-preview p {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+/* Stats en ligne */
+.session-summary-v2 {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
 .summary-stats {
     display: flex;
     justify-content: space-between;
-    gap: 0.75rem;
+    gap: 0.5rem;
     background: var(--bg-tertiary);
-    padding: 0.75rem;
+    padding: 0.6rem;
     border-radius: 6px;
-    margin-bottom: 1rem;
 }
 
 .stat-item {
@@ -474,19 +807,22 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.2rem;
+    gap: 0.1rem;
     flex: 1;
-    min-width: 0; /* Important pour éviter débordement */
+    padding: 0.25rem;
 }
 
 .stat-item i {
-    font-size: 1rem;
+    font-size: 0.9rem;
+    margin-bottom: 0.1rem;
 }
 
 .stat-value {
-    font-size: 1.3rem;
+    font-size: 1.1rem;
     font-weight: 700;
+    line-height: 1;
     transition: all 0.3s ease;
+    position: relative;
 }
 
 .stat-value.updated {
@@ -500,16 +836,17 @@
 }
 
 .stat-label {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     color: var(--text-muted);
+    line-height: 1;
 }
 
 /* Animation delta score */
 .score-delta {
     position: absolute;
-    top: -1rem;
-    right: -1rem;
-    font-size: 0.8rem;
+    top: -1.2rem;
+    right: -0.5rem;
+    font-size: 0.75rem;
     font-weight: 600;
     opacity: 1;
     transition: all 0.3s ease;
@@ -518,16 +855,32 @@
 }
 
 @keyframes scoreDelta {
-    0% { opacity: 0; transform: translateY(0); }
-    20% { opacity: 1; transform: translateY(-5px); }
-    80% { opacity: 1; transform: translateY(-10px); }
-    100% { opacity: 0; transform: translateY(-20px); }
+    0% { 
+        opacity: 0; 
+        transform: translateY(0); 
+    }
+    20% { 
+        opacity: 1; 
+        transform: translateY(-5px); 
+    }
+    80% { 
+        opacity: 1; 
+        transform: translateY(-10px); 
+    }
+    100% { 
+        opacity: 0; 
+        transform: translateY(-20px); 
+    }
 }
 
-/* Liste exercices avec drag & drop */
+/* Liste exercices drag & drop */
+.exercise-list-preview {
+    margin-bottom: 1rem;
+}
+
 .exercise-list-preview h5 {
     margin: 0 0 0.75rem 0;
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 600;
     color: var(--text);
     display: flex;
@@ -535,41 +888,45 @@
     gap: 0.5rem;
 }
 
+.exercise-list-preview h5 i {
+    color: var(--primary);
+    font-size: 0.85rem;
+}
+
 .exercises-sortable {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    max-height: 200px;
+    max-height: 180px;
     overflow-y: auto;
-    overflow-x: hidden; /* Empêcher scroll horizontal */
+    overflow-x: hidden;
     padding-right: 0.3rem;
 }
 
-/* Items d'exercices dans l'aperçu */
 .exercise-preview-item {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    padding: 0.6rem;
+    gap: 0.5rem;
+    padding: 0.5rem 0.6rem;
     background: var(--planning-bg);
     border: 1px solid var(--planning-border);
     border-radius: 5px;
     transition: all 0.2s ease;
     position: relative;
     cursor: grab;
-    overflow: hidden; /* Important */
+    min-height: 44px;
 }
 
 .exercise-preview-item:hover {
     border-color: var(--primary);
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
 }
 
 .exercise-preview-item.sortable-chosen {
     cursor: grabbing;
     transform: rotate(2deg);
-    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 .exercise-preview-item.swipe-delete {
@@ -577,12 +934,26 @@
     border-color: var(--danger);
 }
 
+/* Classes pour drag & drop */
+.exercise-ghost {
+    opacity: 0.4;
+    background: var(--primary-light);
+}
+
+.exercise-chosen {
+    opacity: 1;
+}
+
+.exercise-dragging {
+    cursor: grabbing;
+}
+
 .exercise-drag-handle {
     color: var(--text-muted);
     cursor: grab;
-    padding: 0.25rem;
+    padding: 0.2rem;
+    font-size: 0.8rem;
     transition: color 0.2s ease;
-    flex-shrink: 0;
 }
 
 .exercise-drag-handle:hover {
@@ -592,59 +963,59 @@
 .exercise-number {
     background: var(--primary);
     color: white;
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 600;
     flex-shrink: 0;
 }
 
 .exercise-info {
     flex: 1;
-    min-width: 0; /* Crucial pour ellipsis */
-    overflow: hidden;
+    min-width: 0;
+    padding-right: 1.5rem;
 }
 
 .exercise-preview-item .exercise-name {
     font-weight: 600;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     margin: 0;
     color: var(--text);
+    line-height: 1.2;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .exercise-preview-item .exercise-params {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: var(--text-muted);
-    margin-top: 0.2rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    margin-top: 0.1rem;
+    line-height: 1;
 }
 
-/* Bouton suppression */
+/* Bouton suppression avec hover rouge */
 .exercise-remove {
     position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
+    top: 50%;
+    right: 0.4rem;
+    transform: translateY(-50%);
     background: none;
     border: 1px solid var(--text-muted);
     color: var(--text-muted);
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
-    font-size: 0.6rem;
+    font-size: 0.55rem;
     opacity: 0.6;
 }
 
@@ -656,7 +1027,7 @@
     background: var(--danger);
     border-color: var(--danger);
     color: white;
-    transform: scale(1.1);
+    transform: translateY(-50%) scale(1.1);
 }
 
 /* Groupes musculaires colorés */
@@ -666,13 +1037,18 @@
 }
 
 .muscle-groups-preview h5 {
-    margin: 0 0 0.75rem 0;
-    font-size: 1rem;
+    margin: 0 0 0.6rem 0;
+    font-size: 0.95rem;
     font-weight: 600;
     color: var(--text);
     display: flex;
     align-items: center;
     gap: 0.5rem;
+}
+
+.muscle-groups-preview h5 i {
+    color: var(--primary);
+    font-size: 0.85rem;
 }
 
 .muscle-tags {
@@ -682,17 +1058,13 @@
 }
 
 .muscle-tag-preview {
-    padding: 0.3rem 0.6rem;
-    border-radius: 12px;
+    padding: 0.25rem 0.5rem;
+    border-radius: 10px;
     color: white;
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     font-weight: 600;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     transition: transform 0.2s ease;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 150px; /* Limiter la largeur */
 }
 
 .muscle-tag-preview:hover {
@@ -714,39 +1086,736 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
+    padding: 0.65rem 1.25rem;
     font-weight: 600;
     border-radius: 8px;
     transition: all 0.2s ease;
+    font-size: 0.9rem;
+}
+
+.modal-actions-section .btn:hover {
+    transform: translateY(-1px);
 }
 
 /* =====================================================
-   ADAPTATION MODAL PRINCIPAL
+   MODAL ÉDITION SÉANCE - ALIGNÉ SUR CRÉATION
+   ===================================================== */
+
+.session-edit-modal {
+    max-width: 750px;
+    width: 95vw;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+.session-edit-header {
+    padding: 0.75rem 3rem 0.75rem 1.5rem;
+    border-bottom: 1px solid var(--planning-border);
+    background: var(--bg-secondary);
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.session-edit-header h3 {
+    margin: 0;
+    color: var(--text);
+    font-size: 1.25rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.session-live-stats {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.live-score,
+.live-duration {
+    text-align: center;
+}
+
+.live-score label,
+.live-duration label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 0.3rem;
+}
+
+.score-display {
+    display: inline-block;
+}
+
+.score-gauge {
+    padding: 0.3rem 0.7rem;
+    border-radius: 20px;
+    color: white;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.duration-display {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.exercises-section {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+}
+
+.exercises-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.exercises-header h4 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.exercise-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.exercises-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.editable-exercise {
+    background: var(--bg-secondary);
+    border: 1px solid var(--planning-border);
+    border-radius: 8px;
+    padding: 1rem;
+    transition: all 0.2s ease;
+}
+
+.editable-exercise:hover {
+    border-color: var(--primary);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.exercise-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.exercise-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.exercise-number-edit {
+    background: var(--primary);
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.exercise-name-edit {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text);
+}
+
+.exercise-tools {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-icon {
+    background: none;
+    border: 1px solid var(--planning-border);
+    color: var(--text-muted);
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-light);
+}
+
+.btn-icon.danger:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.exercise-params-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+}
+
+.param-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.param-group label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.param-input {
+    padding: 0.5rem;
+    border: 1px solid var(--planning-border);
+    border-radius: 6px;
+    background: var(--bg-tertiary);
+    color: var(--text);
+    font-size: 0.85rem;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.param-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.add-exercise-section {
+    text-align: center;
+    padding: 1rem;
+}
+
+/* =====================================================
+   MODALS ALTERNATIVES
+   ===================================================== */
+
+.swap-modal {
+    max-width: 600px;
+    width: 90vw;
+    padding: 1.5rem;
+}
+
+.swap-header {
+    margin-bottom: 1.5rem;
+}
+
+.swap-header h3 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text);
+}
+
+.swap-header p {
+    margin: 0;
+    color: var(--text-muted);
+}
+
+.alternatives-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.alternative-item {
+    background: var(--bg-secondary);
+    border: 1px solid var(--planning-border);
+    border-radius: 8px;
+    padding: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.alternative-item:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: var(--planning-shadow);
+}
+
+.alternative-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.alternative-name {
+    font-weight: 600;
+    color: var(--text);
+}
+
+.alternative-score {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.score-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.alternative-details {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.alternative-reason {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-top: 0.5rem;
+}
+
+/* =====================================================
+   MODALS CONFIRMATION
+   ===================================================== */
+
+.delete-confirmation,
+.move-confirmation {
+    text-align: center;
+    max-width: 400px;
+}
+
+.delete-confirmation h3,
+.move-confirmation h3 {
+    margin: 0 0 var(--spacing-md) 0;
+    color: var(--text);
+}
+
+.session-preview-card {
+    background: var(--bg-secondary);
+    padding: var(--spacing-md);
+    border-radius: var(--planning-radius);
+    margin: var(--spacing-md) 0;
+    color: var(--text-muted);
+}
+
+.warnings-list {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: var(--planning-radius);
+    padding: var(--spacing-md);
+    margin: var(--spacing-md) 0;
+}
+
+.warnings-list .warning-item {
+    color: var(--danger);
+    margin-bottom: var(--spacing-xs);
+}
+
+.warnings-list .warning-item:last-child {
+    margin-bottom: 0;
+}
+
+/* =====================================================
+   RESPONSIVE
+   ===================================================== */
+
+@media (max-width: 768px) {
+    #planningContainer {
+        padding: var(--spacing-md);
+    }
+    
+    .planning-header {
+        flex-direction: column;
+        gap: var(--spacing-md);
+        align-items: stretch;
+    }
+    
+    .planning-actions {
+        justify-content: center;
+    }
+    
+    .week-header {
+        flex-direction: column;
+        gap: var(--spacing-sm);
+        align-items: stretch;
+    }
+    
+    .week-score {
+        justify-content: center;
+    }
+    
+    .days-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Modal création responsive */
+    .add-session-modal-v2 {
+        max-width: 100%;
+        width: 100%;
+        max-height: 90vh;
+    }
+    
+    .modal-body-section {
+        padding: 1rem;
+    }
+    
+    .exercise-groups-container {
+        grid-template-columns: 1fr;
+        max-height: 300px;
+    }
+    
+    .exercise-name {
+        font-size: 0.8rem;
+    }
+    
+    .summary-stats {
+        flex-wrap: wrap;
+        gap: 0.4rem;
+    }
+    
+    .stat-item {
+        flex: 0 0 calc(50% - 0.2rem);
+    }
+    
+    .exercises-sortable {
+        max-height: 150px;
+    }
+    
+    .modal-actions-section {
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 1rem;
+    }
+    
+    .modal-actions-section .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    /* Modal édition responsive */
+    .session-edit-header {
+        flex-direction: column;
+        gap: var(--spacing-md);
+        align-items: stretch;
+    }
+    
+    .session-live-stats {
+        justify-content: space-around;
+    }
+    
+    .exercise-params-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .alternative-details {
+        flex-direction: column;
+        gap: var(--spacing-xs);
+    }
+    
+    .modal-actions {
+        flex-direction: column;
+    }
+}
+
+/* =====================================================
+   ANIMATIONS
+   ===================================================== */
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.week-section {
+    animation: slideIn 0.3s ease;
+}
+
+.week-section:nth-child(1) { animation-delay: 0.05s; }
+.week-section:nth-child(2) { animation-delay: 0.1s; }
+.week-section:nth-child(3) { animation-delay: 0.15s; }
+.week-section:nth-child(4) { animation-delay: 0.2s; }
+
+/* =====================================================
+   DARK MODE
+   ===================================================== */
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --planning-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        --planning-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
+}
+
+/* =====================================================
+   ACCESSIBILITÉ
+   ===================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    
+    .session-card:hover,
+    .day-card:hover,
+    .week-section:hover {
+        transform: none;
+    }
+}
+
+.session-card:focus,
+.add-session-zone:focus,
+.alternative-item:focus,
+.btn-action:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* =====================================================
+   MODALS BOUTON PROGRAMME
+   ===================================================== */
+
+.upcoming-sessions-modal {
+    max-width: 500px;
+    width: 100%;
+}
+
+.modal-header-program {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+    padding-bottom: var(--spacing-lg);
+    border-bottom: 1px solid var(--planning-border);
+}
+
+.modal-header-program h3 {
+    margin: 0 0 var(--spacing-sm) 0;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+}
+
+.modal-header-program h3 i {
+    color: var(--primary);
+}
+
+.modal-header-program p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.sessions-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+}
+
+.upcoming-session-card {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+    background: var(--bg-secondary);
+    border: 1px solid var(--planning-border);
+    border-radius: var(--planning-radius);
+    cursor: pointer;
+    transition: var(--planning-transition);
+    position: relative;
+}
+
+.upcoming-session-card:hover {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    transform: translateY(-2px);
+    box-shadow: var(--planning-shadow);
+}
+
+.upcoming-session-card.today {
+    border-color: var(--success);
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.session-badge {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+}
+
+.today-badge,
+.next-badge {
+    background: var(--success);
+    color: white;
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.next-badge {
+    background: var(--primary);
+}
+
+.session-icon {
+    width: 50px;
+    height: 50px;
+    background: var(--primary-light);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: var(--primary);
+    flex-shrink: 0;
+}
+
+.session-info {
+    flex: 1;
+}
+
+.session-info h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text);
+    font-weight: 600;
+}
+
+.session-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.session-meta-row {
+    display: flex;
+    gap: 1rem;
+}
+
+.session-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.program-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.program-actions .btn {
+    flex: 1;
+}
+
+.suggestions {
+    background: var(--bg-tertiary);
+    border-radius: var(--planning-radius);
+    padding: var(--spacing-lg);
+    text-align: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.suggestions h4 {
+    margin: 0 0 var(--spacing-md) 0;
+    color: var(--text);
+}
+
+.suggestions p {
+    margin: 0 0 var(--spacing-lg) 0;
+    color: var(--text-muted);
+}
+
+.suggestions .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+}
+
+/* =====================================================
+   ÉTATS SPÉCIAUX
+   ===================================================== */
+
+.planning-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+    color: var(--text-muted);
+}
+
+.planning-empty {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--text-muted);
+}
+
+.planning-empty h3 {
+    margin: 0 0 var(--spacing-md) 0;
+    color: var(--text);
+}
+
+/* =====================================================
+   ADAPTATION MODAL PRINCIPAL POUR HEADER PERSONNALISÉ
    ===================================================== */
 
 /* Ajustements pour le modal principal quand utilisé avec planning */
 #modal.planning-modal .modal-header {
-    display: none; /* Masquer le header par défaut seulement pour planning */
+    display: none; /* Masquer le header par défaut seulement pour planning-modal */
 }
 
 #modal.planning-modal .modal-content {
     padding: 0;
-    overflow-x: hidden; /* Empêcher scroll horizontal */
 }
 
 #modal.planning-modal .modal-body {
     padding: 0;
-    overflow-x: hidden; /* Empêcher scroll horizontal */
 }
 
-/* Positionnement de la croix de fermeture */
+/* Positionnement de la croix de fermeture pour planning-modal */
 #modal.planning-modal .modal-close {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
+    top: 0.75rem;
+    right: 0.75rem;
     z-index: 10;
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -759,341 +1828,4 @@
     background: var(--danger);
     color: white;
     transform: scale(1.1);
-}
-
-/* =====================================================
-   MODAL ÉDITION SÉANCE - Aligné sur le design création
-   ===================================================== */
-
-.exercises-section {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
-.exercises-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-    padding: 0 0.5rem;
-}
-
-.exercises-header h4 {
-    margin: 0;
-    color: var(--text);
-    font-size: 1.1rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.exercises-header h4 i {
-    color: var(--primary);
-}
-
-.exercise-actions {
-    display: flex;
-    gap: 0.5rem;
-}
-
-/* Liste d'exercices éditables */
-.exercises-list {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    padding-right: 0.5rem;
-}
-
-/* Item exercice éditable */
-.exercise-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem;
-    background: var(--bg-secondary);
-    border: 1px solid var(--planning-border);
-    border-radius: 6px;
-    transition: all 0.2s ease;
-    overflow: hidden;
-}
-
-.exercise-item:hover {
-    border-color: var(--primary);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.exercise-drag-handle {
-    cursor: grab;
-    color: var(--text-muted);
-    padding: 0.25rem;
-    transition: color 0.2s ease;
-    flex-shrink: 0;
-}
-
-.exercise-drag-handle:hover {
-    color: var(--text);
-}
-
-.exercise-details {
-    flex: 1;
-    min-width: 0; /* Important pour ellipsis */
-}
-
-.exercise-item .exercise-name {
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: var(--text);
-    margin-bottom: 0.25rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.exercise-params {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    font-size: 0.8rem;
-    color: var(--text-muted);
-}
-
-.sets-reps, .rest-time, .duration {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.muscle-pills {
-    display: flex;
-    gap: 0.3rem;
-    margin-top: 0.4rem;
-    flex-wrap: wrap;
-}
-
-.muscle-pill {
-    padding: 0.15rem 0.5rem;
-    border-radius: 10px;
-    font-size: 0.65rem;
-    color: white;
-    font-weight: 600;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 80px;
-}
-
-.exercise-actions-item {
-    display: flex;
-    gap: 0.5rem;
-    flex-shrink: 0;
-}
-
-/* Boutons icônes */
-.btn-icon {
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 6px;
-    font-size: 0.8rem;
-}
-
-.btn-icon:hover {
-    transform: translateY(-1px);
-}
-
-.btn-icon.btn-danger:hover {
-    background: var(--danger);
-    border-color: var(--danger);
-}
-
-/* Bouton ajouter exercice */
-.add-exercise-section {
-    padding: 1rem;
-    text-align: center;
-    border-top: 1px solid var(--planning-border);
-}
-
-.add-exercise-section .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-/* =====================================================
-   RESPONSIVE POUR MODALS
-   ===================================================== */
-
-@media (max-width: 768px) {
-    .add-session-modal-v2,
-    .edit-session-modal-v2 {
-        max-width: 100%;
-        width: 100%;
-        max-height: 90vh;
-    }
-    
-    .modal-body-section {
-        flex-direction: column;
-        padding: 1rem;
-    }
-    
-    .selection-section,
-    .preview-section {
-        flex: 1;
-        min-width: unset;
-    }
-    
-    .exercise-groups-container {
-        grid-template-columns: 1fr;
-        max-height: 300px;
-    }
-    
-    .summary-stats {
-        flex-wrap: wrap;
-        gap: 0.5rem;
-    }
-    
-    .stat-item {
-        flex: 0 0 calc(50% - 0.25rem);
-    }
-    
-    .exercises-sortable {
-        max-height: 150px;
-    }
-    
-    .modal-actions-section {
-        flex-direction: column;
-        gap: 0.75rem;
-    }
-    
-    .modal-actions-section .btn {
-        width: 100%;
-        justify-content: center;
-    }
-    
-    .exercise-params {
-        flex-wrap: wrap;
-        gap: 0.5rem;
-    }
-}
-
-/* =====================================================
-   AUTRES SECTIONS EXISTANTES DU PLANNING (non modifiées)
-   ===================================================== */
-
-/* Navigation semaines */
-.week-navigation {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: var(--spacing-lg);
-    padding: var(--spacing-md) var(--spacing-lg);
-    background: var(--planning-bg);
-    border-radius: var(--planning-radius);
-    border: 1px solid var(--planning-border);
-    box-shadow: var(--planning-shadow);
-}
-
-/* Conteneur semaines */
-.weeks-container {
-    position: relative;
-    overflow: hidden;
-}
-
-.week-section {
-    background: var(--planning-bg);
-    border: 1px solid var(--planning-border);
-    border-radius: var(--planning-radius);
-    overflow: hidden;
-    box-shadow: var(--planning-shadow);
-    transition: var(--planning-transition);
-    display: none;
-}
-
-.week-section.active {
-    display: block;
-    animation: slideInWeek 0.3s ease-out;
-}
-
-/* Grille des jours */
-.days-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: var(--spacing-lg);
-    padding: var(--spacing-lg);
-}
-
-.day-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--planning-border);
-    border-radius: var(--planning-radius);
-    padding: var(--spacing-lg);
-    transition: var(--planning-transition);
-}
-
-/* Séances du planning principal (non modal) */
-.days-grid .session-card {
-    background: var(--planning-bg);
-    border: 1px solid var(--planning-border);
-    border-radius: var(--planning-radius);
-    padding: var(--spacing-md);
-    margin-bottom: var(--spacing-sm);
-    transition: var(--planning-transition);
-    cursor: pointer;
-}
-
-.days-grid .session-card:hover {
-    border-color: var(--primary);
-    transform: translateY(-1px);
-    box-shadow: var(--planning-shadow);
-}
-
-/* Zones d'ajout de séance */
-.add-session-zone {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: var(--spacing-lg);
-    border: 2px dashed var(--planning-border);
-    border-radius: var(--planning-radius);
-    background: var(--bg-tertiary);
-    cursor: pointer;
-    transition: var(--planning-transition);
-}
-
-.add-session-zone:hover {
-    border-color: var(--primary);
-    background: var(--primary-light);
-}
-
-/* Animations */
-@keyframes slideInWeek {
-    from {
-        opacity: 0;
-        transform: translateX(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-/* Dark mode */
-@media (prefers-color-scheme: dark) {
-    :root {
-        --planning-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        --planning-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.4);
-    }
 }
