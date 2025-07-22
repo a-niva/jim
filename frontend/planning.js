@@ -653,7 +653,8 @@ class PlanningManager {
         
         const muscleCount = {};
         
-        exercises.forEach(ex => {
+        // CORRECTION : utiliser exercise_pool au lieu de exercises
+        exercise_pool.forEach(ex => {
             if (!ex || typeof ex !== 'object') return;
             
             // Utiliser muscle_groups si disponible (format v2.0)
@@ -1578,7 +1579,7 @@ class PlanningManager {
         try {
             const session = this.findSessionById(sessionId);
             if (!session?.exercises?.length) {
-                window.showToast('Aucun exercice à optimiser', 'warning');
+                window.showToast('Aucun exercice à réorganiser', 'warning');
                 return;
             }
             
@@ -1589,7 +1590,49 @@ class PlanningManager {
             
             console.log('🎯 Optimisation ordre pour:', session.exercises.length, 'exercices');
             
-            // Optimisation locale basique (pas d'API)
+            // Si on a un programme actif, utiliser l'endpoint v2.0
+            if (this.activeProgram && sessionId.includes('_')) {
+                try {
+                    // Parser le sessionId format: "programId_dayName_sessionIndex"
+                    const parts = sessionId.split('_');
+                    if (parts.length >= 3) {
+                        const programId = parts[0];
+                        const dayName = parts[1];
+                        const sessionIndex = parseInt(parts[2]);
+                        
+                        // Trouver l'index de la semaine (si applicable)
+                        const weekIndex = 0; // Pour l'instant toujours 0
+                        
+                        // Créer l'ordre actuel (indices 0, 1, 2, ...)
+                        const currentOrder = session.exercises.map((_, idx) => idx);
+                        
+                        // Appeler l'endpoint correct
+                        const response = await window.apiPut(
+                            `/api/programs/${programId}/reorder-session`,
+                            {
+                                week_index: weekIndex,
+                                session_index: sessionIndex,
+                                new_exercise_order: currentOrder
+                            }
+                        );
+                        
+                        if (response.success) {
+                            window.showToast(
+                                `Ordre optimisé (score: ${response.new_score}%)`, 
+                                'success'
+                            );
+                            
+                            // Pas besoin de mettre à jour manuellement, refresh fera le travail
+                            await this.refresh();
+                            return;
+                        }
+                    }
+                } catch (apiError) {
+                    console.warn('⚠️ API optimisation échouée, fallback local:', apiError);
+                }
+            }
+            
+            // Fallback : Optimisation locale
             const optimized = this.optimizeExercisesLocally(session.exercises);
             session.exercises = optimized.exercises;
             
@@ -1602,17 +1645,10 @@ class PlanningManager {
                 this.initializeExerciseDragDrop(sessionId);
             }
             
-            // Recalculer métriques
-            await this.updateLiveScoring(session.exercises);
+            // Sauvegarder localement
+            this.saveSessionToLocalStorage(sessionId, session);
             
-            // Sauvegarder avec gestion d'erreur
-            try {
-                await this.saveSessionChanges(sessionId, { exercises: session.exercises });
-            } catch (saveError) {
-                console.warn('⚠️ Sauvegarde optimisation échouée:', saveError);
-            }
-            
-            const message = optimized.improvement > 0 ? 
+            const message = optimized.improvement > 0 ?
                 `Ordre optimisé (+${optimized.improvement} points estimés)` :
                 'Ordre optimisé';
             window.showToast(message, 'success');
