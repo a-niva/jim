@@ -165,13 +165,36 @@ class PlanningManager {
         return weeklyStructure;
     }
 
-    calculateSessionDuration(exercises) {
-        if (!exercises || exercises.length === 0) return 45;
-        return exercises.reduce((total, ex) => {
-            const sets = ex.sets || 3;
-            const duration = sets * 3; // ~3min par série
-            return total + duration;
-        }, 10); // 10 min échauffement
+    calculateExerciseDuration(exercise) {
+        if (!exercise) return 5;
+        
+        const sets = exercise.sets || 3;
+        const restSeconds = exercise.rest_seconds || 90;
+        const timePerSet = exercise.exercise_type === 'isometric' ? 
+            (exercise.reps_min || 30) / 60 :  // isometric: durée en minutes
+            1.5; // autres: 1.5 min par série
+        
+        const restTime = ((sets - 1) * restSeconds) / 60; // minutes
+        const workTime = sets * timePerSet;
+        const setupTime = 1; // 1 min setup
+        
+        return Math.ceil(workTime + restTime + setupTime);
+    }
+
+    getMuscleGroupColor(muscleGroup) {
+        const colorMap = {
+            'chest': '#e74c3c', 'pectoraux': '#e74c3c',
+            'back': '#3498db', 'dos': '#3498db',
+            'shoulders': '#f39c12', 'épaules': '#f39c12',
+            'arms': '#9b59b6', 'bras': '#9b59b6',
+            'legs': '#27ae60', 'jambes': '#27ae60',
+            'core': '#e67e22', 'abdominaux': '#e67e22',
+            'cardio': '#e91e63',
+            'functional': '#795548'
+        };
+        
+        const muscle = muscleGroup.toLowerCase();
+        return colorMap[muscle] || '#6c757d';
     }
 
     extractPrimaryMuscles(exercises) {
@@ -1602,12 +1625,13 @@ class PlanningManager {
     }
     
     calculateSessionDuration(exercises) {
-        return exercises.reduce((total, ex) => {
-            const sets = ex.sets || 3;
-            const restTime = (ex.rest_seconds || 90) / 60; // minutes
-            const exerciseTime = sets * 2.5; // ~2.5min par série en moyenne
-            return total + exerciseTime + (restTime * (sets - 1));
-        }, 0).toFixed(0);
+        if (!exercises || exercises.length === 0) return 30;
+        
+        const duration = exercises.reduce((total, ex) => {
+            return total + this.calculateExerciseDuration(ex);
+        }, 5); // 5 min échauffement
+        
+        return Math.max(15, Math.min(120, Math.round(duration)));
     }
     
     calculateExerciseDuration(exercise) {
@@ -2121,7 +2145,6 @@ class PlanningManager {
         
         return { exercises: optimized, improvement };
     }
-        
 
     async showAddSessionModal(targetDate, sessionIdToEdit = null) {
         try {
