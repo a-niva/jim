@@ -1127,6 +1127,460 @@
 }
 
 /* =====================================================
+   MODAL CRÉATION SÉANCE - LAYOUT VERTICAL CORRIGÉ
+   ===================================================== */
+
+.add-session-modal-v2 {
+    max-width: 750px;
+    width: 95vw;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Header avec alignement croix */
+.modal-header-section {
+    padding: 0.75rem 3rem 0.75rem 1.5rem;
+    border-bottom: 1px solid var(--planning-border);
+    background: var(--bg-secondary);
+    flex-shrink: 0;
+    position: relative;
+}
+
+.modal-header-section h3 {
+    margin: 0;
+    color: var(--text);
+    font-size: 1.25rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.modal-header-section h3 i {
+    color: var(--primary);
+    font-size: 1.1rem;
+}
+
+.session-date-info {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    margin: 0.3rem 0 0 2rem;
+    opacity: 0.8;
+}
+
+.session-date-info i {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+/* Corps du modal - CORRIGÉ pour éviter débordements */
+.modal-body-section {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-height: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Section sélection exercices */
+.selection-section {
+    flex-shrink: 0;
+    width: 100%;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.section-header h4 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.section-header h4 i {
+    color: var(--primary);
+    font-size: 0.95rem;
+}
+
+.selection-counter {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    min-width: 120px;
+    text-align: right;
+}
+
+/* CORRIGÉ - Container exercices sans overflow */
+.exercise-groups-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: 350px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* CORRIGÉ - Groupes musculaires compacts */
+.exercise-group {
+    margin-bottom: 0.75rem;
+    width: 100%;
+}
+
+.exercise-group:last-child {
+    margin-bottom: 0;
+}
+
+.muscle-group-header {
+    margin: 0 0 0.5rem 0;
+    padding: 0.4rem 0.6rem;
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text);
+    border-left: 3px solid var(--primary);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* CORRIGÉ - Grille exercices SANS minmax problématique */
+.exercise-group-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+/* CORRIGÉ - Exercice option sans débordement */
+.exercise-option {
+    cursor: pointer;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.exercise-option input[type="checkbox"] {
+    display: none;
+}
+
+.exercise-card {
+    background: var(--bg);
+    border: 2px solid var(--planning-border);
+    border-radius: 8px;
+    padding: 0.75rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 60px;
+}
+
+.exercise-option input:checked + .exercise-card {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+}
+
+.exercise-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    background: var(--primary);
+}
+
+.exercise-info {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.exercise-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text);
+    margin-bottom: 0.2rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.exercise-details {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* CORRIGÉ - Section preview avec largeur fixe */
+.preview-section {
+    background: var(--bg-secondary);
+    border: 1px solid var(--planning-border);
+    border-radius: 8px;
+    padding: 1rem;
+    width: 100%;
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
+
+.preview-section h4 {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.preview-section h4 i {
+    color: var(--primary);
+    font-size: 0.9rem;
+}
+
+/* CORRIGÉ - Summary stats avec largeur fixe */
+.summary-stats {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    gap: 1rem;
+}
+
+.stat-item {
+    text-align: center;
+    flex: 1;
+    min-width: 60px;
+}
+
+.stat-number {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary);
+    display: block;
+}
+
+.stat-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 0.2rem;
+    display: block;
+}
+
+/* CORRIGÉ - Exercices sélectionnés avec drag & drop */
+.exercises-sortable {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-height: 60px;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 0.5rem;
+    border: 1px dashed var(--planning-border);
+    border-radius: 6px;
+    background: var(--bg);
+}
+
+.exercise-preview-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.6rem;
+    background: var(--planning-bg);
+    border: 1px solid var(--planning-border);
+    border-radius: 5px;
+    transition: all 0.2s ease;
+    position: relative;
+    cursor: grab;
+    min-height: 44px;
+}
+
+.exercise-preview-item:hover {
+    border-color: var(--primary);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.exercise-number {
+    background: var(--primary);
+    color: white;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.exercise-info {
+    flex: 1;
+    min-width: 0;
+    padding-right: 1.5rem;
+}
+
+.exercise-preview-item .exercise-name {
+    font-weight: 600;
+    font-size: 0.8rem;
+    margin: 0;
+    color: var(--text);
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.exercise-preview-item .exercise-params {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 0.1rem;
+    line-height: 1;
+}
+
+.exercise-remove {
+    position: absolute;
+    top: 50%;
+    right: 0.4rem;
+    transform: translateY(-50%);
+    background: none;
+    border: 1px solid var(--text-muted);
+    color: var(--text-muted);
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    font-size: 0.55rem;
+    opacity: 0.6;
+}
+
+.exercise-remove:hover {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: white;
+    transform: translateY(-50%) scale(1.1);
+    opacity: 1;
+}
+
+/* États vides */
+.empty-state {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.empty-state i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    display: block;
+    opacity: 0.5;
+}
+
+/* Groupes musculaires preview */
+.muscle-groups-preview {
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--planning-border);
+}
+
+.muscle-groups-preview h5 {
+    margin: 0 0 0.6rem 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.muscle-groups-preview h5 i {
+    color: var(--primary);
+    font-size: 0.85rem;
+}
+
+.muscle-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.muscle-tag-preview {
+    padding: 0.25rem 0.5rem;
+    border-radius: 10px;
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease;
+}
+
+.muscle-tag-preview:hover {
+    transform: translateY(-1px);
+}
+
+/* Footer actions CORRIGÉ */
+.modal-actions-section {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--planning-border);
+    background: var(--bg-secondary);
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    flex-shrink: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.modal-actions-section .btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.25rem;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.modal-actions-section .btn:hover {
+    transform: translateY(-1px);
+}
+
+/* =====================================================
    MODAL ÉDITION SÉANCE - ALIGNÉ SUR CRÉATION
    ===================================================== */
 
@@ -1158,6 +1612,11 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+}
+
+.session-edit-header h3 i {
+    color: var(--primary);
+    font-size: 1.1rem;
 }
 
 .session-live-stats {
@@ -1201,7 +1660,10 @@
 .exercises-section {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 1.5rem;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .exercises-header {
@@ -1236,6 +1698,8 @@
     border-radius: 8px;
     padding: 1rem;
     transition: all 0.2s ease;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .editable-exercise:hover {
@@ -1346,8 +1810,37 @@
     padding: 1rem;
 }
 
+/* Actions modal édition */
+.modal-actions {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--planning-border);
+    background: var(--bg-secondary);
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    flex-shrink: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.modal-actions .btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.25rem;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.modal-actions .btn:hover {
+    transform: translateY(-1px);
+}
+
 /* =====================================================
-   MODALS ALTERNATIVES
+   MODALS ALTERNATIVES ET AUTRES
    ===================================================== */
 
 .swap-modal {
@@ -1363,178 +1856,97 @@
 .swap-header h3 {
     margin: 0 0 0.5rem 0;
     color: var(--text);
-}
-
-.swap-header p {
-    margin: 0;
-    color: var(--text-muted);
+    font-size: 1.2rem;
+    font-weight: 600;
 }
 
 .alternatives-list {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    margin-bottom: 1.5rem;
+    max-height: 400px;
+    overflow-y: auto;
 }
 
 .alternative-item {
+    padding: 1rem;
     background: var(--bg-secondary);
     border: 1px solid var(--planning-border);
     border-radius: 8px;
-    padding: 1rem;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .alternative-item:hover {
     border-color: var(--primary);
-    transform: translateY(-2px);
-    box-shadow: var(--planning-shadow);
-}
-
-.alternative-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.5rem;
-}
-
-.alternative-name {
-    font-weight: 600;
-    color: var(--text);
-}
-
-.alternative-score {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.score-badge {
-    padding: 0.25rem 0.5rem;
-    border-radius: 12px;
-    color: white;
-    font-size: 0.75rem;
-    font-weight: 600;
+    background: var(--primary-light);
+    transform: translateY(-1px);
 }
 
 .alternative-details {
-    font-size: 0.85rem;
-    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
 }
 
-.alternative-reason {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    font-style: italic;
-    margin-top: 0.5rem;
-}
-
-/* =====================================================
-   MODALS CONFIRMATION
-   ===================================================== */
-
-.delete-confirmation,
-.move-confirmation {
-    text-align: center;
-    max-width: 400px;
-}
-
-.delete-confirmation h3,
-.move-confirmation h3 {
-    margin: 0 0 var(--spacing-md) 0;
+.alternative-info h4 {
+    margin: 0 0 0.3rem 0;
     color: var(--text);
+    font-size: 1rem;
+    font-weight: 600;
 }
 
-.session-preview-card {
-    background: var(--bg-secondary);
-    padding: var(--spacing-md);
-    border-radius: var(--planning-radius);
-    margin: var(--spacing-md) 0;
+.alternative-info p {
+    margin: 0;
     color: var(--text-muted);
+    font-size: 0.85rem;
 }
 
-.warnings-list {
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.2);
-    border-radius: var(--planning-radius);
-    padding: var(--spacing-md);
-    margin: var(--spacing-md) 0;
+.alternative-score {
+    text-align: center;
+    flex-shrink: 0;
 }
 
-.warnings-list .warning-item {
-    color: var(--danger);
-    margin-bottom: var(--spacing-xs);
-}
-
-.warnings-list .warning-item:last-child {
-    margin-bottom: 0;
+.score-badge {
+    background: var(--primary);
+    color: white;
+    padding: 0.3rem 0.6rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
 }
 
 /* =====================================================
-   RESPONSIVE
+   RESPONSIVE COMPLET
    ===================================================== */
 
 @media (max-width: 768px) {
-    #planningContainer {
-        padding: var(--spacing-md);
-    }
-    
-    .planning-header {
-        flex-direction: column;
-        gap: var(--spacing-md);
-        align-items: stretch;
-    }
-    
-    .planning-actions {
-        justify-content: center;
-    }
-    
-    .week-header {
-        flex-direction: column;
-        gap: var(--spacing-sm);
-        align-items: stretch;
-    }
-    
-    .week-score {
-        justify-content: center;
-    }
-    
-    .days-grid {
-        grid-template-columns: 1fr;
-    }
-    
     /* Modal création responsive */
     .add-session-modal-v2 {
         max-width: 100%;
         width: 100%;
-        max-height: 90vh;
+        max-height: 95vh;
+        margin: 0;
     }
     
     .modal-body-section {
         padding: 1rem;
-    }
-    
-    .exercise-groups-container {
-        grid-template-columns: 1fr;
-        max-height: 300px;
-    }
-    
-    .exercise-name {
-        font-size: 0.8rem;
+        gap: 1rem;
     }
     
     .summary-stats {
         flex-wrap: wrap;
-        gap: 0.4rem;
+        gap: 0.5rem;
     }
     
     .stat-item {
-        flex: 0 0 calc(50% - 0.2rem);
+        flex: 0 0 calc(50% - 0.25rem);
+        min-width: unset;
     }
     
     .exercises-sortable {
-        max-height: 150px;
+        max-height: 120px;
     }
     
     .modal-actions-section {
@@ -1549,14 +1961,26 @@
     }
     
     /* Modal édition responsive */
+    .session-edit-modal {
+        max-width: 100%;
+        width: 100%;
+        max-height: 95vh;
+        margin: 0;
+    }
+    
     .session-edit-header {
         flex-direction: column;
-        gap: var(--spacing-md);
+        gap: 1rem;
         align-items: stretch;
+        padding: 1rem;
     }
     
     .session-live-stats {
         justify-content: space-around;
+    }
+    
+    .exercises-section {
+        padding: 1rem;
     }
     
     .exercise-params-grid {
@@ -1565,16 +1989,23 @@
     
     .alternative-details {
         flex-direction: column;
-        gap: var(--spacing-xs);
+        gap: 0.75rem;
+        align-items: stretch;
     }
     
     .modal-actions {
         flex-direction: column;
+        padding: 1rem;
+    }
+    
+    .modal-actions .btn {
+        width: 100%;
+        justify-content: center;
     }
 }
 
 /* =====================================================
-   ANIMATIONS
+   ANIMATIONS ET ACCESSIBILITÉ
    ===================================================== */
 
 @keyframes slideIn {
@@ -1597,20 +2028,12 @@
 .week-section:nth-child(3) { animation-delay: 0.15s; }
 .week-section:nth-child(4) { animation-delay: 0.2s; }
 
-/* =====================================================
-   DARK MODE
-   ===================================================== */
-
 @media (prefers-color-scheme: dark) {
     :root {
         --planning-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
         --planning-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.4);
     }
 }
-
-/* =====================================================
-   ACCESSIBILITÉ
-   ===================================================== */
 
 @media (prefers-reduced-motion: reduce) {
     * {
@@ -1626,273 +2049,12 @@
     }
 }
 
+/* Focus accessibilité */
 .session-card:focus,
+.day-card:focus,
 .add-session-zone:focus,
 .alternative-item:focus,
 .btn-action:focus {
     outline: 2px solid var(--primary);
     outline-offset: 2px;
-}
-
-/* =====================================================
-   MODALS BOUTON PROGRAMME
-   ===================================================== */
-
-.upcoming-sessions-modal {
-    max-width: 500px;
-    width: 100%;
-}
-
-.modal-header-program {
-    text-align: center;
-    margin-bottom: var(--spacing-xl);
-    padding-bottom: var(--spacing-lg);
-    border-bottom: 1px solid var(--planning-border);
-}
-
-.modal-header-program h3 {
-    margin: 0 0 var(--spacing-sm) 0;
-    color: var(--text);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--spacing-sm);
-}
-
-.modal-header-program h3 i {
-    color: var(--primary);
-}
-
-.modal-header-program p {
-    margin: 0;
-    color: var(--text-muted);
-    font-size: 0.9rem;
-}
-
-.sessions-list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
-    margin-bottom: var(--spacing-xl);
-}
-
-.upcoming-session-card {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-md);
-    padding: var(--spacing-lg);
-    background: var(--bg-secondary);
-    border: 1px solid var(--planning-border);
-    border-radius: var(--planning-radius);
-    cursor: pointer;
-    transition: var(--planning-transition);
-    position: relative;
-}
-
-.upcoming-session-card:hover {
-    border-color: var(--primary);
-    background: var(--primary-light);
-    transform: translateY(-2px);
-    box-shadow: var(--planning-shadow);
-}
-
-.upcoming-session-card.today {
-    border-color: var(--success);
-    background: rgba(16, 185, 129, 0.1);
-}
-
-.session-badge {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-}
-
-.today-badge,
-.next-badge {
-    background: var(--success);
-    color: white;
-    padding: 0.2rem 0.6rem;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 500;
-}
-
-.next-badge {
-    background: var(--primary);
-}
-
-.session-icon {
-    width: 50px;
-    height: 50px;
-    background: var(--primary-light);
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    color: var(--primary);
-    flex-shrink: 0;
-}
-
-.session-info {
-    flex: 1;
-}
-
-.session-info h4 {
-    margin: 0 0 0.5rem 0;
-    color: var(--text);
-    font-weight: 600;
-}
-
-.session-meta {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-    color: var(--text-muted);
-    font-size: 0.85rem;
-}
-
-.session-meta-row {
-    display: flex;
-    gap: 1rem;
-}
-
-.session-meta-item {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-}
-
-.program-actions {
-    display: flex;
-    gap: var(--spacing-sm);
-}
-
-.program-actions .btn {
-    flex: 1;
-}
-
-.suggestions {
-    background: var(--bg-tertiary);
-    border-radius: var(--planning-radius);
-    padding: var(--spacing-lg);
-    text-align: center;
-    margin-bottom: var(--spacing-lg);
-}
-
-.suggestions h4 {
-    margin: 0 0 var(--spacing-md) 0;
-    color: var(--text);
-}
-
-.suggestions p {
-    margin: 0 0 var(--spacing-lg) 0;
-    color: var(--text-muted);
-}
-
-.suggestions .btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--spacing-xs);
-}
-
-/* =====================================================
-   ÉTATS SPÉCIAUX
-   ===================================================== */
-
-.planning-loading {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 200px;
-    color: var(--text-muted);
-}
-
-.planning-empty {
-    text-align: center;
-    padding: var(--spacing-xl);
-    color: var(--text-muted);
-}
-
-.planning-empty h3 {
-    margin: 0 0 var(--spacing-md) 0;
-    color: var(--text);
-}
-
-/* =====================================================
-   ADAPTATION MODAL PRINCIPAL POUR HEADER PERSONNALISÉ
-   ===================================================== */
-
-/* Ajustements pour le modal principal quand utilisé avec planning */
-#modal.planning-modal .modal-header {
-    display: none; /* Masquer le header par défaut seulement pour planning-modal */
-}
-
-#modal.planning-modal .modal-content {
-    padding: 0;
-}
-
-#modal.planning-modal .modal-body {
-    padding: 0;
-}
-
-/* Positionnement de la croix de fermeture pour planning-modal */
-#modal.planning-modal .modal-close {
-    position: absolute;
-    top: 0.75rem;
-    right: 0.75rem;
-    z-index: 10;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--bg-tertiary);
-    border-radius: 50%;
-    transition: all 0.2s ease;
-}
-
-#modal.planning-modal .modal-close:hover {
-    background: var(--danger);
-    color: white;
-    transform: scale(1.1);
-}
-
-
-.btn-edit-compact,
-.btn-start-compact {
-    padding: 0.4rem;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.85rem;
-    transition: all 0.2s ease;
-}
-
-.btn-edit-compact {
-    background: var(--bg-secondary);
-    color: var(--text-muted);
-    border: 1px solid var(--planning-border);
-}
-
-.btn-edit-compact:hover {
-    background: var(--primary);
-    color: white;
-    border-color: var(--primary);
-}
-
-.btn-start-compact {
-    background: var(--success);
-    color: white;
-}
-
-.btn-start-compact:hover {
-    background: #1e7e34;
-    transform: scale(1.05);
 }
