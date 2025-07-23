@@ -2396,70 +2396,23 @@ class PlanningManager {
     }
 
     // MODIFIER la méthode initializeSessionCreation
-    initializeSessionCreation(sessionIdToEdit = null) {
-        const checkboxes = document.querySelectorAll('#exerciseSelectionGrid input[type="checkbox"]:not(:disabled)');
+    initializeSessionCreation() {
+        const checkboxes = document.querySelectorAll('.exercise-option input[type="checkbox"]');
         const createBtn = document.getElementById('createSessionBtn');
         const previewDiv = document.getElementById('sessionPreview');
         const selectedCounter = document.getElementById('selectedCount');
-        const searchInput = document.getElementById('exerciseSearch');
-        const optimizeBtn = document.getElementById('optimizeBtn');
         
-        const userPreferredDuration = this.activeProgram?.session_duration || 
-                                    window.currentUser?.onboarding_data?.session_duration || 60;
-        const maxExercises = sessionIdToEdit ? 4 : Math.min(8, Math.floor(userPreferredDuration / 7));
+        const maxExercises = 6;
         
-        if (!checkboxes.length || !createBtn || !previewDiv) {
-            console.error('❌ Éléments modal introuvables');
-            return;
-        }
-        
-        // Recherche
-        if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                const term = e.target.value.toLowerCase().trim();
-                const groups = document.querySelectorAll('.exercise-group');
-                
-                groups.forEach(group => {
-                    const options = group.querySelectorAll('.exercise-option:not(.disabled)');
-                    let hasVisibleOption = false;
-                    
-                    options.forEach(option => {
-                        const exerciseName = option.querySelector('.exercise-name').textContent.toLowerCase();
-                        const isVisible = !term || exerciseName.includes(term);
-                        option.style.display = isVisible ? 'block' : 'none';
-                        if (isVisible) hasVisibleOption = true;
-                    });
-                    
-                    group.style.display = hasVisibleOption ? 'block' : 'none';
-                });
-            });
-        }
-        
-        // Fonction de mise à jour avec scoring drag-drop
-        const updatePreview = async () => {
-            const selected = Array.from(document.querySelectorAll('#exerciseSelectionGrid input:checked'));
-            
-            if (selectedCounter) {
-                selectedCounter.style.transform = 'scale(1.2)';
-                selectedCounter.textContent = selected.length;
-                setTimeout(() => {
-                    selectedCounter.style.transform = 'scale(1)';
-                }, 200);
-            }
-            
-            if (optimizeBtn) {
-                if (selected.length >= 2) {
-                    optimizeBtn.classList.add('show');
-                } else {
-                    optimizeBtn.classList.remove('show');
-                }
-            }
+        const updatePreview = () => {
+            const selected = Array.from(checkboxes).filter(cb => cb.checked);
+            selectedCounter.textContent = selected.length;
             
             if (selected.length === 0) {
                 previewDiv.innerHTML = `
-                    <div class="empty-preview">
+                    <div class="empty-state">
                         <i class="fas fa-hand-pointer"></i>
-                        <p>Sélectionnez des exercices pour voir l'aperçu</p>
+                        Sélectionnez des exercices pour voir l'aperçu
                     </div>
                 `;
                 createBtn.disabled = true;
@@ -2467,128 +2420,85 @@ class PlanningManager {
             }
             
             try {
-                const exercises = selected.map(input => {
-                    try {
-                        const jsonData = input.dataset.exercise.replace(/&apos;/g, "'");
-                        return JSON.parse(jsonData);
-                    } catch (e) {
-                        console.error('Erreur parsing exercice:', e);
-                        return null;
-                    }
-                }).filter(Boolean);
-                
+                const exercises = selected.map(cb => JSON.parse(cb.dataset.exercise));
                 const duration = this.calculateSessionDuration(exercises);
-                const muscles = [...new Set(exercises.flatMap(ex => ex.muscle_groups || []))]
-                    .filter(Boolean)
-                    .map(muscle => muscle.charAt(0).toUpperCase() + muscle.slice(1));
-                
-                let qualityScore = this.calculatePreviewQualityScoreFallback(exercises);
-                const scoreColor = qualityScore >= 85 ? '#10b981' : qualityScore >= 70 ? '#f59e0b' : '#ef4444';
+                const muscles = [...new Set(exercises.flatMap(ex => ex.muscle_groups || []))];
+                const score = this.calculatePreviewQualityScoreFallback ? 
+                    this.calculatePreviewQualityScoreFallback(exercises) : 75;
                 
                 previewDiv.innerHTML = `
-                    <div class="session-summary-v2">
-                        <div class="summary-stats">
-                            <div class="stat-item">
-                                <i class="fas fa-dumbbell" style="color: var(--primary);"></i>
-                                <span class="stat-value">${exercises.length}</span>
-                                <span class="stat-label">exercices</span>
-                            </div>
-                            <div class="stat-item">
-                                <i class="fas fa-clock" style="color: #f59e0b;"></i>
-                                <span class="stat-value">${duration}</span>
-                                <span class="stat-label">minutes</span>
-                            </div>
-                            <div class="stat-item">
-                                <i class="fas fa-muscle" style="color: #8b5cf6;"></i>
-                                <span class="stat-value">${muscles.length}</span>
-                                <span class="stat-label">groupes</span>
-                            </div>
-                            <div class="stat-item quality-score">
-                                <i class="fas fa-star" style="color: ${scoreColor};"></i>
-                                <span class="stat-value updated" style="color: ${scoreColor};" data-score="${qualityScore}">${qualityScore}%</span>
-                                <span class="stat-label">qualité</span>
-                            </div>
+                    <div class="summary-stats">
+                        <div class="stat-item">
+                            <span class="stat-number">${exercises.length}</span>
+                            <span class="stat-label">exercices</span>
                         </div>
-                        
-                        <div class="exercise-list-preview">
-                            <h5><i class="fas fa-list"></i> Exercices sélectionnés</h5>
-                            <div class="exercises-sortable" id="previewExercisesList">
-                                ${exercises.map((ex, index) => `
-                                    <div class="exercise-preview-item" 
-                                        data-exercise-id="${ex.exercise_id}"
-                                        data-exercise='${JSON.stringify(ex).replace(/'/g, '&apos;')}'>
-                                        <span class="exercise-drag-handle">
-                                            <i class="fas fa-grip-vertical"></i>
-                                        </span>
-                                        <span class="exercise-number">${index + 1}</span>
-                                        <div class="exercise-info">
-                                            <div class="exercise-name">${ex.exercise_name}</div>
-                                            <div class="exercise-params">${ex.sets}×${ex.reps_min}-${ex.reps_max}</div>
-                                        </div>
-                                        <button class="exercise-remove" 
-                                                onclick="planningManager.removeExerciseFromPreview('${ex.exercise_id}')"
-                                                title="Retirer de la séance">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
+                        <div class="stat-item">
+                            <span class="stat-number">${duration}</span>
+                            <span class="stat-label">minutes</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">${muscles.length}</span>
+                            <span class="stat-label">groupes</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number" style="color: ${this.getScoreColor ? this.getScoreColor(score) : '#f59e0b'}">${score}%</span>
+                            <span class="stat-label">qualité</span>
+                        </div>
+                    </div>
+                    
+                    <div class="exercises-sortable">
+                        ${exercises.map((ex, index) => `
+                            <div class="exercise-preview-item" data-exercise='${JSON.stringify(ex).replace(/'/g, '&apos;')}'>
+                                <span class="exercise-number">${index + 1}</span>
+                                <div class="exercise-info">
+                                    <div class="exercise-name">${ex.exercise_name}</div>
+                                    <div class="exercise-params">${ex.sets}×${ex.reps_min}-${ex.reps_max}</div>
+                                </div>
+                                <button class="exercise-remove" onclick="planningManager.removeExerciseFromPreview('${ex.exercise_id}')">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    ${muscles.length > 0 ? `
+                        <div class="muscle-groups-preview">
+                            <h5><i class="fas fa-bullseye"></i> Groupes musculaires</h5>
+                            <div class="muscle-tags">
+                                ${muscles.map(muscle => `
+                                    <span class="muscle-tag-preview" style="background: ${this.getMuscleGroupColor ? this.getMuscleGroupColor(muscle) : '#6b7280'}">
+                                        ${muscle}
+                                    </span>
                                 `).join('')}
                             </div>
                         </div>
-                        
-                        ${muscles.length > 0 ? `
-                            <div class="muscle-groups-preview">
-                                <h5><i class="fas fa-crosshairs"></i> Groupes musculaires</h5>
-                                <div class="muscle-tags">
-                                    ${muscles.map(muscle => {
-                                        const muscleKey = muscle.toLowerCase();
-                                        const color = window.MuscleColors?.getMuscleColor ? 
-                                            window.MuscleColors.getMuscleColor(muscleKey) : '#6b7280';
-                                        return `<span class="muscle-tag-preview" style="background: ${color}">${muscle}</span>`;
-                                    }).join('')}
-                                </div>
-                            </div>
-                        ` : ''}
-                    </div>
+                    ` : ''}
                 `;
                 
-                // Initialiser le drag & drop
-                this.initializePreviewDragDrop();
-                
-                // Initialiser le swipe mobile
-                if ('ontouchstart' in window) {
-                    this.initializeMobileSwipe();
-                }
-                
                 createBtn.disabled = false;
-                const buttonText = sessionIdToEdit ? 'Ajouter à la séance' : 'Créer la séance';
-                createBtn.innerHTML = `<i class="fas fa-plus"></i> ${buttonText} (${exercises.length} ex.)`;
                 
             } catch (error) {
-                console.error('❌ Erreur preview séance:', error);
-                previewDiv.innerHTML = '<div class="error-preview"><i class="fas fa-exclamation-triangle"></i> Erreur dans la sélection</div>';
+                console.error('❌ Erreur preview:', error);
+                previewDiv.innerHTML = '<div class="empty-state">Erreur dans la sélection</div>';
                 createBtn.disabled = true;
             }
         };
         
-        // Écouter le changement de score à chaque modification
+        // Gestionnaires événements
         checkboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', async (event) => {
-                const selected = Array.from(document.querySelectorAll('#exerciseSelectionGrid input:checked'));
+            checkbox.addEventListener('change', (event) => {
+                const selected = Array.from(checkboxes).filter(cb => cb.checked);
                 
                 if (event.target.checked && selected.length > maxExercises) {
                     event.target.checked = false;
-                    const message = sessionIdToEdit ? 
-                        `Maximum ${maxExercises} exercices supplémentaires` :
-                        `Maximum ${maxExercises} exercices pour une séance de ${userPreferredDuration} minutes`;
-                    window.showToast(message, 'warning');
+                    window.showToast(`Maximum ${maxExercises} exercices`, 'warning');
                     return;
                 }
                 
-                await updatePreview();
+                updatePreview();
             });
         });
         
-        // Mise à jour initiale
         updatePreview();
     }
 
@@ -2785,7 +2695,7 @@ class PlanningManager {
 
     // Fonction pour retirer un exercice de l'aperçu
     removeExerciseFromPreview(exerciseId) {
-        const checkbox = document.querySelector(`#exerciseSelectionGrid input[value="${exerciseId}"]`);
+        const checkbox = document.querySelector(`.exercise-option input[value="${exerciseId}"]`);
         if (checkbox) {
             checkbox.checked = false;
             checkbox.dispatchEvent(new Event('change'));
@@ -3427,20 +3337,136 @@ class PlanningManager {
     }
 
     // ADAPTER showAddExerciseModal() si nécessaire
-    async showAddExerciseModal(sessionId) {
-        const session = this.sessions.find(s => s.id === sessionId);
-        if (!session) {
-            window.showToast('Session introuvable', 'error');
-            return;
+    async showAddSessionModal(targetDate) {
+        try {
+            const formattedDate = new Date(targetDate).toLocaleDateString('fr-FR', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long'
+            });
+            
+            const exercisesResponse = await window.apiGet(`/api/exercises?user_id=${window.currentUser.id}`);
+            
+            // Grouper les exercices par muscle
+            const exercisesByMuscle = {};
+            exercisesResponse.forEach(exercise => {
+                const muscle = exercise.muscle_groups?.[0] || 'Autres';
+                if (!exercisesByMuscle[muscle]) {
+                    exercisesByMuscle[muscle] = [];
+                }
+                exercisesByMuscle[muscle].push(exercise);
+            });
+            
+            // Générer HTML pour chaque groupe musculaire - NOUVELLE STRUCTURE
+            const muscleGroupsHtml = Object.entries(exercisesByMuscle).map(([muscle, exercises]) => {
+                const muscleColor = this.getMuscleGroupColor ? this.getMuscleGroupColor(muscle) : '#6b7280';
+                
+                return `
+                    <div class="exercise-group">
+                        <h5 class="muscle-group-header" style="border-left: 4px solid ${muscleColor};">
+                            ${muscle.charAt(0).toUpperCase() + muscle.slice(1)} (${exercises.length})
+                        </h5>
+                        <div class="exercise-group-grid">
+                            ${exercises.map(ex => {
+                                const exerciseData = {
+                                    exercise_id: ex.id,
+                                    exercise_name: ex.name,
+                                    muscle_groups: ex.muscle_groups || [muscle],
+                                    sets: ex.default_sets || 3,
+                                    reps_min: ex.default_reps_min || 8,
+                                    reps_max: ex.default_reps_max || 12,
+                                    rest_seconds: ex.base_rest_time_seconds || 90,
+                                    equipment_required: ex.equipment_required || [],
+                                    difficulty: ex.difficulty
+                                };
+                                
+                                return `
+                                    <label class="exercise-option">
+                                        <input type="checkbox" 
+                                            value="${ex.id}"
+                                            data-exercise='${JSON.stringify(exerciseData).replace(/'/g, '&apos;')}'>
+                                        <div class="exercise-card">
+                                            <div class="exercise-icon" style="background: ${muscleColor}">
+                                                <i class="fas fa-dumbbell"></i>
+                                            </div>
+                                            <div class="exercise-info">
+                                                <div class="exercise-name">${ex.name}</div>
+                                                <div class="exercise-details">
+                                                    ${ex.default_sets || 3}×${ex.default_reps_min || 8}-${ex.default_reps_max || 12}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </label>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // NOUVELLE STRUCTURE MODAL
+            const modalContent = `
+                <div class="add-session-modal-v2">
+                    <div class="modal-header-section">
+                        <h3><i class="fas fa-plus-circle"></i> Créer une séance</h3>
+                        <div class="session-date-info">
+                            <i class="fas fa-calendar"></i>
+                            <span>${formattedDate}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-body-section">
+                        <div class="selection-section">
+                            <div class="section-header">
+                                <h4><i class="fas fa-dumbbell"></i> Exercices disponibles (${exercisesResponse.length})</h4>
+                                <div class="selection-counter">
+                                    <span id="selectedCount">0</span> sélectionné(s)
+                                </div>
+                            </div>
+                            
+                            <div class="exercise-groups-container">
+                                ${muscleGroupsHtml}
+                            </div>
+                        </div>
+                        
+                        <div class="preview-section">
+                            <h4><i class="fas fa-eye"></i> Aperçu de la séance</h4>
+                            <div class="session-preview" id="sessionPreview">
+                                <div class="empty-state">
+                                    <i class="fas fa-hand-pointer"></i>
+                                    Sélectionnez des exercices pour voir l'aperçu
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-actions-section">
+                        <button class="btn btn-secondary" onclick="window.closeModal()">
+                            <i class="fas fa-times"></i> Annuler
+                        </button>
+                        <button class="btn btn-primary" id="createSessionBtn" disabled 
+                                onclick="planningManager.createSession('${targetDate}')">
+                            <i class="fas fa-plus"></i> Créer la séance
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // IMPORTANT: Ajouter classe CSS pour éviter conflits
+            window.showModal('', modalContent);
+            
+            // Ajouter classe spécifique pour override styles.css
+            const modal = document.querySelector('#modal');
+            if (modal) {
+                modal.classList.add('planning-modal');
+            }
+            
+            this.initializeSessionCreation();
+            
+        } catch (error) {
+            console.error('❌ Erreur ouverture modal ajout:', error);
+            window.showToast('Erreur lors de l\'ouverture du modal', 'error');
         }
-        
-        // Fermer le modal actuel
-        window.closeModal();
-        
-        // Ouvrir le modal d'ajout avec le sessionId
-        setTimeout(() => {
-            this.showAddSessionModal(session.date, sessionId);
-        }, 300);
     }
 
     // ===== HELPERS =====
