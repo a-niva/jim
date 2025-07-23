@@ -751,25 +751,24 @@
     margin: 0;
 }
 
-/* ===== 8. APERÇU DE LA SÉANCE - ORDRE CORRECT ===== */
+/* ===== 8. APERÇU DE LA SÉANCE - PROPRE SANS BORDURES ===== */
 .preview-section {
-    background: var(--bg-secondary);
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    overflow: hidden;
+    background: transparent;
+    border: none;
+    border-radius: 0;
 }
 
 .preview-section h4 {
-    margin: 0;
-    padding: 1rem 1.5rem;
+    margin: 0 0 1.5rem 0;
+    padding: 0;
     color: var(--text);
     font-size: 1.1rem;
     font-weight: 600;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: var(--bg-tertiary);
-    border-bottom: 1px solid var(--border);
+    background: transparent;
+    border: none;
 }
 
 .preview-section h4 > span {
@@ -820,10 +819,13 @@
     }
 }
 
-/* ===== 10. CONTENU APERÇU DANS L'ORDRE DEMANDÉ ===== */
+/* ===== 10. CONTENU APERÇU VERTICAL DANS L'ORDRE ===== */
 .session-preview {
-    padding: 1.5rem;
-    min-height: 200px;
+    padding: 0;
+    min-height: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
 }
 
 .empty-preview {
@@ -840,26 +842,26 @@
     opacity: 0.5;
 }
 
-/* 1. MÉTRIQUES 4 COLONNES */
+/* 1. MÉTRIQUES EN HAUT - 4 COLONNES SANS BORDURES */
 .preview-stats {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 1rem;
-    margin-bottom: 1.5rem;
+    order: 1;
 }
 
 .stat-item {
     text-align: center;
     padding: 1rem;
-    background: var(--bg);
+    background: var(--bg-tertiary);
     border-radius: 10px;
-    border: 1px solid var(--border);
+    border: none;
     transition: all 0.2s ease;
 }
 
 .stat-item:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    background: var(--bg-secondary);
 }
 
 .stat-icon {
@@ -893,9 +895,9 @@
     font-weight: 500;
 }
 
-/* 2. EXERCICES SÉLECTIONNÉS AVEC NUMÉROTATION */
+/* 2. EXERCICES AU MILIEU - LISTE VERTICALE SANS BORDURES */
 .selected-exercises {
-    margin-bottom: 1.5rem;
+    order: 2;
     max-height: 200px;
     overflow-y: auto;
 }
@@ -905,9 +907,9 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.8rem;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    background: var(--bg-tertiary);
+    border: none;
+    border-radius: 10px;
     margin-bottom: 0.5rem;
     cursor: move;
     position: relative;
@@ -916,8 +918,8 @@
 
 .exercise-preview-item:hover {
     transform: translateY(-1px);
+    background: var(--bg-secondary);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    border-color: var(--primary);
 }
 
 .exercise-drag-handle {
@@ -993,8 +995,9 @@
     transform: translateY(-50%) scale(1.2);
 }
 
-/* 3. GROUPES MUSCULAIRES COLORÉS */
+/* 3. GROUPES MUSCULAIRES EN BAS */
 .muscle-groups-preview {
+    order: 3;
     padding-top: 1rem;
     border-top: 1px solid var(--border);
 }
