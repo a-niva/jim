@@ -417,61 +417,69 @@
     display: block;
 }
 
+
 /* =====================================================
-   MODAL CRÉATION SÉANCE - LAYOUT VERTICAL
+   CORRECTIONS POUR STRUCTURE HTML ACTUELLE + CONFLITS STYLES.CSS
+   ===================================================== */
+
+/* OVERRIDE des styles.css pour les modals planning */
+#modal.planning-modal .modal-content {
+    max-width: 750px !important; /* Override du 500px de styles.css */
+    width: 95vw !important;
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 0 !important;
+}
+
+#modal.planning-modal .modal-header {
+    display: none !important; /* Masquer le header par défaut */
+}
+
+#modal.planning-modal .modal-body {
+    padding: 0 !important; /* Reset du padding de styles.css */
+}
+
+/* =====================================================
+   MODAL CRÉATION SÉANCE - STRUCTURE ACTUELLE
    ===================================================== */
 
 .add-session-modal-v2 {
-    max-width: 750px;
-    width: 95vw;
-    max-height: 85vh;
     display: flex;
     flex-direction: column;
-    position: relative;
+    height: 100%;
+    max-height: 85vh;
     overflow: hidden;
 }
 
-/* Header avec alignement croix */
-.modal-header-section {
-    padding: 0.75rem 3rem 0.75rem 1.5rem;
-    border-bottom: 1px solid var(--planning-border);
-    background: var(--bg-secondary);
-    flex-shrink: 0;
-    position: relative;
-}
-
-.modal-header-section h3 {
-    margin: 0;
+/* Header existant avec titre et date */
+.add-session-modal-v2 h3 {
+    margin: 0 0 0.5rem 0;
+    padding: 1.5rem 1.5rem 0 1.5rem;
     color: var(--text);
-    font-size: 1.25rem;
+    font-size: 1.3rem;
     font-weight: 700;
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
-.modal-header-section h3 i {
+.add-session-modal-v2 h3 i {
     color: var(--primary);
     font-size: 1.1rem;
 }
 
-.session-date-info {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
+/* Date info sous le titre */
+.add-session-modal-v2 h3 + p,
+.add-session-modal-v2 .session-date-info {
+    margin: 0;
+    padding: 0 1.5rem 1.5rem 2.8rem;
     color: var(--text-muted);
-    font-size: 0.8rem;
-    margin: 0.3rem 0 0 2rem;
-    opacity: 0.8;
+    font-size: 0.85rem;
+    border-bottom: 1px solid var(--planning-border);
 }
 
-.session-date-info i {
-    color: var(--text-muted);
-    font-size: 0.75rem;
-}
-
-/* Corps du modal - tout vertical */
-.modal-body-section {
+/* Container principal scrollable */
+.add-session-modal-v2 > div:not(:first-child) {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
@@ -479,811 +487,94 @@
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-    min-height: 0;
 }
 
-/* Section sélection exercices */
-.selection-section {
-    flex-shrink: 0;
-}
-
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.75rem;
-}
-
-.section-header.clickable {
-    cursor: pointer;
-    padding: 0.5rem;
-    margin: -0.5rem;
-    border-radius: 6px;
-    transition: background-color 0.2s ease;
-}
-
-.section-header.clickable:hover {
-    background: var(--bg-tertiary);
-}
-
-.section-header h4 {
-    margin: 0;
-    font-size: 1.05rem;
-    font-weight: 600;
+/* ===== SECTION EXERCICES DISPONIBLES ===== */
+.add-session-modal-v2 h4:first-of-type {
+    margin: 0 0 1rem 0;
     color: var(--text);
+    font-size: 1.1rem;
+    font-weight: 600;
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--planning-border);
 }
 
-.section-header h4 i {
+.add-session-modal-v2 h4:first-of-type i {
     color: var(--primary);
-    font-size: 0.95rem;
 }
 
-.section-toggle {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.selection-counter {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    font-weight: 500;
-    transition: all 0.2s ease;
-}
-
-.toggle-icon {
-    color: var(--text-muted);
-    transition: transform 0.2s ease;
-    font-size: 0.9rem;
-}
-
-.toggle-icon.open {
-    transform: rotate(180deg);
-}
-
-/* Barre de recherche discrète */
-.exercise-search-container {
-    position: relative;
-    margin-bottom: 1rem;
-}
-
-.search-icon {
-    position: absolute;
-    left: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-muted);
-    font-size: 0.85rem;
-    pointer-events: none;
-}
-
-.exercise-search-input {
+/* Barre de recherche */
+.add-session-modal-v2 input[type="text"] {
     width: 100%;
-    padding: 0.5rem 0.75rem 0.5rem 2rem;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
     border: 1px solid var(--planning-border);
-    border-radius: 6px;
+    border-radius: 8px;
     background: var(--bg-tertiary);
     color: var(--text);
-    font-size: 0.85rem;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    box-sizing: border-box;
     transition: all 0.2s ease;
 }
 
-.exercise-search-input::placeholder {
-    color: var(--text-muted);
-    opacity: 0.7;
-}
-
-.exercise-search-input:focus {
+.add-session-modal-v2 input[type="text"]:focus {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-/* Container exercices avec toggle */
-.exercises-container-wrapper {
-    overflow: hidden;
-    transition: all 0.3s ease;
-}
-
-.exercises-container-wrapper.expanded {
-    max-height: 350px;
-}
-
-.exercises-container-wrapper.collapsed {
-    max-height: 0;
-}
-
-/* Grille exercices 2 colonnes */
-.exercise-groups-container {
+/* Container exercices avec groupes musculaires */
+#exerciseSelectionGrid {
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    max-height: 300px;
     overflow-y: auto;
     overflow-x: hidden;
     padding-right: 0.5rem;
-    max-height: 350px;
-}
-
-.exercises-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 0.75rem;
-}
-
-@media (max-width: 768px) {
-    .week-navigation {
-        flex-direction: column;
-        gap: 1rem;
-        padding: 1rem;
-    }
-    
-    .exercises-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-.exercise-group {
-    margin-bottom: 0.75rem;
-}
-
-.exercise-group:last-child {
-    margin-bottom: 0;
-}
-
-.muscle-group-header {
-    margin: 0 0 0.5rem 0;
-    padding: 0.4rem 0.6rem;
-    background: var(--bg-tertiary);
-    border-radius: 6px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text);
-    border-left: 3px solid var(--primary);
-}
-
-.exercise-group-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-}
-
-/* Options exercices */
-.exercise-option {
-    display: block;
-    cursor: pointer;
-}
-
-.exercise-option.disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
-}
-
-.exercise-option input[type="checkbox"] {
-    display: none;
-}
-
-.exercise-option-card {
-    padding: 0.5rem 0.7rem;
-    background: var(--bg-tertiary);
-    border: 1px solid var(--planning-border);
-    border-radius: 5px;
-    transition: all 0.2s ease;
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-}
-
-.exercise-option:not(.disabled):hover .exercise-option-card {
-    border-color: var(--primary);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-}
-
-.exercise-option input:checked + .exercise-option-card {
-    border-color: var(--primary);
-    background: var(--primary);
-    color: white;
-    transform: translateY(-1px);
-    box-shadow: 0 3px 10px rgba(59, 130, 246, 0.25);
-}
-
-.exercise-option.disabled .exercise-option-card {
-    background: var(--bg-tertiary);
-    border-color: var(--border);
-    color: var(--text-muted);
-}
-
-.already-added {
-    font-size: 0.6rem;
-    opacity: 0.8;
-    display: block;
-    margin-top: 0.1rem;
-}
-
-.exercise-name {
-    font-weight: 600;
-    font-size: 0.75rem;
-    line-height: 1.2;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 100%;
-}
-
-.exercise-details {
-    font-size: 0.65rem;
-    opacity: 0.8;
-    line-height: 1;
-}
-
-/* Section aperçu */
-.preview-section {
-    flex-shrink: 0;
-}
-
-.preview-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     margin-bottom: 1rem;
 }
 
-.preview-header h4 {
-    margin: 0;
-    font-size: 1.05rem;
-    font-weight: 600;
-    color: var(--text);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.preview-header h4 i {
-    color: var(--primary);
-    font-size: 0.95rem;
-}
-
-/* Baguette magique */
-.btn-magic-icon {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-    opacity: 0;
-    transform: scale(0.8);
-    box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
-}
-
-.btn-magic-icon.show {
-    opacity: 1;
-    transform: scale(1);
-}
-
-.btn-magic-icon:hover {
-    transform: scale(1.1) rotate(15deg);
-    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.5);
-}
-
-.btn-magic-icon i {
-    font-size: 14px;
-    animation: sparkle 2s ease-in-out infinite;
-}
-
-@keyframes sparkle {
-    0%, 100% { 
-        opacity: 1; 
-        transform: rotate(0deg);
-    }
-    50% { 
-        opacity: 0.7; 
-        transform: rotate(180deg) scale(1.1);
-    }
-}
-
-/* Container aperçu */
-.session-preview {
+/* Groupes musculaires (ex: "Dos (27)") */
+#exerciseSelectionGrid > div {
     background: var(--bg-secondary);
-    border: 1px solid var(--planning-border);
     border-radius: 8px;
-    padding: 1.25rem;
+    padding: 1rem;
+    border: 1px solid var(--planning-border);
 }
 
-.empty-preview {
-    text-align: center;
-    color: var(--text-muted);
-    padding: 2rem 1rem;
-}
-
-.empty-preview i {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-    opacity: 0.5;
-}
-
-.empty-preview p {
-    margin: 0;
-    font-size: 0.9rem;
-}
-
-/* Stats en ligne */
-.session-summary-v2 {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-}
-
-.summary-stats {
-    display: flex;
-    justify-content: space-between;
-    gap: 0.5rem;
-    background: var(--bg-tertiary);
-    padding: 0.6rem;
-    border-radius: 6px;
-}
-
-.stat-item {
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.1rem;
-    flex: 1;
-    padding: 0.25rem;
-}
-
-.stat-item i {
-    font-size: 0.9rem;
-    margin-bottom: 0.1rem;
-}
-
-.stat-value {
-    font-size: 1.1rem;
-    font-weight: 700;
-    line-height: 1;
-    transition: all 0.3s ease;
-    position: relative;
-}
-
-.stat-value.updated {
-    animation: scoreUpdate 0.6s ease-out;
-}
-
-@keyframes scoreUpdate {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
-}
-
-.stat-label {
-    font-size: 0.65rem;
-    color: var(--text-muted);
-    line-height: 1;
-}
-
-/* Animation delta score */
-.score-delta {
-    position: absolute;
-    top: -1.2rem;
-    right: -0.5rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    opacity: 1;
-    transition: all 0.3s ease;
-    pointer-events: none;
-    animation: scoreDelta 2s ease-out forwards;
-}
-
-@keyframes scoreDelta {
-    0% { 
-        opacity: 0; 
-        transform: translateY(0); 
-    }
-    20% { 
-        opacity: 1; 
-        transform: translateY(-5px); 
-    }
-    80% { 
-        opacity: 1; 
-        transform: translateY(-10px); 
-    }
-    100% { 
-        opacity: 0; 
-        transform: translateY(-20px); 
-    }
-}
-
-/* Liste exercices drag & drop */
-.exercise-list-preview {
-    margin-bottom: 1rem;
-}
-
-.exercise-list-preview h5 {
+/* Headers des groupes musculaires */
+#exerciseSelectionGrid h5 {
     margin: 0 0 0.75rem 0;
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--text);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.exercise-list-preview h5 i {
-    color: var(--primary);
-    font-size: 0.85rem;
-}
-
-.exercises-sortable {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    max-height: 180px;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding-right: 0.3rem;
-}
-
-.exercise-preview-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0.6rem;
-    background: var(--planning-bg);
-    border: 1px solid var(--planning-border);
-    border-radius: 5px;
-    transition: all 0.2s ease;
-    position: relative;
-    cursor: grab;
-    min-height: 44px;
-}
-
-.exercise-preview-item:hover {
-    border-color: var(--primary);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-}
-
-.exercise-preview-item.sortable-chosen {
-    cursor: grabbing;
-    transform: rotate(2deg);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-.exercise-preview-item.swipe-delete {
-    background: rgba(239, 68, 68, 0.1);
-    border-color: var(--danger);
-}
-
-/* Classes pour drag & drop */
-.exercise-ghost {
-    opacity: 0.4;
-    background: var(--primary-light);
-}
-
-.exercise-chosen {
-    opacity: 1;
-}
-
-.exercise-dragging {
-    cursor: grabbing;
-}
-
-.exercise-drag-handle {
-    color: var(--text-muted);
-    cursor: grab;
-    padding: 0.2rem;
-    font-size: 0.8rem;
-    transition: color 0.2s ease;
-}
-
-.exercise-drag-handle:hover {
-    color: var(--text);
-}
-
-.exercise-number {
-    background: var(--primary);
-    color: white;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.7rem;
-    font-weight: 600;
-    flex-shrink: 0;
-}
-
-.exercise-info {
-    flex: 1;
-    min-width: 0;
-    padding-right: 1.5rem;
-}
-
-.exercise-preview-item .exercise-name {
-    font-weight: 600;
-    font-size: 0.8rem;
-    margin: 0;
-    color: var(--text);
-    line-height: 1.2;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.exercise-preview-item .exercise-params {
-    font-size: 0.7rem;
-    color: var(--text-muted);
-    margin-top: 0.1rem;
-    line-height: 1;
-}
-
-/* Bouton suppression avec hover rouge */
-.exercise-remove {
-    position: absolute;
-    top: 50%;
-    right: 0.4rem;
-    transform: translateY(-50%);
-    background: none;
-    border: 1px solid var(--text-muted);
-    color: var(--text-muted);
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    font-size: 0.55rem;
-    opacity: 0.6;
-}
-
-.exercise-preview-item:hover .exercise-remove {
-    opacity: 1;
-}
-
-.exercise-remove:hover {
-    background: var(--danger);
-    border-color: var(--danger);
-    color: white;
-    transform: translateY(-50%) scale(1.1);
-}
-
-/* Groupes musculaires colorés */
-.muscle-groups-preview {
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--planning-border);
-}
-
-.muscle-groups-preview h5 {
-    margin: 0 0 0.6rem 0;
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--text);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.muscle-groups-preview h5 i {
-    color: var(--primary);
-    font-size: 0.85rem;
-}
-
-.muscle-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-}
-
-.muscle-tag-preview {
-    padding: 0.25rem 0.5rem;
-    border-radius: 10px;
-    color: white;
-    font-size: 0.65rem;
-    font-weight: 600;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    transition: transform 0.2s ease;
-}
-
-.muscle-tag-preview:hover {
-    transform: translateY(-1px);
-}
-
-/* Footer actions */
-.modal-actions-section {
-    padding: 1rem 1.5rem;
-    border-top: 1px solid var(--planning-border);
-    background: var(--bg-secondary);
-    display: flex;
-    justify-content: flex-end;
-    gap: 1rem;
-    flex-shrink: 0;
-}
-
-.modal-actions-section .btn {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.65rem 1.25rem;
-    font-weight: 600;
-    border-radius: 8px;
-    transition: all 0.2s ease;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-tertiary);
+    border-radius: 6px;
     font-size: 0.9rem;
-}
-
-.modal-actions-section .btn:hover {
-    transform: translateY(-1px);
-}
-
-/* =====================================================
-   MODAL CRÉATION SÉANCE - LAYOUT VERTICAL CORRIGÉ
-   ===================================================== */
-
-.add-session-modal-v2 {
-    max-width: 750px;
-    width: 95vw;
-    max-height: 85vh;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    overflow: hidden;
-}
-
-/* Header avec alignement croix */
-.modal-header-section {
-    padding: 0.75rem 3rem 0.75rem 1.5rem;
-    border-bottom: 1px solid var(--planning-border);
-    background: var(--bg-secondary);
-    flex-shrink: 0;
-    position: relative;
-}
-
-.modal-header-section h3 {
-    margin: 0;
-    color: var(--text);
-    font-size: 1.25rem;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.modal-header-section h3 i {
-    color: var(--primary);
-    font-size: 1.1rem;
-}
-
-.session-date-info {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    color: var(--text-muted);
-    font-size: 0.8rem;
-    margin: 0.3rem 0 0 2rem;
-    opacity: 0.8;
-}
-
-.session-date-info i {
-    color: var(--text-muted);
-    font-size: 0.75rem;
-}
-
-/* Corps du modal - CORRIGÉ pour éviter débordements */
-.modal-body-section {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    min-height: 0;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-/* Section sélection exercices */
-.selection-section {
-    flex-shrink: 0;
-    width: 100%;
-}
-
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.75rem;
-}
-
-.section-header h4 {
-    margin: 0;
-    font-size: 1.05rem;
     font-weight: 600;
     color: var(--text);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    border-left: 4px solid var(--primary);
 }
 
-.section-header h4 i {
-    color: var(--primary);
-    font-size: 0.95rem;
+/* Liste des exercices dans chaque groupe */
+#exerciseSelectionGrid label {
+    display: block;
+    cursor: pointer;
+    margin-bottom: 0.5rem;
 }
 
-.selection-counter {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    font-weight: 500;
-    min-width: 120px;
-    text-align: right;
-}
-
-/* CORRIGÉ - Container exercices sans overflow */
-.exercise-groups-container {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    overflow-y: auto;
-    overflow-x: hidden;
-    max-height: 350px;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-/* CORRIGÉ - Groupes musculaires compacts */
-.exercise-group {
-    margin-bottom: 0.75rem;
-    width: 100%;
-}
-
-.exercise-group:last-child {
+#exerciseSelectionGrid label:last-child {
     margin-bottom: 0;
 }
 
-.muscle-group-header {
-    margin: 0 0 0.5rem 0;
-    padding: 0.4rem 0.6rem;
-    background: var(--bg-tertiary);
-    border-radius: 6px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text);
-    border-left: 3px solid var(--primary);
-    width: 100%;
-    box-sizing: border-box;
-}
-
-/* CORRIGÉ - Grille exercices SANS minmax problématique */
-.exercise-group-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    width: 100%;
-}
-
-/* CORRIGÉ - Exercice option sans débordement */
-.exercise-option {
-    cursor: pointer;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.exercise-option input[type="checkbox"] {
+#exerciseSelectionGrid input[type="checkbox"] {
     display: none;
 }
 
-.exercise-card {
+/* Cards des exercices */
+#exerciseSelectionGrid label > div {
     background: var(--bg);
     border: 2px solid var(--planning-border);
     border-radius: 8px;
@@ -1292,80 +583,63 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    width: 100%;
-    box-sizing: border-box;
-    min-height: 60px;
+    min-height: 50px;
 }
 
-.exercise-option input:checked + .exercise-card {
+#exerciseSelectionGrid input:checked + div {
     border-color: var(--primary);
     background: var(--primary-light);
     transform: translateY(-1px);
     box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
 }
 
-.exercise-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 0.9rem;
-    flex-shrink: 0;
-    background: var(--primary);
+#exerciseSelectionGrid label > div:hover {
+    border-color: var(--primary);
+    transform: translateY(-1px);
 }
 
-.exercise-info {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-}
-
-.exercise-name {
+/* Texte des exercices */
+#exerciseSelectionGrid .exercise-name,
+#exerciseSelectionGrid h6 {
+    margin: 0;
     font-weight: 600;
     font-size: 0.9rem;
     color: var(--text);
-    margin-bottom: 0.2rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    flex: 1;
 }
 
-.exercise-details {
+#exerciseSelectionGrid .exercise-details,
+#exerciseSelectionGrid p {
+    margin: 0;
     font-size: 0.75rem;
     color: var(--text-muted);
 }
 
-/* CORRIGÉ - Section preview avec largeur fixe */
-.preview-section {
+/* ===== SECTION APERÇU DE LA SÉANCE ===== */
+.add-session-modal-v2 h4:nth-of-type(2) {
+    margin: 1.5rem 0 1rem 0;
+    color: var(--text);
+    font-size: 1.1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--planning-border);
+}
+
+/* Container aperçu avec stats */
+#sessionPreview {
     background: var(--bg-secondary);
     border: 1px solid var(--planning-border);
     border-radius: 8px;
     padding: 1rem;
-    width: 100%;
-    box-sizing: border-box;
-    flex-shrink: 0;
+    margin-bottom: 1rem;
 }
 
-.preview-section h4 {
-    margin: 0 0 1rem 0;
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.preview-section h4 i {
-    color: var(--primary);
-    font-size: 0.9rem;
-}
-
-/* CORRIGÉ - Summary stats avec largeur fixe */
-.summary-stats {
+/* Stats numériques (exercices, minutes, groupes, qualité) */
+#sessionPreview .summary-stats,
+#sessionPreview > div:first-child {
     display: flex;
     justify-content: space-around;
     margin-bottom: 1rem;
@@ -1375,65 +649,69 @@
     gap: 1rem;
 }
 
-.stat-item {
+.summary-stats .stat-item,
+#sessionPreview > div:first-child > div {
     text-align: center;
     flex: 1;
-    min-width: 60px;
 }
 
-.stat-number {
-    font-size: 1.5rem;
+.summary-stats .stat-number,
+#sessionPreview strong {
+    font-size: 1.3rem;
     font-weight: 700;
     color: var(--primary);
     display: block;
 }
 
-.stat-label {
+.summary-stats .stat-label,
+#sessionPreview small {
     font-size: 0.7rem;
     color: var(--text-muted);
     margin-top: 0.2rem;
     display: block;
 }
 
-/* CORRIGÉ - Exercices sélectionnés avec drag & drop */
-.exercises-sortable {
+/* ===== EXERCICES SÉLECTIONNÉS ===== */
+.add-session-modal-v2 .exercises-sortable,
+#sessionPreview .exercises-list {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
     min-height: 60px;
-    max-height: 200px;
+    max-height: 150px;
     overflow-y: auto;
     padding: 0.5rem;
     border: 1px dashed var(--planning-border);
     border-radius: 6px;
     background: var(--bg);
+    margin-bottom: 1rem;
 }
 
+/* Items exercices dans l'aperçu */
 .exercise-preview-item {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.5rem 0.6rem;
-    background: var(--planning-bg);
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-secondary);
     border: 1px solid var(--planning-border);
-    border-radius: 5px;
+    border-radius: 6px;
     transition: all 0.2s ease;
-    position: relative;
     cursor: grab;
-    min-height: 44px;
+    min-height: 40px;
+    position: relative;
 }
 
 .exercise-preview-item:hover {
     border-color: var(--primary);
     transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
 }
 
 .exercise-number {
     background: var(--primary);
     color: white;
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -1443,18 +721,12 @@
     flex-shrink: 0;
 }
 
-.exercise-info {
-    flex: 1;
-    min-width: 0;
-    padding-right: 1.5rem;
-}
-
 .exercise-preview-item .exercise-name {
     font-weight: 600;
     font-size: 0.8rem;
-    margin: 0;
     color: var(--text);
-    line-height: 1.2;
+    flex: 1;
+    margin: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1463,96 +735,71 @@
 .exercise-preview-item .exercise-params {
     font-size: 0.7rem;
     color: var(--text-muted);
-    margin-top: 0.1rem;
-    line-height: 1;
+    margin: 0;
 }
 
+/* Bouton suppression exercice */
 .exercise-remove {
     position: absolute;
     top: 50%;
-    right: 0.4rem;
+    right: 0.5rem;
     transform: translateY(-50%);
     background: none;
     border: 1px solid var(--text-muted);
     color: var(--text-muted);
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
-    font-size: 0.55rem;
+    font-size: 0.6rem;
     opacity: 0.6;
+    transition: all 0.2s ease;
 }
 
 .exercise-remove:hover {
     background: var(--danger);
     border-color: var(--danger);
     color: white;
-    transform: translateY(-50%) scale(1.1);
     opacity: 1;
+    transform: translateY(-50%) scale(1.1);
 }
 
-/* États vides */
-.empty-state {
-    text-align: center;
-    padding: 2rem 1rem;
-    color: var(--text-muted);
-    font-style: italic;
-}
-
-.empty-state i {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
-    display: block;
-    opacity: 0.5;
-}
-
-/* Groupes musculaires preview */
-.muscle-groups-preview {
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--planning-border);
-}
-
-.muscle-groups-preview h5 {
-    margin: 0 0 0.6rem 0;
+/* ===== GROUPES MUSCULAIRES APERÇU ===== */
+.add-session-modal-v2 h5:last-of-type {
+    margin: 1rem 0 0.5rem 0;
+    color: var(--text);
     font-size: 0.95rem;
     font-weight: 600;
-    color: var(--text);
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
-.muscle-groups-preview h5 i {
-    color: var(--primary);
-    font-size: 0.85rem;
-}
-
-.muscle-tags {
+.muscle-tags,
+.add-session-modal-v2 .muscle-groups {
     display: flex;
     flex-wrap: wrap;
     gap: 0.4rem;
+    margin-bottom: 1.5rem;
 }
 
-.muscle-tag-preview {
+.muscle-tag-preview,
+.muscle-tag {
     padding: 0.25rem 0.5rem;
     border-radius: 10px;
     color: white;
     font-size: 0.65rem;
     font-weight: 600;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    transition: transform 0.2s ease;
+    background: var(--primary);
 }
 
-.muscle-tag-preview:hover {
-    transform: translateY(-1px);
-}
-
-/* Footer actions CORRIGÉ */
-.modal-actions-section {
+/* ===== BOUTONS ACTIONS ===== */
+.add-session-modal-v2 .modal-actions,
+.add-session-modal-v2 > div:last-child {
     padding: 1rem 1.5rem;
     border-top: 1px solid var(--planning-border);
     background: var(--bg-secondary);
@@ -1560,12 +807,13 @@
     justify-content: flex-end;
     gap: 1rem;
     flex-shrink: 0;
-    width: 100%;
-    box-sizing: border-box;
+    margin: 0;
 }
 
-.modal-actions-section .btn {
-    display: flex;
+/* Override des styles btn de styles.css */
+.add-session-modal-v2 .btn,
+.add-session-modal-v2 button {
+    display: flex !important;
     align-items: center;
     gap: 0.5rem;
     padding: 0.65rem 1.25rem;
@@ -1574,487 +822,119 @@
     transition: all 0.2s ease;
     font-size: 0.9rem;
     white-space: nowrap;
-}
-
-.modal-actions-section .btn:hover {
-    transform: translateY(-1px);
-}
-
-/* =====================================================
-   MODAL ÉDITION SÉANCE - ALIGNÉ SUR CRÉATION
-   ===================================================== */
-
-.session-edit-modal {
-    max-width: 750px;
-    width: 95vw;
-    max-height: 85vh;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    overflow: hidden;
-}
-
-.session-edit-header {
-    padding: 0.75rem 3rem 0.75rem 1.5rem;
-    border-bottom: 1px solid var(--planning-border);
-    background: var(--bg-secondary);
-    flex-shrink: 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.session-edit-header h3 {
-    margin: 0;
-    color: var(--text);
-    font-size: 1.25rem;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.session-edit-header h3 i {
-    color: var(--primary);
-    font-size: 1.1rem;
-}
-
-.session-live-stats {
-    display: flex;
-    gap: 1.5rem;
-}
-
-.live-score,
-.live-duration {
-    text-align: center;
-}
-
-.live-score label,
-.live-duration label {
-    display: block;
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    margin-bottom: 0.3rem;
-}
-
-.score-display {
-    display: inline-block;
-}
-
-.score-gauge {
-    padding: 0.3rem 0.7rem;
-    border-radius: 20px;
-    color: white;
-    font-weight: 600;
-    font-size: 0.9rem;
-}
-
-.duration-display {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-weight: 600;
-    color: var(--text);
-}
-
-.exercises-section {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding: 1.5rem;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.exercises-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-}
-
-.exercises-header h4 {
-    margin: 0;
-    font-size: 1.05rem;
-    font-weight: 600;
-    color: var(--text);
-}
-
-.exercise-actions {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.exercises-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    margin-bottom: 1.5rem;
-}
-
-.editable-exercise {
-    background: var(--bg-secondary);
-    border: 1px solid var(--planning-border);
-    border-radius: 8px;
-    padding: 1rem;
-    transition: all 0.2s ease;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.editable-exercise:hover {
-    border-color: var(--primary);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.exercise-main {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.75rem;
-}
-
-.exercise-title {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.exercise-number-edit {
-    background: var(--primary);
-    color: white;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.75rem;
-    font-weight: 600;
-}
-
-.exercise-name-edit {
-    font-weight: 600;
-    font-size: 0.95rem;
-    color: var(--text);
-}
-
-.exercise-tools {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.btn-icon {
-    background: none;
-    border: 1px solid var(--planning-border);
-    color: var(--text-muted);
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    border: 1px solid transparent;
     cursor: pointer;
-    transition: all 0.2s ease;
+    text-decoration: none;
 }
 
-.btn-icon:hover {
-    border-color: var(--primary);
-    color: var(--primary);
-    background: var(--primary-light);
+.add-session-modal-v2 .btn-secondary,
+.add-session-modal-v2 button[onclick*="closeModal"] {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-muted) !important;
+    border-color: var(--planning-border) !important;
 }
 
-.btn-icon.danger:hover {
-    border-color: var(--danger);
-    color: var(--danger);
-    background: rgba(239, 68, 68, 0.1);
+.add-session-modal-v2 .btn-primary,
+.add-session-modal-v2 button[onclick*="createSession"] {
+    background: var(--primary) !important;
+    color: white !important;
+    border-color: var(--primary) !important;
 }
 
-.exercise-params-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.75rem;
-}
-
-.param-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-}
-
-.param-group label {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    font-weight: 500;
-}
-
-.param-input {
-    padding: 0.5rem;
-    border: 1px solid var(--planning-border);
-    border-radius: 6px;
-    background: var(--bg-tertiary);
-    color: var(--text);
-    font-size: 0.85rem;
-    text-align: center;
-    transition: all 0.2s ease;
-}
-
-.param-input:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.add-exercise-section {
-    text-align: center;
-    padding: 1rem;
-}
-
-/* Actions modal édition */
-.modal-actions {
-    padding: 1rem 1.5rem;
-    border-top: 1px solid var(--planning-border);
-    background: var(--bg-secondary);
-    display: flex;
-    justify-content: flex-end;
-    gap: 1rem;
-    flex-shrink: 0;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.modal-actions .btn {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.65rem 1.25rem;
-    font-weight: 600;
-    border-radius: 8px;
-    transition: all 0.2s ease;
-    font-size: 0.9rem;
-    white-space: nowrap;
-}
-
-.modal-actions .btn:hover {
+.add-session-modal-v2 .btn:hover {
     transform: translateY(-1px);
 }
 
-/* =====================================================
-   MODALS ALTERNATIVES ET AUTRES
-   ===================================================== */
-
-.swap-modal {
-    max-width: 600px;
-    width: 90vw;
-    padding: 1.5rem;
+.add-session-modal-v2 .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
 }
 
-.swap-header {
-    margin-bottom: 1.5rem;
-}
-
-.swap-header h3 {
-    margin: 0 0 0.5rem 0;
-    color: var(--text);
-    font-size: 1.2rem;
-    font-weight: 600;
-}
-
-.alternatives-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.alternative-item {
-    padding: 1rem;
-    background: var(--bg-secondary);
-    border: 1px solid var(--planning-border);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.alternative-item:hover {
-    border-color: var(--primary);
-    background: var(--primary-light);
-    transform: translateY(-1px);
-}
-
-.alternative-details {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-}
-
-.alternative-info h4 {
-    margin: 0 0 0.3rem 0;
-    color: var(--text);
-    font-size: 1rem;
-    font-weight: 600;
-}
-
-.alternative-info p {
-    margin: 0;
-    color: var(--text-muted);
-    font-size: 0.85rem;
-}
-
-.alternative-score {
-    text-align: center;
-    flex-shrink: 0;
-}
-
-.score-badge {
-    background: var(--primary);
-    color: white;
-    padding: 0.3rem 0.6rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 600;
-}
-
-/* =====================================================
-   RESPONSIVE COMPLET
-   ===================================================== */
-
+/* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
-    /* Modal création responsive */
-    .add-session-modal-v2 {
-        max-width: 100%;
-        width: 100%;
-        max-height: 95vh;
-        margin: 0;
+    #modal.planning-modal .modal-content {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        max-height: 100vh !important;
     }
     
-    .modal-body-section {
+    .add-session-modal-v2 {
+        max-height: 100vh;
+    }
+    
+    .add-session-modal-v2 h3 {
         padding: 1rem;
-        gap: 1rem;
+        font-size: 1.1rem;
+    }
+    
+    .add-session-modal-v2 > div:not(:first-child) {
+        padding: 1rem;
+    }
+    
+    #exerciseSelectionGrid {
+        max-height: 250px;
+    }
+    
+    .exercises-sortable {
+        max-height: 100px;
+    }
+    
+    .add-session-modal-v2 .modal-actions > div:last-child {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .add-session-modal-v2 .btn {
+        width: 100%;
+        justify-content: center;
     }
     
     .summary-stats {
         flex-wrap: wrap;
-        gap: 0.5rem;
     }
     
-    .stat-item {
-        flex: 0 0 calc(50% - 0.25rem);
-        min-width: unset;
-    }
-    
-    .exercises-sortable {
-        max-height: 120px;
-    }
-    
-    .modal-actions-section {
-        flex-direction: column;
-        gap: 0.75rem;
-        padding: 1rem;
-    }
-    
-    .modal-actions-section .btn {
-        width: 100%;
-        justify-content: center;
-    }
-    
-    /* Modal édition responsive */
-    .session-edit-modal {
-        max-width: 100%;
-        width: 100%;
-        max-height: 95vh;
-        margin: 0;
-    }
-    
-    .session-edit-header {
-        flex-direction: column;
-        gap: 1rem;
-        align-items: stretch;
-        padding: 1rem;
-    }
-    
-    .session-live-stats {
-        justify-content: space-around;
-    }
-    
-    .exercises-section {
-        padding: 1rem;
-    }
-    
-    .exercise-params-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .alternative-details {
-        flex-direction: column;
-        gap: 0.75rem;
-        align-items: stretch;
-    }
-    
-    .modal-actions {
-        flex-direction: column;
-        padding: 1rem;
-    }
-    
-    .modal-actions .btn {
-        width: 100%;
-        justify-content: center;
+    .summary-stats .stat-item {
+        flex: 0 0 calc(50% - 0.5rem);
     }
 }
 
-/* =====================================================
-   ANIMATIONS ET ACCESSIBILITÉ
-   ===================================================== */
-
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+/* ===== ÉTATS VIDES ===== */
+.empty-preview {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--text-muted);
+    font-style: italic;
 }
 
-.week-section {
-    animation: slideIn 0.3s ease;
+.empty-preview i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    display: block;
+    opacity: 0.5;
 }
 
-.week-section:nth-child(1) { animation-delay: 0.05s; }
-.week-section:nth-child(2) { animation-delay: 0.1s; }
-.week-section:nth-child(3) { animation-delay: 0.15s; }
-.week-section:nth-child(4) { animation-delay: 0.2s; }
-
-@media (prefers-color-scheme: dark) {
-    :root {
-        --planning-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        --planning-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.4);
-    }
+/* ===== SCROLLBARS CUSTOM ===== */
+#exerciseSelectionGrid::-webkit-scrollbar,
+.exercises-sortable::-webkit-scrollbar {
+    width: 6px;
 }
 
-@media (prefers-reduced-motion: reduce) {
-    * {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-    }
-    
-    .session-card:hover,
-    .day-card:hover,
-    .week-section:hover {
-        transform: none;
-    }
+#exerciseSelectionGrid::-webkit-scrollbar-track,
+.exercises-sortable::-webkit-scrollbar-track {
+    background: var(--bg-tertiary);
+    border-radius: 3px;
 }
 
-/* Focus accessibilité */
-.session-card:focus,
-.day-card:focus,
-.add-session-zone:focus,
-.alternative-item:focus,
-.btn-action:focus {
-    outline: 2px solid var(--primary);
-    outline-offset: 2px;
+#exerciseSelectionGrid::-webkit-scrollbar-thumb,
+.exercises-sortable::-webkit-scrollbar-thumb {
+    background: var(--text-muted);
+    border-radius: 3px;
+}
+
+#exerciseSelectionGrid::-webkit-scrollbar-thumb:hover,
+.exercises-sortable::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
 }
