@@ -183,19 +183,24 @@ class PlanningManager {
 
     getMuscleGroupColor(muscleGroup) {
         const colorMap = {
-            'chest': '#e74c3c', 'pectoraux': '#e74c3c',
-            'back': '#3498db', 'dos': '#3498db',
-            'shoulders': '#f39c12', 'épaules': '#f39c12',
-            'arms': '#9b59b6', 'bras': '#9b59b6',
-            'legs': '#27ae60', 'jambes': '#27ae60',
-            'core': '#e67e22', 'abdominaux': '#e67e22',
+            'chest': '#e74c3c',
+            'back': '#3498db',
+            'shoulders': '#f39c12',
+            'arms': '#9b59b6',
+            'legs': '#27ae60',
+            'core': '#e67e22',
             'cardio': '#e91e63',
-            'functional': '#795548'
+            'pectoraux': '#e74c3c',
+            'dos': '#3498db',
+            'épaules': '#f39c12',
+            'bras': '#9b59b6',
+            'jambes': '#27ae60',
+            'abdominaux': '#e67e22'
         };
-        
-        const muscle = muscleGroup.toLowerCase();
-        return colorMap[muscle] || '#6c757d';
-    }
+            
+            const muscle = muscleGroup.toLowerCase();
+            return colorMap[muscle] || '#6c757d';
+        }
 
     extractPrimaryMuscles(exercises) {
         if (!exercises || exercises.length === 0) return [];
@@ -524,15 +529,16 @@ class PlanningManager {
     }
 
 
-    renderSession(session) {
+    renderSession(session, dayData) {
         console.log('🎨 Rendu session:', session);
         
+        // CONSERVER TOUTES LES FEATURES EXISTANTES
         const exercises = session.exercise_pool || session.exercises || [];
         const muscleGroups = session.muscle_groups || [];
         const status = session.status || 'planned';
         const quality = session.predicted_quality_score || 75;
         
-        // Obtenir la couleur du score de qualité
+        // Fonction couleur de qualité EXISTANTE (conserver)
         const getQualityColor = (score) => {
             if (score >= 85) return '#10b981'; // vert
             if (score >= 70) return '#f59e0b'; // orange  
@@ -542,7 +548,7 @@ class PlanningManager {
         
         const qualityColor = getQualityColor(quality);
         
-        // Icône selon le statut
+        // Fonction icône statut EXISTANTE (conserver)
         const getStatusIcon = (status) => {
             switch(status) {
                 case 'completed': return 'fas fa-check-circle';
@@ -555,8 +561,12 @@ class PlanningManager {
         
         const statusIcon = getStatusIcon(status);
         
+        // AJOUTER couleur muscle en border-left (NOUVELLE FEATURE)
+        const primaryMuscle = muscleGroups[0] || 'general';
+        const muscleColor = this.getMuscleGroupColor(primaryMuscle);
+        
         return `
-            <div class="session-card" data-session-id="${session.id}">
+            <div class="session-card" data-session-id="${session.id}" style="border-left: 4px solid ${muscleColor}">
                 <div class="session-header">
                     <div class="session-time">
                         <i class="${statusIcon}"></i>
@@ -567,7 +577,7 @@ class PlanningManager {
                         <span style="color: ${qualityColor}">${quality}%</span>
                     </div>
                     <div class="session-actions">
-                        <button class="btn btn-sm btn-outline" onclick="planningManager.showSessionEditModal(planningManager.findSessionById('${session.id}'))" title="Modifier la séance">
+                        <button class="btn-edit-compact" onclick="planningManager.showSessionEditModal(planningManager.findSessionById('${session.id}'))" title="Modifier la séance">
                             <i class="fas fa-edit"></i>
                         </button>
                     </div>
@@ -614,7 +624,7 @@ class PlanningManager {
                     </div>
                     
                     <div class="session-footer">
-                        <button class="btn btn-primary btn-sm session-start-btn" onclick="planningManager.startSession('${session.id}')" ${status === 'completed' ? 'disabled' : ''}>
+                        <button class="btn-start-compact" onclick="planningManager.startSession('${session.id}')" ${status === 'completed' ? 'disabled' : ''}>
                             <i class="fas fa-play"></i>
                             ${status === 'completed' ? 'Terminée' : status === 'in_progress' ? 'Continuer' : 'Démarrer'}
                         </button>
@@ -1632,20 +1642,6 @@ class PlanningManager {
         }, 5); // 5 min échauffement
         
         return Math.max(15, Math.min(120, Math.round(duration)));
-    }
-    
-    calculateExerciseDuration(exercise) {
-        // Méthode existante ou fallback simple
-        if (typeof this.calculateExerciseDuration === 'function') {
-            return this.calculateExerciseDuration(exercise);
-        }
-        
-        const sets = exercise.sets || 3;
-        const restSeconds = exercise.rest_seconds || 90;
-        const timePerSet = 45; // secondes estimées par série
-        
-        const totalSeconds = (sets * timePerSet) + ((sets - 1) * restSeconds);
-        return Math.ceil(totalSeconds / 60);
     }
     
     // ===== UTILITAIRES =====
