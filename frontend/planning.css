@@ -417,97 +417,187 @@
     display: block;
 }
 
-
 /* =====================================================
    CORRECTIONS POUR STRUCTURE HTML ACTUELLE + CONFLITS STYLES.CSS
    ===================================================== */
 
 /* OVERRIDE des styles.css pour les modals planning */
 #modal.planning-modal .modal-content {
-    max-width: 750px !important; /* Override du 500px de styles.css */
+    max-width: 850px !important;
     width: 95vw !important;
     background: var(--bg-card);
     border-radius: 12px;
     padding: 0 !important;
+    max-height: 90vh !important;
 }
 
 #modal.planning-modal .modal-header {
-    display: none !important; /* Masquer le header par défaut */
+    display: none !important;
 }
 
 #modal.planning-modal .modal-body {
-    padding: 0 !important; /* Reset du padding de styles.css */
-}
-
-/* =====================================================
-   MODAL CRÉATION SÉANCE - STRUCTURE ACTUELLE
-   ===================================================== */
-
-.add-session-modal-v2 {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    max-height: 85vh;
+    padding: 0 !important;
     overflow: hidden;
 }
 
-/* Header existant avec titre et date */
-.add-session-modal-v2 h3 {
-    margin: 0 0 0.5rem 0;
+/* =====================================================
+   MODALS SÉANCES V2 - STRUCTURE OPTIMISÉE (CRÉATION + ÉDITION)
+   ===================================================== */
+
+.add-session-modal-v2,
+.edit-session-modal-v2,
+.session-edit-modal {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-height: 90vh;
+    overflow: hidden;
+    background: var(--bg-card);
+}
+
+/* 1. HEADER UNIFIÉ AVEC TITRE + CROIX ALIGNÉS */
+.modal-header-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
     padding: 1.5rem 1.5rem 0 1.5rem;
+    border-bottom: 1px solid var(--planning-border);
+    background: var(--bg-card);
+    position: relative;
+}
+
+.modal-header-section h3,
+.session-edit-header h3,
+.edit-session-modal-v2 h3 {
+    margin: 0;
     color: var(--text);
     font-size: 1.3rem;
     font-weight: 700;
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    line-height: 1.2;
 }
 
-.add-session-modal-v2 h3 i {
+.modal-header-section h3 i,
+.session-edit-header h3 i,
+.edit-session-modal-v2 h3 i {
     color: var(--primary);
     font-size: 1.1rem;
 }
 
-/* Date info sous le titre */
-.add-session-modal-v2 h3 + p,
-.add-session-modal-v2 .session-date-info {
-    margin: 0;
-    padding: 0 1.5rem 1.5rem 2.8rem;
+/* Bouton fermeture aligné avec le titre */
+.modal-header-section::after {
+    content: '×';
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--bg-tertiary);
     color: var(--text-muted);
-    font-size: 0.85rem;
-    border-bottom: 1px solid var(--planning-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.5rem;
+    font-weight: 300;
+    transition: all 0.2s ease;
+    z-index: 10;
 }
 
-/* Container principal scrollable */
-.add-session-modal-v2 > div:not(:first-child) {
+.modal-header-section::after:hover {
+    background: var(--danger);
+    color: white;
+    transform: scale(1.1);
+}
+
+/* 2. SOUS-TITRE DATE AVEC ICÔNE CALENDRIER */
+.session-date-info {
+    margin: 0.5rem 0 1.5rem 2.8rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.session-date-info i {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+/* =====================================================
+   CORPS DU MODAL - LAYOUT VERTICAL OPTIMISÉ
+   ===================================================== */
+
+.modal-body-section,
+.session-edit-body,
+.edit-session-modal-v2 .modal-body-section {
     flex: 1;
     overflow-y: auto;
-    overflow-x: hidden;
-    padding: 1.5rem;
+    padding: 1rem 1.5rem;
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
 }
 
-/* ===== SECTION EXERCICES DISPONIBLES ===== */
-.add-session-modal-v2 h4:first-of-type {
-    margin: 0 0 1rem 0;
+/* ===== 3. SECTION EXERCICES AVEC BARRE DE RECHERCHE ===== */
+.selection-section {
+    flex-shrink: 0;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--planning-border);
+}
+
+.section-header h4 {
+    margin: 0;
     color: var(--text);
     font-size: 1.1rem;
     font-weight: 600;
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid var(--planning-border);
+    cursor: pointer;
+    transition: color 0.2s ease;
 }
 
-.add-session-modal-v2 h4:first-of-type i {
+.section-header h4:hover {
     color: var(--primary);
 }
 
-/* Barre de recherche */
-.add-session-modal-v2 input[type="text"] {
+.section-header h4 i {
+    color: var(--primary);
+    transition: transform 0.2s ease;
+}
+
+.section-header h4.collapsed i {
+    transform: rotate(180deg);
+}
+
+.selection-counter {
+    background: var(--primary);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+/* 4. BARRE DE RECHERCHE DISCRÈTE */
+.exercise-search-bar {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.exercise-search-bar input {
     width: 100%;
     padding: 0.75rem 1rem 0.75rem 2.5rem;
     border: 1px solid var(--planning-border);
@@ -515,39 +605,49 @@
     background: var(--bg-tertiary);
     color: var(--text);
     font-size: 0.9rem;
-    margin-bottom: 1rem;
-    box-sizing: border-box;
     transition: all 0.2s ease;
+    box-sizing: border-box;
 }
 
-.add-session-modal-v2 input[type="text"]:focus {
+.exercise-search-bar input:focus {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    background: var(--bg);
 }
 
-/* Container exercices avec groupes musculaires */
-#exerciseSelectionGrid {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    max-height: 300px;
+.exercise-search-bar i {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+/* 5. CONTAINER EXERCICES - 2 COLONNES OPTIMISÉES */
+.exercise-groups-container {
+    max-height: 350px;
     overflow-y: auto;
     overflow-x: hidden;
     padding-right: 0.5rem;
-    margin-bottom: 1rem;
 }
 
-/* Groupes musculaires (ex: "Dos (27)") */
-#exerciseSelectionGrid > div {
+.exercise-groups-container.collapsed {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.exercise-group {
     background: var(--bg-secondary);
     border-radius: 8px;
     padding: 1rem;
+    margin-bottom: 1rem;
     border: 1px solid var(--planning-border);
 }
 
-/* Headers des groupes musculaires */
-#exerciseSelectionGrid h5 {
+.exercise-group h5 {
     margin: 0 0 0.75rem 0;
     padding: 0.5rem 0.75rem;
     background: var(--bg-tertiary);
@@ -556,352 +656,172 @@
     font-weight: 600;
     color: var(--text);
     border-left: 4px solid var(--primary);
-}
-
-/* Liste des exercices dans chaque groupe */
-#exerciseSelectionGrid label {
-    display: block;
     cursor: pointer;
-    margin-bottom: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
 }
 
-#exerciseSelectionGrid label:last-child {
-    margin-bottom: 0;
+.exercise-group h5:hover {
+    background: var(--primary-light);
 }
 
-#exerciseSelectionGrid input[type="checkbox"] {
+.exercise-group h5::after {
+    content: '▼';
+    font-size: 0.7rem;
+    transition: transform 0.2s ease;
+}
+
+.exercise-group.collapsed h5::after {
+    transform: rotate(-90deg);
+}
+
+/* Grid 2 colonnes pour les exercices */
+.exercise-group-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.exercise-group.collapsed .exercise-group-grid {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+}
+
+.exercise-option {
+    transition: all 0.2s ease;
+}
+
+.exercise-option.hidden {
     display: none;
 }
 
-/* Cards des exercices */
-#exerciseSelectionGrid label > div {
+.exercise-option label {
+    display: block;
+    cursor: pointer;
+    margin: 0;
+}
+
+.exercise-option input[type="checkbox"] {
+    display: none;
+}
+
+/* Cards exercices optimisées pour 2 colonnes */
+.exercise-option label > div {
     background: var(--bg);
     border: 2px solid var(--planning-border);
     border-radius: 8px;
-    padding: 0.75rem;
+    padding: 0.6rem;
     transition: all 0.2s ease;
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    min-height: 50px;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-height: 60px;
+    position: relative;
 }
 
-#exerciseSelectionGrid input:checked + div {
+.exercise-option input:checked + div {
     border-color: var(--primary);
     background: var(--primary-light);
     transform: translateY(-1px);
     box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
 }
 
-#exerciseSelectionGrid label > div:hover {
+.exercise-option label > div:hover {
     border-color: var(--primary);
     transform: translateY(-1px);
 }
 
-/* Texte des exercices */
-#exerciseSelectionGrid .exercise-name,
-#exerciseSelectionGrid h6 {
-    margin: 0;
+.exercise-name {
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: var(--text);
-    flex: 1;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-#exerciseSelectionGrid .exercise-details,
-#exerciseSelectionGrid p {
-    margin: 0;
-    font-size: 0.75rem;
+.exercise-details {
+    font-size: 0.7rem;
     color: var(--text-muted);
+    margin: 0;
 }
 
-/* ===== SECTION APERÇU DE LA SÉANCE ===== */
-.add-session-modal-v2 h4:nth-of-type(2) {
-    margin: 1.5rem 0 1rem 0;
+/* ===== 6. SECTION APERÇU DE LA SÉANCE ===== */
+.preview-section {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    border: 1px solid var(--planning-border);
+    overflow: hidden;
+}
+
+.preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--planning-border);
+    background: var(--bg-tertiary);
+}
+
+.preview-header h4 {
+    margin: 0;
     color: var(--text);
     font-size: 1.1rem;
     font-weight: 600;
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid var(--planning-border);
 }
 
-/* Container aperçu avec stats */
-#sessionPreview {
-    background: var(--bg-secondary);
-    border: 1px solid var(--planning-border);
-    border-radius: 8px;
-    padding: 1rem;
-    margin-bottom: 1rem;
-}
-
-/* Stats numériques (exercices, minutes, groupes, qualité) */
-#sessionPreview .summary-stats,
-#sessionPreview > div:first-child {
-    display: flex;
-    justify-content: space-around;
-    margin-bottom: 1rem;
-    padding: 0.75rem;
-    background: var(--bg-tertiary);
-    border-radius: 6px;
-    gap: 1rem;
-}
-
-.summary-stats .stat-item,
-#sessionPreview > div:first-child > div {
-    text-align: center;
-    flex: 1;
-}
-
-.summary-stats .stat-number,
-#sessionPreview strong {
-    font-size: 1.3rem;
-    font-weight: 700;
+.preview-header h4 i {
     color: var(--primary);
-    display: block;
 }
 
-.summary-stats .stat-label,
-#sessionPreview small {
-    font-size: 0.7rem;
-    color: var(--text-muted);
-    margin-top: 0.2rem;
-    display: block;
-}
-
-/* ===== EXERCICES SÉLECTIONNÉS ===== */
-.add-session-modal-v2 .exercises-sortable,
-#sessionPreview .exercises-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    min-height: 60px;
-    max-height: 150px;
-    overflow-y: auto;
-    padding: 0.5rem;
-    border: 1px dashed var(--planning-border);
-    border-radius: 6px;
-    background: var(--bg);
-    margin-bottom: 1rem;
-}
-
-/* Items exercices dans l'aperçu */
-.exercise-preview-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    background: var(--bg-secondary);
-    border: 1px solid var(--planning-border);
-    border-radius: 6px;
-    transition: all 0.2s ease;
-    cursor: grab;
-    min-height: 40px;
-    position: relative;
-}
-
-.exercise-preview-item:hover {
-    border-color: var(--primary);
-    transform: translateY(-1px);
-}
-
-.exercise-number {
+/* 7. BAGUETTE MAGIQUE ANIMÉE */
+.magic-wand {
     background: var(--primary);
     color: white;
-    width: 20px;
-    height: 20px;
+    border: none;
     border-radius: 50%;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.7rem;
-    font-weight: 600;
-    flex-shrink: 0;
-}
-
-.exercise-preview-item .exercise-name {
-    font-weight: 600;
-    font-size: 0.8rem;
-    color: var(--text);
-    flex: 1;
-    margin: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.exercise-preview-item .exercise-params {
-    font-size: 0.7rem;
-    color: var(--text-muted);
-    margin: 0;
-}
-
-/* Bouton suppression exercice */
-.exercise-remove {
-    position: absolute;
-    top: 50%;
-    right: 0.5rem;
-    transform: translateY(-50%);
-    background: none;
-    border: 1px solid var(--text-muted);
-    color: var(--text-muted);
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.6rem;
-    opacity: 0.6;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
+    opacity: 0;
+    transform: scale(0.8);
 }
 
-.exercise-remove:hover {
-    background: var(--danger);
-    border-color: var(--danger);
-    color: white;
+.magic-wand.visible {
     opacity: 1;
-    transform: translateY(-50%) scale(1.1);
+    transform: scale(1);
+    animation: magical-pulse 2s infinite;
 }
 
-/* ===== GROUPES MUSCULAIRES APERÇU ===== */
-.add-session-modal-v2 h5:last-of-type {
-    margin: 1rem 0 0.5rem 0;
-    color: var(--text);
-    font-size: 0.95rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+.magic-wand:hover {
+    background: var(--primary-dark);
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
-.muscle-tags,
-.add-session-modal-v2 .muscle-groups {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    margin-bottom: 1.5rem;
+@keyframes magical-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+    50% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
 }
 
-.muscle-tag-preview,
-.muscle-tag {
-    padding: 0.25rem 0.5rem;
-    border-radius: 10px;
-    color: white;
-    font-size: 0.65rem;
-    font-weight: 600;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    background: var(--primary);
+/* Contenu de l'aperçu */
+.session-preview {
+    padding: 1rem;
+    min-height: 120px;
 }
 
-/* ===== BOUTONS ACTIONS ===== */
-.add-session-modal-v2 .modal-actions,
-.add-session-modal-v2 > div:last-child {
-    padding: 1rem 1.5rem;
-    border-top: 1px solid var(--planning-border);
-    background: var(--bg-secondary);
-    display: flex;
-    justify-content: flex-end;
-    gap: 1rem;
-    flex-shrink: 0;
-    margin: 0;
-}
-
-/* Override des styles btn de styles.css */
-.add-session-modal-v2 .btn,
-.add-session-modal-v2 button {
-    display: flex !important;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.65rem 1.25rem;
-    font-weight: 600;
-    border-radius: 8px;
-    transition: all 0.2s ease;
-    font-size: 0.9rem;
-    white-space: nowrap;
-    border: 1px solid transparent;
-    cursor: pointer;
-    text-decoration: none;
-}
-
-.add-session-modal-v2 .btn-secondary,
-.add-session-modal-v2 button[onclick*="closeModal"] {
-    background: var(--bg-tertiary) !important;
-    color: var(--text-muted) !important;
-    border-color: var(--planning-border) !important;
-}
-
-.add-session-modal-v2 .btn-primary,
-.add-session-modal-v2 button[onclick*="createSession"] {
-    background: var(--primary) !important;
-    color: white !important;
-    border-color: var(--primary) !important;
-}
-
-.add-session-modal-v2 .btn:hover {
-    transform: translateY(-1px);
-}
-
-.add-session-modal-v2 .btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-}
-
-/* ===== RESPONSIVE ===== */
-@media (max-width: 768px) {
-    #modal.planning-modal .modal-content {
-        width: 100% !important;
-        max-width: 100% !important;
-        margin: 0 !important;
-        border-radius: 0 !important;
-        max-height: 100vh !important;
-    }
-    
-    .add-session-modal-v2 {
-        max-height: 100vh;
-    }
-    
-    .add-session-modal-v2 h3 {
-        padding: 1rem;
-        font-size: 1.1rem;
-    }
-    
-    .add-session-modal-v2 > div:not(:first-child) {
-        padding: 1rem;
-    }
-    
-    #exerciseSelectionGrid {
-        max-height: 250px;
-    }
-    
-    .exercises-sortable {
-        max-height: 100px;
-    }
-    
-    .add-session-modal-v2 .modal-actions > div:last-child {
-        flex-direction: column;
-        gap: 0.75rem;
-    }
-    
-    .add-session-modal-v2 .btn {
-        width: 100%;
-        justify-content: center;
-    }
-    
-    .summary-stats {
-        flex-wrap: wrap;
-    }
-    
-    .summary-stats .stat-item {
-        flex: 0 0 calc(50% - 0.5rem);
-    }
-}
-
-/* ===== ÉTATS VIDES ===== */
 .empty-preview {
     text-align: center;
     padding: 2rem 1rem;
@@ -916,25 +836,410 @@
     opacity: 0.5;
 }
 
+/* 8. STATISTIQUES TEMPS RÉEL AVEC ICÔNES */
+.preview-stats,
+.session-live-stats,
+.live-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 0.75rem;
+    background: var(--bg);
+    border-radius: 8px;
+    border: 1px solid var(--planning-border);
+    transition: all 0.2s ease;
+}
+
+.stat-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-icon {
+    font-size: 1.2rem;
+    margin-bottom: 0.25rem;
+    display: block;
+}
+
+.stat-icon.exercises { color: var(--primary); }
+.stat-icon.duration { color: var(--warning); }
+.stat-icon.muscles { color: var(--info); }
+.stat-icon.quality { color: var(--success); }
+
+.stat-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.25rem;
+    display: block;
+    transition: all 0.3s ease;
+}
+
+.stat-value.updated {
+    transform: scale(1.2);
+    color: var(--primary);
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* ===== EXERCICES DANS MODALS (SÉLECTION + ÉDITION) ===== */
+.selected-exercises,
+.session-exercises-list,
+.exercises-list-edit,
+#sessionExercisesList {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.exercise-preview-item,
+.exercise-item,
+.exercise-edit-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: var(--bg);
+    border: 1px solid var(--planning-border);
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    cursor: move;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.exercise-preview-item:hover,
+.exercise-item:hover,
+.exercise-edit-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.exercise-preview-item.sortable-ghost,
+.exercise-item.sortable-ghost,
+.exercise-edit-item.sortable-ghost {
+    opacity: 0.5;
+}
+
+.exercise-drag-handle {
+    color: var(--text-muted);
+    cursor: grab;
+    padding: 0.25rem;
+}
+
+.exercise-drag-handle:active {
+    cursor: grabbing;
+}
+
+.exercise-preview-name {
+    flex: 1;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.exercise-preview-params {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+/* 10. BOUTON SUPPRESSION AVEC HOVER ROUGE */
+.exercise-remove {
+    position: absolute;
+    top: 50%;
+    right: 0.5rem;
+    transform: translateY(-50%);
+    background: none;
+    border: 1px solid var(--text-muted);
+    color: var(--text-muted);
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    opacity: 0.6;
+    transition: all 0.2s ease;
+}
+
+.exercise-remove:hover {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: white;
+    opacity: 1;
+    transform: translateY(-50%) scale(1.2);
+}
+
+/* 11. GROUPES MUSCULAIRES EN BAS */
+.muscle-groups-summary {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--planning-border);
+}
+
+.muscle-groups-summary h5 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text);
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.muscle-groups-summary h5 i {
+    color: var(--primary);
+}
+
+.muscle-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.muscle-tag {
+    padding: 0.25rem 0.6rem;
+    border-radius: 12px;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    background: var(--primary);
+    transition: all 0.2s ease;
+}
+
+.muscle-tag:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* Couleurs spécifiques par groupe musculaire */
+.muscle-tag[data-muscle="chest"] { background: #ef4444; }
+.muscle-tag[data-muscle="back"] { background: #10b981; }
+.muscle-tag[data-muscle="shoulders"] { background: #f59e0b; }
+.muscle-tag[data-muscle="arms"] { background: #8b5cf6; }
+.muscle-tag[data-muscle="legs"] { background: #06b6d4; }
+.muscle-tag[data-muscle="core"] { background: #f97316; }
+
+/* ===== BOUTONS ACTIONS ===== */
+.modal-actions-section,
+.session-edit-actions,
+.edit-actions-section {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--planning-border);
+    background: var(--bg-secondary);
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    flex-shrink: 0;
+}
+
+.modal-actions-section .btn {
+    display: flex !important;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    border: 1px solid transparent;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.btn-secondary {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-muted) !important;
+    border-color: var(--planning-border) !important;
+}
+
+.btn-primary {
+    background: var(--primary) !important;
+    color: white !important;
+    border-color: var(--primary) !important;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
 /* ===== SCROLLBARS CUSTOM ===== */
-#exerciseSelectionGrid::-webkit-scrollbar,
-.exercises-sortable::-webkit-scrollbar {
+.exercise-groups-container::-webkit-scrollbar,
+.selected-exercises::-webkit-scrollbar {
     width: 6px;
 }
 
-#exerciseSelectionGrid::-webkit-scrollbar-track,
-.exercises-sortable::-webkit-scrollbar-track {
+.exercise-groups-container::-webkit-scrollbar-track,
+.selected-exercises::-webkit-scrollbar-track {
     background: var(--bg-tertiary);
     border-radius: 3px;
 }
 
-#exerciseSelectionGrid::-webkit-scrollbar-thumb,
-.exercises-sortable::-webkit-scrollbar-thumb {
+.exercise-groups-container::-webkit-scrollbar-thumb,
+.selected-exercises::-webkit-scrollbar-thumb {
     background: var(--text-muted);
     border-radius: 3px;
 }
 
-#exerciseSelectionGrid::-webkit-scrollbar-thumb:hover,
-.exercises-sortable::-webkit-scrollbar-thumb:hover {
+.exercise-groups-container::-webkit-scrollbar-thumb:hover,
+.selected-exercises::-webkit-scrollbar-thumb:hover {
     background: var(--primary);
+}
+
+/* ===== RESPONSIVE MOBILE ===== */
+@media (max-width: 768px) {
+    #modal.planning-modal .modal-content {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        max-height: 100vh !important;
+    }
+    
+    .add-session-modal-v2 {
+        max-height: 100vh;
+    }
+    
+    .modal-header-section {
+        padding: 1rem;
+    }
+    
+    .modal-header-section h3 {
+        font-size: 1.1rem;
+    }
+    
+    .modal-body-section {
+        padding: 1rem;
+    }
+    
+    .exercise-groups-container {
+        max-height: 300px;
+    }
+    
+    .exercise-group-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .preview-stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+    
+    .selected-exercises {
+        max-height: 150px;
+    }
+    
+    .modal-actions-section {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .modal-actions-section .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* ===== ANIMATIONS DE QUALITÉ ===== */
+@keyframes score-update {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.stat-value.score-updated {
+    animation: score-update 0.5s ease;
+}
+
+@keyframes muscle-highlight {
+    0% { transform: scale(1); box-shadow: none; }
+    50% { transform: scale(1.05); box-shadow: 0 0 10px var(--primary); }
+    100% { transform: scale(1); box-shadow: none; }
+}
+
+.muscle-tag.newly-added {
+    animation: muscle-highlight 0.6s ease;
+}
+
+/* ===== ÉTATS DE RECHERCHE ===== */
+.exercise-groups-container.searching .exercise-group {
+    margin-bottom: 0.5rem;
+}
+
+.exercise-groups-container.searching .exercise-group:not(:has(.exercise-option:not(.hidden))) {
+    display: none;
+}
+
+/* ===== MODAL ÉDITION - ÉLÉMENTS SPÉCIFIQUES ===== */
+.exercise-details,
+.exercise-params {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.sets-reps,
+.rest-time,
+.duration {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.rest-time i,
+.duration i {
+    font-size: 0.7rem;
+}
+
+/* Bouton optimisation ordre dans édition */
+.optimize-order-btn {
+    background: var(--warning);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+}
+
+.optimize-order-btn:hover {
+    background: var(--warning-dark);
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.optimize-order-btn i {
+    transition: transform 0.6s ease;
 }
