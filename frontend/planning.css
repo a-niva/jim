@@ -417,6 +417,7 @@
     display: block;
 }
 
+
 /* =====================================================
    CORRECTIONS POUR STRUCTURE HTML ACTUELLE + CONFLITS STYLES.CSS
    ===================================================== */
@@ -567,19 +568,25 @@
     gap: 0.5rem;
     cursor: pointer;
     transition: color 0.2s ease;
+    user-select: none;
 }
 
 .section-header h4:hover {
     color: var(--primary);
 }
 
-.section-header h4 i {
+.section-header h4 i:first-child {
     color: var(--primary);
-    transition: transform 0.2s ease;
 }
 
-.section-header h4.collapsed i {
-    transform: rotate(180deg);
+.section-header h4 i:last-child {
+    transition: transform 0.2s ease;
+    font-size: 0.8rem;
+    margin-left: auto;
+}
+
+.section-header h4.collapsed i:last-child {
+    transform: rotate(-90deg);
 }
 
 .selection-counter {
@@ -631,12 +638,13 @@
     overflow-y: auto;
     overflow-x: hidden;
     padding-right: 0.5rem;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
 }
 
 .exercise-groups-container.collapsed {
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.3s ease;
+    opacity: 0;
 }
 
 .exercise-group {
@@ -645,6 +653,7 @@
     padding: 1rem;
     margin-bottom: 1rem;
     border: 1px solid var(--planning-border);
+    transition: all 0.3s ease;
 }
 
 .exercise-group h5 {
@@ -661,16 +670,19 @@
     justify-content: space-between;
     align-items: center;
     transition: all 0.2s ease;
+    user-select: none;
 }
 
 .exercise-group h5:hover {
     background: var(--primary-light);
+    transform: translateX(2px);
 }
 
 .exercise-group h5::after {
     content: '▼';
     font-size: 0.7rem;
     transition: transform 0.2s ease;
+    color: var(--text-muted);
 }
 
 .exercise-group.collapsed h5::after {
@@ -683,12 +695,13 @@
     grid-template-columns: 1fr 1fr;
     gap: 0.5rem;
     transition: all 0.3s ease;
+    overflow: hidden;
 }
 
 .exercise-group.collapsed .exercise-group-grid {
     max-height: 0;
-    overflow: hidden;
     opacity: 0;
+    margin-top: 0;
 }
 
 .exercise-option {
@@ -749,6 +762,92 @@
     font-size: 0.7rem;
     color: var(--text-muted);
     margin: 0;
+}
+
+/* ===== JAVASCRIPT HOOKS ===== */
+/* Ces classes sont utilisées par les fonctions JS existantes */
+
+/* Hook pour initializePreviewDragDrop() */
+.exercise-ghost {
+    opacity: 0.4;
+    background: var(--primary-light);
+}
+
+.exercise-chosen {
+    transform: rotate(2deg);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.exercise-dragging {
+    transform: rotate(2deg);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    z-index: 1000;
+}
+
+/* Hook pour updateExerciseNumbers() */
+.exercise-number.updating {
+    animation: number-update 0.3s ease;
+}
+
+@keyframes number-update {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); background: var(--warning); }
+    100% { transform: scale(1); }
+}
+
+/* Hook pour la recherche */
+.exercise-groups-container.searching .exercise-group:not(:has(.exercise-option:not(.hidden))) {
+    display: none;
+}
+
+.exercise-groups-container.searching .exercise-group {
+    margin-bottom: 0.5rem;
+}
+
+/* Hook pour initializeMobileSwipe() */
+.exercise-preview-item[data-swiping="true"],
+.exercise-item[data-swiping="true"] {
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* ===== FONCTIONS COLLAPSIBLE COMPATIBLES ===== */
+/* Support pour les fonctions existantes de collapse/expand */
+
+/* État ouvert par défaut */
+.selection-section .exercise-groups-container {
+    max-height: 350px;
+    opacity: 1;
+}
+
+/* État fermé quand class="collapsed" sur section-header h4 */
+.section-header h4.collapsed + .exercise-search-bar + .exercise-groups-container {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    margin-bottom: 0;
+}
+
+/* Transition smooth */
+.section-header h4.collapsed + .exercise-search-bar {
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    margin-bottom: 0;
+}
+
+/* Icône de collapse */
+.section-header h4::after {
+    content: '\f107'; /* fas fa-chevron-down */
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    font-size: 0.8rem;
+    transition: transform 0.2s ease;
+    margin-left: auto;
+}
+
+.section-header h4.collapsed::after {
+    transform: rotate(-90deg);
 }
 
 /* ===== 6. SECTION APERÇU DE LA SÉANCE ===== */
@@ -929,33 +1028,7 @@
     opacity: 0.5;
 }
 
-.exercise-drag-handle {
-    color: var(--text-muted);
-    cursor: grab;
-    padding: 0.25rem;
-}
-
-.exercise-drag-handle:active {
-    cursor: grabbing;
-}
-
-.exercise-preview-name {
-    flex: 1;
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: var(--text);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.exercise-preview-params {
-    font-size: 0.7rem;
-    color: var(--text-muted);
-    margin: 0;
-}
-
-/* 10. BOUTON SUPPRESSION AVEC HOVER ROUGE */
+/* 7. BOUTON SUPPRESSION AVEC HOVER ROUGE */
 .exercise-remove {
     position: absolute;
     top: 50%;
@@ -974,6 +1047,7 @@
     font-size: 0.7rem;
     opacity: 0.6;
     transition: all 0.2s ease;
+    z-index: 10;
 }
 
 .exercise-remove:hover {
@@ -984,14 +1058,16 @@
     transform: translateY(-50%) scale(1.2);
 }
 
-/* 11. GROUPES MUSCULAIRES EN BAS */
-.muscle-groups-summary {
+/* 3. GROUPES MUSCULAIRES EN BAS */
+.muscle-groups-summary,
+.muscle-groups-preview {
     margin-top: 1rem;
     padding-top: 1rem;
     border-top: 1px solid var(--planning-border);
 }
 
-.muscle-groups-summary h5 {
+.muscle-groups-summary h5,
+.muscle-groups-preview h5 {
     margin: 0 0 0.5rem 0;
     color: var(--text);
     font-size: 0.9rem;
@@ -1001,7 +1077,8 @@
     gap: 0.5rem;
 }
 
-.muscle-groups-summary h5 i {
+.muscle-groups-summary h5 i,
+.muscle-groups-preview h5 i {
     color: var(--primary);
 }
 
@@ -1011,7 +1088,8 @@
     gap: 0.4rem;
 }
 
-.muscle-tag {
+.muscle-tag,
+.muscle-tag-preview {
     padding: 0.25rem 0.6rem;
     border-radius: 12px;
     color: white;
@@ -1022,18 +1100,166 @@
     transition: all 0.2s ease;
 }
 
-.muscle-tag:hover {
+.muscle-tag:hover,
+.muscle-tag-preview:hover {
     transform: translateY(-1px);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 /* Couleurs spécifiques par groupe musculaire */
-.muscle-tag[data-muscle="chest"] { background: #ef4444; }
-.muscle-tag[data-muscle="back"] { background: #10b981; }
-.muscle-tag[data-muscle="shoulders"] { background: #f59e0b; }
-.muscle-tag[data-muscle="arms"] { background: #8b5cf6; }
-.muscle-tag[data-muscle="legs"] { background: #06b6d4; }
-.muscle-tag[data-muscle="core"] { background: #f97316; }
+.muscle-tag[data-muscle="chest"],
+.muscle-tag-preview[data-muscle="chest"] { background: #ef4444; }
+.muscle-tag[data-muscle="back"],
+.muscle-tag-preview[data-muscle="back"] { background: #10b981; }
+.muscle-tag[data-muscle="shoulders"],
+.muscle-tag-preview[data-muscle="shoulders"] { background: #f59e0b; }
+.muscle-tag[data-muscle="arms"],
+.muscle-tag-preview[data-muscle="arms"] { background: #8b5cf6; }
+.muscle-tag[data-muscle="legs"],
+.muscle-tag-preview[data-muscle="legs"] { background: #06b6d4; }
+.muscle-tag[data-muscle="core"],
+.muscle-tag-preview[data-muscle="core"] { background: #f97316; }
+
+/* Animation pour nouveaux muscles ajoutés */
+.muscle-tag.newly-added,
+.muscle-tag-preview.newly-added {
+    animation: muscle-highlight 0.6s ease;
+}
+
+@keyframes muscle-highlight {
+    0% { transform: scale(1); box-shadow: none; }
+    50% { transform: scale(1.05); box-shadow: 0 0 10px var(--primary); }
+    100% { transform: scale(1); box-shadow: none; }
+}
+
+/* Support swipe mobile pour suppression */
+.exercise-preview-item.swipe-delete,
+.exercise-item.swipe-delete {
+    background: var(--danger-light);
+    border-color: var(--danger);
+}
+
+.exercise-preview-item.swipe-delete::after,
+.exercise-item.swipe-delete::after {
+    content: 'Supprimer';
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--danger);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+/* Animation pour score */
+.score-delta {
+    position: absolute;
+    top: -0.5rem;
+    right: -0.5rem;
+    background: var(--success);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    opacity: 1;
+    transform: translateY(0);
+    transition: all 0.3s ease;
+    z-index: 10;
+}
+
+@keyframes score-update {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.stat-value.score-updated {
+    animation: score-update 0.5s ease;
+}
+
+/* ===== RESPONSIVE MOBILE SPÉCIFIQUE ===== */
+@media (max-width: 768px) {
+    /* Ajustements touch-friendly */
+    .exercise-drag-handle {
+        min-width: 44px;
+        min-height: 44px;
+    }
+    
+    .exercise-number {
+        width: 28px;
+        height: 28px;
+        font-size: 0.9rem;
+    }
+    
+    .exercise-remove {
+        width: 28px;
+        height: 28px;
+        font-size: 0.8rem;
+        right: 0.75rem;
+    }
+    
+    .magic-wand {
+        width: 44px;
+        height: 44px;
+        font-size: 1.1rem;
+    }
+    
+    .preview-stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+    
+    .stat-item {
+        padding: 0.5rem;
+    }
+    
+    .stat-icon {
+        font-size: 1rem;
+    }
+    
+    .stat-value {
+        font-size: 1rem;
+    }
+    
+    .muscle-tag,
+    .muscle-tag-preview {
+        padding: 0.3rem 0.7rem;
+        font-size: 0.75rem;
+    }
+    
+    /* Zone de scroll plus large sur mobile */
+    .selected-exercises,
+    #previewExercisesList {
+        max-height: 150px;
+        padding-right: 8px;
+    }
+    
+    /* Support swipe plus évident */
+    .exercise-preview-item,
+    .exercise-item {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .exercise-preview-item::before,
+    .exercise-item::before {
+        content: '← Glisser pour supprimer';
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        background: var(--danger);
+        color: white;
+        display: flex;
+        align-items: center;
+        padding: 0 1rem;
+        font-size: 0.8rem;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        z-index: -1;
+    }
+}
 
 /* ===== BOUTONS ACTIONS ===== */
 .modal-actions-section,
