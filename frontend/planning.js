@@ -2325,7 +2325,7 @@ class PlanningManager {
                             <span class="muscle-name">${muscle}</span>
                             <span class="muscle-count">${exercises.length}</span>
                         </div>
-                        <div class="muscle-exercises-grid">
+                        <div class="muscle-exercises-panel">
                             ${exercises.map(ex => {
                                 const isDisabled = existingExerciseIds.includes(ex.id);
                                 const exerciseData = JSON.stringify({
@@ -2851,31 +2851,25 @@ class PlanningManager {
     }
 
     async sortExercisesByContribution(exercises) {
-        // Si pas d'exercices, retourner un array vide
+        // TOUJOURS retourner un array, jamais undefined
         if (!exercises || !Array.isArray(exercises)) {
+            console.warn('sortExercisesByContribution: input invalide');
             return [];
         }
         
-        // Si SessionQualityEngine n'est pas disponible, retourner les exercices non triés
-        if (!window.SessionQualityEngine || !window.SessionQualityEngine.sortByQualityContribution) {
-            console.warn('SessionQualityEngine non disponible, pas de tri par contribution');
-            return exercises; // IMPORTANT : Retourner les exercices, pas undefined !
+        // Si pas de SessionQualityEngine, retourner les exercices non triés
+        if (!window.SessionQualityEngine || typeof window.SessionQualityEngine.sortByQualityContribution !== 'function') {
+            console.warn('SessionQualityEngine.sortByQualityContribution non disponible');
+            return exercises; // Retourner l'array original, PAS undefined !
         }
         
         try {
-            // Essayer le tri par contribution
             const sorted = await window.SessionQualityEngine.sortByQualityContribution(exercises);
-            
-            // VÉRIFIER que le résultat est valide
-            if (Array.isArray(sorted)) {
-                return sorted;
-            } else {
-                console.warn('sortByQualityContribution a retourné un non-array:', sorted);
-                return exercises; // Fallback aux exercices originaux
-            }
+            // Vérifier que le résultat est valide
+            return Array.isArray(sorted) ? sorted : exercises;
         } catch (error) {
-            console.error('Erreur lors du tri par contribution:', error);
-            return exercises; // Fallback aux exercices originaux
+            console.error('Erreur tri par contribution:', error);
+            return exercises; // En cas d'erreur, retourner l'original
         }
     }
 

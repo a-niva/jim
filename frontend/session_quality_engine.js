@@ -501,6 +501,8 @@ function getScoreGradient(score) {
     return 'linear-gradient(90deg, var(--text-muted), var(--secondary))';
 }
 
+
+
 // Export de la classe principale
 window.SessionQualityEngine = SessionQualityEngine;
 

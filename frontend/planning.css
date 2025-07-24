@@ -676,8 +676,9 @@
 
 /* Container des exercices shrinkable */
 .exercises-list-container {
+    max-height: 400px;
+    overflow-y: auto;
     transition: all 0.3s ease;
-    overflow: hidden;
 }
 
 .exercises-list-container.collapsed {
@@ -698,7 +699,7 @@
 }
 
 .muscle-group-section {
-    margin-bottom: var(--spacing-md);
+     margin-bottom: 16px;
 }
 
 .muscle-group-header {
@@ -730,14 +731,16 @@
 }
 
 /* Grille 2 colonnes pour les exercices */
-.muscle-exercises-grid {
+.muscle-exercises-panel {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: var(--spacing-xs);
+    gap: 8px;        /* AUGMENTÉ de 4px à 8px */
+    padding: 8px;    /* AUGMENTÉ de 4px à 8px */
+    min-height: 60px; /* AJOUTÉ - évite l'écrasement */
 }
 
 @media (max-width: 480px) {
-    .muscle-exercises-grid {
+    .muscle-exercises-panel {
         grid-template-columns: 1fr;
     }
 }
@@ -745,8 +748,17 @@
 /* Option d'exercice compacte */
 .exercise-option {
     display: flex;
-    position: relative;
+    align-items: center;
+    padding: 12px;  /* AUGMENTÉ de 8px à 12px */
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    min-height: 56px;  /* AJOUTÉ - garantit la hauteur */
+    height: auto;      /* CHANGÉ de height fixe à auto */
+    margin-bottom: 4px; /* AJOUTÉ - espace entre exercices */
 }
 
 .exercise-option input[type="checkbox"] {
@@ -756,13 +768,13 @@
 }
 
 .exercise-option-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;        /* AJOUTÉ - espace entre nom et params */
+    padding-left: 24px;
     flex: 1;
-    padding: var(--spacing-sm);
-    background: var(--bg-secondary);
-    border: 2px solid transparent;
-    border-radius: var(--radius);
-    transition: all 0.2s ease;
-    font-size: 0.85rem;
+    min-height: 32px; /* AJOUTÉ - hauteur minimale */
+    justify-content: center; /* AJOUTÉ - centrage vertical */
 }
 
 .exercise-option:hover .exercise-option-content {
@@ -872,25 +884,6 @@
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
-}
-
-.magic-wand-btn.optimizing {
-    animation: pulse 0.6s ease-in-out infinite;
-}
-
-.magic-wand-btn.optimizing i {
-    animation: rotate 0.6s linear infinite;
-}
-
-@keyframes rotate {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
 }
 
 /* Métriques en ligne */
@@ -1056,12 +1049,22 @@
     min-width: 0;
 }
 
-.exercise-details .exercise-name {
+.exercise-details {
     font-weight: 600;
     font-size: 0.85rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.exercise-name {
+    font-weight: 500;
+    color: var(--text);
+    font-size: 0.9rem;  /* GARDÉ mais vérifier que --text est visible */
+    line-height: 1.4;   /* AJOUTÉ pour lisibilité */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .exercise-details .exercise-params {
