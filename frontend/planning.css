@@ -261,7 +261,7 @@
 .days-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: var(--spacing-md);
+    gap: var(--spacing-xl); /* Augmenté de --spacing-md à --spacing-xl */
     padding: var(--spacing-lg);
 }
 
@@ -276,16 +276,16 @@
 .day-card {
     background: var(--bg-secondary);
     border-radius: var(--planning-radius);
-    padding: var(--spacing-md);
+    padding: var(--spacing-lg); /* Augmenté de --spacing-md à --spacing-lg */
     border: 2px solid var(--planning-border);
     transition: var(--planning-transition);
     position: relative;
-    min-height: 120px;
+    min-height: 140px; /* Augmenté de 120px à 140px */
     display: flex;
     flex-direction: column;
     width: 100%;
     max-width: 800px;
-    margin: 0 auto;
+    margin: 0 auto var(--spacing-md) auto; /* Ajout margin-bottom */
 }
 
 /* Jour avec session active/détaillée */
@@ -343,10 +343,11 @@
 }
 
 .day-name {
-    font-size: 0.9rem;
-    font-weight: 600;
+    font-size: 1.1rem; /* Augmenté de 0.9rem à 1.1rem */
+    font-weight: 700; /* Augmenté de 600 à 700 */
     text-transform: capitalize;
     color: var(--text);
+    letter-spacing: 0.5px; /* Ajout pour plus de lisibilité */
 }
 
 .day-number {
@@ -449,17 +450,15 @@
 
 /* Actions de session */
 .session-actions {
-    position: absolute;
-    top: var(--spacing-xs);
-    right: var(--spacing-xs);
-    display: flex;
-    gap: 0.2rem;
-    opacity: 0;
-    transition: opacity 0.2s ease;
+    display: none; /* Masquer les boutons d'édition */
 }
 
 .session-card:hover .session-actions {
     opacity: 1;
+}
+
+.session-time {
+    display: none; /* Masquer complètement l'heure */
 }
 
 .action-btn {
@@ -485,6 +484,10 @@
 
 .action-btn.danger:hover {
     background: var(--danger);
+}
+
+.btn-edit-compact {
+    display: none; /* Masquer spécifiquement le bouton édition */
 }
 
 /* ===== SECTION 6 : ZONES D'AJOUT DE SÉANCE ===== */
@@ -1581,3 +1584,95 @@
 }
 
 
+/* Réduire l'écart entre numéros et noms d'exercices */
+.session-exercises .exercise-item {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem; /* Réduit de 0.5rem à 0.3rem */
+    padding: 0.2rem 0;
+}
+
+.session-exercises .exercise-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px; /* Réduit de 24px à 18px */
+    height: 18px; /* Réduit de 24px à 18px */
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    font-size: 0.7rem; /* Réduit de 0.8rem à 0.7rem */
+    font-weight: 600;
+    flex-shrink: 0;
+    margin-right: 0.2rem; /* Réduit de 0.5rem à 0.2rem */
+}
+
+.session-exercises .exercise-name {
+    font-size: 0.8rem;
+    color: var(--text);
+    line-height: 1.2;
+}
+
+/* Centrer et améliorer le bouton Démarrer */
+.session-card .start-session-btn,
+.session-card button[onclick*="startSession"] {
+    all: unset !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.4rem !important;
+    padding: 0.6rem 1rem !important;
+    width: 100% !important; /* Prendre toute la largeur */
+    margin-top: var(--spacing-sm) !important;
+    
+    background: var(--primary) !important;
+    color: white !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    box-sizing: border-box !important;
+    text-align: center !important;
+    
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.session-card .start-session-btn:hover,
+.session-card button[onclick*="startSession"]:hover {
+    background: var(--primary-dark) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+@media (max-width: 768px) {
+    .days-grid {
+        gap: var(--spacing-lg); /* Espacement réduit sur mobile */
+        padding: var(--spacing-md);
+    }
+    
+    .day-card {
+        padding: var(--spacing-md);
+        min-height: 120px;
+        margin-bottom: var(--spacing-sm);
+    }
+    
+    .day-name {
+        font-size: 1rem; /* Légèrement réduit sur mobile */
+    }
+    
+    .day-number {
+        font-size: 1.1rem; /* Légèrement réduit sur mobile */
+    }
+    
+    .session-exercises .exercise-item {
+        gap: 0.2rem; /* Encore plus compact sur mobile */
+    }
+    
+    .session-exercises .exercise-number {
+        width: 16px;
+        height: 16px;
+        font-size: 0.65rem;
+        margin-right: 0.15rem;
+    }
+}

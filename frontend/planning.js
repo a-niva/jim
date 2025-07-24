@@ -589,20 +589,11 @@ class PlanningManager {
         const muscleColor = this.getMuscleGroupColor(primaryMuscle);
         
         return `
-            <div class="session-card" data-session-id="${session.id}" style="border-left: 4px solid ${muscleColor}">
+            <div class="session-card"      data-session-id="${session.id}"      style="border-left: 4px solid ${muscleColor}"     onclick="planningManager.showSessionEditModal(planningManager.findSessionById('${session.id}'))">
                 <div class="session-header">
-                    <div class="session-time">
-                        <i class="${statusIcon}"></i>
-                        <span>${session.time || '18:00'}</span>
-                    </div>
                     <div class="session-quality">
                         <i class="fas fa-star" style="color: ${qualityColor}"></i>
                         <span style="color: ${qualityColor}">${quality}%</span>
-                    </div>
-                    <div class="session-actions">
-                        <button class="btn-edit-compact" onclick="planningManager.showSessionEditModal(planningManager.findSessionById('${session.id}'))" title="Modifier la séance">
-                            <i class="fas fa-edit"></i>
-                        </button>
                     </div>
                 </div>
                 
