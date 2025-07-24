@@ -534,10 +534,13 @@ class PlanningManager {
                 style="${dayStyle}">
                 <div class="day-header">
                     <span class="day-name">${day.dayName}</span>
-                    ${day.sessions.length > 0 && day.sessions[0].exercises ? 
-                        `<span class="day-duration">${this.calculateSessionDuration(day.sessions[0].exercises)} min</span>` : 
-                        ''
-                    }
+                    ${day.sessions.length > 0 ? (() => {
+                        const session = day.sessions[0];
+                        const exercises = session.exercise_pool || session.exercises || [];
+                        return exercises.length > 0 ? 
+                            `<span class="day-duration">${this.calculateSessionDuration(exercises)} min</span>` : 
+                            '';
+                    })() : ''}
                     <span class="day-number">${day.dayNumber}</span>
                 </div>
                 
@@ -615,7 +618,7 @@ class PlanningManager {
                             <div class="session-muscles">
                                 ${muscleGroups.slice(0, 2).map(muscle => {
                                     const color = this.getMuscleGroupColor(muscle);
-                                    return `<span class="muscle-tag" style="background-color: ${color}20; color: ${color}; border: 1px solid ${color}40;">${muscle}</span>`;
+                                    return `<span class="session-muscle-chip" style="background-color: ${color}20; color: ${color}; border: 1px solid ${color}40;">${muscle}</span>`;
                                 }).join('')}
                                 ${muscleGroups.length > 2 ? `<span class="muscle-more">+${muscleGroups.length - 2}</span>` : ''}
                             </div>

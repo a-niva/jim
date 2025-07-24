@@ -439,15 +439,6 @@
     margin-top: var(--spacing-xs);
 }
 
-.muscle-tag {
-    padding: 0.1rem 0.4rem;
-    border-radius: 10px;
-    color: white;
-    font-size: 0.65rem;
-    font-weight: 600;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-}
-
 /* Actions de session */
 .session-actions {
     display: none; /* Masquer les boutons d'édition */
@@ -1544,16 +1535,6 @@
     gap: 0.25rem !important;
 }
 
-/* Tags muscles cohérents */
-.session-muscles .muscle-tag {
-    background: var(--bg-tertiary) !important;
-    color: var(--text) !important;
-    padding: 0.2rem 0.5rem !important;
-    border-radius: 6px !important;
-    font-size: 0.7rem !important;
-    border: 1px solid var(--border-color) !important;
-}
-
 /* Numérotation exercices cohérente */
 .exercise-number-badge {
     width: 24px !important;
@@ -1793,16 +1774,8 @@
     }
 }
 
-.day-duration {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    background: var(--bg-tertiary);
-    padding: 0.2rem 0.4rem;
-    border-radius: 4px;
-    margin: 0 0.5rem;
-}
-
-.muscle-tag {
+/* ===== CHIPS MUSCLES PLANNING (CLASSE UNIQUE) ===== */
+.session-muscle-chip {
     display: inline-block;
     padding: 0.15rem 0.4rem;
     border-radius: 4px;
@@ -1810,10 +1783,26 @@
     font-weight: 500;
     margin-right: 0.3rem;
     margin-bottom: 0.2rem;
+    transition: all 0.2s ease;
+}
+
+.session-muscle-chip:hover {
+    transform: scale(1.05);
+    filter: brightness(1.1);
 }
 
 .muscle-more {
     font-size: 0.7rem;
     color: var(--text-muted);
     font-style: italic;
+    margin-left: 0.2rem;
+}
+
+.day-duration {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: var(--bg-tertiary);
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    margin: 0 0.5rem;
 }
