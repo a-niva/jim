@@ -6041,17 +6041,22 @@ async function deleteProfile() {
 
 // ===== MODALS =====
 function showModal(title, content) {
-    // Vérifier que les éléments existent
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
     const modal = document.getElementById('modal');
     
     if (!modalTitle || !modalBody || !modal) {
-        console.error('Éléments du modal introuvables - vérifier index.html');
+        console.error('Éléments du modal introuvables');
         return;
     }
     
-    modalTitle.textContent = title;
+    // CORRECTIF : Détecter si le titre contient du HTML
+    if (title.includes('<') && title.includes('>')) {
+        modalTitle.innerHTML = title;  // HTML complexe
+    } else {
+        modalTitle.textContent = title;  // Texte simple
+    }
+    
     modalBody.innerHTML = content;
     modal.style.display = 'flex';
 }

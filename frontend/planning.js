@@ -1302,7 +1302,6 @@ class PlanningManager {
     // ===== DRAG & DROP EXERCICES =====
     // Fonction unifiée qui gère tous les cas
     initializeExerciseDragDrop(sessionId = null) {
-        // Support pour modal création ET édition
         const container = document.getElementById('sessionExercisesList') || 
                         document.getElementById('previewExercisesList');
         
@@ -1311,12 +1310,13 @@ class PlanningManager {
             return;
         }
         
-        // Détruire l'instance précédente
+        // Stocker la référence à this
+        const planningManager = this;  // IMPORTANT : Capturer le contexte
+        
         if (this.currentSortable) {
             this.currentSortable.destroy();
         }
         
-        // Créer nouvelle instance
         this.currentSortable = new Sortable(container, {
             handle: '.drag-handle',
             animation: 150,
@@ -1327,15 +1327,14 @@ class PlanningManager {
             onEnd: async (evt) => {
                 if (evt.oldIndex === evt.newIndex) return;
                 
-                // Mettre à jour les numéros
-                this.updateExerciseNumbers();
+                // Utiliser planningManager au lieu de this
+                planningManager.updateExerciseNumbers();
                 
-                // Contexte édition de session existante
                 if (sessionId) {
                     try {
-                        const session = this.sessions.find(s => s.id === sessionId);
+                        // Utiliser planningManager.sessions
+                        const session = planningManager.sessions.find(s => s.id === sessionId);
                         if (session) {
-                            // Réorganiser les exercices
                             const items = container.querySelectorAll('.selected-exercise-item');
                             session.exercises = Array.from(items).map(item => {
                                 try {
@@ -1345,17 +1344,15 @@ class PlanningManager {
                                 }
                             }).filter(Boolean);
                             
-                            // Sauvegarder
-                            await this.saveSessionChanges(sessionId, { exercises: session.exercises });
+                            await planningManager.saveSessionChanges(sessionId, { exercises: session.exercises });
                         }
                     } catch (error) {
                         console.error('Erreur sauvegarde ordre:', error);
                     }
                 }
                 
-                // Recalculer les métriques
-                const exercises = this.getPreviewExercises();
-                this.updateSessionMetrics(exercises);
+                const exercises = planningManager.getPreviewExercises();
+                planningManager.updateSessionMetrics(exercises);
             }
         });
     }
@@ -2259,24 +2256,27 @@ class PlanningManager {
             }
             
             // Trier les exercices par contribution au score si la fonction existe
-            let sortedExercises = exercisesResponse;
+            let sortedExercises = exercisesResponse;  // Déclarer la variable
             if (this.sortExercisesByContribution || window.sortExercisesByContribution) {
                 try {
                     sortedExercises = await (this.sortExercisesByContribution || window.sortExercisesByContribution)(exercisesResponse);
                 } catch (e) {
                     console.warn('Tri par contribution non disponible, ordre par défaut');
+                    sortedExercises = exercisesResponse;  // Fallback explicite
                 }
             }
             
             // Grouper par muscle après le tri
+            // Puis utiliser sortedExercises pour le groupement :
             const exercisesByMuscle = {};
-            sortedExercises.forEach(exercise => {
+            sortedExercises.forEach(exercise => {  // Utiliser sortedExercises ici
                 const muscle = exercise.muscle_groups?.[0] || 'Autres';
                 if (!exercisesByMuscle[muscle]) {
                     exercisesByMuscle[muscle] = [];
                 }
                 exercisesByMuscle[muscle].push(exercise);
             });
+
             
             // Générer HTML pour chaque groupe musculaire
             const muscleGroupsHtml = Object.entries(exercisesByMuscle).map(([muscle, exercises]) => {
@@ -2519,20 +2519,25 @@ class PlanningManager {
 
     // NOUVELLE méthode pour toggle exercices
     toggleExercisesList() {
-        const wrapper = document.querySelector('.exercises-container-wrapper');
-        const icon = document.querySelector('.toggle-icon');
+        const container = document.querySelector('.exercises-list-container');
+        const searchContainer = document.querySelector('.search-bar-container');
+        const chevron = document.querySelector('.toggle-chevron');
         
-        if (!wrapper || !icon) return;
+        if (!container || !chevron) return;
         
-        if (wrapper.classList.contains('collapsed')) {
-            wrapper.classList.remove('collapsed');
-            wrapper.classList.add('expanded');
-            icon.classList.add('open');
+        const isCollapsed = container.classList.contains('collapsed');
+        
+        if (isCollapsed) {
+            container.classList.remove('collapsed');
+            if (searchContainer) searchContainer.style.display = 'flex';
+            chevron.classList.remove('closed');
         } else {
-            wrapper.classList.remove('expanded');
-            wrapper.classList.add('collapsed');
-            icon.classList.remove('open');
+            container.classList.add('collapsed');
+            if (searchContainer) searchContainer.style.display = 'none';
+            chevron.classList.add('closed');
         }
+        
+        localStorage.setItem('exercisesSectionCollapsed', !isCollapsed);
     }
 
     updateSessionMetrics(exercises) {
@@ -2793,7 +2798,7 @@ class PlanningManager {
     }
 
     filterExercises(searchTerm) {
-        // Contexte modal planning
+        // Détecter si on est dans le modal planning
         if (document.querySelector('.planning-modal-vertical')) {
             const term = searchTerm.toLowerCase().trim();
             const muscleGroups = document.querySelectorAll('.muscle-group-section');
@@ -2818,7 +2823,7 @@ class PlanningManager {
             return;
         }
         
-        // Contexte original (sélection exercices libre)
+        // Code existant pour le contexte original...
         const filter = searchTerm || document.getElementById('muscleFilter')?.value || '';
         const exercises = document.querySelectorAll('.exercise-item');
         
@@ -3235,19 +3240,20 @@ class PlanningManager {
     
     async optimizeExerciseOrder() {
         const container = document.getElementById('previewExercisesList');
-        const items = container.querySelectorAll('.selected-exercise-item');
+        const items = container?.querySelectorAll('.selected-exercise-item');
         
-        if (items.length < 2) {
+        if (!items || items.length < 2) {
             window.showToast('Au moins 2 exercices nécessaires', 'info');
             return;
         }
         
-        // Animation du bouton
+        // Récupérer le bouton directement par ID au lieu de event.target
         const btn = document.getElementById('optimizeBtn');
-        btn.classList.add('optimizing');
+        if (btn) {
+            btn.classList.add('optimizing');
+        }
         
         try {
-            // Récupérer les exercices actuels
             const exercises = Array.from(items).map(item => {
                 try {
                     return JSON.parse(item.dataset.exercise.replace(/&apos;/g, "'"));
@@ -3256,36 +3262,17 @@ class PlanningManager {
                 }
             }).filter(Boolean);
             
-            // Essayer d'abord l'optimisation côté serveur si disponible
+            // Logique d'optimisation existante...
             let optimizedOrder = exercises;
             
-            if (this.activeProgram && window.apiPost) {
-                try {
-                    const response = await window.apiPost(
-                        `/api/programs/${this.activeProgram.id}/optimize-order`,
-                        { exercises }
-                    );
-                    if (response.optimized_exercises) {
-                        optimizedOrder = response.optimized_exercises;
-                    }
-                } catch (error) {
-                    console.warn('Optimisation serveur non disponible, utilisation locale');
-                }
+            if (this.applyLocalOptimalOrder) {
+                const result = this.applyLocalOptimalOrder(exercises);
+                optimizedOrder = result.exercises || result;
+            } else {
+                optimizedOrder = this.alternateByMuscleGroup(exercises);
             }
             
-            // Si pas d'optimisation serveur, utiliser l'algorithme local existant
-            if (optimizedOrder === exercises) {
-                // Utiliser applyLocalOptimalOrder qui existe déjà
-                if (this.applyLocalOptimalOrder) {
-                    const result = this.applyLocalOptimalOrder(exercises);
-                    optimizedOrder = result.exercises || result;
-                } else {
-                    // Fallback basique si la fonction n'existe pas
-                    optimizedOrder = this.alternateByMuscleGroup(exercises);
-                }
-            }
-            
-            // Réorganiser le DOM avec animation
+            // Réorganiser le DOM
             container.innerHTML = '';
             optimizedOrder.forEach((ex, index) => {
                 const html = `
@@ -3314,17 +3301,15 @@ class PlanningManager {
                 container.insertAdjacentHTML('beforeend', html);
             });
             
-            // Recalculer les métriques
             this.updateSessionMetrics(optimizedOrder);
-            
-            // Réinitialiser le drag & drop
             this.initializeExerciseDragDrop();
             
-            // Feedback
             window.showToast('Ordre optimisé pour une meilleure performance', 'success');
             
         } finally {
-            setTimeout(() => btn.classList.remove('optimizing'), 600);
+            if (btn) {
+                setTimeout(() => btn.classList.remove('optimizing'), 600);
+            }
         }
     }
 
