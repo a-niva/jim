@@ -1173,13 +1173,13 @@ async function loadMLAccuracyChart(userId) {
             </div>
         `;
         
-        // Insérer après le canvas
-        const chartContainer = document.getElementById('mlConfidenceChart').parentElement;
-        const existingMetrics = chartContainer.querySelector('.accuracy-metrics');
+        // Insérer directement dans le container ML Stats
+        const mlStatsContainer = document.getElementById('mlStats');
+        const existingMetrics = mlStatsContainer.querySelector('.accuracy-metrics');
         if (existingMetrics) {
             existingMetrics.remove();
         }
-        chartContainer.insertAdjacentHTML('beforeend', metricsHTML);
+        mlStatsContainer.insertAdjacentHTML('beforeend', metricsHTML);
         
     } catch (error) {
         console.error('Erreur chargement précision ML:', error);
