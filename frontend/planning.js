@@ -904,12 +904,6 @@ class PlanningManager {
     }
     
     removeExerciseFromSession(sessionId, exerciseId) {
-        // Si contexte de création (pas de sessionId), utiliser la fonction existante
-        if (!sessionId) {
-            this.removeExerciseFromPreview(exerciseId);
-            return;
-        }
-        
         // Contexte d'édition : retirer et rafraîchir le modal
         try {
             const session = this.sessions.find(s => s.id === sessionId);
@@ -939,8 +933,6 @@ class PlanningManager {
     // ===== MODAL ÉDITION SÉANCE =====
     async showSessionEditModal(session) {
         try {
-            console.log('🔍 Édition de session:', session);
-            
             const exercises = session.exercises || [];
             const date = new Date(session.scheduled_date || session.date);
             const formattedDate = date.toLocaleDateString('fr-FR', {
@@ -963,7 +955,7 @@ class PlanningManager {
                     currentScore = scoreData.total || 75;
                 }
             } catch (error) {
-                console.warn('⚠️ Scoring avancé non disponible, utilisation fallback');
+                console.warn('⚠️ Scoring avancé non disponible');
                 currentScore = this.calculatePreviewQualityScoreFallback(exercises);
             }
             
@@ -971,22 +963,24 @@ class PlanningManager {
             
             // Générer la liste des exercices
             const exercisesHtml = exercises.map((ex, index) => `
-                <div class="exercise-preview-item" 
+                <div class="selected-exercise-item" 
                     data-exercise-id="${ex.exercise_id || ex.id}"
                     data-exercise='${JSON.stringify(ex).replace(/'/g, '&apos;')}'>
-                    <span class="exercise-drag-handle">
+                    <div class="drag-handle">
                         <i class="fas fa-grip-vertical"></i>
-                    </span>
-                    <span class="exercise-number">${index + 1}</span>
-                    <div class="exercise-info">
-                        <div class="exercise-name">${ex.exercise_name || ex.name}</div>
-                        <div class="exercise-params">
-                            ${ex.sets || 3} × ${ex.reps_min || 8}-${ex.reps_max || 12}
+                    </div>
+                    <div class="exercise-content">
+                        <span class="exercise-number">${index + 1}</span>
+                        <div class="exercise-details">
+                            <div class="exercise-name">${ex.exercise_name || ex.name}</div>
+                            <div class="exercise-params">
+                                ${ex.sets || 3} × ${ex.reps_min || 8}-${ex.reps_max || 12}
+                            </div>
                         </div>
                     </div>
-                    <button class="btn-icon btn-danger exercise-remove" 
+                    <button class="remove-btn" 
                             onclick="planningManager.removeExerciseFromSession('${session.id}', '${ex.exercise_id || ex.id}')"
-                            title="Retirer cet exercice">
+                            title="Retirer">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -995,85 +989,67 @@ class PlanningManager {
             // Générer les tags de muscles
             const muscleTags = muscles.map(muscle => {
                 const color = this.getMuscleGroupColor?.(muscle) || '#6b7280';
-                return `<span class="muscle-tag" style="background-color: ${color}20; color: ${color}">${muscle}</span>`;
+                return `<span class="muscle-tag" style="background-color: ${color}20; color: ${color}; border: 1px solid ${color}40">${muscle}</span>`;
             }).join('');
             
             const modalContent = `
-                <div class="planning-modal-content edit-mode">
-                    <div class="modal-date-header">
-                        <i class="fas fa-calendar-alt"></i>
-                        <span>${formattedDate}</span>
+                <div class="planning-modal-vertical edit-mode">
+                    <!-- Métriques en haut -->
+                    <div class="session-metrics-row">
+                        <div class="metric">
+                            <i class="fas fa-list-ol"></i>
+                            <span class="metric-value">${exercises.length}</span>
+                            <span class="metric-label">exercices</span>
+                        </div>
+                        <div class="metric">
+                            <i class="fas fa-clock"></i>
+                            <span class="metric-value">${duration}</span>
+                            <span class="metric-label">min</span>
+                        </div>
+                        <div class="metric">
+                            <i class="fas fa-fire"></i>
+                            <span class="metric-value">${muscles.length}</span>
+                            <span class="metric-label">muscles</span>
+                        </div>
+                        <div class="metric quality-metric">
+                            <i class="fas fa-chart-line" style="color: ${scoreColor}"></i>
+                            <span class="metric-value" style="color: ${scoreColor}">${currentScore}%</span>
+                            <span class="metric-label">qualité</span>
+                        </div>
                     </div>
                     
-                    <div class="session-overview">
-                        <!-- Métriques en temps réel -->
-                        <div class="session-metrics">
-                            <div class="metric-card">
-                                <i class="fas fa-list-ol"></i>
-                                <div class="metric-content">
-                                    <span class="metric-value" id="exerciseCountMetric">${exercises.length}</span>
-                                    <span class="metric-label">Exercices</span>
-                                </div>
+                    <!-- Liste des exercices -->
+                    <div class="exercises-edit-section">
+                        <div class="preview-header">
+                            <div class="header-content">
+                                <i class="fas fa-dumbbell"></i>
+                                <h4>Exercices de la séance</h4>
                             </div>
-                            <div class="metric-card">
-                                <i class="fas fa-clock"></i>
-                                <div class="metric-content">
-                                    <span class="metric-value" id="durationMetric">${duration}min</span>
-                                    <span class="metric-label">Durée estimée</span>
-                                </div>
-                            </div>
-                            <div class="metric-card">
-                                <i class="fas fa-fire"></i>
-                                <div class="metric-content">
-                                    <span class="metric-value" id="muscleCountMetric">${muscles.length}</span>
-                                    <span class="metric-label">Muscles</span>
-                                </div>
-                            </div>
-                            <div class="metric-card quality-metric">
-                                <i class="fas fa-chart-line" style="color: ${scoreColor}"></i>
-                                <div class="metric-content">
-                                    <span class="metric-value" id="qualityMetric" data-score="${currentScore}" style="color: ${scoreColor}">${currentScore}%</span>
-                                    <span class="metric-label">Qualité</span>
-                                </div>
-                            </div>
+                            <button class="magic-wand-btn" 
+                                    onclick="planningManager.optimizeExerciseOrder()"
+                                    title="Optimiser l'ordre"
+                                    ${exercises.length < 2 ? 'style="display: none;"' : ''}>
+                                <i class="fas fa-magic"></i>
+                            </button>
                         </div>
                         
-                        <!-- Liste des exercices avec drag & drop -->
-                        <div class="exercises-section">
-                            <div class="section-header">
-                                <div class="header-left">
-                                    <i class="fas fa-dumbbell"></i>
-                                    <h4>Exercices de la séance</h4>
-                                </div>
-                                <button class="btn-icon magic-wand" 
-                                        id="optimizeBtn"
-                                        onclick="planningManager.optimizeExerciseOrder()"
-                                        title="Optimiser l'ordre des exercices"
-                                        ${exercises.length < 2 ? 'style="display: none;"' : ''}>
-                                    <i class="fas fa-magic"></i>
-                                </button>
-                            </div>
-                            
-                            <div id="previewExercisesList" class="preview-exercises-list">
-                                ${exercisesHtml || '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Aucun exercice dans cette séance</p></div>'}
-                            </div>
+                        <div id="previewExercisesList" class="selected-exercises-list">
+                            ${exercisesHtml || '<div class="empty-preview"><i class="fas fa-exclamation-circle"></i><p>Aucun exercice</p></div>'}
                         </div>
-                        
-                        <!-- Résumé des groupes musculaires -->
-                        ${muscles.length > 0 ? `
-                            <div class="muscle-groups-summary">
-                                <h4><i class="fas fa-fire"></i> Muscles travaillés</h4>
-                                <div class="muscle-tags">
-                                    ${muscleTags}
-                                </div>
-                            </div>
-                        ` : ''}
                     </div>
+                    
+                    <!-- Groupes musculaires -->
+                    ${muscles.length > 0 ? `
+                        <div class="muscle-groups-tags">
+                            ${muscleTags}
+                        </div>
+                    ` : ''}
                     
                     <!-- Actions -->
-                    <div class="modal-actions">
-                        <button class="btn btn-secondary" onclick="planningManager.showAddSessionModal('${session.scheduled_date || session.date}', '${session.id}')">
-                            <i class="fas fa-plus"></i> Ajouter des exercices
+                    <div class="modal-actions-bottom">
+                        <button class="btn btn-secondary" 
+                                onclick="planningManager.showAddSessionModal('${session.scheduled_date || session.date}', '${session.id}')">
+                            <i class="fas fa-plus"></i> Ajouter exercices
                         </button>
                         <button class="btn btn-primary" onclick="window.closeModal()">
                             <i class="fas fa-check"></i> Terminer
@@ -1082,7 +1058,17 @@ class PlanningManager {
                 </div>
             `;
             
-            window.showModal('Édition de séance', modalContent);
+            const modalTitle = `
+                <div class="modal-title-with-date">
+                    <span>Éditer la séance</span>
+                    <div class="modal-subtitle">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>${formattedDate}</span>
+                    </div>
+                </div>
+            `;
+            
+            window.showModal(modalTitle, modalContent);
             
             // Initialiser le drag & drop
             this.initializeExerciseDragDrop(session.id);
@@ -1316,7 +1302,7 @@ class PlanningManager {
     // ===== DRAG & DROP EXERCICES =====
     // Fonction unifiée qui gère tous les cas
     initializeExerciseDragDrop(sessionId = null) {
-        // Chercher le container dans les deux contextes possibles
+        // Support pour modal création ET édition
         const container = document.getElementById('sessionExercisesList') || 
                         document.getElementById('previewExercisesList');
         
@@ -1330,29 +1316,27 @@ class PlanningManager {
             this.currentSortable.destroy();
         }
         
+        // Créer nouvelle instance
         this.currentSortable = new Sortable(container, {
-            handle: '.exercise-drag-handle',
+            handle: '.drag-handle',
             animation: 150,
             ghostClass: 'sortable-ghost',
             chosenClass: 'sortable-chosen',
+            dragClass: 'sortable-drag',
             
             onEnd: async (evt) => {
                 if (evt.oldIndex === evt.newIndex) return;
                 
-                // Toujours mettre à jour les numéros
+                // Mettre à jour les numéros
                 this.updateExerciseNumbers();
                 
-                // Toujours recalculer les métriques
-                const exercises = this.getPreviewExercises();
-                this.updateSessionMetrics(exercises);
-                
-                // Si sessionId fourni, sauvegarder les changements
+                // Contexte édition de session existante
                 if (sessionId) {
                     try {
                         const session = this.sessions.find(s => s.id === sessionId);
                         if (session) {
-                            // Réorganiser selon le nouvel ordre
-                            const items = container.querySelectorAll('.exercise-preview-item');
+                            // Réorganiser les exercices
+                            const items = container.querySelectorAll('.selected-exercise-item');
                             session.exercises = Array.from(items).map(item => {
                                 try {
                                     return JSON.parse(item.dataset.exercise.replace(/&apos;/g, "'"));
@@ -1361,12 +1345,17 @@ class PlanningManager {
                                 }
                             }).filter(Boolean);
                             
+                            // Sauvegarder
                             await this.saveSessionChanges(sessionId, { exercises: session.exercises });
                         }
                     } catch (error) {
                         console.error('Erreur sauvegarde ordre:', error);
                     }
                 }
+                
+                // Recalculer les métriques
+                const exercises = this.getPreviewExercises();
+                this.updateSessionMetrics(exercises);
             }
         });
     }
@@ -2269,9 +2258,19 @@ class PlanningManager {
                 }
             }
             
-            // Grouper par muscle
+            // Trier les exercices par contribution au score si la fonction existe
+            let sortedExercises = exercisesResponse;
+            if (this.sortExercisesByContribution || window.sortExercisesByContribution) {
+                try {
+                    sortedExercises = await (this.sortExercisesByContribution || window.sortExercisesByContribution)(exercisesResponse);
+                } catch (e) {
+                    console.warn('Tri par contribution non disponible, ordre par défaut');
+                }
+            }
+            
+            // Grouper par muscle après le tri
             const exercisesByMuscle = {};
-            exercisesResponse.forEach(exercise => {
+            sortedExercises.forEach(exercise => {
                 const muscle = exercise.muscle_groups?.[0] || 'Autres';
                 if (!exercisesByMuscle[muscle]) {
                     exercisesByMuscle[muscle] = [];
@@ -2285,13 +2284,13 @@ class PlanningManager {
                 const muscleIcon = this.getMuscleGroupIcon?.(muscle) || '💪';
                 
                 return `
-                    <div class="muscle-group-card" data-muscle="${muscle}">
+                    <div class="muscle-group-section" data-muscle="${muscle}">
                         <div class="muscle-group-header">
                             <span class="muscle-icon" style="color: ${muscleColor}">${muscleIcon}</span>
-                            <h5>${muscle}</h5>
-                            <span class="exercise-count">${exercises.length}</span>
+                            <span class="muscle-name">${muscle}</span>
+                            <span class="muscle-count">${exercises.length}</span>
                         </div>
-                        <div class="exercise-options-grid">
+                        <div class="muscle-exercises-grid">
                             ${exercises.map(ex => {
                                 const isDisabled = existingExerciseIds.includes(ex.id);
                                 const exerciseData = JSON.stringify({
@@ -2305,17 +2304,18 @@ class PlanningManager {
                                     equipment: ex.equipment || 'Aucun'
                                 }).replace(/"/g, '&quot;');
                                 
+                                const truncatedName = ex.name.length > 25 ? ex.name.substring(0, 22) + '...' : ex.name;
+                                
                                 return `
-                                    <label class="exercise-option ${isDisabled ? 'disabled' : ''}">
+                                    <label class="exercise-option ${isDisabled ? 'disabled' : ''}" title="${ex.name}">
                                         <input type="checkbox" 
                                             value="${ex.id}"
                                             data-exercise="${exerciseData}"
                                             ${isDisabled ? 'disabled' : ''}>
                                         <div class="exercise-option-content">
-                                            <div class="exercise-name">${ex.name}</div>
+                                            <div class="exercise-name">${truncatedName}</div>
                                             <div class="exercise-params">
                                                 ${ex.default_sets || 3} × ${ex.default_reps_min || 8}-${ex.default_reps_max || 12}
-                                                ${isDisabled ? '<span class="badge-disabled">Déjà ajouté</span>' : ''}
                                             </div>
                                         </div>
                                     </label>
@@ -2326,128 +2326,121 @@ class PlanningManager {
                 `;
             }).join('');
             
-            // Structure HTML unifiée
+            // Structure HTML verticale
             const modalContent = `
-                <div class="planning-modal-content">
-                    <div class="modal-date-header">
-                        <i class="fas fa-calendar-alt"></i>
-                        <span>${formattedDate}</span>
-                    </div>
-                    
-                    <div class="modal-main-layout">
-                        <!-- Colonne gauche : Sélection -->
-                        <div class="selection-column">
-                            <div class="section-header clickable" onclick="planningManager.toggleExercisesList()">
-                                <div class="header-left">
-                                    <i class="fas fa-dumbbell"></i>
-                                    <h4>Exercices disponibles</h4>
-                                    <span class="exercise-total">${exercisesResponse.length}</span>
-                                </div>
-                                <div class="header-right">
-                                    <span class="selection-counter">
-                                        <span id="selectedCount">0</span> sélectionné(s)
-                                    </span>
-                                    <i class="fas fa-chevron-down toggle-icon"></i>
-                                </div>
+                <div class="planning-modal-vertical">
+                    <!-- Section exercices disponibles -->
+                    <div class="exercises-selection-section">
+                        <div class="section-header clickable" onclick="planningManager.toggleExercisesList()">
+                            <div class="header-content">
+                                <i class="fas fa-dumbbell"></i>
+                                <h4>Exercices disponibles</h4>
+                                <span class="exercise-count-badge">${exercisesResponse.length}</span>
+                                <i class="fas fa-chevron-down toggle-chevron"></i>
                             </div>
-                            
-                            <div class="exercise-search-container">
-                                <i class="fas fa-search"></i>
-                                <input type="text" 
-                                    class="exercise-search" 
-                                    id="exerciseSearchInput"
-                                    placeholder="Rechercher un exercice..."
-                                    oninput="planningManager.filterExercises(this.value)">
-                            </div>
-                            
-                            <div class="exercise-groups-wrapper">
-                                <div class="exercise-groups-container" id="exerciseSelectionGrid">
-                                    ${muscleGroupsHtml}
-                                </div>
+                            <div class="selection-info">
+                                <span id="selectedCount">0</span> sélectionné(s)
                             </div>
                         </div>
                         
-                        <!-- Colonne droite : Aperçu -->
-                        <div class="preview-column">
-                            <div class="preview-header">
-                                <div class="header-left">
-                                    <i class="fas fa-eye"></i>
-                                    <h4>Aperçu de la séance</h4>
-                                </div>
-                                <button class="btn-icon magic-wand" 
-                                        id="optimizeBtn"
-                                        style="display: none;"
-                                        onclick="planningManager.optimizeExerciseOrder()"
-                                        title="Optimiser l'ordre des exercices">
-                                    <i class="fas fa-magic"></i>
-                                </button>
+                        <!-- Barre de recherche discrète -->
+                        <div class="search-bar-container">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" 
+                                class="exercise-search-input" 
+                                placeholder="Rechercher..."
+                                oninput="planningManager.filterExercises(this.value)">
+                        </div>
+                        
+                        <!-- Liste des exercices sur 2 colonnes -->
+                        <div class="exercises-list-container">
+                            <div class="exercises-grid" id="exerciseSelectionGrid">
+                                ${muscleGroupsHtml}
                             </div>
-                            
-                            <!-- Métriques en temps réel -->
-                            <div class="session-metrics" id="sessionMetrics" style="display: none;">
-                                <div class="metric-card">
-                                    <i class="fas fa-list-ol"></i>
-                                    <div class="metric-content">
-                                        <span class="metric-value" id="exerciseCountMetric">0</span>
-                                        <span class="metric-label">Exercices</span>
-                                    </div>
-                                </div>
-                                <div class="metric-card">
-                                    <i class="fas fa-clock"></i>
-                                    <div class="metric-content">
-                                        <span class="metric-value" id="durationMetric">0min</span>
-                                        <span class="metric-label">Durée</span>
-                                    </div>
-                                </div>
-                                <div class="metric-card">
-                                    <i class="fas fa-fire"></i>
-                                    <div class="metric-content">
-                                        <span class="metric-value" id="muscleCountMetric">0</span>
-                                        <span class="metric-label">Muscles</span>
-                                    </div>
-                                </div>
-                                <div class="metric-card quality-metric">
-                                    <i class="fas fa-chart-line"></i>
-                                    <div class="metric-content">
-                                        <span class="metric-value" id="qualityMetric" data-score="0">0%</span>
-                                        <span class="metric-label">Qualité</span>
-                                    </div>
-                                </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Section aperçu de la séance -->
+                    <div class="session-preview-section">
+                        <div class="preview-header">
+                            <div class="header-content">
+                                <i class="fas fa-eye"></i>
+                                <h4>Aperçu de la séance</h4>
                             </div>
-                            
-                            <!-- Liste des exercices sélectionnés -->
-                            <div id="previewExercisesList" class="preview-exercises-list">
-                                <div class="empty-state">
-                                    <i class="fas fa-hand-pointer"></i>
-                                    <p>Sélectionnez des exercices pour composer votre séance</p>
-                                </div>
+                            <button class="magic-wand-btn" 
+                                    id="optimizeBtn"
+                                    style="display: none;"
+                                    onclick="planningManager.optimizeExerciseOrder()"
+                                    title="Optimiser l'ordre">
+                                <i class="fas fa-magic"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Métriques avec icônes -->
+                        <div class="session-metrics-row" id="sessionMetrics" style="display: none;">
+                            <div class="metric">
+                                <i class="fas fa-list-ol"></i>
+                                <span class="metric-value" id="exerciseCountMetric">0</span>
+                                <span class="metric-label">exercices</span>
                             </div>
-                            
-                            <!-- Résumé des groupes musculaires -->
-                            <div class="muscle-groups-summary" id="muscleGroupsSummary" style="display: none;">
-                                <!-- Généré dynamiquement -->
+                            <div class="metric">
+                                <i class="fas fa-clock"></i>
+                                <span class="metric-value" id="durationMetric">0</span>
+                                <span class="metric-label">min</span>
                             </div>
+                            <div class="metric">
+                                <i class="fas fa-fire"></i>
+                                <span class="metric-value" id="muscleCountMetric">0</span>
+                                <span class="metric-label">muscles</span>
+                            </div>
+                            <div class="metric quality-metric">
+                                <i class="fas fa-chart-line"></i>
+                                <span class="metric-value" id="qualityMetric" data-score="0">0%</span>
+                                <span class="metric-label">qualité</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Liste des exercices sélectionnés -->
+                        <div id="previewExercisesList" class="selected-exercises-list">
+                            <div class="empty-preview">
+                                <i class="fas fa-hand-pointer"></i>
+                                <p>Sélectionnez des exercices</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Groupes musculaires colorés -->
+                        <div class="muscle-groups-tags" id="muscleGroupsSummary" style="display: none;">
+                            <!-- Généré dynamiquement -->
                         </div>
                     </div>
                     
                     <!-- Actions -->
-                    <div class="modal-actions">
+                    <div class="modal-actions-bottom">
                         <button class="btn btn-secondary" onclick="window.closeModal()">
-                            <i class="fas fa-times"></i> Annuler
+                            Annuler
                         </button>
                         <button class="btn btn-primary" 
                                 id="createSessionBtn" 
                                 disabled
                                 onclick="planningManager.${sessionIdToEdit ? `addExercisesToSession('${sessionIdToEdit}')` : `createSession('${targetDate}')`}">
-                            <i class="fas fa-${sessionIdToEdit ? 'plus' : 'check'}"></i> 
-                            ${sessionIdToEdit ? 'Ajouter à la séance' : 'Créer la séance'}
+                            <i class="fas fa-check"></i> 
+                            ${sessionIdToEdit ? 'Ajouter' : 'Créer la séance'}
                         </button>
                     </div>
                 </div>
             `;
             
-            // Utiliser le système modal standard avec titre
-            const modalTitle = sessionIdToEdit ? 'Ajouter des exercices' : 'Créer une nouvelle séance';
+            // Utiliser le système modal standard avec titre et sous-titre
+            const modalTitle = `
+                <div class="modal-title-with-date">
+                    <span>${sessionIdToEdit ? 'Ajouter des exercices' : 'Créer une séance'}</span>
+                    <div class="modal-subtitle">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>${formattedDate}</span>
+                    </div>
+                </div>
+            `;
+            
             window.showModal(modalTitle, modalContent);
             
             // Initialiser les fonctionnalités
@@ -2548,7 +2541,7 @@ class PlanningManager {
         
         // Durée estimée
         const duration = this.calculateSessionDuration(exercises);
-        document.getElementById('durationMetric').textContent = `${duration}min`;
+        document.getElementById('durationMetric').textContent = duration;
         
         // Muscles travaillés
         const muscles = [...new Set(exercises.flatMap(ex => ex.muscle_groups || []))].filter(Boolean);
@@ -2569,30 +2562,35 @@ class PlanningManager {
             scoreElement.textContent = `${score}%`;
             scoreElement.dataset.score = score;
             scoreElement.style.color = scoreColor;
-            scoreElement.parentElement.parentElement.querySelector('i').style.color = scoreColor;
+            
+            // Chercher l'icône dans le parent correct
+            const metricDiv = scoreElement.closest('.quality-metric');
+            if (metricDiv) {
+                const icon = metricDiv.querySelector('i');
+                if (icon) icon.style.color = scoreColor;
+            }
             
             // Animation du changement si animateScoreChange existe
-            if (oldScore > 0 && this.animateScoreChange) {
-                this.animateScoreChange(scoreElement, oldScore, score);
-            } else if (oldScore > 0) {
-                // Animation simple si animateScoreChange n'existe pas
-                scoreElement.classList.add('score-updating');
-                setTimeout(() => scoreElement.classList.remove('score-updating'), 600);
+            if (oldScore > 0) {
+                if (this.animateScoreChange) {
+                    this.animateScoreChange(scoreElement, oldScore, score);
+                } else {
+                    // Animation simple
+                    scoreElement.classList.add('score-updating');
+                    setTimeout(() => scoreElement.classList.remove('score-updating'), 600);
+                }
             }
         }
         
-        // Mise à jour des groupes musculaires
+        // Mise à jour des groupes musculaires colorés
         if (muscles.length > 0) {
             const muscleTags = muscles.map(muscle => {
                 const color = this.getMuscleGroupColor?.(muscle) || '#6b7280';
-                return `<span class="muscle-tag" style="background-color: ${color}20; color: ${color}">${muscle}</span>`;
+                return `<span class="muscle-tag" style="background-color: ${color}20; color: ${color}; border: 1px solid ${color}40">${muscle}</span>`;
             }).join('');
             
-            document.getElementById('muscleGroupsSummary').innerHTML = `
-                <h4><i class="fas fa-fire"></i> Muscles travaillés</h4>
-                <div class="muscle-tags">${muscleTags}</div>
-            `;
-            document.getElementById('muscleGroupsSummary').style.display = 'block';
+            document.getElementById('muscleGroupsSummary').innerHTML = muscleTags;
+            document.getElementById('muscleGroupsSummary').style.display = 'flex';
         } else {
             document.getElementById('muscleGroupsSummary').style.display = 'none';
         }
@@ -2618,22 +2616,21 @@ class PlanningManager {
             // Limiter le nombre d'exercices
             if (selected.length >= maxExercises) {
                 checkboxes.forEach(cb => {
-                    if (!cb.checked) cb.disabled = true;
+                    if (!cb.checked && !cb.disabled) cb.disabled = true;
                 });
             } else {
                 checkboxes.forEach(cb => {
-                    if (!cb.disabled && !cb.hasAttribute('data-already-added')) {
-                        cb.disabled = false;
-                    }
+                    const wasAlreadyDisabled = cb.hasAttribute('data-already-disabled');
+                    if (!wasAlreadyDisabled) cb.disabled = false;
                 });
             }
             
             // Mettre à jour l'aperçu
             if (selected.length === 0) {
                 document.getElementById('previewExercisesList').innerHTML = `
-                    <div class="empty-state">
+                    <div class="empty-preview">
                         <i class="fas fa-hand-pointer"></i>
-                        <p>Sélectionnez des exercices pour composer votre séance</p>
+                        <p>Sélectionnez des exercices</p>
                     </div>
                 `;
                 document.getElementById('sessionMetrics').style.display = 'none';
@@ -2650,24 +2647,26 @@ class PlanningManager {
                     }
                 }).filter(Boolean);
                 
-                // Générer le HTML des exercices
+                // Générer le HTML des exercices avec croix de suppression
                 const exercisesHtml = exercises.map((ex, index) => `
-                    <div class="exercise-preview-item" 
+                    <div class="selected-exercise-item" 
                         data-exercise-id="${ex.exercise_id}"
                         data-exercise='${JSON.stringify(ex).replace(/'/g, '&apos;')}'>
-                        <span class="exercise-drag-handle">
+                        <div class="drag-handle">
                             <i class="fas fa-grip-vertical"></i>
-                        </span>
-                        <span class="exercise-number">${index + 1}</span>
-                        <div class="exercise-info">
-                            <div class="exercise-name">${ex.exercise_name}</div>
-                            <div class="exercise-params">
-                                ${ex.sets} × ${ex.reps_min}-${ex.reps_max}
+                        </div>
+                        <div class="exercise-content">
+                            <span class="exercise-number">${index + 1}</span>
+                            <div class="exercise-details">
+                                <div class="exercise-name">${ex.exercise_name}</div>
+                                <div class="exercise-params">
+                                    ${ex.sets} × ${ex.reps_min}-${ex.reps_max}
+                                </div>
                             </div>
                         </div>
-                        <button class="btn-icon btn-danger exercise-remove" 
+                        <button class="remove-btn" 
                                 onclick="planningManager.removeExerciseFromPreview('${ex.exercise_id}')"
-                                title="Retirer cet exercice">
+                                title="Retirer">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -2676,7 +2675,7 @@ class PlanningManager {
                 document.getElementById('previewExercisesList').innerHTML = exercisesHtml;
                 
                 // Afficher les métriques
-                document.getElementById('sessionMetrics').style.display = 'grid';
+                document.getElementById('sessionMetrics').style.display = 'flex';
                 
                 // Mettre à jour les métriques
                 this.updateSessionMetrics(exercises);
@@ -2686,6 +2685,11 @@ class PlanningManager {
                 
                 // Initialiser le drag & drop
                 this.initializeExerciseDragDrop();
+                
+                // Initialiser le swipe mobile
+                if ('ontouchstart' in window && this.initializeMobileSwipe) {
+                    this.initializeMobileSwipe();
+                }
             }
         };
         
@@ -2705,6 +2709,31 @@ class PlanningManager {
         if (isCollapsed) {
             this.toggleExercisesList();
         }
+    }
+        
+    // Utiliser toggleExercisesList existante ou l'adapter pour la nouvelle structure
+    toggleExercisesList() {
+        // Adapter pour la structure verticale
+        const container = document.querySelector('.exercises-list-container');
+        const searchContainer = document.querySelector('.search-bar-container');
+        const chevron = document.querySelector('.toggle-chevron');
+        
+        if (!container || !chevron) return;
+        
+        const isCollapsed = container.classList.contains('collapsed');
+        
+        if (isCollapsed) {
+            container.classList.remove('collapsed');
+            if (searchContainer) searchContainer.style.display = 'flex';
+            chevron.classList.remove('closed');
+        } else {
+            container.classList.add('collapsed');
+            if (searchContainer) searchContainer.style.display = 'none';
+            chevron.classList.add('closed');
+        }
+        
+        // Sauvegarder préférence
+        localStorage.setItem('exercisesSectionCollapsed', !isCollapsed);
     }
 
     // GARDER cette méthode existante
@@ -2765,9 +2794,9 @@ class PlanningManager {
 
     filterExercises(searchTerm) {
         // Contexte modal planning
-        if (document.querySelector('.planning-modal-content')) {
+        if (document.querySelector('.planning-modal-vertical')) {
             const term = searchTerm.toLowerCase().trim();
-            const muscleGroups = document.querySelectorAll('.muscle-group-card');
+            const muscleGroups = document.querySelectorAll('.muscle-group-section');
             
             muscleGroups.forEach(group => {
                 let hasVisibleExercise = false;
@@ -3019,9 +3048,9 @@ class PlanningManager {
         });
     }
 
-    // AJOUTER mise à jour des numéros
+    // mise à jour des numéros
     updateExerciseNumbers() {
-        const items = document.querySelectorAll('#previewExercisesList .exercise-preview-item');
+        const items = document.querySelectorAll('#previewExercisesList .selected-exercise-item');
         items.forEach((item, index) => {
             const numberEl = item.querySelector('.exercise-number');
             if (numberEl) {
@@ -3038,7 +3067,7 @@ class PlanningManager {
         const container = document.getElementById('previewExercisesList');
         if (!container) return [];
         
-        const items = container.querySelectorAll('.exercise-preview-item');
+        const items = container.querySelectorAll('.selected-exercise-item');
         return Array.from(items).map(item => {
             try {
                 return JSON.parse(item.dataset.exercise.replace(/&apos;/g, "'"));
@@ -3206,7 +3235,7 @@ class PlanningManager {
     
     async optimizeExerciseOrder() {
         const container = document.getElementById('previewExercisesList');
-        const items = container.querySelectorAll('.exercise-preview-item');
+        const items = container.querySelectorAll('.selected-exercise-item');
         
         if (items.length < 2) {
             window.showToast('Au moins 2 exercices nécessaires', 'info');
@@ -3257,24 +3286,39 @@ class PlanningManager {
             }
             
             // Réorganiser le DOM avec animation
-            const newOrder = optimizedOrder.map((ex, index) => {
-                const item = container.querySelector(`[data-exercise-id="${ex.exercise_id}"]`);
-                if (item) {
-                    // Mettre à jour le numéro
-                    const numberEl = item.querySelector('.exercise-number');
-                    numberEl.textContent = index + 1;
-                    numberEl.classList.add('updating');
-                    setTimeout(() => numberEl.classList.remove('updating'), 300);
-                }
-                return item;
-            }).filter(Boolean);
-            
-            // Vider et réorganiser
             container.innerHTML = '';
-            newOrder.forEach(item => container.appendChild(item));
+            optimizedOrder.forEach((ex, index) => {
+                const html = `
+                    <div class="selected-exercise-item animated-entry" 
+                        data-exercise-id="${ex.exercise_id}"
+                        data-exercise='${JSON.stringify(ex).replace(/'/g, '&apos;')}'>
+                        <div class="drag-handle">
+                            <i class="fas fa-grip-vertical"></i>
+                        </div>
+                        <div class="exercise-content">
+                            <span class="exercise-number">${index + 1}</span>
+                            <div class="exercise-details">
+                                <div class="exercise-name">${ex.exercise_name}</div>
+                                <div class="exercise-params">
+                                    ${ex.sets} × ${ex.reps_min}-${ex.reps_max}
+                                </div>
+                            </div>
+                        </div>
+                        <button class="remove-btn" 
+                                onclick="planningManager.removeExerciseFromPreview('${ex.exercise_id}')"
+                                title="Retirer">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', html);
+            });
             
             // Recalculer les métriques
             this.updateSessionMetrics(optimizedOrder);
+            
+            // Réinitialiser le drag & drop
+            this.initializeExerciseDragDrop();
             
             // Feedback
             window.showToast('Ordre optimisé pour une meilleure performance', 'success');
@@ -3286,7 +3330,6 @@ class PlanningManager {
 
     // FALLBACK minimal si applyLocalOptimalOrder n'existe pas
     alternateByMuscleGroup(exercises) {
-        // Algorithme simple : alterner les groupes musculaires
         const byMuscle = {};
         
         exercises.forEach(ex => {
