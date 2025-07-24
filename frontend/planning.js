@@ -586,15 +586,18 @@ class PlanningManager {
         
         // AJOUTER couleur muscle en border-left (NOUVELLE FEATURE)
         const primaryMuscle = muscleGroups[0] || 'general';
-        const muscleColor = this.getMuscleGroupColor(primaryMuscle);
-        
+        const muscleColor = window.MuscleColors?.getMuscleColor(primaryMuscle) || '#6b7280';
+                
         return `
             <div class="session-card"      data-session-id="${session.id}"      style="border-left: 4px solid ${muscleColor}"     onclick="planningManager.showSessionEditModal(planningManager.findSessionById('${session.id}'))">
                 <div class="session-header">
-                    <div class="session-quality-simple">
-                        <div class="score-circle" style="border-color: ${qualityColor}; color: ${qualityColor};">
-                            ${quality}
+                    <div class="session-quality-arc">
+                        <div class="arc-track"></div>
+                        <div class="arc-fill" 
+                            style="border-top-color: ${qualityColor}; 
+                                    clip-path: polygon(0% 0%, ${quality || 0}% 0%, ${quality || 0}% 100%, 0% 100%);">
                         </div>
+                        <span class="arc-score" style="color: ${qualityColor}">${quality}</span>
                     </div>
                 </div>
                 
@@ -606,8 +609,16 @@ class PlanningManager {
                         </div>
                         ${muscleGroups.length > 0 ? `
                             <div class="session-muscles">
-                                <i class="fas fa-muscle"></i>
-                                <span>${muscleGroups.slice(0, 2).join(', ')}${muscleGroups.length > 2 ? ` +${muscleGroups.length - 2}` : ''}</span>
+                                <i class="fas fa-dumbbell"></i>
+                                <div class="muscle-tags">
+                                    ${muscleGroups.slice(0, 2).map(muscle => {
+                                        const color = window.MuscleColors?.getMuscleColor(muscle) || '#6b7280';
+                                        const capitalizedName = window.MuscleColors?.MUSCLE_COLORS[muscle.toLowerCase()]?.name || 
+                                                            muscle.charAt(0).toUpperCase() + muscle.slice(1);
+                                        return `<span class="muscle-tag" style="background-color: ${color}20; color: ${color}; border: 1px solid ${color}40;">${capitalizedName}</span>`;
+                                    }).join('')}
+                                    ${muscleGroups.length > 2 ? `<span class="muscle-more">+${muscleGroups.length - 2}</span>` : ''}
+                                </div>
                             </div>
                         ` : ''}
                     </div>
