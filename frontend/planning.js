@@ -1310,8 +1310,8 @@ class PlanningManager {
             return;
         }
         
-        // Stocker la référence à this
-        const planningManager = this;  // IMPORTANT : Capturer le contexte
+        // CORRECTIF : Capturer le contexte correctement
+        const self = this;  // Utiliser 'self' au lieu de 'planningManager'
         
         if (this.currentSortable) {
             this.currentSortable.destroy();
@@ -1324,16 +1324,17 @@ class PlanningManager {
             chosenClass: 'sortable-chosen',
             dragClass: 'sortable-drag',
             
-            onEnd: async (evt) => {
+            onEnd: async function(evt) {  // Utiliser function au lieu de arrow function
                 if (evt.oldIndex === evt.newIndex) return;
                 
-                // Utiliser planningManager au lieu de this
-                planningManager.updateExerciseNumbers();
+                // Utiliser 'self' qui référence correctement l'instance
+                if (self.updateExerciseNumbers) {
+                    self.updateExerciseNumbers();
+                }
                 
-                if (sessionId) {
+                if (sessionId && self.sessions) {  // Vérifier que sessions existe
                     try {
-                        // Utiliser planningManager.sessions
-                        const session = planningManager.sessions.find(s => s.id === sessionId);
+                        const session = self.sessions.find(s => s.id === sessionId);
                         if (session) {
                             const items = container.querySelectorAll('.selected-exercise-item');
                             session.exercises = Array.from(items).map(item => {
@@ -1344,15 +1345,20 @@ class PlanningManager {
                                 }
                             }).filter(Boolean);
                             
-                            await planningManager.saveSessionChanges(sessionId, { exercises: session.exercises });
+                            if (self.saveSessionChanges) {
+                                await self.saveSessionChanges(sessionId, { exercises: session.exercises });
+                            }
                         }
                     } catch (error) {
                         console.error('Erreur sauvegarde ordre:', error);
                     }
                 }
                 
-                const exercises = planningManager.getPreviewExercises();
-                planningManager.updateSessionMetrics(exercises);
+                // Mettre à jour les métriques
+                if (self.getPreviewExercises && self.updateSessionMetrics) {
+                    const exercises = self.getPreviewExercises();
+                    self.updateSessionMetrics(exercises);
+                }
             }
         });
     }
@@ -2246,9 +2252,12 @@ class PlanningManager {
             // Récupérer les exercices disponibles
             const exercisesResponse = await window.apiGet(`/api/exercises?user_id=${window.currentUser.id}`);
             
+            // CORRECTIF : Déclarer sortedExercises dès le début
+            let sortedExercises = exercisesResponse || [];
+            
             // Si édition, récupérer les exercices déjà dans la session
             let existingExerciseIds = [];
-            if (sessionIdToEdit) {
+            if (sessionIdToEdit && this.sessions) {
                 const session = this.sessions.find(s => s.id === sessionIdToEdit);
                 if (session && session.exercises) {
                     existingExerciseIds = session.exercises.map(ex => ex.id || ex.exercise_id);
@@ -2256,27 +2265,30 @@ class PlanningManager {
             }
             
             // Trier les exercices par contribution au score si la fonction existe
-            let sortedExercises = exercisesResponse;  // Déclarer la variable
             if (this.sortExercisesByContribution || window.sortExercisesByContribution) {
                 try {
                     sortedExercises = await (this.sortExercisesByContribution || window.sortExercisesByContribution)(exercisesResponse);
                 } catch (e) {
                     console.warn('Tri par contribution non disponible, ordre par défaut');
-                    sortedExercises = exercisesResponse;  // Fallback explicite
+                    // sortedExercises garde sa valeur initiale
                 }
             }
             
+            // CORRECTIF : S'assurer que sortedExercises est un array valide
+            if (!Array.isArray(sortedExercises)) {
+                console.error('sortedExercises n\'est pas un array valide');
+                sortedExercises = [];
+            }
+            
             // Grouper par muscle après le tri
-            // Puis utiliser sortedExercises pour le groupement :
             const exercisesByMuscle = {};
-            sortedExercises.forEach(exercise => {  // Utiliser sortedExercises ici
+            sortedExercises.forEach(exercise => {
                 const muscle = exercise.muscle_groups?.[0] || 'Autres';
                 if (!exercisesByMuscle[muscle]) {
                     exercisesByMuscle[muscle] = [];
                 }
                 exercisesByMuscle[muscle].push(exercise);
             });
-
             
             // Générer HTML pour chaque groupe musculaire
             const muscleGroupsHtml = Object.entries(exercisesByMuscle).map(([muscle, exercises]) => {
@@ -2326,7 +2338,7 @@ class PlanningManager {
                 `;
             }).join('');
             
-            // Structure HTML verticale
+            // Structure HTML verticale complète
             const modalContent = `
                 <div class="planning-modal-vertical">
                     <!-- Section exercices disponibles -->
@@ -2335,7 +2347,7 @@ class PlanningManager {
                             <div class="header-content">
                                 <i class="fas fa-dumbbell"></i>
                                 <h4>Exercices disponibles</h4>
-                                <span class="exercise-count-badge">${exercisesResponse.length}</span>
+                                <span class="exercise-count-badge">${sortedExercises.length}</span>
                                 <i class="fas fa-chevron-down toggle-chevron"></i>
                             </div>
                             <div class="selection-info">
@@ -2615,6 +2627,7 @@ class PlanningManager {
         }
     }
 
+    // méthode pour initialiser la création de séance
     initializeSessionCreation(sessionIdToEdit = null) {
         const checkboxes = document.querySelectorAll('.exercise-option input[type="checkbox"]');
         const createBtn = document.getElementById('createSessionBtn');
@@ -2627,34 +2640,51 @@ class PlanningManager {
         // Fonction de mise à jour de l'aperçu
         const updatePreview = () => {
             const selected = Array.from(checkboxes).filter(cb => cb.checked);
-            selectedCounter.textContent = selected.length;
+            if (selectedCounter) {  // Vérifier l'existence
+                selectedCounter.textContent = selected.length;
+            }
             
             // Activer/désactiver le bouton
-            createBtn.disabled = selected.length === 0;
+            if (createBtn) {
+                createBtn.disabled = selected.length === 0;
+            }
             
             // Limiter le nombre d'exercices
             if (selected.length >= maxExercises) {
                 checkboxes.forEach(cb => {
-                    if (!cb.checked && !cb.disabled) cb.disabled = true;
+                    if (!cb.checked && !cb.disabled) {
+                        cb.setAttribute('data-was-disabled', 'temp');
+                        cb.disabled = true;
+                    }
                 });
             } else {
                 checkboxes.forEach(cb => {
-                    const wasAlreadyDisabled = cb.hasAttribute('data-already-disabled');
-                    if (!wasAlreadyDisabled) cb.disabled = false;
+                    if (cb.getAttribute('data-was-disabled') === 'temp') {
+                        cb.disabled = false;
+                        cb.removeAttribute('data-was-disabled');
+                    }
                 });
             }
             
             // Mettre à jour l'aperçu
+            const previewList = document.getElementById('previewExercisesList');
+            if (!previewList) return;
+            
             if (selected.length === 0) {
-                document.getElementById('previewExercisesList').innerHTML = `
+                previewList.innerHTML = `
                     <div class="empty-preview">
                         <i class="fas fa-hand-pointer"></i>
                         <p>Sélectionnez des exercices</p>
                     </div>
                 `;
-                document.getElementById('sessionMetrics').style.display = 'none';
-                document.getElementById('muscleGroupsSummary').style.display = 'none';
-                document.getElementById('optimizeBtn').style.display = 'none';
+                
+                const metrics = document.getElementById('sessionMetrics');
+                const summary = document.getElementById('muscleGroupsSummary');
+                const optimizeBtn = document.getElementById('optimizeBtn');
+                
+                if (metrics) metrics.style.display = 'none';
+                if (summary) summary.style.display = 'none';
+                if (optimizeBtn) optimizeBtn.style.display = 'none';
             } else {
                 // Construire la liste des exercices
                 const exercises = selected.map(cb => {
@@ -2666,7 +2696,7 @@ class PlanningManager {
                     }
                 }).filter(Boolean);
                 
-                // Générer le HTML des exercices avec croix de suppression
+                // Générer le HTML des exercices
                 const exercisesHtml = exercises.map((ex, index) => `
                     <div class="selected-exercise-item" 
                         data-exercise-id="${ex.exercise_id}"
@@ -2691,19 +2721,27 @@ class PlanningManager {
                     </div>
                 `).join('');
                 
-                document.getElementById('previewExercisesList').innerHTML = exercisesHtml;
+                previewList.innerHTML = exercisesHtml;
                 
                 // Afficher les métriques
-                document.getElementById('sessionMetrics').style.display = 'flex';
+                const metrics = document.getElementById('sessionMetrics');
+                if (metrics) metrics.style.display = 'flex';
                 
                 // Mettre à jour les métriques
-                this.updateSessionMetrics(exercises);
+                if (this.updateSessionMetrics) {
+                    this.updateSessionMetrics(exercises);
+                }
                 
                 // Afficher la baguette magique si 2+ exercices
-                document.getElementById('optimizeBtn').style.display = exercises.length >= 2 ? 'flex' : 'none';
+                const optimizeBtn = document.getElementById('optimizeBtn');
+                if (optimizeBtn) {
+                    optimizeBtn.style.display = exercises.length >= 2 ? 'flex' : 'none';
+                }
                 
                 // Initialiser le drag & drop
-                this.initializeExerciseDragDrop();
+                if (this.initializeExerciseDragDrop) {
+                    this.initializeExerciseDragDrop();
+                }
                 
                 // Initialiser le swipe mobile
                 if ('ontouchstart' in window && this.initializeMobileSwipe) {
@@ -2711,6 +2749,9 @@ class PlanningManager {
                 }
             }
         };
+        
+        // CORRECTIF : Stocker la fonction pour y accéder depuis removeExerciseFromPreview
+        this._updatePreviewFunction = updatePreview;
         
         // Attacher les event listeners
         checkboxes.forEach(checkbox => {
@@ -2725,7 +2766,7 @@ class PlanningManager {
         
         // Restaurer l'état collapsé si sauvegardé
         const isCollapsed = localStorage.getItem('exercisesSectionCollapsed') === 'true';
-        if (isCollapsed) {
+        if (isCollapsed && this.toggleExercisesList) {
             this.toggleExercisesList();
         }
     }
@@ -2892,10 +2933,25 @@ class PlanningManager {
 
     // Fonction pour retirer un exercice de l'aperçu
     removeExerciseFromPreview(exerciseId) {
-        const checkbox = document.querySelector(`.exercise-option input[value="${exerciseId}"]`);
-        if (checkbox) {
-            checkbox.checked = false;
-            checkbox.dispatchEvent(new Event('change'));
+        try {
+            // Décocher la checkbox correspondante
+            const checkbox = document.querySelector(`input[value="${exerciseId}"]`);
+            if (checkbox) {
+                checkbox.checked = false;
+                checkbox.disabled = false;
+            }
+            
+            // Déclencher manuellement l'événement change pour mettre à jour l'aperçu
+            const event = new Event('change', { bubbles: true });
+            if (checkbox) checkbox.dispatchEvent(event);
+            
+            // Alternative : Si initializeSessionCreation a stocké updatePreview
+            if (this._updatePreviewFunction) {
+                this._updatePreviewFunction();
+            }
+            
+        } catch (error) {
+            console.error('Erreur suppression exercice preview:', error);
         }
     }
 
