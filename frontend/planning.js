@@ -2542,62 +2542,76 @@ class PlanningManager {
 
     updateSessionMetrics(exercises) {
         // Nombre d'exercices
-        document.getElementById('exerciseCountMetric').textContent = exercises.length;
+        const exerciseCountEl = document.getElementById('exerciseCountMetric');
+        if (exerciseCountEl) {
+            exerciseCountEl.textContent = exercises.length;
+        }
         
         // Durée estimée
-        const duration = this.calculateSessionDuration(exercises);
-        document.getElementById('durationMetric').textContent = duration;
+        const durationEl = document.getElementById('durationMetric');
+        if (durationEl) {
+            const duration = this.calculateSessionDuration(exercises);
+            durationEl.textContent = duration;
+        }
         
         // Muscles travaillés
         const muscles = [...new Set(exercises.flatMap(ex => ex.muscle_groups || []))].filter(Boolean);
-        document.getElementById('muscleCountMetric').textContent = muscles.length;
+        const muscleCountEl = document.getElementById('muscleCountMetric');
+        if (muscleCountEl) {
+            muscleCountEl.textContent = muscles.length;
+        }
         
         // Score de qualité
-        const score = this.calculatePreviewQualityScoreFallback(exercises);
         const scoreElement = document.getElementById('qualityMetric');
-        const oldScore = parseInt(scoreElement.dataset.score) || 0;
-        
-        if (score !== oldScore) {
-            // Utiliser getScoreColor de session_quality_engine.js si disponible
-            const scoreColor = window.getScoreColor ? window.getScoreColor(score) : (
-                score >= 85 ? '#10b981' : 
-                score >= 70 ? '#f59e0b' : 
-                '#ef4444'
-            );
-            scoreElement.textContent = `${score}%`;
-            scoreElement.dataset.score = score;
-            scoreElement.style.color = scoreColor;
+        if (scoreElement) {
+            const score = this.calculatePreviewQualityScoreFallback(exercises);
+            const oldScore = parseInt(scoreElement.dataset.score) || 0;
             
-            // Chercher l'icône dans le parent correct
-            const metricDiv = scoreElement.closest('.quality-metric');
-            if (metricDiv) {
-                const icon = metricDiv.querySelector('i');
-                if (icon) icon.style.color = scoreColor;
-            }
-            
-            // Animation du changement si animateScoreChange existe
-            if (oldScore > 0) {
-                if (this.animateScoreChange) {
-                    this.animateScoreChange(scoreElement, oldScore, score);
-                } else {
-                    // Animation simple
-                    scoreElement.classList.add('score-updating');
-                    setTimeout(() => scoreElement.classList.remove('score-updating'), 600);
+            if (score !== oldScore) {
+                // Utiliser getScoreColor de session_quality_engine.js si disponible
+                const scoreColor = window.getScoreColor ? window.getScoreColor(score) : (
+                    score >= 85 ? '#10b981' : 
+                    score >= 70 ? '#f59e0b' : 
+                    '#ef4444'
+                );
+                scoreElement.textContent = `${score}%`;
+                scoreElement.dataset.score = score;
+                scoreElement.style.color = scoreColor;
+                
+                // Chercher l'icône dans le parent correct
+                const metricDiv = scoreElement.closest('.quality-metric');
+                if (metricDiv) {
+                    const icon = metricDiv.querySelector('i');
+                    if (icon) icon.style.color = scoreColor;
+                }
+                
+                // Animation du changement si animateScoreChange existe
+                if (oldScore > 0) {
+                    if (this.animateScoreChange) {
+                        this.animateScoreChange(scoreElement, oldScore, score);
+                    } else {
+                        // Animation simple
+                        scoreElement.classList.add('score-updating');
+                        setTimeout(() => scoreElement.classList.remove('score-updating'), 600);
+                    }
                 }
             }
         }
         
         // Mise à jour des groupes musculaires colorés
-        if (muscles.length > 0) {
-            const muscleTags = muscles.map(muscle => {
-                const color = this.getMuscleGroupColor?.(muscle) || '#6b7280';
-                return `<span class="muscle-tag" style="background-color: ${color}20; color: ${color}; border: 1px solid ${color}40">${muscle}</span>`;
-            }).join('');
-            
-            document.getElementById('muscleGroupsSummary').innerHTML = muscleTags;
-            document.getElementById('muscleGroupsSummary').style.display = 'flex';
-        } else {
-            document.getElementById('muscleGroupsSummary').style.display = 'none';
+        const muscleGroupsSummary = document.getElementById('muscleGroupsSummary');
+        if (muscleGroupsSummary) {
+            if (muscles.length > 0) {
+                const muscleTags = muscles.map(muscle => {
+                    const color = this.getMuscleGroupColor?.(muscle) || '#6b7280';
+                    return `<span class="muscle-tag" style="background-color: ${color}20; color: ${color}; border: 1px solid ${color}40">${muscle}</span>`;
+                }).join('');
+                
+                muscleGroupsSummary.innerHTML = muscleTags;
+                muscleGroupsSummary.style.display = 'flex';
+            } else {
+                muscleGroupsSummary.style.display = 'none';
+            }
         }
     }
 
