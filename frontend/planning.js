@@ -591,11 +591,10 @@ class PlanningManager {
         return `
             <div class="session-card"      data-session-id="${session.id}"      style="border-left: 4px solid ${muscleColor}"     onclick="planningManager.showSessionEditModal(planningManager.findSessionById('${session.id}'))">
                 <div class="session-header">
-                    <div class="session-quality-arc">
-                        <div class="arc-container" style="border-color: ${qualityColor}40;">
-                            <div class="arc-fill" style="width: ${quality || 0}%; background-color: ${qualityColor};"></div>
+                    <div class="session-quality-simple">
+                        <div class="score-circle" style="border-color: ${qualityColor}; color: ${qualityColor};">
+                            ${quality}
                         </div>
-                        <span class="arc-score" style="color: ${qualityColor}">${quality}</span>
                     </div>
                 </div>
                 

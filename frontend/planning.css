@@ -1678,48 +1678,21 @@
 }
 
 /* ===== ARC DE SCORE SIMPLE POUR LE SCORING QUALITY ===== */
-.session-quality-arc {
-    position: relative;
-    width: 40px;
-    height: 25px;
+.session-quality-simple {
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.arc-container {
-    position: relative;
-    width: 40px;
-    height: 20px;
-    border: 3px solid var(--bg-tertiary);
-    border-bottom: none;
-    border-radius: 20px 20px 0 0;
-    overflow: hidden;
-}
-
-.arc-fill {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    height: 100%;
-    background: var(--primary);
-    transition: width 0.8s ease;
-    border-radius: 20px 20px 0 0;
-}
-
-.arc-score {
-    position: absolute;
-    top: 2px;
-    left: 50%;
-    transform: translateX(-50%);
+.score-circle {
+    width: 32px;
+    height: 32px;
+    border: 2px solid var(--primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 0.7rem;
     font-weight: 700;
-    color: var(--text);
-    z-index: 3;
-}
-
-@media (max-width: 768px) {
-    .session-quality-arc { width: 35px; height: 22px; }
-    .arc-container { width: 35px; height: 18px; }
-    .arc-score { font-size: 0.65rem; }
+    background: rgba(255, 255, 255, 0.1);
 }
