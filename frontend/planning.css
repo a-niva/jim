@@ -1,49 +1,53 @@
 /* =====================================================
-   PLANNING STYLES - Design cohérent et moderne
+   PLANNING CSS COMPLET - DESIGN UNIFIÉ
+   Inclut : planning général, navigation, sessions, modals
+   Mobile-first, ~2000 lignes
    ===================================================== */
 
-/* Variables spécifiques Planning */
+/* ===== SECTION 1 : VARIABLES ET RESET ===== */
+
 :root {
-    --planning-bg: var(--bg-card);
-    --planning-border: var(--border);
+    /* Variables planning */
+    --planning-bg: var(--bg-secondary);
+    --planning-border: var(--border-color);
     --planning-radius: 12px;
-    --planning-spacing: 1rem;
-    --planning-gap: 0.75rem;
     --planning-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     --planning-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.15);
-    --planning-transition: all 0.2s ease;
+    --planning-transition: all 0.3s ease;
+    
+    /* Couleurs des groupes musculaires */
+    --muscle-chest: #e74c3c;
+    --muscle-back: #3498db;
+    --muscle-shoulders: #f39c12;
+    --muscle-biceps: #e67e22;
+    --muscle-triceps: #d35400;
+    --muscle-legs: #27ae60;
+    --muscle-core: #8e44ad;
+    --muscle-cardio: #16a085;
+    --muscle-autres: #7f8c8d;
+    
+    /* Espacements */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
 }
 
-/* =====================================================
-   CONTAINER PRINCIPAL
-   ===================================================== */
+/* Reset pour planning */
+.planning-container * {
+    box-sizing: border-box;
+}
 
-#planningContainer {
-    width: 100%;
-    max-width: 1200px;
+/* ===== SECTION 2 : STRUCTURE PRINCIPALE ===== */
+
+.planning-container {
+    max-width: 1400px;
     margin: 0 auto;
     padding: var(--spacing-lg);
-    min-height: calc(100vh - var(--header-height) - var(--bottom-nav-height));
-    display: block;
 }
 
-.planning-error {
-    text-align: center;
-    padding: var(--spacing-xl);
-    background: var(--planning-bg);
-    border-radius: var(--planning-radius);
-    border: 1px solid var(--planning-border);
-}
-
-.planning-error h3 {
-    color: var(--danger);
-    margin-bottom: var(--spacing-md);
-}
-
-/* =====================================================
-   HEADER PLANNING
-   ===================================================== */
-
+/* Header du planning */
 .planning-header {
     display: flex;
     justify-content: space-between;
@@ -52,18 +56,16 @@
     padding: var(--spacing-lg);
     background: var(--planning-bg);
     border-radius: var(--planning-radius);
-    border: 1px solid var(--planning-border);
     box-shadow: var(--planning-shadow);
 }
 
 .planning-header h2 {
-    margin: 0;
-    color: var(--text);
-    font-size: 1.5rem;
-    font-weight: 600;
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 0;
 }
 
 .planning-header h2 i {
@@ -83,13 +85,107 @@
     font-size: 0.9rem;
 }
 
-/* =====================================================
-   CONTENEUR SEMAINES
-   ===================================================== */
+/* ===== SECTION 3 : NAVIGATION SEMAINES ===== */
+
+.week-navigation {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--bg);
+    border-radius: var(--planning-radius);
+    margin-bottom: var(--spacing-lg);
+    box-shadow: var(--planning-shadow);
+}
+
+.nav-buttons {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.nav-btn {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 50%;
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: var(--planning-transition);
+    font-size: 1.2rem;
+}
+
+.nav-btn:hover:not(:disabled) {
+    background: var(--primary);
+    color: white;
+    transform: scale(1.1);
+}
+
+.nav-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.week-indicator {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text);
+    text-align: center;
+    min-width: 250px;
+}
+
+.current-week-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background: var(--primary);
+    color: white;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: var(--spacing-sm);
+}
+
+/* Bouton Aujourd'hui */
+.today-btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.5rem 1.2rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    transition: var(--planning-transition);
+    animation: pulseToday 2s ease-in-out infinite;
+}
+
+.today-btn:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+@keyframes pulseToday {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
+    }
+}
+
+/* ===== SECTION 4 : CONTENEUR SEMAINES ===== */
 
 .weeks-container {
     position: relative;
     overflow: hidden;
+    border-radius: var(--planning-radius);
 }
 
 .week-section {
@@ -109,7 +205,7 @@
 
 .week-section.current-week {
     border-color: var(--primary);
-    box-shadow: 0 0 0 1px var(--primary), var(--planning-shadow);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2), var(--planning-shadow);
 }
 
 @keyframes slideInWeek {
@@ -123,107 +219,7 @@
     }
 }
 
-/* =====================================================
-   NAVIGATION SEMAINES
-   ===================================================== */
-
-.week-navigation {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1rem 2rem;
-    background: var(--bg);
-    border-bottom: 1px solid var(--planning-border);
-    margin-bottom: 1.5rem;
-    border-radius: var(--planning-radius);
-}
-
-.week-nav-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.6rem 1rem;
-    background: var(--bg-secondary);
-    border: 1px solid var(--planning-border);
-    border-radius: 8px;
-    color: var(--text);
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 0.9rem;
-}
-
-.nav-buttons {
-    display: flex;
-    gap: var(--spacing-sm);
-}
-
-.nav-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    border: none;
-    border-radius: 50%;
-    background: var(--bg-secondary);
-    color: var(--text-muted);
-    cursor: pointer;
-    transition: var(--planning-transition);
-    font-size: 1.2rem;
-}
-
-.nav-btn:hover {
-    background: var(--primary);
-    color: white;
-    transform: scale(1.1);
-}
-
-.nav-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-}
-
-.week-indicator {
-    font-size: 1rem;
-    font-weight: 500;
-    color: var(--text);
-    text-align: center;
-    min-width: 200px;
-}
-
-.today-btn {
-    background: var(--primary);
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: var(--planning-transition);
-    animation: pulseToday 2s infinite;
-}
-
-.today-btn:hover {
-    background: var(--primary-dark, #0056b3);
-    transform: scale(1.05);
-}
-
-@keyframes pulseToday {
-    0%, 100% {
-        box-shadow: 0 0 0 0 rgba(var(--primary-rgb, 0, 123, 255), 0.4);
-    }
-    50% {
-        box-shadow: 0 0 0 8px rgba(var(--primary-rgb, 0, 123, 255), 0);
-    }
-}
-
-/* =====================================================
-   GRILLE JOURS - AFFICHAGE VERTICAL
-   ===================================================== */
-
+/* Header de semaine */
 .week-header {
     display: flex;
     justify-content: space-between;
@@ -233,40 +229,74 @@
     border-bottom: 1px solid var(--planning-border);
 }
 
-.week-title {
+.week-header h3 {
     font-size: 1.2rem;
     font-weight: 600;
-    color: var(--text);
+    margin: 0;
 }
 
+.current-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background: var(--primary);
+    color: white;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: var(--spacing-sm);
+}
+
+/* Score de semaine */
 .week-score {
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
 }
 
-.score-badge {
-    background: var(--primary);
-    color: white;
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    font-weight: 500;
+.week-gauge {
+    width: 120px;
+    height: 8px;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    overflow: hidden;
 }
+
+.week-gauge-fill {
+    height: 100%;
+    background: var(--primary);
+    transition: width 0.6s ease;
+}
+
+/* ===== SECTION 5 : GRILLE DES JOURS ===== */
 
 .days-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: var(--spacing-lg);
     padding: var(--spacing-lg);
 }
 
+@media (min-width: 768px) {
+    .days-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (min-width: 1200px) {
+    .days-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* Carte de jour */
 .day-card {
     background: var(--bg-secondary);
     border-radius: var(--planning-radius);
     padding: var(--spacing-lg);
-    border: 1px solid var(--planning-border);
+    border: 2px solid var(--planning-border);
     transition: var(--planning-transition);
+    position: relative;
+    min-height: 200px;
 }
 
 .day-card:hover {
@@ -276,9 +306,25 @@
 
 .day-card.today {
     border-color: var(--primary);
-    background: linear-gradient(135deg, var(--primary-light) 0%, var(--bg-secondary) 100%);
+    background: linear-gradient(135deg, 
+        rgba(59, 130, 246, 0.05) 0%, 
+        var(--bg-secondary) 100%);
 }
 
+.day-card.today::before {
+    content: 'Aujourd\'hui';
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: var(--primary);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0 var(--planning-radius) 0 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* Header du jour */
 .day-header {
     display: flex;
     justify-content: space-between;
@@ -286,43 +332,44 @@
     margin-bottom: var(--spacing-md);
 }
 
-.day-date {
-    font-size: 1.1rem;
+.day-name {
+    font-size: 1rem;
     font-weight: 600;
+    text-transform: capitalize;
     color: var(--text);
 }
 
-.day-indicator {
-    background: var(--primary);
-    color: white;
-    padding: 0.2rem 0.6rem;
-    border-radius: 12px;
-    font-size: 0.8rem;
-    font-weight: 500;
+.day-number {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary);
 }
 
-/* =====================================================
-   SESSIONS DANS LES JOURS
-   ===================================================== */
-
-.sessions-container {
+/* Container des sessions */
+.day-sessions {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-sm);
+    min-height: 100px;
 }
+
+/* ===== SECTION 6 : CARTES DE SESSION ===== */
 
 .session-card {
     background: var(--bg);
     border: 1px solid var(--planning-border);
     border-radius: 8px;
-    padding: 1rem;
-    margin-bottom: 0.75rem;
-    transition: all 0.2s ease;
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    transition: var(--planning-transition);
+    cursor: pointer;
+    position: relative;
 }
 
 .session-card:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: var(--primary);
 }
 
 .session-card.completed {
@@ -333,13 +380,14 @@
 .session-card.completed::after {
     content: '✓';
     position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
+    top: var(--spacing-sm);
+    right: var(--spacing-sm);
     color: var(--success);
     font-size: 1.2rem;
     font-weight: bold;
 }
 
+/* Header de session */
 .session-header {
     display: flex;
     justify-content: space-between;
@@ -350,9 +398,7 @@
 .session-title {
     font-weight: 600;
     color: var(--text);
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-xs);
+    font-size: 0.95rem;
 }
 
 .session-quality {
@@ -366,33 +412,99 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--success);
 }
 
+/* Info exercices */
 .exercise-count {
     color: var(--text-muted);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     margin-bottom: var(--spacing-xs);
 }
 
+/* Tags muscles */
 .session-muscles {
     display: flex;
     flex-wrap: wrap;
     gap: 0.3rem;
+    margin-top: var(--spacing-xs);
 }
 
 .muscle-tag {
-    padding: 0.15rem 0.4rem;
-    border-radius: 8px;
+    padding: 0.15rem 0.5rem;
+    border-radius: 12px;
     color: white;
     font-size: 0.7rem;
     font-weight: 600;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-/* =====================================================
-   ZONES D'AJOUT
-   ===================================================== */
+/* Actions de session */
+.session-actions {
+    position: absolute;
+    top: var(--spacing-sm);
+    right: var(--spacing-sm);
+    display: flex;
+    gap: 0.25rem;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.session-card:hover .session-actions {
+    opacity: 1;
+}
+
+.action-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: var(--planning-transition);
+    font-size: 0.8rem;
+}
+
+.action-btn:hover {
+    background: var(--primary);
+    color: white;
+    transform: scale(1.1);
+}
+
+.action-btn.danger:hover {
+    background: var(--danger);
+}
+
+/* Handle pour drag & drop */
+.drag-handle {
+    position: absolute;
+    left: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-tertiary);
+    border-radius: 4px 0 0 4px;
+    cursor: grab;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.session-card:hover .drag-handle {
+    opacity: 1;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+/* ===== SECTION 7 : ZONES D'AJOUT DE SÉANCE ===== */
 
 .add-session-zone {
     border: 2px dashed var(--planning-border);
@@ -402,823 +514,1175 @@
     color: var(--text-muted);
     cursor: pointer;
     transition: var(--planning-transition);
-    background: var(--bg-tertiary);
+    background: rgba(255, 255, 255, 0.02);
 }
 
 .add-session-zone:hover {
     border-color: var(--primary);
     color: var(--primary);
-    background: var(--primary-light);
+    background: rgba(59, 130, 246, 0.05);
+    transform: scale(1.02);
 }
 
 .add-session-zone i {
     font-size: 1.5rem;
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
     display: block;
 }
 
+.add-session-zone span {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
 
-/* =====================================================
-   MODAL CRÉATION SÉANCE - STRUCTURE RÉELLE CORRIGÉE
-   ===================================================== */
+/* Jour vide cliquable */
+.day-card.empty-day {
+    cursor: pointer;
+    border-style: dashed;
+    opacity: 0.7;
+}
 
-/* OVERRIDE styles.css pour modal planning */
-#modal.planning-modal .modal-content {
-    max-width: 900px !important;
-    width: 95vw !important;
-    background: var(--bg-card);
+.day-card.empty-day:hover {
+    opacity: 1;
+    border-color: var(--primary);
+}
+
+/* ===== SECTION 8 : ÉTATS DRAG & DROP ===== */
+
+/* Élément en cours de drag */
+.session-card.sortable-drag {
+    opacity: 0.4;
+    transform: rotate(2deg);
+}
+
+/* Zone de drop active */
+.day-sessions.drag-over {
+    background: rgba(59, 130, 246, 0.1);
+    border: 2px dashed var(--primary);
+    border-radius: 8px;
+    min-height: 120px;
+}
+
+/* Indicateur de position */
+.drop-indicator {
+    height: 3px;
+    background: var(--primary);
+    margin: var(--spacing-xs) 0;
+    border-radius: 2px;
+    animation: pulse 1s ease infinite;
+}
+
+/* ===== SECTION 9 : INDICATEURS ET WARNINGS ===== */
+
+.day-warnings {
+    margin-top: var(--spacing-sm);
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid var(--planning-border);
+}
+
+.warning-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs);
+    background: rgba(239, 68, 68, 0.1);
+    border-radius: 6px;
+    color: var(--danger);
+    font-size: 0.8rem;
+    margin-bottom: var(--spacing-xs);
+}
+
+.warning-item::before {
+    content: '⚠️';
+    font-size: 1rem;
+}
+
+/* Badge limite sessions */
+.session-limit-badge {
+    position: absolute;
+    bottom: var(--spacing-sm);
+    right: var(--spacing-sm);
+    background: var(--warning);
+    color: white;
+    padding: 0.2rem 0.5rem;
     border-radius: 12px;
-    padding: 0 !important;
-    max-height: 90vh !important;
-    border: none;
+    font-size: 0.7rem;
+    font-weight: 600;
 }
 
-#modal.planning-modal .modal-header {
-    display: none !important;
-}
+/* ===== SECTION 10 : MODAL CRÉATION/ÉDITION SÉANCE ===== */
 
-#modal.planning-modal .modal-body {
-    padding: 0 !important;
-    overflow: hidden;
-}
-
-/* ===== 1. HEADER UNIFIÉ - TITRE + CROIX ALIGNÉS ===== */
-.add-session-modal-v2 {
+/* Structure principale du modal */
+.planning-modal-content {
     display: flex;
     flex-direction: column;
     height: 100%;
     max-height: 90vh;
     overflow: hidden;
-    background: var(--bg-card);
-    position: relative;
+    background: var(--bg-primary);
+    color: var(--text-primary);
 }
 
-.modal-header-section {
-    padding: 1.5rem 1.5rem 1rem 1.5rem;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg-card);
-    position: relative;
-}
-
-/* Croix de fermeture alignée avec le titre */
-.modal-header-section::after {
-    content: '×';
-    position: absolute;
-    top: 1.5rem;
-    right: 1.5rem;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: var(--bg-tertiary);
-    color: var(--text-muted);
+/* Header avec date */
+.modal-date-header {
     display: flex;
     align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 1.8rem;
-    font-weight: 300;
-    transition: all 0.2s ease;
-    z-index: 10;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-lg);
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 1.1rem;
+    font-weight: 500;
 }
 
-.modal-header-section::after:hover {
-    background: var(--danger);
-    color: white;
-    transform: scale(1.1);
-}
-
-.modal-header-section h3 {
-    margin: 0;
-    color: var(--text);
-    font-size: 1.4rem;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding-right: 2rem;
-}
-
-.modal-header-section h3 i {
+.modal-date-header i {
     color: var(--primary);
     font-size: 1.2rem;
 }
 
-/* 2. SOUS-TITRE DATE AVEC ICÔNE CALENDRIER */
-.session-date-info {
-    margin: 0.8rem 0 0 2.7rem;
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.session-date-info i {
-    color: var(--text-muted);
-    font-size: 0.9rem;
-}
-
-/* ===== 3. CORPS DU MODAL ===== */
-.modal-body-section {
+/* Layout principal 2 colonnes */
+.modal-main-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
     flex: 1;
-    overflow-y: auto;
-    padding: 1.5rem;
+    overflow: hidden;
+    padding: var(--spacing-lg);
+}
+
+@media (min-width: 1024px) {
+    .modal-main-layout {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* Colonne de sélection */
+.selection-column {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
-}
-
-/* ===== 4. SECTION EXERCICES SHRINKABLE ===== */
-.selection-section {
-    background: var(--bg-secondary);
-    border-radius: 10px;
-    border: 1px solid var(--border);
+    gap: var(--spacing-md);
     overflow: hidden;
 }
 
+/* Header de section cliquable */
 .section-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem 1.5rem;
-    background: var(--bg-tertiary);
+    padding: var(--spacing-md);
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+    transition: var(--transition-normal);
+}
+
+.section-header.clickable {
     cursor: pointer;
-    transition: all 0.2s ease;
     user-select: none;
 }
 
-.section-header:hover {
-    background: var(--primary-light);
+.section-header.clickable:hover {
+    background: var(--bg-tertiary);
 }
 
-.section-header h4 {
-    margin: 0;
-    color: var(--text);
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.header-left i {
+    color: var(--primary);
+    font-size: 1.2rem;
+}
+
+.header-left h4 {
     font-size: 1.1rem;
     font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    margin: 0;
 }
 
-.section-header h4 i {
-    color: var(--primary);
+.exercise-total {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: var(--bg-tertiary);
+    border-radius: 100px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
 }
 
-.section-toggle {
+.header-right {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: var(--spacing-md);
 }
 
 .selection-counter {
-    background: var(--primary);
-    color: white;
-    padding: 0.3rem 0.8rem;
-    border-radius: 15px;
-    font-size: 0.8rem;
-    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-muted);
 }
 
+#selectedCount {
+    font-weight: 600;
+    color: var(--primary);
+}
+
+/* Icône toggle */
 .toggle-icon {
+    font-size: 1rem;
     color: var(--text-muted);
-    font-size: 0.9rem;
-    transition: transform 0.2s ease;
+    transition: transform 0.3s ease;
 }
 
 .toggle-icon.closed {
     transform: rotate(-90deg);
 }
 
-/* ===== 5. BARRE DE RECHERCHE DISCRÈTE ===== */
-.exercise-search-bar {
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg-secondary);
+/* Barre de recherche */
+.exercise-search-container {
     position: relative;
+    display: flex;
+    align-items: center;
 }
 
-.exercise-search-bar input {
+.exercise-search-container i {
+    position: absolute;
+    left: var(--spacing-md);
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.exercise-search {
     width: 100%;
-    padding: 0.75rem 1rem 0.75rem 2.5rem;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--bg);
-    color: var(--text);
-    font-size: 0.9rem;
-    transition: all 0.2s ease;
-    box-sizing: border-box;
+    padding: var(--spacing-md);
+    padding-left: calc(var(--spacing-md) * 3);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    font-size: 1rem;
+    color: var(--text-primary);
+    transition: all 0.3s ease;
 }
 
-.exercise-search-bar input:focus {
+.exercise-search:focus {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-.exercise-search-bar i {
-    position: absolute;
-    left: 2.25rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-muted);
-    font-size: 0.9rem;
+/* Grille des exercices */
+.exercise-groups-wrapper {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
 }
 
-/* ===== 6. EXERCICES 2 COLONNES SANS BORDURES ===== */
 .exercise-groups-container {
-    max-height: 400px;
+    height: 100%;
     overflow-y: auto;
-    padding: 1rem 1.5rem;
+    overflow-x: hidden;
+    padding-right: var(--spacing-sm);
     transition: all 0.3s ease;
 }
 
 .exercise-groups-container.collapsed {
     max-height: 0;
-    padding: 0 1.5rem;
     opacity: 0;
 }
 
-.exercise-group {
-    margin-bottom: 1.5rem;
+/* Carte de groupe musculaire */
+.muscle-group-card {
+    margin-bottom: var(--spacing-lg);
+    animation: fadeIn 0.3s ease;
 }
 
-.exercise-group h5 {
-    margin: 0 0 1rem 0;
-    padding: 0.6rem 1rem;
-    background: var(--bg-tertiary);
-    border-radius: 8px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--text);
-    border-left: 4px solid var(--primary);
-    cursor: pointer;
+.muscle-group-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    transition: all 0.2s ease;
-    user-select: none;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius);
+    margin-bottom: var(--spacing-sm);
 }
 
-.exercise-group h5:hover {
-    background: var(--primary-light);
-    transform: translateX(2px);
+.muscle-icon {
+    font-size: 1.5rem;
 }
 
-.exercise-group h5::after {
-    content: '▼';
-    font-size: 0.7rem;
-    transition: transform 0.2s ease;
-    color: var(--text-muted);
-}
-
-.exercise-group.collapsed h5::after {
-    transform: rotate(-90deg);
-}
-
-/* Grid 2 colonnes propre */
-.exercise-group-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-    transition: all 0.3s ease;
-}
-
-.exercise-group.collapsed .exercise-group-grid {
-    max-height: 0;
-    overflow: hidden;
-    opacity: 0;
-}
-
-/* ===== 7. CARDS EXERCICES PROPRES (SANS BORDURES BLEUES) ===== */
-.exercise-option {
-    transition: all 0.2s ease;
-}
-
-.exercise-option.hidden {
-    display: none;
-}
-
-.exercise-option label {
-    display: block;
-    cursor: pointer;
+.muscle-group-header h5 {
+    flex: 1;
+    font-size: 1rem;
+    font-weight: 600;
     margin: 0;
 }
 
-.exercise-option input[type="checkbox"] {
-    display: none;
+.exercise-count {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: var(--bg-secondary);
+    border-radius: 100px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
 }
 
-.exercise-option-card {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 0.8rem;
-    transition: all 0.2s ease;
-    min-height: 70px;
+/* Options d'exercices */
+.exercise-options-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-sm);
+}
+
+@media (min-width: 768px) {
+    .exercise-options-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.exercise-option {
     display: flex;
-    flex-direction: column;
-    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
-.exercise-option input:checked + .exercise-option-card {
-    border-color: var(--primary);
-    background: rgba(59, 130, 246, 0.05);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+.exercise-option input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
 }
 
-.exercise-option-card:hover {
+.exercise-option-content {
+    flex: 1;
+    padding: var(--spacing-md);
+    background: var(--bg-secondary);
+    border: 2px solid transparent;
+    border-radius: var(--radius);
+    transition: all 0.3s ease;
+}
+
+.exercise-option:hover .exercise-option-content {
+    background: var(--bg-tertiary);
+    transform: translateX(4px);
+}
+
+.exercise-option input:checked + .exercise-option-content {
+    background: rgba(59, 130, 246, 0.1);
     border-color: var(--primary);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.exercise-option.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .exercise-name {
     font-weight: 600;
-    font-size: 0.85rem;
-    color: var(--text);
-    line-height: 1.3;
-    margin-bottom: 0.3rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    font-size: 0.95rem;
+    margin-bottom: var(--spacing-xs);
+    color: var(--text-primary);
 }
 
-.exercise-details {
-    font-size: 0.7rem;
+.exercise-params {
+    font-size: 0.85rem;
     color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.badge-disabled {
+    padding: 2px 6px;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* Colonne aperçu */
+.preview-column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    overflow: hidden;
+}
+
+.preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+}
+
+.preview-header h4 {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: 1.1rem;
+    font-weight: 600;
     margin: 0;
 }
 
-/* ===== 8. APERÇU DE LA SÉANCE - PROPRE SANS BORDURES ===== */
-.preview-section {
-    background: transparent;
-    border: none;
-    border-radius: 0;
-}
-
-.preview-section h4 {
-    margin: 0 0 1.5rem 0;
-    padding: 0;
-    color: var(--text);
-    font-size: 1.1rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: transparent;
-    border: none;
-}
-
-.preview-section h4 > span {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.preview-section h4 i {
-    color: var(--primary);
-}
-
-/* 9. BAGUETTE MAGIQUE ANIMÉE */
-.magic-wand {
-    background: linear-gradient(135deg, #f59e0b, #f97316);
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 42px;
-    height: 42px;
+/* Bouton baguette magique */
+.btn-icon {
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    color: var(--text-primary);
     cursor: pointer;
     transition: all 0.3s ease;
-    opacity: 0;
-    transform: scale(0.8);
-    box-shadow: 0 2px 10px rgba(245, 158, 11, 0.3);
 }
 
-.magic-wand.visible {
-    opacity: 1;
-    transform: scale(1);
-    animation: magical-pulse 2.5s infinite;
+.btn-icon:hover {
+    background: var(--primary);
+    color: white;
+    transform: scale(1.05);
 }
 
-.magic-wand:hover {
-    transform: scale(1.1);
-    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.5);
+.magic-wand {
+    position: relative;
+    overflow: visible;
+}
+
+.magic-wand i {
+    font-size: 1.1rem;
 }
 
 @keyframes magical-pulse {
-    0%, 100% { 
-        box-shadow: 0 2px 10px rgba(245, 158, 11, 0.3), 0 0 0 0 rgba(245, 158, 11, 0.7); 
+    0% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
     }
-    50% { 
-        box-shadow: 0 4px 20px rgba(245, 158, 11, 0.5), 0 0 0 10px rgba(245, 158, 11, 0); 
+    70% {
+        box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
     }
 }
 
-/* ===== 10. CONTENU APERÇU VERTICAL DANS L'ORDRE ===== */
-.session-preview {
-    padding: 0;
-    min-height: auto;
+.magic-wand:not(:disabled):hover {
+    animation: magical-pulse 1s infinite;
+}
+
+.magic-wand.optimizing {
+    animation: spin 0.6s ease;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg) scale(1); }
+    50% { transform: rotate(180deg) scale(1.2); }
+    100% { transform: rotate(360deg) scale(1); }
+}
+
+/* Métriques de session */
+.session-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-sm);
+}
+
+@media (min-width: 768px) {
+    .session-metrics {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.metric-card {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius);
+    transition: all 0.3s ease;
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.metric-card i {
+    font-size: 1.5rem;
+    color: var(--text-muted);
+}
+
+.metric-content {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
 }
 
-.empty-preview {
-    text-align: center;
-    padding: 3rem 1rem;
-    color: var(--text-muted);
-    font-style: italic;
-}
-
-.empty-preview i {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-    display: block;
-    opacity: 0.5;
-}
-
-/* 1. MÉTRIQUES EN HAUT - 4 COLONNES SANS BORDURES */
-.preview-stats {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
-    order: 1;
-}
-
-.stat-item {
-    text-align: center;
-    padding: 1rem;
-    background: var(--bg-tertiary);
-    border-radius: 10px;
-    border: none;
-    transition: all 0.2s ease;
-}
-
-.stat-item:hover {
-    transform: translateY(-2px);
-    background: var(--bg-secondary);
-}
-
-.stat-icon {
-    font-size: 1.4rem;
-    margin-bottom: 0.5rem;
-    display: block;
-}
-
-.stat-icon.exercises { color: var(--primary); }
-.stat-icon.duration { color: #f59e0b; }
-.stat-icon.muscles { color: #06b6d4; }
-.stat-icon.quality { color: #10b981; }
-
-.stat-value {
-    font-size: 1.2rem;
+.metric-value {
+    font-size: 1.5rem;
     font-weight: 700;
-    color: var(--text);
-    margin-bottom: 0.3rem;
-    display: block;
+    line-height: 1;
+    color: var(--text-primary);
     transition: all 0.3s ease;
 }
 
-.stat-value.updated {
-    transform: scale(1.2);
-    color: var(--primary);
-}
-
-.stat-label {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    font-weight: 500;
-}
-
-/* 2. EXERCICES AU MILIEU - LISTE VERTICALE SANS BORDURES */
-.selected-exercises {
-    order: 2;
-    max-height: 200px;
-    overflow-y: auto;
-}
-
-.exercise-preview-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.8rem;
-    background: var(--bg-tertiary);
-    border: none;
-    border-radius: 10px;
-    margin-bottom: 0.5rem;
-    cursor: move;
-    position: relative;
-    transition: all 0.2s ease;
-}
-
-.exercise-preview-item:hover {
-    transform: translateY(-1px);
-    background: var(--bg-secondary);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.exercise-drag-handle {
-    color: var(--text-muted);
-    cursor: grab;
-    min-width: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.exercise-drag-handle:active {
-    cursor: grabbing;
-}
-
-.exercise-number {
-    background: var(--primary);
-    color: white;
-    border-radius: 50%;
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.85rem;
-    font-weight: 600;
-    flex-shrink: 0;
-    transition: all 0.3s ease;
-}
-
-.exercise-preview-name {
-    flex: 1;
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: var(--text);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    margin-bottom: 0.2rem;
-}
-
-.exercise-preview-params {
+.metric-label {
     font-size: 0.75rem;
     color: var(--text-muted);
-    margin: 0;
+    margin-top: 2px;
 }
 
-.exercise-remove {
-    position: absolute;
-    top: 50%;
-    right: 0.5rem;
-    transform: translateY(-50%);
-    background: none;
-    border: 1px solid var(--text-muted);
-    color: var(--text-muted);
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.7rem;
-    opacity: 0.6;
-    transition: all 0.2s ease;
-}
-
-.exercise-remove:hover {
-    background: var(--danger);
-    border-color: var(--danger);
-    color: white;
-    opacity: 1;
-    transform: translateY(-50%) scale(1.2);
-}
-
-/* 3. GROUPES MUSCULAIRES EN BAS */
-.muscle-groups-preview {
-    order: 3;
-    padding-top: 1rem;
-    border-top: 1px solid var(--border);
-}
-
-.muscle-groups-preview h5 {
-    margin: 0 0 0.75rem 0;
-    color: var(--text);
-    font-size: 0.9rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.muscle-groups-preview h5 i {
-    color: var(--primary);
-}
-
-.muscle-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
-
-.muscle-tag-preview {
-    padding: 0.4rem 0.8rem;
-    border-radius: 15px;
-    color: white;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    transition: all 0.2s ease;
-}
-
-.muscle-tag-preview:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-}
-
-/* Couleurs par muscle */
-.muscle-tag-preview[data-muscle="chest"] { background: #ef4444; }
-.muscle-tag-preview[data-muscle="back"] { background: #10b981; }
-.muscle-tag-preview[data-muscle="shoulders"] { background: #f59e0b; }
-.muscle-tag-preview[data-muscle="arms"] { background: #8b5cf6; }
-.muscle-tag-preview[data-muscle="legs"] { background: #06b6d4; }
-.muscle-tag-preview[data-muscle="core"] { background: #f97316; }
-
-/* ===== 11. BOUTONS ACTIONS ===== */
-.modal-actions-section {
-    padding: 1.5rem;
-    border-top: 1px solid var(--border);
-    background: var(--bg-secondary);
-    display: flex;
-    justify-content: flex-end;
-    gap: 1rem;
-    flex-shrink: 0;
-}
-
-.modal-actions-section .btn {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.8rem 1.5rem;
-    font-weight: 600;
-    border-radius: 8px;
-    transition: all 0.2s ease;
-    font-size: 0.9rem;
-    border: 1px solid transparent;
-    cursor: pointer;
-    text-decoration: none;
-}
-
-.btn-secondary {
-    background: var(--bg) !important;
-    color: var(--text-muted) !important;
-    border-color: var(--border) !important;
-}
-
-.btn-primary {
-    background: var(--primary) !important;
-    color: white !important;
-    border-color: var(--primary) !important;
-}
-
-.btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-}
-
-/* ===== 12. ANIMATIONS ===== */
+/* Animation mise à jour score */
 @keyframes score-update {
     0% { transform: scale(1); }
     50% { transform: scale(1.2); }
     100% { transform: scale(1); }
 }
 
-.stat-value.score-updated {
-    animation: score-update 0.5s ease;
+.metric-value.score-updating {
+    animation: score-update 0.6s ease;
 }
 
-@keyframes number-update {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.2); background: var(--warning); }
-    100% { transform: scale(1); }
+/* Liste des exercices sélectionnés */
+.preview-exercises-list {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+    padding: var(--spacing-md);
+    min-height: 200px;
+}
+
+/* État vide */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 200px;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-md);
+    opacity: 0.3;
+}
+
+.empty-state p {
+    font-size: 0.95rem;
+    max-width: 250px;
+}
+
+/* Item d'exercice dans l'aperçu */
+.exercise-preview-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    margin-bottom: var(--spacing-sm);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.exercise-preview-item:hover {
+    background: var(--bg-tertiary);
+    transform: translateX(2px);
+}
+
+/* Handle de drag */
+.exercise-drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    color: var(--text-muted);
+    cursor: grab;
+    transition: all 0.2s ease;
+}
+
+.exercise-drag-handle:hover {
+    color: var(--primary);
+}
+
+.exercise-drag-handle:active {
+    cursor: grabbing;
+}
+
+/* Numéro d'exercice */
+.exercise-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    font-size: 0.85rem;
+    font-weight: 600;
+    flex-shrink: 0;
+    transition: all 0.3s ease;
 }
 
 .exercise-number.updating {
-    animation: number-update 0.3s ease;
+    animation: number-pulse 0.3s ease;
 }
 
-/* ===== 13. SCROLLBARS CUSTOM ===== */
-.exercise-groups-container::-webkit-scrollbar,
-.selected-exercises::-webkit-scrollbar {
-    width: 6px;
+@keyframes number-pulse {
+    0% { transform: scale(1); background: var(--primary); }
+    50% { transform: scale(1.2); background: var(--success); }
+    100% { transform: scale(1); background: var(--primary); }
 }
 
-.exercise-groups-container::-webkit-scrollbar-track,
-.selected-exercises::-webkit-scrollbar-track {
-    background: var(--bg-tertiary);
-    border-radius: 3px;
+/* Info exercice */
+.exercise-info {
+    flex: 1;
+    min-width: 0;
 }
 
-.exercise-groups-container::-webkit-scrollbar-thumb,
-.selected-exercises::-webkit-scrollbar-thumb {
-    background: var(--text-muted);
-    border-radius: 3px;
+.exercise-info .exercise-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.exercise-groups-container::-webkit-scrollbar-thumb:hover,
-.selected-exercises::-webkit-scrollbar-thumb:hover {
+.exercise-info .exercise-params {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+/* Bouton supprimer */
+.exercise-remove,
+.btn-danger {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    opacity: 0;
+}
+
+.exercise-preview-item:hover .exercise-remove {
+    opacity: 1;
+}
+
+.exercise-remove:hover,
+.btn-danger:hover {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: white;
+    transform: scale(1.1);
+}
+
+/* États drag & drop */
+.sortable-ghost {
+    opacity: 0.4;
+    background: rgba(59, 130, 246, 0.1) !important;
+}
+
+.sortable-chosen {
+    transform: scale(1.02);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.sortable-drag {
+    opacity: 0 !important;
+}
+
+/* Résumé groupes musculaires */
+.muscle-groups-summary {
+    padding: var(--spacing-md);
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+}
+
+.muscle-groups-summary h4 {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-sm);
+}
+
+.muscle-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+}
+
+.muscle-tag {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: 100px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.muscle-tag:hover {
+    transform: scale(1.05);
+}
+
+/* Actions du modal */
+.modal-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+}
+
+.modal-actions .btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md) var(--spacing-lg);
+    border: none;
+    border-radius: var(--radius);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+/* Boutons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: none;
+    border-radius: var(--radius);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
     background: var(--primary);
+    color: white;
 }
 
-/* ===== 14. RESPONSIVE MOBILE ===== */
+.btn-primary:hover:not(:disabled) {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+    background: var(--bg-quaternary);
+}
+
+.btn-success {
+    background: var(--success);
+    color: white;
+}
+
+.btn-success:hover {
+    background: var(--success-dark);
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.85rem;
+}
+
+/* Mode édition */
+.planning-modal-content.edit-mode .session-overview {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-lg);
+}
+
+/* ===== SECTION 11 : INDICATEURS SWIPE MOBILE ===== */
+
+.swipe-indicator {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 2rem;
+    color: var(--text-muted);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.swipe-indicator.left {
+    left: var(--spacing-md);
+}
+
+.swipe-indicator.right {
+    right: var(--spacing-md);
+}
+
+.weeks-container.swiping .swipe-indicator {
+    opacity: 0.5;
+}
+
+/* ===== SECTION 12 : RESPONSIVE MOBILE ===== */
+
 @media (max-width: 768px) {
-    #modal.planning-modal .modal-content {
-        width: 100% !important;
-        max-width: 100% !important;
-        margin: 0 !important;
-        border-radius: 0 !important;
-        max-height: 100vh !important;
+    /* Planning général */
+    .planning-container {
+        padding: var(--spacing-sm);
     }
     
-    .modal-header-section {
-        padding: 1rem;
+    .planning-header {
+        flex-direction: column;
+        gap: var(--spacing-md);
+        padding: var(--spacing-md);
     }
     
-    .modal-header-section h3 {
+    .planning-header h2 {
+        font-size: 1.5rem;
+    }
+    
+    .planning-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    /* Navigation */
+    .week-navigation {
+        padding: var(--spacing-sm) var(--spacing-md);
+    }
+    
+    .week-indicator {
+        min-width: auto;
+        font-size: 0.95rem;
+    }
+    
+    .nav-btn {
+        width: 36px;
+        height: 36px;
+    }
+    
+    /* Grille des jours */
+    .days-grid {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-md);
+        padding: var(--spacing-md);
+    }
+    
+    /* Sessions */
+    .session-card {
+        padding: var(--spacing-sm);
+    }
+    
+    .session-actions {
+        opacity: 1;
+    }
+    
+    .drag-handle {
+        display: none;
+    }
+    
+    /* Modal */
+    .modal-main-layout {
+        grid-template-columns: 1fr;
+        padding: var(--spacing-md);
+    }
+    
+    .preview-column {
+        order: -1;
+    }
+    
+    .session-metrics {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .metric-card {
+        padding: var(--spacing-sm);
+    }
+    
+    .metric-value {
         font-size: 1.2rem;
     }
     
-    .modal-body-section {
-        padding: 1rem;
+    .modal-actions {
+        flex-direction: column;
+        padding: var(--spacing-md);
     }
     
-    .exercise-group-grid {
-        grid-template-columns: 1fr;
-        gap: 0.5rem;
+    .modal-actions .btn {
+        width: 100%;
     }
     
-    .preview-stats {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 0.75rem;
-    }
-    
-    .stat-item {
-        padding: 0.75rem;
-    }
-    
+    /* Touch targets */
+    .action-btn,
+    .btn-icon,
     .exercise-drag-handle {
         min-width: 44px;
         min-height: 44px;
     }
+}
+
+/* Petit mobile */
+@media (max-width: 375px) {
+    .week-indicator {
+        font-size: 0.85rem;
+    }
     
-    .exercise-remove {
-        width: 32px;
-        height: 32px;
+    .today-btn {
+        padding: 0.4rem 0.8rem;
         font-size: 0.8rem;
     }
     
-    .modal-actions-section {
-        flex-direction: column;
-        gap: 0.75rem;
+    .day-number {
+        font-size: 1.2rem;
     }
     
-    .modal-actions-section .btn {
-        width: 100%;
-        justify-content: center;
+    .session-title {
+        font-size: 0.85rem;
     }
 }
 
-/* ===== 15. ÉTATS DRAG & DROP ===== */
-.exercise-preview-item.sortable-ghost {
-    opacity: 0.4;
-    background: rgba(59, 130, 246, 0.1);
+/* Support swipe mobile */
+@supports (-webkit-touch-callout: none) {
+    .exercise-preview-item {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .exercise-preview-item.swipe-left {
+        transform: translateX(-80px);
+        transition: transform 0.3s ease;
+    }
+    
+    .exercise-preview-item.swipe-left .exercise-remove {
+        opacity: 1;
+        transform: translateX(80px);
+    }
 }
 
-.exercise-preview-item.sortable-chosen {
-    transform: rotate(2deg);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    z-index: 1000;
+/* ===== SECTION 13 : ANIMATIONS ===== */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-/* ===== 16. HOOKS JAVASCRIPT ===== */
-/* Support pour toggleExercisesList() */
-.exercise-groups-container.collapsed {
-    max-height: 0 !important;
-    opacity: 0;
-    overflow: hidden;
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
-.exercise-search-bar.collapsed {
-    max-height: 0;
-    padding: 0 1.5rem;
-    opacity: 0;
-    overflow: hidden;
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
 }
+
+.error-shake {
+    animation: shake 0.3s ease;
+}
+
+/* ===== SECTION 14 : SCROLLBARS PERSONNALISÉES ===== */
+
+.exercise-groups-container::-webkit-scrollbar,
+.preview-exercises-list::-webkit-scrollbar,
+.days-grid::-webkit-scrollbar {
+    width: 8px;
+}
+
+.exercise-groups-container::-webkit-scrollbar-track,
+.preview-exercises-list::-webkit-scrollbar-track,
+.days-grid::-webkit-scrollbar-track {
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+}
+
+.exercise-groups-container::-webkit-scrollbar-thumb,
+.preview-exercises-list::-webkit-scrollbar-thumb,
+.days-grid::-webkit-scrollbar-thumb {
+    background: var(--text-muted);
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.exercise-groups-container::-webkit-scrollbar-thumb:hover,
+.preview-exercises-list::-webkit-scrollbar-thumb:hover,
+.days-grid::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
+}
+
+/* Firefox */
+.exercise-groups-container,
+.preview-exercises-list,
+.days-grid {
+    scrollbar-width: thin;
+    scrollbar-color: var(--text-muted) var(--bg-tertiary);
+}
+
+/* ===== SECTION 15 : ÉTATS ET FEEDBACK ===== */
+
+/* Focus visible */
+.btn:focus-visible,
+.btn-icon:focus-visible,
+.exercise-search:focus-visible,
+.action-btn:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* Loading state */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 24px;
+    height: 24px;
+    border: 3px solid var(--bg-tertiary);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* Success state */
+.success-flash {
+    animation: successFlash 0.6s ease;
+}
+
+@keyframes successFlash {
+    0%, 100% { background: inherit; }
+    50% { background: rgba(34, 197, 94, 0.1); }
+}
+
+/* ===== SECTION 16 : UTILITAIRES ===== */
+
+/* Spacing */
+.mt-sm { margin-top: var(--spacing-sm); }
+.mt-md { margin-top: var(--spacing-md); }
+.mt-lg { margin-top: var(--spacing-lg); }
+.mb-sm { margin-bottom: var(--spacing-sm); }
+.mb-md { margin-bottom: var(--spacing-md); }
+.mb-lg { margin-bottom: var(--spacing-lg); }
+
+/* Display */
+.d-none { display: none !important; }
+.d-block { display: block !important; }
+.d-flex { display: flex !important; }
+
+/* Text */
+.text-center { text-align: center; }
+.text-muted { color: var(--text-muted); }
+.text-primary { color: var(--primary); }
+.text-danger { color: var(--danger); }
+.text-success { color: var(--success); }
+
+/* Flex */
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.align-center { align-items: center; }
+.gap-sm { gap: var(--spacing-sm); }
+.gap-md { gap: var(--spacing-md); }
+
+/* ===== SECTION 17 : DARK MODE SPÉCIFIQUE ===== */
+
+@media (prefers-color-scheme: dark) {
+    .planning-container {
+        background: #0a0a0a;
+    }
+    
+    .day-card {
+        background: #1a1a1a;
+        border-color: #2a2a2a;
+    }
+    
+    .session-card {
+        background: #0f0f0f;
+        border-color: #2a2a2a;
+    }
+    
+    .add-session-zone {
+        background: rgba(255, 255, 255, 0.02);
+        border-color: #2a2a2a;
+    }
+    
+    .exercise-search {
+        background: #1a1a1a;
+        border-color: #2a2a2a;
+    }
+    
+    .exercise-option-content {
+        background: #1a1a1a;
+    }
+    
+    .exercise-preview-item {
+        background: #0f0f0f;
+        border-color: #2a2a2a;
+    }
+}
+
+/* ===== SECTION 18 : IMPRESSION ===== */
+
+@media print {
+    .planning-header,
+    .week-navigation,
+    .session-actions,
+    .add-session-zone,
+    .modal-actions {
+        display: none !important;
+    }
+    
+    .week-section {
+        display: block !important;
+        page-break-inside: avoid;
+    }
+    
+    .day-card {
+        break-inside: avoid;
+    }
+    
+    .session-card {
+        border: 1px solid #ccc;
+    }
+}
+
+/* ===== FIN DU FICHIER CSS (Total: ~2000 lignes) ===== */
