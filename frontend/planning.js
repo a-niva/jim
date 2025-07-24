@@ -202,6 +202,29 @@ class PlanningManager {
             return colorMap[muscle] || '#6c757d';
         }
 
+    getMuscleGroupIcon(muscle) {
+        // Normaliser la clé
+        const muscleKey = muscle.toLowerCase().replace(/[éè]/g, 'e');
+        
+        // Utiliser MUSCLE_GROUPS de app.js si disponible
+        if (window.MUSCLE_GROUPS && window.MUSCLE_GROUPS[muscleKey]) {
+            return window.MUSCLE_GROUPS[muscleKey].icon;
+        }
+        
+        // Fallback avec mapping direct
+        const iconMap = {
+            'dos': '🔙',
+            'pectoraux': '💪',
+            'bras': '💪',
+            'epaules': '🤷',
+            'jambes': '🦵',
+            'abdominaux': '🎯',
+            'autres': '🏋️'
+        };
+        
+        return iconMap[muscleKey] || '💪';
+    }
+
     extractPrimaryMuscles(exercises) {
         if (!exercises || exercises.length === 0) return [];
         const muscles = new Set();
@@ -2827,29 +2850,33 @@ class PlanningManager {
         return Math.min(100, Math.round(score));
     }
 
-    // NOUVELLES MÉTHODES à ajouter :
-
-    sortExercisesByContribution() {
-        // Trier les exercices par contribution potentielle au score
-        const groups = document.querySelectorAll('.exercise-group');
-        groups.forEach(group => {
-            const grid = group.querySelector('.exercise-group-grid');
-            const options = Array.from(grid.querySelectorAll('.exercise-option'));
+    async sortExercisesByContribution(exercises) {
+        // Si pas d'exercices, retourner un array vide
+        if (!exercises || !Array.isArray(exercises)) {
+            return [];
+        }
+        
+        // Si SessionQualityEngine n'est pas disponible, retourner les exercices non triés
+        if (!window.SessionQualityEngine || !window.SessionQualityEngine.sortByQualityContribution) {
+            console.warn('SessionQualityEngine non disponible, pas de tri par contribution');
+            return exercises; // IMPORTANT : Retourner les exercices, pas undefined !
+        }
+        
+        try {
+            // Essayer le tri par contribution
+            const sorted = await window.SessionQualityEngine.sortByQualityContribution(exercises);
             
-            options.sort((a, b) => {
-                const exerciseA = JSON.parse(a.querySelector('input').dataset.exercise);
-                const exerciseB = JSON.parse(b.querySelector('input').dataset.exercise);
-                
-                // Score basé sur nombre de muscles + difficulté
-                const scoreA = (exerciseA.muscle_groups?.length || 1) * 10 + (exerciseA.difficulty || 1);
-                const scoreB = (exerciseB.muscle_groups?.length || 1) * 10 + (exerciseB.difficulty || 1);
-                
-                return scoreB - scoreA;
-            });
-            
-            // Réorganiser dans le DOM
-            options.forEach(option => grid.appendChild(option));
-        });
+            // VÉRIFIER que le résultat est valide
+            if (Array.isArray(sorted)) {
+                return sorted;
+            } else {
+                console.warn('sortByQualityContribution a retourné un non-array:', sorted);
+                return exercises; // Fallback aux exercices originaux
+            }
+        } catch (error) {
+            console.error('Erreur lors du tri par contribution:', error);
+            return exercises; // Fallback aux exercices originaux
+        }
     }
 
     filterExercises(searchTerm) {
@@ -3317,13 +3344,11 @@ class PlanningManager {
             return;
         }
         
-        // Récupérer le bouton directement par ID au lieu de event.target
         const btn = document.getElementById('optimizeBtn');
-        if (btn) {
-            btn.classList.add('optimizing');
-        }
+        if (btn) btn.classList.add('optimizing');
         
         try {
+            // Récupérer les exercices actuels
             const exercises = Array.from(items).map(item => {
                 try {
                     return JSON.parse(item.dataset.exercise.replace(/&apos;/g, "'"));
@@ -3332,17 +3357,61 @@ class PlanningManager {
                 }
             }).filter(Boolean);
             
-            // Logique d'optimisation existante...
+            console.log('Exercices avant optimisation:', exercises.map(e => e.exercise_name));
+            
             let optimizedOrder = exercises;
             
-            if (this.applyLocalOptimalOrder) {
-                const result = this.applyLocalOptimalOrder(exercises);
-                optimizedOrder = result.exercises || result;
-            } else {
-                optimizedOrder = this.alternateByMuscleGroup(exercises);
+            // Essayer l'optimisation serveur si disponible
+            if (this.activeProgram?.id && window.apiPost) {
+                try {
+                    // Utiliser l'endpoint serveur reorder_session_exercises
+                    const response = await window.apiPost(
+                        `/api/sessions/reorder`,
+                        { 
+                            exercises: exercises.map(ex => ({
+                                exercise_id: ex.exercise_id,
+                                exercise_name: ex.exercise_name,
+                                muscle_groups: ex.muscle_groups,
+                                sets: ex.sets,
+                                reps_min: ex.reps_min,
+                                reps_max: ex.reps_max
+                            }))
+                        }
+                    );
+                    
+                    if (response.optimized_exercises) {
+                        optimizedOrder = response.optimized_exercises;
+                        console.log('Optimisation serveur réussie');
+                    }
+                } catch (error) {
+                    console.warn('Optimisation serveur non disponible:', error);
+                    // Fallback à l'optimisation locale
+                }
             }
             
-            // Réorganiser le DOM
+            // Si pas d'optimisation serveur, utiliser l'algorithme local amélioré
+            if (optimizedOrder === exercises) {
+                // Essayer d'abord l'alternance par muscle
+                const alternated = this.alternateByMuscleGroup(exercises);
+                
+                // Si l'alternance change vraiment l'ordre, l'utiliser
+                const orderChanged = alternated.some((ex, i) => ex.exercise_id !== exercises[i].exercise_id);
+                
+                if (orderChanged) {
+                    optimizedOrder = alternated;
+                } else {
+                    // Sinon, essayer un tri par type d'exercice (composé d'abord)
+                    optimizedOrder = [...exercises].sort((a, b) => {
+                        const aCompound = (a.muscle_groups?.length || 0) > 1 ? 1 : 0;
+                        const bCompound = (b.muscle_groups?.length || 0) > 1 ? 1 : 0;
+                        return bCompound - aCompound;
+                    });
+                }
+            }
+            
+            console.log('Exercices après optimisation:', optimizedOrder.map(e => e.exercise_name));
+            
+            // Réorganiser le DOM avec animation
             container.innerHTML = '';
             optimizedOrder.forEach((ex, index) => {
                 const html = `
@@ -3371,9 +3440,13 @@ class PlanningManager {
                 container.insertAdjacentHTML('beforeend', html);
             });
             
+            // Recalculer les métriques
             this.updateSessionMetrics(optimizedOrder);
+            
+            // Réinitialiser le drag & drop
             this.initializeExerciseDragDrop();
             
+            // Feedback
             window.showToast('Ordre optimisé pour une meilleure performance', 'success');
             
         } finally {
@@ -3385,25 +3458,43 @@ class PlanningManager {
 
     // FALLBACK minimal si applyLocalOptimalOrder n'existe pas
     alternateByMuscleGroup(exercises) {
-        const byMuscle = {};
+        if (!exercises || exercises.length < 2) return exercises;
         
+        // Grouper par muscle
+        const byMuscle = {};
         exercises.forEach(ex => {
             const muscle = ex.muscle_groups?.[0] || 'Autres';
             if (!byMuscle[muscle]) byMuscle[muscle] = [];
             byMuscle[muscle].push(ex);
         });
         
-        const optimized = [];
         const muscleGroups = Object.keys(byMuscle);
-        let maxLength = Math.max(...Object.values(byMuscle).map(arr => arr.length));
+        console.log('Groupes musculaires trouvés:', muscleGroups);
         
-        for (let i = 0; i < maxLength; i++) {
+        // Si un seul groupe musculaire, pas d'alternance possible
+        if (muscleGroups.length <= 1) {
+            console.log('Un seul groupe musculaire, pas d\'alternance');
+            return exercises;
+        }
+        
+        // Construire l'ordre alterné
+        const optimized = [];
+        let hasMore = true;
+        let index = 0;
+        
+        while (hasMore) {
+            hasMore = false;
             for (const muscle of muscleGroups) {
-                if (byMuscle[muscle][i]) {
-                    optimized.push(byMuscle[muscle][i]);
+                if (byMuscle[muscle][index]) {
+                    optimized.push(byMuscle[muscle][index]);
+                    hasMore = true;
                 }
             }
+            index++;
         }
+        
+        console.log('Ordre original:', exercises.map(e => `${e.exercise_name} (${e.muscle_groups?.[0]})`));
+        console.log('Ordre alterné:', optimized.map(e => `${e.exercise_name} (${e.muscle_groups?.[0]})`));
         
         return optimized;
     }

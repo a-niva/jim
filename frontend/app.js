@@ -10211,6 +10211,7 @@ window.selectExerciseById = selectExerciseById;
 window.searchExercises = searchExercises;
 window.enableHorizontalScroll = enableHorizontalScroll;
 window.filterByMuscleGroup = filterByMuscleGroup;
+window.MUSCLE_GROUPS = MUSCLE_GROUPS;
 window.toggleWeightPreference = toggleWeightPreference;
 window.toggleSoundNotifications = toggleSoundNotifications;
 

@@ -874,6 +874,25 @@
     100% { transform: rotate(360deg); }
 }
 
+.magic-wand-btn.optimizing {
+    animation: pulse 0.6s ease-in-out infinite;
+}
+
+.magic-wand-btn.optimizing i {
+    animation: rotate 0.6s linear infinite;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
 /* Métriques en ligne */
 .session-metrics-row {
     display: flex;
