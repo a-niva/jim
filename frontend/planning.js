@@ -929,7 +929,7 @@ class PlanningManager {
     removeExerciseFromSession(sessionId, exerciseId) {
         // Contexte d'édition : retirer et rafraîchir le modal
         try {
-            const session = this.sessions.find(s => s.id === sessionId);
+            const session = this.findSessionById(sessionId);
             if (!session) return;
             
             session.exercises = session.exercises.filter(ex => 
