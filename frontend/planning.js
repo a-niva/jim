@@ -534,6 +534,10 @@ class PlanningManager {
                 style="${dayStyle}">
                 <div class="day-header">
                     <span class="day-name">${day.dayName}</span>
+                    ${day.sessions.length > 0 && day.sessions[0].exercises ? 
+                        `<span class="day-duration">${this.calculateSessionDuration(day.sessions[0].exercises)} min</span>` : 
+                        ''
+                    }
                     <span class="day-number">${day.dayNumber}</span>
                 </div>
                 
@@ -605,20 +609,15 @@ class PlanningManager {
                     <div class="session-meta">
                         <div class="session-duration">
                             <i class="fas fa-clock"></i>
-                            <span>${session.estimated_duration || 60} min</span>
+                            <span>${this.calculateSessionDuration(exercises)} min</span>
                         </div>
                         ${muscleGroups.length > 0 ? `
                             <div class="session-muscles">
-                                <i class="fas fa-dumbbell"></i>
-                                <div class="muscle-tags">
-                                    ${muscleGroups.slice(0, 2).map(muscle => {
-                                        const color = window.MuscleColors?.getMuscleColor(muscle) || '#6b7280';
-                                        const capitalizedName = window.MuscleColors?.MUSCLE_COLORS[muscle.toLowerCase()]?.name || 
-                                                            muscle.charAt(0).toUpperCase() + muscle.slice(1);
-                                        return `<span class="muscle-tag" style="background-color: ${color}20; color: ${color}; border: 1px solid ${color}40;">${capitalizedName}</span>`;
-                                    }).join('')}
-                                    ${muscleGroups.length > 2 ? `<span class="muscle-more">+${muscleGroups.length - 2}</span>` : ''}
-                                </div>
+                                ${muscleGroups.slice(0, 2).map(muscle => {
+                                    const color = this.getMuscleGroupColor(muscle);
+                                    return `<span class="muscle-tag" style="background-color: ${color}20; color: ${color}; border: 1px solid ${color}40;">${muscle}</span>`;
+                                }).join('')}
+                                ${muscleGroups.length > 2 ? `<span class="muscle-more">+${muscleGroups.length - 2}</span>` : ''}
                             </div>
                         ` : ''}
                     </div>

@@ -1696,7 +1696,6 @@
     border-bottom: none; /* Masquer la partie basse pour avoir un arc */
     border-left: none;
     border-right: none;
-    transform: rotate(180deg); /* Commencer à gauche */
 }
 
 .arc-fill {
@@ -1708,7 +1707,6 @@
     border-bottom: none;
     border-left: none;
     border-right: none;
-    transform: rotate(180deg);
     transition: clip-path 0.8s ease;
     clip-path: polygon(0% 0%, 0% 0%, 0% 100%, 0% 100%); /* Démarre vide */
 }
@@ -1793,4 +1791,29 @@
     .swipe-indicator {
         display: none !important;
     }
+}
+
+.day-duration {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: var(--bg-tertiary);
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    margin: 0 0.5rem;
+}
+
+.muscle-tag {
+    display: inline-block;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    margin-right: 0.3rem;
+    margin-bottom: 0.2rem;
+}
+
+.muscle-more {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-style: italic;
 }
