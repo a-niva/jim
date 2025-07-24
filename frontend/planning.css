@@ -257,28 +257,18 @@
 }
 
 /* Grille des jours - TOUJOURS 7 JOURS VISIBLES */
+/* Grille des jours - LAYOUT VERTICAL POUR DESKTOP */
 .days-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: 1fr;
     gap: var(--spacing-md);
     padding: var(--spacing-lg);
 }
 
-@media (max-width: 1200px) {
-    .days-grid {
-        grid-template-columns: repeat(4, 1fr);
-    }
-}
-
-@media (max-width: 768px) {
+/* Version horizontale optionnelle pour très grands écrans */
+@media (min-width: 1600px) {
     .days-grid {
         grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-@media (max-width: 480px) {
-    .days-grid {
-        grid-template-columns: 1fr;
     }
 }
 
@@ -290,9 +280,19 @@
     border: 2px solid var(--planning-border);
     transition: var(--planning-transition);
     position: relative;
-    min-height: 150px;
+    min-height: 120px;
     display: flex;
     flex-direction: column;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Jour avec session active/détaillée */
+.day-card.has-active-session {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, var(--bg-secondary) 100%);
+    border-color: var(--primary);
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.15);
 }
 
 .day-card:hover {
@@ -1361,6 +1361,51 @@
     border: 0;
 }
 
+/* ===== SECTION 15 BIS : BOUTON DÉMARRER COHÉRENT ===== */
+
+/* Reset spécifique pour boutons de session */
+.planning-container button[onclick*="startSession"],
+.day-sessions button[onclick*="startSession"],
+.session-detail-popup button[onclick*="startSession"] {
+    all: unset !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.5rem !important;
+    padding: 0.75rem 1.25rem !important;
+    
+    /* Style cohérent avec l'app */
+    background: var(--primary) !important;
+    color: white !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    font-size: 0.9rem !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    box-sizing: border-box !important;
+    white-space: nowrap !important;
+    
+    /* Ombre subtile */
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Hover cohérent */
+.planning-container button[onclick*="startSession"]:hover,
+.day-sessions button[onclick*="startSession"]:hover,
+.session-detail-popup button[onclick*="startSession"]:hover {
+    background: var(--primary-dark) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Active state */
+.planning-container button[onclick*="startSession"]:active,
+.day-sessions button[onclick*="startSession"]:active,
+.session-detail-popup button[onclick*="startSession"]:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15) !important;
+}
+
 /* ===== SECTION 16 : UTILITAIRES ===== */
 
 /* Boutons */
@@ -1454,3 +1499,85 @@
 }
 
 /* ===== FIN DU FICHIER CSS (Total: ~2000 lignes) ===== */
+
+
+/* ===== AMÉLIORATION COHÉRENCE SESSIONS ===== */
+
+/* Session card plus cohérente */
+.day-sessions .session-card {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 12px !important;
+    padding: 1rem !important;
+    transition: all 0.2s ease !important;
+}
+
+.day-sessions .session-card:hover {
+    border-color: var(--primary) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Infos session avec style cohérent */
+.session-card .session-quality {
+    background: var(--bg-tertiary) !important;
+    color: var(--text) !important;
+    padding: 0.25rem 0.5rem !important;
+    border-radius: 6px !important;
+    font-size: 0.8rem !important;
+}
+
+/* Score coloré selon valeur */
+.session-card .session-quality[data-score] {
+    background: var(--success) !important;
+    color: white !important;
+}
+
+/* Métriques discrètes */
+.session-card .session-duration {
+    color: var(--text-muted) !important;
+    font-size: 0.85rem !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.25rem !important;
+}
+
+/* Tags muscles cohérents */
+.session-muscles .muscle-tag {
+    background: var(--bg-tertiary) !important;
+    color: var(--text) !important;
+    padding: 0.2rem 0.5rem !important;
+    border-radius: 6px !important;
+    font-size: 0.7rem !important;
+    border: 1px solid var(--border-color) !important;
+}
+
+/* Numérotation exercices cohérente */
+.exercise-number-badge {
+    width: 24px !important;
+    height: 24px !important;
+    background: var(--primary) !important;
+    color: white !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-weight: 600 !important;
+    font-size: 0.75rem !important;
+}
+
+/* Liste exercices cohérente */
+.session-exercises-list .exercise-item {
+    background: var(--bg-secondary) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px !important;
+    padding: 0.75rem !important;
+    margin-bottom: 0.5rem !important;
+    transition: all 0.2s ease !important;
+}
+
+.session-exercises-list .exercise-item:hover {
+    border-color: var(--primary) !important;
+    background: var(--bg-tertiary) !important;
+}
+
+
