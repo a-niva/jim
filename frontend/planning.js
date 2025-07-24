@@ -2489,7 +2489,7 @@ class PlanningManager {
 
     async addExercisesToSession(sessionId) {
         try {
-            const session = this.sessions.find(s => s.id === sessionId);
+            const session = this.findSessionById(sessionId);
             if (!session) {
                 window.showToast('Session introuvable', 'error');
                 return;

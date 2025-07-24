@@ -749,16 +749,16 @@
 .exercise-option {
     display: flex;
     align-items: center;
-    padding: 12px;  /* AUGMENTÉ de 8px à 12px */
+    /*! padding: 1px; */  /* AUGMENTÉ de 8px à 12px */
     background: var(--bg-secondary);
-    border: 1px solid var(--border);
+    /*! border: 1px solid var(--border); */
     border-radius: var(--radius);
     cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
-    min-height: 56px;  /* AJOUTÉ - garantit la hauteur */
+    min-height: 50px;  /* AJOUTÉ - garantit la hauteur */
     height: auto;      /* CHANGÉ de height fixe à auto */
-    margin-bottom: 4px; /* AJOUTÉ - espace entre exercices */
+    margin-bottom: 1px; /* AJOUTÉ - espace entre exercices */
 }
 
 .exercise-option input[type="checkbox"] {
@@ -782,9 +782,52 @@
     transform: translateX(2px);
 }
 
-.exercise-option input:checked + .exercise-option-content {
-    background: rgba(59, 130, 246, 0.1);
+.exercise-option input:checked + .exercise-option-content,
+.exercise-option input:checked + .exercise-option-card {
+    background: rgba(59, 130, 246, 0.15) !important;
+    border: 2px solid var(--primary) !important;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2) !important;
+    transform: translateY(-1px);
+}
+
+.exercise-option input:checked + .exercise-option-content::after,
+.exercise-option input:checked + .exercise-option-card::after {
+    content: "✓";
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: bold;
+    z-index: 1;
+}
+
+.exercise-option-content,
+.exercise-option-card {
+    position: relative;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    transition: all 0.2s ease;
+    min-height: 60px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.exercise-option:hover .exercise-option-content,
+.exercise-option:hover .exercise-option-card {
     border-color: var(--primary);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .exercise-option.disabled {
