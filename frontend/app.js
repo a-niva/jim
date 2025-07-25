@@ -6811,7 +6811,7 @@ async function restartExercise(exerciseId) {
 const equipmentImages = {
     'dumbbells': 'img_dumbbells.png',
     'barbell': 'img_barbell.png',
-    'barbell_athletic': 'img_barbell_athletic.png',
+    'barbell_athletic': 'img_barbell.png',
     'barbell_ez': 'img_barbell_ez.png',
     'kettlebells': 'img_kettlebells.png',
     'resistance_bands': 'img_resistance_bands.png',

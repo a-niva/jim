@@ -2099,8 +2099,9 @@ input:focus,select:focus,textarea:focus {
     height: 32px;
     background: url('logo-total.png') no-repeat center center;
     background-size: contain;
-    filter: brightness(1);
-    animation: charge-color-pulse 3s infinite;
+    position: relative;
+    overflow: hidden;
+    border-radius: 4px;
 }
 
 .charge-mode-charge .charge-mode-icon::before {
@@ -2110,17 +2111,36 @@ input:focus,select:focus,textarea:focus {
     height: 32px;
     background: url('logo-charge.png') no-repeat center center;
     background-size: contain;
-    filter: brightness(1);
-    animation: charge-color-pulse 3s infinite;
+    position: relative;
+    overflow: hidden;
+    border-radius: 4px;
 }
 
-@keyframes charge-color-pulse {
-    0% { 
-        filter: brightness(1) sepia(0) saturate(1);
-    }
-    100% { 
-        filter: brightness(1.3) sepia(1) hue-rotate(50deg) saturate(3) contrast(1.1);
-    }
+.charge-mode-icon::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: -100%;
+    width: 40px;
+    height: 32px;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.4),
+        transparent
+    );
+    animation: charge-shimmer 5s infinite;
+    transform: translateY(-50%);
+    border-radius: 4px;
+}
+
+@keyframes charge-shimmer {
+    0%, 90%, 100% { left: -100%; }
+    10%, 20% { left: 100%; }
+}
+
+.charge-mode-icon:hover::after {
+    animation-duration: 2s;
 }
 
 .charge-weight-display {
@@ -5270,46 +5290,15 @@ input:checked+.toggle-slider:before {
 
 .muscle-tabs {
     display: flex;
-    gap: var(--spacing-sm);
-    overflow-x: auto;
-    padding: var(--spacing-sm)0 var(--spacing-md);
-    margin: 0 calc(var(--spacing-md)*-1);
-    padding-left: var(--spacing-md);
-    padding-right: var(--spacing-md);
-    position: relative;
-    scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    user-select: none;
-    -webkit-user-select: none
+    justify-content: space-around;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) 0;
+    margin: 0;
+    width: 100%;
 }
 
-.muscle-tabs::-webkit-scrollbar {
-    display: none
-}
 
-.muscle-tabs:hover {
-    cursor: grab
-}
-
-.muscle-tabs:active {
-    cursor: grabbing
-}
-
-@media (max-width:768px) {
-    .muscle-tabs::after {
-        content: "";
-        position: absolute;
-        right: 0;
-        top: 0;
-        bottom: 0;
-        width: 2rem;
-        background: linear-gradient(to right,transparent,var(--bg));
-        pointer-events: none;
-        z-index: 1
-    }
-}
 
 @media (min-width:769px) {
     .muscle-tabs {
@@ -5448,40 +5437,51 @@ input:checked+.toggle-slider:before {
 
 .equipment-tabs {
     display: flex;
-    gap: var(--spacing-sm);
-    overflow-x: auto;
+    justify-content: space-around;
+    align-items: center;
+    gap: var(--spacing-xs);
     padding: var(--spacing-sm) 0;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-}
-
-.equipment-tabs::-webkit-scrollbar {
-    display: none;
+    width: 100%;
 }
 
 .equipment-filter {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 56px;
-    height: 56px;
+    width: 48px;
+    height: 48px;
     background: rgba(255,255,255,.05);
     border: 2px solid transparent;
     border-radius: 12px;
     cursor: pointer;
     transition: all .3s ease;
-    flex-shrink: 0;
-    padding: 8px;
+    flex: 0 0 auto;
+    padding: 6px;
 }
 
 /* Image à l'intérieur du bouton */
 .equipment-icon {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     object-fit: contain;
     filter: grayscale(0.5);
     opacity: 0.8;
     transition: all .3s ease;
+}
+
+/* Si trop d'éléments, repasser en scroll */
+@media (max-width: 480px) {
+    .muscle-tabs,
+    .equipment-tabs {
+        justify-content: flex-start;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .muscle-tabs::-webkit-scrollbar,
+    .equipment-tabs::-webkit-scrollbar {
+        display: none;
+    }
 }
 
 /* État actif */
@@ -5523,9 +5523,10 @@ input:checked+.toggle-slider:before {
 /* Ajuster les boutons muscles pour être plus compacts */
 .muscle-tab {
     padding: var(--spacing-sm);
-    width: 56px;
-    height: 56px;
+    width: 48px;
+    height: 48px;
     justify-content: center;
+    flex: 0 0 auto;
 }
 
 .muscle-tab .tab-icon {
