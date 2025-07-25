@@ -8400,7 +8400,7 @@ function adjustWeight(direction, availableWeights, exercise) {
         
         // Mettre à jour l'aide au montage
         if (currentUser?.show_plate_helper) {
-            updatePlateHelper(newWeight);
+            updatePlateHelper(currentExerciseRealWeight);
         }
         
         console.log('[AdjustWeight]', direction > 0 ? 'Increased' : 'Decreased', 'to', newWeight);
@@ -8456,8 +8456,6 @@ function adjustWeightUp() {
         
         // Mettre à jour l'aide au montage avec le poids total
         if (currentUser?.show_plate_helper) {
-            const plateHelperWeight = currentWeightMode === 'charge' ? 
-                convertWeight(newWeight, 'charge', 'total', currentExercise) : newWeight;
             updatePlateHelper(currentExerciseRealWeight);
         }
         
@@ -8508,11 +8506,16 @@ function adjustWeightDown() {
     
     if (prevWeight !== null) {
         document.getElementById('setWeight').textContent = prevWeight;
+        // Mettre à jour le poids réel
+        if (currentWeightMode === 'charge') {
+            currentExerciseRealWeight = prevWeight + getBarWeight(currentExercise);
+        } else {
+            currentExerciseRealWeight = prevWeight;
+        }
+        console.log('[AdjustWeight] Poids réel mis à jour:', currentExerciseRealWeight);
         
         // Mettre à jour l'aide au montage avec le poids total
         if (currentUser?.show_plate_helper) {
-            const plateHelperWeight = currentWeightMode === 'charge' ? 
-                convertWeight(prevWeight, 'charge', 'total', currentExercise) : prevWeight;
             updatePlateHelper(currentExerciseRealWeight);
         }
         
