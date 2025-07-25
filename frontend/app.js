@@ -6981,7 +6981,7 @@ async function loadAvailableExercises() {
                     <!-- Onglets de filtrage par muscle -->
                     <div class="muscle-tabs">
                         <button class="muscle-tab active" data-muscle="all" onclick="filterByMuscleGroup('all')" title="Tous">
-                            <span class="tab-icon">💪</span>
+                            <span class="tab-icon">♾️</span>
                         </button>
                         <button class="muscle-tab" data-muscle="favoris" onclick="filterByMuscleGroup('favoris')" 
                                 style="${userFavorites.length === 0 ? 'display: none;' : ''}" title="Favoris (${exercisesByMuscle.favoris.length})">
@@ -7099,7 +7099,7 @@ async function loadAvailableExercises() {
                                                 </div>
                                                 <div class="free-exercise-meta">
                                                     ${exercise.equipment_required && exercise.equipment_required.length > 0 ? 
-                                                        `<span>🏋️ ${exercise.equipment_required.join(', ')}</span>` : 
+                                                        `<span>${exercise.equipment_required.join(', ')}</span>` : 
                                                         '<span>💪 Poids du corps</span>'}
                                                     <span>📊 ${exercise.default_sets}×${exercise.default_reps_min}-${exercise.default_reps_max}</span>
                                                 </div>
