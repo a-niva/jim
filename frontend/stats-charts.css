@@ -319,10 +319,10 @@
     font-weight: 500;
 }
 
-/* ===== GRAPHIQUE 7: PROGRESSION PROGRAMME (MOBILE-FIRST) ===== */
+/* ===== GRAPHIQUE 7: PROGRESSION PROGRAMME (NOMS SÉCURISÉS) ===== */
 
-/* Container principal - Stack vertical sur mobile */
-.volume-summary {
+/* Container principal - Mobile-first */
+.burndown-overview {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -333,32 +333,31 @@
     border-radius: var(--radius);
 }
 
-/* Cercle de progression - Touch-friendly */
-.completion-circle {
+/* Cercle de progression */
+.burndown-circle-container {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 0.5rem;
 }
 
-.circle-progress {
+.burndown-progress-ring {
     width: 80px;
     height: 80px;
     border-radius: 50%;
     background: conic-gradient(
-        var(--primary) calc(var(--progress) * 3.6deg),
+        var(--primary) calc(var(--burndown-progress) * 3.6deg),
         var(--bg-card) 0deg
     );
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
-    /* Touch-friendly minimum size */
     min-width: 44px;
     min-height: 44px;
 }
 
-.circle-progress::before {
+.burndown-progress-ring::before {
     content: '';
     position: absolute;
     top: 6px;
@@ -369,7 +368,7 @@
     border-radius: 50%;
 }
 
-.progress-text {
+.burndown-progress-text {
     position: relative;
     font-size: 0.875rem;
     font-weight: bold;
@@ -377,110 +376,109 @@
     z-index: 1;
 }
 
-.circle-label {
+.burndown-circle-label {
     font-size: 0.75rem;
     color: var(--text-muted);
     text-align: center;
 }
 
-/* Stats résumé - Responsive */
-.summary-stats {
+/* Stats résumé */
+.burndown-summary-numbers {
     display: flex;
     align-items: center;
     gap: 0.75rem;
     justify-content: center;
 }
 
-.stat-item {
+.burndown-stat-block {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 0.25rem;
 }
 
-.stat-number {
+.burndown-stat-number {
     font-size: 1.25rem;
     font-weight: bold;
     color: var(--text);
 }
 
-.stat-label {
+.burndown-stat-caption {
     font-size: 0.75rem;
     color: var(--text-muted);
 }
 
-.stat-divider {
+.burndown-divider {
     font-size: 1.5rem;
     color: var(--text-muted);
     font-weight: 300;
 }
 
-/* Insights - Cards empilées sur mobile */
-.volume-insights {
+/* Insights */
+.burndown-insights-container {
     margin-top: 1rem;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
 }
 
-.insight-card {
+.burndown-insight-card {
     padding: 1rem;
     border-radius: calc(var(--radius) / 2);
     border-left: 4px solid var(--primary);
 }
 
-.insight-card.excellent {
+.burndown-insight-card.excellent {
     background: rgba(16, 185, 129, 0.05);
     border-left-color: var(--success);
 }
 
-.insight-card.good {
+.burndown-insight-card.good {
     background: rgba(59, 130, 246, 0.05);
     border-left-color: var(--primary);
 }
 
-.insight-card.warning {
+.burndown-insight-card.warning {
     background: rgba(245, 158, 11, 0.05);
     border-left-color: var(--warning);
 }
 
-.insight-card.danger {
+.burndown-insight-card.danger {
     background: rgba(239, 68, 68, 0.05);
     border-left-color: var(--danger);
 }
 
-.insight-header {
+.burndown-insight-header {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     margin-bottom: 0.5rem;
 }
 
-.insight-icon {
+.burndown-insight-icon {
     font-size: 1.125rem;
-    /* Touch-friendly */
     min-width: 20px;
 }
 
-.insight-title {
+.burndown-insight-title {
     font-weight: 600;
     font-size: 0.875rem;
 }
 
-.insight-details {
+.burndown-insight-message {
     font-size: 0.8125rem;
     line-height: 1.4;
     color: var(--text-muted);
 }
 
-/* Quick stats - Horizontal sur mobile si la place le permet */
-.quick-stats {
+/* Mini stats rapides */
+.burndown-quick-metrics {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
 }
 
-.quick-stat {
+.burndown-quick-item {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -489,18 +487,18 @@
     border-radius: calc(var(--radius) / 3);
 }
 
-.quick-icon {
+.burndown-quick-icon {
     font-size: 1rem;
     min-width: 16px;
 }
 
-.quick-text {
+.burndown-quick-text {
     font-size: 0.8125rem;
     color: var(--text-muted);
 }
 
-/* États vides - Centrés et lisibles */
-.empty-state {
+/* États d'erreur */
+.burndown-empty-state {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -509,133 +507,155 @@
     text-align: center;
 }
 
-.empty-icon {
+.burndown-empty-icon {
     font-size: 2rem;
     opacity: 0.6;
 }
 
-.empty-text {
+.burndown-empty-text {
     color: var(--text-muted);
     font-size: 0.875rem;
 }
 
-.empty-state.error .empty-icon {
+.burndown-empty-state.error .burndown-empty-icon {
     color: var(--danger);
 }
 
-/* ===== RESPONSIVE DESIGN ===== */
+/* ===== RESPONSIVE BREAKPOINTS ===== */
 
-/* Tablette (768px+) */
+/* Tablette portrait (768px+) */
 @media (min-width: 768px) {
-    .volume-summary {
+    .burndown-overview {
         flex-direction: row;
         justify-content: space-between;
         align-items: center;
         padding: 1.5rem;
     }
     
-    .completion-circle {
-        flex-direction: column;
-    }
-    
-    .circle-progress {
+    .burndown-progress-ring {
         width: 100px;
         height: 100px;
     }
     
-    .progress-text {
+    .burndown-progress-text {
         font-size: 1rem;
     }
     
-    .stat-number {
+    .burndown-stat-number {
         font-size: 1.5rem;
     }
     
-    .quick-stats {
+    .burndown-quick-metrics {
         flex-direction: row;
         gap: 1rem;
     }
     
-    .quick-stat {
+    .burndown-quick-item {
         flex: 1;
         justify-content: center;
     }
 }
 
-/* Desktop (1024px+) */
+/* Tablette landscape & Desktop (1024px+) */
 @media (min-width: 1024px) {
-    .volume-insights {
+    .burndown-insights-container {
         flex-direction: row;
         gap: 1rem;
     }
     
-    .insight-card {
+    .burndown-insight-card {
         flex: 1;
     }
     
-    .quick-stats {
+    .burndown-quick-metrics {
         justify-content: space-around;
     }
     
-    .circle-progress {
+    .burndown-progress-ring {
         width: 120px;
         height: 120px;
     }
     
-    .progress-text {
+    .burndown-progress-text {
         font-size: 1.125rem;
     }
     
-    .empty-state {
+    .burndown-empty-state {
         padding: 3rem 2rem;
     }
     
-    .empty-icon {
+    .burndown-empty-icon {
         font-size: 3rem;
     }
 }
 
-/* Mode sombre - Ajustements pour contraste */
+/* Large screens (1440px+) */
+@media (min-width: 1440px) {
+    .burndown-overview {
+        padding: 2rem;
+    }
+    
+    .burndown-insights-container {
+        gap: 1.5rem;
+    }
+}
+
+/* Mode sombre */
 @media (prefers-color-scheme: dark) {
-    .circle-progress::before {
+    .burndown-progress-ring::before {
         background: var(--bg-card);
     }
     
-    .insight-card.excellent {
+    .burndown-insight-card.excellent {
         background: rgba(16, 185, 129, 0.1);
     }
     
-    .insight-card.good {
+    .burndown-insight-card.good {
         background: rgba(59, 130, 246, 0.1);
     }
     
-    .insight-card.warning {
+    .burndown-insight-card.warning {
         background: rgba(245, 158, 11, 0.1);
     }
     
-    .insight-card.danger {
+    .burndown-insight-card.danger {
         background: rgba(239, 68, 68, 0.1);
     }
 }
 
-/* Animations légères pour la performance */
-.circle-progress {
-    transition: background 0.3s ease;
+/* Préférences de mouvement réduit */
+@media (prefers-reduced-motion: reduce) {
+    .burndown-progress-ring {
+        transition: none;
+    }
+    
+    .burndown-insight-card {
+        transition: none;
+    }
 }
 
-.insight-card {
-    transition: transform 0.2s ease;
+/* Animations légères pour performance */
+@media (prefers-reduced-motion: no-preference) {
+    .burndown-progress-ring {
+        transition: background 0.3s ease;
+    }
+    
+    .burndown-insight-card {
+        transition: transform 0.2s ease;
+    }
+    
+    .burndown-insight-card:hover {
+        transform: translateY(-1px);
+    }
 }
 
-.insight-card:hover {
-    transform: translateY(-1px);
-}
-
-/* Focus states pour l'accessibilité */
-.quick-stat:focus-within {
+/* States focus pour accessibilité */
+.burndown-quick-item:focus-within {
     outline: 2px solid var(--primary);
     outline-offset: 2px;
+    border-radius: calc(var(--radius) / 3);
 }
+
 
 /* ===== GRAPHIQUE 9: SUNBURST ===== */
 .sunburst-container {

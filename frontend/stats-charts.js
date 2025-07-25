@@ -690,108 +690,101 @@ function renderOptimizedVolumeChart(data, period) {
 function renderEnhancedStats(data, period) {
     const container = document.getElementById('burndownStats');
     
-    // Calculs optimisés en une seule passe
+    // Calculs optimisés
     const current = data.currentVolume;
     const target = data.targetVolume;
     const completion = Math.round((current / target) * 100);
     
-    // Calcul tendance simple (3 derniers vs 3 premiers points)
+    // Calcul tendance simple
     const volumes = data.dailyVolumes.map(d => d.cumulativeVolume);
-    const recentAvg = volumes.slice(-3).reduce((a, b) => a + b, 0) / 3;
-    const earlyAvg = volumes.slice(0, 3).reduce((a, b) => a + b, 0) / 3;
-    const trendDirection = recentAvg > earlyAvg ? 'up' : recentAvg < earlyAvg ? 'down' : 'stable';
-    
-    // Calcul vitesse (exercices/jour sur dernière semaine)
-    const lastWeekData = volumes.slice(-7);
-    const velocity = lastWeekData.length > 1 
-        ? (lastWeekData[lastWeekData.length - 1] - lastWeekData[0]) / (lastWeekData.length - 1)
+    const velocity = volumes.length > 1 
+        ? (volumes[volumes.length - 1] - volumes[0]) / (volumes.length - 1)
         : 0;
     
-    // Prédiction simple
+    // Estimation simple
     const remaining = target - current;
-    const estimatedDays = velocity > 0 ? Math.ceil(remaining / velocity) : '∞';
+    const estimatedDays = velocity > 0 ? Math.ceil(remaining / velocity) : null;
     
-    // Status avec emojis
-    const status = completion >= 85 ? { level: 'excellent', icon: '🔥', text: 'Excellent' }
-                 : completion >= 70 ? { level: 'good', icon: '💪', text: 'En forme' }
-                 : completion >= 50 ? { level: 'warning', icon: '⚡', text: 'Rattrapage' }
-                 : { level: 'danger', icon: '🎯', text: 'Focus requis' };
+    // Status
+    const status = completion >= 85 ? { level: 'excellent', icon: '🔥', text: 'Excellent rythme' }
+                 : completion >= 70 ? { level: 'good', icon: '💪', text: 'Bon rythme' }
+                 : completion >= 50 ? { level: 'warning', icon: '⚡', text: 'Rattrapage possible' }
+                 : { level: 'danger', icon: '🎯', text: 'Ajustement requis' };
     
+    container.className = 'burndown-overview';
     container.innerHTML = `
-        <div class="volume-summary">
-            <div class="completion-circle">
-                <div class="circle-progress" style="--progress: ${completion}">
-                    <span class="progress-text">${completion}%</span>
-                </div>
-                <div class="circle-label">Complété</div>
+        <div class="burndown-circle-container">
+            <div class="burndown-progress-ring" style="--burndown-progress: ${completion}">
+                <span class="burndown-progress-text">${completion}%</span>
             </div>
-            
-            <div class="summary-stats">
-                <div class="stat-item">
-                    <span class="stat-number">${current}</span>
-                    <span class="stat-label">Réalisés</span>
-                </div>
-                <div class="stat-divider">/</div>
-                <div class="stat-item">
-                    <span class="stat-number">${target}</span>
-                    <span class="stat-label">Objectif</span>
-                </div>
+            <div class="burndown-circle-label">Progression</div>
+        </div>
+        
+        <div class="burndown-summary-numbers">
+            <div class="burndown-stat-block">
+                <span class="burndown-stat-number">${current}</span>
+                <span class="burndown-stat-caption">Réalisés</span>
+            </div>
+            <div class="burndown-divider">/</div>
+            <div class="burndown-stat-block">
+                <span class="burndown-stat-number">${target}</span>
+                <span class="burndown-stat-caption">Objectif</span>
             </div>
         </div>
         
-        <div class="volume-insights">
-            <div class="insight-card ${status.level}">
-                <div class="insight-header">
-                    <span class="insight-icon">${status.icon}</span>
-                    <span class="insight-title">${status.text}</span>
+        <div class="burndown-insights-container">
+            <div class="burndown-insight-card ${status.level}">
+                <div class="burndown-insight-header">
+                    <span class="burndown-insight-icon">${status.icon}</span>
+                    <span class="burndown-insight-title">${status.text}</span>
                 </div>
-                <div class="insight-details">
-                    ${generateStatusMessage(completion, remaining, velocity, estimatedDays)}
+                <div class="burndown-insight-message">
+                    ${generateBurndownMessage(completion, remaining, velocity, estimatedDays)}
                 </div>
             </div>
             
-            <div class="quick-stats">
-                <div class="quick-stat">
-                    <span class="quick-icon trend-${trendDirection}">
-                        ${trendDirection === 'up' ? '📈' : trendDirection === 'down' ? '📉' : '➡️'}
-                    </span>
-                    <span class="quick-text">Tendance ${trendDirection === 'stable' ? 'stable' : trendDirection === 'up' ? 'positive' : 'à surveiller'}</span>
+            <div class="burndown-quick-metrics">
+                <div class="burndown-quick-item">
+                    <span class="burndown-quick-icon">⚡</span>
+                    <span class="burndown-quick-text">${velocity.toFixed(1)} exercices/jour</span>
                 </div>
-                <div class="quick-stat">
-                    <span class="quick-icon">⚡</span>
-                    <span class="quick-text">${velocity.toFixed(1)} exercices/jour</span>
+                ${estimatedDays ? `
+                <div class="burndown-quick-item">
+                    <span class="burndown-quick-icon">📅</span>
+                    <span class="burndown-quick-text">Objectif dans ~${estimatedDays}j</span>
                 </div>
+                ` : ''}
             </div>
         </div>
     `;
 }
 
-function generateStatusMessage(completion, remaining, velocity, estimatedDays) {
+function generateBurndownMessage(completion, remaining, velocity, estimatedDays) {
     if (completion >= 85) {
-        return "Rythme parfait ! Vous êtes en avance sur le programme.";
+        return "Rythme parfait ! Vous êtes en avance sur votre programme.";
     } else if (completion >= 70) {
-        return `Plus que ${remaining} exercices pour atteindre l'objectif.`;
-    } else if (velocity > 0 && estimatedDays !== '∞') {
-        return `À ce rythme, objectif atteint dans ~${estimatedDays} jours.`;
+        return `Encore ${remaining} exercices pour compléter votre objectif.`;
+    } else if (velocity > 0 && estimatedDays) {
+        return `À ce rythme, objectif atteint dans environ ${estimatedDays} jours.`;
     } else {
-        return "Augmentez le rythme pour rattraper le programme.";
+        return "Augmentez le rythme pour rattraper le programme prévu.";
     }
 }
 
 function showVolumeEmptyState() {
     document.getElementById('burndownStats').innerHTML = `
-        <div class="empty-state">
-            <div class="empty-icon">📋</div>
-            <div class="empty-text">Aucun programme actif</div>
+        <div class="burndown-empty-state">
+            <div class="burndown-empty-icon">📋</div>
+            <div class="burndown-empty-text">Aucun programme actif</div>
         </div>
     `;
 }
 
 function showVolumeErrorState() {
     document.getElementById('burndownStats').innerHTML = `
-        <div class="empty-state error">
-            <div class="empty-icon">⚠️</div>
-            <div class="empty-text">Erreur de chargement</div>
+        <div class="burndown-empty-state error">
+            <div class="burndown-empty-icon">⚠️</div>
+            <div class="burndown-empty-text">Erreur de chargement</div>
         </div>
     `;
 }
