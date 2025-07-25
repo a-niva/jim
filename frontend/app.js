@@ -3888,30 +3888,18 @@ function displayRecommendations(recommendations) {
         
         // Mettre à jour l'affichage si différent
         if (currentWeight !== targetWeight) {
-            weightElement.textContent = targetWeight;
-
-            // Mettre à jour l'affichage si différent
-            if (currentWeight !== targetWeight) {
-                weightElement.textContent = targetWeight;
-                
-                // NOUVEAU : Synchroniser le poids réel avec la recommandation ML
-                // Le ML fournit toujours un poids en mode TOTAL
-                currentExerciseRealWeight = targetWeight;
-                console.log('[ML] Poids réel mis à jour par ML:', currentExerciseRealWeight);
-                
-                // Si on est en mode charge, recalculer l'affichage
-                if (currentWeightMode === 'charge' && isEquipmentCompatibleWithChargeMode(currentExercise)) {
-                    const chargeWeight = targetWeight - getBarWeight(currentExercise);
-                    if (chargeWeight >= 0) {
-                        weightElement.textContent = chargeWeight;
-                        console.log('[ML] Affichage en mode charge:', chargeWeight);
-                    }
-                }
-                
-                // Ajouter animation
-                weightElement.classList.add('ml-updated');
-                setTimeout(() => weightElement.classList.remove('ml-updated'), 600);
+            // IMPORTANT : Stocker d'abord le poids TOTAL recommandé par le ML
+            currentExerciseRealWeight = recommendations.weight_recommendation;
+            console.log('[ML] Poids réel (TOTAL) mis à jour par ML:', currentExerciseRealWeight);
+            
+            // Ensuite convertir pour l'affichage si nécessaire
+            let displayWeight = targetWeight;
+            if (currentWeightMode === 'charge' && isEquipmentCompatibleWithChargeMode(currentExercise)) {
+                displayWeight = convertWeight(currentExerciseRealWeight, 'total', 'charge', currentExercise);
             }
+            
+            // Mettre à jour l'affichage
+            weightElement.textContent = displayWeight;
             
             // Ajouter animation
             weightElement.classList.add('ml-updated');
