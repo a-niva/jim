@@ -437,6 +437,35 @@
       }
     }
   },
+    {
+    "name": "Développé incliné barre",
+    "muscle_groups": ["pectoraux"],
+    "muscles": ["pectoraux-superieurs"],
+    "equipment_required": ["barbell", "bench_incline"],
+    "difficulty": "intermediate",
+    "default_sets": 3,
+    "default_reps_min": 8,
+    "default_reps_max": 12,
+    "base_rest_time_seconds": 90,
+    "exercise_type": "compound",
+    "intensity_factor": 1.1,
+    "instructions": "Sur banc incliné, pousser la barre vers le haut en partant de la poitrine, en direction oblique vers le haut.",
+    "weight_type": "external",
+    "base_weights_kg": {
+      "beginner": {
+        "base": 30,
+        "per_kg_bodyweight": 0.2
+      },
+      "intermediate": {
+        "base": 40,
+        "per_kg_bodyweight": 0.35
+      },
+      "advanced": {
+        "base": 50,
+        "per_kg_bodyweight": 0.5
+      }
+    }
+  },
   {
     "name": "Tirage élastique",
     "muscle_groups": ["dos"],
@@ -1599,35 +1628,6 @@
       "beginner": 45,
       "intermediate": 50,
       "advanced": 55
-    }
-  },
-  {
-    "name": "Soulevé de terre jambes tendues",
-    "muscle_groups": ["jambes"],
-    "muscles": ["ischio-jambiers", "lombaires"],
-    "equipment_required": ["barbell"],
-    "difficulty": "advanced",
-    "default_sets": 3,
-    "default_reps_min": 8,
-    "default_reps_max": 12,
-    "base_rest_time_seconds": 90,
-    "exercise_type": "compound",
-    "intensity_factor": 1.2,
-    "instructions": "Similaire au soulevé roumain, mais avec les jambes presque complètement tendues pour maximiser l'étirement et la charge sur les ischio-jambiers.",
-    "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 30,
-        "per_kg_bodyweight": 0.4
-      },
-      "intermediate": {
-        "base": 50,
-        "per_kg_bodyweight": 0.7
-      },
-      "advanced": {
-        "base": 70,
-        "per_kg_bodyweight": 1
-      }
     }
   },
   {
@@ -4168,4 +4168,153 @@
       "advanced": 0
     }
   }
+,
+{
+    "name": "Curl biceps barre",
+    "muscle_groups": ["bras"],
+    "muscles": ["biceps"],
+    "equipment_required": ["barbell"],
+    "difficulty": "beginner",
+    "default_sets": 3,
+    "default_reps_min": 10,
+    "default_reps_max": 15,
+    "base_rest_time_seconds": 60,
+    "exercise_type": "isolation",
+    "intensity_factor": 0.7,
+    "instructions": "Debout, tenir la barre devant soi, bras le long du corps. Plier les coudes en gardant les bras immobiles pour monter la barre vers les épaules.",
+    "weight_type": "external",
+    "base_weights_kg": {
+      "beginner": {
+        "base": 20,
+        "per_kg_bodyweight": 0.1
+      },
+      "intermediate": {
+        "base": 30,
+        "per_kg_bodyweight": 0.2
+      },
+      "advanced": {
+        "base": 40,
+        "per_kg_bodyweight": 0.3
+      }
+    }
+  },
+  {
+    "name": "Élévations frontales barre",
+    "muscle_groups": ["epaules"],
+    "muscles": ["deltoides-anterieurs"],
+    "equipment_required": ["barbell"],
+    "difficulty": "intermediate",
+    "default_sets": 3,
+    "default_reps_min": 10,
+    "default_reps_max": 15,
+    "base_rest_time_seconds": 60,
+    "exercise_type": "isolation",
+    "intensity_factor": 0.8,
+    "instructions": "Debout, tenir la barre devant les cuisses. Lever la barre devant soi jusqu'à hauteur d'épaule, bras tendus.",
+    "weight_type": "external",
+    "base_weights_kg": {
+      "beginner": {
+        "base": 20,
+        "per_kg_bodyweight": 0.1
+      },
+      "intermediate": {
+        "base": 25,
+        "per_kg_bodyweight": 0.15
+      },
+      "advanced": {
+        "base": 30,
+        "per_kg_bodyweight": 0.2
+      }
+    }
+  }
+  ,
+{
+  "name": "Extension triceps barre",
+  "muscle_groups": ["bras"],
+  "muscles": ["triceps"],
+  "equipment_required": ["barbell"],
+  "difficulty": "beginner",
+  "default_sets": 3,
+  "default_reps_min": 10,
+  "default_reps_max": 15,
+  "base_rest_time_seconds": 60,
+  "exercise_type": "isolation",
+  "intensity_factor": 0.8,
+  "instructions": "Debout ou assis, barre tenue à deux mains au-dessus de la tête, descendre la barre derrière la nuque en pliant les coudes, puis étendre les bras vers le haut.",
+  "weight_type": "external",
+  "base_weights_kg": {
+    "beginner": {
+      "base": 15,
+      "per_kg_bodyweight": 0
+    },
+    "intermediate": {
+      "base": 20,
+      "per_kg_bodyweight": 0
+    },
+    "advanced": {
+      "base": 25,
+      "per_kg_bodyweight": 0
+    }
+  }
+}
+,
+{
+  "name": "Shrugs barre",
+  "muscle_groups": ["dos", "epaules"],
+  "muscles": ["trapezes"],
+  "equipment_required": ["barbell"],
+  "difficulty": "beginner",
+  "default_sets": 3,
+  "default_reps_min": 12,
+  "default_reps_max": 20,
+  "base_rest_time_seconds": 60,
+  "exercise_type": "isolation",
+  "intensity_factor": 0.8,
+  "instructions": "Debout, barre en main devant les cuisses. Hausser les épaules le plus haut possible, marquer une pause et redescendre.",
+  "weight_type": "external",
+  "base_weights_kg": {
+    "beginner": {
+      "base": 30,
+      "per_kg_bodyweight": 0.3
+    },
+    "intermediate": {
+      "base": 45,
+      "per_kg_bodyweight": 0.5
+    },
+    "advanced": {
+      "base": 60,
+      "per_kg_bodyweight": 0.7
+    }
+  }
+}
+,
+{
+  "name": "Soulevé de terre jambes tendues barre",
+  "muscle_groups": ["jambes", "dos"],
+  "muscles": ["ischio-jambiers", "fessiers", "lombaires"],
+  "equipment_required": ["barbell"],
+  "difficulty": "intermediate",
+  "default_sets": 3,
+  "default_reps_min": 8,
+  "default_reps_max": 12,
+  "base_rest_time_seconds": 90,
+  "exercise_type": "compound",
+  "intensity_factor": 1.2,
+  "instructions": "Debout, tenir la barre devant soi, jambes tendues. Pencher le buste en avant tout en gardant le dos droit, descendre la barre le long des jambes.",
+  "weight_type": "external",
+  "base_weights_kg": {
+    "beginner": {
+      "base": 40,
+      "per_kg_bodyweight": 0.5
+    },
+    "intermediate": {
+      "base": 60,
+      "per_kg_bodyweight": 0.8
+    },
+    "advanced": {
+      "base": 80,
+      "per_kg_bodyweight": 1
+    }
+  }
+}
 ]
