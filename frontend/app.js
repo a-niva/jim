@@ -2044,8 +2044,7 @@ async function loadMuscleReadiness() {
                             onclick="handleMuscleReadinessClick('${muscle.key}', '${muscle.name}', ${capacity})">
                             <div class="muscle-readiness-bar-label">${muscle.name}</div>
                             <div class="muscle-readiness-bar-container">
-                                <div class="muscle-readiness-bar-fill muscle-readiness-${muscle.key}" 
-                                    style="height: ${capacity}%;"></div>
+                                <div class="muscle-readiness-bar-fill muscle-readiness-${muscle.key} ${capacity >= 100 ? 'ready' : 'recovering'}" style="height: ${capacity}%;"></div>
                             </div>
                             <div class="muscle-readiness-bar-percentage">${capacity}%</div>
                             <div class="muscle-readiness-bar-status">${statusText}</div>
@@ -2066,8 +2065,7 @@ async function loadMuscleReadiness() {
                         <div class="muscle-readiness-bar-item">
                             <div class="muscle-readiness-bar-label">${muscle.name}</div>
                             <div class="muscle-readiness-bar-container">
-                                <div class="muscle-readiness-bar-fill muscle-readiness-${muscle.key}" 
-                                    style="height: ${capacity}%;"></div>
+                                <div class="muscle-readiness-bar-fill muscle-readiness-${muscle.key} recovering" style="height: ${capacity}%;"></div>
                             </div>
                             <div class="muscle-readiness-bar-percentage">${capacity}%</div>
                             <div class="muscle-readiness-bar-status">Récupération</div>
@@ -2083,9 +2081,19 @@ async function loadMuscleReadiness() {
 }
 
 function handleMuscleReadinessClick(muscleKey, muscleName, capacity) {
-    if (confirm(`Lancer une séance libre pour ${muscleName} ?\n\nCapacité: ${capacity}%`)) {
-        startFreeWorkout();
-        setTimeout(() => filterByMuscleGroup(muscleKey), 200);
+    if (capacity >= 100) {
+        // Animation spéciale pour muscles prêts
+        if (confirm(`💪 ${muscleName} est prêt !\n\nLancer une séance libre ?\n\nCapacité: ${capacity}%`)) {
+            startFreeWorkout();
+            setTimeout(() => filterByMuscleGroup(muscleKey), 200);
+        }
+    } else {
+        // Message informatif pour muscles en récupération
+        const hoursLeft = Math.ceil((100 - capacity) * 72 / 100);
+        if (confirm(`⏳ ${muscleName} en récupération\n\nCapacité: ${capacity}%\nTemps restant: ~${hoursLeft}h\n\nLancer une séance quand même ?`)) {
+            startFreeWorkout();
+            setTimeout(() => filterByMuscleGroup(muscleKey), 200);
+        }
     }
 }
 

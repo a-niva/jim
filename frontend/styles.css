@@ -919,6 +919,7 @@ input:focus,select:focus,textarea:focus {
     border-radius: 8px;
     transition: height 0.8s ease;
     background: var(--primary);
+    will-change: transform, box-shadow; /* Optimisation GPU */
 }
 
 .muscle-readiness-bar-percentage {
@@ -982,6 +983,67 @@ input:focus,select:focus,textarea:focus {
     padding: 1rem;
     color: var(--text-muted);
     font-style: italic;
+}
+
+/* Keyframes optimisés mobile */
+@keyframes muscle-recovering {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 1; }
+}
+
+@keyframes muscle-ready {
+    0%, 100% { 
+        box-shadow: 0 0 8px currentColor; 
+        transform: scale(1);
+    }
+    50% { 
+        box-shadow: 0 0 16px currentColor; 
+        transform: scale(1.02);
+    }
+}
+
+/* Extensions des classes avec gestion mobile */
+.muscle-readiness-bar-fill.recovering {
+    animation: muscle-recovering 3s ease-in-out infinite;
+}
+
+.muscle-readiness-bar-fill.ready {
+    animation: muscle-ready 2s ease-in-out infinite;
+}
+
+/* Gestion hover/touch différenciée */
+@media (hover: hover) {
+    .muscle-readiness-bar-fill.ready {
+        cursor: pointer;
+    }
+    
+    .muscle-readiness-bar-fill.ready:hover {
+        animation-duration: 1s;
+        filter: brightness(1.1);
+    }
+}
+
+/* Mobile : animations plus douces */
+@media (max-width: 640px) {
+    .muscle-readiness-bar-fill.recovering {
+        animation-duration: 4s; /* Plus lent = moins de batterie */
+    }
+    
+    .muscle-readiness-bar-fill.ready {
+        animation-duration: 2.5s;
+    }
+    
+    /* Désactiver animations si mouvement réduit préféré */
+    @media (prefers-reduced-motion: reduce) {
+        .muscle-readiness-bar-fill.recovering,
+        .muscle-readiness-bar-fill.ready {
+            animation: none;
+        }
+        
+        .muscle-readiness-bar-fill.ready {
+            box-shadow: 0 0 8px currentColor; /* Glow statique */
+        }
+    }
 }
 
 .muscle-item {
