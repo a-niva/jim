@@ -2084,15 +2084,19 @@ function handleMuscleReadinessClick(muscleKey, muscleName, capacity) {
     if (capacity >= 100) {
         // Animation spéciale pour muscles prêts
         if (confirm(`💪 ${muscleName} est prêt !\n\nLancer une séance libre ?\n\nCapacité: ${capacity}%`)) {
-            startFreeWorkout();
-            setTimeout(() => filterByMuscleGroup(muscleKey), 200);
+            startFreeWorkout().then(() => {
+                // Attendre que les exercices soient chargés avant de filtrer
+                setTimeout(() => filterByMuscleGroup(muscleKey), 500);
+            });
         }
     } else {
         // Message informatif pour muscles en récupération
         const hoursLeft = Math.ceil((100 - capacity) * 72 / 100);
         if (confirm(`⏳ ${muscleName} en récupération\n\nCapacité: ${capacity}%\nTemps restant: ~${hoursLeft}h\n\nLancer une séance quand même ?`)) {
-            startFreeWorkout();
-            setTimeout(() => filterByMuscleGroup(muscleKey), 200);
+            startFreeWorkout().then(() => {
+                // Attendre que les exercices soient chargés avant de filtrer
+                setTimeout(() => filterByMuscleGroup(muscleKey), 500);
+            });
         }
     }
 }
