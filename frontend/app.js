@@ -5721,6 +5721,23 @@ async function loadProfile() {
         </div>
     `;
 
+    // Ajouter le toggle pour le mode d'affichage du poids
+    profileHTML += `
+        <div class="profile-field">
+            <span class="field-label">Mode d'affichage poids</span>
+            <small class="field-description">En séance : poids total ou charge seule (sans barre)</small>
+            <div class="toggle-container">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="weightDisplayToggle"
+                        ${currentUser.preferred_weight_display_mode === 'charge' ? 'checked' : ''}
+                        onchange="toggleWeightDisplayMode()">
+                    <span class="toggle-slider"></span>
+                </label>
+                <span id="weightDisplayLabel">${currentUser.preferred_weight_display_mode === 'charge' ? 'Mode charge' : 'Mode total'}</span>
+            </div>
+        </div>
+    `;
+
     document.getElementById('profileInfo').innerHTML = profileHTML;
 
     // Add event listener for the toggle to update the label immediately
@@ -5840,6 +5857,46 @@ async function togglePlateHelper() {
         console.log('Aide montage mise à jour:', toggle.checked);
     } catch (error) {
         console.error('Erreur toggle aide montage:', error);
+        // Revenir à l'état précédent en cas d'erreur
+        toggle.checked = !toggle.checked;
+        showToast('Erreur lors de la sauvegarde', 'error');
+    }
+}
+
+async function toggleWeightDisplayMode() {
+    const toggle = document.getElementById('weightDisplayToggle');
+    const label = document.getElementById('weightDisplayLabel');
+    
+    try {
+        const newMode = toggle.checked ? 'charge' : 'total';
+        
+        const response = await apiPut(`/api/users/${currentUser.id}/weight-display-preference`, {
+            mode: newMode
+        });
+        
+        currentUser.preferred_weight_display_mode = newMode;
+        label.textContent = newMode === 'charge' ? 'Mode charge' : 'Mode total';
+        
+        // Mise à jour immédiate si on est en séance avec équipement compatible
+        if (currentExercise && isEquipmentCompatibleWithChargeMode(currentExercise)) {
+            const currentWeight = parseFloat(document.getElementById('setWeight')?.textContent) || 0;
+            const convertedWeight = convertWeight(currentWeight, currentWeightMode, newMode, currentExercise);
+            
+            // Mettre à jour l'affichage
+            document.getElementById('setWeight').textContent = convertedWeight;
+            currentWeightMode = newMode;
+            
+            // Mettre à jour l'interface visuelle
+            setupChargeInterface();
+            
+            // Mettre à jour le plate helper
+            updatePlateHelper(convertedWeight);
+        }
+        
+        console.log('Mode d\'affichage poids mis à jour:', newMode);
+        showToast(`Mode ${newMode === 'charge' ? 'charge' : 'total'} activé`, 'success');
+    } catch (error) {
+        console.error('Erreur toggle mode affichage:', error);
         // Revenir à l'état précédent en cas d'erreur
         toggle.checked = !toggle.checked;
         showToast('Erreur lors de la sauvegarde', 'error');
@@ -7664,21 +7721,31 @@ function setupWeightModeSwipe(iconElement) {
 }
 
 // ===== AIDE AU MONTAGE DES BARRES (VERSION OPTIMISÉE) =====
+// ===== AIDE AU MONTAGE DES BARRES (VERSION OPTIMISÉE) =====
 async function updatePlateHelper(weight) {
     // Debug logging
     console.log('[PlateHelper] Update called:', {
         weight,
         hasExercise: !!currentExercise,
-        showHelper: currentUser?.show_plate_helper
+        showHelper: currentUser?.show_plate_helper,
+        currentMode: currentWeightMode
     });
+    
+    // Convertir le poids affiché en poids total si nécessaire pour les calculs
+    let plateHelperWeight = weight;
+    if (currentWeightMode === 'charge' && isEquipmentCompatibleWithChargeMode(currentExercise)) {
+        plateHelperWeight = convertWeight(weight, 'charge', 'total', currentExercise);
+        console.log('[PlateHelper] Conversion charge->total:', weight, '->', plateHelperWeight);
+    }
+    
     // Validation du poids pour dumbbells
-    if (currentExercise?.equipment_required?.includes('dumbbells') && weight % 2 !== 0) {
-        console.warn('[PlateHelper] Poids impair détecté pour dumbbells:', weight);
-        weight = Math.round(weight / 2) * 2;
+    if (currentExercise?.equipment_required?.includes('dumbbells') && plateHelperWeight % 2 !== 0) {
+        console.warn('[PlateHelper] Poids impair détecté pour dumbbells:', plateHelperWeight);
+        plateHelperWeight = Math.round(plateHelperWeight / 2) * 2;
     }
     
     // Vérifications de base (sans currentExercise)
-    if (!currentUser?.show_plate_helper || !weight || weight <= 0) {
+    if (!currentUser?.show_plate_helper || !plateHelperWeight || plateHelperWeight <= 0) {
         hidePlateHelper();
         return;
     }
@@ -7697,7 +7764,7 @@ async function updatePlateHelper(weight) {
         
         console.log('[PlateHelper] Poids ML:', mlWeight, 'Poids affiché:', weight);
         
-        const layout = await apiGet(`/api/users/${currentUser.id}/plate-layout/${weightToUse}?exercise_id=${currentExercise.id}`);
+        const layout = await apiGet(`/api/users/${currentUser.id}/plate-layout/${plateHelperWeight}?exercise_id=${currentExercise.id}`);
         
         // Si le layout retourne un poids différent, c'est une erreur
         if (layout.feasible && layout.weight !== weightToUse) {
