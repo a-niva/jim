@@ -2088,11 +2088,6 @@ input:focus,select:focus,textarea:focus {
     height: 44px;
 }
 
-.charge-mode-icon:hover {
-    background: rgba(255, 255, 255, 0.1);
-    transform: scale(1.05);
-}
-
 .charge-mode-icon.charge-animating {
     transform: scale(1.1);
 }
@@ -2100,19 +2095,32 @@ input:focus,select:focus,textarea:focus {
 .charge-mode-total .charge-mode-icon::before {
     content: "";
     display: block;
-    width: 32px;
-    height: 20px;
+    width: 40px;
+    height: 32px;
     background: url('logo-total.png') no-repeat center center;
     background-size: contain;
+    filter: brightness(1);
+    animation: charge-color-pulse 3s infinite;
 }
 
 .charge-mode-charge .charge-mode-icon::before {
     content: "";
     display: block;
-    width: 32px;
-    height: 20px;
+    width: 40px;
+    height: 32px;
     background: url('logo-charge.png') no-repeat center center;
     background-size: contain;
+    filter: brightness(1);
+    animation: charge-color-pulse 3s infinite;
+}
+
+@keyframes charge-color-pulse {
+    0% { 
+        filter: brightness(1) sepia(0) saturate(1);
+    }
+    100% { 
+        filter: brightness(1.3) sepia(1) hue-rotate(50deg) saturate(3) contrast(1.1);
+    }
 }
 
 .charge-weight-display {
