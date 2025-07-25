@@ -5558,20 +5558,32 @@ async function loadStats() {
 
 // ===== PROFIL =====
 async function loadProfile() {
-    console.log('loadProfile called, currentUser:', currentUser); // Debug
+    console.log('loadProfile called, currentUser:', currentUser);
 
     if (!currentUser) {
-        console.error('Pas de currentUser !'); // Debug
+        console.error('Pas de currentUser !');
         return;
     }
 
     const profileInfo = document.getElementById('profileInfo');
     if (!profileInfo) {
-        console.error('Element profileInfo non trouvé !'); // Debug
+        console.error('Element profileInfo non trouvé !');
         return;
     }
 
     const age = new Date().getFullYear() - new Date(currentUser.birth_date).getFullYear();
+    
+    // Fonction de traduction des niveaux
+    function translateExperienceLevel(level) {
+        const translations = {
+            'beginner': 'Débutant',
+            'intermediate': 'Intermédiaire', 
+            'advanced': 'Avancé',
+            'elite': 'Elite',
+            'extreme': 'Extrême'
+        };
+        return translations[level] || level;
+    }
 
     let profileHTML = `
         <div class="profile-item">
@@ -5588,11 +5600,11 @@ async function loadProfile() {
         </div>
         <div class="profile-item">
             <span class="profile-label">Poids</span>
-            <span class="profile-value">${currentUser.bodyweight} kg</span>
+            <span class="profile-value">${currentUser.weight || currentUser.bodyweight || 'Non défini'} kg</span>
         </div>
         <div class="profile-item">
             <span class="profile-label">Niveau</span>
-            <span class="profile-value">${currentUser.experience_level}</span>
+            <span class="profile-value">${translateExperienceLevel(currentUser.experience_level)}</span>
         </div>
     `;
 
@@ -5630,6 +5642,7 @@ async function loadProfile() {
     profileHTML += `
         <div class="profile-field">
             <span class="field-label">Aide au montage</span>
+            <small class="field-description">Affiche la répartition des disques pendant les séances</small>
             <div class="toggle-container">
                 <label class="toggle-switch">
                     <input type="checkbox" id="plateHelperToggle"
@@ -5639,7 +5652,6 @@ async function loadProfile() {
                 </label>
                 <span id="plateHelperLabel">${currentUser.show_plate_helper ? 'Activé' : 'Désactivé'}</span>
             </div>
-            <small class="field-description">Affiche la répartition des disques pendant les séances</small>
         </div>
     `;
 
