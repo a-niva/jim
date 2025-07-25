@@ -922,6 +922,11 @@ input:focus,select:focus,textarea:focus {
     will-change: transform, box-shadow; /* Optimisation GPU */
 }
 
+.muscle-readiness-bar-fill.ready {
+    color: #3b82f6; /* Force une couleur pour currentColor */
+    animation: muscle-ready 2s ease-in-out infinite;
+}
+
 .muscle-readiness-bar-percentage {
     font-size: 0.7rem;
     font-weight: 700;
@@ -993,22 +998,19 @@ input:focus,select:focus,textarea:focus {
 
 @keyframes muscle-ready {
     0%, 100% { 
-        box-shadow: 0 0 8px currentColor; 
+        box-shadow: 0 0 8px rgba(59, 130, 246, 0.6); 
         transform: scale(1);
     }
     50% { 
-        box-shadow: 0 0 16px currentColor; 
+        box-shadow: 0 0 16px rgba(59, 130, 246, 0.8); 
         transform: scale(1.02);
     }
 }
 
+
 /* Extensions des classes avec gestion mobile */
 .muscle-readiness-bar-fill.recovering {
     animation: muscle-recovering 3s ease-in-out infinite;
-}
-
-.muscle-readiness-bar-fill.ready {
-    animation: muscle-ready 2s ease-in-out infinite;
 }
 
 /* Gestion hover/touch différenciée */

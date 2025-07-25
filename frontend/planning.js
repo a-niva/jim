@@ -239,7 +239,10 @@ class PlanningManager {
     getCurrentWeek() {
         const now = new Date();
         const startOfWeek = new Date(now);
-        startOfWeek.setDate(now.getDate() - now.getDay() + 1); // Lundi
+        // Correction du bug du dimanche
+        const dayOfWeek = now.getDay();
+        const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        startOfWeek.setDate(now.getDate() + daysToMonday);
         startOfWeek.setHours(0, 0, 0, 0);
         return startOfWeek;
     }
@@ -251,8 +254,8 @@ class PlanningManager {
         this.weeksData.clear();
         
         for (let i = 0; i < 8; i++) { // 8 semaines au total
-            const weekStart = new Date(startDate);
-            weekStart.setDate(weekStart.getDate() + (i * 7));
+            const weekStart = new Date(startDate.getTime());
+            weekStart.setDate(startDate.getDate() + (i * 7));
             const weekKey = this.getWeekKey(weekStart);
             
             try {
@@ -276,7 +279,11 @@ class PlanningManager {
                 return this.generateEmptyWeek(weekStart);
             }
             
-            const weekStartStr = weekStart.toISOString().split('T')[0];
+            // Format local pour éviter les problèmes timezone
+            const year = weekStart.getFullYear();
+            const month = String(weekStart.getMonth() + 1).padStart(2, '0');
+            const day = String(weekStart.getDate()).padStart(2, '0');
+            const weekStartStr = `${year}-${month}-${day}`;
             
             // CORRECTION : Utiliser le bon endpoint existant
             const response = await window.apiGet(
@@ -299,9 +306,13 @@ class PlanningManager {
         const scheduleData = scheduleResponse?.schedule || {};
         
         for (let i = 0; i < 7; i++) {
-            const date = new Date(weekStart);
-            date.setDate(date.getDate() + i);
-            const dateStr = date.toISOString().split('T')[0];
+            const date = new Date(weekStart.getTime()); // Clone propre
+            date.setDate(weekStart.getDate() + i);
+            // Utiliser format local pour éviter les problèmes timezone
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const dateStr = `${year}-${month}-${day}`;
             
             // Chercher les sessions dans scheduleData pour cette date
             const sessions = [];
@@ -365,9 +376,13 @@ class PlanningManager {
         const days = [];
         
         for (let i = 0; i < 7; i++) {
-            const date = new Date(weekStart);
+            const date = new Date(weekStart.getTime());
             date.setDate(weekStart.getDate() + i);
-            const dateStr = date.toISOString().split('T')[0];
+            // Format local cohérent
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const dateStr = `${year}-${month}-${day}`;
             const dayName = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'][i];
             
             // Récupérer les sessions depuis weekly_structure
@@ -471,7 +486,7 @@ class PlanningManager {
     renderWeek(weekKey, weekData, index) {
         const isCurrentWeek = weekKey === this.getWeekKey(this.currentWeek);
         const weekStart = this.parseWeekKey(weekKey);
-        const weekEnd = new Date(weekStart);
+        const weekEnd = new Date(weekStart.getTime());
         weekEnd.setDate(weekStart.getDate() + 6);
         
         const daysHtml = weekData.planning_data
@@ -506,7 +521,9 @@ class PlanningManager {
     
 
     renderDay(day) {
-        const isToday = day.date === new Date().toISOString().split('T')[0];
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const isToday = day.date === todayStr;
         const sessionsHtml = day.sessions
             .map(session => this.renderSession(session, day.date))
             .join('');
@@ -910,11 +927,17 @@ class PlanningManager {
         const days = [];
         
         for (let i = 0; i < 7; i++) {
-            const date = new Date(weekStart);
-            date.setDate(date.getDate() + i);
+            const date = new Date(weekStart.getTime());
+            date.setDate(weekStart.getDate() + i);
+            
+            // Format local cohérent
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const dateStr = `${year}-${month}-${day}`;
             
             days.push({
-                date: date.toISOString().split('T')[0],
+                date: dateStr,
                 dayName: date.toLocaleDateString('fr-FR', { weekday: 'long' }),
                 dayNumber: date.getDate(),
                 sessions: [],
@@ -3746,7 +3769,7 @@ class PlanningManager {
         if (!weekKey) return;
         
         const weekStart = this.parseWeekKey(weekKey);
-        const weekEnd = new Date(weekStart);
+        const weekEnd = new Date(weekStart.getTime());
         weekEnd.setDate(weekStart.getDate() + 6);
         
         const isCurrentWeek = weekKey === this.getWeekKey(this.currentWeek);
