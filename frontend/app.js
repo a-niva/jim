@@ -3569,7 +3569,7 @@ async function setupProgramWorkout(program) {
         // Prendre le premier exercice non complété
         const firstExercise = program.exercises[0];
         if (firstExercise) {
-            // === NOUVEAU : RESET VARIABLES AVANT PREMIER EXERCICE ===
+            // === RESET VARIABLES AVANT PREMIER EXERCICE ===
             currentSet = 1;
             currentWorkoutSession.currentSetNumber = 1;
             currentWorkoutSession.isStartingExtraSet = false;
@@ -3617,7 +3617,7 @@ async function selectExerciseById(exerciseId) {
 async function selectExercise(exercise, skipValidation = false) {
     // Pour le setup initial, on peut skipper la validation
     if (!skipValidation && !validateSessionState(true)) return;
-    // NOUVEAU : Réinitialiser le poids réel
+    // Réinitialiser le poids réel
     currentExerciseRealWeight = 0;
     console.log('[SelectExercise] Poids réel réinitialisé');
     
@@ -4968,7 +4968,7 @@ async function configureWeighted(elements, exercise, weightRec) {
     if (elements.setWeight) {
         elements.setWeight.textContent = closestWeight || weightRec;
         
-        // NOUVEAU : Stocker le poids réel en mode TOTAL
+        // Stocker le poids réel en mode TOTAL
         currentExerciseRealWeight = closestWeight || weightRec;
         console.log('[ConfigureWeighted] Poids réel initialisé:', currentExerciseRealWeight);
         
@@ -7892,6 +7892,12 @@ function switchWeightMode(targetMode = null) {
     // Mettre à jour le mode AVANT les animations
     currentWeightMode = newMode;
     
+    // Mettre à jour le label du mode
+    const modeLabel = document.querySelector('.charge-mode-label');
+    if (modeLabel) {
+        modeLabel.textContent = newMode.toUpperCase();
+    }
+    
     // Animer le changement
     animateWeightModeSwitch(newMode, displayWeight);
     
@@ -8548,7 +8554,7 @@ function adjustDuration(delta) {
 
 // ===== EXÉCUTION D'UNE SÉRIE =====
 function executeSet() {
-    // === NOUVEAU : VALIDATION PRÉALABLE ===
+    // === VALIDATION PRÉALABLE ===
     console.log(`🔧 executeSet(): currentSet=${currentSet}, currentSetNumber=${currentWorkoutSession.currentSetNumber}`);
     
     // Synchroniser les variables avant exécution
@@ -8598,7 +8604,7 @@ function executeSet() {
         const weightValue = document.getElementById('setWeight').textContent;
         const parsedWeight = parseFloat(weightValue);
 
-        // NOUVEAU : S'assurer que le poids réel est synchronisé
+        // S'assurer que le poids réel est synchronisé
         if (!isNaN(parsedWeight) && parsedWeight > 0) {
             if (currentWeightMode === 'charge') {
                 currentExerciseRealWeight = parsedWeight + getBarWeight(currentExercise);
@@ -9006,7 +9012,7 @@ function completeRest() {
         currentSet++;
         currentWorkoutSession.currentSetNumber = currentSet; // ← Cette ligne existe déjà
 
-        // === NOUVEAU : VALIDATION DE COHÉRENCE ===
+        // === VALIDATION DE COHÉRENCE ===
         // S'assurer que les variables restent synchronisées
         if (currentSet !== currentWorkoutSession.currentSetNumber) {
             console.warn(`🔧 SYNC: currentSet(${currentSet}) != currentSetNumber(${currentWorkoutSession.currentSetNumber}), correction`);
@@ -9125,7 +9131,7 @@ function handleExtraSet() {
     // 1. Incrémenter le total
     currentWorkoutSession.totalSets++;
 
-    // 2. === NOUVEAU : SYNCHRONISATION STRICTE ===
+    // 2. === SYNCHRONISATION STRICTE ===
     currentSet = currentWorkoutSession.totalSets;
     currentWorkoutSession.currentSetNumber = currentSet;
 
