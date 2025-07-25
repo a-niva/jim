@@ -59,7 +59,18 @@
     align-items: center;
     justify-content: center;
     padding: 2rem;
-    overflow-y: auto
+    overflow-y: auto;
+    /* Fix pour iOS Safari */
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Ajustement mobile pour éviter les problèmes de clavier */
+@media (max-width: 768px) {
+    #programBuilder.view {
+        align-items: flex-start;
+        padding: 1rem;
+        padding-top: 20vh; /* Espace pour le clavier virtuel */
+    }
 }
 
 .program-builder-container {

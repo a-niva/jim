@@ -1090,14 +1090,24 @@ input:focus,select:focus,textarea:focus {
     }
     
     /* Animations plus marquées sur mobile */
-    @keyframes muscle-ready {
-        0%, 100% { 
-            transform: scale(1);
-            filter: brightness(0.8);
+    /* Mobile : animations plus légères */
+    @media (max-width: 640px) {
+        .muscle-readiness-bar-fill.recovering {
+            animation-duration: 3s !important;
         }
-        50% { 
-            transform: scale(1.25);
-            filter: brightness(1.5);
+        
+        .muscle-readiness-bar-fill.ready {
+            animation-duration: 1.8s !important;
+        }
+        
+        /* Animation simplifiée pour performance mobile */
+        @keyframes muscle-ready {
+            0%, 100% { 
+                opacity: 0.8;
+            }
+            50% { 
+                opacity: 1;
+            }
         }
     }
 }
@@ -5184,9 +5194,20 @@ input:checked+.toggle-slider:before {
     transform: scale(1)
 }
 
-.muscle-tab:hover {
-    background: rgba(255,255,255,.08);
-    transform: translateY(-2px)
+/* Hover uniquement sur desktop */
+@media (hover: hover) {
+    .muscle-tab:hover {
+        background: rgba(255,255,255,.08);
+        transform: translateY(-2px)
+    }
+}
+
+/* Feedback tactile sur mobile */
+@media (hover: none) {
+    .muscle-tab:active {
+        background: rgba(255,255,255,.12);
+        transform: scale(0.98)
+    }
 }
 
 .muscle-tab.active {
@@ -5280,6 +5301,33 @@ input:checked+.toggle-slider:before {
 
 .muscle-exercises-grid.expanded {
     max-height: 2000px
+}
+
+/* Override mobile : toujours visible */
+@media (max-width: 768px) {
+    .muscle-exercises-grid {
+        grid-template-columns: 1fr;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+    
+    .muscle-exercises-grid.expanded {
+        max-height: none !important;
+    }
+}
+
+/* Fix pour mobile - Forcer l'affichage des exercices */
+@media (max-width: 768px) {
+    .muscle-exercises-grid {
+        grid-template-columns: 1fr;
+        /* Force l'affichage sur mobile */
+        max-height: none !important;
+        overflow: visible !important;
+    }
+    
+    .muscle-exercises-grid.expanded {
+        max-height: none !important;
+    }
 }
 
 .free-exercise-card {

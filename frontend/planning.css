@@ -680,6 +680,14 @@
     opacity: 0;
 }
 
+/* Fix mobile : toujours visible */
+@media (max-width: 768px) {
+    .exercises-list-container.collapsed {
+        max-height: none;
+        opacity: 1;
+    }
+}
+
 /* Cacher aussi la search bar quand collapsed */
 .search-bar-container {
     transition: all 0.3s ease;
@@ -728,16 +736,31 @@
 .muscle-exercises-panel {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 8px;        /* AUGMENTÉ de 4px à 8px */
-    padding: 8px;    /* AUGMENTÉ de 4px à 8px */
-    min-height: 60px; /* AJOUTÉ - évite l'écrasement */
+    gap: 12px;
+    padding: 12px;
+    min-height: 60px;
 }
+
 
 @media (max-width: 480px) {
     .muscle-exercises-panel {
         grid-template-columns: 1fr;
     }
 }
+
+/* Touch targets mobiles conformes (44px minimum) */
+@media (hover: none) and (pointer: coarse) {
+    .muscle-exercises-panel {
+        gap: 16px;
+        padding: 16px;
+    }
+    
+    .muscle-exercises-panel .exercise-option {
+        min-height: 44px;
+        padding: 12px;
+    }
+}
+
 
 /* Option d'exercice compacte */
 .exercise-option {
@@ -1768,7 +1791,8 @@
 }
 
 /* Sur desktop : Complètement masqués */
-@media (hover: hover) and (pointer: fine) and (min-width: 769px) {
+/* Détection cohérente desktop/mobile */
+@media (hover: hover) and (pointer: fine) {
     .swipe-indicator {
         display: none !important;
     }
@@ -1786,9 +1810,20 @@
     transition: all 0.2s ease;
 }
 
-.session-muscle-chip:hover {
-    transform: scale(1.05);
-    filter: brightness(1.1);
+/* Hover desktop uniquement */
+@media (hover: hover) {
+    .session-muscle-chip:hover {
+        transform: scale(1.05);
+        filter: brightness(1.1);
+    }
+}
+
+/* Alternative mobile */
+@media (hover: none) {
+    .session-muscle-chip:active {
+        transform: scale(0.95);
+        opacity: 0.8;
+    }
 }
 
 .muscle-more {

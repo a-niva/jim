@@ -6333,6 +6333,10 @@ function showExerciseSelection() {
     document.getElementById('exerciseSelection').style.display = 'block';
     document.getElementById('currentExercise').style.display = 'none';
     loadAvailableExercises();
+    // Nettoyer les sons si on change d'exercice pendant le repos
+    if (window.workoutAudio) {
+        window.workoutAudio.clearScheduledSounds();
+    }
 }
 
 // ===== API AVEC GESTION D'ERREUR AMÉLIORÉE =====
@@ -6597,6 +6601,10 @@ async function selectProgramExercise(exerciseId, isInitialLoad = false) {
     if (!isInitialLoad && restTimer) {
         if (!confirm('Vous êtes en période de repos. Voulez-vous vraiment changer d\'exercice ?')) {
             return;
+        }
+        // CORRECTIF: Nettoyer les notifications audio programmées
+        if (window.workoutAudio) {
+            window.workoutAudio.clearScheduledSounds();
         }
     }
     
@@ -9116,6 +9124,13 @@ function adjustRestTime(deltaSeconds) {
         notificationTimeout = null;
     }
     
+    // CORRECTIF: Nettoyer et reprogrammer les sons audio
+    if (window.workoutAudio) {
+        window.workoutAudio.clearScheduledSounds();
+        // Reprogrammer avec le nouveau temps
+        window.workoutAudio.scheduleRestNotifications(currentSeconds);
+    }
+    
     // Programmer la nouvelle notification avec le temps ajusté
     if ('Notification' in window && Notification.permission === 'granted') {
         notificationTimeout = setTimeout(() => {
@@ -9201,6 +9216,10 @@ function pauseWorkout() {
         if (notificationTimeout) {
             clearTimeout(notificationTimeout);
             notificationTimeout = null;
+        }
+        // CORRECTIF: Nettoyer aussi les sons programmés
+        if (window.workoutAudio) {
+            window.workoutAudio.clearScheduledSounds();
         }
         // Sauvegarder les deux temps actuels
         sessionStorage.setItem('pausedWorkoutTime', document.getElementById('workoutTimer').textContent);
