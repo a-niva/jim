@@ -8051,9 +8051,18 @@ function createBarbellVisualization(layout) {
         }
     });
     
+    // Adapter l'affichage selon le mode actuel
+    let displayWeight = layout.weight;
+    let displayLabel = 'total';
+    
+    if (currentWeightMode === 'charge' && isEquipmentCompatibleWithChargeMode(currentExercise)) {
+        displayWeight = convertWeight(layout.weight, 'total', 'charge', currentExercise);
+        displayLabel = 'charge';
+    }
+    
     return `
         <div class="helper-content">
-            <div class="helper-header">🏋️ ${layout.weight}kg total</div>
+            <div class="helper-header">🏋️ ${displayWeight}kg ${displayLabel}</div>
             
             <div class="barbell-visual">
                 <div class="visual-label">Par côté :</div>
