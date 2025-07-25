@@ -5894,11 +5894,9 @@ async function togglePlateHelper() {
     }
 }
 
-async function toggleWeightDisplayMode() {
-    const toggle = document.getElementById('weightDisplayToggle');
-    const label = document.getElementById('weightDisplayLabel');
-    
+async function toggleWeightDisplayMode(toggle) {
     try {
+        const label = toggle.nextElementSibling;
         const newMode = toggle.checked ? 'charge' : 'total';
         
         // Sauvegarder la préférence
@@ -5909,51 +5907,22 @@ async function toggleWeightDisplayMode() {
         currentUser.preferred_weight_display_mode = newMode;
         label.textContent = newMode === 'charge' ? 'Mode charge' : 'Mode total';
         
-        // Si on n'est pas en séance, pas besoin de faire plus
+        // Si on n'est pas en séance, s'arrêter ici
         if (!currentExercise || !isEquipmentCompatibleWithChargeMode(currentExercise)) {
             console.log('Mode préférence sauvegardé, sera appliqué à la prochaine séance');
             showToast('Préférence sauvegardée', 'success');
             return;
         }
         
-        // PROTECTION : Vérifier que l'élément existe et contient un nombre valide
-        const weightElement = document.getElementById('setWeight');
-        if (!weightElement) {
-            console.warn('[ToggleWeight] Pas d\'élément setWeight trouvé');
-            return;
-        }
-        
-        const weightText = weightElement.textContent.trim();
-        const currentWeight = parseFloat(weightText);
-        
-        if (isNaN(currentWeight)) {
-            console.error('[ToggleWeight] Poids invalide:', weightText);
-            showToast('Erreur: poids invalide détecté', 'error');
-            // Remettre le toggle à sa position précédente
-            toggle.checked = newMode !== 'charge';
-            return;
-        }
-        
-        // Vérifier si le changement est possible
-        if (newMode === 'charge' && currentWeight <= 20) {
-            console.warn('[ToggleWeight] Impossible de passer en mode charge avec un poids ≤ 20kg');
-            showToast('Poids trop faible pour le mode charge', 'warning');
-            // Remettre le toggle à sa position précédente
-            toggle.checked = false;
-            currentUser.preferred_weight_display_mode = 'total';
-            label.textContent = 'Mode total';
-            return;
-        }
-                
-        // Utiliser le poids réel comme référence
+        // Vérifier que le poids réel est valide
         if (!currentExerciseRealWeight || currentExerciseRealWeight <= 0) {
-            console.warn('[ToggleWeight] Poids réel non initialisé');
+            console.error('[ToggleWeight] Poids réel non initialisé');
             showToast('Erreur: poids non initialisé', 'error');
             toggle.checked = currentWeightMode === 'charge';
             return;
         }
 
-        // Calculer le poids à afficher selon le nouveau mode
+        // Calculer le poids à afficher
         let displayWeight;
         if (newMode === 'charge') {
             displayWeight = currentExerciseRealWeight - getBarWeight(currentExercise);
@@ -5969,11 +5938,13 @@ async function toggleWeightDisplayMode() {
             displayWeight = currentExerciseRealWeight;
         }
 
-        // Tout est OK, appliquer le changement
-        weightElement.textContent = displayWeight;
+        // Appliquer le changement
+        const weightElement = document.getElementById('setWeight');
+        if (weightElement) {
+            weightElement.textContent = displayWeight;
+        }
+        
         currentWeightMode = newMode;
-
-        // Mettre à jour l'interface visuelle
         setupChargeInterface();
 
         // Mettre à jour le plate helper avec le poids RÉEL
@@ -5984,16 +5955,12 @@ async function toggleWeightDisplayMode() {
         console.log('Mode d\'affichage mis à jour:', newMode, 'Affiché:', displayWeight, 'Réel:', currentExerciseRealWeight);
         showToast(`Mode ${newMode}`, 'success');
         
-        console.log('Mode d\'affichage mis à jour:', newMode, 'Poids:', convertedWeight);
-        showToast(`Mode ${newMode}`, 'success');
-        
     } catch (error) {
         console.error('Erreur toggle mode poids:', error);
         toggle.checked = currentWeightMode === 'charge';
         showToast('Erreur lors de la mise à jour', 'error');
     }
 }
-
 function editEquipment() {
     showModal('Modifier l\'équipement', `
         <p>Sélectionnez votre équipement disponible :</p>
@@ -8491,7 +8458,7 @@ function adjustWeightUp() {
         if (currentUser?.show_plate_helper) {
             const plateHelperWeight = currentWeightMode === 'charge' ? 
                 convertWeight(newWeight, 'charge', 'total', currentExercise) : newWeight;
-            updatePlateHelper(plateHelperWeight);
+            updatePlateHelper(currentExerciseRealWeight);
         }
         
         console.log('[AdjustWeight] Increased to:', newWeight);
@@ -8546,7 +8513,7 @@ function adjustWeightDown() {
         if (currentUser?.show_plate_helper) {
             const plateHelperWeight = currentWeightMode === 'charge' ? 
                 convertWeight(prevWeight, 'charge', 'total', currentExercise) : prevWeight;
-            updatePlateHelper(plateHelperWeight);
+            updatePlateHelper(currentExerciseRealWeight);
         }
         
         console.log('[AdjustWeight] Decreased to:', prevWeight);
