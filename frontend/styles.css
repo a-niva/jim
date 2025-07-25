@@ -5450,22 +5450,22 @@ input:checked+.toggle-slider:before {
     justify-content: center;
     width: 48px;
     height: 48px;
-    background: rgba(255,255,255,.05);
+    background: rgba(255,255,255,.12); /* Plus clair : de .05 à .12 */
     border: 2px solid transparent;
-    border-radius: 12px;
+    border-radius: 50%; /* Boutons ronds comme les muscles */
     cursor: pointer;
     transition: all .3s ease;
     flex: 0 0 auto;
-    padding: 6px;
+    padding: 0; /* Suppression du padding pour un meilleur centrage */
 }
 
 /* Image à l'intérieur du bouton */
 .equipment-icon {
-    width: 28px;
-    height: 28px;
+    width: 26px; /* Légèrement réduit pour avoir de l'espace dans le cercle */
+    height: 26px;
     object-fit: contain;
-    filter: grayscale(0.5);
-    opacity: 0.8;
+    filter: grayscale(0.3); /* Moins de grayscale pour mieux voir avec le fond clair */
+    opacity: 0.9; /* Plus opaque */
     transition: all .3s ease;
 }
 
@@ -5499,7 +5499,7 @@ input:checked+.toggle-slider:before {
 /* Hover desktop uniquement */
 @media (hover: hover) {
     .equipment-filter:hover {
-        background: rgba(255,255,255,.1);
+        background: rgba(255,255,255,.18); /* Plus clair au hover */
         transform: translateY(-2px);
     }
     
@@ -5520,13 +5520,15 @@ input:checked+.toggle-slider:before {
     }
 }
 
-/* Ajuster les boutons muscles pour être plus compacts */
+/* Boutons uniformisés */
 .muscle-tab {
-    padding: var(--spacing-sm);
+    padding: 0; /* Même padding que equipment-filter */
     width: 48px;
     height: 48px;
     justify-content: center;
+    align-items: center; /* Ajout pour centrage vertical */
     flex: 0 0 auto;
+    border-radius: 25px; /* S'assurer que c'est bien rond */
 }
 
 .muscle-tab .tab-icon {
@@ -5537,17 +5539,17 @@ input:checked+.toggle-slider:before {
 @media (max-width: 768px) {
     .muscle-tab,
     .equipment-filter {
-        width: 48px;
-        height: 48px;
+        width: 44px; /* Un peu plus petit sur mobile */
+        height: 44px;
     }
     
     .equipment-icon {
-        width: 28px;
-        height: 28px;
+        width: 24px; /* Proportionnellement réduit */
+        height: 24px;
     }
     
     .muscle-tab .tab-icon {
-        font-size: var(--font-xl);
+        font-size: var(--font-lg); /* Ajuster aussi les emojis */
     }
 }
 
