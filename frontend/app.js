@@ -5726,18 +5726,26 @@ async function loadProfile() {
     `;
 
     // Ajouter le toggle pour le mode d'affichage du poids
+    const isInWorkout = currentExercise && isEquipmentCompatibleWithChargeMode(currentExercise);
+    const canToggle = isInWorkout || !currentExercise; // Peut toggle si pas en séance ou si compatible
+
     profileHTML += `
         <div class="profile-field">
             <span class="field-label">Mode d'affichage poids</span>
-            <small class="field-description">En séance : poids total ou charge seule (sans barre)</small>
+            <small class="field-description">
+                ${isInWorkout ? 'Change immédiatement' : 'Appliqué à la prochaine séance avec barbell'}
+            </small>
             <div class="toggle-container">
-                <label class="toggle-switch">
+                <label class="toggle-switch ${!canToggle ? 'disabled' : ''}">
                     <input type="checkbox" id="weightDisplayToggle"
                         ${currentUser.preferred_weight_display_mode === 'charge' ? 'checked' : ''}
+                        ${!canToggle ? 'disabled' : ''}
                         onchange="toggleWeightDisplayMode()">
                     <span class="toggle-slider"></span>
                 </label>
-                <span id="weightDisplayLabel">${currentUser.preferred_weight_display_mode === 'charge' ? 'Mode charge' : 'Mode total'}</span>
+                <span id="weightDisplayLabel">
+                    ${currentUser.preferred_weight_display_mode === 'charge' ? 'Mode charge' : 'Mode total'}
+                </span>
             </div>
         </div>
     `;
@@ -5874,6 +5882,7 @@ async function toggleWeightDisplayMode() {
     try {
         const newMode = toggle.checked ? 'charge' : 'total';
         
+        // Sauvegarder la préférence
         const response = await apiPut(`/api/users/${currentUser.id}/weight-display-preference`, {
             mode: newMode
         });
@@ -5881,31 +5890,72 @@ async function toggleWeightDisplayMode() {
         currentUser.preferred_weight_display_mode = newMode;
         label.textContent = newMode === 'charge' ? 'Mode charge' : 'Mode total';
         
-        // Mise à jour immédiate si on est en séance avec équipement compatible
-        if (currentExercise && isEquipmentCompatibleWithChargeMode(currentExercise)) {
-            const currentWeight = parseFloat(document.getElementById('setWeight')?.textContent) || 0;
-            const convertedWeight = convertWeight(currentWeight, currentWeightMode, newMode, currentExercise);
-            
-            // Mettre à jour l'affichage
-            document.getElementById('setWeight').textContent = convertedWeight;
-            currentWeightMode = newMode;
-            
-            // Mettre à jour l'interface visuelle
-            setupChargeInterface();
-            
-            // Mettre à jour le plate helper SEULEMENT si activé
-            if (currentUser?.show_plate_helper) {
-                updatePlateHelper(convertedWeight);
-            }
+        // Si on n'est pas en séance, pas besoin de faire plus
+        if (!currentExercise || !isEquipmentCompatibleWithChargeMode(currentExercise)) {
+            console.log('Mode préférence sauvegardé, sera appliqué à la prochaine séance');
+            showToast('Préférence sauvegardée', 'success');
+            return;
         }
         
-        console.log('Mode d\'affichage poids mis à jour:', newMode);
-        showToast(`Mode ${newMode === 'charge' ? 'charge' : 'total'} activé`, 'success');
+        // PROTECTION : Vérifier que l'élément existe et contient un nombre valide
+        const weightElement = document.getElementById('setWeight');
+        if (!weightElement) {
+            console.warn('[ToggleWeight] Pas d\'élément setWeight trouvé');
+            return;
+        }
+        
+        const weightText = weightElement.textContent.trim();
+        const currentWeight = parseFloat(weightText);
+        
+        if (isNaN(currentWeight)) {
+            console.error('[ToggleWeight] Poids invalide:', weightText);
+            showToast('Erreur: poids invalide détecté', 'error');
+            // Remettre le toggle à sa position précédente
+            toggle.checked = newMode !== 'charge';
+            return;
+        }
+        
+        // Vérifier si le changement est possible
+        if (newMode === 'charge' && currentWeight <= 20) {
+            console.warn('[ToggleWeight] Impossible de passer en mode charge avec un poids ≤ 20kg');
+            showToast('Poids trop faible pour le mode charge', 'warning');
+            // Remettre le toggle à sa position précédente
+            toggle.checked = false;
+            currentUser.preferred_weight_display_mode = 'total';
+            label.textContent = 'Mode total';
+            return;
+        }
+        
+        // Effectuer la conversion
+        const convertedWeight = convertWeight(currentWeight, currentWeightMode, newMode, currentExercise);
+        
+        // Double vérification pour éviter NaN
+        if (isNaN(convertedWeight) || convertedWeight < 0) {
+            console.error('[ToggleWeight] Conversion invalide:', currentWeight, '->', convertedWeight);
+            showToast('Erreur de conversion', 'error');
+            toggle.checked = currentWeightMode === 'charge';
+            return;
+        }
+        
+        // Tout est OK, appliquer le changement
+        weightElement.textContent = convertedWeight;
+        currentWeightMode = newMode;
+        
+        // Mettre à jour l'interface visuelle
+        setupChargeInterface();
+        
+        // Mettre à jour le plate helper si activé
+        if (currentUser?.show_plate_helper) {
+            updatePlateHelper(convertedWeight);
+        }
+        
+        console.log('Mode d\'affichage mis à jour:', newMode, 'Poids:', convertedWeight);
+        showToast(`Mode ${newMode}`, 'success');
+        
     } catch (error) {
-        console.error('Erreur toggle mode affichage:', error);
-        // Revenir à l'état précédent en cas d'erreur
-        toggle.checked = !toggle.checked;
-        showToast('Erreur lors de la sauvegarde', 'error');
+        console.error('Erreur toggle mode poids:', error);
+        toggle.checked = currentWeightMode === 'charge';
+        showToast('Erreur lors de la mise à jour', 'error');
     }
 }
 
@@ -7681,19 +7731,31 @@ function getBarWeight(exercise) {
 
 function convertWeight(weight, fromMode, toMode, exercise = null) {
     /**Convertit un poids entre mode total et charge*/
+    
+    // Validation des entrées
+    if (isNaN(weight) || weight === null || weight === undefined) {
+        console.error('[ConvertWeight] Poids invalide:', weight);
+        return 0;
+    }
+    
     if (fromMode === toMode) return weight;
     
     const barWeight = getBarWeight(exercise || currentExercise);
     
     if (fromMode === 'total' && toMode === 'charge') {
         const chargeWeight = weight - barWeight;
-        // Si le résultat est négatif ou nul, retourner le poids minimum utilisable
-        if (chargeWeight <= 0) {
-            console.warn(`[ConvertWeight] Charge négative détectée: ${weight}kg total - ${barWeight}kg barre = ${chargeWeight}kg`);
-            return 0; // Retourner 0 mais le switchMode doit gérer ce cas
+        if (chargeWeight < 0) {
+            console.warn(`[ConvertWeight] Charge négative: ${weight}kg - ${barWeight}kg = ${chargeWeight}kg`);
+            return 0;
         }
         return chargeWeight;
+    } else if (fromMode === 'charge' && toMode === 'total') {
+        return weight + barWeight;
     }
+    
+    // Cas non géré
+    console.error('[ConvertWeight] Mode non géré:', fromMode, '->', toMode);
+    return weight;
 }
 
 function isEquipmentCompatibleWithChargeMode(exercise) {
@@ -7750,15 +7812,27 @@ function setupChargeInterface() {
 
     if (currentWeight === 0 && currentWeightMode === 'charge') {
         console.warn('[SetupInterface] État incohérent détecté: 0kg en mode charge');
-        // Forcer le retour en mode total
+        // Forcer le retour en mode total ET mettre à jour la préférence
         currentWeightMode = 'total';
+        currentUser.preferred_weight_display_mode = 'total';
+        
         if (container) {
             container.classList.remove('charge-mode-charge');
             container.classList.add('charge-mode-total');
         }
+        
+        // Mettre à jour le toggle dans le profil s'il existe
+        const profileToggle = document.getElementById('weightDisplayToggle');
+        if (profileToggle) {
+            profileToggle.checked = false;
+        }
+        
         // Recalculer le poids correct
         const totalWeight = convertWeight(0, 'charge', 'total', currentExercise);
-        document.getElementById('setWeight').textContent = totalWeight;
+        const weightElement = document.getElementById('setWeight');
+        if (weightElement && !isNaN(totalWeight)) {
+            weightElement.textContent = totalWeight;
+        }
     }
 }
 
@@ -7939,56 +8013,48 @@ async function updatePlateHelper(weight) {
         console.log('[PlateHelper] Déjà en cours, skip');
         return;
     }
+    
     plateHelperUpdateInProgress = true;
     
-    // Debug logging
-    console.log('[PlateHelper] Update called:', {
-        weight,
-        hasExercise: !!currentExercise,
-        showHelper: currentUser?.show_plate_helper,
-        currentMode: currentWeightMode
-    });
-    
-    // Convertir le poids affiché en poids total si nécessaire pour les calculs
-    let plateHelperWeight = weight;
-    if (currentWeightMode === 'charge' && isEquipmentCompatibleWithChargeMode(currentExercise)) {
-        plateHelperWeight = convertWeight(weight, 'charge', 'total', currentExercise);
-        console.log('[PlateHelper] Conversion charge->total:', weight, '->', plateHelperWeight);
-    }
-    
-    // Validation du poids pour dumbbells
-    if (currentExercise?.equipment_required?.includes('dumbbells') && plateHelperWeight % 2 !== 0) {
-        console.warn('[PlateHelper] Poids impair détecté pour dumbbells:', plateHelperWeight);
-        plateHelperWeight = Math.round(plateHelperWeight / 2) * 2;
-    }
-    
-    // Vérifications de base (sans currentExercise)
-    if (!currentUser?.show_plate_helper || !plateHelperWeight || plateHelperWeight <= 0) {
-        hidePlateHelper();
-        return;
-    }
-    
-    // Si pas d'exercice, attendre un peu et réessayer
-    if (!currentExercise) {
-        console.log('[PlateHelper] Waiting for exercise...');
-        setTimeout(() => updatePlateHelper(weight), 200);
-        return;
-    }
-    
     try {
-        // Utiliser le poids depuis les recommandations ML si disponible
-        const mlWeight = currentWorkoutSession?.lastRecommendations?.weight_recommendation;
-        const weightToUse = mlWeight || weight;
+        // Debug logging
+        console.log('[PlateHelper] Update called:', {
+            weight,
+            hasExercise: !!currentExercise,
+            showHelper: currentUser?.show_plate_helper,
+            currentMode: currentWeightMode
+        });
         
-        console.log('[PlateHelper] Poids ML:', mlWeight, 'Poids affiché:', weight);
+        // Le PlateHelper a besoin du poids TOTAL pour calculer le montage
+        let totalWeightForPlates = weight;
+        if (currentWeightMode === 'charge' && isEquipmentCompatibleWithChargeMode(currentExercise)) {
+            totalWeightForPlates = convertWeight(weight, 'charge', 'total', currentExercise);
+            console.log(`[PlateHelper] Mode charge: ${weight}kg → Total: ${totalWeightForPlates}kg`);
+        }
         
-        const layout = await apiGet(`/api/users/${currentUser.id}/plate-layout/${plateHelperWeight}?exercise_id=${currentExercise.id}`);
+        // Validation du poids
+        if (!totalWeightForPlates || totalWeightForPlates <= 0 || isNaN(totalWeightForPlates)) {
+            console.warn('[PlateHelper] Poids invalide:', totalWeightForPlates);
+            hidePlateHelper();
+            return;
+        }
+        
+        // Vérifications de base
+        if (!currentUser?.show_plate_helper || !currentExercise) {
+            hidePlateHelper();
+            return;
+        }
+        
+        // API call
+        const layout = await apiGet(`/api/users/${currentUser.id}/plate-layout/${totalWeightForPlates}?exercise_id=${currentExercise.id}`);
         
         showPlateHelper(layout);
+        
     } catch (error) {
         console.error('[PlateHelper] Error:', error);
         hidePlateHelper();
     } finally {
+        // TOUJOURS réinitialiser le flag
         plateHelperUpdateInProgress = false;
     }
 }
