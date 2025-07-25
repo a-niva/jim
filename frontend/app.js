@@ -2000,8 +2000,8 @@ async function loadMuscleReadiness() {
 
 function handleMuscleReadinessClick(muscleKey, muscleName, capacity) {
     if (confirm(`Lancer une séance libre pour ${muscleName} ?\n\nCapacité: ${capacity}%`)) {
-        navigateToSection('seance-libre');
-        setTimeout(() => filterByMuscleGroup(muscleKey), 100);
+        startFreeWorkout();
+        setTimeout(() => filterByMuscleGroup(muscleKey), 200);
     }
 }
 
