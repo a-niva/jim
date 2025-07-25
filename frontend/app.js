@@ -7594,6 +7594,9 @@ function hideChargeInterface() {
         if (icon) {
             icon.innerHTML = '💪';
             icon.style.cursor = 'default';
+            // Supprimer les styles de background si présents
+            icon.style.background = 'none';
+            icon.style.backgroundImage = 'none';
         }
     }
     

@@ -2044,7 +2044,13 @@ input:focus,select:focus,textarea:focus {
     flex-shrink: 0!important;
     width: 44px!important;
     height: 44px!important;
-    align-items: center!important
+    align-items: center!important;
+}
+
+.input-row .charge-mode-icon {
+    flex-shrink: 0!important;
+    width: 44px!important;
+    height: 44px!important;
 }
 
 .input-row .value-display {
@@ -2075,6 +2081,11 @@ input:focus,select:focus,textarea:focus {
     border-radius: 8px;
     position: relative;
     touch-action: pan-y;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
 }
 
 .charge-mode-icon:hover {
@@ -2087,15 +2098,21 @@ input:focus,select:focus,textarea:focus {
 }
 
 .charge-mode-total .charge-mode-icon::before {
-    content: "●━━━━━●";
-    font-family: monospace;
-    color: var(--primary);
+    content: "";
+    display: block;
+    width: 32px;
+    height: 20px;
+    background: url('logo-total.png') no-repeat center center;
+    background-size: contain;
 }
 
 .charge-mode-charge .charge-mode-icon::before {
-    content: "○━━━━━○";
-    font-family: monospace;
-    color: var(--accent);
+    content: "";
+    display: block;
+    width: 32px;
+    height: 20px;
+    background: url('logo-charge.png') no-repeat center center;
+    background-size: contain;
 }
 
 .charge-weight-display {
@@ -2164,19 +2181,35 @@ input:focus,select:focus,textarea:focus {
 
 /* Animations de morphing */
 @keyframes charge-morph-to-charge {
-    0% { content: "●━━━━━●"; color: var(--primary); }
-    25% { content: "◐━━━━━◑"; color: var(--primary); }
-    50% { content: "◯━━━━━◯"; color: var(--accent); }
-    75% { content: "○━━━━━○"; color: var(--accent); }
-    100% { content: "○━━━━━○"; color: var(--accent); }
+    0% { 
+        background-image: url('logo-total.png');
+        opacity: 1;
+    }
+    50% { 
+        opacity: 0.3;
+        transform: scale(0.9);
+    }
+    100% { 
+        background-image: url('logo-charge.png');
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 @keyframes charge-morph-to-total {
-    0% { content: "○━━━━━○"; color: var(--accent); }
-    25% { content: "◯━━━━━◯"; color: var(--accent); }
-    50% { content: "◐━━━━━◑"; color: var(--primary); }
-    75% { content: "●━━━━━●"; color: var(--primary); }
-    100% { content: "●━━━━━●"; color: var(--primary); }
+    0% { 
+        background-image: url('logo-charge.png');
+        opacity: 1;
+    }
+    50% { 
+        opacity: 0.3;
+        transform: scale(0.9);
+    }
+    100% { 
+        background-image: url('logo-total.png');
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 .charge-morphing-to-charge .charge-mode-icon::before {
