@@ -7806,6 +7806,17 @@ function setupChargeInterface() {
     container.classList.remove('charge-mode-total', 'charge-mode-charge');
     container.classList.add(`charge-mode-${currentWeightMode}`);
     
+    // NOUVEAU : S'assurer que le label existe et est mis à jour
+    let label = document.querySelector('.charge-mode-label');
+    if (!label) {
+        // Créer le label s'il n'existe pas
+        label = document.createElement('span');
+        label.className = 'charge-mode-label';
+        container.appendChild(label);
+    }
+    label.textContent = currentWeightMode.toUpperCase();
+    label.style.display = 'block'; // S'assurer qu'il est visible
+    
     // Forcer le rafraîchissement visuel
     container.offsetHeight; // Trigger reflow
     
@@ -7824,6 +7835,11 @@ function setupChargeInterface() {
         if (container) {
             container.classList.remove('charge-mode-charge');
             container.classList.add('charge-mode-total');
+        }
+        
+        // Mettre à jour le label
+        if (label) {
+            label.textContent = 'TOTAL';
         }
         
         // Mettre à jour le toggle dans le profil s'il existe
@@ -8488,7 +8504,11 @@ function adjustWeightDown() {
     
     // Convertir les poids disponibles selon le mode actuel
     if (currentWeightMode === 'charge' && isEquipmentCompatibleWithChargeMode(currentExercise)) {
-        weights = weights.map(w => convertWeight(w, 'total', 'charge', currentExercise)).filter(w => w >= 0);
+        const barWeight = getBarWeight(currentExercise);
+        // IMPORTANT : Filtrer AVANT la conversion pour éviter les poids négatifs
+        weights = weights
+            .filter(w => w > barWeight) // Garder seulement les poids > barre
+            .map(w => convertWeight(w, 'total', 'charge', currentExercise));
     }
     
     // Filtrer pour les dumbbells si nécessaire
@@ -8496,12 +8516,13 @@ function adjustWeightDown() {
         weights = weights.filter(w => w % 2 === 0);
         console.log('[AdjustWeight] Filtered to even weights:', weights);
     }
+    
     // Protection supplémentaire pour le mode charge
     if (currentWeightMode === 'charge' && weights.length === 0) {
         console.error('[AdjustWeight] Aucun poids valide en mode charge');
         // Forcer le retour en mode total
         switchWeightMode('total');
-        showToast('Retour automatique en mode total', 'info');
+        showToast('Poids minimum atteint - Retour en mode total', 'info');
         return;
     }
     
@@ -8531,7 +8552,13 @@ function adjustWeightDown() {
 
         console.log('[AdjustWeight] Decreased to:', prevWeight);
     } else {
-        showToast('Poids minimum atteint', 'info');
+        // Si on est en mode charge et qu'on ne peut plus descendre
+        if (currentWeightMode === 'charge') {
+            console.log('[AdjustWeight] Poids minimum en mode charge atteint');
+            showToast('Poids minimum atteint - Passez en mode total pour descendre plus', 'info');
+        } else {
+            showToast('Poids minimum atteint', 'info');
+        }
     }
 }
 
