@@ -5612,10 +5612,13 @@ input:checked+.toggle-slider:before {
 @media (max-width: 768px) {
     .muscle-exercises-grid {
         grid-template-columns: 1fr;
-        max-height: none !important;
-        overflow: visible !important;
     }
     
+    /* Touch target plus grand pour le header sur mobile */
+    .muscle-group-header {
+        padding: var(--spacing-lg) var(--spacing-md);
+        /* Zone de tap plus grande */
+    }
     .muscle-exercises-grid.expanded {
         max-height: none !important;
     }
@@ -7085,3 +7088,36 @@ input:checked+.toggle-slider:before {
 }
 
 
+/* Optimisations performance mobile */
+@media (max-width: 768px) {
+    /* Désactiver les animations non essentielles */
+    .muscle-tab::before,
+    .equipment-filter {
+        transition-duration: 0.2s; /* Plus rapide */
+    }
+    
+    /* Simplifier les ombres */
+    .muscle-tab.active,
+    .equipment-filter.active {
+        box-shadow: none;
+    }
+    
+    /* Réduire les espacements */
+    .muscle-group-section {
+        margin-bottom: var(--spacing-md);
+    }
+    
+    .exercise-filters {
+        margin-bottom: var(--spacing-md);
+    }
+}
+
+/* Préférence pour les animations réduites */
+@media (prefers-reduced-motion: reduce) {
+    .muscle-exercises-grid,
+    .collapse-icon,
+    .equipment-filter,
+    .muscle-tab {
+        transition: none !important;
+    }
+}

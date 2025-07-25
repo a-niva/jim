@@ -6826,12 +6826,16 @@ const equipmentImages = {
 let activeEquipmentFilters = new Set();
 
 function filterByEquipment(equipment) {
+    console.log('filterByEquipment appelé avec:', equipment);
+    
     // Toggle l'équipement dans les filtres actifs
     if (activeEquipmentFilters.has(equipment)) {
         activeEquipmentFilters.delete(equipment);
     } else {
         activeEquipmentFilters.add(equipment);
     }
+    
+    console.log('Filtres actifs:', Array.from(activeEquipmentFilters));
     
     // Mettre à jour l'apparence des boutons
     document.querySelectorAll('.equipment-filter').forEach(btn => {
@@ -6847,16 +6851,18 @@ function filterByEquipment(equipment) {
 function applyEquipmentFilters() {
     const allCards = document.querySelectorAll('.free-exercise-card');
     
-    if (activeEquipmentFilters.size === 0) {
-        // Aucun filtre : tout afficher
-        allCards.forEach(card => {
-            if (!card.dataset.hideByMuscle) {
-                card.style.display = 'block';
-            }
-        });
-    } else {
-        // Filtrer les exercices
-        allCards.forEach(card => {
+    allCards.forEach(card => {
+        // Vérifier si la carte est cachée par le filtre muscle
+        const hiddenByMuscle = card.dataset.hideByMuscle === 'true';
+        
+        if (hiddenByMuscle) {
+            // Si caché par muscle, rester caché
+            card.style.display = 'none';
+        } else if (activeEquipmentFilters.size === 0) {
+            // Aucun filtre équipement : afficher
+            card.style.display = 'block';
+        } else {
+            // Appliquer les filtres équipement
             const exerciseEquipment = JSON.parse(card.dataset.equipment || '[]');
             
             // Afficher si l'exercice utilise AU MOINS UN des équipements sélectionnés
@@ -6864,11 +6870,9 @@ function applyEquipmentFilters() {
                 activeEquipmentFilters.has(eq)
             );
             
-            if (!card.dataset.hideByMuscle) {
-                card.style.display = hasMatchingEquipment ? 'block' : 'none';
-            }
-        });
-    }
+            card.style.display = hasMatchingEquipment ? 'block' : 'none';
+        }
+    });
     
     // Mettre à jour la visibilité des sections
     updateSectionVisibility();
@@ -7258,6 +7262,23 @@ function enableHorizontalScroll() {
             muscleTabsContainer.scrollLeft += e.deltaY || e.deltaX;
         }
     });
+}
+
+// Fonction pour toggle les groupes musculaires
+function toggleMuscleGroup(muscle) {
+    const section = document.querySelector(`.muscle-group-section[data-muscle="${muscle}"]`);
+    if (!section) return;
+    
+    const grid = section.querySelector('.muscle-exercises-grid');
+    const icon = section.querySelector('.collapse-icon');
+    
+    if (grid.classList.contains('expanded')) {
+        grid.classList.remove('expanded');
+        icon.classList.add('rotated');
+    } else {
+        grid.classList.add('expanded');
+        icon.classList.remove('rotated');
+    }
 }
 
 // Fonction pour sélectionner un exercice depuis une carte
