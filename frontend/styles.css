@@ -2060,6 +2060,144 @@ input:focus,select:focus,textarea:focus {
     display: none!important
 }
 
+/* ===== SYSTÈME CHARGE/TOTAL ===== */
+.charge-weight-container {
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.charge-mode-icon {
+    font-size: 1.5rem !important;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.3s ease;
+    padding: 0.5rem;
+    border-radius: 8px;
+    position: relative;
+    touch-action: pan-y;
+}
+
+.charge-mode-icon:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.05);
+}
+
+.charge-mode-icon.charge-animating {
+    transform: scale(1.1);
+}
+
+.charge-mode-total .charge-mode-icon::before {
+    content: "●━━━━━●";
+    font-family: monospace;
+    color: var(--primary);
+}
+
+.charge-mode-charge .charge-mode-icon::before {
+    content: "○━━━━━○";
+    font-family: monospace;
+    color: var(--accent);
+}
+
+.charge-weight-display {
+    position: relative;
+}
+
+.charge-weight-value {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.charge-weight-value.charge-transitioning {
+    transform: scale(0.95);
+}
+
+.charge-mode-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    margin-top: 0.2rem;
+    text-align: center;
+}
+
+.charge-mode-total .charge-mode-label::after {
+    content: "total";
+}
+
+.charge-mode-charge .charge-mode-label::after {
+    content: "charge";
+    color: var(--accent);
+}
+
+.charge-tooltip {
+    position: absolute;
+    top: -3rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    padding: 0.5rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.charge-tooltip.charge-visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-0.5rem);
+}
+
+.charge-tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: var(--bg-primary);
+}
+
+/* Animations de morphing */
+@keyframes charge-morph-to-charge {
+    0% { content: "●━━━━━●"; color: var(--primary); }
+    25% { content: "◐━━━━━◑"; color: var(--primary); }
+    50% { content: "◯━━━━━◯"; color: var(--accent); }
+    75% { content: "○━━━━━○"; color: var(--accent); }
+    100% { content: "○━━━━━○"; color: var(--accent); }
+}
+
+@keyframes charge-morph-to-total {
+    0% { content: "○━━━━━○"; color: var(--accent); }
+    25% { content: "◯━━━━━◯"; color: var(--accent); }
+    50% { content: "◐━━━━━◑"; color: var(--primary); }
+    75% { content: "●━━━━━●"; color: var(--primary); }
+    100% { content: "●━━━━━●"; color: var(--primary); }
+}
+
+.charge-morphing-to-charge .charge-mode-icon::before {
+    animation: charge-morph-to-charge 0.6s ease;
+}
+
+.charge-morphing-to-total .charge-mode-icon::before {
+    animation: charge-morph-to-total 0.6s ease;
+}
+
+/* Transition numérique */
+@keyframes charge-number-change {
+    0% { transform: translateY(0) scale(1); opacity: 1; }
+    50% { transform: translateY(-10px) scale(0.9); opacity: 0.7; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.charge-number-animating {
+    animation: charge-number-change 0.4s ease;
+}
+
 .input-row.duration-display .value-display {
     background: rgba(59,130,246,.1);
     padding: var(--spacing-sm) var(--spacing-md);

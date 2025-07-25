@@ -21,6 +21,7 @@ class User(Base):
     prefer_weight_changes_between_sets = Column(Boolean, default=True)
     sound_notifications_enabled = Column(Boolean, default=True)
     show_plate_helper = Column(Boolean, default=False)
+    preferred_weight_display_mode = Column(String(20), default='total')  # 'total' ou 'charge' 
 
     # Relations
     workouts = relationship("Workout", back_populates="user", cascade="all, delete-orphan")

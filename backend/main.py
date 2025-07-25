@@ -4934,6 +4934,20 @@ def toggle_plate_helper(user_id: int, enabled: bool = Body(..., embed=True), db:
     db.commit()
     return {"enabled": enabled}
 
+@app.put("/api/users/{user_id}/weight-display-preference")  
+def set_weight_display_preference(user_id: int, mode: str = Body(..., embed=True), db: Session = Depends(get_db)):
+    """Définir le mode d'affichage préféré : 'total' ou 'charge'"""
+    if mode not in ['total', 'charge']:
+        raise HTTPException(status_code=400, detail="Mode doit être 'total' ou 'charge'")
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
+    user.preferred_weight_display_mode = mode
+    db.commit()
+    return {"mode": mode}
+
 # ===== FICHIERS STATIQUES =====
 
 # Servir les fichiers frontend

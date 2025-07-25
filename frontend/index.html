@@ -411,12 +411,16 @@
                         <!-- Zone d'input moderne -->
                         <div class="input-section">
                             <!-- Poids -->
-                            <div class="input-row">
-                                <span class="input-icon">💪</span>
+                            <div class="input-row charge-weight-container charge-mode-total">
+                                <span class="input-icon charge-mode-icon" id="chargeIcon"></span>
                                 <button class="stepper-modern" onclick="adjustWeightDown()">−</button>
-                                <div class="value-display">
-                                    <span id="setWeight" class="value">20</span>
-                                    <span class="unit">kg</span>
+                                <div class="value-display charge-weight-display">
+                                    <div class="charge-weight-value">
+                                        <span id="setWeight" class="value">20</span>
+                                        <span class="unit">kg</span>
+                                    </div>
+                                    <div class="charge-mode-label"></div>
+                                    <div class="charge-tooltip" id="chargeTooltip">Swipe ↕ pour changer de mode</div>
                                 </div>
                                 <button class="stepper-modern" onclick="adjustWeightUp()">+</button>
                             </div>
