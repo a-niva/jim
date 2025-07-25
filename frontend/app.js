@@ -7686,11 +7686,14 @@ function convertWeight(weight, fromMode, toMode, exercise = null) {
     const barWeight = getBarWeight(exercise || currentExercise);
     
     if (fromMode === 'total' && toMode === 'charge') {
-        return Math.max(0, weight - barWeight);
-    } else if (fromMode === 'charge' && toMode === 'total') {
-        return weight + barWeight;
+        const chargeWeight = weight - barWeight;
+        // Si le résultat est négatif ou nul, retourner le poids minimum utilisable
+        if (chargeWeight <= 0) {
+            console.warn(`[ConvertWeight] Charge négative détectée: ${weight}kg total - ${barWeight}kg barre = ${chargeWeight}kg`);
+            return 0; // Retourner 0 mais le switchMode doit gérer ce cas
+        }
+        return chargeWeight;
     }
-    return weight;
 }
 
 function isEquipmentCompatibleWithChargeMode(exercise) {
@@ -7741,6 +7744,22 @@ function setupChargeInterface() {
     
     // Configurer le swipe sur l'icône
     setupWeightModeSwipe(icon);
+
+    // Vérifier la cohérence de l'état visuel
+    const currentWeight = parseFloat(document.getElementById('setWeight')?.textContent) || 0;
+
+    if (currentWeight === 0 && currentWeightMode === 'charge') {
+        console.warn('[SetupInterface] État incohérent détecté: 0kg en mode charge');
+        // Forcer le retour en mode total
+        currentWeightMode = 'total';
+        if (container) {
+            container.classList.remove('charge-mode-charge');
+            container.classList.add('charge-mode-total');
+        }
+        // Recalculer le poids correct
+        const totalWeight = convertWeight(0, 'charge', 'total', currentExercise);
+        document.getElementById('setWeight').textContent = totalWeight;
+    }
 }
 
 function hideChargeInterface() {
@@ -7783,11 +7802,12 @@ function switchWeightMode(targetMode = null) {
     
     const currentWeight = parseFloat(weightElement.textContent);
     let convertedWeight = convertWeight(currentWeight, oldMode, newMode, currentExercise);
-    
-    // Validation edge case
-    if (convertedWeight < 0) {
-        showToast("⚠️ Charge négative impossible, passage à 0kg", 'warning', 3000);
-        convertedWeight = 0;
+        
+    // Validation edge case - EMPÊCHER le blocage à 0
+    if (convertedWeight <= 0 && newMode === 'charge') {
+        console.warn('[SwitchMode] Poids trop faible pour mode charge, blocage évité');
+        showToast("⚠️ Poids insuffisant pour afficher la charge", 'warning', 2000);
+        return; // NE PAS changer de mode si on arrive à 0 ou négatif
     }
     
     // CRITIQUE : Mettre à jour le mode AVANT les animations
@@ -7829,9 +7849,29 @@ function animateWeightModeSwitch(newMode, newWeight) {
         
         // Nettoyer l'animation
         setTimeout(() => {
-            weightValue.classList.remove('charge-number-animating');
-        }, 400);
-    }, 300);
+            // Nettoyer TOUTES les classes d'animation
+            container.classList.remove(
+                'charge-morphing-to-charge', 
+                'charge-morphing-to-total',
+                'charge-mode-charge',
+                'charge-mode-total'
+            );
+            
+            // Appliquer le nouveau mode
+            container.classList.add('charge-mode-' + newMode);
+            
+            // FORCER le reflow CSS pour garantir la mise à jour
+            container.offsetHeight; // Force reflow
+            
+            // Mettre à jour le poids
+            document.getElementById('setWeight').textContent = newWeight;
+            
+            // Nettoyer l'animation du nombre
+            setTimeout(() => {
+                weightValue.classList.remove('charge-number-animating');
+            }, 400);
+        }, 300);
+    }, 100); // Délai pour laisser le temps à l'animation de démarrer
 }
 
 function showChargeTooltip() {
@@ -8067,19 +8107,10 @@ function createBarbellVisualization(layout) {
             plates.push(parseFloat(match[1]));
         }
     });
-    
-    // Adapter l'affichage selon le mode actuel
-    let displayWeight = layout.weight;
-    let displayLabel = 'total';
-    
-    if (currentWeightMode === 'charge' && isEquipmentCompatibleWithChargeMode(currentExercise)) {
-        displayWeight = convertWeight(layout.weight, 'total', 'charge', currentExercise);
-        displayLabel = 'charge';
-    }
-    
+        
     return `
         <div class="helper-content">
-            <div class="helper-header">🏋️ ${displayWeight}kg ${displayLabel}</div>
+            <div class="helper-header">🏋️ ${layout.weight}kg total</div>
             
             <div class="barbell-visual">
                 <div class="visual-label">Par côté :</div>
@@ -8344,6 +8375,14 @@ function adjustWeightUp() {
         weights = weights.filter(w => w % 2 === 0);
         console.log('[AdjustWeight] Filtered to even weights:', weights);
     }
+    // Protection supplémentaire pour le mode charge
+    if (currentWeightMode === 'charge' && weights.length === 0) {
+        console.error('[AdjustWeight] Aucun poids valide en mode charge');
+        // Forcer le retour en mode total
+        switchWeightMode('total');
+        showToast('Retour automatique en mode total', 'info');
+        return;
+    }
     
     // Trouver le prochain poids supérieur
     let nextIndex = weights.findIndex(w => w > currentWeight);
@@ -8385,6 +8424,14 @@ function adjustWeightDown() {
     if (currentExercise?.equipment_required?.includes('dumbbells')) {
         weights = weights.filter(w => w % 2 === 0);
         console.log('[AdjustWeight] Filtered to even weights:', weights);
+    }
+    // Protection supplémentaire pour le mode charge
+    if (currentWeightMode === 'charge' && weights.length === 0) {
+        console.error('[AdjustWeight] Aucun poids valide en mode charge');
+        // Forcer le retour en mode total
+        switchWeightMode('total');
+        showToast('Retour automatique en mode total', 'info');
+        return;
     }
     
     // Trouver le poids inférieur le plus proche
