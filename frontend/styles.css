@@ -714,6 +714,127 @@ input:focus,select:focus,textarea:focus {
     gap: var(--spacing-sm)
 }
 
+/* ===== MUSCLE READINESS BARS ===== */
+.muscle-readiness-bars-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.muscle-readiness-bar-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0.75rem 0.5rem;
+    border-radius: 8px;
+    background: var(--bg-card);
+    border: 1px solid transparent;
+}
+
+.muscle-readiness-bar-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-color: var(--border);
+}
+
+.muscle-readiness-bar-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+    text-align: center;
+}
+
+.muscle-readiness-bar-container {
+    position: relative;
+    width: 20px;
+    height: 60px;
+    background: var(--bg-light);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+    border: 1px solid var(--border);
+}
+
+.muscle-readiness-bar-fill {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-radius: 8px;
+    transition: height 0.8s ease;
+    background: var(--primary);
+}
+
+.muscle-readiness-bar-percentage {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.25rem;
+}
+
+.muscle-readiness-bar-status {
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+/* Couleurs par muscle avec gradients */
+.muscle-readiness-dos {
+    background: linear-gradient(180deg, var(--muscle-dos), #2563eb);
+}
+
+.muscle-readiness-pectoraux {
+    background: linear-gradient(180deg, var(--muscle-pectoraux), #db2777);
+}
+
+.muscle-readiness-jambes {
+    background: linear-gradient(180deg, var(--muscle-jambes), #059669);
+}
+
+.muscle-readiness-epaules {
+    background: linear-gradient(180deg, var(--muscle-epaules), #d97706);
+}
+
+.muscle-readiness-bras {
+    background: linear-gradient(180deg, var(--muscle-bras), #7c3aed);
+}
+
+.muscle-readiness-abdominaux {
+    background: linear-gradient(180deg, var(--muscle-abdominaux), #dc2626);
+}
+
+/* Responsive mobile */
+@media (max-width: 640px) {
+    .muscle-readiness-bars-container {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.75rem;
+        padding: 0.75rem;
+    }
+    
+    .muscle-readiness-bar-container {
+        width: 18px;
+        height: 50px;
+    }
+    
+    .muscle-readiness-bar-label {
+        font-size: 0.7rem;
+    }
+}
+
+.muscle-readiness-error {
+    text-align: center;
+    padding: 1rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
 .muscle-item {
     display: flex;
     justify-content: space-between;

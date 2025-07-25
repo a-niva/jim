@@ -1957,7 +1957,6 @@ function updateExecuteButtonState(state = 'ready') {
 async function loadMuscleReadiness() {
     const container = document.getElementById('muscleReadiness');
     
-    // Utiliser la configuration centralisée
     const muscleGroups = [
         { name: 'Dos', key: 'dos' },
         { name: 'Pectoraux', key: 'pectoraux' },
@@ -1968,156 +1967,41 @@ async function loadMuscleReadiness() {
     ];
         
     try {
-        // Appeler l'API de récupération musculaire
         const recoveryData = await apiGet(`/api/users/${currentUser.id}/stats/recovery-gantt`);
         
-        container.innerHTML = muscleGroups.map(muscle => {
-            const recovery = recoveryData[muscle.key];
-            
-            if (!recovery) {
-                // Pas de données = muscle frais
-                const gradientStyle = `
-                    background: var(--bg-card);
-                    border-top: 1px solid var(--border);
-                    border-right: 1px solid var(--border);
-                    border-bottom: 1px solid var(--border);
-                    border-left: 4px solid var(--muscle-${muscle.key});
-                    position: relative;
-                `;
+        container.innerHTML = `
+            <div class="muscle-readiness-bars-container">
+                ${muscleGroups.map(muscle => {
+                    const recovery = recoveryData[muscle.key];
+                    const capacity = recovery ? recovery.recoveryPercent : 85;
+                    const statusText = capacity <= 30 ? 'Fatigué' : capacity <= 70 ? 'Récupération' : 'Prêt';
 
-                const overlayStyle = `
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background: var(--muscle-${muscle.key});
-                    opacity: 0.15;
-                    z-index: 1;
-                `;
-
-                return `
-                    <div class="muscle-item ready muscle-border-left-${muscle.key}" 
-                         style="${gradientStyle}">
-                        <div style="${overlayStyle}"></div>
-                        <div class="muscle-info">
-                            <h4 class="muscle-title-${muscle.key}">${muscle.name}</h4>
-                            <p class="muscle-status-text">Prêt à l'entraînement</p>
+                    return `
+                        <div class="muscle-readiness-bar-item" 
+                             onclick="handleMuscleReadinessClick('${muscle.key}', '${muscle.name}', ${capacity})">
+                            <div class="muscle-readiness-bar-label">${muscle.name}</div>
+                            <div class="muscle-readiness-bar-container">
+                                <div class="muscle-readiness-bar-fill muscle-readiness-${muscle.key}" 
+                                     style="height: ${capacity}%;"></div>
+                            </div>
+                            <div class="muscle-readiness-bar-percentage">${capacity}%</div>
+                            <div class="muscle-readiness-bar-status">${statusText}</div>
                         </div>
-                        <div class="muscle-indicator">
-                            <div class="indicator-dot muscle-bg-${muscle.key}"></div>
-                        </div>
-                    </div>
-                `;
-            }
-            
-            // Déterminer l'état selon le pourcentage de récupération
-            let status = 'ready';
-            let statusText = 'Prêt à l\'entraînement';
-            let statusClass = 'ready';
-            
-            if (recovery.recoveryPercent < 50) {
-                status = 'fatigued';
-                statusText = `En récupération (${recovery.recoveryPercent}%)`;
-                statusClass = 'fatigued';
-            } else if (recovery.recoveryPercent < 90) {
-                status = 'recovering';
-                statusText = `Récupération avancée (${recovery.recoveryPercent}%)`;
-                statusClass = 'recovering';
-            }
-            
-            // Afficher le temps depuis la dernière séance
-            const timeInfo = recovery.hoursSince ? 
-                `Dernière séance: ${Math.round(recovery.hoursSince)}h` : 
-                'Jamais entraîné';
-            
-            // Calculer le pourcentage de couleur (inverse de la récupération)
-            const colorPercent = 100 - recovery.recoveryPercent;
-
-            // Background subtil avec overlay
-            const gradientStyle = `
-                background: var(--bg-card);
-                border-top: 1px solid var(--border);
-                border-right: 1px solid var(--border);
-                border-bottom: 1px solid var(--border);
-                border-left: 4px solid var(--muscle-${muscle.key});
-                position: relative;
-            `;
-
-            const overlayStyle = `
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: linear-gradient(to right, 
-                    var(--muscle-${muscle.key}) 0%, 
-                    var(--muscle-${muscle.key}) ${colorPercent}%, 
-                    transparent ${colorPercent}%, 
-                    transparent 100%);
-                opacity: 0.15;
-                z-index: 1;
-            `;
-
-            return `
-                <div class="muscle-item ${statusClass} muscle-border-left-${muscle.key}" 
-                     style="${gradientStyle}">
-                    <div style="${overlayStyle}"></div>
-                    <div class="muscle-info">
-                        <h4 class="muscle-title-${muscle.key}">${muscle.name}</h4>
-                        <p class="muscle-status-text">${statusText}</p>
-                        <small class="muscle-time-info">${timeInfo}</small>
-                    </div>
-                    <div class="muscle-indicator">
-                        <div class="indicator-dot muscle-bg-${muscle.key}"></div>
-                        ${recovery.recoveryPercent < 100 ? 
-                            `<span class="recovery-badge">${recovery.recoveryPercent}%</span>` : 
-                            ''
-                        }
-                    </div>
-                </div>
-            `;
-        }).join('');
+                    `;
+                }).join('')}
+            </div>
+        `;
         
     } catch (error) {
         console.error('Erreur chargement état musculaire:', error);
-        
-        // Si pas de données, afficher tous les muscles comme prêts
-        container.innerHTML = muscleGroups.map(muscle => {
-            const gradientStyle = `
-                background: var(--bg-card);
-                border-top: 1px solid var(--border);
-                border-right: 1px solid var(--border);
-                border-bottom: 1px solid var(--border);
-                border-left: 4px solid var(--muscle-${muscle.key});
-                position: relative;
-            `;
+        container.innerHTML = `<div class="muscle-readiness-error">Données indisponibles</div>`;
+    }
+}
 
-            const overlayStyle = `
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: var(--muscle-${muscle.key});
-                opacity: 0.15;
-                z-index: 1;
-            `;
-
-            return `
-                <div class="muscle-item ready muscle-border-left-${muscle.key}" 
-                     style="${gradientStyle}">
-                    <div style="${overlayStyle}"></div>
-                    <div class="muscle-info">
-                        <h4 class="muscle-title-${muscle.key}">${muscle.name}</h4>
-                        <p class="muscle-status-text">Prêt à l'entraînement</p>
-                    </div>
-                    <div class="muscle-indicator">
-                        <div class="indicator-dot muscle-bg-${muscle.key}"></div>
-                    </div>
-                </div>
-            `;
-        }).join('');
+function handleMuscleReadinessClick(muscleKey, muscleName, capacity) {
+    if (confirm(`Lancer une séance libre pour ${muscleName} ?\n\nCapacité: ${capacity}%`)) {
+        navigateToSection('seance-libre');
+        setTimeout(() => filterByMuscleGroup(muscleKey), 100);
     }
 }
 
