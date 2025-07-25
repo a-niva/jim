@@ -630,8 +630,18 @@ function showMainInterface() {
     document.getElementById('bottomNav').style.display = 'flex';
     
     if (currentUser) {
+        // Header desktop seulement
         document.getElementById('userInitial').textContent = currentUser.name[0].toUpperCase();
         document.getElementById('userInitial').style.display = 'flex';
+        
+        // Navigation avatar (remplace emoji profil)
+        const navAvatar = document.getElementById('navUserAvatar');
+        const profileEmoji = document.getElementById('profileEmoji');
+        if (navAvatar && profileEmoji) {
+            navAvatar.textContent = currentUser.name[0].toUpperCase();
+            navAvatar.style.display = 'flex';
+            profileEmoji.style.display = 'none';
+        }
         
         window.currentUser = currentUser;
     }
