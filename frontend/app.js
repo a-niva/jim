@@ -3617,6 +3617,10 @@ async function selectExerciseById(exerciseId) {
 async function selectExercise(exercise, skipValidation = false) {
     // Pour le setup initial, on peut skipper la validation
     if (!skipValidation && !validateSessionState(true)) return;
+    // NOUVEAU : Réinitialiser le poids réel
+    currentExerciseRealWeight = 0;
+    console.log('[SelectExercise] Poids réel réinitialisé');
+    
     
     // Vérifier que l'exercice est valide
     if (!exercise || !exercise.id) {
@@ -3885,6 +3889,29 @@ function displayRecommendations(recommendations) {
         // Mettre à jour l'affichage si différent
         if (currentWeight !== targetWeight) {
             weightElement.textContent = targetWeight;
+
+            // Mettre à jour l'affichage si différent
+            if (currentWeight !== targetWeight) {
+                weightElement.textContent = targetWeight;
+                
+                // NOUVEAU : Synchroniser le poids réel avec la recommandation ML
+                // Le ML fournit toujours un poids en mode TOTAL
+                currentExerciseRealWeight = targetWeight;
+                console.log('[ML] Poids réel mis à jour par ML:', currentExerciseRealWeight);
+                
+                // Si on est en mode charge, recalculer l'affichage
+                if (currentWeightMode === 'charge' && isEquipmentCompatibleWithChargeMode(currentExercise)) {
+                    const chargeWeight = targetWeight - getBarWeight(currentExercise);
+                    if (chargeWeight >= 0) {
+                        weightElement.textContent = chargeWeight;
+                        console.log('[ML] Affichage en mode charge:', chargeWeight);
+                    }
+                }
+                
+                // Ajouter animation
+                weightElement.classList.add('ml-updated');
+                setTimeout(() => weightElement.classList.remove('ml-updated'), 600);
+            }
             
             // Ajouter animation
             weightElement.classList.add('ml-updated');
@@ -4953,6 +4980,10 @@ async function configureWeighted(elements, exercise, weightRec) {
     if (elements.setWeight) {
         elements.setWeight.textContent = closestWeight || weightRec;
         
+        // NOUVEAU : Stocker le poids réel en mode TOTAL
+        currentExerciseRealWeight = closestWeight || weightRec;
+        console.log('[ConfigureWeighted] Poids réel initialisé:', currentExerciseRealWeight);
+        
         // Update plate helper avec délai pour s'assurer que currentExercise est défini
         if (currentUser?.show_plate_helper) {
             console.log('[PlateHelper] Scheduling update for weight:', closestWeight || weightRec);
@@ -5925,29 +5956,45 @@ async function toggleWeightDisplayMode() {
             label.textContent = 'Mode total';
             return;
         }
-        
-        // Effectuer la conversion
-        const convertedWeight = convertWeight(currentWeight, currentWeightMode, newMode, currentExercise);
-        
-        // Double vérification pour éviter NaN
-        if (isNaN(convertedWeight) || convertedWeight < 0) {
-            console.error('[ToggleWeight] Conversion invalide:', currentWeight, '->', convertedWeight);
-            showToast('Erreur de conversion', 'error');
+                
+        // Utiliser le poids réel comme référence
+        if (!currentExerciseRealWeight || currentExerciseRealWeight <= 0) {
+            console.warn('[ToggleWeight] Poids réel non initialisé');
+            showToast('Erreur: poids non initialisé', 'error');
             toggle.checked = currentWeightMode === 'charge';
             return;
         }
-        
+
+        // Calculer le poids à afficher selon le nouveau mode
+        let displayWeight;
+        if (newMode === 'charge') {
+            displayWeight = currentExerciseRealWeight - getBarWeight(currentExercise);
+            if (displayWeight < 0) {
+                console.warn('[ToggleWeight] Poids insuffisant pour mode charge');
+                showToast('Poids trop faible pour le mode charge', 'warning');
+                toggle.checked = false;
+                currentUser.preferred_weight_display_mode = 'total';
+                label.textContent = 'Mode total';
+                return;
+            }
+        } else {
+            displayWeight = currentExerciseRealWeight;
+        }
+
         // Tout est OK, appliquer le changement
-        weightElement.textContent = convertedWeight;
+        weightElement.textContent = displayWeight;
         currentWeightMode = newMode;
-        
+
         // Mettre à jour l'interface visuelle
         setupChargeInterface();
-        
-        // Mettre à jour le plate helper si activé
+
+        // Mettre à jour le plate helper avec le poids RÉEL
         if (currentUser?.show_plate_helper) {
-            updatePlateHelper(convertedWeight);
+            updatePlateHelper(currentExerciseRealWeight);
         }
+
+        console.log('Mode d\'affichage mis à jour:', newMode, 'Affiché:', displayWeight, 'Réel:', currentExerciseRealWeight);
+        showToast(`Mode ${newMode}`, 'success');
         
         console.log('Mode d\'affichage mis à jour:', newMode, 'Poids:', convertedWeight);
         showToast(`Mode ${newMode}`, 'success');
@@ -7707,8 +7754,9 @@ function findClosestWeight(targetWeight, availableWeights) {
 
 // ===== SYSTÈME CHARGE/TOTAL =====
 let currentWeightMode = 'total'; // 'total' ou 'charge'
-let firstExerciseTooltipShown = new Set(); // Tracker des tooltips montrés
-let plateHelperUpdateInProgress = false; // Protection contre boucles infinies
+let firstExerciseTooltipShown = new Set();
+let plateHelperUpdateInProgress = false;
+let currentExerciseRealWeight = 0; // Poids réel en mode TOTAL
 
 function getBarWeight(exercise) {
     /**Récupère le poids de la barre selon l'exercice et la config utilisateur*/
@@ -7869,83 +7917,60 @@ function switchWeightMode(targetMode = null) {
     if (newMode === oldMode) return;
     
     console.log('[SwitchMode] Passage de', oldMode, 'vers', newMode);
+    console.log('[SwitchMode] Poids réel actuel:', currentExerciseRealWeight);
     
-    // Récupérer le poids actuel
-    const weightElement = document.getElementById('setWeight');
-    if (!weightElement) return;
-    
-    const currentWeight = parseFloat(weightElement.textContent);
-    let convertedWeight = convertWeight(currentWeight, oldMode, newMode, currentExercise);
-        
-    // Validation edge case - EMPÊCHER le blocage à 0
-    if (convertedWeight <= 0 && newMode === 'charge') {
-        console.warn('[SwitchMode] Poids trop faible pour mode charge, blocage évité');
-        showToast("⚠️ Poids insuffisant pour afficher la charge", 'warning', 2000);
-        return; // NE PAS changer de mode si on arrive à 0 ou négatif
+    // TOUJOURS utiliser le poids réel comme référence
+    let displayWeight;
+    if (newMode === 'charge') {
+        displayWeight = currentExerciseRealWeight - getBarWeight(currentExercise);
+        if (displayWeight <= 0) {
+            console.warn('[SwitchMode] Poids trop faible pour mode charge');
+            showToast("⚠️ Poids insuffisant pour afficher la charge", 'warning', 2000);
+            return;
+        }
+    } else {
+        displayWeight = currentExerciseRealWeight;
     }
     
-    // CRITIQUE : Mettre à jour le mode AVANT les animations
+    // Mettre à jour le mode AVANT les animations
     currentWeightMode = newMode;
     
-    // Animations
-    animateWeightModeSwitch(newMode, convertedWeight);
+    // Animer le changement
+    animateWeightModeSwitch(newMode, displayWeight);
     
-    // Mettre à jour le plate helper SEULEMENT si nécessaire et sans boucle
+    // Mettre à jour le plate helper
     if (currentUser?.show_plate_helper) {
-        // Délai pour éviter les conflits avec l'animation
-        setTimeout(() => {
-            updatePlateHelper(convertedWeight);
-        }, 100);
+        clearTimeout(window.plateHelperTimeout);
+        window.plateHelperTimeout = setTimeout(() => {
+            updatePlateHelper(currentExerciseRealWeight); // Toujours passer le poids TOTAL
+        }, 400);
     }
 }
 
-function animateWeightModeSwitch(newMode, newWeight) {
+function animateWeightModeSwitch(newMode, displayWeight) {
     /**Gère les animations lors du switch de mode*/
     const container = document.querySelector('.charge-weight-container');
     const weightValue = document.querySelector('.charge-weight-value');
+    const weightElement = document.getElementById('setWeight');
     
-    if (!container || !weightValue) return;
+    if (!container || !weightValue || !weightElement) return;
     
-    // Animation morphing de l'icône
+    // Phase 1 : Démarrer l'animation
     container.classList.remove('charge-mode-total', 'charge-mode-charge');
     container.classList.add('charge-morphing-to-' + newMode);
-    
-    // Animation du nombre
     weightValue.classList.add('charge-number-animating');
     
+    // Phase 2 : Appliquer les changements
     setTimeout(() => {
-        // Changer le mode visuel
         container.classList.remove('charge-morphing-to-' + newMode);
         container.classList.add('charge-mode-' + newMode);
+        weightElement.textContent = displayWeight;
         
-        // Mettre à jour le poids
-        document.getElementById('setWeight').textContent = newWeight;
-        
-        // Nettoyer l'animation
+        // Phase 3 : Nettoyer les animations
         setTimeout(() => {
-            // Nettoyer TOUTES les classes d'animation
-            container.classList.remove(
-                'charge-morphing-to-charge', 
-                'charge-morphing-to-total',
-                'charge-mode-charge',
-                'charge-mode-total'
-            );
-            
-            // Appliquer le nouveau mode
-            container.classList.add('charge-mode-' + newMode);
-            
-            // FORCER le reflow CSS pour garantir la mise à jour
-            container.offsetHeight; // Force reflow
-            
-            // Mettre à jour le poids
-            document.getElementById('setWeight').textContent = newWeight;
-            
-            // Nettoyer l'animation du nombre
-            setTimeout(() => {
-                weightValue.classList.remove('charge-number-animating');
-            }, 400);
-        }, 300);
-    }, 100); // Délai pour laisser le temps à l'animation de démarrer
+            weightValue.classList.remove('charge-number-animating');
+        }, 400);
+    }, 300);
 }
 
 function showChargeTooltip() {
@@ -8025,11 +8050,13 @@ async function updatePlateHelper(weight) {
             currentMode: currentWeightMode
         });
         
-        // Le PlateHelper a besoin du poids TOTAL pour calculer le montage
+        // Le PlateHelper a TOUJOURS besoin du poids TOTAL
         let totalWeightForPlates = weight;
-        if (currentWeightMode === 'charge' && isEquipmentCompatibleWithChargeMode(currentExercise)) {
-            totalWeightForPlates = convertWeight(weight, 'charge', 'total', currentExercise);
-            console.log(`[PlateHelper] Mode charge: ${weight}kg → Total: ${totalWeightForPlates}kg`);
+
+        // Si on reçoit un poids en mode UI, s'assurer qu'on a le poids total
+        if (currentWeightMode === 'charge' && weight !== currentExerciseRealWeight) {
+            console.log(`[PlateHelper] Utilisation du poids réel: ${currentExerciseRealWeight}kg au lieu de ${weight}kg`);
+            totalWeightForPlates = currentExerciseRealWeight;
         }
         
         // Validation du poids
@@ -8173,7 +8200,8 @@ function createBarbellVisualization(layout) {
             plates.push(parseFloat(match[1]));
         }
     });
-        
+    
+    // TOUJOURS afficher le poids total, jamais de conversion
     return `
         <div class="helper-content">
             <div class="helper-header">🏋️ ${layout.weight}kg total</div>
@@ -8407,6 +8435,13 @@ function adjustWeight(direction, availableWeights, exercise) {
     if (newIndex >= 0 && newIndex < validWeights.length) {
         const newWeight = validWeights[newIndex];
         document.getElementById('setWeight').textContent = newWeight;
+        // Mettre à jour le poids réel
+        if (currentWeightMode === 'charge') {
+            currentExerciseRealWeight = newWeight + getBarWeight(currentExercise);
+        } else {
+            currentExerciseRealWeight = newWeight;
+        }
+        console.log('[AdjustWeight] Poids réel mis à jour:', currentExerciseRealWeight);
         
         // Mettre à jour l'aide au montage
         if (currentUser?.show_plate_helper) {
@@ -8456,6 +8491,13 @@ function adjustWeightUp() {
     if (nextIndex !== -1 && nextIndex < weights.length) {
         const newWeight = weights[nextIndex];
         document.getElementById('setWeight').textContent = newWeight;
+        // Mettre à jour le poids réel
+        if (currentWeightMode === 'charge') {
+            currentExerciseRealWeight = newWeight + getBarWeight(currentExercise);
+        } else {
+            currentExerciseRealWeight = newWeight;
+        }
+        console.log('[AdjustWeight] Poids réel mis à jour:', currentExerciseRealWeight);
         
         // Mettre à jour l'aide au montage avec le poids total
         if (currentUser?.show_plate_helper) {
@@ -8590,7 +8632,19 @@ function executeSet() {
             weight: null
         };
     } else {
+        // Pour les exercices avec poids
         const weightValue = document.getElementById('setWeight').textContent;
+        const parsedWeight = parseFloat(weightValue);
+
+        // NOUVEAU : S'assurer que le poids réel est synchronisé
+        if (!isNaN(parsedWeight) && parsedWeight > 0) {
+            if (currentWeightMode === 'charge') {
+                currentExerciseRealWeight = parsedWeight + getBarWeight(currentExercise);
+            } else {
+                currentExerciseRealWeight = parsedWeight;
+            }
+            console.log('[ExecuteSet] Poids réel synchronisé:', currentExerciseRealWeight);
+        }
         workoutState.pendingSetData = {
             duration_seconds: setTime,  // durée réelle chronométrée
             reps: parseInt(document.getElementById('setReps').textContent),
