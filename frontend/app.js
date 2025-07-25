@@ -6807,6 +6807,79 @@ async function restartExercise(exerciseId) {
     await selectProgramExercise(exerciseId);
 }
 
+// Mapping des images pour l'équipement
+const equipmentImages = {
+    'dumbbells': 'img_dumbbells.png',
+    'barbell': 'img_barbell.png',
+    'barbell_athletic': 'img_barbell_athletic.png',
+    'barbell_ez': 'img_barbell_ez.png',
+    'kettlebells': 'img_kettlebells.png',
+    'resistance_bands': 'img_resistance_bands.png',
+    'cable_machine': 'img_cable_machine.png',
+    'pull_up_bar': 'img_pull_up_bar.png',
+    'bench_flat': 'img_bench_flat.png',
+    'bodyweight': 'img_bodyweight.png',
+    'weight_plates': 'img_weight_plates.png'
+};
+
+// État des filtres équipement
+let activeEquipmentFilters = new Set();
+
+function filterByEquipment(equipment) {
+    // Toggle l'équipement dans les filtres actifs
+    if (activeEquipmentFilters.has(equipment)) {
+        activeEquipmentFilters.delete(equipment);
+    } else {
+        activeEquipmentFilters.add(equipment);
+    }
+    
+    // Mettre à jour l'apparence des boutons
+    document.querySelectorAll('.equipment-filter').forEach(btn => {
+        if (btn.dataset.equipment === equipment) {
+            btn.classList.toggle('active');
+        }
+    });
+    
+    // Appliquer les filtres
+    applyEquipmentFilters();
+}
+
+function applyEquipmentFilters() {
+    const allCards = document.querySelectorAll('.free-exercise-card');
+    
+    if (activeEquipmentFilters.size === 0) {
+        // Aucun filtre : tout afficher
+        allCards.forEach(card => {
+            if (!card.dataset.hideByMuscle) {
+                card.style.display = 'block';
+            }
+        });
+    } else {
+        // Filtrer les exercices
+        allCards.forEach(card => {
+            const exerciseEquipment = JSON.parse(card.dataset.equipment || '[]');
+            
+            // Afficher si l'exercice utilise AU MOINS UN des équipements sélectionnés
+            const hasMatchingEquipment = exerciseEquipment.some(eq => 
+                activeEquipmentFilters.has(eq)
+            );
+            
+            if (!card.dataset.hideByMuscle) {
+                card.style.display = hasMatchingEquipment ? 'block' : 'none';
+            }
+        });
+    }
+    
+    // Mettre à jour la visibilité des sections
+    updateSectionVisibility();
+}
+
+function updateSectionVisibility() {
+    document.querySelectorAll('.muscle-group-section').forEach(section => {
+        const visibleCards = section.querySelectorAll('.free-exercise-card[style*="block"], .free-exercise-card:not([style*="none"])');
+        section.style.display = visibleCards.length > 0 ? 'block' : 'none';
+    });
+}
 
 // ===== FONCTIONS UTILITAIRES SÉANCES =====
 async function loadAvailableExercises() {
@@ -6903,26 +6976,68 @@ async function loadAvailableExercises() {
                     
                     <!-- Onglets de filtrage par muscle -->
                     <div class="muscle-tabs">
-                        <button class="muscle-tab active" data-muscle="all" onclick="filterByMuscleGroup('all')">
+                        <button class="muscle-tab active" data-muscle="all" onclick="filterByMuscleGroup('all')" title="Tous">
                             <span class="tab-icon">💪</span>
-                            <span>Tous</span>
                         </button>
                         <button class="muscle-tab" data-muscle="favoris" onclick="filterByMuscleGroup('favoris')" 
-                                style="${userFavorites.length === 0 ? 'display: none;' : ''}">
+                                style="${userFavorites.length === 0 ? 'display: none;' : ''}" title="Favoris (${exercisesByMuscle.favoris.length})">
                             <span class="tab-icon">⭐</span>
-                            <span>Favoris</span>
-                            <span class="tab-count">${exercisesByMuscle.favoris.length}</span>
                         </button>
                         ${Object.entries(exercisesByMuscle)
                             .filter(([muscle, exercises]) => muscle !== 'favoris' && exercises.length > 0)
                             .map(([muscle, exercises]) => `
-                                <button class="muscle-tab" data-muscle="${muscle}" onclick="filterByMuscleGroup('${muscle}')">
+                                <button class="muscle-tab" data-muscle="${muscle}" onclick="filterByMuscleGroup('${muscle}')" 
+                                        title="${muscle.charAt(0).toUpperCase() + muscle.slice(1)} (${exercises.length})">
                                     <span class="tab-icon">${muscleIcons[muscle]}</span>
-                                    <span>${muscle.charAt(0).toUpperCase() + muscle.slice(1)}</span>
-                                    <span class="tab-count">${exercises.length}</span>
                                 </button>
                             `).join('')}
                     </div>
+                </div>
+
+                <!-- AJOUTER : Filtres équipement -->
+                <div class="equipment-filters">
+                    <div class="equipment-tabs">
+                        ${(() => {
+                            // Extraire l'équipement disponible de l'utilisateur
+                            const userEquipment = new Set();
+                            
+                            if (currentUser?.equipment_config) {
+                                const config = currentUser.equipment_config;
+                                
+                                // Barbell
+                                if (config.barbell_athletic?.available) userEquipment.add('barbell');
+                                if (config.barbell?.available) userEquipment.add('barbell');
+                                if (config.barbell_ez?.available) userEquipment.add('barbell_ez');
+                                
+                                // Dumbbells
+                                if (config.dumbbells?.available) userEquipment.add('dumbbells');
+                                
+                                // Kettlebells
+                                if (config.kettlebells?.available) userEquipment.add('kettlebells');
+                                
+                                // Autres équipements
+                                if (config.resistance_bands?.available) userEquipment.add('resistance_bands');
+                                if (config.pull_up_bar?.available) userEquipment.add('pull_up_bar');
+                                if (config.bench?.available) userEquipment.add('bench_flat');
+                            }
+                            
+                            // Toujours ajouter bodyweight
+                            userEquipment.add('bodyweight');
+                            
+                            // Générer les boutons avec images
+                            return Array.from(userEquipment).map(equipment => `
+                                <button class="equipment-filter" 
+                                        data-equipment="${equipment}" 
+                                        onclick="filterByEquipment('${equipment}')"
+                                        title="${equipment.replace(/_/g, ' ')}">
+                                    <img src="${equipmentImages[equipment]}" 
+                                        alt="${equipment}" 
+                                        class="equipment-icon">
+                                </button>
+                            `).join('');
+                        })()}
+                    </div>
+                </div>
                 </div>
                 
                 <!-- Liste des exercices -->
@@ -6963,6 +7078,7 @@ async function loadAvailableExercises() {
                                                 data-muscle="${muscle}" 
                                                 data-difficulty="${exercise.difficulty}"
                                                 data-exercise-id="${exercise.id}"
+                                                data-equipment='${JSON.stringify(exercise.equipment_required || [])}'
                                                 onclick="selectExerciseById(${exercise.id})">
                                                 <div class="favorite-star ${userFavorites.includes(exercise.id) ? 'is-favorite' : ''}" 
                                                      onclick="event.stopPropagation(); toggleFavorite(${exercise.id})">
@@ -7043,20 +7159,23 @@ function filterByMuscleGroup(selectedMuscle) {
     if (selectedMuscle === 'all') {
         // Afficher tout
         allSections.forEach(section => section.style.display = 'block');
-        allCards.forEach(card => card.style.display = 'block');
+        allCards.forEach(card => {
+            card.dataset.hideByMuscle = 'false';
+        });
     } else if (selectedMuscle === 'favoris') {
         // Afficher seulement les favoris
         allSections.forEach(section => section.style.display = 'block');
         allCards.forEach(card => {
             const exerciseId = parseInt(card.dataset.exerciseId);
             const isFavorite = userFavorites.includes(exerciseId);
-            card.style.display = isFavorite ? 'block' : 'none';
+            card.dataset.hideByMuscle = isFavorite ? 'false' : 'true';
         });
         
-        // Masquer les sections qui n'ont aucun favori visible
+        // Masquer les sections qui n'ont aucun favori
         allSections.forEach(section => {
-            const visibleCards = section.querySelectorAll('.free-exercise-card[style*="block"], .free-exercise-card:not([style*="none"])');
-            section.style.display = visibleCards.length > 0 ? 'block' : 'none';
+            const hasVisibleFavorites = Array.from(section.querySelectorAll('.free-exercise-card'))
+                .some(card => card.dataset.hideByMuscle === 'false');
+            section.style.display = hasVisibleFavorites ? 'block' : 'none';
         });
         
         // Afficher message si aucun favori
@@ -7066,10 +7185,19 @@ function filterByMuscleGroup(selectedMuscle) {
     } else {
         // Filtrer par muscle spécifique
         allSections.forEach(section => {
-            section.style.display = section.dataset.muscle === selectedMuscle ? 'block' : 'none';
+            const isTargetMuscle = section.dataset.muscle === selectedMuscle;
+            section.style.display = isTargetMuscle ? 'block' : 'none';
         });
-        allCards.forEach(card => card.style.display = 'block');
+        
+        // Marquer les cartes selon leur muscle
+        allCards.forEach(card => {
+            const cardMuscle = card.dataset.muscle;
+            card.dataset.hideByMuscle = cardMuscle === selectedMuscle ? 'false' : 'true';
+        });
     }
+    
+    // Réappliquer les filtres équipement pour combiner avec les filtres muscle
+    applyEquipmentFilters();
 }
 
 function showNoFavoritesMessage() {

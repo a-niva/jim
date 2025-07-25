@@ -5439,6 +5439,131 @@ input:checked+.toggle-slider:before {
     background: rgba(255,255,255,.05)
 }
 
+/* Filtres équipement */
+.equipment-filters {
+    margin-top: var(--spacing-md);
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--border);
+}
+
+.equipment-tabs {
+    display: flex;
+    gap: var(--spacing-sm);
+    overflow-x: auto;
+    padding: var(--spacing-sm) 0;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.equipment-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.equipment-filter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    background: rgba(255,255,255,.05);
+    border: 2px solid transparent;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all .3s ease;
+    flex-shrink: 0;
+    padding: 8px;
+}
+
+/* Image à l'intérieur du bouton */
+.equipment-icon {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    filter: grayscale(0.5);
+    opacity: 0.8;
+    transition: all .3s ease;
+}
+
+/* État actif */
+.equipment-filter.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    transform: scale(1.05);
+}
+
+.equipment-filter.active .equipment-icon {
+    filter: grayscale(0) brightness(1.2);
+    opacity: 1;
+}
+
+/* Hover desktop uniquement */
+@media (hover: hover) {
+    .equipment-filter:hover {
+        background: rgba(255,255,255,.1);
+        transform: translateY(-2px);
+    }
+    
+    .equipment-filter:hover .equipment-icon {
+        filter: grayscale(0);
+        opacity: 1;
+    }
+    
+    .equipment-filter.active:hover {
+        background: var(--primary-dark);
+    }
+}
+
+/* Feedback mobile */
+@media (hover: none) {
+    .equipment-filter:active {
+        transform: scale(0.95);
+    }
+}
+
+/* Ajuster les boutons muscles pour être plus compacts */
+.muscle-tab {
+    padding: var(--spacing-sm);
+    width: 56px;
+    height: 56px;
+    justify-content: center;
+}
+
+.muscle-tab .tab-icon {
+    margin: 0;
+}
+
+/* Mobile : boutons plus compacts */
+@media (max-width: 768px) {
+    .muscle-tab,
+    .equipment-filter {
+        width: 48px;
+        height: 48px;
+    }
+    
+    .equipment-icon {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .muscle-tab .tab-icon {
+        font-size: var(--font-xl);
+    }
+}
+
+/* Extra small mobile */
+@media (max-width: 360px) {
+    .muscle-tab,
+    .equipment-filter {
+        width: 44px;
+        height: 44px;
+    }
+    
+    .equipment-icon {
+        width: 24px;
+        height: 24px;
+    }
+}
+
 .free-exercise-meta span,.header-left {
     display: flex;
     align-items: center;
