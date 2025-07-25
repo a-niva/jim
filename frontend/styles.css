@@ -1048,7 +1048,7 @@ input:focus,select:focus,textarea:focus {
         filter: brightness(1);
     }
     50% { 
-        transform: scale(1.08);
+        transform: scale(1.01);
         filter: brightness(1.1);
     }
 }
