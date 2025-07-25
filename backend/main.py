@@ -4855,45 +4855,73 @@ def get_available_weights(user_id: int, exercise_id: int = Query(None), db: Sess
 
 @app.get("/api/users/{user_id}/plate-layout/{weight}")
 def get_plate_layout(user_id: int, weight: float, exercise_id: int = Query(None), db: Session = Depends(get_db)):
-    """Version corrigée avec validation des poids pairs"""
+    """Version corrigée avec validation équipement et compatibilité nouveaux équipements"""
     user = db.query(User).filter(User.id == user_id).first()
     if not user or not user.equipment_config:
         raise HTTPException(status_code=400, detail="Configuration manquante")
+   
+    # 1. Déterminer équipement depuis l'exercice
+    exercise_equipment = ['barbell']  # fallback par défaut
+    exercise = None
     
-    # Déterminer équipement depuis l'exercice
-    exercise_equipment = ['barbell']  # default
     if exercise_id:
         exercise = db.query(Exercise).filter(Exercise.id == exercise_id).first()
-        if exercise:
-            # Validation poids pair pour dumbbells
-            if 'dumbbells' in exercise_equipment and weight % 2 != 0:
-                return {
-                    'feasible': False,
-                    'reason': f'Poids impair ({weight}kg) impossible avec des haltères. Utilisez {int(weight/2)*2}kg ou {int(weight/2)*2+2}kg.',
-                    'type': 'error'
-                }
+        if exercise and exercise.equipment_required:
             exercise_equipment = exercise.equipment_required
-        
+
+    # 2. VALIDATION CRITIQUE : Équipements compatibles avec layout de disques
+    PLATE_COMPATIBLE_EQUIPMENT = [
+        'barbell', 'barbell_athletic', 'barbell_ez', 
+        'dumbbells', 'barbell_short_pair'
+    ]
+    
+    has_plate_equipment = any(eq in PLATE_COMPATIBLE_EQUIPMENT for eq in exercise_equipment)
+    
+    if not has_plate_equipment:
+        return {
+            'feasible': False,
+            'reason': f'Cet exercice utilise {", ".join(exercise_equipment)} qui ne nécessite pas de layout de disques',
+            'type': 'no_plates_needed',
+            'equipment_type': exercise_equipment[0] if exercise_equipment else 'unknown'
+        }
+
+    # 3. Validation poids pair pour dumbbells (APRÈS avoir déterminé l'équipement)
+    if 'dumbbells' in exercise_equipment and weight % 2 != 0:
+        return {
+            'feasible': False,
+            'reason': f'Poids impair ({weight}kg) impossible avec des haltères. Utilisez {int(weight/2)*2}kg ou {int(weight/2)*2+2}kg.',
+            'type': 'odd_weight_error',
+            'suggested_weights': [int(weight/2)*2, int(weight/2)*2+2]
+        }
+    
     try:
-        # Vérifier d'abord si ce poids est réalisable
+        # 4. Vérifier d'abord si ce poids est réalisable
         available_weights = EquipmentService.get_available_weights(db, user_id, exercise)
-        
+       
         if weight not in available_weights:
-            # Retourner une erreur claire
-            closest = min(available_weights, key=lambda x: abs(x - weight))
+            # Retourner une erreur claire avec suggestions
+            if available_weights:
+                closest = min(available_weights, key=lambda x: abs(x - weight))
+                nearby_weights = sorted([w for w in available_weights if abs(w - weight) < 10])
+            else:
+                closest = weight
+                nearby_weights = []
+            
             return {
                 'feasible': False,
-                'reason': f'{weight}kg non réalisable. Poids disponibles proches: {closest}kg',
+                'reason': f'{weight}kg non réalisable avec votre équipement',
                 'closest_weight': closest,
-                'available_weights': sorted([w for w in available_weights if abs(w - weight) < 10])
+                'suggested_weights': nearby_weights[:5],  # Limiter à 5 suggestions
+                'type': 'weight_unavailable'
             }
-        
+       
+        # 5. Calculer le layout effectif
         layout = EquipmentService.get_plate_layout(user_id, weight, exercise_equipment, user.equipment_config)
         return layout
-    
+   
     except Exception as e:
-        logger.error(f"Erreur layout user {user_id}: {e}")
-        raise HTTPException(status_code=500, detail="Erreur calcul")
+        logger.error(f"Erreur layout user {user_id}, exercice {exercise_id}, poids {weight}, equipment {exercise_equipment}: {e}")
+        raise HTTPException(status_code=500, detail=f"Erreur calcul layout: {str(e)}")
 
 @app.put("/api/users/{user_id}/plate-helper")  
 def toggle_plate_helper(user_id: int, enabled: bool = Body(..., embed=True), db: Session = Depends(get_db)):

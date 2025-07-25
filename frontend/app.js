@@ -379,7 +379,11 @@ function validateEquipmentConfig(config) {
     }
     
     // Vérifier qu'au moins un équipement de force est disponible
-    const forceEquipment = ['dumbbells', 'barbell_athletic', 'barbell_ez', 'barbell_short_pair'];
+    const forceEquipment = [
+        'dumbbells', 'barbell_athletic', 'barbell_ez', 'barbell_short_pair',
+        'kettlebells', 'resistance_bands', 'cable_machine', 'lat_pulldown', 
+        'chest_press', 'leg_press', 'pull_up_bar', 'dip_bar'
+    ];
     if (!forceEquipment.some(eq => config[eq]?.available)) {
         errors.push('Sélectionnez au moins un équipement de musculation');
     }

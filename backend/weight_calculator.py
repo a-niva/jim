@@ -144,3 +144,39 @@ class WeightCalculator:
                 weights.update(machine_weights)
         
         return sorted(list(weights))
+    
+    @staticmethod
+    def get_resistance_bands_weights(config: dict) -> List[float]:
+        """Retourne les tensions élastiques disponibles"""
+        weights = set()
+        
+        if config.get('resistance_bands', {}).get('available', False):
+            tensions = config['resistance_bands'].get('tensions', {})
+            for tension_str, count in tensions.items():
+                if count > 0:
+                    weights.add(float(tension_str))
+            
+            # Combinaisons si autorisées
+            if config['resistance_bands'].get('combinable', False):
+                # Ajouter quelques combinaisons simples
+                tension_values = [float(t) for t, c in tensions.items() if c > 0]
+                for t1 in tension_values:
+                    for t2 in tension_values:
+                        if t1 <= t2:  # Éviter doublons
+                            weights.add(t1 + t2)
+        
+        return sorted(list(weights))
+
+    @staticmethod  
+    def get_bodyweight_weights(config: dict, user_weight: float) -> List[float]:
+        """Retourne variations du poids de corps (avec assistance/lest)"""
+        weights = [user_weight]
+        
+        # Si pull_up_bar disponible, proposer assistances
+        if config.get('pull_up_bar', {}).get('available', False):
+            assistance_bands = [5, 10, 15, 20, 25]  # Assistance elastiques courantes
+            for assist in assistance_bands:
+                if user_weight - assist > 20:  # Garde un minimum logique
+                    weights.append(user_weight - assist)
+        
+        return sorted(weights)

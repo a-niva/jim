@@ -9,20 +9,45 @@ class EquipmentService:
     
     # Mapping unifié des équipements
     EQUIPMENT_MAPPING = {
+        # Équipements de force existants
         'dumbbells': 'dumbbells',
-        'barbell_athletic': 'barbell',  # ← CHANGÉ 
-        'barbell_ez': 'barbell',       # ← CHANGÉ (était 'ez_curl')
-        'barbell_short_pair': 'dumbbells',
+        'barbell_athletic': 'barbell',
+        'barbell_ez': 'barbell',  
+        'barbell_short_pair': 'dumbbells',  # Équivalence
         'weight_plates': 'plates',
+        
+        # NOUVEAUX ÉQUIPEMENTS SUPPORTÉS
         'kettlebells': 'kettlebells',
         'resistance_bands': 'resistance_bands',
-        'pull_up_bar': 'pull_up_bar',
-        'dip_bar': 'dip_bar', 
-        'bench': 'bench_flat',         # ← CHANGÉ
+        
+        # Machines cardio et force
         'cable_machine': 'cable_machine',
+        'lat_pulldown': 'lat_pulldown', 
+        'chest_press': 'chest_press',
         'leg_press': 'leg_press',
-        'lat_pulldown': 'lat_pulldown',
-        'chest_press': 'chest_press'
+        
+        # Équipements structure
+        'bench': 'bench_flat',
+        'pull_up_bar': 'pull_up_bar',
+        'dip_bar': 'dip_bar',
+        
+        # Mapping équivalences et variantes
+        'bench_flat': 'bench_flat',
+        'bench_incline': 'bench_incline', 
+        'bench_decline': 'bench_decline',
+        
+        # Bodyweight (toujours disponible)
+        'bodyweight': 'bodyweight'
+    }
+
+    # NOUVEAU : Catégories d'équipements pour validation
+    EQUIPMENT_CATEGORIES = {
+        'strength_primary': ['dumbbells', 'barbell_athletic', 'barbell_ez', 'barbell_short_pair'],
+        'strength_alternative': ['kettlebells', 'resistance_bands'],
+        'machines': ['cable_machine', 'lat_pulldown', 'chest_press', 'leg_press'],
+        'bodyweight_support': ['pull_up_bar', 'dip_bar'],
+        'accessories': ['bench', 'weight_plates'],
+        'always_available': ['bodyweight']
     }
         
     @classmethod
@@ -133,7 +158,8 @@ class EquipmentService:
             required_equipment = exercise.equipment_required
         else:
             # Si pas d'exercice spécifique, calculer pour tous les types
-            required_equipment = ['barbell', 'dumbbells', 'kettlebells']
+            required_equipment = ['barbell', 'dumbbells', 'kettlebells', 'resistance_bands', 
+                     'cable_machine', 'lat_pulldown', 'chest_press', 'leg_press']
         
         # 1. Poids barbell (si requis)
         if any(eq in ['barbell', 'barbell_athletic', 'barbell_ez'] for eq in required_equipment):
@@ -171,6 +197,16 @@ class EquipmentService:
                 combinations = cls._calculate_resistance_combinations(tensions)
                 all_weights.update(combinations)
         
+        # 6. Poids corporel avec variations (assistance, lest)
+        if 'pull_up_bar' in required_equipment or 'dip_bar' in required_equipment:
+            bodyweight_weights = WeightCalculator.get_bodyweight_weights(config, user.weight)
+            all_weights.update(bodyweight_weights)
+
+        # 7. Résistance élastiques (si pas déjà traité)
+        if 'resistance_bands' in required_equipment:
+            resistance_weights = WeightCalculator.get_resistance_bands_weights(config)
+            all_weights.update(resistance_weights)
+
         # Filtrer et trier
         valid_weights = sorted([w for w in all_weights if 0 <= w <= 500])  # Limite raisonnable
         
@@ -230,22 +266,34 @@ class EquipmentService:
         
     @classmethod
     def can_perform_exercise(cls, exercise: Exercise, available_equipment: List[str]) -> bool:
-        """Vérifier si un exercice peut être effectué avec l'équipement disponible"""
         if not exercise.equipment_required:
-            return True  # Pas d'équipement requis = toujours possible
+            return True
         
-        # Convertir la liste en set pour performance
         available_set = set(available_equipment)
+        # Équivalences robustes
+        for available in list(available_equipment):
+            if available == 'barbell':
+                available_set.add('barbell_athletic')  # Barbell peut remplacer athletic
+            elif available == 'ez_curl':
+                available_set.add('barbell_ez')
+            elif available == 'dumbbells':
+                available_set.add('barbell_short_pair')  # Déjà géré en amont mais sécurité
+            
+        # AJOUT DE DEBUG
+        logger.debug(f"Exercice: {exercise.name}")
+        logger.debug(f"  Requis: {exercise.equipment_required}")
+        logger.debug(f"  Disponible: {available_equipment}")
         
-        # Vérifier qu'au moins un équipement requis est disponible
         for eq in exercise.equipment_required:
             if eq in available_set:
+                logger.debug(f"  ✅ Match: {eq}")
                 return True
                 
-            # Mapping spécial banc
             if eq.startswith('bench_') and 'bench_flat' in available_set:
+                logger.debug(f"  ✅ Banc compatible: {eq}")
                 return True
         
+        logger.debug(f"  ❌ Pas de match")
         return False
     
     @classmethod
@@ -410,7 +458,17 @@ class EquipmentService:
     
     @classmethod
     def get_plate_layout(cls, user_id: int, target_weight: float, exercise_equipment: List[str], config: dict) -> dict:
-        """Version optimisée : réutilise la logique existante"""
+        """Protection contre équipements incompatibles"""
+        
+        # Protection précoce contre équipements incompatibles
+        PLATE_EQUIPMENT = ['barbell', 'barbell_athletic', 'barbell_ez', 'dumbbells', 'barbell_short_pair']
+        
+        if not any(eq in PLATE_EQUIPMENT for eq in exercise_equipment):
+            return {
+                'feasible': False,
+                'reason': f'Équipement {exercise_equipment} ne supporte pas les layouts de disques',
+                'type': 'incompatible_equipment'
+            }
         equipment_type = 'barbell'
         if 'dumbbells' in exercise_equipment:
             equipment_type = 'dumbbells'

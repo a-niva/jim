@@ -59,44 +59,47 @@ class FitnessMLEngine:
         }
     
     def get_user_available_equipment(self, user: User) -> List[str]:
+        """Version simplifiée - support uniquement nouveau format frontend"""
         if not user.equipment_config:
-            return []
+            return ["bodyweight"]
 
         config = user.equipment_config
-        available_equipment = []
+        available_equipment = ["bodyweight"]
 
-        # Poids du corps toujours disponible  
-        available_equipment.append("poids_du_corps")
-
-        # Barres
-        for barre_type, barre_config in config.get("barres", {}).items():
-            if barre_config.get("available", False):
-                if barre_type in ["olympique", "courte"]:
-                    available_equipment.append("barre_olympique")
-                elif barre_type == "ez":
-                    available_equipment.append("barre_ez")
-
-        # Haltères fixes
-        if config.get("dumbbells", {}).get("available", False):
-            available_equipment.append("dumbbells")
-
-        # Équivalence : 2 barres courtes + disques = dumbbells
-        barres_courtes = config.get("barres", {}).get("courte", {})
-        has_disques = config.get("disques", {}).get("available", False)
-        if (barres_courtes.get("available", False) and 
-            barres_courtes.get("count", 0) >= 2 and 
-            has_disques and 
-            "dumbbells" not in available_equipment):
-            available_equipment.append("dumbbells")
-
-        # Banc
-        if config.get("banc", {}).get("available", False):
-            available_equipment.append("banc_plat")
-
-        # Autres équipements
-        if config.get("autres", {}).get("barre_traction", {}).get("available", False):
-            available_equipment.append("barre_traction")
-
+        # Mapping direct frontend → exercise DB
+        equipment_mapping = {
+            'dumbbells': ['dumbbells'],
+            'kettlebells': ['kettlebells'], 
+            'resistance_bands': ['resistance_bands'],
+            'cable_machine': ['cable_machine'],
+            'lat_pulldown': ['lat_pulldown'],
+            'chest_press': ['chest_press'],
+            'leg_press': ['leg_press'],
+            'pull_up_bar': ['pull_up_bar'],
+            'dip_bar': ['dip_bar'],
+            'barbell_athletic': ['barbell'],
+            'barbell_ez': ['ez_curl', 'barbell'],  # EZ curl peut souvent remplacer barbell
+            'barbell_short_pair': ['dumbbells'],  # Équivalence directe
+        }
+        
+        # Traitement simple : parcourir la config utilisateur
+        for frontend_key, mapped_exercises in equipment_mapping.items():
+            if config.get(frontend_key, {}).get('available', False):
+                available_equipment.extend(mapped_exercises)
+        
+        # Banc avec gestion des positions
+        if config.get('bench', {}).get('available', False):
+            available_equipment.append('bench_flat')
+            positions = config['bench'].get('positions', {})
+            if positions.get('incline_up', False):
+                available_equipment.append('bench_incline')
+            if positions.get('decline', False):
+                available_equipment.append('bench_decline')
+        
+        # Déduplication
+        available_equipment = list(set(available_equipment))
+        logger.info(f"✅ Équipements user {user.id}: {available_equipment}")
+        
         return available_equipment
     
     def _mean(self, values):
