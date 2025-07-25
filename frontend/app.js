@@ -7658,6 +7658,7 @@ function findClosestWeight(targetWeight, availableWeights) {
 // ===== SYSTÈME CHARGE/TOTAL =====
 let currentWeightMode = 'total'; // 'total' ou 'charge'
 let firstExerciseTooltipShown = new Set(); // Tracker des tooltips montrés
+let plateHelperUpdateInProgress = false; // Protection contre boucles infinies
 
 function getBarWeight(exercise) {
     /**Récupère le poids de la barre selon l'exercice et la config utilisateur*/
@@ -7729,9 +7730,14 @@ function setupChargeInterface() {
     
     if (!container || !icon) return;
     
+    console.log('[SetupInterface] Mode:', currentWeightMode);
+    
     // Configurer l'apparence selon le mode
     container.classList.remove('charge-mode-total', 'charge-mode-charge');
     container.classList.add(`charge-mode-${currentWeightMode}`);
+    
+    // Forcer le rafraîchissement visuel
+    container.offsetHeight; // Trigger reflow
     
     // Configurer le swipe sur l'icône
     setupWeightModeSwipe(icon);
@@ -7769,6 +7775,8 @@ function switchWeightMode(targetMode = null) {
     
     if (newMode === oldMode) return;
     
+    console.log('[SwitchMode] Passage de', oldMode, 'vers', newMode);
+    
     // Récupérer le poids actuel
     const weightElement = document.getElementById('setWeight');
     if (!weightElement) return;
@@ -7782,13 +7790,19 @@ function switchWeightMode(targetMode = null) {
         convertedWeight = 0;
     }
     
+    // CRITIQUE : Mettre à jour le mode AVANT les animations
+    currentWeightMode = newMode;
+    
     // Animations
     animateWeightModeSwitch(newMode, convertedWeight);
     
-    currentWeightMode = newMode;
-    
-    // Mettre à jour le plate helper
-    updatePlateHelper(convertedWeight);
+    // Mettre à jour le plate helper SEULEMENT si nécessaire et sans boucle
+    if (currentUser?.show_plate_helper) {
+        // Délai pour éviter les conflits avec l'animation
+        setTimeout(() => {
+            updatePlateHelper(convertedWeight);
+        }, 100);
+    }
 }
 
 function animateWeightModeSwitch(newMode, newWeight) {
@@ -7879,8 +7893,14 @@ function setupWeightModeSwipe(iconElement) {
 }
 
 // ===== AIDE AU MONTAGE DES BARRES (VERSION OPTIMISÉE) =====
-// ===== AIDE AU MONTAGE DES BARRES (VERSION OPTIMISÉE) =====
 async function updatePlateHelper(weight) {
+    // Protection contre boucles infinies
+    if (plateHelperUpdateInProgress) {
+        console.log('[PlateHelper] Déjà en cours, skip');
+        return;
+    }
+    plateHelperUpdateInProgress = true;
+    
     // Debug logging
     console.log('[PlateHelper] Update called:', {
         weight,
@@ -7924,15 +7944,12 @@ async function updatePlateHelper(weight) {
         
         const layout = await apiGet(`/api/users/${currentUser.id}/plate-layout/${plateHelperWeight}?exercise_id=${currentExercise.id}`);
         
-        // Si le layout retourne un poids différent, c'est une erreur
-        if (layout.feasible && layout.weight !== weightToUse) {
-            console.error('[PlateHelper] Incohérence:', weightToUse, 'vs', layout.weight);
-        }
-        
         showPlateHelper(layout);
     } catch (error) {
         console.error('[PlateHelper] Error:', error);
         hidePlateHelper();
+    } finally {
+        plateHelperUpdateInProgress = false;
     }
 }
 
