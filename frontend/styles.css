@@ -418,7 +418,7 @@ p {
     height: 40px;
     background: var(--primary);
     border-radius: 50%;
-    display: flex;
+    display: flex !important;
     align-items: center;
     justify-content: center;
     color: #fff;

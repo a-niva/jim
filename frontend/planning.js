@@ -300,7 +300,7 @@ class PlanningManager {
         
         for (let i = 0; i < 7; i++) {
             const date = new Date(weekStart);
-            date.setDate(weekStart.getDate() + i);
+            date.setDate(date.getDate() + i);
             const dateStr = date.toISOString().split('T')[0];
             
             // Chercher les sessions dans scheduleData pour cette date
