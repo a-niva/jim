@@ -5881,8 +5881,10 @@ async function togglePlateHelper() {
         
         // Mise à jour immédiate si on est en séance
         if (currentExercise) {
-            const weight = parseFloat(document.getElementById('setWeight')?.textContent) || 0;
-            updatePlateHelper(weight);
+            // Toujours utiliser le poids réel, pas l'affichage
+            if (currentExercise && currentExerciseRealWeight > 0) {
+                updatePlateHelper(currentExerciseRealWeight);
+            }
         }
         
         console.log('Aide montage mise à jour:', toggle.checked);
@@ -7910,16 +7912,18 @@ function animateWeightModeSwitch(newMode, displayWeight) {
     
     if (!container || !weightValue || !weightElement) return;
     
+    // IMPORTANT : Mettre à jour l'affichage IMMÉDIATEMENT
+    weightElement.textContent = displayWeight;
+    
     // Phase 1 : Démarrer l'animation
     container.classList.remove('charge-mode-total', 'charge-mode-charge');
     container.classList.add('charge-morphing-to-' + newMode);
     weightValue.classList.add('charge-number-animating');
     
-    // Phase 2 : Appliquer les changements
+    // Phase 2 : Appliquer les changements visuels
     setTimeout(() => {
         container.classList.remove('charge-morphing-to-' + newMode);
         container.classList.add('charge-mode-' + newMode);
-        weightElement.textContent = displayWeight;
         
         // Phase 3 : Nettoyer les animations
         setTimeout(() => {
