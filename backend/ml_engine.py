@@ -1194,11 +1194,24 @@ class RecoveryTracker:
             recovery = 0.9
         else:
             recovery = 1.0
-        
+
+        # NOUVEAU: Facteur de récupération différentielle par muscle (muscle est disponible)
+        muscle_recovery_factors = {
+            "jambes": 0.90,     # Récupération plus lente
+            "dos": 0.95,        # Compound dos = récup moyenne-lente  
+            "pectoraux": 1.0,   # Récupération standard
+            "deltoïdes": 1.05,  # Récupération rapide
+            "bras": 1.10,       # Très rapide
+            "abdominaux": 1.15  # Récupération très rapide
+        }
+
+        muscle_factor = muscle_recovery_factors.get(muscle.lower(), 1.0)
+        recovery = min(1.0, recovery * muscle_factor)
+
         # Ajuster selon la dette de récupération
         if target.recovery_debt > 0:
             recovery *= (1 - min(0.5, target.recovery_debt / 10))
-        
+
         return max(0.2, recovery)  # Minimum 20%
 
 class VolumeOptimizer:

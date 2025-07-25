@@ -564,15 +564,26 @@ class FitnessRecommendationEngine:
     def _calculate_base_effort_factor(self, current_effort: int) -> float:
         """Calcule le facteur d'effort de base avec progression non-linéaire"""
         
+        # Facteurs de base avec courbe non-linéaire améliorée
         effort_factors = {
-            1: 1.15,  # Très facile : augmentation plus agressive
-            2: 1.08,  # Facile : augmentation modérée  
+            1: 1.12,  # Très facile : progression plus marquée
+            2: 1.06,  # Facile : progression modérée
             3: 1.0,   # Modéré : maintenir
-            4: 0.92,  # Difficile : réduction modérée
-            5: 0.80   # Échec : réduction importante
+            4: 0.93,  # Difficile : réduction modérée  
+            5: 0.82   # Échec : réduction importante
         }
-        
-        return effort_factors.get(current_effort, 1.0)
+
+        base_factor = effort_factors.get(current_effort, 1.0)
+
+        # Amplification pour efforts extrêmes (plus de nuance)
+        if current_effort == 1:
+            # Très facile peut indiquer sous-estimation majeure
+            base_factor = min(1.15, base_factor * 1.03)  # Léger boost, plafonné
+        elif current_effort == 5:
+            # Échec nécessite prudence accrue
+            base_factor = max(0.78, base_factor * 0.95)  # Réduction supplémentaire
+
+        return base_factor
 
     def _calculate_rest_impact_factor(self, session_context: Dict) -> float:
         """Calcule l'impact du repos effectif vs recommandé"""
@@ -584,7 +595,7 @@ class FitnessRecommendationEngine:
             return 1.0
         
         rest_ratio = actual_rest / recommended_rest
-        
+                
         # Fonction non-linéaire pour l'impact du repos
         if rest_ratio < 0.3:
             return 0.85  # Repos très insuffisant : forte réduction
@@ -595,7 +606,7 @@ class FitnessRecommendationEngine:
         elif rest_ratio <= 1.3:
             return 1.0   # Repos dans la plage normale
         elif rest_ratio <= 1.8:
-            return 1.03  # Repos long : légère augmentation possible
+            return 1.03  # Repos long : légère augmentation
         else:
             return 1.05  # Repos très long : récupération excellente
 
@@ -618,18 +629,24 @@ class FitnessRecommendationEngine:
         else:
             return 1.0
         
-        # Détecter les incohérences effort/performance
+        # Détection flow state AVANT les incohérences
+        if current_effort <= 2 and performance_ratio >= 1.20:
+            # "Journée en or" : effort facile + dépassement significatif
+            return 1.06  # +6% conservateur
+
+        # Détection jour difficile
+        if current_effort >= 4 and performance_ratio <= 0.80:
+            # Jour difficile : effort élevé + sous-performance
+            return 0.94  # -6% conservateur
+
+        # Logique existante des incohérences (légèrement adoucie)
         if current_effort <= 2 and performance_ratio < 0.85:
-            # Effort "facile" mais reps dégradées = fatigue cachée
-            return 0.90
+            return 0.92  # Était 0.90
         elif current_effort <= 2 and performance_ratio < 0.70:
-            # Effort "facile" mais reps très dégradées = problème majeur
-            return 0.80
+            return 0.85  # Était 0.80
         elif current_effort >= 4 and performance_ratio > 1.15:
-            # Effort "difficile" mais reps excellentes = sous-estimation
-            return 1.10
+            return 1.08  # Était 1.10
         else:
-            # Cohérence effort/performance
             return 1.0
 
     def _calculate_set_progression_factor(self, set_number: int, fatigue_sensitivity: float) -> float:
@@ -864,23 +881,23 @@ class FitnessRecommendationEngine:
         
         reasons = []
         
-        # Raison principale basée sur l'effort
+        # raison principale basée sur l'effort
         if effort_factor > 1.05:
-            reasons.append("Performance excellente")
+            reasons.append("Série trop facile, on charge")
         elif effort_factor < 0.95:
-            reasons.append("Effort élevé détecté")
-        
-        # Impact du repos
+            reasons.append("Série intense, préservation technique")
+
+        # Impact du repos - plus contextuel
         if rest_factor < 0.95:
-            reasons.append("Repos insuffisant compensé")
+            reasons.append("Récupération incomplète prise en compte")
         elif rest_factor > 1.03:
-            reasons.append("Excellente récupération")
-        
-        # Cohérence performance
+            reasons.append("Repos optimal, prêt à performer")
+
+        # Cohérence performance - plus explicite
         if performance_factor < 0.95:
-            reasons.append("Ajustement sécuritaire")
+            reasons.append("Adaptation pour maintenir la qualité")
         elif performance_factor > 1.05:
-            reasons.append("Potentiel sous-exploité")
+            reasons.append("Marge détectée, progression possible")
         
         # Information sur les changements
         change_info = []
@@ -1004,14 +1021,28 @@ class FitnessRecommendationEngine:
         # Appliquer le taux de récupération personnalisé
         recovery_factor = 1.0 / coefficients.recovery_rate
         
-        # Calculer le repos optimal
-        optimal_rest = base_rest * intensity_factor * fatigue_multiplier * effort_multiplier * set_multiplier * recovery_factor
-        
-        # Limites raisonnables
-        min_rest = 30
-        max_rest = 300
+        # Facteur muscle-spécifique
+        muscle_factor = 1.0
+        if exercise.muscle_groups:
+            primary_muscle = exercise.muscle_groups[0].lower()
+            muscle_factors = {
+                "jambes": 1.15,     # +15% pour gros groupes
+                "dos": 1.10,        # +10% pour compound dos
+                "pectoraux": 1.05,  # +5% pour compound pectoraux
+                "deltoïdes": 0.95,  # -5% pour deltoïdes
+                "bras": 0.90,       # -10% pour petits groupes
+                "abdominaux": 0.85  # -15% pour abdos
+            }
+            muscle_factor = muscle_factors.get(primary_muscle, 1.0)
+
+        # Calculer le repos optimal avec facteur muscle
+        optimal_rest = base_rest * intensity_factor * fatigue_multiplier * effort_multiplier * set_multiplier * recovery_factor * muscle_factor
+
+        # Limites raisonnables STRICTES
+        min_rest = 25
+        max_rest = 360  # 6 minutes max
         optimal_rest = max(min_rest, min(max_rest, int(optimal_rest)))
-        
+                
         # Si l'utilisateur a des poids fixes, potentiellement plus de repos
         if not coefficients.user.prefer_weight_changes_between_sets and current_effort >= 4:
             optimal_rest = int(optimal_rest * 1.2)
