@@ -319,40 +319,322 @@
     font-weight: 500;
 }
 
-/* ===== GRAPHIQUE 7: BURNDOWN ===== */
-.burndown-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+/* ===== GRAPHIQUE 7: PROGRESSION PROGRAMME (MOBILE-FIRST) ===== */
+
+/* Container principal - Stack vertical sur mobile */
+.volume-summary {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     gap: 1rem;
     margin-top: 1rem;
-}
-
-.burndown-stat {
-    text-align: center;
     padding: 1rem;
     background: var(--bg-light);
-    border-radius: calc(var(--radius) / 2);
+    border-radius: var(--radius);
 }
 
-.burndown-stat .stat-label {
-    display: block;
+/* Cercle de progression - Touch-friendly */
+.completion-circle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.circle-progress {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: conic-gradient(
+        var(--primary) calc(var(--progress) * 3.6deg),
+        var(--bg-card) 0deg
+    );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    /* Touch-friendly minimum size */
+    min-width: 44px;
+    min-height: 44px;
+}
+
+.circle-progress::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    right: 6px;
+    bottom: 6px;
+    background: var(--bg-light);
+    border-radius: 50%;
+}
+
+.progress-text {
+    position: relative;
     font-size: 0.875rem;
-    color: var(--text-muted);
-    margin-bottom: 0.25rem;
-}
-
-.burndown-stat .stat-value {
-    display: block;
-    font-size: 1.5rem;
     font-weight: bold;
+    color: var(--text);
+    z-index: 1;
 }
 
-.burndown-stat .stat-value.success {
-    color: var(--success);
+.circle-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-align: center;
 }
 
-.burndown-stat .stat-value.warning {
-    color: var(--warning);
+/* Stats résumé - Responsive */
+.summary-stats {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    justify-content: center;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.stat-number {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: var(--text);
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.stat-divider {
+    font-size: 1.5rem;
+    color: var(--text-muted);
+    font-weight: 300;
+}
+
+/* Insights - Cards empilées sur mobile */
+.volume-insights {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.insight-card {
+    padding: 1rem;
+    border-radius: calc(var(--radius) / 2);
+    border-left: 4px solid var(--primary);
+}
+
+.insight-card.excellent {
+    background: rgba(16, 185, 129, 0.05);
+    border-left-color: var(--success);
+}
+
+.insight-card.good {
+    background: rgba(59, 130, 246, 0.05);
+    border-left-color: var(--primary);
+}
+
+.insight-card.warning {
+    background: rgba(245, 158, 11, 0.05);
+    border-left-color: var(--warning);
+}
+
+.insight-card.danger {
+    background: rgba(239, 68, 68, 0.05);
+    border-left-color: var(--danger);
+}
+
+.insight-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.insight-icon {
+    font-size: 1.125rem;
+    /* Touch-friendly */
+    min-width: 20px;
+}
+
+.insight-title {
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.insight-details {
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    color: var(--text-muted);
+}
+
+/* Quick stats - Horizontal sur mobile si la place le permet */
+.quick-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.quick-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: var(--bg-card);
+    border-radius: calc(var(--radius) / 3);
+}
+
+.quick-icon {
+    font-size: 1rem;
+    min-width: 16px;
+}
+
+.quick-text {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+}
+
+/* États vides - Centrés et lisibles */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 2rem 1rem;
+    text-align: center;
+}
+
+.empty-icon {
+    font-size: 2rem;
+    opacity: 0.6;
+}
+
+.empty-text {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+.empty-state.error .empty-icon {
+    color: var(--danger);
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+
+/* Tablette (768px+) */
+@media (min-width: 768px) {
+    .volume-summary {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+    }
+    
+    .completion-circle {
+        flex-direction: column;
+    }
+    
+    .circle-progress {
+        width: 100px;
+        height: 100px;
+    }
+    
+    .progress-text {
+        font-size: 1rem;
+    }
+    
+    .stat-number {
+        font-size: 1.5rem;
+    }
+    
+    .quick-stats {
+        flex-direction: row;
+        gap: 1rem;
+    }
+    
+    .quick-stat {
+        flex: 1;
+        justify-content: center;
+    }
+}
+
+/* Desktop (1024px+) */
+@media (min-width: 1024px) {
+    .volume-insights {
+        flex-direction: row;
+        gap: 1rem;
+    }
+    
+    .insight-card {
+        flex: 1;
+    }
+    
+    .quick-stats {
+        justify-content: space-around;
+    }
+    
+    .circle-progress {
+        width: 120px;
+        height: 120px;
+    }
+    
+    .progress-text {
+        font-size: 1.125rem;
+    }
+    
+    .empty-state {
+        padding: 3rem 2rem;
+    }
+    
+    .empty-icon {
+        font-size: 3rem;
+    }
+}
+
+/* Mode sombre - Ajustements pour contraste */
+@media (prefers-color-scheme: dark) {
+    .circle-progress::before {
+        background: var(--bg-card);
+    }
+    
+    .insight-card.excellent {
+        background: rgba(16, 185, 129, 0.1);
+    }
+    
+    .insight-card.good {
+        background: rgba(59, 130, 246, 0.1);
+    }
+    
+    .insight-card.warning {
+        background: rgba(245, 158, 11, 0.1);
+    }
+    
+    .insight-card.danger {
+        background: rgba(239, 68, 68, 0.1);
+    }
+}
+
+/* Animations légères pour la performance */
+.circle-progress {
+    transition: background 0.3s ease;
+}
+
+.insight-card {
+    transition: transform 0.2s ease;
+}
+
+.insight-card:hover {
+    transform: translateY(-1px);
+}
+
+/* Focus states pour l'accessibilité */
+.quick-stat:focus-within {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
 }
 
 /* ===== GRAPHIQUE 9: SUNBURST ===== */

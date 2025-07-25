@@ -3975,9 +3975,12 @@ def calculate_recovery_warnings(data, muscle_recovery_status=None, session_date=
     
     return warnings
 
-@app.get("/api/users/{user_id}/volume-burndown")
-def get_volume_burndown(user_id: int, db: Session = Depends(get_db)):
-    """Graphique burndown du volume depuis le schedule"""
+@app.get("/api/users/{user_id}/stats/volume-burndown/{period}")
+def get_volume_burndown(user_id: int, period: str, db: Session = Depends(get_db)):
+    """Graphique burndown du volume depuis le schedule - VERSION CORRIGÉE"""
+    
+    if period not in ["week", "month", "quarter", "year"]:
+        period = "week"  # Fallback par défaut
     
     program = db.query(Program).filter(
         Program.user_id == user_id,
@@ -3985,12 +3988,17 @@ def get_volume_burndown(user_id: int, db: Session = Depends(get_db)):
     ).first()
     
     if not program or not program.schedule:
-        return {"error": "Pas de programme actif avec schedule"}
+        return {
+            "dailyVolumes": [],
+            "targetVolume": 0,
+            "currentVolume": 0,
+            "projection": {"onTrack": False, "dailyRateNeeded": 0}
+        }
     
-    # Calculer volumes depuis schedule
+    # Réutiliser la logique existante mais adapter le format
     planned_volume = 0
     completed_volume = 0
-    burndown_data = []
+    daily_volumes = []
     
     for date_str in sorted(program.schedule.keys()):
         session = program.schedule[date_str]
@@ -4000,18 +4008,28 @@ def get_volume_burndown(user_id: int, db: Session = Depends(get_db)):
         if session.get("status") == "completed":
             completed_volume += session_volume
         
-        burndown_data.append({
+        daily_volumes.append({
             "date": date_str,
-            "planned_cumulative": planned_volume,
-            "completed_cumulative": completed_volume,
-            "remaining": planned_volume - completed_volume
+            "cumulativeVolume": completed_volume
         })
     
+    # Calcul projection simple
+    if planned_volume > 0:
+        completion_rate = (completed_volume / planned_volume) * 100
+        on_track = completion_rate >= 80
+        daily_rate_needed = max(0, (planned_volume - completed_volume) / 7)
+    else:
+        on_track = True
+        daily_rate_needed = 0
+    
     return {
-        "total_planned": planned_volume,
-        "total_completed": completed_volume,
-        "completion_rate": (completed_volume / planned_volume * 100) if planned_volume > 0 else 0,
-        "burndown_data": burndown_data
+        "dailyVolumes": daily_volumes,
+        "targetVolume": planned_volume,
+        "currentVolume": completed_volume,
+        "projection": {
+            "onTrack": on_track,
+            "dailyRateNeeded": daily_rate_needed
+        }
     }
 
 

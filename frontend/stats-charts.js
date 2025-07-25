@@ -557,109 +557,243 @@ async function loadAttendanceCalendar(userId) {
 }
 
 // ===== GRAPHIQUE 7: BURNDOWN VOLUME =====
+// ===== GRAPHIQUE 7: PROGRESSION PROGRAMME OPTIMISÉE =====
 async function loadVolumeBurndownChart(userId, period) {
     try {
         const data = await window.apiGet(`/api/users/${userId}/stats/volume-burndown/${period}`);
         
-        const ctx = document.getElementById('volumeBurndownChart').getContext('2d');
-        
-        // Détruire le chart existant
-        if (charts.volumeBurndown) {
-            charts.volumeBurndown.destroy();
+        if (!data.dailyVolumes || data.dailyVolumes.length === 0) {
+            showVolumeEmptyState();
+            return;
         }
         
-        // Préparer les données
-        const labels = data.dailyVolumes.map(d => new Date(d.date).toLocaleDateString('fr-FR', { 
+        // Rendu en une seule passe pour la performance
+        renderOptimizedVolumeChart(data, period);
+        renderEnhancedStats(data, period);
+        
+    } catch (error) {
+        console.error('Erreur chargement volume:', error);
+        showVolumeErrorState();
+    }
+}
+
+function renderOptimizedVolumeChart(data, period) {
+    const ctx = document.getElementById('volumeBurndownChart').getContext('2d');
+    
+    if (charts.volumeBurndown) {
+        charts.volumeBurndown.destroy();
+    }
+    
+    // Optimisation : créer les datasets en une seule boucle
+    const chartLabels = [];
+    const realizationData = [];
+    const targetData = [];
+    const progressLine = [];
+    
+    const dailyTarget = data.targetVolume / data.dailyVolumes.length;
+    
+    data.dailyVolumes.forEach((d, i) => {
+        chartLabels.push(new Date(d.date).toLocaleDateString('fr-FR', { 
             day: 'numeric',
             month: 'short'
         }));
-        
-        const cumulativeData = data.dailyVolumes.map(d => d.cumulativeVolume);
-        const targetLine = data.dailyVolumes.map((d, i) => 
-            data.targetVolume * (i + 1) / data.dailyVolumes.length
-        );
-        
-        charts.volumeBurndown = new window.Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Volume réalisé',
-                    data: cumulativeData,
-                    borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    fill: true,
-                    tension: 0.2
-                }, {
-                    label: 'Objectif linéaire',
-                    data: targetLine,
-                    borderColor: '#6b7280',
-                    borderDash: [5, 5],
-                    fill: false,
-                    pointRadius: 0
-                }]
+        realizationData.push(d.cumulativeVolume);
+        targetData.push((i + 1) * dailyTarget);
+        progressLine.push(data.targetVolume);
+    });
+    
+    charts.volumeBurndown = new window.Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: chartLabels,
+            datasets: [{
+                label: 'Exercices réalisés',
+                data: realizationData,
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                pointBackgroundColor: '#fff',
+                pointBorderColor: '#3b82f6',
+                pointBorderWidth: 2
+            }, {
+                label: 'Rythme idéal',
+                data: targetData,
+                borderColor: '#10b981',
+                borderDash: [8, 4],
+                fill: false,
+                pointRadius: 0,
+                tension: 0.2
+            }, {
+                label: 'Objectif final',
+                data: progressLine,
+                borderColor: '#f59e0b',
+                borderDash: [12, 8],
+                fill: false,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                intersect: false,
+                mode: 'index'
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Volume (kg)'
-                        }
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 15,
+                        font: { size: 12 }
                     }
                 },
-                plugins: {
-                    annotation: {
-                        annotations: {
-                            target: {
-                                type: 'line',
-                                yMin: data.targetVolume,
-                                yMax: data.targetVolume,
-                                borderColor: '#10b981',
-                                borderWidth: 2,
-                                borderDash: [10, 5],
-                                label: {
-                                    content: 'Objectif',
-                                    enabled: true,
-                                    position: 'end'
-                                }
-                            }
+                tooltip: {
+                    callbacks: {
+                        title: function(context) {
+                            return `Jour ${context[0].dataIndex + 1}`;
+                        },
+                        label: function(context) {
+                            const value = context.parsed.y;
+                            return `${context.dataset.label}: ${Math.round(value)} exercices`;
                         }
                     }
                 }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Exercices cumulés',
+                        font: { size: 12, weight: 'bold' }
+                    },
+                    ticks: {
+                        stepSize: Math.ceil(data.targetVolume / 10)
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: period === 'week' ? 'Jours' : 'Progression',
+                        font: { size: 12 }
+                    }
+                }
             }
-        });
+        }
+    });
+}
+
+function renderEnhancedStats(data, period) {
+    const container = document.getElementById('burndownStats');
+    
+    // Calculs optimisés en une seule passe
+    const current = data.currentVolume;
+    const target = data.targetVolume;
+    const completion = Math.round((current / target) * 100);
+    
+    // Calcul tendance simple (3 derniers vs 3 premiers points)
+    const volumes = data.dailyVolumes.map(d => d.cumulativeVolume);
+    const recentAvg = volumes.slice(-3).reduce((a, b) => a + b, 0) / 3;
+    const earlyAvg = volumes.slice(0, 3).reduce((a, b) => a + b, 0) / 3;
+    const trendDirection = recentAvg > earlyAvg ? 'up' : recentAvg < earlyAvg ? 'down' : 'stable';
+    
+    // Calcul vitesse (exercices/jour sur dernière semaine)
+    const lastWeekData = volumes.slice(-7);
+    const velocity = lastWeekData.length > 1 
+        ? (lastWeekData[lastWeekData.length - 1] - lastWeekData[0]) / (lastWeekData.length - 1)
+        : 0;
+    
+    // Prédiction simple
+    const remaining = target - current;
+    const estimatedDays = velocity > 0 ? Math.ceil(remaining / velocity) : '∞';
+    
+    // Status avec emojis
+    const status = completion >= 85 ? { level: 'excellent', icon: '🔥', text: 'Excellent' }
+                 : completion >= 70 ? { level: 'good', icon: '💪', text: 'En forme' }
+                 : completion >= 50 ? { level: 'warning', icon: '⚡', text: 'Rattrapage' }
+                 : { level: 'danger', icon: '🎯', text: 'Focus requis' };
+    
+    container.innerHTML = `
+        <div class="volume-summary">
+            <div class="completion-circle">
+                <div class="circle-progress" style="--progress: ${completion}">
+                    <span class="progress-text">${completion}%</span>
+                </div>
+                <div class="circle-label">Complété</div>
+            </div>
+            
+            <div class="summary-stats">
+                <div class="stat-item">
+                    <span class="stat-number">${current}</span>
+                    <span class="stat-label">Réalisés</span>
+                </div>
+                <div class="stat-divider">/</div>
+                <div class="stat-item">
+                    <span class="stat-number">${target}</span>
+                    <span class="stat-label">Objectif</span>
+                </div>
+            </div>
+        </div>
         
-        // Afficher les stats
-        const statsContainer = document.getElementById('burndownStats');
-        const percentComplete = Math.round(data.currentVolume / data.targetVolume * 100);
-        const statusClass = data.projection.onTrack ? 'success' : 'warning';
-        
-        statsContainer.innerHTML = `
-            <div class="burndown-stat">
-                <span class="stat-label">Progression</span>
-                <span class="stat-value ${statusClass}">${percentComplete}%</span>
+        <div class="volume-insights">
+            <div class="insight-card ${status.level}">
+                <div class="insight-header">
+                    <span class="insight-icon">${status.icon}</span>
+                    <span class="insight-title">${status.text}</span>
+                </div>
+                <div class="insight-details">
+                    ${generateStatusMessage(completion, remaining, velocity, estimatedDays)}
+                </div>
             </div>
-            <div class="burndown-stat">
-                <span class="stat-label">Volume actuel</span>
-                <span class="stat-value">${Math.round(data.currentVolume)}kg</span>
+            
+            <div class="quick-stats">
+                <div class="quick-stat">
+                    <span class="quick-icon trend-${trendDirection}">
+                        ${trendDirection === 'up' ? '📈' : trendDirection === 'down' ? '📉' : '➡️'}
+                    </span>
+                    <span class="quick-text">Tendance ${trendDirection === 'stable' ? 'stable' : trendDirection === 'up' ? 'positive' : 'à surveiller'}</span>
+                </div>
+                <div class="quick-stat">
+                    <span class="quick-icon">⚡</span>
+                    <span class="quick-text">${velocity.toFixed(1)} exercices/jour</span>
+                </div>
             </div>
-            <div class="burndown-stat">
-                <span class="stat-label">Objectif</span>
-                <span class="stat-value">${Math.round(data.targetVolume)}kg</span>
-            </div>
-            <div class="burndown-stat">
-                <span class="stat-label">Rythme nécessaire</span>
-                <span class="stat-value">${Math.round(data.projection.dailyRateNeeded)}kg/jour</span>
-            </div>
-        `;
-        
-    } catch (error) {
-        console.error('Erreur chargement burndown:', error);
+        </div>
+    `;
+}
+
+function generateStatusMessage(completion, remaining, velocity, estimatedDays) {
+    if (completion >= 85) {
+        return "Rythme parfait ! Vous êtes en avance sur le programme.";
+    } else if (completion >= 70) {
+        return `Plus que ${remaining} exercices pour atteindre l'objectif.`;
+    } else if (velocity > 0 && estimatedDays !== '∞') {
+        return `À ce rythme, objectif atteint dans ~${estimatedDays} jours.`;
+    } else {
+        return "Augmentez le rythme pour rattraper le programme.";
     }
+}
+
+function showVolumeEmptyState() {
+    document.getElementById('burndownStats').innerHTML = `
+        <div class="empty-state">
+            <div class="empty-icon">📋</div>
+            <div class="empty-text">Aucun programme actif</div>
+        </div>
+    `;
+}
+
+function showVolumeErrorState() {
+    document.getElementById('burndownStats').innerHTML = `
+        <div class="empty-state error">
+            <div class="empty-icon">⚠️</div>
+            <div class="empty-text">Erreur de chargement</div>
+        </div>
+    `;
 }
 
 // ===== GRAPHIQUE 9: SUNBURST VOLUME MUSCULAIRE =====
