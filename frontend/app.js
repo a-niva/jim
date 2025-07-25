@@ -5889,8 +5889,10 @@ async function toggleWeightDisplayMode() {
             // Mettre à jour l'interface visuelle
             setupChargeInterface();
             
-            // Mettre à jour le plate helper
-            updatePlateHelper(convertedWeight);
+            // Mettre à jour le plate helper SEULEMENT si activé
+            if (currentUser?.show_plate_helper) {
+                updatePlateHelper(convertedWeight);
+            }
         }
         
         console.log('Mode d\'affichage poids mis à jour:', newMode);
