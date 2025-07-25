@@ -517,6 +517,52 @@ document.addEventListener('DOMContentLoaded', async () => {
     registerServiceWorker();
 });
 
+
+// Initialisation des range sliders modernes
+function initializeRangeSliders() {
+    // Slider séances par semaine
+    const sessionsSlider = document.getElementById('sessionsPerWeek');
+    const sessionsDisplay = document.getElementById('sessionsDisplay');
+    
+    if (sessionsSlider && sessionsDisplay) {
+        sessionsSlider.addEventListener('input', function() {
+            const value = this.value;
+            sessionsDisplay.textContent = value;
+            
+            // Mise à jour de la classe CSS pour le gradient
+            this.className = this.className.replace(/sessions-\d+/g, '');
+            this.classList.add(`sessions-${value}`);
+        });
+        
+        // Initialiser la classe par défaut
+        sessionsSlider.classList.add('sessions-3');
+    }
+    
+    // Slider durée par séance
+    const durationSlider = document.getElementById('sessionDuration');
+    const durationDisplay = document.getElementById('durationDisplay');
+    
+    if (durationSlider && durationDisplay) {
+        durationSlider.addEventListener('input', function() {
+            const value = this.value;
+            durationDisplay.textContent = value;
+            
+            // Mise à jour de la classe CSS pour le gradient
+            this.className = this.className.replace(/duration-\d+/g, '');
+            this.classList.add(`duration-${value}`);
+        });
+        
+        // Initialiser la classe par défaut
+        durationSlider.classList.add('duration-45');
+    }
+}
+
+// Appeler cette fonction quand l'onboarding se lance
+document.addEventListener('DOMContentLoaded', function() {
+    initializeRangeSliders();
+});
+
+
 // ===== GESTION DES ACTIONS URL =====
 function handleUrlAction(action) {
     switch (action) {

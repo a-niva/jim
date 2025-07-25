@@ -181,22 +181,29 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="sessionsPerWeek">Séances par semaine</label>
-                        <select id="sessionsPerWeek">
-                            <option value="2">2 séances</option>
-                            <option value="3" selected>3 séances</option>
-                            <option value="4">4 séances</option>
-                            <option value="5">5 séances</option>
-                        </select>
+                        <div class="range-input-container">
+                            <input type="range" id="sessionsPerWeek" min="2" max="5" value="3" class="modern-slider">
+                            <div class="range-display">
+                                <span class="range-value" id="sessionsDisplay">3</span>
+                                <span class="range-unit">séances/semaine</span>
+                            </div>
+                            <div class="range-labels">
+                                <span>2</span><span>3</span><span>4</span><span>5</span>
+                            </div>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="sessionDuration">Durée par séance (min)</label>
-                        <select id="sessionDuration">
-                            <option value="30">30 min</option>
-                            <option value="45" selected>45 min</option>
-                            <option value="60">1h</option>
-                            <option value="75">1h15</option>
-                            <option value="90">1h30</option>
-                        </select>
+                        <div class="range-input-container">
+                            <input type="range" id="sessionDuration" min="30" max="90" step="15" value="45" class="modern-slider">
+                            <div class="range-display">
+                                <span class="range-value" id="durationDisplay">45</span>
+                                <span class="range-unit">minutes</span>
+                            </div>
+                            <div class="range-labels">
+                                <span>30min</span><span>45min</span><span>60min</span><span>75min</span><span>90min</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
