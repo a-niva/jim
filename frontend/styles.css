@@ -2116,31 +2116,43 @@ input:focus,select:focus,textarea:focus {
     border-radius: 4px;
 }
 
+.charge-mode-icon::before {
+    position: relative;
+    overflow: hidden;
+}
+
 .charge-mode-icon::after {
     content: "";
     position: absolute;
     top: 50%;
-    left: -100%;
+    left: -40px;
     width: 40px;
     height: 32px;
     background: linear-gradient(
         90deg,
         transparent,
-        rgba(255, 255, 255, 0.4),
+        rgba(255, 255, 255, 0.15),
         transparent
     );
     animation: charge-shimmer 5s infinite;
     transform: translateY(-50%);
     border-radius: 4px;
+    pointer-events: none;
 }
 
 @keyframes charge-shimmer {
-    0%, 90%, 100% { left: -100%; }
-    10%, 20% { left: 100%; }
+    0%, 90%, 100% { left: -40px; }
+    10%, 20% { left: 40px; }
 }
 
 .charge-mode-icon:hover::after {
     animation-duration: 2s;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.25),
+        transparent
+    );
 }
 
 .charge-weight-display {
@@ -5818,12 +5830,28 @@ input:checked+.toggle-slider:before {
 }
 
 .bar-visualization {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
     gap: 3px;
     padding: 1.5rem 0;
-    position: relative
+    position: relative;
+    width: 100% !important;
+}
+
+.bar-assembly {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 3px;
+}
+
+.plate-helper-minimal .bar-visualization,
+.plate-helper-minimal .bar-assembly {
+    display: flex !important;
+    flex-direction: row !important;
 }
 
 .bar-visual,.plate-visual {
@@ -7122,4 +7150,25 @@ input:checked+.toggle-slider:before {
     .muscle-tab {
         transition: none !important;
     }
+}
+
+/* Protection plate helper contre conflits charge/total */
+.plate-helper-minimal,
+.plate-helper-minimal * {
+    box-sizing: border-box;
+}
+
+.plate-helper-minimal .helper-content,
+.plate-helper-minimal .helper-content-minimal {
+    display: block !important;
+    flex-direction: column !important;
+}
+
+.plate-helper-minimal .barbell-visual {
+    display: block !important;
+}
+
+.plate-helper-minimal .visual-label {
+    text-align: center;
+    margin-bottom: 0.5rem;
 }
