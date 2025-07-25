@@ -1978,21 +1978,24 @@ async function loadMuscleReadiness() {
         
     try {
         const recoveryData = await apiGet(`/api/users/${currentUser.id}/stats/recovery-gantt`);
+        console.log('🔍 Recovery data reçue:', recoveryData); // DEBUG
         
         container.innerHTML = `
             <div class="muscle-readiness-bars-container">
                 ${muscleGroups.map(muscle => {
                     const recovery = recoveryData[muscle.key];
-                    const capacity = recovery ? recovery.recoveryPercent : 85;
+                    console.log(`🔍 ${muscle.key}:`, recovery); // DEBUG par muscle
+                    
+                    const capacity = recovery ? recovery.recoveryPercent : 90; // Changé de 85 à 90
                     const statusText = capacity <= 30 ? 'Fatigué' : capacity <= 70 ? 'Récupération' : 'Prêt';
 
                     return `
                         <div class="muscle-readiness-bar-item" 
-                             onclick="handleMuscleReadinessClick('${muscle.key}', '${muscle.name}', ${capacity})">
+                            onclick="handleMuscleReadinessClick('${muscle.key}', '${muscle.name}', ${capacity})">
                             <div class="muscle-readiness-bar-label">${muscle.name}</div>
                             <div class="muscle-readiness-bar-container">
                                 <div class="muscle-readiness-bar-fill muscle-readiness-${muscle.key}" 
-                                     style="height: ${capacity}%;"></div>
+                                    style="height: ${capacity}%;"></div>
                             </div>
                             <div class="muscle-readiness-bar-percentage">${capacity}%</div>
                             <div class="muscle-readiness-bar-status">${statusText}</div>
@@ -2003,8 +2006,29 @@ async function loadMuscleReadiness() {
         `;
         
     } catch (error) {
-        console.error('Erreur chargement état musculaire:', error);
-        container.innerHTML = `<div class="muscle-readiness-error">Données indisponibles</div>`;
+        console.error('❌ Erreur recovery-gantt:', error);
+        // Fallback avec des valeurs plus réalistes
+        container.innerHTML = `
+            <div class="muscle-readiness-bars-container">
+                ${muscleGroups.map(muscle => {
+                    const capacity = 75; // Valeur par défaut plus neutre
+                    return `
+                        <div class="muscle-readiness-bar-item">
+                            <div class="muscle-readiness-bar-label">${muscle.name}</div>
+                            <div class="muscle-readiness-bar-container">
+                                <div class="muscle-readiness-bar-fill muscle-readiness-${muscle.key}" 
+                                    style="height: ${capacity}%;"></div>
+                            </div>
+                            <div class="muscle-readiness-bar-percentage">${capacity}%</div>
+                            <div class="muscle-readiness-bar-status">Récupération</div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+            <div style="text-align: center; margin-top: 0.5rem; font-size: 0.7rem; color: var(--text-muted);">
+                Données indisponibles
+            </div>
+        `;
     }
 }
 

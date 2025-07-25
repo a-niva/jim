@@ -772,7 +772,7 @@ input:focus,select:focus,textarea:focus {
 /* ===== MUSCLE READINESS BARS ===== */
 .muscle-readiness-bars-container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    grid-template-columns: repeat(6, 1fr); /* Force 6 colonnes sur desktop */
     gap: 1rem;
     padding: 1rem;
     background: var(--bg-secondary);
