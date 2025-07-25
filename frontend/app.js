@@ -5759,7 +5759,7 @@ async function loadProfile() {
                     <input type="checkbox" id="weightDisplayToggle"
                         ${currentUser.preferred_weight_display_mode === 'charge' ? 'checked' : ''}
                         ${!canToggle ? 'disabled' : ''}
-                        onchange="toggleWeightDisplayMode()">
+                        onchange="toggleWeightDisplayMode(this)">
                     <span class="toggle-slider"></span>
                 </label>
                 <span id="weightDisplayLabel">
@@ -8506,19 +8506,19 @@ function adjustWeightDown() {
     
     if (prevWeight !== null) {
         document.getElementById('setWeight').textContent = prevWeight;
-        // Mettre à jour le poids réel
+        // Mettre à jour le poids réel AVANT l'appel à updatePlateHelper
         if (currentWeightMode === 'charge') {
             currentExerciseRealWeight = prevWeight + getBarWeight(currentExercise);
         } else {
             currentExerciseRealWeight = prevWeight;
         }
         console.log('[AdjustWeight] Poids réel mis à jour:', currentExerciseRealWeight);
-        
-        // Mettre à jour l'aide au montage avec le poids total
+
+        // Maintenant on peut appeler updatePlateHelper avec le bon poids
         if (currentUser?.show_plate_helper) {
             updatePlateHelper(currentExerciseRealWeight);
         }
-        
+
         console.log('[AdjustWeight] Decreased to:', prevWeight);
     } else {
         showToast('Poids minimum atteint', 'info');
