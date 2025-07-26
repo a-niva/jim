@@ -666,7 +666,18 @@ function showView(viewName) {
             loadStats();
             break;
         case 'profile':
-            loadProfile();
+            if (currentUser) {
+                // Recharger les préférences depuis la base pour être sûr
+                apiGet(`/api/users/${currentUser.id}`)
+                    .then(updatedUser => {
+                        currentUser = updatedUser;
+                        window.currentUser = updatedUser;
+                        loadProfile();
+                    })
+                    .catch(() => loadProfile()); // Fallback si erreur API
+            } else {
+                loadProfile();
+            }
             break;
         case 'planning':
             // Initialisation gérée par showPlanning()
