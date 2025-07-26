@@ -8193,8 +8193,8 @@ function createBarbellCSSVisualization(layout, weightTOTAL, chargeWeight) {
     
     // Affichage contextuel selon le mode utilisateur
     const displayContext = currentWeightMode === 'charge' ? 
-        `<span style="color: var(--primary);">${chargeWeight}kg charge</span> + <span style="color: var(--text-muted);">${barWeight}kg barre</span>` :
-        `<span style="color: var(--primary);">${weightTOTAL}kg total</span>`;
+        `<span style="color: var(--primary);">${chargeWeight}kg</span> + <span style="color: var(--text-muted);">${barWeight}kg barre</span>` :
+        `<span style="color: var(--primary);">${weightTOTAL}kg</span>`;
     
     return `
         <div class="plate-helper-minimal">
