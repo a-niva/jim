@@ -7995,10 +7995,6 @@ function showChargeTooltip() {
 // ===== COUCHE 7 : PLATE HELPER & INFRASTRUCTURE =====
 
 async function updatePlateHelper(weightTOTAL) {
-    /**
-     * VERSION REFACTORISÉE : Reçoit TOUJOURS weightTOTAL, retour à la visualisation CSS
-     */
-    // Protection contre boucles infinies
     if (plateHelperUpdateInProgress) {
         console.log('[PlateHelper] Déjà en cours, skip');
         return;
@@ -8007,7 +8003,7 @@ async function updatePlateHelper(weightTOTAL) {
     plateHelperUpdateInProgress = true;
     
     try {
-        // Validation stricte de l'entrée
+        // Validation
         if (!weightTOTAL || weightTOTAL <= 0 || isNaN(weightTOTAL)) {
             console.warn(`[PlateHelper] Poids TOTAL invalide: ${weightTOTAL}, masquage`);
             hidePlateHelper();
@@ -8021,21 +8017,27 @@ async function updatePlateHelper(weightTOTAL) {
             return;
         }
         
-        // Vérifications de base
         if (!currentUser?.show_plate_helper || !currentExercise) {
             hidePlateHelper();
             return;
         }
         
-        console.log('[PlateHelper] Mise à jour avec poids TOTAL:', weightTOTAL);
+        console.log('[PlateHelper] Appel API:', {
+            poidsTOTAL: weightTOTAL,
+            modeAffichage: currentWeightMode,
+            exerciceId: currentExercise.id,
+            poidsCharge: weightTOTAL - barWeight
+        });
         
-        // Appel API pour le layout
+        // Appel API avec logging détaillé
         const layout = await apiGet(`/api/users/${currentUser.id}/plate-layout/${weightTOTAL}?exercise_id=${currentExercise.id}`);
+        
+        console.log('[PlateHelper] Réponse API reçue:', layout);
         
         showPlateHelper(layout, weightTOTAL);
         
     } catch (error) {
-        console.error('[PlateHelper] Erreur:', error);
+        console.error('[PlateHelper] Erreur API:', error);
         hidePlateHelper();
     } finally {
         plateHelperUpdateInProgress = false;
@@ -8043,15 +8045,19 @@ async function updatePlateHelper(weightTOTAL) {
 }
 
 function showPlateHelper(layout, weightTOTAL) {
-    /**
-     * Affiche l'aide au montage avec la visualisation CSS existante + améliorations
-     */
+    console.log('[PlateHelper] Affichage layout:', {
+        layout: layout,
+        weightTOTAL: weightTOTAL,
+        feasible: layout.feasible,
+        type: layout.type
+    });
+    
     let container = document.getElementById('plateHelper');
     
     if (!container) {
         container = document.createElement('div');
         container.id = 'plateHelper';
-        container.className = 'plate-helper';  // Retour à la classe CSS existante
+        container.className = 'plate-helper';
         
         const weightRow = document.querySelector('.input-row:has(#setWeight)');
         if (weightRow) {
@@ -8060,13 +8066,17 @@ function showPlateHelper(layout, weightTOTAL) {
     }
     
     if (!layout.feasible) {
+        console.warn('[PlateHelper] Layout non faisable:', layout.reason);
         container.innerHTML = `<div class="helper-error">⚠️ ${layout.reason}</div>`;
         container.style.display = 'block';
         return;
     }
     
-    // Créer la visualisation CSS selon le type d'équipement
-    container.innerHTML = createPlateVisualization(layout, weightTOTAL);
+    // Créer la visualisation selon le type d'équipement
+    const html = createPlateVisualization(layout, weightTOTAL);
+    console.log('[PlateHelper] HTML généré:', html.length, 'caractères');
+    
+    container.innerHTML = html;
     container.style.display = 'block';
 }
 
@@ -8125,13 +8135,20 @@ function createPlateVisualization(layout, weightTOTAL) {
 }
 
 function createBarbellCSSVisualization(layout, weightTOTAL, chargeWeight) {
-    /**
-     * Crée la visualisation CSS pour les barres - CORRIGÉ pour utiliser les bonnes classes CSS
-     */
     const barWeight = getBarWeight(currentExercise);
     
-    // CAS 1 : Barre seule (charge = 0)
-    if (chargeWeight === 0 || layout.layout.length === 1) {
+    console.log('[PlateViz] Debug:', {
+        layout: layout,
+        weightTOTAL: weightTOTAL,
+        chargeWeight: chargeWeight,
+        layoutType: layout.type
+    });
+    
+    // CORRECTION : Utiliser le type API pour déterminer l'affichage
+    if (layout.type === 'barbell_only' || 
+        (layout.layout && layout.layout.length === 1 && layout.layout[0].includes('seule'))) {
+        
+        // CAS 1 : Vraiment barre seule
         return `
             <div class="plate-helper-minimal">
                 <div class="helper-content-minimal">
@@ -8145,10 +8162,27 @@ function createBarbellCSSVisualization(layout, weightTOTAL, chargeWeight) {
         `;
     }
     
-    // CAS 2 : Barre avec disques
-    const platesList = layout.layout.slice(1); // Exclure la barre
+    // CAS 2 : Barre + disques (layout.type === 'barbell_loaded' OU layout avec disques)
+    let platesList = [];
     
-    // Générer les disques avec les bonnes classes CSS
+    if (layout.layout && Array.isArray(layout.layout)) {
+        // Filtrer pour garder seulement les disques (enlever les mentions de barre)
+        platesList = layout.layout.filter(item => 
+            !item.includes('Barre') && 
+            !item.includes('seule') && 
+            item.includes('kg')
+        );
+    }
+    
+    console.log('[PlateViz] Disques détectés:', platesList);
+    
+    // Si pas de disques détectés, c'est probablement une erreur d'interprétation
+    if (platesList.length === 0 && chargeWeight > 0) {
+        console.warn('[PlateViz] Charge détectée mais pas de disques dans layout, calcul manuel');
+        platesList = calculateSimplePlates(chargeWeight);
+    }
+    
+    // Générer le HTML des disques
     const platesHTML = platesList.map(plateStr => {
         const plateMatch = plateStr.match(/(\d+(?:\.\d+)?)kg/);
         const plateWeight = plateMatch ? plateMatch[1] : '?';
@@ -8156,6 +8190,11 @@ function createBarbellCSSVisualization(layout, weightTOTAL, chargeWeight) {
         
         return `<div class="plate-visual ${plateClass}"><span>${plateWeight}kg</span></div>`;
     }).join('');
+    
+    // Affichage contextuel selon le mode utilisateur
+    const displayContext = currentWeightMode === 'charge' ? 
+        `<span style="color: var(--primary);">${chargeWeight}kg charge</span> + <span style="color: var(--text-muted);">${barWeight}kg barre</span>` :
+        `<span style="color: var(--primary);">${weightTOTAL}kg total</span>`;
     
     return `
         <div class="plate-helper-minimal">
@@ -8169,12 +8208,36 @@ function createBarbellCSSVisualization(layout, weightTOTAL, chargeWeight) {
                     </div>
                 </div>
                 <div class="weight-per-dumbbell">
-                    <span style="color: var(--text-muted);">${chargeWeight}kg charge + </span>
-                    <span>${weightTOTAL}kg total</span>
+                    ${displayContext}
                 </div>
             </div>
         </div>
     `;
+}
+
+function calculateSimplePlates(chargeWeight) {
+    /**
+     * Calcul de disques simple en cas d'échec d'interprétation API
+     */
+    const plateWeights = [20, 15, 10, 5, 2.5, 2, 1.25, 1];
+    const chargePerSide = chargeWeight / 2;
+    const result = [];
+    
+    let remaining = chargePerSide;
+    
+    for (const plate of plateWeights) {
+        const count = Math.floor(remaining / plate);
+        if (count > 0) {
+            for (let i = 0; i < count; i++) {
+                result.push(`${plate}kg`);
+            }
+            remaining -= plate * count;
+        }
+        if (remaining < 0.5) break;
+    }
+    
+    console.log('[PlateViz] Calcul manuel disques:', result, 'pour charge', chargeWeight);
+    return result;
 }
 
 function hidePlateHelper() {
