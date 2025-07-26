@@ -2177,15 +2177,6 @@ input:focus,select:focus,textarea:focus {
     text-align: center;
 }
 
-.charge-mode-total .charge-mode-label::after {
-    content: "total";
-}
-
-.charge-mode-charge .charge-mode-label::after {
-    content: "charge";
-    color: var(--accent);
-}
-
 .charge-tooltip {
     position: absolute;
     top: -3rem;
