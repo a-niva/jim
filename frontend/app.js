@@ -8184,11 +8184,8 @@ function createBarbellVisualization(layout) {
     
     // TOUJOURS afficher le poids total, jamais de conversion
     return `
-        <div class="helper-content">
-            <div class="helper-header">🏋️ ${layout.weight}kg total</div>
-            
+        <div class="helper-content">            
             <div class="barbell-visual">
-                <div class="visual-label">Par côté :</div>
                 <div class="bar-assembly">
                     ${plates.map(weight => 
                         `<div class="plate-visual plate-${weight.toString().replace('.', '-')}" title="${weight}kg">
