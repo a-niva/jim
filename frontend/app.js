@@ -8084,22 +8084,21 @@ function createPlateVisualization(layout, weightTOTAL) {
 
 function createBarbellCSSVisualization(layout, weightTOTAL, chargeWeight) {
     /**
-     * Crée la visualisation CSS pour les barres - GESTION BARRE SEULE
+     * Crée la visualisation CSS pour les barres - CORRIGÉ pour utiliser les bonnes classes CSS
      */
     const barWeight = getBarWeight(currentExercise);
     
     // CAS 1 : Barre seule (charge = 0)
     if (chargeWeight === 0 || layout.layout.length === 1) {
         return `
-            <div class="plate-setup barbell-only">
-                <div class="equipment-header">
-                    <span class="equipment-icon">🏋️</span>
-                    <span class="equipment-name">Barre seule</span>
+            <div class="plate-helper-minimal">
+                <div class="helper-content-minimal">
+                    <div class="visual-label">Barre seule</div>
+                    <div class="bar-visualization">
+                        <div class="bar-visual">${barWeight}kg</div>
+                    </div>
+                    <div class="weight-per-dumbbell">${weightTOTAL}kg total</div>
                 </div>
-                <div class="barbell-visualization">
-                    <div class="barbell-bar">${barWeight}kg</div>
-                </div>
-                <div class="weight-total">${weightTOTAL}kg total</div>
             </div>
         `;
     }
@@ -8107,24 +8106,30 @@ function createBarbellCSSVisualization(layout, weightTOTAL, chargeWeight) {
     // CAS 2 : Barre avec disques
     const platesList = layout.layout.slice(1); // Exclure la barre
     
+    // Générer les disques avec les bonnes classes CSS
+    const platesHTML = platesList.map(plateStr => {
+        const plateMatch = plateStr.match(/(\d+(?:\.\d+)?)kg/);
+        const plateWeight = plateMatch ? plateMatch[1] : '?';
+        const plateClass = `plate-${plateWeight.replace('.', '-')}`;
+        
+        return `<div class="plate-visual ${plateClass}"><span>${plateWeight}kg</span></div>`;
+    }).join('');
+    
     return `
-        <div class="plate-setup barbell-loaded">
-            <div class="equipment-header">
-                <span class="equipment-icon">🏋️</span>
-                <span class="equipment-name">Barre + disques</span>
-            </div>
-            <div class="barbell-visualization">
-                <div class="plates left-plates">
-                    ${platesList.map(plate => `<div class="plate">${plate}</div>`).join('')}
+        <div class="plate-helper-minimal">
+            <div class="helper-content-minimal">
+                <div class="visual-label">Barre + disques</div>
+                <div class="bar-visualization">
+                    <div class="bar-assembly">
+                        ${platesHTML}
+                        <div class="bar-visual">${barWeight}kg</div>
+                        ${platesHTML}
+                    </div>
                 </div>
-                <div class="barbell-bar">${barWeight}kg</div>
-                <div class="plates right-plates">
-                    ${platesList.map(plate => `<div class="plate">${plate}</div>`).join('')}
+                <div class="weight-per-dumbbell">
+                    <span style="color: var(--text-muted);">${chargeWeight}kg charge + </span>
+                    <span>${weightTOTAL}kg total</span>
                 </div>
-            </div>
-            <div class="weight-breakdown">
-                <span class="charge-weight">${chargeWeight}kg charge</span>
-                <span class="total-weight">${weightTOTAL}kg total</span>
             </div>
         </div>
     `;
