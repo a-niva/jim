@@ -5826,6 +5826,12 @@ async function endWorkout() {
         const banner = document.querySelector('.workout-resume-banner');
         if (banner) banner.remove();
         
+        // Nettoyer les données de pause
+        sessionStorage.removeItem('pausedWorkoutTime');
+        sessionStorage.removeItem('pausedSetTime');
+        sessionStorage.removeItem('pausedExerciseName');
+        sessionStorage.removeItem('pausedCurrentSet');
+        sessionStorage.removeItem('pauseTimestamp');
         // Retour au dashboard
         showView('dashboard');
         loadDashboard();
@@ -6479,9 +6485,8 @@ function showToast(message, type = 'info') {
     document.body.appendChild(toast);
     
     // Supprimer après 3 secondes
-    setTimeout(() => {
-        toast.remove();
-    }, 3000);
+    const duration = type === 'info' && message.length > 50 ? 4000 : 3000;
+    setTimeout(() => toast.remove(), duration);
 }
 
 function formatTime(seconds) {
@@ -10109,7 +10114,12 @@ function pauseWorkout() {
         // Sauvegarder les deux temps actuels
         sessionStorage.setItem('pausedWorkoutTime', document.getElementById('workoutTimer').textContent);
         sessionStorage.setItem('pausedSetTime', document.getElementById('setTimer').textContent);
-        
+
+        // Sauvegarder le contexte d'exercice pour l'UX
+        if (currentExercise) sessionStorage.setItem('pausedExerciseName', currentExercise.name);
+        if (currentSet) sessionStorage.setItem('pausedCurrentSet', currentSet);
+        sessionStorage.setItem('pauseTimestamp', Date.now());
+                
         // Changer le bouton
         pauseBtn.textContent = '▶️ Reprendre';
         pauseBtn.classList.remove('btn-warning');
@@ -10166,6 +10176,16 @@ function pauseWorkout() {
         
         isPaused = false;
         showToast('Séance reprise', 'success');
+        // Afficher le contexte de reprise
+        const pausedExercise = sessionStorage.getItem('pausedExerciseName');
+        const pausedSet = sessionStorage.getItem('pausedCurrentSet');
+        const pauseTimestamp = sessionStorage.getItem('pauseTimestamp');
+
+        if (pausedExercise && pauseTimestamp) {
+            const pauseMinutes = Math.round((Date.now() - parseInt(pauseTimestamp)) / 60000);
+            const contextMessage = `Dernier exercice : ${pausedExercise} - Série ${pausedSet || '?'} (pause: ${pauseMinutes}min)`;
+            showToast(contextMessage, 'info', 4000);
+        }
     }
 }
 
