@@ -8490,7 +8490,8 @@ function startRestPeriod(customTime = null, isMLRecommendation = false) {
             <div class="rest-content">
                 <h3>🧘 Temps de repos <span class="ai-badge">🤖 IA</span></h3>
                 <div class="ml-rest-suggestion">
-                    ✨ IA suggère : ${mlSeconds}s ${mlReason ? `(${mlReason})` : ''}
+                    ✨ IA suggère : ${mlSeconds}s
+                    ${mlReason ? `(${mlReason})` : ''}
                     ${mlRange ? `<div class="ml-range">Plage optimale: ${mlRange.min}-${mlRange.max}s</div>` : ''}
                 </div>
                 <div class="rest-timer" id="restTimer">01:30</div>
