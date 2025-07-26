@@ -3762,11 +3762,13 @@ function toggleMLAdjustment(exerciseId) {
     
     if (!currentWorkoutSession.mlSettings[exerciseId]) {
         currentWorkoutSession.mlSettings[exerciseId] = {
-            autoAdjust: currentUser?.prefer_weight_changes_between_sets ?? true
+            autoAdjust: currentUser?.prefer_weight_changes_between_sets ?? true,
+            lastManualWeight: null,
+            lastMLWeight: null
         };
     }
     
-    // CORRECTION : Lire depuis l'événement au lieu du DOM
+    // Lire depuis l'événement au lieu du DOM
     const toggleElement = document.getElementById(`mlToggle-${exerciseId}`) || document.getElementById('mlToggle');
     
     if (!toggleElement) {
@@ -3776,31 +3778,64 @@ function toggleMLAdjustment(exerciseId) {
     
     // L'état est déjà changé par le navigateur, on lit la nouvelle valeur
     const newState = toggleElement.checked;
+    const oldState = currentWorkoutSession.mlSettings[exerciseId].autoAdjust;
     
     // Mettre à jour l'état interne
     currentWorkoutSession.mlSettings[exerciseId].autoAdjust = newState;
     
     console.log('🔄 Nouvel état ML:', newState);
     
-    // Mettre à jour immédiatement tous les autres éléments UI
-    const aiStatusEl = document.getElementById('aiStatus');
-    if (aiStatusEl) {
-        aiStatusEl.textContent = newState ? 'Actif' : 'Inactif';
-        aiStatusEl.className = newState ? 'status-active' : 'status-inactive';
+    // CORRECTION CRITIQUE : Sauvegarder les poids selon l'état
+    if (newState && !oldState) {
+        // ON → OFF : Sauvegarder le poids ML actuel
+        currentWorkoutSession.mlSettings[exerciseId].lastMLWeight = currentExerciseRealWeight;
+    } else if (!newState && oldState) {
+        // OFF → ON : Sauvegarder le poids manuel actuel
+        currentWorkoutSession.mlSettings[exerciseId].lastManualWeight = currentExerciseRealWeight;
     }
     
-    // Mettre à jour le label du toggle
-    const toggleLabel = toggleElement.closest('.ml-toggle-container')?.querySelector('.toggle-label');
-    if (toggleLabel) {
-        toggleLabel.innerHTML = `<i class="fas fa-brain"></i> Ajustement IA ${newState ? '(Actif)' : '(Manuel)'}`;
-    }
+    // Mettre à jour l'interface sans appel API
+    updateToggleUI(newState);
     
-    // Appliquer les changements immédiatement
-    if (typeof updateSetRecommendations === 'function') {
-        updateSetRecommendations();
+    // CORRECTION : Ne PAS appeler updateSetRecommendations qui ferait un appel ML
+    // Au lieu de ça, utiliser les poids sauvegardés
+    if (newState) {
+        // Mode ML activé : restaurer le dernier poids ML si disponible
+        const lastMLWeight = currentWorkoutSession.mlSettings[exerciseId].lastMLWeight;
+        if (lastMLWeight && lastMLWeight > 0) {
+            currentExerciseRealWeight = lastMLWeight;
+            updateWeightDisplay();
+            console.log('🔄 Poids ML restauré:', lastMLWeight);
+        }
+        // Sinon garder le poids actuel (pas d'appel API inutile)
+    } else {
+        // Mode manuel activé : utiliser le poids minimum (barre seule)
+        const barWeight = getBarWeight(currentExercise);
+        currentExerciseRealWeight = barWeight;
+        updateWeightDisplay();
+        console.log('🔧 Mode manuel - Poids fixé à la barre:', barWeight);
     }
     
     showToast(`Ajustement IA ${newState ? 'activé' : 'désactivé'}`, 'info');
+}
+
+// Nouvelle fonction pour mettre à jour l'UI du toggle sans appel API
+function updateToggleUI(isMLActive) {
+    // Mettre à jour l'indicateur de statut AI
+    const aiStatusEl = document.getElementById('aiStatus');
+    if (aiStatusEl) {
+        aiStatusEl.textContent = isMLActive ? 'Actif' : 'Inactif';
+        aiStatusEl.className = isMLActive ? 'status-active' : 'status-inactive';
+    }
+    
+    // Mettre à jour le label du toggle
+    const toggleElement = document.getElementById(`mlToggle-${currentExercise.id}`) || document.getElementById('mlToggle');
+    if (toggleElement) {
+        const toggleLabel = toggleElement.closest('.ml-toggle-container')?.querySelector('.toggle-label');
+        if (toggleLabel) {
+            toggleLabel.innerHTML = `<i class="fas fa-brain"></i> Ajustement IA ${isMLActive ? '(Actif)' : '(Manuel)'}`;
+        }
+    }
 }
 
 // === PHASE 2.2 : VISUALISATION TRANSPARENTE ML ===
@@ -4286,6 +4321,13 @@ async function updateSetRecommendations() {
      * VERSION REFACTORISÉE : Séparation claire des responsabilités + conservation des fonctionnalités existantes
      */
     if (!currentUser || !currentWorkout || !currentExercise) return;
+
+    // Eliminer définitivement le bug de diminution du poids lors des toggles ML
+    const mlEnabled = currentWorkoutSession.mlSettings?.[currentExercise.id]?.autoAdjust ?? true;
+    if (!mlEnabled) {
+        // Mode manuel : pas d'appel ML, juste conserver le poids actuel
+        return;
+    }
 
     // === NETTOYAGE PRÉVENTIF (CONSERVÉ) ===
     const existingTimer = document.getElementById('isometric-timer');
