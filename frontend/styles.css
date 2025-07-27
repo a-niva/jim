@@ -5813,11 +5813,15 @@ input:checked+.toggle-slider:before {
     text-align: center
 }
 
+./* ===== AIDE AU MONTAGE DES BARRES - STYLES COMPLETS ===== */
+
+/* === CONTENEURS ET LAYOUT === */
 .weight-per-dumbbell {
     font-size: 1rem;
     color: var(--text);
     margin-bottom: 1.5rem;
-    font-weight: 500
+    font-weight: 500;
+    text-align: center;
 }
 
 .bar-visualization {
@@ -5845,36 +5849,99 @@ input:checked+.toggle-slider:before {
     flex-direction: row !important;
 }
 
-.bar-visual,.plate-visual {
-    color: #fff;
-    position: relative
-}
-
+/* === STYLES DE LA BARRE === */
 .bar-visual {
-    background: linear-gradient(135deg,#6b7280,#4b5563);
-    padding: .75rem 1.5rem;
+    background: linear-gradient(135deg, #6b7280, #4b5563);
+    padding: 0.75rem 1.5rem;
     border-radius: 25px;
-    font-size: .85rem;
+    font-size: 0.85rem;
     font-weight: 600;
-    box-shadow: 0 4px 6px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.2);
-    z-index: 1
+    color: #fff;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.2);
+    z-index: 1;
+    position: relative;
 }
 
+/* === PROPRIÉTÉS COMMUNES DES DISQUES === */
 .plate-visual {
-    background: linear-gradient(145deg,#374151,#1f2937);
     border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: .8rem;
+    font-size: 0.8rem;
     font-weight: 700;
-    box-shadow: 0 2px 4px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.1);
-    transition: transform .2s ease
+    color: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+    transition: transform 0.2s ease;
+    position: relative;
 }
 
 .plate-visual span {
     position: relative;
-    z-index: 2
+    z-index: 2;
+}
+
+/* === CLASSES SPÉCIFIQUES DES DISQUES STANDARDS === */
+/* Gros poids = couleurs sombres/masculines */
+.plate-25 {
+    width: 52px;
+    height: 75px;
+    background: linear-gradient(145deg, #000000, #1a1a1a);
+}
+
+.plate-20 {
+    width: 50px;
+    height: 70px;
+    background: linear-gradient(145deg, #1a1a1a, #000000);
+}
+
+.plate-15 {
+    width: 48px;
+    height: 65px;
+    background: linear-gradient(145deg, #374151, #1f2937);
+}
+
+.plate-10 {
+    width: 45px;
+    height: 60px;
+    background: linear-gradient(145deg, #dc2626, #991b1b);
+}
+
+/* Poids moyens = couleurs neutres */
+.plate-5 {
+    width: 42px;
+    height: 50px;
+    background: linear-gradient(145deg, #2563eb, #1d4ed8);
+}
+
+.plate-2-5 {
+    width: 40px;
+    height: 45px;
+    background: linear-gradient(145deg, #06b6d4, #0891b2);
+}
+
+/* Petits poids = couleurs claires/féminines */
+.plate-2 {
+    width: 38px;
+    height: 42px;
+    background: linear-gradient(145deg, #8b5cf6, #7c3aed);
+}
+
+.plate-1-25 {
+    width: 36px;
+    height: 38px;
+    background: linear-gradient(145deg, #ec4899, #db2777);
+}
+
+.plate-1 {
+    width: 34px;
+    height: 35px;
+    background: linear-gradient(145deg, #f9a8d4, #f472b6);
+}
+
+/* === EFFETS VISUELS === */
+.plate-visual:hover {
+    transform: translateY(-2px);
 }
 
 .plate-visual::before {
@@ -5884,116 +5951,56 @@ input:checked+.toggle-slider:before {
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(90deg,transparent 0,rgba(255,255,255,.1) 45%,rgba(255,255,255,.2) 50%,rgba(255,255,255,.1) 55%,transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 45%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 55%, transparent 100%);
     border-radius: inherit;
-    pointer-events: none
+    pointer-events: none;
 }
 
-.plate-20 {
-    width: 50px;
-    height: 70px;
-    background: linear-gradient(145deg,#dc2626,#991b1b)
-}
-
-.plate-15 {
-    width: 48px;
-    height: 65px;
-    background: linear-gradient(145deg,#2563eb,#1d4ed8)
-}
-
-.plate-10 {
-    width: 45px;
-    height: 60px;
-    background: linear-gradient(145deg,#10b981,#059669)
-}
-
-.plate-5 {
-    width: 42px;
-    height: 50px;
-    background: linear-gradient(145deg,#f59e0b,#d97706)
-}
-
-.plate-2-5 {
-    width: 40px;
-    height: 45px;
-    background: linear-gradient(145deg,#8b5cf6,#7c3aed)
-}
-
-.plate-2 {
-    width: 38px;
-    height: 42px;
-    background: linear-gradient(145deg,#ec4899,#db2777)
-}
-
-.plate-1-25 {
-    width: 36px;
-    height: 38px;
-    background: linear-gradient(145deg,#06b6d4,#0891b2)
-}
-
-.plate-1 {
-    width: 34px;
-    height: 35px;
-    background: linear-gradient(145deg,#84cc16,#65a30d)
-}
-
-.plate-visual:hover,.skip-reason-btn:hover {
-    transform: translateY(-2px)
-}
-
-@media (prefers-color-scheme:dark) {
-    .bar-visual {
-        background: linear-gradient(135deg,#9ca3af,#6b7280)
-    }
-
-    .plate-visual {
-        border: 1px solid rgba(255,255,255,.1)
-    }
-}
-
-@media (max-width:480px) {
+/* === STYLES MOBILE (480px et moins) === */
+@media (max-width: 480px) {
+    /* Layout mobile */
     .bar-visualization {
         gap: 2px;
-        padding: 1rem 0
+        padding: 1rem 0;
     }
-
+    
+    /* Barre mobile */
     .bar-visual {
-        padding: .5rem 1rem;
-        font-size: .75rem
+        padding: 0.5rem 1rem;
+        font-size: 0.75rem;
     }
-
+    
+    /* Disques mobile */
     .plate-visual {
-        font-size: .7rem
+        font-size: 0.7rem;
     }
-
-    .plate-20 {
-        width: 40px;
-        height: 56px
+    
+    /* Tailles des disques mobile (réduction ~20%) */
+    .plate-25 { width: 42px; height: 60px; }
+    .plate-20 { width: 40px; height: 56px; }
+    .plate-15 { width: 38px; height: 52px; }
+    .plate-10 { width: 36px; height: 48px; }
+    .plate-5 { width: 34px; height: 40px; }
+    .plate-2-5 { width: 32px; height: 36px; }
+    .plate-2 { width: 30px; height: 34px; }
+    .plate-1-25 { width: 29px; height: 30px; }
+    .plate-1 { width: 27px; height: 28px; }
+    
+    /* Texte mobile */
+    .weight-per-dumbbell {
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
     }
+}
 
-    .plate-15 {
-        width: 38px;
-        height: 52px
+/* === THÈME SOMBRE === */
+@media (prefers-color-scheme: dark) {
+    .bar-visual {
+        background: linear-gradient(135deg, #9ca3af, #6b7280);
     }
-
-    .plate-10 {
-        width: 36px;
-        height: 48px
-    }
-
-    .plate-5 {
-        width: 34px;
-        height: 40px
-    }
-
-    .plate-2-5 {
-        width: 32px;
-        height: 36px
-    }
-
-    .plate-1-25 {
-        width: 29px;
-        height: 30px
+    
+    .plate-visual {
+        border: 1px solid rgba(255,255,255,0.1);
     }
 }
 

@@ -8167,21 +8167,106 @@ function createPlateVisualization(layout, weightTOTAL) {
     }
 }
 
+function generateDynamicPlateCSS(plateWeight) {
+    /**
+     * Génère du CSS dynamique pour les poids personnalisés
+     * Couleurs : noir (gros) → rose clair (petits)
+     * Tailles : proportionnelles au poids
+     */
+    const weight = parseFloat(plateWeight);
+    
+    // Algorithme couleurs masculines → féminines
+    let backgroundColor, borderColor;
+    if (weight >= 20) {
+        backgroundColor = 'linear-gradient(145deg, #1a1a1a, #000000)'; // Noir masculin
+    } else if (weight >= 15) {
+        backgroundColor = 'linear-gradient(145deg, #374151, #1f2937)'; // Gris sombre
+    } else if (weight >= 10) {
+        backgroundColor = 'linear-gradient(145deg, #dc2626, #991b1b)'; // Rouge sombre
+    } else if (weight >= 5) {
+        backgroundColor = 'linear-gradient(145deg, #2563eb, #1d4ed8)'; // Bleu neutre
+    } else if (weight >= 2.5) {
+        backgroundColor = 'linear-gradient(145deg, #06b6d4, #0891b2)'; // Cyan léger
+    } else if (weight >= 2) {
+        backgroundColor = 'linear-gradient(145deg, #8b5cf6, #7c3aed)'; // Violet féminin
+    } else if (weight >= 1.25) {
+        backgroundColor = 'linear-gradient(145deg, #ec4899, #db2777)'; // Rose féminin
+    } else {
+        backgroundColor = 'linear-gradient(145deg, #f9a8d4, #f472b6)'; // Rose clair très féminin
+    }
+    
+    // Tailles proportionnelles (base : 20kg = 50px width, 70px height)
+    const baseWidth = 50;
+    const baseHeight = 70;
+    const scaleFactor = Math.min(Math.max(weight / 20, 0.3), 1.2); // Entre 30% et 120%
+    
+    const width = Math.round(baseWidth * scaleFactor);
+    const height = Math.round(baseHeight * scaleFactor);
+    
+    // Tailles mobile (réduction de 20%)
+    const mobileWidth = Math.round(width * 0.8);
+    const mobileHeight = Math.round(height * 0.8);
+    
+    return {
+        desktop: `
+            .plate-${plateWeight.replace('.', '-')} {
+                width: ${width}px;
+                height: ${height}px;
+                background: ${backgroundColor};
+                border-radius: 6px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 0.8rem;
+                font-weight: 700;
+                color: #fff;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+                transition: transform 0.2s ease;
+                position: relative;
+            }`,
+        mobile: `
+            @media (max-width: 480px) {
+                .plate-${plateWeight.replace('.', '-')} {
+                    width: ${mobileWidth}px;
+                    height: ${mobileHeight}px;
+                    font-size: 0.7rem;
+                }
+            }`
+    };
+}
+
+function injectDynamicPlateStyles(plateWeights) {
+    /**
+     * Injecte les styles CSS pour tous les poids détectés
+     */
+    const existingStyle = document.getElementById('dynamic-plate-styles');
+    if (existingStyle) {
+        existingStyle.remove();
+    }
+    
+    const styleElement = document.createElement('style');
+    styleElement.id = 'dynamic-plate-styles';
+    
+    let cssContent = '';
+    
+    plateWeights.forEach(plateWeight => {
+        const css = generateDynamicPlateCSS(plateWeight);
+        cssContent += css.desktop + '\n' + css.mobile + '\n';
+    });
+    
+    styleElement.textContent = cssContent;
+    document.head.appendChild(styleElement);
+    
+    console.log('[PlateCSS] Styles dynamiques injectés pour:', plateWeights);
+}
+
 function createBarbellCSSVisualization(layout, weightTOTAL, chargeWeight) {
     const barWeight = getBarWeight(currentExercise);
     
-    console.log('[PlateViz] Debug:', {
-        layout: layout,
-        weightTOTAL: weightTOTAL,
-        chargeWeight: chargeWeight,
-        layoutType: layout.type
-    });
-    
-    // CORRECTION : Utiliser le type API pour déterminer l'affichage
+    // CAS 1 : Barre seule
     if (layout.type === 'barbell_only' || 
         (layout.layout && layout.layout.length === 1 && layout.layout[0].includes('seule'))) {
         
-        // CAS 1 : Vraiment barre seule
         return `
             <div class="plate-helper-minimal">
                 <div class="helper-content-minimal">
@@ -8195,11 +8280,10 @@ function createBarbellCSSVisualization(layout, weightTOTAL, chargeWeight) {
         `;
     }
     
-    // CAS 2 : Barre + disques (layout.type === 'barbell_loaded' OU layout avec disques)
+    // CAS 2 : Barre + disques
     let platesList = [];
     
     if (layout.layout && Array.isArray(layout.layout)) {
-        // Filtrer pour garder seulement les disques (enlever les mentions de barre)
         platesList = layout.layout.filter(item => 
             !item.includes('Barre') && 
             !item.includes('seule') && 
@@ -8207,16 +8291,24 @@ function createBarbellCSSVisualization(layout, weightTOTAL, chargeWeight) {
         );
     }
     
-    console.log('[PlateViz] Disques détectés:', platesList);
-    
-    // Si pas de disques détectés, c'est probablement une erreur d'interprétation
     if (platesList.length === 0 && chargeWeight > 0) {
-        console.warn('[PlateViz] Charge détectée mais pas de disques dans layout, calcul manuel');
         platesList = calculateSimplePlates(chargeWeight);
     }
     
-    // Générer le HTML des disques
-    const platesHTML = platesList.map(plateStr => {
+    // EXTRACTION DES POIDS POUR CSS DYNAMIQUE
+    const plateWeights = platesList.map(plateStr => {
+        const plateMatch = plateStr.match(/(\d+(?:\.\d+)?)/);
+        return plateMatch ? plateMatch[1] : null;
+    }).filter(Boolean);
+    
+    // INJECTION CSS DYNAMIQUE
+    if (plateWeights.length > 0) {
+        injectDynamicPlateStyles([...new Set(plateWeights)]); // Dédupliquer
+    }
+    
+    // INVERSION DE L'ORDRE : gros poids au centre
+    const reversedPlatesList = [...platesList].reverse();
+    const platesHTML = reversedPlatesList.map(plateStr => {
         const plateMatch = plateStr.match(/(\d+(?:\.\d+)?)kg/);
         const plateWeight = plateMatch ? plateMatch[1] : '?';
         const plateClass = `plate-${plateWeight.replace('.', '-')}`;
@@ -8224,7 +8316,6 @@ function createBarbellCSSVisualization(layout, weightTOTAL, chargeWeight) {
         return `<div class="plate-visual ${plateClass}"><span>${plateWeight}kg</span></div>`;
     }).join('');
     
-    // Affichage contextuel selon le mode utilisateur
     const displayContext = currentWeightMode === 'charge' ? 
         `<span style="color: var(--primary);">${chargeWeight}kg</span> + <span style="color: var(--text-muted);">${barWeight}kg barre</span>` :
         `<span style="color: var(--primary);">${weightTOTAL}kg</span>`;
