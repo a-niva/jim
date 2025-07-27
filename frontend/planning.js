@@ -1100,9 +1100,13 @@ class PlanningManager {
                     
                     <!-- Actions -->
                     <div class="modal-actions-bottom">
-                        <button class="btn btn-secondary" 
-                                onclick="planningManager.showAddSessionModal('${session.scheduled_date || session.date}', '${session.id}')">
-                            <i class="fas fa-plus"></i> Ajouter exercices
+                        <button class="btn btn-secondary ${session.session_ref && !session.session_ref.startsWith('manual_') ? 'disabled' : ''}" 
+                                ${session.session_ref && !session.session_ref.startsWith('manual_') ? 
+                                    'disabled title="Séance du programme non modifiable"' : 
+                                    `onclick="planningManager.showAddSessionModal('${session.scheduled_date || session.date}', '${session.id}')"`
+                                }>
+                            <i class="fas fa-${session.session_ref && !session.session_ref.startsWith('manual_') ? 'lock' : 'plus'}"></i> 
+                            Ajouter exercices
                         </button>
                         <button class="btn btn-primary" onclick="window.closeModal()">
                             <i class="fas fa-check"></i> Terminer

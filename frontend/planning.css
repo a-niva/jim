@@ -274,7 +274,7 @@
 
 /* Carte de jour */
 .day-card {
-    background: var(--bg-secondary);
+    background: #27344b;
     border-radius: var(--planning-radius);
     padding: var(--spacing-lg); /* Augmenté de --spacing-md à --spacing-lg */
     border: 2px solid var(--planning-border);
@@ -290,7 +290,7 @@
 
 /* Jour avec session active/détaillée */
 .day-card.has-active-session {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, var(--bg-secondary) 100%);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, #27344b 100%);
     border-color: var(--primary);
     box-shadow: 0 4px 16px rgba(59, 130, 246, 0.15);
 }
@@ -310,12 +310,12 @@
 
 .day-card.empty-day:hover {
     opacity: 1;
-    border-color: var(--primary);
+    border-color: #27344b;
     background: rgba(59, 130, 246, 0.05);
 }
 
 .day-card.today {
-    border-color: var(--primary);
+    border-color: #27344b;
     background: linear-gradient(135deg, 
         rgba(59, 130, 246, 0.05) 0%, 
         var(--bg-secondary) 100%);
@@ -326,7 +326,7 @@
     position: absolute;
     top: 0;
     right: 0;
-    background: var(--primary);
+    background: #27344b;
     color: white;
     padding: 0.2rem 0.6rem;
     border-radius: 0 var(--planning-radius) 0 8px;
@@ -1189,7 +1189,7 @@
 
 .exercise-name {
     font-weight: 500;
-    color: var(--text);
+    color: #6366f1;
     font-size: 0.9rem;  /* GARDÉ mais vérifier que --text est visible */
     line-height: 1.4;   /* AJOUTÉ pour lisibilité */
     overflow: hidden;
@@ -1903,13 +1903,4 @@
     color: var(--text-muted);
     font-style: italic;
     margin-left: 0.2rem;
-}
-
-.day-duration {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    background: var(--bg-tertiary);
-    padding: 0.2rem 0.4rem;
-    border-radius: 4px;
-    margin: 0 0.5rem;
 }
