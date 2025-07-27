@@ -4879,26 +4879,37 @@ function setupButton(button, direction) {
 }
 
 function startLongPress(direction) {
-    longPressActive = false;
+    // Empêcher les nouveaux appuis longs si un est déjà actif
+    if (longPressActive || longPressTimer || fastInterval) {
+        return;
+    }
     
+    longPressActive = false;
+   
     longPressTimer = setTimeout(() => {
         longPressActive = true;
-        
-        // CORRECTION : Saut de 3 poids d'un coup, pas 3 appels
+       
+        // Fréquence réduite : 500ms au lieu de 200ms
         fastInterval = setInterval(() => {
-            // Faire un seul appel mais avec step=3
-            if (direction === 'down') {
-                adjustWeightDown(3); // Un seul appel avec step 3
-            } else {
-                adjustWeightUp(3);   // Un seul appel avec step 3
+            // Vérifier qu'on est toujours en mode appui long
+            if (!longPressActive) {
+                stopLongPress();
+                return;
             }
-        }, 200);
-        
+            
+            if (direction === 'down') {
+                adjustWeightDown(3);
+            } else {
+                adjustWeightUp(3);
+            }
+        }, 500); // Augmenté de 200ms à 500ms
+       
         if (navigator.vibrate) navigator.vibrate(50);
     }, 500);
 }
 
 function stopLongPress() {
+    // Nettoyage immédiat et sûr
     if (longPressTimer) {
         clearTimeout(longPressTimer);
         longPressTimer = null;
@@ -4907,11 +4918,9 @@ function stopLongPress() {
         clearInterval(fastInterval);
         fastInterval = null;
     }
-    
-    // Reset avec délai pour éviter le click après
-    setTimeout(() => {
-        longPressActive = false;
-    }, 100);
+   
+    // Reset immédiat, pas de setTimeout
+    longPressActive = false;
 }
 
 // Affichage des changements de recommandations
