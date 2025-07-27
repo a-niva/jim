@@ -4810,13 +4810,7 @@ async function configureWeighted(elements, exercise, weightRec) {
     console.log('[ConfigureWeighted] Poids réel initialisé:', currentExerciseRealWeight);
     
     // Configurer les contrôles d'ajustement
-    const decreaseBtn = document.querySelector('.input-row:has(#setWeight) .stepper-modern:first-of-type');
-    const increaseBtn = document.querySelector('.input-row:has(#setWeight) .stepper-modern:last-of-type');
-
-    if (decreaseBtn && increaseBtn) {
-        decreaseBtn.onclick = () => adjustWeightDown();
-        increaseBtn.onclick = () => adjustWeightUp();
-    }
+    setupLongPress();
     
     console.log('[ConfigureWeighted] Configuration terminée:', {
         recommendedWeight: weightRec,
@@ -4824,6 +4818,82 @@ async function configureWeighted(elements, exercise, weightRec) {
         realWeight: currentExerciseRealWeight,
         availableCount: availableWeights.length
     });
+}
+
+// ===== SYSTÈME D'APPUI LONG =====
+let longPressTimer = null;
+let fastInterval = null;
+
+function setupLongPress() {
+    const decreaseBtn = document.querySelector('.input-row:has(#setWeight) .stepper-modern:first-of-type');
+    const increaseBtn = document.querySelector('.input-row:has(#setWeight) .stepper-modern:last-of-type');
+
+    if (decreaseBtn && increaseBtn) {
+        // Remplacer les onclick par les nouveaux handlers
+        decreaseBtn.onclick = null;
+        increaseBtn.onclick = null;
+        
+        setupButton(decreaseBtn, 'down');
+        setupButton(increaseBtn, 'up');
+    }
+}
+
+function setupButton(button, direction) {
+    // Click simple
+    button.addEventListener('click', (e) => {
+        if (!fastInterval) { // Seulement si pas en mode rapide
+            if (direction === 'down') {
+                adjustWeightDown();
+            } else {
+                adjustWeightUp();
+            }
+        }
+        e.preventDefault();
+    });
+    
+    // Appui long - Desktop
+    button.addEventListener('mousedown', () => startLongPress(direction));
+    button.addEventListener('mouseup', stopLongPress);
+    button.addEventListener('mouseleave', stopLongPress);
+    
+    // Appui long - Mobile
+    button.addEventListener('touchstart', (e) => {
+        startLongPress(direction);
+        e.preventDefault();
+    }, { passive: false });
+    button.addEventListener('touchend', stopLongPress);
+}
+
+function startLongPress(direction) {
+    longPressTimer = setTimeout(() => {
+        // Démarrer le saut rapide après 500ms
+        fastInterval = setInterval(() => {
+            // Utiliser les fonctions existantes en boucle
+            if (direction === 'down') {
+                adjustWeightDown();
+                adjustWeightDown(); 
+                adjustWeightDown(); // 3 fois = saut de 3
+            } else {
+                adjustWeightUp();
+                adjustWeightUp();
+                adjustWeightUp(); // 3 fois = saut de 3
+            }
+        }, 200);
+        
+        // Feedback haptique
+        if (navigator.vibrate) navigator.vibrate(50);
+    }, 500);
+}
+
+function stopLongPress() {
+    if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+    }
+    if (fastInterval) {
+        clearInterval(fastInterval);
+        fastInterval = null;
+    }
 }
 
 // Affichage des changements de recommandations
@@ -8323,7 +8393,9 @@ function createBarbellCSSVisualization(layout, weightTOTAL, chargeWeight) {
         const plateWeight = plateMatch ? plateMatch[1] : '?';
         const plateClass = `plate-${plateWeight.replace('.', '-')}`;
         
-        return `<div class="plate-visual ${plateClass}"><span>${plateWeight}kg</span></div>`;
+        // Formatage simple : enlever .0 et kg
+        const displayWeight = plateWeight.replace('.0', '');
+        return `<div class="plate-visual ${plateClass}"><span>${displayWeight}</span></div>`;
     }).join('');
     
     const displayContext = currentWeightMode === 'charge' ? 
