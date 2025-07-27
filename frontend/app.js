@@ -3807,7 +3807,7 @@ function toggleMLAdjustment(exerciseId) {
     // Mettre à jour l'interface sans appel API
     updateToggleUI(newState);
     
-    // CORRECTION : Ne PAS appeler updateSetRecommendations qui ferait un appel ML
+    // Ne PAS appeler updateSetRecommendations qui ferait un appel ML
     // Au lieu de ça, utiliser les poids sauvegardés
     if (newState) {
         // Mode ML activé : restaurer le dernier poids ML si disponible
@@ -5932,6 +5932,16 @@ async function loadProfile() {
     if (!currentUser) {
         console.error('Pas de currentUser !');
         return;
+    }
+
+    // Toujours recharger currentUser depuis la base pour avoir les dernières valeurs
+    try {
+        const freshUser = await apiGet(`/api/users/${currentUser.id}`);
+        currentUser = freshUser;
+        window.currentUser = freshUser;
+        console.log('✅ currentUser rechargé avec les dernières préférences');
+    } catch (error) {
+        console.warn('⚠️ Impossible de recharger currentUser, utilisation du cache:', error);
     }
 
     const profileInfo = document.getElementById('profileInfo');
@@ -8906,7 +8916,7 @@ function updateWeightDisplay() {
     
     const weightElement = document.getElementById('setWeight');
     if (weightElement) {
-        // CORRECTION : Affichage sans duplication du mode
+        // Affichage sans duplication du mode
         weightElement.textContent = displayWeight;
     }
     
@@ -8931,7 +8941,7 @@ function switchWeightMode(newMode = null) {
         return;
     }
     
-    // CORRECTION : Vérifier si le mode charge est possible avant de switcher
+    // Vérifier si le mode charge est possible avant de switcher
     const barWeight = getBarWeight(currentExercise);
     if (newMode === 'charge' && currentExerciseRealWeight <= barWeight) {
         console.warn('[SwitchMode] Poids insuffisant pour mode charge');
@@ -8945,7 +8955,7 @@ function switchWeightMode(newMode = null) {
     // Mise à jour du mode
     currentWeightMode = newMode;
     
-    // Mise à jour du label visuel - CORRECTION : une seule occurrence
+    // Mise à jour du label visuel - une seule occurrence
     const modeLabel = document.querySelector('.charge-mode-label');
     if (modeLabel) {
         modeLabel.textContent = newMode.toUpperCase();
@@ -8966,7 +8976,7 @@ function animateWeightModeSwitch(newMode, displayWeight) {
     container.classList.add('mode-switching');
     
     setTimeout(() => {
-        // Mise à jour de l'affichage - CORRECTION : pas de duplication
+        // Mise à jour de l'affichage - pas de duplication
         const weightElement = document.getElementById('setWeight');
         if (weightElement) {
             weightElement.textContent = displayWeight;
