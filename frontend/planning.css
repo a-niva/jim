@@ -1682,9 +1682,10 @@
 }
 
 .session-exercises .exercise-name {
-    font-size: 0.8rem;
-    color: var(--text);
-    line-height: 1.2;
+  font-size: 0.8rem;
+  color: var(--primary);
+  line-height: 1.2;
+  font-weight: bold;
 }
 
 /* Centrer et améliorer le bouton Démarrer */
