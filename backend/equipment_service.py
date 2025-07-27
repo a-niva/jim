@@ -12,7 +12,7 @@ class EquipmentService:
         # Équipements de force existants
         'dumbbells': 'dumbbells',
         'barbell_athletic': 'barbell',
-        'barbell_ez': 'barbell',  
+        'barbell_ez': 'barbell_ez',  
         'barbell_short_pair': 'dumbbells',  # Équivalence
         'weight_plates': 'plates',
         
@@ -126,8 +126,10 @@ class EquipmentService:
                         available.add(mapped_type)
         #Ajout du mapping barbell générique
         # FORCE barbell si configuré
-        if any(config.get(key, {}).get('available', False) for key in ['barbell_athletic', 'barbell_ez']):
+        if any(config.get(key, {}).get('available', False) for key in ['barbell_athletic']):
             available.add('barbell')
+        if config.get('barbell_ez', {}).get('available', False):
+            available.add('barbell_ez')
         # FORCE dumbbells si configuré 
         if config.get('dumbbells', {}).get('available', False):
             available.add('dumbbells')
@@ -162,8 +164,11 @@ class EquipmentService:
                      'cable_machine', 'lat_pulldown', 'chest_press', 'leg_press']
         
         # 1. Poids barbell (si requis)
-        if any(eq in ['barbell', 'barbell_athletic', 'barbell_ez'] for eq in required_equipment):
+        if any(eq in ['barbell', 'barbell_athletic'] for eq in required_equipment):
             barbell_weights = WeightCalculator.get_barbell_weights(config)
+            all_weights.update(barbell_weights)
+        if 'barbell_ez' in required_equipment:
+            barbell_weights = WeightCalculator.get_barbell_weights(config)  
             all_weights.update(barbell_weights)
         
         # 2. Poids dumbbells (si requis)  

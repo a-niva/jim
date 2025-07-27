@@ -78,7 +78,7 @@ class FitnessMLEngine:
             'pull_up_bar': ['pull_up_bar'],
             'dip_bar': ['dip_bar'],
             'barbell_athletic': ['barbell'],
-            'barbell_ez': ['ez_curl', 'barbell'],  # EZ curl peut souvent remplacer barbell
+            'barbell_ez': ['barbell_ez'],  # EZ curl peut souvent remplacer barbell
             'barbell_short_pair': ['dumbbells'],  # Équivalence directe
         }
         
