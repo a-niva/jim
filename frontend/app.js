@@ -8386,31 +8386,40 @@ function createBarbellCSSVisualization(layout, weightTOTAL, chargeWeight) {
         injectDynamicPlateStyles([...new Set(plateWeights)]); // Dédupliquer
     }
     
-    // INVERSION DE L'ORDRE : gros poids au centre
+    // SYMÉTRIE CORRECTE : ordre croissant à gauche, décroissant à droite
     const reversedPlatesList = [...platesList].reverse();
-    const platesHTML = reversedPlatesList.map(plateStr => {
+
+    // Côté gauche : ordre croissant (légers vers lourds)
+    const leftPlatesHTML = platesList.map(plateStr => {
         const plateMatch = plateStr.match(/(\d+(?:\.\d+)?)kg/);
         const plateWeight = plateMatch ? plateMatch[1] : '?';
         const plateClass = `plate-${plateWeight.replace('.', '-')}`;
-        
-        // Formatage simple : enlever .0 et kg
         const displayWeight = plateWeight.replace('.0', '');
         return `<div class="plate-visual ${plateClass}"><span>${displayWeight}</span></div>`;
     }).join('');
-    
+
+    // Côté droit : ordre décroissant (lourds vers légers)
+    const rightPlatesHTML = reversedPlatesList.map(plateStr => {
+        const plateMatch = plateStr.match(/(\d+(?:\.\d+)?)kg/);
+        const plateWeight = plateMatch ? plateMatch[1] : '?';
+        const plateClass = `plate-${plateWeight.replace('.', '-')}`;
+        const displayWeight = plateWeight.replace('.0', '');
+        return `<div class="plate-visual ${plateClass}"><span>${displayWeight}</span></div>`;
+    }).join('');
+
     const displayContext = currentWeightMode === 'charge' ? 
         `<span style="color: var(--primary);">${chargeWeight}kg</span> + <span style="color: var(--text-muted);">${barWeight}kg barre</span>` :
         `<span style="color: var(--primary);">${weightTOTAL}kg</span>`;
-    
+
     return `
         <div class="plate-helper-minimal">
             <div class="helper-content-minimal">
                 <div class="visual-label">Barre + disques</div>
                 <div class="bar-visualization">
                     <div class="bar-assembly">
-                        ${platesHTML}
-                        <div class="bar-visual">${barWeight}kg</div>
-                        ${platesHTML}
+                        ${leftPlatesHTML}
+                        <div class="bar-visual">${barWeight}</div>
+                        ${rightPlatesHTML}
                     </div>
                 </div>
                 <div class="weight-per-dumbbell">
