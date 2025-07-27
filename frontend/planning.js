@@ -627,10 +627,6 @@ class PlanningManager {
                 
                 <div class="session-content">
                     <div class="session-meta">
-                        <div class="session-duration">
-                            <i class="fas fa-clock"></i>
-                            <span>${this.calculateSessionDuration(exercises)} min</span>
-                        </div>
                         ${muscleGroups.length > 0 ? `
                             <div class="session-muscles">
                                 ${muscleGroups.slice(0, 2).map(muscle => {
