@@ -551,13 +551,6 @@ class PlanningManager {
                 style="${dayStyle}">
                 <div class="day-header">
                     <span class="day-name">${day.dayName}</span>
-                    ${day.sessions.length > 0 ? (() => {
-                        const session = day.sessions[0];
-                        const exercises = session.exercise_pool || session.exercises || [];
-                        return exercises.length > 0 ? 
-                            `<span class="day-duration">${this.calculateSessionDuration(exercises)} min</span>` : 
-                            '';
-                    })() : ''}
                     <span class="day-number">${day.dayNumber}</span>
                 </div>
                 
