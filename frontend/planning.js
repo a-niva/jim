@@ -614,21 +614,27 @@ class PlanningManager {
                 
         return `
             <div class="session-card"      data-session-id="${session.id}"      style="border-left: 4px solid ${muscleColor}"     onclick="planningManager.showSessionEditModal(planningManager.findSessionById('${session.id}'))">
-                <div class="session-header">
-                    <div class="session-quality-arc">
+                <div class="session-header-centered">
+                    <div class="session-quality-arc-centered">
                         <div class="arc-track"></div>
                         <div class="arc-fill" 
                             style="border-top-color: ${qualityColor}; 
                                     clip-path: polygon(0% 0%, ${quality || 0}% 0%, ${quality || 0}% 100%, 0% 100%);">
                         </div>
-                        <span class="arc-score" style="color: ${qualityColor}">${quality}</span>
+                        <span class="arc-score-centered" style="color: ${qualityColor}">${quality}</span>
                     </div>
                 </div>
                 
+                <div class="session-duration-centered">
+                    <i class="fas fa-clock"></i>
+                    <span>${this.calculateSessionDuration(exercises)} min</span>
+                </div>
+
                 <div class="session-content">
                     <div class="session-meta">
+
                         ${muscleGroups.length > 0 ? `
-                            <div class="session-muscles">
+                            <div class="session-muscles-centered">
                                 ${muscleGroups.slice(0, 2).map(muscle => {
                                     const color = this.getMuscleGroupColor(muscle);
                                     return `<span class="session-muscle-chip" style="background-color: ${color}20; color: ${color}; border: 1px solid ${color}40;">${muscle}</span>`;

@@ -6293,26 +6293,29 @@ async function togglePlateHelper() {
 }
 
 async function toggleWeightDisplayMode(toggle) {
-    // DEBUGGING
     console.log('🔧 toggleWeightDisplayMode called');
     console.log('📊 currentUser:', currentUser);
     console.log('📊 currentUser.id:', currentUser?.id);
     console.log('📊 toggle.checked:', toggle.checked);
-    
+   
     try {
-        const label = toggle.nextElementSibling;
+        // CORRECTION : Naviguer correctement vers le label de texte
+        const label = toggle.parentElement.nextElementSibling;
         const newMode = toggle.checked ? 'charge' : 'total';
-        
+       
         // Sauvegarder la préférence
         const response = await apiPut(`/api/users/${currentUser.id}/weight-display-preference`, {
             mode: newMode
         });
-        
-        // DEBUGGING
+       
         console.log('✅ Response reçue:', response);
-        
+       
         currentUser.preferred_weight_display_mode = newMode;
-        label.textContent = newMode === 'charge' ? 'Mode charge' : 'Mode total';
+        
+        // Vérifier que le label existe avant de le modifier
+        if (label) {
+            label.textContent = newMode === 'charge' ? 'Mode charge' : 'Mode total';
+        }
         
         // Si on n'est pas en séance, s'arrêter ici
         if (!currentExercise || !isEquipmentCompatibleWithChargeMode(currentExercise)) {
@@ -6368,6 +6371,7 @@ async function toggleWeightDisplayMode(toggle) {
         showToast('Erreur lors de la mise à jour', 'error');
     }
 }
+
 function editEquipment() {
     showModal('Modifier l\'équipement', `
         <p>Sélectionnez votre équipement disponible :</p>
