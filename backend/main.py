@@ -1182,18 +1182,18 @@ def add_to_program_schedule(
     except ValueError:
         raise HTTPException(status_code=400, detail="Format de date invalide")
     
-    # Vérifier que la date n'existe pas déjà
-    if date_str in program.schedule:
-        raise HTTPException(status_code=400, detail="Une séance existe déjà à cette date")
-    
     # Vérifier max 2 séances par jour
     same_day_sessions = sum(
         1 for d, s in program.schedule.items()
         if datetime.fromisoformat(d).date() == session_date
     )
-    
+
     if same_day_sessions >= 2:
         raise HTTPException(status_code=400, detail="Maximum 2 séances par jour")
+
+    # Générer une clé unique pour cette date
+    session_index = same_day_sessions
+    schedule_key = f"{date_str}_{session_index}"
     
     # Créer la séance
     exercises = session_data.get("exercises", [])
@@ -1234,7 +1234,7 @@ def add_to_program_schedule(
         "modifications": []
     }
     
-    program.schedule[date_str] = new_session
+    program.schedule[schedule_key] = new_session
     
     # Mettre à jour les métadonnées
     flag_modified(program, "schedule")
