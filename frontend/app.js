@@ -8422,8 +8422,11 @@ function createBarbellCSSVisualization(layout, weightTOTAL, chargeWeight) {
         injectDynamicPlateStyles([...new Set(plateWeights)]); // Dédupliquer
     }
     
-    // Côté gauche : ordre croissant (légers vers lourds)
-    const leftPlatesHTML = platesList.map(plateStr => {
+    // CORRECTION SYMÉTRIE : légers → lourds → BARRE → lourds → légers
+    // Backend envoie : [20kg, 15kg, 10kg] (ordre décroissant)
+    // Côté gauche : ordre croissant (légers vers lourds) = REVERSE
+    const reversedPlatesList = [...platesList].reverse();
+    const leftPlatesHTML = reversedPlatesList.map(plateStr => {
         const plateMatch = plateStr.match(/(\d+(?:\.\d+)?)kg/);
         const plateWeight = plateMatch ? plateMatch[1] : '?';
         const plateClass = `plate-${plateWeight.replace('.', '-')}`;
@@ -8431,9 +8434,8 @@ function createBarbellCSSVisualization(layout, weightTOTAL, chargeWeight) {
         return `<div class="plate-visual ${plateClass}"><span>${displayWeight}</span></div>`;
     }).join('');
 
-    // Côté droit : ordre décroissant (lourds vers légers) 
-    const reversedPlatesList = [...platesList].reverse();
-    const rightPlatesHTML = reversedPlatesList.map(plateStr => {
+    // Côté droit : ordre décroissant (lourds vers légers) = DIRECT
+    const rightPlatesHTML = platesList.map(plateStr => {
         const plateMatch = plateStr.match(/(\d+(?:\.\d+)?)kg/);
         const plateWeight = plateMatch ? plateMatch[1] : '?';
         const plateClass = `plate-${plateWeight.replace('.', '-')}`;

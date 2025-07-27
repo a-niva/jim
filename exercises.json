@@ -4227,8 +4227,7 @@
       }
     }
   }
-  ,
-{
+ ,{
   "name": "Extension triceps barre",
   "muscle_groups": ["bras"],
   "muscles": ["triceps"],
@@ -4256,9 +4255,8 @@
       "per_kg_bodyweight": 0
     }
   }
-}
-,
-{
+ },
+ {
   "name": "Shrugs barre",
   "muscle_groups": ["dos", "epaules"],
   "muscles": ["trapezes"],
@@ -4286,9 +4284,8 @@
       "per_kg_bodyweight": 0.7
     }
   }
-}
-,
-{
+ },
+ {
   "name": "Soulevé de terre jambes tendues barre",
   "muscle_groups": ["jambes", "dos"],
   "muscles": ["ischio-jambiers", "fessiers", "lombaires"],
@@ -4316,5 +4313,440 @@
       "per_kg_bodyweight": 1
     }
   }
-}
+},
+  {
+    "name": "Curl biceps barre EZ",
+    "muscle_groups": ["bras"],
+    "muscles": ["biceps"],
+    "equipment_required": ["barbell_ez"],
+    "difficulty": "beginner",
+    "default_sets": 3,
+    "default_reps_min": 10,
+    "default_reps_max": 15,
+    "base_rest_time_seconds": 60,
+    "exercise_type": "isolation",
+    "intensity_factor": 0.7,
+    "instructions": "Debout, tenir la barre EZ devant soi, bras le long du corps. Plier les coudes en gardant les bras immobiles pour monter la barre vers les épaules. La barre EZ réduit la tension sur les poignets.",
+    "weight_type": "external",
+    "base_weights_kg": {
+      "beginner": {
+        "base": 20,
+        "per_kg_bodyweight": 0.1
+      },
+      "intermediate": {
+        "base": 30,
+        "per_kg_bodyweight": 0.2
+      },
+      "advanced": {
+        "base": 40,
+        "per_kg_bodyweight": 0.3
+      }
+    }
+  },
+  {
+    "name": "Curl Biceps '21s' barre EZ",
+    "muscle_groups": ["bras"],
+    "muscles": ["biceps"],
+    "equipment_required": ["barbell_ez"],
+    "difficulty": "intermediate",
+    "default_sets": 3,
+    "default_reps_min": 21,
+    "default_reps_max": 21,
+    "base_rest_time_seconds": 90,
+    "exercise_type": "isolation",
+    "intensity_factor": 1,
+    "instructions": "Effectuer 7 répétitions sur la moitié basse du mouvement, 7 répétitions sur la moitié haute, et 7 répétitions complètes, sans pause. La barre EZ offre une prise plus naturelle pour cet exercice intense.",
+    "weight_type": "external",
+    "base_weights_kg": {
+      "beginner": {
+        "base": 12,
+        "per_kg_bodyweight": 0.08
+      },
+      "intermediate": {
+        "base": 18,
+        "per_kg_bodyweight": 0.12
+      },
+      "advanced": {
+        "base": 24,
+        "per_kg_bodyweight": 0.18
+      }
+    }
+  },
+  {
+    "name": "Drag Curl barre EZ",
+    "muscle_groups": ["bras"],
+    "muscles": ["biceps"],
+    "equipment_required": ["barbell_ez"],
+    "difficulty": "intermediate",
+    "default_sets": 3,
+    "default_reps_min": 10,
+    "default_reps_max": 15,
+    "base_rest_time_seconds": 60,
+    "exercise_type": "isolation",
+    "intensity_factor": 0.8,
+    "instructions": "Tirer la barre EZ vers le haut en la faisant glisser le long du torse, en tirant les coudes vers l'arrière. Cible le pic du biceps. La barre EZ permet une meilleure activation musculaire.",
+    "weight_type": "external",
+    "base_weights_kg": {
+      "beginner": {
+        "base": 15,
+        "per_kg_bodyweight": 0.1
+      },
+      "intermediate": {
+        "base": 20,
+        "per_kg_bodyweight": 0.15
+      },
+      "advanced": {
+        "base": 25,
+        "per_kg_bodyweight": 0.2
+      }
+    }
+  },
+  {
+    "name": "Barre au front (Skull Crusher) barre EZ",
+    "muscle_groups": ["bras"],
+    "muscles": ["triceps"],
+    "equipment_required": ["barbell_ez", "bench_flat"],
+    "difficulty": "intermediate",
+    "default_sets": 3,
+    "default_reps_min": 8,
+    "default_reps_max": 12,
+    "base_rest_time_seconds": 75,
+    "exercise_type": "isolation",
+    "intensity_factor": 0.9,
+    "instructions": "Allongé sur un banc, tenir la barre EZ au-dessus de la poitrine, bras tendus. Descendre la barre vers le front en pliant uniquement les coudes. La barre EZ réduit la tension sur les poignets et permet un mouvement plus naturel.",
+    "weight_type": "external",
+    "base_weights_kg": {
+      "beginner": {
+        "base": 15,
+        "per_kg_bodyweight": 0.15
+      },
+      "intermediate": {
+        "base": 25,
+        "per_kg_bodyweight": 0.25
+      },
+      "advanced": {
+        "base": 35,
+        "per_kg_bodyweight": 0.4
+      }
+    }
+  },
+  {
+    "name": "Extension triceps barre EZ",
+    "muscle_groups": ["bras"],
+    "muscles": ["triceps"],
+    "equipment_required": ["barbell_ez"],
+    "difficulty": "beginner",
+    "default_sets": 3,
+    "default_reps_min": 10,
+    "default_reps_max": 15,
+    "base_rest_time_seconds": 60,
+    "exercise_type": "isolation",
+    "intensity_factor": 0.8,
+    "instructions": "Debout ou assis, barre EZ tenue à deux mains au-dessus de la tête, descendre la barre derrière la nuque en pliant les coudes, puis étendre les bras vers le haut. La prise de la barre EZ est plus confortable pour les poignets.",
+    "weight_type": "external",
+    "base_weights_kg": {
+      "beginner": {
+        "base": 15,
+        "per_kg_bodyweight": 0
+      },
+      "intermediate": {
+        "base": 20,
+        "per_kg_bodyweight": 0
+      },
+      "advanced": {
+        "base": 25,
+        "per_kg_bodyweight": 0
+      }
+    }
+  },
+  {
+    "name": "Développé couché barre EZ",
+    "muscle_groups": ["pectoraux"],
+    "muscles": ["pectoraux-moyens", "triceps", "deltoides-anterieurs"],
+    "equipment_required": ["barbell_ez", "bench_flat"],
+    "difficulty": "beginner",
+    "default_sets": 3,
+    "default_reps_min": 8,
+    "default_reps_max": 12,
+    "base_rest_time_seconds": 120,
+    "exercise_type": "compound",
+    "intensity_factor": 1.2,
+    "instructions": "Allongé sur un banc, descendre la barre EZ vers la poitrine et la repousser. Adapté pour charges légères à modérées. La barre EZ offre une prise plus confortable pour les poignets.",
+    "weight_type": "external",
+    "base_weights_kg": {
+      "beginner": {
+        "base": 25,
+        "per_kg_bodyweight": 0.3
+      },
+      "intermediate": {
+        "base": 35,
+        "per_kg_bodyweight": 0.5
+      },
+      "advanced": {
+        "base": 45,
+        "per_kg_bodyweight": 0.7
+      }
+    }
+  },
+  {
+    "name": "Développé incliné barre EZ",
+    "muscle_groups": ["pectoraux"],
+    "muscles": ["pectoraux-superieurs", "triceps", "deltoides-anterieurs"],
+    "equipment_required": ["barbell_ez", "bench_incline"],
+    "difficulty": "intermediate",
+    "default_sets": 3,
+    "default_reps_min": 8,
+    "default_reps_max": 12,
+    "base_rest_time_seconds": 120,
+    "exercise_type": "compound",
+    "intensity_factor": 1.1,
+    "instructions": "Sur banc incliné, descendre la barre EZ vers le haut de la poitrine et la repousser. Parfait pour cibler le haut des pectoraux avec une prise confortable.",
+    "weight_type": "external",
+    "base_weights_kg": {
+      "beginner": {
+        "base": 20,
+        "per_kg_bodyweight": 0.25
+      },
+      "intermediate": {
+        "base": 30,
+        "per_kg_bodyweight": 0.4
+      },
+      "advanced": {
+        "base": 40,
+        "per_kg_bodyweight": 0.6
+      }
+    }
+  },
+  {
+    "name": "Développé militaire barre EZ",
+    "muscle_groups": ["epaules"],
+    "muscles": ["deltoides-anterieurs", "deltoides-lateraux", "triceps"],
+    "equipment_required": ["barbell_ez"],
+    "difficulty": "intermediate",
+    "default_sets": 3,
+    "default_reps_min": 8,
+    "default_reps_max": 12,
+    "base_rest_time_seconds": 90,
+    "exercise_type": "compound",
+    "intensity_factor": 1.1,
+    "instructions": "Debout, barre EZ au niveau des épaules, pousser vers le haut au-dessus de la tête. Excellent pour développer la force des épaules avec une prise plus naturelle.",
+    "weight_type": "external",
+    "base_weights_kg": {
+      "beginner": {
+        "base": 15,
+        "per_kg_bodyweight": 0.15
+      },
+      "intermediate": {
+        "base": 25,
+        "per_kg_bodyweight": 0.3
+      },
+      "advanced": {
+        "base": 35,
+        "per_kg_bodyweight": 0.45
+      }
+    }
+  },
+  {
+    "name": "Élévations frontales barre EZ",
+    "muscle_groups": ["epaules"],
+    "muscles": ["deltoides-anterieurs"],
+    "equipment_required": ["barbell_ez"],
+    "difficulty": "intermediate",
+    "default_sets": 3,
+    "default_reps_min": 10,
+    "default_reps_max": 15,
+    "base_rest_time_seconds": 60,
+    "exercise_type": "isolation",
+    "intensity_factor": 0.8,
+    "instructions": "Debout, tenir la barre EZ devant les cuisses. Lever la barre devant soi jusqu'à hauteur d'épaule, bras tendus. La barre EZ offre une prise plus naturelle et réduit la tension sur les poignets.",
+    "weight_type": "external",
+    "base_weights_kg": {
+      "beginner": {
+        "base": 20,
+        "per_kg_bodyweight": 0.1
+      },
+      "intermediate": {
+        "base": 25,
+        "per_kg_bodyweight": 0.15
+      },
+      "advanced": {
+        "base": 30,
+        "per_kg_bodyweight": 0.2
+      }
+    }
+  },
+  {
+    "name": "Rowing menton barre EZ",
+    "muscle_groups": ["epaules"],
+    "muscles": ["deltoides-lateraux", "trapezes"],
+    "equipment_required": ["barbell_ez"],
+    "difficulty": "intermediate",
+    "default_sets": 3,
+    "default_reps_min": 10,
+    "default_reps_max": 15,
+    "base_rest_time_seconds": 75,
+    "exercise_type": "compound",
+    "intensity_factor": 1,
+    "instructions": "Debout, barre EZ en main, prise serrée. Tirer la barre vers le menton en levant les coudes le plus haut possible. La barre EZ permet une prise plus confortable pour ce mouvement avec prise serrée.",
+    "weight_type": "external",
+    "base_weights_kg": {
+      "beginner": {
+        "base": 15,
+        "per_kg_bodyweight": 0.15
+      },
+      "intermediate": {
+        "base": 25,
+        "per_kg_bodyweight": 0.25
+      },
+      "advanced": {
+        "base": 35,
+        "per_kg_bodyweight": 0.35
+      }
+    }
+  },
+  {
+    "name": "Shrugs barre EZ",
+    "muscle_groups": ["dos", "epaules"],
+    "muscles": ["trapezes"],
+    "equipment_required": ["barbell_ez"],
+    "difficulty": "beginner",
+    "default_sets": 3,
+    "default_reps_min": 12,
+    "default_reps_max": 20,
+    "base_rest_time_seconds": 60,
+    "exercise_type": "isolation",
+    "intensity_factor": 0.8,
+    "instructions": "Debout, barre EZ en main devant les cuisses. Hausser les épaules le plus haut possible, marquer une pause et redescendre. La barre EZ permet une prise plus naturelle.",
+    "weight_type": "external",
+    "base_weights_kg": {
+      "beginner": {
+        "base": 25,
+        "per_kg_bodyweight": 0.2
+      },
+      "intermediate": {
+        "base": 35,
+        "per_kg_bodyweight": 0.4
+      },
+      "advanced": {
+        "base": 45,
+        "per_kg_bodyweight": 0.6
+      }
+    }
+  },
+  {
+    "name": "Rowing barre EZ buste penché",
+    "muscle_groups": ["dos"],
+    "muscles": ["grand-dorsal", "trapezes", "lombaires"],
+    "equipment_required": ["barbell_ez"],
+    "difficulty": "intermediate",
+    "default_sets": 3,
+    "default_reps_min": 8,
+    "default_reps_max": 12,
+    "base_rest_time_seconds": 120,
+    "exercise_type": "compound",
+    "intensity_factor": 1.2,
+    "instructions": "Pencher le buste en avant, dos droit. Tirer la barre EZ vers le bas de l'abdomen en contractant les dorsaux. Adapté pour charges légères à modérées avec une prise plus confortable.",
+    "weight_type": "external",
+    "base_weights_kg": {
+      "beginner": {
+        "base": 20,
+        "per_kg_bodyweight": 0.3
+      },
+      "intermediate": {
+        "base": 30,
+        "per_kg_bodyweight": 0.5
+      },
+      "advanced": {
+        "base": 40,
+        "per_kg_bodyweight": 0.7
+      }
+    }
+  },
+  {
+    "name": "Développé couché prise serrée barre EZ",
+    "muscle_groups": ["bras"],
+    "muscles": ["triceps", "pectoraux-moyens"],
+    "equipment_required": ["barbell_ez", "bench_flat"],
+    "difficulty": "intermediate",
+    "default_sets": 3,
+    "default_reps_min": 8,
+    "default_reps_max": 12,
+    "base_rest_time_seconds": 90,
+    "exercise_type": "compound",
+    "intensity_factor": 1,
+    "instructions": "Allongé sur un banc, prise serrée sur la barre EZ. Descendre vers la poitrine et repousser en se concentrant sur les triceps. La barre EZ offre une prise plus naturelle pour ce mouvement.",
+    "weight_type": "external",
+    "base_weights_kg": {
+      "beginner": {
+        "base": 20,
+        "per_kg_bodyweight": 0.2
+      },
+      "intermediate": {
+        "base": 30,
+        "per_kg_bodyweight": 0.35
+      },
+      "advanced": {
+        "base": 40,
+        "per_kg_bodyweight": 0.5
+      }
+    }
+  },
+  {
+    "name": "Hip Thrust barre EZ",
+    "muscle_groups": ["jambes"],
+    "muscles": ["fessiers", "ischio-jambiers"],
+    "equipment_required": ["barbell_ez", "bench_flat"],
+    "difficulty": "intermediate",
+    "default_sets": 3,
+    "default_reps_min": 10,
+    "default_reps_max": 15,
+    "base_rest_time_seconds": 90,
+    "exercise_type": "compound",
+    "intensity_factor": 1.1,
+    "instructions": "Dos contre un banc, barre EZ sur les hanches. Pousser les hanches vers le haut en contractant les fessiers. Parfait pour charges légères à modérées avec un meilleur confort de prise.",
+    "weight_type": "external",
+    "base_weights_kg": {
+      "beginner": {
+        "base": 20,
+        "per_kg_bodyweight": 0.3
+      },
+      "intermediate": {
+        "base": 35,
+        "per_kg_bodyweight": 0.6
+      },
+      "advanced": {
+        "base": 50,
+        "per_kg_bodyweight": 0.9
+      }
+    }
+  },
+  {
+    "name": "Front Squat barre EZ",
+    "muscle_groups": ["jambes"],
+    "muscles": ["quadriceps", "fessiers", "abdominaux"],
+    "equipment_required": ["barbell_ez"],
+    "difficulty": "advanced",
+    "default_sets": 3,
+    "default_reps_min": 8,
+    "default_reps_max": 12,
+    "base_rest_time_seconds": 120,
+    "exercise_type": "compound",
+    "intensity_factor": 1.3,
+    "instructions": "Barre EZ en position avant, descendre en squat en gardant le torse droit. Plus accessible que le front squat classique grâce à la prise plus confortable de la barre EZ.",
+    "weight_type": "external",
+    "base_weights_kg": {
+      "beginner": {
+        "base": 15,
+        "per_kg_bodyweight": 0.2
+      },
+      "intermediate": {
+        "base": 25,
+        "per_kg_bodyweight": 0.4
+      },
+      "advanced": {
+        "base": 35,
+        "per_kg_bodyweight": 0.6
+      }
+    }
+  }
 ]
