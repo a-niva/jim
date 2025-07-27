@@ -594,7 +594,7 @@ async function registerServiceWorker() {
 }
 
 // ===== NAVIGATION =====
-function showView(viewName) {
+async function showView(viewName) {
     console.log(`🔍 showView(${viewName}) - currentUser:`, currentUser ? currentUser.name : 'UNDEFINED');
 
     // Gérer le cas où currentUser est perdu
@@ -666,18 +666,17 @@ function showView(viewName) {
             loadStats();
             break;
         case 'profile':
+            // Recharger les préférences utilisateur pour garantir la cohérence
             if (currentUser) {
-                // Recharger les préférences depuis la base pour être sûr
-                apiGet(`/api/users/${currentUser.id}`)
-                    .then(updatedUser => {
-                        currentUser = updatedUser;
-                        window.currentUser = updatedUser;
-                        loadProfile();
-                    })
-                    .catch(() => loadProfile()); // Fallback si erreur API
-            } else {
-                loadProfile();
+                try {
+                    const updatedUser = await apiGet(`/api/users/${currentUser.id}`);
+                    currentUser = updatedUser;
+                    window.currentUser = updatedUser;
+                } catch (error) {
+                    console.warn('Impossible de recharger les préférences utilisateur:', error);
+                }
             }
+            loadProfile();
             break;
         case 'planning':
             // Initialisation gérée par showPlanning()
@@ -6152,10 +6151,19 @@ async function togglePlateHelper() {
     const toggle = document.getElementById('plateHelperToggle');
     const label = document.getElementById('plateHelperLabel');
     
+    // DEBUGGING
+    console.log('🔧 togglePlateHelper called');
+    console.log('📊 currentUser:', currentUser);
+    console.log('📊 currentUser.id:', currentUser?.id);
+    console.log('📊 toggle.checked:', toggle.checked);
+    
     try {
         const response = await apiPut(`/api/users/${currentUser.id}/plate-helper`, {
             enabled: toggle.checked
         });
+        
+        // DEBUGGING
+        console.log('✅ Response reçue:', response);
         
         currentUser.show_plate_helper = toggle.checked;
         label.textContent = toggle.checked ? 'Activé' : 'Désactivé';
@@ -6178,6 +6186,12 @@ async function togglePlateHelper() {
 }
 
 async function toggleWeightDisplayMode(toggle) {
+    // DEBUGGING
+    console.log('🔧 toggleWeightDisplayMode called');
+    console.log('📊 currentUser:', currentUser);
+    console.log('📊 currentUser.id:', currentUser?.id);
+    console.log('📊 toggle.checked:', toggle.checked);
+    
     try {
         const label = toggle.nextElementSibling;
         const newMode = toggle.checked ? 'charge' : 'total';
@@ -6186,6 +6200,9 @@ async function toggleWeightDisplayMode(toggle) {
         const response = await apiPut(`/api/users/${currentUser.id}/weight-display-preference`, {
             mode: newMode
         });
+        
+        // DEBUGGING
+        console.log('✅ Response reçue:', response);
         
         currentUser.preferred_weight_display_mode = newMode;
         label.textContent = newMode === 'charge' ? 'Mode charge' : 'Mode total';
