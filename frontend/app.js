@@ -4823,13 +4823,14 @@ async function configureWeighted(elements, exercise, weightRec) {
 // ===== SYSTÈME D'APPUI LONG =====
 let longPressTimer = null;
 let fastInterval = null;
+let longPressActive = false;
 
 function setupLongPress() {
     const decreaseBtn = document.querySelector('.input-row:has(#setWeight) .stepper-modern:first-of-type');
     const increaseBtn = document.querySelector('.input-row:has(#setWeight) .stepper-modern:last-of-type');
 
     if (decreaseBtn && increaseBtn) {
-        // Remplacer les onclick par les nouveaux handlers
+        // Nettoyer les anciens handlers
         decreaseBtn.onclick = null;
         increaseBtn.onclick = null;
         
@@ -4839,9 +4840,9 @@ function setupLongPress() {
 }
 
 function setupButton(button, direction) {
-    // Click simple
+    // Click simple - seulement si pas en appui long
     button.addEventListener('click', (e) => {
-        if (!fastInterval) { // Seulement si pas en mode rapide
+        if (!longPressActive) {
             if (direction === 'down') {
                 adjustWeightDown();
             } else {
@@ -4849,38 +4850,50 @@ function setupButton(button, direction) {
             }
         }
         e.preventDefault();
+        e.stopPropagation();
     });
     
     // Appui long - Desktop
-    button.addEventListener('mousedown', () => startLongPress(direction));
-    button.addEventListener('mouseup', stopLongPress);
-    button.addEventListener('mouseleave', stopLongPress);
+    button.addEventListener('mousedown', (e) => {
+        startLongPress(direction);
+        e.preventDefault();
+    });
+    
+    button.addEventListener('mouseup', () => {
+        stopLongPress();
+    });
+    
+    button.addEventListener('mouseleave', () => {
+        stopLongPress();
+    });
     
     // Appui long - Mobile
     button.addEventListener('touchstart', (e) => {
         startLongPress(direction);
         e.preventDefault();
     }, { passive: false });
-    button.addEventListener('touchend', stopLongPress);
+    
+    button.addEventListener('touchend', () => {
+        stopLongPress();
+    });
 }
 
 function startLongPress(direction) {
+    longPressActive = false;
+    
     longPressTimer = setTimeout(() => {
-        // Démarrer le saut rapide après 500ms
+        longPressActive = true;
+        
+        // CORRECTION : Saut de 3 poids d'un coup, pas 3 appels
         fastInterval = setInterval(() => {
-            // Utiliser les fonctions existantes en boucle
+            // Faire un seul appel mais avec step=3
             if (direction === 'down') {
-                adjustWeightDown();
-                adjustWeightDown(); 
-                adjustWeightDown(); // 3 fois = saut de 3
+                adjustWeightDown(3); // Un seul appel avec step 3
             } else {
-                adjustWeightUp();
-                adjustWeightUp();
-                adjustWeightUp(); // 3 fois = saut de 3
+                adjustWeightUp(3);   // Un seul appel avec step 3
             }
         }, 200);
         
-        // Feedback haptique
         if (navigator.vibrate) navigator.vibrate(50);
     }, 500);
 }
@@ -4894,6 +4907,11 @@ function stopLongPress() {
         clearInterval(fastInterval);
         fastInterval = null;
     }
+    
+    // Reset avec délai pour éviter le click après
+    setTimeout(() => {
+        longPressActive = false;
+    }, 100);
 }
 
 // Affichage des changements de recommandations
@@ -8108,8 +8126,26 @@ function showChargeTooltip() {
 // ===== COUCHE 7 : PLATE HELPER & INFRASTRUCTURE =====
 
 async function updatePlateHelper(weightTOTAL) {
+    // Protection contre boucles infinies
     if (plateHelperUpdateInProgress) {
         console.log('[PlateHelper] Déjà en cours, skip');
+        return;
+    }
+    
+    // NOUVEAU : Vérifier que l'exercice supporte l'aide au montage
+    if (!currentExercise?.equipment_required) {
+        hidePlateHelper();
+        return;
+    }
+    
+    const supportedEquipment = ['barbell', 'barbell_athletic', 'barbell_ez', 'dumbbells'];
+    const isSupported = currentExercise.equipment_required.some(eq => 
+        supportedEquipment.includes(eq)
+    );
+    
+    if (!isSupported) {
+        console.log('[PlateHelper] Équipement non supporté:', currentExercise.equipment_required);
+        hidePlateHelper();
         return;
     }
     
@@ -8386,9 +8422,6 @@ function createBarbellCSSVisualization(layout, weightTOTAL, chargeWeight) {
         injectDynamicPlateStyles([...new Set(plateWeights)]); // Dédupliquer
     }
     
-    // SYMÉTRIE CORRECTE : ordre croissant à gauche, décroissant à droite
-    const reversedPlatesList = [...platesList].reverse();
-
     // Côté gauche : ordre croissant (légers vers lourds)
     const leftPlatesHTML = platesList.map(plateStr => {
         const plateMatch = plateStr.match(/(\d+(?:\.\d+)?)kg/);
@@ -8398,7 +8431,8 @@ function createBarbellCSSVisualization(layout, weightTOTAL, chargeWeight) {
         return `<div class="plate-visual ${plateClass}"><span>${displayWeight}</span></div>`;
     }).join('');
 
-    // Côté droit : ordre décroissant (lourds vers légers)
+    // Côté droit : ordre décroissant (lourds vers légers) 
+    const reversedPlatesList = [...platesList].reverse();
     const rightPlatesHTML = reversedPlatesList.map(plateStr => {
         const plateMatch = plateStr.match(/(\d+(?:\.\d+)?)kg/);
         const plateWeight = plateMatch ? plateMatch[1] : '?';
@@ -8879,10 +8913,9 @@ function adjustWeight(direction, availableWeights, exercise) {
 
 
 // ===== COUCHE 4 : AJUSTEMENTS POIDS (User Actions) =====
-
-function adjustWeightUp() {
+function adjustWeightUp(step = 1) {
     /**
-     * VERSION REFACTORISÉE : Ajustement pur sur weightTOTAL, conversion UI séparée
+     * VERSION CORRIGÉE : Support du step pour saut multiple
      */
     if (!validateSessionState()) return;
     
@@ -8897,35 +8930,57 @@ function adjustWeightUp() {
         weights = weights.filter(w => w % 2 === 0);
     }
     
-    // Trouver le prochain poids supérieur dans la liste TOTALE
-    const nextWeight = weights.find(w => w > currentExerciseRealWeight);
+    // Trouver l'index actuel
+    const currentIndex = weights.findIndex(w => w === currentExerciseRealWeight);
     
-    if (nextWeight) {
-        // Validation obligatoire
-        const barWeight = getBarWeight(currentExercise);
-        const validatedWeight = Math.max(barWeight, nextWeight);
+    if (currentIndex === -1) {
+        // Poids actuel non trouvé, prendre le plus proche
+        const closestWeight = weights.reduce((prev, curr) => 
+            Math.abs(curr - currentExerciseRealWeight) < Math.abs(prev - currentExerciseRealWeight) ? curr : prev
+        );
+        const closestIndex = weights.findIndex(w => w === closestWeight);
+        const newIndex = Math.min(closestIndex + step, weights.length - 1);
+        const nextWeight = weights[newIndex];
         
-        // Mise à jour de la référence absolue
-        currentExerciseRealWeight = validatedWeight;
-        console.log('[AdjustWeight] Poids TOTAL mis à jour:', currentExerciseRealWeight);
-        
-        // Recalcul de l'affichage selon le mode
-        updateWeightDisplay();
-        
-        // Mise à jour de l'aide au montage avec le poids TOTAL
-        if (currentUser?.show_plate_helper) {
-            updatePlateHelper(currentExerciseRealWeight);
+        if (nextWeight && nextWeight > currentExerciseRealWeight) {
+            currentExerciseRealWeight = nextWeight;
+        } else {
+            showToast('Poids maximum atteint', 'info');
+            return;
         }
-        
-        console.log('[AdjustWeight] Increased to:', currentExerciseRealWeight);
     } else {
-        showToast('Poids maximum atteint', 'info');
+        // Calculer le nouvel index avec step
+        const newIndex = Math.min(currentIndex + step, weights.length - 1);
+        
+        if (newIndex > currentIndex) {
+            const nextWeight = weights[newIndex];
+            currentExerciseRealWeight = nextWeight;
+        } else {
+            showToast('Poids maximum atteint', 'info');
+            return;
+        }
     }
+    
+    // Validation obligatoire
+    const barWeight = getBarWeight(currentExercise);
+    currentExerciseRealWeight = Math.max(barWeight, currentExerciseRealWeight);
+    
+    console.log('[AdjustWeight] Poids TOTAL mis à jour:', currentExerciseRealWeight, `(+${step} steps)`);
+    
+    // Recalcul de l'affichage selon le mode
+    updateWeightDisplay();
+    
+    // Mise à jour de l'aide au montage avec le poids TOTAL
+    if (currentUser?.show_plate_helper) {
+        updatePlateHelper(currentExerciseRealWeight);
+    }
+    
+    console.log('[AdjustWeight] Increased to:', currentExerciseRealWeight);
 }
 
-function adjustWeightDown() {
+function adjustWeightDown(step = 1) {
     /**
-     * VERSION REFACTORISÉE : Ajustement pur sur weightTOTAL, conversion UI séparée
+     * VERSION CORRIGÉE : Support du step pour saut multiple
      */
     if (!validateSessionState()) return;
     
@@ -8940,30 +8995,52 @@ function adjustWeightDown() {
         weights = weights.filter(w => w % 2 === 0);
     }
     
-    // Trouver le poids inférieur dans la liste TOTALE
-    const prevWeight = weights.slice().reverse().find(w => w < currentExerciseRealWeight);
+    // Trouver l'index actuel
+    const currentIndex = weights.findIndex(w => w === currentExerciseRealWeight);
     
-    if (prevWeight) {
-        // Validation obligatoire
-        const barWeight = getBarWeight(currentExercise);
-        const validatedWeight = Math.max(barWeight, prevWeight);
+    if (currentIndex === -1) {
+        // Poids actuel non trouvé, prendre le plus proche
+        const closestWeight = weights.reduce((prev, curr) => 
+            Math.abs(curr - currentExerciseRealWeight) < Math.abs(prev - currentExerciseRealWeight) ? curr : prev
+        );
+        const closestIndex = weights.findIndex(w => w === closestWeight);
+        const newIndex = Math.max(closestIndex - step, 0);
+        const prevWeight = weights[newIndex];
         
-        // Mise à jour de la référence absolue
-        currentExerciseRealWeight = validatedWeight;
-        console.log('[AdjustWeight] Poids TOTAL mis à jour:', currentExerciseRealWeight);
-        
-        // Recalcul de l'affichage selon le mode
-        updateWeightDisplay();
-        
-        // Mise à jour de l'aide au montage avec le poids TOTAL
-        if (currentUser?.show_plate_helper) {
-            updatePlateHelper(currentExerciseRealWeight);
+        if (prevWeight && prevWeight < currentExerciseRealWeight) {
+            currentExerciseRealWeight = prevWeight;
+        } else {
+            showToast('Poids minimum atteint', 'info');
+            return;
         }
-        
-        console.log('[AdjustWeight] Decreased to:', currentExerciseRealWeight);
     } else {
-        showToast('Poids minimum atteint', 'info');
+        // Calculer le nouvel index avec step
+        const newIndex = Math.max(currentIndex - step, 0);
+        
+        if (newIndex < currentIndex) {
+            const prevWeight = weights[newIndex];
+            currentExerciseRealWeight = prevWeight;
+        } else {
+            showToast('Poids minimum atteint', 'info');
+            return;
+        }
     }
+    
+    // Validation obligatoire
+    const barWeight = getBarWeight(currentExercise);
+    currentExerciseRealWeight = Math.max(barWeight, currentExerciseRealWeight);
+    
+    console.log('[AdjustWeight] Poids TOTAL mis à jour:', currentExerciseRealWeight, `(-${step} steps)`);
+    
+    // Recalcul de l'affichage selon le mode
+    updateWeightDisplay();
+    
+    // Mise à jour de l'aide au montage avec le poids TOTAL
+    if (currentUser?.show_plate_helper) {
+        updatePlateHelper(currentExerciseRealWeight);
+    }
+    
+    console.log('[AdjustWeight] Decreased to:', currentExerciseRealWeight);
 }
 
 function updateWeightDisplay() {
