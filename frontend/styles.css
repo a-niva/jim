@@ -5636,16 +5636,44 @@ input:checked+.toggle-slider:before {
 }
 
 /* Fix pour mobile - Forcer l'affichage des exercices */
+/* Fix pour mobile - Forcer l'affichage des exercices */
 @media (max-width: 768px) {
     .muscle-exercises-grid {
         grid-template-columns: 1fr;
-        /* Force l'affichage sur mobile */
+        /* Force l'affichage sur mobile - MÊME SANS .expanded */
         max-height: none !important;
         overflow: visible !important;
     }
     
     .muscle-exercises-grid.expanded {
         max-height: none !important;
+    }
+    
+    /* NOUVEAU : Force aussi l'affichage des sections */
+    .muscle-group-section {
+        display: block !important;
+    }
+}
+
+/* ===== FIX MOBILE SÉANCE LIBRE - AFFICHAGE EXERCICES ===== */
+
+@media (max-width: 768px) {
+    /* Forcer l'affichage des exercices sans classe expanded */
+    .muscle-exercises-grid {
+        max-height: none !important;
+        overflow: visible !important;
+        opacity: 1 !important;
+    }
+    
+    /* Forcer l'affichage des sections musculaires */
+    .muscle-group-section {
+        display: block !important;
+        opacity: 1 !important;
+    }
+    
+    /* S'assurer que les cartes d'exercices sont visibles */
+    .free-exercise-card {
+        display: block !important;
     }
 }
 
