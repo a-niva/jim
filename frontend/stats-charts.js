@@ -1128,7 +1128,7 @@ async function loadMLDashboard(userId) {
                 
                 <div class="ml-activity-summary">
                     <h5>🔥 Activité récente</h5>
-                    <div class="activity-bars">
+                    <div class="activity-bar">
                         <div class="activity-bar">
                             <span class="activity-label">7 derniers jours</span>
                             <div class="activity-progress">

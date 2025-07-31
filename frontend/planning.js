@@ -1666,7 +1666,7 @@ class PlanningManager {
                 <div class="alternative-header">
                     <div class="alternative-name">${alternative.name}</div>
                     <div class="alternative-score">
-                        <div class="score-badge" style="background: ${this.getScoreGradient(score)}">
+                        <div class="status-badge" style="background: ${this.getScoreGradient(score)}">
                             ${score}
                         </div>
                     </div>
@@ -3941,7 +3941,7 @@ class PlanningManager {
                         <h5 class="muscle-group-header" style="border-left: 4px solid ${color};">
                             ${muscle.charAt(0).toUpperCase() + muscle.slice(1)} (${exercises.length})
                         </h5>
-                        <div class="exercise-group-grid">
+                        <div class="exercise-grid">
                             ${exercises.map(ex => `
                                 <label class="exercise-option">
                                     <input type="radio" name="newExercise" value="${ex.id}" 
