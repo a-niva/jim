@@ -1563,15 +1563,6 @@ input:focus,select:focus,textarea:focus {
     font-weight: 700
 }
 
-.timer-item {
-    text-align: center
-}
-
-.timer-item small {
-    display: block;
-    margin-bottom: var(--spacing-xs)
-}
-
 .set-timer {
     font-size: var(--font-2xl);
     font-weight: 700;
@@ -2456,35 +2447,38 @@ button:focus-visible,input:focus-visible,select:focus-visible {
         grid-template-columns: repeat(2,1fr)
     }
 
-    .workout-info {
-        grid-template-columns: 1fr;
-        gap: var(--spacing-md)
+    .workout-timers-compact {
+        gap: var(--spacing-sm);
     }
 
-    .workout-meta {
-        text-align: left
+    .timer-compact .workout-timer,
+    .timer-compact .set-timer {
+        font-size: var(--font-xl);
     }
 
-    .workout-actions-header {
-        margin-top: var(--spacing-md);
-        flex-wrap: nowrap;
+    .workout-progress-compact {
+        font-size: var(--font-xs);
         gap: var(--spacing-xs);
-        justify-content: center;
     }
-    
+
+    .timer-separator,
+    .progress-separator {
+        font-size: var(--font-base);
+    }
+
+    .workout-header {
+        padding: var(--spacing-sm);
+        margin-bottom: var(--spacing-sm);
+    }
+
     .workout-actions-header .btn {
-        font-size: var(--font-sm);
+        font-size: var(--font-xs);
         padding: var(--spacing-xs) var(--spacing-sm);
+        flex: 1;
+        max-width: 120px;
+        text-align: center;
     }
 
-    .exercise-header {
-        flex-direction: column
-    }
-
-    .exercise-header {
-        flex-direction: column;
-    }
-    
     .fatigue-scale {
         flex-direction: row;
         gap: var(--spacing-xs);
@@ -2495,6 +2489,7 @@ button:focus-visible,input:focus-visible,select:focus-visible {
     }
 
     .exercise-header {
+        flex-direction: column;
         gap: var(--spacing-md);
         align-items: stretch
     }
