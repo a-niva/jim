@@ -1553,14 +1553,6 @@ input:focus,select:focus,textarea:focus {
     border: 1px solid var(--border)
 }
 
-.workout-info {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: var(--spacing-md);
-    align-items: flex-start;
-    margin-bottom: var(--spacing-md)
-}
-
 .exercise-info h3,.workout-timer {
     margin-bottom: var(--spacing-sm);
     color: var(--primary)
@@ -1569,12 +1561,6 @@ input:focus,select:focus,textarea:focus {
 .workout-timer {
     font-size: 1.8rem;
     font-weight: 700
-}
-
-.workout-timers {
-    display: flex;
-    gap: var(--spacing-lg);
-    margin-bottom: var(--spacing-sm)
 }
 
 .timer-item {
@@ -1590,14 +1576,6 @@ input:focus,select:focus,textarea:focus {
     font-size: var(--font-2xl);
     font-weight: 700;
     color: var(--success)
-}
-
-.workout-progress {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xs);
-    font-size: var(--font-sm);
-    color: var(--text-muted)
 }
 
 .workout-actions-header {
@@ -5439,6 +5417,57 @@ input:checked+.toggle-slider:before {
         max-width: 120px;
         text-align: center;
     }
+}
+
+/* Workout header compact */
+.workout-info-compact {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-sm);
+    text-align: center;
+}
+
+.workout-timers-compact {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xs);
+}
+
+.timer-compact {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.timer-label {
+    font-size: var(--font-xs);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.timer-separator,
+.progress-separator {
+    color: var(--text-muted);
+    font-size: var(--font-lg);
+    font-weight: 300;
+}
+
+.workout-progress-compact {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: var(--font-sm);
+    color: var(--text-muted);
+}
+
+/* Réduire l'espace du header principal */
+.workout-header {
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
 }
 
 .free-exercise-card {
