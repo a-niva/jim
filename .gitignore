@@ -81,3 +81,4 @@ continue.config.json
 # Mapping Mermaid
 mapper.py
 mapper.mmd
+css_analyzer_v3.py

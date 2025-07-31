@@ -1601,10 +1601,15 @@ input:focus,select:focus,textarea:focus {
 }
 
 .workout-actions-header {
-    display: flex;
-    gap: var(--spacing-sm);
-    flex-wrap: wrap;
-    justify-content: flex-end
+    margin-top: var(--spacing-md);
+    flex-wrap: nowrap;
+    gap: var(--spacing-xs);
+    justify-content: center;
+}
+
+.workout-actions-header .btn {
+    font-size: var(--font-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
 }
 
 .fatigue-tracker {
@@ -2478,15 +2483,32 @@ button:focus-visible,input:focus-visible,select:focus-visible {
     }
 
     .workout-actions-header {
-        margin-top: var(--spacing-md)
+        margin-top: var(--spacing-md);
+        flex-wrap: nowrap;
+        gap: var(--spacing-xs);
+        justify-content: center;
+    }
+    
+    .workout-actions-header .btn {
+        font-size: var(--font-sm);
+        padding: var(--spacing-xs) var(--spacing-sm);
     }
 
-    .exercise-header,.fatigue-scale {
+    .exercise-header {
         flex-direction: column
     }
 
+    .exercise-header {
+        flex-direction: column;
+    }
+    
     .fatigue-scale {
-        gap: var(--spacing-sm)
+        flex-direction: row;
+        gap: var(--spacing-xs);
+    }
+    
+    .fatigue-btn span {
+        display: none;
     }
 
     .exercise-header {
@@ -5315,34 +5337,42 @@ input:checked+.toggle-slider:before {
 
 .muscle-exercises-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill,minmax(280px,1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: var(--spacing-md);
     max-height: 0;
     overflow: hidden;
-    transition: max-height .3s ease
+    transition: max-height .3s ease;
 }
 
 .muscle-exercises-grid.expanded {
-    max-height: 2000px
+    max-height: 2000px;
 }
 
-/* Override mobile : toujours visible */
+/* Fix mobile complet - Liste des exercices */
 @media (max-width: 768px) {
     .muscle-exercises-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr !important;
+        max-height: none !important;
+        overflow: visible !important;
+        opacity: 1 !important;
+        display: grid !important;
     }
     
-    /* Touch target plus grand pour le header sur mobile */
+    .muscle-group-section {
+        display: block !important;
+        visibility: visible !important;
+    }
+    
+    .free-exercise-card {
+        display: block !important;
+        opacity: 1 !important;
+    }
+    
     .muscle-group-header {
         padding: var(--spacing-lg) var(--spacing-md);
-        /* Zone de tap plus grande */
-    }
-    .muscle-exercises-grid.expanded {
-        max-height: none !important;
     }
 }
 
-/* Fix pour mobile - Forcer l'affichage des exercices */
 /* Fix pour mobile - Forcer l'affichage des exercices */
 @media (max-width: 768px) {
     .muscle-exercises-grid {
@@ -5360,27 +5390,13 @@ input:checked+.toggle-slider:before {
     .muscle-group-section {
         display: block !important;
     }
-}
-
-/* ===== FIX MOBILE SÉANCE LIBRE - AFFICHAGE EXERCICES ===== */
-
-@media (max-width: 768px) {
-    /* Forcer l'affichage des exercices sans classe expanded */
-    .muscle-exercises-grid {
-        max-height: none !important;
-        overflow: visible !important;
-        opacity: 1 !important;
+    .fatigue-tracker h3 {
+        font-size: var(--font-lg);
+        margin-bottom: var(--spacing-sm);
     }
-    
-    /* Forcer l'affichage des sections musculaires */
-    .muscle-group-section {
-        display: block !important;
-        opacity: 1 !important;
-    }
-    
-    /* S'assurer que les cartes d'exercices sont visibles */
-    .free-exercise-card {
-        display: block !important;
+
+    .fatigue-tracker {
+        padding: var(--spacing-lg);
     }
 }
 
