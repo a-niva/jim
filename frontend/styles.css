@@ -1605,11 +1605,16 @@ input:focus,select:focus,textarea:focus {
     flex-wrap: nowrap;
     gap: var(--spacing-xs);
     justify-content: center;
+    align-items: center;
+    width: 100%;
 }
 
 .workout-actions-header .btn {
-    font-size: var(--font-sm);
+    font-size: var(--font-xs);
     padding: var(--spacing-xs) var(--spacing-sm);
+    flex: 1;
+    max-width: 120px;
+    text-align: center;
 }
 
 .fatigue-tracker {
@@ -5175,11 +5180,12 @@ input:checked+.toggle-slider:before {
 
 .equipment-tabs {
     display: flex;
-    justify-content: space-around;
+    justify-content: center;
     align-items: center;
-    gap: var(--spacing-xs);
+    gap: var(--spacing-sm);
     padding: var(--spacing-sm) 0;
     width: 100%;
+    flex-wrap: wrap;
 }
 
 .equipment-filter {
@@ -5207,18 +5213,20 @@ input:checked+.toggle-slider:before {
     transition: all .3s ease;
 }
 
-/* Si trop d'éléments, repasser en scroll */
 @media (max-width: 480px) {
-    .muscle-tabs,
     .equipment-tabs {
-        justify-content: flex-start;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
+        gap: var(--spacing-xs);
+        justify-content: space-evenly;
     }
     
-    .muscle-tabs::-webkit-scrollbar,
-    .equipment-tabs::-webkit-scrollbar {
-        display: none;
+    .equipment-filter {
+        width: 42px;
+        height: 42px;
+    }
+    
+    .equipment-icon {
+        width: 22px;
+        height: 22px;
     }
 }
 
@@ -5369,7 +5377,17 @@ input:checked+.toggle-slider:before {
     }
     
     .muscle-group-header {
-        padding: var(--spacing-lg) var(--spacing-md);
+        padding: var(--spacing-xl) var(--spacing-md);
+        min-height: 56px;
+        touch-action: manipulation;
+    }
+    
+    .collapse-icon {
+        min-width: 44px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 }
 
