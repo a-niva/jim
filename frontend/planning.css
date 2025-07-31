@@ -949,7 +949,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--spacing-md);
+    padding-left: var(--spacing-md);
+    padding-right: var(--spacing-md);
     background: var(--bg-secondary);
     border-radius: var(--radius);
 }
@@ -1074,7 +1075,8 @@
 .selected-exercises-list {
     background: var(--bg-secondary);
     border-radius: var(--radius);
-    padding: var(--spacing-md);
+    padding-left: var(--spacing-md);
+    padding-right: var(--spacing-md);
     min-height: 150px;
     max-height: 250px;
     overflow-y: auto;
@@ -1260,9 +1262,9 @@
     .muscle-groups-tags {
         order: -1 !important;
         margin-bottom: var(--spacing-sm);
-        background: rgba(99, 102, 241, 0.05);
-        border: 1px solid rgba(99, 102, 241, 0.15);
         padding: var(--spacing-xs) var(--spacing-sm);
+        align-self: center;
+        position:relative;
     }
     
     .muscle-tag {
@@ -1378,11 +1380,61 @@
     }
 
     .planning-modal-vertical {
-        padding: var(--spacing-sm);
+        padding: 2px !important; /* Réduction drastique du padding modal */
         max-height: calc(100vh - 80px);
         overflow-y: auto;
         gap: var(--spacing-sm);
     }
+
+    /* Optimisation espace horizontal selected-exercise-item */
+    .selected-exercise-item {
+        padding: var(--spacing-xs) 6px !important; /* Réduction padding horizontal */
+        margin-bottom: var(--spacing-xs);
+        grid-template-columns: 32px 1fr 32px !important; /* Colonnes optimisées */
+    }
+
+    .exercise-details {
+        padding-left: var(--spacing-xs) !important;
+        padding-right: var(--spacing-xs) !important;
+    }
+
+    /* Tags muscles plus compacts */
+    .muscle-groups-tags {
+        margin: 2px 6px var(--spacing-xs) 6px !important;
+        padding: 4px 8px !important;
+    }
+
+    /* Section headers plus compacts */
+    .section-header {
+        padding: var(--spacing-xs) 6px !important;
+        margin: 0 2px var(--spacing-xs) 2px !important;
+    }
+
+    /* Métriques plus compactes */
+    .session-metrics-row {
+        padding: var(--spacing-xs) 6px !important;
+        margin: 0 2px var(--spacing-sm) 2px !important;
+    }
+
+    /* Actions du modal plus compactes */
+    .modal-actions-bottom {
+        padding: var(--spacing-xs) 6px !important;
+        margin-top: var(--spacing-sm);
+    }
+
+    /* Optimisation taille font exercise-name pour utiliser l'espace gagné */
+    .exercise-name {
+        font-size: 0.9rem !important; /* Augmentation de 0.85rem à 0.9rem */
+        line-height: 1.2 !important;
+        font-weight: 600 !important;
+    }
+
+    .exercise-params {
+        font-size: 0.75rem !important;
+        margin-top: 2px;
+    }
+
+
 
     .session-metrics-row {
         grid-template-columns: repeat(4, 1fr);
@@ -1420,7 +1472,7 @@
 /* Optimisation pour écrans 800px et moins */
 @media (max-width: 768px) and (max-height: 800px) {
     .selected-exercises-list {
-        max-height: 200px !important;
+        max-height: 300px !important;
         overflow-y: auto;
     }
     
