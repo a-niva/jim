@@ -5356,58 +5356,55 @@ input:checked+.toggle-slider:before {
     max-height: 2000px;
 }
 
-/* Fix mobile complet - Liste des exercices */
-@media (max-width: 768px) {
-    .muscle-exercises-grid {
-        grid-template-columns: 1fr !important;
-        max-height: none !important;
-        overflow: visible !important;
-        opacity: 1 !important;
-        display: grid !important;
-    }
-    
-    .muscle-group-section {
-        display: block !important;
-        visibility: visible !important;
-    }
-    
-    .free-exercise-card {
-        display: block !important;
-        opacity: 1 !important;
-    }
-    
-    .muscle-group-header {
-        padding: var(--spacing-xl) var(--spacing-md);
-        min-height: 56px;
-        touch-action: manipulation;
-    }
-    
-    .collapse-icon {
-        min-width: 44px;
-        min-height: 44px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-}
-
-/* Fix pour mobile - Forcer l'affichage des exercices */
+/* Fix mobile : garder collapse fonctionnel mais ouvert par défaut */
 @media (max-width: 768px) {
     .muscle-exercises-grid {
         grid-template-columns: 1fr;
-        /* Force l'affichage sur mobile - MÊME SANS .expanded */
-        max-height: none !important;
-        overflow: visible !important;
+        /* Ouvert par défaut mais collapse possible */
+        max-height: 2000px;
+        transition: max-height 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        overflow: hidden;
     }
-    
+
     .muscle-exercises-grid.expanded {
-        max-height: none !important;
+        max-height: 1500px; /* Ajuster selon vos besoins */
+    }
+
+    .muscle-exercises-grid:not(.expanded) {
+        max-height: 0;
+        overflow: hidden;
+    }
+
+    /* Feedback visuel pour la section active */
+    .muscle-group-section:has(.muscle-exercises-grid.expanded) .muscle-group-header {
+        background: rgba(99, 102, 241, 0.1);
+        border: 1px solid var(--primary);
+    }
+
+    /* Améliorer la visibilité du scroll */
+    .muscle-group-section:has(.muscle-exercises-grid.expanded) {
+        border-radius: var(--radius);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        margin-bottom: var(--spacing-xl);
+    }
+
+    .muscle-group-header {
+        padding: var(--spacing-xl) var(--spacing-md);
+        min-height: 60px;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
     }
     
-    /* NOUVEAU : Force aussi l'affichage des sections */
-    .muscle-group-section {
-        display: block !important;
+    .collapse-icon {
+        min-width: 48px;
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: -12px;
+        border-radius: 50%;
     }
+    
     .fatigue-tracker h3 {
         font-size: var(--font-lg);
         margin-bottom: var(--spacing-sm);
@@ -5415,6 +5412,32 @@ input:checked+.toggle-slider:before {
 
     .fatigue-tracker {
         padding: var(--spacing-lg);
+    }
+    
+    .fatigue-scale {
+        flex-direction: row;
+        gap: var(--spacing-xs);
+    }
+    
+    .fatigue-btn span {
+        display: none;
+    }
+    
+    .workout-actions-header {
+        margin-top: var(--spacing-md);
+        flex-wrap: nowrap;
+        gap: var(--spacing-xs);
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+    }
+
+    .workout-actions-header .btn {
+        font-size: var(--font-xs);
+        padding: var(--spacing-xs) var(--spacing-sm);
+        flex: 1;
+        max-width: 120px;
+        text-align: center;
     }
 }
 

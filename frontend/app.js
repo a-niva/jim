@@ -7733,13 +7733,30 @@ function toggleMuscleGroup(muscle) {
     
     const grid = section.querySelector('.muscle-exercises-grid');
     const icon = section.querySelector('.collapse-icon');
+    const isCurrentlyExpanded = grid.classList.contains('expanded');
     
-    if (grid.classList.contains('expanded')) {
-        grid.classList.remove('expanded');
-        icon.classList.add('rotated');
-    } else {
+    // Fermer TOUS les groupes d'abord
+    document.querySelectorAll('.muscle-exercises-grid.expanded').forEach(otherGrid => {
+        otherGrid.classList.remove('expanded');
+    });
+    document.querySelectorAll('.collapse-icon:not(.rotated)').forEach(otherIcon => {
+        otherIcon.classList.add('rotated');
+    });
+    
+    // Si le groupe cliqué n'était PAS ouvert, l'ouvrir
+    if (!isCurrentlyExpanded) {
         grid.classList.add('expanded');
         icon.classList.remove('rotated');
+        
+        // Scroll vers la section ouverte sur mobile
+        if (window.innerWidth <= 768) {
+            setTimeout(() => {
+                section.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start' 
+                });
+            }, 150);
+        }
     }
 }
 
