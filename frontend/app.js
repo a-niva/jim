@@ -7522,7 +7522,7 @@ async function loadAvailableExercises() {
                                         <polyline points="6 9 12 15 18 9"></polyline>
                                     </svg>
                                 </div>
-                                <div class="muscle-exercises-grid expanded">
+                                <div class="muscle-exercises-grid">
                                     ${muscleExercises.map((exercise, index) => {
                                         // Échapper les caractères problématiques
                                         const safeExerciseData = {
@@ -7735,16 +7735,20 @@ function toggleMuscleGroup(muscle) {
     const icon = section.querySelector('.collapse-icon');
     const isCurrentlyExpanded = grid.classList.contains('expanded');
     
-    // Fermer TOUS les groupes d'abord
-    document.querySelectorAll('.muscle-exercises-grid.expanded').forEach(otherGrid => {
-        otherGrid.classList.remove('expanded');
-    });
-    document.querySelectorAll('.collapse-icon:not(.rotated)').forEach(otherIcon => {
-        otherIcon.classList.add('rotated');
-    });
-    
-    // Si le groupe cliqué n'était PAS ouvert, l'ouvrir
-    if (!isCurrentlyExpanded) {
+    if (isCurrentlyExpanded) {
+        // Fermer ce groupe
+        grid.classList.remove('expanded');
+        icon.classList.add('rotated');
+    } else {
+        // Fermer TOUS les autres groupes d'abord
+        document.querySelectorAll('.muscle-exercises-grid.expanded').forEach(otherGrid => {
+            otherGrid.classList.remove('expanded');
+        });
+        document.querySelectorAll('.collapse-icon:not(.rotated)').forEach(otherIcon => {
+            otherIcon.classList.add('rotated');
+        });
+        
+        // Ouvrir ce groupe
         grid.classList.add('expanded');
         icon.classList.remove('rotated');
         
@@ -7759,7 +7763,6 @@ function toggleMuscleGroup(muscle) {
         }
     }
 }
-
 // Fonction pour sélectionner un exercice depuis une carte
 function selectExerciseFromCard(element) {
     try {
