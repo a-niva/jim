@@ -7028,23 +7028,18 @@ async function loadProgramExercisesList() {
             
             <div class="exercises-list">
                 ${currentWorkoutSession.program.exercises.map((exerciseData, index) => {
-                    // Récupérer l'état de l'exercice
+                    // L'état est toujours accessible avec l'ID original
                     const exerciseState = currentWorkoutSession.programExercises[exerciseData.exercise_id];
                     if (!exerciseState) return '';
                     
-                    // Si l'exercice a été swappé, utiliser le nouvel ID
-                    const effectiveExerciseId = exerciseState.swapped && exerciseState.exercise_id ? 
-                        exerciseState.exercise_id : exerciseData.exercise_id;
+                    // Si swappé, utiliser l'ID du nouvel exercice pour chercher les détails
+                    const lookupId = exerciseState.swapped ? exerciseState.swappedExerciseId : exerciseData.exercise_id;
                     
-                    // Chercher l'exercice avec l'ID effectif
-                    const exercise = exercises.find(ex => ex.id == effectiveExerciseId);
+                    // Chercher l'exercice avec l'ID approprié
+                    const exercise = exercises.find(ex => ex.id === lookupId);
                     if (!exercise) return '';
                     
-                    // Utiliser les données depuis l'état si disponibles (pour les swaps)
-                    const displayName = exerciseState.name || exercise.name;
-                    const displayMuscles = exerciseState.muscle_groups || exercise.muscle_groups;
-                    
-                    const isCurrentExercise = currentExercise && currentExercise.id == effectiveExerciseId;
+                    const isCurrentExercise = currentExercise && currentExercise.id === lookupId;
                     
                     // Le reste du code reste identique...
                     let cardClass = 'exercise-card';
@@ -9970,9 +9965,6 @@ async function updateCompleteSwapState(originalId, newId, newExercise, reason, c
     currentWorkoutSession.programExercises[originalId] = {
         ...originalState,  // Garder l'historique (completedSets, etc.)
         
-        // IMPORTANT : Mettre à jour l'ID pour matcher l'exercice swappé
-        exercise_id: parseInt(newId),
-        
         // Métadonnées du nouvel exercice
         name: newExercise.name,
         instructions: newExercise.instructions,
@@ -9985,6 +9977,7 @@ async function updateCompleteSwapState(originalId, newId, newExercise, reason, c
         // Métadonnées de swap
         swapped: true,
         swappedTo: parseInt(newId),
+        swappedExerciseId: parseInt(newId),  // ID réel de l'exercice swappé
         swappedFrom: parseInt(originalId),
         swapReason: reason,
         swapTimestamp: context.timestamp
