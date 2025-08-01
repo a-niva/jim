@@ -322,6 +322,13 @@
         --spacing-xl: 1.5rem;
         --spacing-2xl: 2rem;
         --radius: 10px
+
+        /* Variables de couleurs pour les niveaux */
+        --level-1-color: #22c55e; /* Vert - niveau faible */
+        --level-2-color: #84cc16; /* Vert-lime - niveau bon */
+        --level-3-color: #3b82f6; /* Bleu - niveau neutre */
+        --level-4-color: #f97316; /* Orange - niveau élevé */
+        --level-5-color: #ef4444; /* Rouge - niveau intense */
     }
 }
 
@@ -3177,10 +3184,6 @@ button:focus-visible,input:focus-visible,select:focus-visible {
     background: var(--primary-dark)
 }
 
-.set-feedback-modern {
-    background: var(--bg-card);
-}
-
 .feedback-section-modern {
     margin-bottom: var(--spacing-xl)
 }
@@ -5521,25 +5524,6 @@ input:checked+.toggle-slider:before {
         max-width: 120px;
         text-align: center;
     }
-
-    .emoji-btn-modern {
-        font-size: var(--font-xl);
-        width: 52px;
-        height: 52px;
-        border-width: 2px;
-        touch-action: manipulation;
-        transition: all .2s ease;
-    }
-    
-    .emoji-btn-modern:active {
-        transform: scale(0.92);
-        transition-duration: .1s;
-    }
-    
-    .emoji-btn-modern.selected {
-        border-width: 3px;
-        box-shadow: 0 4px 12px rgba(0,0,0,.25);
-    }
 }
 
 /* Workout header compact */
@@ -7251,108 +7235,188 @@ input:checked+.toggle-slider:before {
     background: var(--bg-secondary);
 }
 
-/* Touch feedback amélioré */
-@media (hover: none) and (pointer: coarse) {
-    .emoji-btn-modern:hover {
-        transform: none;
-    }
-    
-    .emoji-btn-modern:active {
-        transform: scale(0.92);
-        transition-duration: .1s;
-    }
+/* ===== ÉMOJI BUTTONS FATIGUE/EFFORT - CERCLES COLORÉS ===== */
+/* Variables de couleurs pour les niveaux */
+:root {
+    --level-1-color: #22c55e; /* Vert - niveau faible */
+    --level-2-color: #84cc16; /* Vert-lime - niveau bon */
+    --level-3-color: #3b82f6; /* Bleu - niveau neutre */
+    --level-4-color: #f97316; /* Orange - niveau élevé */
+    --level-5-color: #ef4444; /* Rouge - niveau intense */
 }
 
-
-
-
-
-
-
-
-
-
-/* ===== CORRECTION BOUTONS FEEDBACK MOBILES ===== */
-
+/* Styles de base - ÉTAT INITIAL NEUTRE */
 .emoji-btn-modern {
-    width: 60px;
-    height: 60px;
-    border-radius: 16px;
-    border: 2px solid var(--border);
-    background: var(--bg-secondary) !important;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.08) !important;
     font-size: var(--font-2xl);
     cursor: pointer;
-    transition: all .3s cubic-bezier(.4,0,.2,1);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
     overflow: hidden;
     touch-action: manipulation;
-    backdrop-filter: blur(10px);
+    box-shadow: none;
+    color: rgba(255, 255, 255, 0.8);
+    /* Assurer aspect parfait */
+    min-width: 64px;
+    max-width: 64px;
+    min-height: 64px;
+    max-height: 64px;
+    flex-shrink: 0;
 }
 
-.emoji-btn-modern::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: currentColor;
-    opacity: 0;
-    transition: all .3s ease;
-    border-radius: 50%;
+/* Animation hover discrète - reste neutre */
+.emoji-btn-modern:hover {
+    transform: scale(1.05);
+    background: rgba(255, 255, 255, 0.12) !important;
+    border-color: rgba(255, 255, 255, 0.25);
+    transition-duration: 0.2s;
 }
 
-.emoji-btn-modern:hover::before {
-    opacity: .1;
+/* Animation clic bounce */
+.emoji-btn-modern:active {
+    transform: scale(0.95);
+    transition-duration: 0.1s;
 }
 
+/* ÉTAT SELECTED - Fond coloré selon le niveau */
+.emoji-btn-modern[data-fatigue="1"].selected {
+    background: var(--level-1-color) !important;
+    border-color: var(--level-1-color);
+    color: white;
+}
+
+.emoji-btn-modern[data-fatigue="2"].selected {
+    background: var(--level-2-color) !important;
+    border-color: var(--level-2-color);
+    color: white;
+}
+
+.emoji-btn-modern[data-fatigue="3"].selected {
+    background: var(--level-3-color) !important;
+    border-color: var(--level-3-color);
+    color: white;
+}
+
+.emoji-btn-modern[data-fatigue="4"].selected {
+    background: var(--level-4-color) !important;
+    border-color: var(--level-4-color);
+    color: white;
+}
+
+.emoji-btn-modern[data-fatigue="5"].selected {
+    background: var(--level-5-color) !important;
+    border-color: var(--level-5-color);
+    color: white;
+}
+
+.emoji-btn-modern[data-effort="1"].selected {
+    background: var(--level-1-color) !important;
+    border-color: var(--level-1-color);
+    color: white;
+}
+
+.emoji-btn-modern[data-effort="2"].selected {
+    background: var(--level-2-color) !important;
+    border-color: var(--level-2-color);
+    color: white;
+}
+
+.emoji-btn-modern[data-effort="3"].selected {
+    background: var(--level-3-color) !important;
+    border-color: var(--level-3-color);
+    color: white;
+}
+
+.emoji-btn-modern[data-effort="4"].selected {
+    background: var(--level-4-color) !important;
+    border-color: var(--level-4-color);
+    color: white;
+}
+
+.emoji-btn-modern[data-effort="5"].selected {
+    background: var(--level-5-color) !important;
+    border-color: var(--level-5-color);
+    color: white;
+}
+
+/* État selected - animation */
 .emoji-btn-modern.selected {
-    transform: scale(1.1);
-    border-color: currentColor;
-    background: currentColor !important;
-    color: white !important;
+    transform: scale(1.08);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
 }
 
-.emoji-btn-modern.selected::before {
-    opacity: .2;
+/* Pas d'effet hover sur les boutons sélectionnés */
+.emoji-btn-modern.selected:hover {
+    transform: scale(1.08);
 }
 
-/* Styles mobiles spécifiques */
+/* Layout container optimisé pour éviter l'écrasement */
+.feedback-options-modern {
+    display: flex;
+    gap: var(--spacing-sm);
+    justify-content: center;
+    align-items: center;
+    padding: var(--spacing-sm) 0;
+    /* Empêcher la compression */
+    min-height: 80px;
+    flex-wrap: nowrap;
+}
+
+/* ===== RESPONSIVE MOBILE ===== */
 @media (max-width: 768px) {
     .emoji-btn-modern {
-        width: 52px;
-        height: 52px;
+        width: 56px;
+        height: 56px;
+        min-width: 56px;
+        max-width: 56px;
+        min-height: 56px;
+        max-height: 56px;
         font-size: var(--font-xl);
         border-width: 2px;
-        background: transparent !important;
-        touch-action: manipulation;
     }
     
-    .emoji-btn-modern:active {
-        transform: scale(0.92);
-        transition-duration: .1s;
-    }
-    
-    .emoji-btn-modern.selected {
-        background: currentColor !important;
-        color: white !important;
-        border-width: 3px;
-        box-shadow: 0 4px 12px rgba(0,0,0,.25);
+    .feedback-options-modern {
+        gap: var(--spacing-xs);
+        padding: var(--spacing-xs) var(--spacing-sm);
+        min-height: 70px;
     }
 }
 
-/* Touch feedback amélioré */
+/* Touch devices - Suppression hover */
 @media (hover: none) and (pointer: coarse) {
     .emoji-btn-modern:hover {
         transform: none;
+        background: rgba(255, 255, 255, 0.08) !important;
+        border-color: rgba(255, 255, 255, 0.15);
     }
     
     .emoji-btn-modern:active {
         transform: scale(0.92);
-        transition-duration: .1s;
+        transition-duration: 0.1s;
+    }
+    
+    .emoji-btn-modern.selected:hover {
+        transform: scale(1.08);
+    }
+}
+
+/* Animations réduites pour accessibilité */
+@media (prefers-reduced-motion: reduce) {
+    .emoji-btn-modern {
+        transition: none !important;
+    }
+    
+    .emoji-btn-modern:hover,
+    .emoji-btn-modern:active,
+    .emoji-btn-modern.selected {
+        transform: none !important;
     }
 }
 

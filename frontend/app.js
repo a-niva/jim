@@ -9248,7 +9248,7 @@ function selectFatigue(button, value) {
     // Feedback haptique amélioré
     if (navigator.vibrate) navigator.vibrate([30, 10, 30]);
     
-    // Animation de sélection
+    // Animation de sélection (bounce)
     button.style.transform = 'scale(0.9)';
     setTimeout(() => {
         button.style.transform = '';
@@ -9280,7 +9280,7 @@ function selectEffort(button, value) {
     // Feedback haptique amélioré
     if (navigator.vibrate) navigator.vibrate([30, 10, 30]);
     
-    // Animation de sélection
+    // Animation de sélection (bounce)
     button.style.transform = 'scale(0.9)';
     setTimeout(() => {
         button.style.transform = '';
