@@ -5490,9 +5490,6 @@ input:checked+.toggle-slider:before {
         border-width: 3px;
         box-shadow: 0 4px 12px rgba(0,0,0,.25);
     }
-
-
-
 }
 
 /* Workout header compact */
@@ -7162,4 +7159,118 @@ input:checked+.toggle-slider:before {
         transform: scale(0.92);
         transition-duration: .1s;
     }
+}
+
+
+
+
+
+
+
+
+
+
+/* ===== CORRECTION BOUTONS FEEDBACK MOBILES ===== */
+
+.emoji-btn-modern {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: transparent !important; /* Forcer transparent au lieu de blanc */
+    font-size: var(--font-2xl);
+    cursor: pointer;
+    transition: all .3s cubic-bezier(.4,0,.2,1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.emoji-btn-modern::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: currentColor;
+    opacity: 0;
+    transition: all .3s ease;
+    border-radius: 50%;
+}
+
+.emoji-btn-modern:hover::before {
+    opacity: .1;
+}
+
+.emoji-btn-modern.selected {
+    transform: scale(1.1);
+    border-color: currentColor;
+    background: currentColor !important;
+    color: white !important;
+}
+
+.emoji-btn-modern.selected::before {
+    opacity: .2;
+}
+
+/* Styles mobiles spécifiques */
+@media (max-width: 768px) {
+    .emoji-btn-modern {
+        width: 52px;
+        height: 52px;
+        font-size: var(--font-xl);
+        border-width: 2px;
+        background: transparent !important;
+        touch-action: manipulation;
+    }
+    
+    .emoji-btn-modern:active {
+        transform: scale(0.92);
+        transition-duration: .1s;
+    }
+    
+    .emoji-btn-modern.selected {
+        background: currentColor !important;
+        color: white !important;
+        border-width: 3px;
+        box-shadow: 0 4px 12px rgba(0,0,0,.25);
+    }
+}
+
+/* Touch feedback amélioré */
+@media (hover: none) and (pointer: coarse) {
+    .emoji-btn-modern:hover {
+        transform: none;
+    }
+    
+    .emoji-btn-modern:active {
+        transform: scale(0.92);
+        transition-duration: .1s;
+    }
+}
+
+/* ===== STYLES MODAL ALTERNATIVES CORRIGÉ ===== */
+
+.reason-display {
+    color: var(--text-muted);
+    font-size: var(--font-sm);
+    margin-bottom: var(--spacing-md);
+    font-style: italic;
+}
+
+.current-info {
+    color: var(--primary);
+    font-size: var(--font-sm);
+    margin-bottom: var(--spacing-lg);
+    font-weight: 500;
+}
+
+.help-text {
+    margin: var(--spacing-md) 0 0 0;
+    color: var(--text-muted);
+    font-size: var(--font-sm);
+    text-align: center;
 }

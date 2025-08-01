@@ -10154,65 +10154,57 @@ function showAlternativesFromAPI(originalExerciseId, alternatives, reason) {
     const currentEx = getCurrentExerciseData(originalExerciseId);
     
     const modalContent = `
-        
-            
-                Alternatives pour "${currentEx.name}"
-                Raison : ${getReasonLabel(reason)}
+        <div class="alternatives-modal">
+            <div class="alternatives-container">
+                <h3>Alternatives pour "${currentEx.name}"</h3>
+                <p class="reason-display">Raison : ${getReasonLabel(reason)}</p>
+                <p class="current-info">Actuel : ${currentEx.muscle_groups?.join(', ') || 'N/A'}</p>
                 
-                    Actuel :
-                    ${currentEx.muscle_groups?.join(', ') || 'N/A'}
+                <div class="keep-current-option" onclick="keepCurrentWithAdaptation(${originalExerciseId}, '${reason}')">
+                    <div class="option-icon">✅</div>
+                    <div class="option-content">
+                        <h4>Garder l'exercice actuel</h4>
+                        <p>Continuer avec des adaptations automatiques</p>
+                    </div>
+                    <div class="score-impact neutral">+0</div>
+                </div>
                 
-            
-            
-            
+                <div class="divider-text">
+                    <span>ou choisir une alternative</span>
+                </div>
                 
-                    ✅
-                    
-                        Garder l'exercice actuel
-                        Continuer avec des adaptations automatiques
-                    
-                    +0
-                
-                
-                
-                    ou choisir une alternative
-                
-                
-                
+                <div class="alternatives-list">
                     ${alternatives.map(alt => `
-                        
-                            
-                                ${alt.name}
-                                ${alt.muscle_groups.join(', ')}
-                                
-                                    Difficulté: ${alt.difficulty}
-                                    ${alt.equipment_required?.length ? `• ${alt.equipment_required.join(', ')}` : ''}
-                                
-                                ${alt.reason_match ? `${alt.reason_match}` : ''}
-                            
-                            
-                                
+                        <div class="alternative-option ${alt.score >= 80 ? 'excellent' : alt.score >= 60 ? 'good' : 'low-score'}" 
+                             onclick="selectAlternative(${originalExerciseId}, ${alt.id}, '${reason}')">
+                            <div class="exercise-details">
+                                <h4>${alt.name}</h4>
+                                <div class="muscle-info">${alt.muscle_groups.join(', ')}</div>
+                                <div class="exercise-meta">
+                                    <small>Difficulté: ${alt.difficulty}</small>
+                                    ${alt.equipment_required?.length ? `<small>• ${alt.equipment_required.join(', ')}</small>` : ''}
+                                </div>
+                                ${alt.reason_match ? `<p class="match-reason">${alt.reason_match}</p>` : ''}
+                            </div>
+                            <div class="scoring-info">
+                                <div class="score-indicator ${alt.score >= 80 ? 'excellent' : alt.score >= 60 ? 'good' : 'average'}">
                                     ${alt.score}%
-                                
-                                
+                                </div>
+                                <div class="score-impact ${alt.score_impact > 0 ? 'positive' : alt.score_impact < 0 ? 'negative' : 'neutral'}">
                                     ${alt.score_impact > 0 ? '+' : ''}${alt.score_impact || 0}
-                                
-                                Confiance: ${Math.round((alt.confidence || 0.8) * 100)}%
-                            
-                        
+                                </div>
+                                <div class="confidence">Confiance: ${Math.round((alt.confidence || 0.8) * 100)}%</div>
+                            </div>
+                        </div>
                     `).join('')}
+                </div>
                 
-            
-            
-            
-                
-                    Annuler
-                
-                
-                    💡 Score = compatibilité avec votre programme actuel
-                
-            
-        
+                <div class="modal-actions">
+                    <button class="btn-secondary" onclick="closeModal()">Annuler</button>
+                    <p class="help-text">💡 Score = compatibilité avec votre programme actuel</p>
+                </div>
+            </div>
+        </div>
     `;
     
     showModal('Choisir une alternative', modalContent);
