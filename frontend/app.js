@@ -7522,7 +7522,7 @@ async function loadAvailableExercises() {
                                         <polyline points="6 9 12 15 18 9"></polyline>
                                     </svg>
                                 </div>
-                                <div class="muscle-exercises-grid">
+                                <div class="muscle-exercises-grid expanded">
                                     ${muscleExercises.map((exercise, index) => {
                                         // Échapper les caractères problématiques
                                         const safeExerciseData = {

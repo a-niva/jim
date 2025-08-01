@@ -1953,53 +1953,61 @@ class PlanningManager {
                 return;
             }
             
-            // Mettre à jour schedule.status pour format v2.0
+            // Toujours nettoyer et réinitialiser pour programme
+            window.clearWorkoutState(); // Nettoie tout l'état existant
+            
+            // Réinitialiser complètement pour programme
+            window.currentWorkoutSession = {
+                type: 'program',
+                program: {
+                    ...this.activeProgram,
+                    exercises: session.exercises || []
+                },
+                workout: null,
+                currentExercise: null,
+                currentSetNumber: 1,
+                exerciseOrder: 1,
+                globalSetCount: 0,
+                sessionFatigue: 3,
+                completedSets: [],
+                totalRestTime: 0,
+                totalSetTime: 0,
+                startTime: new Date(),
+                programExercises: {},
+                completedExercisesCount: 0,
+                skipped_exercises: [],
+                session_metadata: {},
+                swaps: [],
+                modifications: [],
+                pendingSwap: null
+            };
+            
+            // Update schedule status
             if (this.activeProgram.format_version === "2.0" && this.activeProgram.schedule) {
-                // Trouver la date de cette session dans le schedule
                 const sessionDate = Object.keys(this.activeProgram.schedule).find(date => {
                     return this.activeProgram.schedule[date].session_id === sessionId;
                 });
                 
                 if (sessionDate) {
-                    // Mettre à jour le status dans schedule
                     try {
                         await window.apiPut(`/api/programs/${this.activeProgram.id}/schedule/${sessionDate}`, {
                             status: "in_progress",
                             started_at: new Date().toISOString()
                         });
-                        
-                        // Mettre à jour localement
                         this.activeProgram.schedule[sessionDate].status = "in_progress";
                         this.activeProgram.schedule[sessionDate].started_at = new Date().toISOString();
-                        
                     } catch (apiError) {
-                        console.warn('❌ Mise à jour schedule impossible:', apiError);
-                        // Continuer malgré l'erreur API
+                        console.warn('❌ Schedule update failed:', apiError);
                     }
                 }
             }
             
-            if (!window.currentWorkoutSession) {
-                // Initialiser si nécessaire
-                window.currentWorkoutSession = {
-                    type: 'program',
-                    program: null,
-                    programExercises: {}
-                };
-            }
-            
-            // Démarrer la séance dans l'interface workout
-            window.currentWorkoutSession.program = {
-                ...this.activeProgram,
-                exercises: session.exercises || []
-            };
-            
-            // Utiliser window. pour accéder à la fonction globale
+            // Maintenant confirmStartProgramWorkout aura le bon état
             await window.confirmStartProgramWorkout();
             window.closeModal();
             
         } catch (error) {
-            console.error('❌ Erreur startSession:', error);
+            console.error('❌ startSession error:', error);
             window.showToast('Erreur lors du démarrage', 'error');
         }
     }
