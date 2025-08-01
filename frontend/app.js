@@ -10142,6 +10142,11 @@ async function proceedToAlternatives(exerciseId, reason) {
         );
         
         if (response && response.alternatives) {
+            // DEBUG : Analyser le format API réel
+            console.log(`🔍 FORMAT API RESPONSE:`, response);
+            console.log(`🔍 FIRST ALTERNATIVE:`, response.alternatives[0]);
+            console.log(`🔍 ALTERNATIVE KEYS:`, Object.keys(response.alternatives[0] || {}));
+            
             showAlternativesFromAPI(exerciseId, response.alternatives, reason);
         } else {
             // Fallback si l'API ne retourne pas d'alternatives
@@ -10157,6 +10162,9 @@ async function proceedToAlternatives(exerciseId, reason) {
 
 function showAlternativesFromAPI(originalExerciseId, alternatives, reason) {
     const currentEx = getCurrentExerciseData(originalExerciseId);
+    
+    console.log(`🔍 ALTERNATIVES DEBUG:`, alternatives);
+    console.log(`🔍 FIRST ALT KEYS:`, Object.keys(alternatives[0] || {}));
     
     const modalContent = `
         <div class="alternatives-modal">
@@ -10179,29 +10187,44 @@ function showAlternativesFromAPI(originalExerciseId, alternatives, reason) {
                 </div>
                 
                 <div class="alternatives-list">
-                    ${alternatives.map(alt => `
-                        <div class="alternative-option ${alt.score >= 80 ? 'excellent' : alt.score >= 60 ? 'good' : 'low-score'}" 
-                             onclick="selectAlternative(${originalExerciseId}, ${alt.id}, '${reason}')">
-                            <div class="exercise-details">
-                                <h4>${alt.name}</h4>
-                                <div class="muscle-info">${alt.muscle_groups.join(', ')}</div>
-                                <div class="exercise-meta">
-                                    <small>Difficulté: ${alt.difficulty}</small>
-                                    ${alt.equipment_required?.length ? `<small>• ${alt.equipment_required.join(', ')}</small>` : ''}
+                    ${alternatives.map(alt => {
+                        // ROBUSTESSE : Gérer plusieurs formats d'ID
+                        const altId = alt.exercise_id || alt.id;
+                        const altName = alt.name || alt.exercise_name || 'Exercice sans nom';
+                        const altMuscles = alt.muscle_groups || [];
+                        const altScore = alt.score || alt.quality_score || 0;
+                        const altEquipment = alt.equipment_required || [];
+                        const altDifficulty = alt.difficulty || 'inconnue';
+                        const altReasonMatch = alt.reason_match || alt.selection_reason || '';
+                        const altConfidence = alt.confidence || 0.8;
+                        const altScoreImpact = alt.score_impact || 0;
+                        
+                        console.log(`🔍 ALT ${altId}: name=${altName}, muscles=${altMuscles}`);
+                        
+                        return `
+                            <div class="alternative-option ${altScore >= 80 ? 'excellent' : altScore >= 60 ? 'good' : 'low-score'}" 
+                                 onclick="selectAlternative(${originalExerciseId}, ${altId}, '${reason}')">
+                                <div class="exercise-details">
+                                    <h4>${altName}</h4>
+                                    <div class="muscle-info">${altMuscles.join(', ')}</div>
+                                    <div class="exercise-meta">
+                                        <small>Difficulté: ${altDifficulty}</small>
+                                        ${altEquipment.length ? `<small>• ${altEquipment.join(', ')}</small>` : ''}
+                                    </div>
+                                    ${altReasonMatch ? `<p class="match-reason">${altReasonMatch}</p>` : ''}
                                 </div>
-                                ${alt.reason_match ? `<p class="match-reason">${alt.reason_match}</p>` : ''}
+                                <div class="scoring-info">
+                                    <div class="score-indicator ${altScore >= 80 ? 'excellent' : altScore >= 60 ? 'good' : 'average'}">
+                                        ${Math.round(altScore)}%
+                                    </div>
+                                    <div class="score-impact ${altScoreImpact > 0 ? 'positive' : altScoreImpact < 0 ? 'negative' : 'neutral'}">
+                                        ${altScoreImpact > 0 ? '+' : ''}${altScoreImpact}
+                                    </div>
+                                    <div class="confidence">Confiance: ${Math.round(altConfidence * 100)}%</div>
+                                </div>
                             </div>
-                            <div class="scoring-info">
-                                <div class="score-indicator ${alt.score >= 80 ? 'excellent' : alt.score >= 60 ? 'good' : 'average'}">
-                                    ${alt.score}%
-                                </div>
-                                <div class="score-impact ${alt.score_impact > 0 ? 'positive' : alt.score_impact < 0 ? 'negative' : 'neutral'}">
-                                    ${alt.score_impact > 0 ? '+' : ''}${alt.score_impact || 0}
-                                </div>
-                                <div class="confidence">Confiance: ${Math.round((alt.confidence || 0.8) * 100)}%</div>
-                            </div>
-                        </div>
-                    `).join('')}
+                        `;
+                    }).join('')}
                 </div>
                 
                 <div class="modal-actions">
