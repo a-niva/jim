@@ -2458,8 +2458,34 @@ async function startProgramWorkout() {
                 const today = new Date().toISOString().split('T')[0];
                 
                 if (activeProgram.schedule[today]) {
-                    // Il y a une séance aujourd'hui
-                    currentWorkoutSession.scheduleDate = today;
+                    // Initialiser complètement currentWorkoutSession pour programme
+                    clearWorkoutState(); // Nettoyer l'état résiduel
+                    currentWorkoutSession = {
+                        type: 'program', // ← CRITIQUE : était "free" !
+                        program: {
+                            ...activeProgram,
+                            exercises: activeProgram.schedule[today].exercises_snapshot || activeProgram.exercises
+                        },
+                        workout: null,
+                        currentExercise: null,
+                        currentSetNumber: 1,
+                        exerciseOrder: 1,
+                        globalSetCount: 0,
+                        sessionFatigue: 3,
+                        completedSets: [],
+                        totalRestTime: 0,
+                        totalSetTime: 0,
+                        startTime: new Date(),
+                        programExercises: {},
+                        completedExercisesCount: 0,
+                        skipped_exercises: [],
+                        session_metadata: {},
+                        swaps: [],
+                        modifications: [],
+                        pendingSwap: null,
+                        scheduleDate: today // Garder la date pour mise à jour status
+                    };
+
                     confirmStartProgramWorkout();
                 } else {
                     // Pas de séance programmée aujourd'hui
