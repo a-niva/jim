@@ -7028,19 +7028,18 @@ async function loadProgramExercisesList() {
             
             <div class="exercises-list">
                 ${currentWorkoutSession.program.exercises.map((exerciseData, index) => {
-                    // D'abord récupérer l'état pour vérifier si swappé
+                    // Récupérer l'état de l'exercice
                     const exerciseState = currentWorkoutSession.programExercises[exerciseData.exercise_id];
                     if (!exerciseState) return '';
                     
-                    // Si swappé, utiliser l'ID du nouvel exercice stocké dans l'état
-                    const effectiveExerciseId = exerciseState.swapped && exerciseState.exercise_id ? 
-                        exerciseState.exercise_id : exerciseData.exercise_id;
+                    // Si l'exercice a été swappé, utiliser le nouvel ID stocké dans l'état
+                    const effectiveExerciseId = exerciseState.swapped ? exerciseState.exercise_id : exerciseData.exercise_id;
                     
                     // Chercher l'exercice avec l'ID effectif
-                    const exercise = exercises.find(ex => ex.id == effectiveExerciseId);
+                    const exercise = exercises.find(ex => ex.id === effectiveExerciseId);
                     if (!exercise) return '';
                     
-                    const isCurrentExercise = currentExercise && currentExercise.id == effectiveExerciseId;
+                    const isCurrentExercise = currentExercise && currentExercise.id === effectiveExerciseId;
                     
                     // Le reste du code reste identique...
                     let cardClass = 'exercise-card';
