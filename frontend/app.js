@@ -4358,6 +4358,12 @@ async function updateSetRecommendations() {
      */
     if (!currentUser || !currentWorkout || !currentExercise) return;
 
+    // Si exercice swappé, utiliser le bon ID pour les recommandations
+    let apiExerciseId = currentExercise.id;
+    if (currentWorkoutSession.type === 'program' && currentWorkoutSession.programExercises[currentExercise.id]?.swapped) {
+        apiExerciseId = currentWorkoutSession.programExercises[currentExercise.id].swappedTo;
+    }
+
     // Eliminer définitivement le bug de diminution du poids lors des toggles ML
     const mlEnabled = currentWorkoutSession.mlSettings?.[currentExercise.id]?.autoAdjust ?? true;
     if (!mlEnabled) {
@@ -4371,7 +4377,7 @@ async function updateSetRecommendations() {
         console.log('🧹 Nettoyage timer isométrique résiduel');
         existingTimer.remove();
     }
-    
+
     const executeBtn = document.getElementById('executeSetBtn');
     if (executeBtn && executeBtn.hasAttribute('data-isometric-disabled') && 
         currentExercise.exercise_type !== 'isometric') {
@@ -7028,20 +7034,25 @@ async function loadProgramExercisesList() {
             
             <div class="exercises-list">
                 ${currentWorkoutSession.program.exercises.map((exerciseData, index) => {
-                    // L'état est toujours accessible avec l'ID original
+                    // Récupérer l'état de l'exercice
                     const exerciseState = currentWorkoutSession.programExercises[exerciseData.exercise_id];
                     if (!exerciseState) return '';
                     
-                    // Si swappé, utiliser l'ID du nouvel exercice pour chercher les détails
-                    const lookupId = exerciseState.swapped ? exerciseState.swappedExerciseId : exerciseData.exercise_id;
+                    // Si l'exercice a été swappé, utiliser le nouvel ID
+                    const effectiveExerciseId = exerciseState.swapped && exerciseState.swappedTo ? 
+                        exerciseState.swappedTo : exerciseData.exercise_id;
                     
-                    // Chercher l'exercice avec l'ID approprié
-                    const exercise = exercises.find(ex => ex.id === lookupId);
+                    // Chercher l'exercice avec l'ID effectif
+                    const exercise = exercises.find(ex => ex.id == effectiveExerciseId);
                     if (!exercise) return '';
                     
-                    const isCurrentExercise = currentExercise && currentExercise.id === lookupId;
+                    // Variables pour l'affichage (déclarées correctement)
+                    const displayName = exerciseState.swapped ? exerciseState.name : exercise.name;
+                    const displayMuscles = exerciseState.swapped ? exerciseState.muscle_groups : exercise.muscle_groups;
                     
-                    // Le reste du code reste identique...
+                    const isCurrentExercise = currentExercise && currentExercise.id == effectiveExerciseId;
+                    
+                    // Le reste du code existant...
                     let cardClass = 'exercise-card';
                     let indexContent = index + 1;
                     let actionIcon = '→';
@@ -7195,7 +7206,7 @@ async function selectProgramExercise(exerciseId, isInitialLoad = false) {
     try {
         // Récupérer les détails du nouvel exercice
         const exercises = await apiGet(`/api/exercises?user_id=${currentUser.id}`);
-        const newExercise = exercises.find(ex => ex.id === exerciseId);
+        const newExercise = exercises.find(ex => ex.id === apiExerciseId);
         
         if (!newExercise) {
             showToast('Exercice non trouvé', 'error');
@@ -7206,7 +7217,9 @@ async function selectProgramExercise(exerciseId, isInitialLoad = false) {
         currentWorkoutSession.type = 'program';
         
         // Utiliser selectExercise qui existe déjà avec les bons paramètres
-        const exerciseState = currentWorkoutSession.programExercises[exerciseId];
+        // Si l'exercice a été swappé, utiliser le nouvel ID pour l'API
+        const apiExerciseId = exerciseState.swapped && exerciseState.swappedTo ? 
+            exerciseState.swappedTo : exerciseId;
         exerciseState.startTime = exerciseState.startTime || new Date();
         
         // Utiliser l'objet complet avec tous les champs
@@ -10640,30 +10653,32 @@ function canSwapExercise(exerciseId) {
 
 
 function getCurrentExerciseData(exerciseId) {
-    if (!currentWorkoutSession.program || !currentWorkoutSession.program.exercises) {
+    if (!currentWorkoutSession.program || !currentWorkoutSession.programExercises) {
         return null;
     }
     
-    // D'abord chercher dans programExercises (état actuel avec swaps)
+    // Récupérer l'état de l'exercice
     const exerciseState = currentWorkoutSession.programExercises[exerciseId];
-    if (exerciseState && exerciseState.name) {
+    if (!exerciseState) {
+        // Fallback sur program.exercises
+        const exerciseData = currentWorkoutSession.program.exercises.find(ex => ex.exercise_id == exerciseId);
+        if (!exerciseData) return null;
+        
         return {
             exercise_id: exerciseId,
-            name: exerciseState.name,
-            sets: exerciseState.totalSets || 3,
-            state: exerciseState
+            name: exerciseData.name || `Exercice ${exerciseId}`,
+            sets: exerciseData.sets || 3,
+            state: null
         };
     }
     
-    // Fallback sur program.exercises si pas trouvé
-    const exerciseData = currentWorkoutSession.program.exercises.find(ex => ex.exercise_id === exerciseId);
-    if (!exerciseData) return null;
-    
+    // Utiliser les données de l'état (qui contient les infos de swap)
     return {
         exercise_id: exerciseId,
-        name: exerciseData.name || `Exercice ${exerciseId}`,
-        sets: exerciseData.sets || exerciseState?.totalSets || 3,
-        state: exerciseState
+        name: exerciseState.name || `Exercice ${exerciseId}`,
+        sets: exerciseState.totalSets || 3,
+        state: exerciseState,
+        muscle_groups: exerciseState.muscle_groups
     };
 }
 
