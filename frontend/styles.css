@@ -3312,10 +3312,6 @@ button:focus-visible,input:focus-visible,select:focus-visible {
     }
 }
 
-.set-feedback-modern .rest-timer {
-    font-size: 3rem
-}
-
 .rest-progress {
     margin: var(--spacing-lg)0;
     width: 100%
