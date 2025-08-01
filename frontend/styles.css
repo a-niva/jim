@@ -1631,7 +1631,7 @@ input:focus,select:focus,textarea:focus {
 .current-exercise {
     background: var(--bg-card);
     border-radius: var(--radius);
-    padding: var(--spacing-xl);
+    padding: var(--spacing-xs);
     margin-bottom: var(--spacing-lg);
     border: 1px solid var(--border)
 }
@@ -2521,6 +2521,10 @@ button:focus-visible,input:focus-visible,select:focus-visible {
         display: none;
     }
 
+    .current-exercise {
+        padding: var(--spacing-xs);
+    }
+
     .exercise-header {
         flex-direction: column;
         gap: var(--spacing-md);
@@ -2528,7 +2532,8 @@ button:focus-visible,input:focus-visible,select:focus-visible {
     }
 
     .exercise-instructions {
-        max-width: 100%
+        max-width: 100%;
+        font-size: var(--font-xs);
     }
 
     .ml-toggle-container {
