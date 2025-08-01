@@ -6481,16 +6481,65 @@ input:checked+.toggle-slider:before {
 
 /* Responsive */
 @media (max-width: 768px) {
+    .alternatives-modal {
+        width: 100vw;
+        max-width: 100vw;
+        margin: 0;
+        border-radius: 0;
+        max-height: 100vh;
+        overflow-y: auto;
+    }
+    
+    .alternatives-container {
+        padding: 1rem;
+        max-height: calc(100vh - 2rem);
+        overflow-y: auto;
+    }
+    
     .alternative-option {
         flex-direction: column;
         align-items: stretch;
         gap: 0.75rem;
+        padding: 0.875rem;
     }
     
     .scoring-info {
         flex-direction: row;
         justify-content: space-between;
-        min-width: auto;
+        align-items: center;
+        padding: 0.5rem;
+        background: var(--bg-secondary);
+        border-radius: 6px;
+    }
+    
+    .exercise-details h4 {
+        font-size: 0.95rem;
+    }
+    
+    .muscle-info {
+        font-size: 0.85rem;
+    }
+    
+    .exercise-meta {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .score-indicator {
+        font-size: 1rem;
+        padding: 0.2rem 0.4rem;
+    }
+    
+    .keep-current-option {
+        flex-direction: row;
+        align-items: center;
+        padding: 0.875rem;
+    }
+    
+    .modal-actions {
+        padding: 1rem;
+        border-top: 1px solid var(--border);
+        margin-top: 1rem;
     }
 }
 

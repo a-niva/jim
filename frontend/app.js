@@ -10195,12 +10195,12 @@ function showAlternativesFromAPI(originalExerciseId, alternatives, reason) {
                         const altId = alt.exercise_id || alt.id;
                         const altName = alt.name || alt.exercise_name || 'Exercice sans nom';
                         const altMuscles = alt.muscle_groups || [];
-                        const altScore = alt.score || alt.quality_score || 0;
+                        const altScore = (alt.score || alt.quality_score || 0) * 100;
                         const altEquipment = alt.equipment_required || [];
                         const altDifficulty = alt.difficulty || 'inconnue';
                         const altReasonMatch = alt.reason_match || alt.selection_reason || '';
                         const altConfidence = alt.confidence || 0.8;
-                        const altScoreImpact = alt.score_impact || 0;
+                        const altScoreImpact = alt.score_impact;
                         
                         console.log(`🔍 ALT ${altId}: name=${altName}, muscles=${altMuscles}`);
                         

@@ -2910,6 +2910,10 @@ async def get_exercise_alternatives(
     alternatives = []
     for item in top_alternatives:
         ex = item['exercise']
+        # Calculer le score impact vs exercice original
+        source_score = score_exercise_alternative(source_exercise, source_exercise, user_equipment, recent_exercise_ids)
+        score_impact = round((item['score'] - source_score) * 100)  # Différence en points de pourcentage
+        
         alternatives.append({
             'exercise_id': ex.id,
             'name': ex.name,
@@ -2917,6 +2921,7 @@ async def get_exercise_alternatives(
             'equipment_required': ex.equipment_required or [],
             'difficulty': ex.difficulty,
             'score': round(item['score'], 2),
+            'score_impact': score_impact,
             'reason_match': get_reason_explanation(reason, ex.difficulty, source_exercise.difficulty)
         })
     
