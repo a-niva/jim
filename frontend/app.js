@@ -9245,14 +9245,21 @@ function getSetTimerSeconds() {
 }
 
 function selectFatigue(button, value) {
-    // AJOUT : Feedback haptique mobile
-    if (navigator.vibrate) navigator.vibrate(50);
+    // Feedback haptique amélioré
+    if (navigator.vibrate) navigator.vibrate([30, 10, 30]);
+    
+    // Animation de sélection
+    button.style.transform = 'scale(0.9)';
+    setTimeout(() => {
+        button.style.transform = '';
+    }, 150);
+    
     // Désélectionner tous les boutons de fatigue
     document.querySelectorAll('[data-fatigue]').forEach(btn => {
         btn.classList.remove('selected');
     });
     
-    // Sélectionner le bouton cliqué
+    // Sélectionner le bouton cliqué avec animation
     button.classList.add('selected');
     
     // Stocker la valeur
@@ -9270,8 +9277,15 @@ function selectFatigue(button, value) {
 }
 
 function selectEffort(button, value) {
-    // AJOUT : Feedback haptique mobile  
-    if (navigator.vibrate) navigator.vibrate(50);
+    // Feedback haptique amélioré
+    if (navigator.vibrate) navigator.vibrate([30, 10, 30]);
+    
+    // Animation de sélection
+    button.style.transform = 'scale(0.9)';
+    setTimeout(() => {
+        button.style.transform = '';
+    }, 150);
+    
     // Désélectionner tous les boutons d'effort
     document.querySelectorAll('[data-effort]').forEach(btn => {
         btn.classList.remove('selected');
