@@ -7068,12 +7068,12 @@ async function loadProgramExercisesList() {
                             <div class="card-content">
                                 <div class="exercise-index">${indexContent}</div>
                                 <div class="exercise-info">
-                                    <div class="exercise-name">${exercise.name}</div>
+                                    <div class="exercise-name">${exerciseData.swappedData ? exerciseData.swappedData.name : exercise.name}</div>
                                     ${exercise.mlReason ? `<span class="ml-badge" title="${exercise.mlReason}">
                                         <i class="fas fa-brain"></i> ${exercise.mlScore ? Math.round(exercise.mlScore * 100) + '%' : 'ML'}
                                     </span>` : ''}
                                     <div class="exercise-details">
-                                        <span class="muscle-groups">${exercise.muscle_groups.join(' • ')}</span>
+                                        <span class="muscle-groups">${(exerciseData.swappedData ? exerciseData.swappedData.muscle_groups : exercise.muscle_groups).join(' • ')}</span>
                                         <span class="sets-indicator">${exerciseData.sets || 3}×${exerciseData.target_reps || exercise.default_reps_min}-${exerciseData.target_reps || exercise.default_reps_max}</span>
                                     </div>
                                 </div>
@@ -9935,7 +9935,10 @@ async function executeSwapTransition(originalExerciseId, newExerciseId, reason) 
             await updateCurrentExerciseUI(newExercise);
         }
 
-        // 8. NETTOYAGE ET CONFIRMATION
+        // 8. MISE À JOUR DE L'AFFICHAGE
+        loadProgramExercisesList();
+
+        // 9. NETTOYAGE ET CONFIRMATION
         currentWorkoutSession.pendingSwap = null;
         showToast(`✅ ${newExercise.name} remplace ${context.originalExerciseState.name || 'l\'exercice'}`, 'success');
         
@@ -9982,14 +9985,14 @@ async function updateCompleteSwapState(originalId, newId, newExercise, reason, c
         swapTimestamp: context.timestamp
     };
 
-    // 3. Mettre à jour le programme principal
+    // 3. Mettre à jour le programme principal SANS changer l'ID
     const exerciseIndex = currentWorkoutSession.program.exercises.findIndex(
         ex => ex.exercise_id == originalId
     );
     
     if (exerciseIndex !== -1) {
-        currentWorkoutSession.program.exercises[exerciseIndex] = {
-            ...currentWorkoutSession.program.exercises[exerciseIndex],
+        // GARDER l'exercise_id original, ajouter les données swappées
+        currentWorkoutSession.program.exercises[exerciseIndex].swappedData = {
             exercise_id: newId,
             name: newExercise.name,
             instructions: newExercise.instructions,
@@ -10645,13 +10648,19 @@ function getCurrentExerciseData(exerciseId) {
     
     const exerciseState = currentWorkoutSession.programExercises[exerciseId];
     
+    // Utiliser les données swappées si elles existent
+    const displayData = exerciseData.swappedData || exerciseData;
+    
     return {
         exercise_id: exerciseId,
-        name: exerciseData.name || `Exercice ${exerciseId}`,
+        name: displayData.name || `Exercice ${exerciseId}`,
         sets: exerciseData.sets || exerciseState?.totalSets || 3,
-        state: exerciseState
+        state: exerciseState,
+        muscle_groups: displayData.muscle_groups
     };
 }
+
+
 
 // ===== MODULE 2 : GESTES MOBILES =====
 
