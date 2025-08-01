@@ -1611,7 +1611,7 @@ input:focus,select:focus,textarea:focus {
 
 .fatigue-btn {
     background: var(--bg-light);
-    border: 2px solid var(--border);
+    border: 2px solid var(--bg-light);
     border-radius: var(--radius);
     padding: var(--spacing-md) var(--spacing-sm);
     cursor: pointer;
@@ -2458,7 +2458,7 @@ button:focus-visible,input:focus-visible,select:focus-visible {
     }
 }
 
-@media (max-width:767px) {
+@media (max-width:768px) {
     .header {
         padding: var(--spacing-sm)0
     }
