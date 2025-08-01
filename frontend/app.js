@@ -7028,10 +7028,16 @@ async function loadProgramExercisesList() {
             
             <div class="exercises-list">
                 ${currentWorkoutSession.program.exercises.map((exerciseData, index) => {
-                    const exercise = exercises.find(ex => ex.id === exerciseData.exercise_id);
-                    if (!exercise) return '';
-                    
+                    // Utiliser l'état pour obtenir l'ID effectif (original ou swappé)
                     const exerciseState = currentWorkoutSession.programExercises[exerciseData.exercise_id];
+                    if (!exerciseState) return '';
+                    
+                    // Si l'exercice a été swappé, utiliser le nouvel ID
+                    const effectiveExerciseId = exerciseState.swapped ? exerciseState.swappedTo : exerciseData.exercise_id;
+                    
+                    // Chercher l'exercice avec l'ID effectif
+                    const exercise = exercises.find(ex => ex.id == effectiveExerciseId);
+                    if (!exercise) return '';
                     const isCurrentExercise = currentExercise && currentExercise.id === exerciseData.exercise_id;
                     
                     // Classes et état
@@ -9921,8 +9927,8 @@ async function executeSwapTransition(originalExerciseId, newExerciseId, reason) 
 
         // 5. RÉCUPÉRER MÉTADONNÉES DU NOUVEL EXERCICE
         const exercises = await apiGet(`/api/exercises?user_id=${currentUser.id}`);
-        const newExercise = exercises.find(ex => ex.id == newExerciseId);
-        
+        const newExercise = exercises.find(ex => ex.id === parseInt(newExerciseId));
+                
         if (!newExercise) {
             throw new Error(`Exercice ${newExerciseId} non trouvé`);
         }
@@ -9949,22 +9955,15 @@ async function executeSwapTransition(originalExerciseId, newExerciseId, reason) 
 }
 
 async function updateCompleteSwapState(originalId, newId, newExercise, reason, context) {
-    // 1. Marquer l'original comme swappé
+    // 1. Mettre à jour l'état existant (PAS créer un nouveau)
     const originalState = currentWorkoutSession.programExercises[originalId];
-    originalState.swapped = true;
-    originalState.swappedTo = newId;
-    originalState.swapReason = reason;
-    originalState.swapTimestamp = context.timestamp;
-
-    // 2. Créer l'état du nouvel exercice (PROPRE)
-    currentWorkoutSession.programExercises[newId] = {
-        // Préserver l'historique de progression
-        completedSets: originalState.completedSets || 0,
-        totalSets: originalState.totalSets || 3,
-        isCompleted: originalState.isCompleted || false,
-        index: originalState.index,
-        startTime: originalState.startTime || new Date(),
-        endTime: null,
+    
+    // Garder l'historique de progression mais mettre à jour TOUT le reste
+    currentWorkoutSession.programExercises[originalId] = {
+        ...originalState,  // Garder l'historique (completedSets, etc.)
+        
+        // IMPORTANT : Mettre à jour l'ID pour matcher l'exercice swappé
+        exercise_id: parseInt(newId),
         
         // Métadonnées du nouvel exercice
         name: newExercise.name,
@@ -9976,13 +9975,14 @@ async function updateCompleteSwapState(originalId, newId, newExercise, reason, c
         weight_type: newExercise.weight_type,
         
         // Métadonnées de swap
-        swapped: false,
-        swappedFrom: originalId,
+        swapped: true,
+        swappedTo: parseInt(newId),
+        swappedFrom: parseInt(originalId),
         swapReason: reason,
         swapTimestamp: context.timestamp
     };
 
-    // 3. Mettre à jour le programme principal
+    // 2. Mettre à jour le programme principal
     const exerciseIndex = currentWorkoutSession.program.exercises.findIndex(
         ex => ex.exercise_id == originalId
     );
@@ -10001,8 +10001,7 @@ async function updateCompleteSwapState(originalId, newId, newExercise, reason, c
         };
     }
 
-    // 4. Tracking des swaps
-    if (!currentWorkoutSession.swaps) currentWorkoutSession.swaps = [];
+    // 3. Tracking des swaps
     currentWorkoutSession.swaps.push({
         original_id: originalId,
         new_id: newId,
@@ -10013,7 +10012,7 @@ async function updateCompleteSwapState(originalId, newId, newExercise, reason, c
         new_name: newExercise.name
     });
 
-    // 5. Tracking des modifications
+    // 4. Tracking des modifications
     if (!currentWorkoutSession.modifications) currentWorkoutSession.modifications = [];
     currentWorkoutSession.modifications.push({
         type: 'swap',
