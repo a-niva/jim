@@ -7028,19 +7028,21 @@ async function loadProgramExercisesList() {
             
             <div class="exercises-list">
                 ${currentWorkoutSession.program.exercises.map((exerciseData, index) => {
-                    // Utiliser l'état pour obtenir l'ID effectif (original ou swappé)
+                    // D'abord récupérer l'état pour vérifier si swappé
                     const exerciseState = currentWorkoutSession.programExercises[exerciseData.exercise_id];
                     if (!exerciseState) return '';
                     
-                    // Si l'exercice a été swappé, utiliser le nouvel ID
-                    const effectiveExerciseId = exerciseState.swapped ? exerciseState.swappedTo : exerciseData.exercise_id;
+                    // Si swappé, utiliser l'ID du nouvel exercice stocké dans l'état
+                    const effectiveExerciseId = exerciseState.swapped && exerciseState.exercise_id ? 
+                        exerciseState.exercise_id : exerciseData.exercise_id;
                     
                     // Chercher l'exercice avec l'ID effectif
                     const exercise = exercises.find(ex => ex.id == effectiveExerciseId);
                     if (!exercise) return '';
-                    const isCurrentExercise = currentExercise && currentExercise.id === exerciseData.exercise_id;
                     
-                    // Classes et état
+                    const isCurrentExercise = currentExercise && currentExercise.id == effectiveExerciseId;
+                    
+                    // Le reste du code reste identique...
                     let cardClass = 'exercise-card';
                     let indexContent = index + 1;
                     let actionIcon = '→';
@@ -10191,7 +10193,9 @@ function showAlternativesFromAPI(originalExerciseId, alternatives, reason) {
                         const altId = alt.exercise_id || alt.id;
                         const altName = alt.name || alt.exercise_name || 'Exercice sans nom';
                         const altMuscles = alt.muscle_groups || [];
-                        const altScore = alt.score || alt.quality_score || 0;
+                        // Convertir le score (0-1 ou 0-5) en pourcentage
+                        const rawScore = alt.score || alt.quality_score || 0;
+                        const altScore = rawScore <= 5 ? rawScore * 20 : rawScore;
                         const altEquipment = alt.equipment_required || [];
                         const altDifficulty = alt.difficulty || 'inconnue';
                         const altReasonMatch = alt.reason_match || alt.selection_reason || '';
@@ -10216,10 +10220,12 @@ function showAlternativesFromAPI(originalExerciseId, alternatives, reason) {
                                     <div class="score-indicator ${altScore >= 80 ? 'excellent' : altScore >= 60 ? 'good' : 'average'}">
                                         ${Math.round(altScore)}%
                                     </div>
-                                    <div class="score-impact ${altScoreImpact > 0 ? 'positive' : altScoreImpact < 0 ? 'negative' : 'neutral'}">
+                                    ${altScoreImpact !== 0 ? `
+                                    <div class="score-impact ${altScoreImpact > 0 ? 'positive' : 'negative'}">
                                         ${altScoreImpact > 0 ? '+' : ''}${altScoreImpact}
                                     </div>
-                                    <div class="confidence">Confiance: ${Math.round(altConfidence * 100)}%</div>
+                                    ` : ''}
+                                    ${altConfidence > 0 ? `<div class="confidence">Confiance: ${Math.round(altConfidence * 100)}%</div>` : ''}
                                 </div>
                             </div>
                         `;
