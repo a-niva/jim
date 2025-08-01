@@ -7252,7 +7252,7 @@ input:checked+.toggle-slider:before {
     }
 }
 
-/* ===== STYLES MODAL ALTERNATIVES CORRIGÉ ===== */
+/* ===== FIX MODAL ALTERNATIVES ===== */
 
 .reason-display {
     color: var(--text-muted);
@@ -7273,4 +7273,15 @@ input:checked+.toggle-slider:before {
     color: var(--text-muted);
     font-size: var(--font-sm);
     text-align: center;
+}
+
+/* Fix modal width */
+.alternatives-modal {
+    max-width: 600px;
+    width: 95%;
+    padding: 0;
+}
+
+.alternatives-container {
+    padding: var(--spacing-lg);
 }

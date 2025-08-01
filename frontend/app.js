@@ -9841,132 +9841,156 @@ function changeExercise() {
 }
 
 async function initiateSwap(exerciseId) {
+    console.log(`🔍 INITIATE SWAP for exercise ${exerciseId}`);
+    
     if (!canSwapExercise(exerciseId)) {
         showToast('Impossible de changer cet exercice maintenant', 'warning');
         return;
     }
-    
+
+    // Créer le contexte de swap avec l'état actuel
+    const originalState = currentWorkoutSession.programExercises[exerciseId];
+    if (!originalState) {
+        showToast('État de l\'exercice non trouvé', 'error');
+        return;
+    }
+
     const swapContext = {
-        originalExerciseId: exerciseId,
-        originalExerciseState: {...currentWorkoutSession.programExercises[exerciseId]},
-        currentSetNumber: currentSet,
+        originalExerciseId: parseInt(exerciseId),
+        originalExerciseState: {...originalState},
+        currentSetNumber: currentSet || 1,
         timestamp: new Date()
     };
-    
+
     currentWorkoutSession.pendingSwap = swapContext;
+    console.log(`📝 SWAP CONTEXT CREATED:`, swapContext);
+    
     showSwapReasonModal(exerciseId);
 }
 
 async function executeSwapTransition(originalExerciseId, newExerciseId, reason) {
-    const swapContext = currentWorkoutSession.pendingSwap;
-    if (!swapContext || swapContext.originalExerciseId !== originalExerciseId) {
-        showToast('Erreur : contexte de swap invalide', 'error');
-        return;
+    console.log(`🔄 SWAP START: ${originalExerciseId} → ${newExerciseId} (${reason})`);
+    
+    // 1. VALIDATION INITIALE
+    if (!originalExerciseId || !newExerciseId || !reason) {
+        throw new Error(`Paramètres manquants: original=${originalExerciseId}, new=${newExerciseId}, reason=${reason}`);
     }
+
+    if (!currentWorkout?.id) {
+        throw new Error('Aucune séance active');
+    }
+
+    // 2. RÉCUPÉRER LE CONTEXTE SWAP
+    const swapContext = currentWorkoutSession.pendingSwap;
+    if (!swapContext || swapContext.originalExerciseId != originalExerciseId) {
+        // Créer un contexte de fallback si manquant
+        const originalState = currentWorkoutSession.programExercises[originalExerciseId];
+        if (!originalState) {
+            throw new Error(`État de l'exercice ${originalExerciseId} non trouvé`);
+        }
+        
+        console.warn('⚠️ swapContext manquant, création de fallback');
+        const fallbackContext = {
+            originalExerciseId: parseInt(originalExerciseId),
+            originalExerciseState: {...originalState},
+            currentSetNumber: currentSet || 1,
+            timestamp: new Date()
+        };
+        currentWorkoutSession.pendingSwap = fallbackContext;
+    }
+
+    const context = currentWorkoutSession.pendingSwap;
     
     try {
-        // 1. Validation backend
+        // 3. VALIDATION BACKEND
         const canSwap = await apiGet(
             `/api/workouts/${currentWorkout.id}/exercises/${originalExerciseId}/can-swap?user_id=${currentUser.id}`
         );
         
         if (!canSwap.allowed) {
-            showToast(`Swap refusé : ${canSwap.reason}`, 'error');
-            return;
+            throw new Error(`Swap refusé: ${canSwap.reason}`);
         }
-        
-        // 2. Tracking backend
+
+        // 4. TRACKING BACKEND (avec tous les paramètres requis)
         await apiPost(`/api/workouts/${currentWorkout.id}/track-swap`, {
-            original_exercise_id: originalExerciseId,
-            new_exercise_id: newExerciseId,
+            original_exercise_id: parseInt(originalExerciseId),
+            new_exercise_id: parseInt(newExerciseId),
             reason: reason,
-            sets_completed_before: swapContext.originalExerciseState.completedSets
+            sets_completed_before: context.originalExerciseState.completedSets || 0
         });
-        
-        // 3. Mise à jour état local SANS modifier changeExercise()
-        await updateLocalStateAfterSwap(originalExerciseId, newExerciseId, reason, swapContext);
-        
-        // 4. Mettre à jour affichage principal si exercice en cours
-        if (currentExercise && currentExercise.id === originalExerciseId) {
-            // Récupérer les métadonnées du nouvel exercice
-            const exercises = await apiGet(`/api/exercises?user_id=${currentUser.id}`);
-            const newExercise = exercises.find(ex => ex.id === newExerciseId);
-            
-            if (newExercise) {
-                // CORRECTION 1 : Mettre à jour currentExercise immédiatement
-                currentExercise = newExercise;
-                
-                // CORRECTION 2 : Mettre à jour l'affichage de base
-                const exerciseNameElement = document.getElementById('exerciseName');
-                if (exerciseNameElement) {
-                    exerciseNameElement.textContent = newExercise.name;
-                }
-                
-                const instructionsElement = document.getElementById('exerciseInstructions');
-                if (instructionsElement && newExercise.instructions) {
-                    instructionsElement.textContent = newExercise.instructions;
-                }
-                
-                // CORRECTION 3 : Forcer la configuration UI AVANT selectProgramExercise
-                try {
-                    const exerciseType = getExerciseType(newExercise);
-                    const fallbackRecommendations = {
-                        weight_recommendation: newExercise.default_weight || 20,
-                        reps_recommendation: newExercise.default_reps_min || 10,
-                        confidence: 0.5,
-                        reasoning: "Exercice swappé - valeurs par défaut"
-                    };
-                    
-                    console.log('🔧 SWAP - Configuration UI forcée pour:', newExercise.name);
-                    await configureUIForExerciseType(exerciseType, fallbackRecommendations);
-                } catch (error) {
-                    console.error('Erreur configuration UI swap:', error);
-                    // Fallback minimal
-                    applyDefaultValues(newExercise);
-                }
-                
-                // CORRECTION 4 : Appeler selectProgramExercise après l'UI
-                await selectProgramExercise(newExerciseId);
-            }
-        }
 
-        // 5. Mettre à jour affichage de la liste
-        showProgramExerciseList();
-        
-        // 6. Nettoyer le contexte
-        currentWorkoutSession.pendingSwap = null;
-        
-        showToast(`Exercice changé avec succès`, 'success');
-        
-    } catch (error) {
-        console.error('Erreur executeSwapTransition:', error);
-        showToast('Impossible de changer l\'exercice', 'error');
-        currentWorkoutSession.pendingSwap = null;
-    }
-}
-
-async function updateLocalStateAfterSwap(originalExerciseId, newExerciseId, reason, swapContext) {
-    try {
-        // 1. Marquer l'original comme swappé
-        currentWorkoutSession.programExercises[originalExerciseId].swapped = true;
-        currentWorkoutSession.programExercises[originalExerciseId].swappedTo = newExerciseId;
-        currentWorkoutSession.programExercises[originalExerciseId].swapReason = reason;
-        
-        // 2. Récupérer les métadonnées du nouvel exercice
+        // 5. RÉCUPÉRER MÉTADONNÉES DU NOUVEL EXERCICE
         const exercises = await apiGet(`/api/exercises?user_id=${currentUser.id}`);
-        const newExercise = exercises.find(ex => ex.id === newExerciseId);
+        const newExercise = exercises.find(ex => ex.id == newExerciseId);
         
         if (!newExercise) {
             throw new Error(`Exercice ${newExerciseId} non trouvé`);
         }
+
+        // 6. MISE À JOUR ÉTAT LOCAL COMPLET
+        await updateCompleteSwapState(originalExerciseId, newExerciseId, newExercise, reason, context);
+
+        // 7. MISE À JOUR UI SI EXERCICE ACTUEL
+        if (currentExercise && currentExercise.id == originalExerciseId) {
+            await updateCurrentExerciseUI(newExercise);
+        }
+
+        // 8. NETTOYAGE ET CONFIRMATION
+        currentWorkoutSession.pendingSwap = null;
+        showToast(`✅ ${newExercise.name} remplace ${context.originalExerciseState.name || 'l\'exercice'}`, 'success');
         
-        // 3. Créer l'état pour le nouvel exercice avec les bonnes métadonnées
-        currentWorkoutSession.programExercises[newExerciseId] = {
-            ...swapContext.originalExerciseState,
-            swapped: false,
-            swappedFrom: originalExerciseId,
-            swapReason: reason,
-            // Mettre à jour les métadonnées avec celles du nouvel exercice
+        console.log(`✅ SWAP COMPLETE: ${originalExerciseId} → ${newExerciseId}`);
+
+    } catch (error) {
+        console.error('❌ SWAP FAILED:', error);
+        currentWorkoutSession.pendingSwap = null;
+        throw error; // Re-lancer pour que selectAlternative puisse l'attraper
+    }
+}
+
+async function updateCompleteSwapState(originalId, newId, newExercise, reason, context) {
+    // 1. Marquer l'original comme swappé
+    const originalState = currentWorkoutSession.programExercises[originalId];
+    originalState.swapped = true;
+    originalState.swappedTo = newId;
+    originalState.swapReason = reason;
+    originalState.swapTimestamp = context.timestamp;
+
+    // 2. Créer l'état du nouvel exercice (PROPRE)
+    currentWorkoutSession.programExercises[newId] = {
+        // Préserver l'historique de progression
+        completedSets: originalState.completedSets || 0,
+        totalSets: originalState.totalSets || 3,
+        isCompleted: originalState.isCompleted || false,
+        index: originalState.index,
+        startTime: originalState.startTime || new Date(),
+        endTime: null,
+        
+        // Métadonnées du nouvel exercice
+        name: newExercise.name,
+        instructions: newExercise.instructions,
+        muscle_groups: newExercise.muscle_groups,
+        equipment_required: newExercise.equipment_required,
+        difficulty: newExercise.difficulty,
+        exercise_type: newExercise.exercise_type,
+        weight_type: newExercise.weight_type,
+        
+        // Métadonnées de swap
+        swapped: false,
+        swappedFrom: originalId,
+        swapReason: reason,
+        swapTimestamp: context.timestamp
+    };
+
+    // 3. Mettre à jour le programme principal
+    const exerciseIndex = currentWorkoutSession.program.exercises.findIndex(
+        ex => ex.exercise_id == originalId
+    );
+    
+    if (exerciseIndex !== -1) {
+        currentWorkoutSession.program.exercises[exerciseIndex] = {
+            ...currentWorkoutSession.program.exercises[exerciseIndex],
+            exercise_id: newId,
             name: newExercise.name,
             instructions: newExercise.instructions,
             muscle_groups: newExercise.muscle_groups,
@@ -9975,94 +9999,75 @@ async function updateLocalStateAfterSwap(originalExerciseId, newExerciseId, reas
             exercise_type: newExercise.exercise_type,
             weight_type: newExercise.weight_type
         };
-        
-        // 4. Mettre à jour l'exercice dans le programme avec métadonnées complètes
-        const exerciseIndex = currentWorkoutSession.program.exercises.findIndex(
-            ex => ex.exercise_id === originalExerciseId
-        );
-        
-        if (exerciseIndex !== -1) {
-            currentWorkoutSession.program.exercises[exerciseIndex] = {
-                ...currentWorkoutSession.program.exercises[exerciseIndex],
-                exercise_id: newExerciseId,
-                name: newExercise.name,
-                instructions: newExercise.instructions,
-                muscle_groups: newExercise.muscle_groups,
-                equipment_required: newExercise.equipment_required,
-                difficulty: newExercise.difficulty,
-                exercise_type: newExercise.exercise_type,
-                weight_type: newExercise.weight_type
-            };
+    }
+
+    // 4. Tracking des swaps
+    if (!currentWorkoutSession.swaps) currentWorkoutSession.swaps = [];
+    currentWorkoutSession.swaps.push({
+        original_id: originalId,
+        new_id: newId,
+        reason: reason,
+        timestamp: context.timestamp,
+        sets_before: context.originalExerciseState.completedSets || 0,
+        original_name: originalState.name,
+        new_name: newExercise.name
+    });
+
+    // 5. Tracking des modifications
+    if (!currentWorkoutSession.modifications) currentWorkoutSession.modifications = [];
+    currentWorkoutSession.modifications.push({
+        type: 'swap',
+        timestamp: context.timestamp,
+        original: originalId,
+        replacement: newId,
+        reason: reason,
+        sets_completed_before: context.originalExerciseState.completedSets || 0
+    });
+
+    console.log(`📊 SWAP STATE UPDATED - Total swaps: ${currentWorkoutSession.swaps.length}`);
+}
+
+async function updateCurrentExerciseUI(newExercise) {
+    try {
+        // 1. Mettre à jour currentExercise globale
+        currentExercise = newExercise;
+
+        // 2. Mettre à jour l'affichage de base
+        const exerciseNameEl = document.getElementById('exerciseName');
+        if (exerciseNameEl) exerciseNameEl.textContent = newExercise.name;
+
+        const instructionsEl = document.getElementById('exerciseInstructions');
+        if (instructionsEl && newExercise.instructions) {
+            instructionsEl.textContent = newExercise.instructions;
         }
-        
-        // 5. Initialiser le tableau des swaps si nécessaire
-        if (!currentWorkoutSession.swaps) {
-            currentWorkoutSession.swaps = [];
-        }
-        
-        // 6. Ajouter au tracking des swaps
-        currentWorkoutSession.swaps.push({
-            original_id: originalExerciseId,
-            new_id: newExerciseId,
-            reason: reason,
-            timestamp: swapContext.timestamp,
-            sets_before: swapContext.originalExerciseState.completedSets
-        });
-        
-        // 7. Initialiser le tableau des modifications si nécessaire
-        if (!currentWorkoutSession.modifications) {
-            currentWorkoutSession.modifications = [];
-        }
-        
-        // 8. Ajouter au tracking des modifications globales
-        currentWorkoutSession.modifications.push({
-            type: 'swap',
-            timestamp: swapContext.timestamp,
-            original: originalExerciseId,
-            replacement: newExerciseId,
-            reason: reason,
-            sets_completed_before: swapContext.originalExerciseState.completedSets
-        });
-        
-        console.log(`✅ MODULE 3 - Swap local state updated: ${originalExerciseId} → ${newExerciseId} (${reason})`);
-        console.log(`📊 MODULE 3 - Total swaps cette séance: ${currentWorkoutSession.swaps?.length || 0}`);
-        
-    } catch (error) {
-        console.error('Erreur mise à jour état local après swap:', error);
-        
-        // Fallback : mise à jour minimale sans métadonnées
-        currentWorkoutSession.programExercises[originalExerciseId].swapped = true;
-        currentWorkoutSession.programExercises[originalExerciseId].swappedTo = newExerciseId;
-        currentWorkoutSession.programExercises[originalExerciseId].swapReason = reason;
-        
-        // Créer l'état basique pour le nouvel exercice
-        currentWorkoutSession.programExercises[newExerciseId] = {
-            ...swapContext.originalExerciseState,
-            swapped: false,
-            swappedFrom: originalExerciseId,
-            swapReason: reason
+
+        // 3. Reconfigurer l'UI pour le type d'exercice
+        const exerciseType = getExerciseType(newExercise);
+        const fallbackRecommendations = {
+            weight_recommendation: newExercise.default_weight || 20,
+            reps_recommendation: newExercise.default_reps_min || 10,
+            confidence: 0.5,
+            reasoning: "Exercice swappé - valeurs par défaut"
         };
+
+        await configureUIForExerciseType(exerciseType, fallbackRecommendations);
         
-        // Mettre à jour seulement l'ID dans le programme
-        const exerciseIndex = currentWorkoutSession.program.exercises.findIndex(
-            ex => ex.exercise_id === originalExerciseId
-        );
-        if (exerciseIndex !== -1) {
-            currentWorkoutSession.program.exercises[exerciseIndex].exercise_id = newExerciseId;
+        // 4. Recharger les recommandations ML si possible
+        try {
+            if (currentWorkout?.id) {
+                await updateSetRecommendations();
+            }
+        } catch (error) {
+            console.warn('Impossible de recharger les recommandations ML:', error);
         }
-        
-        // Tracking basique
-        if (!currentWorkoutSession.swaps) currentWorkoutSession.swaps = [];
-        currentWorkoutSession.swaps.push({
-            original_id: originalExerciseId,
-            new_id: newExerciseId,
-            reason: reason,
-            timestamp: swapContext.timestamp,
-            sets_before: swapContext.originalExerciseState.completedSets
-        });
-        
-        // Re-lancer l'erreur pour que la fonction appelante soit au courant
-        throw error;
+
+        console.log(`🔄 UI UPDATED for: ${newExercise.name}`);
+
+    } catch (error) {
+        console.error('Erreur mise à jour UI:', error);
+        // Fallback: au moins mettre à jour le nom
+        const exerciseNameEl = document.getElementById('exerciseName');
+        if (exerciseNameEl) exerciseNameEl.textContent = newExercise.name;
     }
 }
 
@@ -10258,10 +10263,18 @@ async function selectAlternative(originalExerciseId, newExerciseId, reason) {
     closeModal();
     
     try {
+        // Validation avant tracking
+        if (!originalExerciseId || !newExerciseId || !reason) {
+            throw new Error(`Paramètres manquants: original=${originalExerciseId}, new=${newExerciseId}, reason=${reason}`);
+        }
+        
+        console.log(`🔄 Swap: ${originalExerciseId} → ${newExerciseId} (${reason})`);
         await executeSwapTransition(originalExerciseId, newExerciseId, reason);
+        
+        showToast('Exercice changé avec succès', 'success');
     } catch (error) {
         console.error('Erreur lors du swap:', error);
-        showToast('Impossible de changer l\'exercice', 'error');
+        showToast('Impossible de changer l\'exercice : ' + error.message, 'error');
     }
 }
 
@@ -10298,49 +10311,6 @@ function getReasonLabel(reason) {
         'too_hard': 'Trop difficile'
     };
     return labels[reason] || reason;
-}
-
-async function executeSwap(originalExerciseId, newExerciseId, reason) {
-    const originalState = currentWorkoutSession.programExercises[originalExerciseId];
-    const setsCompleted = originalState.completedSets;
-    
-    try {
-        // 1. Validation côté serveur
-        const canSwap = await apiGet(
-            `/api/workouts/${currentWorkout.id}/exercises/${originalExerciseId}/can-swap?user_id=${currentUser.id}`
-        );
-        
-        if (!canSwap.allowed) {
-            showToast(`Swap refusé : ${canSwap.reason}`, 'error');
-            return;
-        }
-        
-        // 2. Tracking backend
-        await apiPost(`/api/workouts/${currentWorkout.id}/track-swap`, {
-            original_exercise_id: originalExerciseId,
-            new_exercise_id: newExerciseId,
-            reason: reason,
-            sets_completed_before: setsCompleted
-        });
-        
-        // 3. Mettre à jour l'état local
-        updateLocalStateAfterSwap(originalExerciseId, newExerciseId, reason, setsCompleted);
-        
-        // 4. Si c'est l'exercice en cours, le recharger
-        if (currentExercise && currentExercise.id === originalExerciseId) {
-            await changeExercise(newExerciseId, false, true); // isSwap = true
-        }
-        
-        // 5. Rafraîchir la liste des exercices
-        showProgramExerciseList();
-        
-        showToast(`Exercice changé avec succès`, 'success');
-        
-    } catch (error) {
-        console.error('Erreur executeSwap:', error);
-        showToast('Impossible de changer l\'exercice', 'error');
-        throw error;
-    }
 }
 
 function adjustRestTime(deltaSeconds) {
