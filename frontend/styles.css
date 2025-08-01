@@ -2745,7 +2745,7 @@ button:focus-visible,input:focus-visible,select:focus-visible {
 
     .free-exercise-card {
         animation: slideIn .3s ease forwards;
-        opacity: 0
+        opacity: 1
     }
 
     .free-exercise-card:nth-child(1) {
