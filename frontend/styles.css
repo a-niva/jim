@@ -5456,7 +5456,7 @@ input:checked+.toggle-slider:before {
 
     .muscle-exercises-grid.expanded {
         /* Ouvert si .expanded présent */
-        max-height: 2000px;
+        max-height: none;
         overflow: visible;
     }
 
