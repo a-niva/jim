@@ -2607,15 +2607,77 @@ button:focus-visible,input:focus-visible,select:focus-visible {
     }
 
     .rest-content {
-        padding: var(--spacing-xl)
+        padding: var(--spacing-lg);
     }
-
+    
     .rest-timer {
-        font-size: 3rem
+        font-size: 2.5rem;
+        margin: var(--spacing-sm) 0;
+        line-height: 1;
+    }
+    
+    .rest-actions {
+        gap: var(--spacing-sm);
+        justify-content: center;
+        margin-top: var(--spacing-md);
+    }
+    
+    /* Timer repos dans feedback */
+    .set-feedback-modern .rest-content {
+        text-align: center;
+        max-width: 280px;
+        margin: 0 auto;
+        padding: var(--spacing-md);
+    }
+    
+    .set-feedback-modern .rest-content h3 {
+        font-size: var(--font-base);
+        margin-bottom: var(--spacing-sm);
+        white-space: nowrap;
     }
 
-    .rest-actions {
-        flex-direction: column
+    /* Fix bouton validation énorme */
+    .validate-button {
+        width: auto;
+        max-width: 240px;
+        margin: var(--spacing-lg) auto 0;
+        padding: var(--spacing-sm) var(--spacing-xl);
+        font-size: var(--font-base);
+        border-radius: 25px;
+    }
+    
+    /* Fix input-zone qui cache boutons +/- */
+    .input-zone {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-sm);
+        padding: 0 var(--spacing-xs);
+    }
+    
+    .input-card {
+        padding: var(--spacing-sm);
+        max-width: 100%;
+    }
+    
+    .input-control {
+        gap: var(--spacing-xs);
+        justify-content: space-between;
+    }
+    
+    .stepper {
+        width: 32px;
+        height: 32px;
+        font-size: var(--font-sm);
+        flex-shrink: 0;
+    }
+    
+    .input-value {
+        min-width: 60px;
+        max-width: 100px;
+    }
+    
+    .input-value input {
+        width: 100%;
+        font-size: var(--font-xl);
     }
 
     .ml-explanation {
@@ -5409,6 +5471,28 @@ input:checked+.toggle-slider:before {
         max-width: 120px;
         text-align: center;
     }
+
+    .emoji-btn-modern {
+        font-size: var(--font-xl);
+        width: 52px;
+        height: 52px;
+        border-width: 2px;
+        touch-action: manipulation;
+        transition: all .2s ease;
+    }
+    
+    .emoji-btn-modern:active {
+        transform: scale(0.92);
+        transition-duration: .1s;
+    }
+    
+    .emoji-btn-modern.selected {
+        border-width: 3px;
+        box-shadow: 0 4px 12px rgba(0,0,0,.25);
+    }
+
+
+
 }
 
 /* Workout header compact */
@@ -7066,4 +7150,16 @@ input:checked+.toggle-slider:before {
     padding: 1rem;
     border-radius: var(--radius);
     background: var(--bg-secondary);
+}
+
+/* Touch feedback amélioré */
+@media (hover: none) and (pointer: coarse) {
+    .emoji-btn-modern:hover {
+        transform: none;
+    }
+    
+    .emoji-btn-modern:active {
+        transform: scale(0.92);
+        transition-duration: .1s;
+    }
 }

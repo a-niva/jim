@@ -4530,6 +4530,16 @@ async function fetchMLRecommendations() {
         actual_rest_duration: set.actual_rest_duration_seconds
     }));
 
+    // Validation sécurisée de currentWorkout avant appel API
+    if (!currentWorkout?.id) {
+        console.error('❌ currentWorkout.id manquant:', {
+            currentWorkout: currentWorkout,
+            currentExercise: currentExercise?.id,
+            workoutState: workoutState.current
+        });
+        throw new Error('Aucune séance active - recommandations ML indisponibles');
+    }
+
     return await apiPost(`/api/workouts/${currentWorkout.id}/recommendations`, {
         exercise_id: currentExercise.id,
         set_number: currentSet,
@@ -9235,6 +9245,8 @@ function getSetTimerSeconds() {
 }
 
 function selectFatigue(button, value) {
+    // AJOUT : Feedback haptique mobile
+    if (navigator.vibrate) navigator.vibrate(50);
     // Désélectionner tous les boutons de fatigue
     document.querySelectorAll('[data-fatigue]').forEach(btn => {
         btn.classList.remove('selected');
@@ -9258,6 +9270,8 @@ function selectFatigue(button, value) {
 }
 
 function selectEffort(button, value) {
+    // AJOUT : Feedback haptique mobile  
+    if (navigator.vibrate) navigator.vibrate(50);
     // Désélectionner tous les boutons d'effort
     document.querySelectorAll('[data-effort]').forEach(btn => {
         btn.classList.remove('selected');
@@ -9343,6 +9357,11 @@ async function saveFeedbackAndRest() {
         console.log('📤 Envoi série:', setData);
 
         // Enregistrer la série
+        if (!currentWorkout?.id) {
+            console.error('❌ currentWorkout.id manquant pour enregistrement série');
+            throw new Error('Aucune séance active - impossible d\'enregistrer la série');
+        }
+
         const savedSet = await apiPost(`/api/workouts/${currentWorkout.id}/sets`, setData);
         
         // Ajouter aux séries complétées
