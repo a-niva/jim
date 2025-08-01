@@ -3179,7 +3179,6 @@ button:focus-visible,input:focus-visible,select:focus-visible {
 
 .set-feedback-modern {
     background: var(--bg-card);
-    padding: var(--spacing-lg)
 }
 
 .feedback-section-modern {
