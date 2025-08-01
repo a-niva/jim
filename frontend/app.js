@@ -7788,9 +7788,24 @@ function toggleMuscleGroup(muscle) {
         grid.classList.add('expanded');
         icon.classList.remove('rotated');
         
-        // Scroll vers la section ouverte sur mobile
+        // NOUVEAU : Redéclencher l'animation des cartes sur mobile
         if (window.innerWidth <= 768) {
             setTimeout(() => {
+                const cards = grid.querySelectorAll('.free-exercise-card');
+                cards.forEach((card, index) => {
+                    card.style.opacity = '0';
+                    card.style.animation = 'none';
+                    
+                    // Force reflow
+                    card.offsetHeight;
+                    
+                    // Redémarrer l'animation avec délai
+                    setTimeout(() => {
+                        card.style.animation = `slideIn 0.3s ease forwards`;
+                        card.style.animationDelay = `${index * 0.05}s`;
+                    }, 10);
+                });
+                
                 section.scrollIntoView({ 
                     behavior: 'smooth', 
                     block: 'start' 
