@@ -3650,6 +3650,29 @@ async function selectExercise(exercise, skipValidation = false) {
         currentExercise = exercise;
     }
     
+    console.log('[VOICE DEBUG] ML Toggle exists:', !!document.querySelector('.ml-toggle-container'));
+
+    // Afficher l'icône vocal si compatible
+    console.log('[VOICE DEBUG] Checking voice conditions...');
+    // Afficher l'icône vocal si compatible
+    if (currentUser.voice_counting_enabled && 
+        exercise.exercise_type !== 'isometric' &&
+        /Android|iPhone/i.test(navigator.userAgent)) {
+        
+        const voiceToggleHtml = renderVoiceToggle(exercise.id);
+        const exerciseHeader = document.querySelector('#currentExercise .exercise-header');
+        
+        if (exerciseHeader) {
+            // Nettoyer toute icône vocale existante
+            const existingVoice = document.querySelector('.voice-toggle-container');
+            if (existingVoice) existingVoice.remove();
+            
+            // Insérer directement dans l'header
+            exerciseHeader.insertAdjacentHTML('beforeend', voiceToggleHtml);
+            console.log('[VOICE DEBUG] Voice toggle inserted in header');
+        }
+    }
+
     currentSet = 1;
     currentWorkoutSession.currentExercise = exercise;
     currentWorkoutSession.currentSetNumber = 1;
@@ -3691,28 +3714,6 @@ async function selectExercise(exercise, skipValidation = false) {
             const existingToggle = exerciseHeader.querySelector('.ml-toggle-container');
             if (existingToggle) existingToggle.remove();
             exerciseHeader.insertAdjacentHTML('beforeend', mlToggleHtml);
-        }
-    }
-    console.log('[VOICE DEBUG] ML Toggle exists:', !!document.querySelector('.ml-toggle-container'));
-
-    // Afficher l'icône vocal si compatible
-    console.log('[VOICE DEBUG] Checking voice conditions...');
-    // Afficher l'icône vocal si compatible
-    if (currentUser.voice_counting_enabled && 
-        exercise.exercise_type !== 'isometric' &&
-        /Android|iPhone/i.test(navigator.userAgent)) {
-        
-        const voiceToggleHtml = renderVoiceToggle(exercise.id);
-        const exerciseHeader = document.querySelector('#currentExercise .exercise-header');
-        
-        if (exerciseHeader) {
-            // Nettoyer toute icône vocale existante
-            const existingVoice = document.querySelector('.voice-toggle-container');
-            if (existingVoice) existingVoice.remove();
-            
-            // Insérer directement dans l'header
-            exerciseHeader.insertAdjacentHTML('beforeend', voiceToggleHtml);
-            console.log('[VOICE DEBUG] Voice toggle inserted in header');
         }
     }
     
