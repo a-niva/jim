@@ -362,12 +362,27 @@ function updateVoiceDisplay(count) {
  * @returns {void}
  */
 function handleVoiceError(error) {
-    // TODO: Analyser error.error (no-speech, audio-capture, etc.)
-    // TODO: Afficher toast approprié selon le type d'erreur
-    // TODO: Désactiver reconnaissance si erreur critique
-    // TODO: Log pour debugging
+    console.error('[Voice] Erreur de reconnaissance:', error.error);
     
-    console.log('[Voice] Erreur reconnaissance (placeholder):', error);
+    // Gérer les différents types d'erreurs
+    switch (error.error) {
+        case 'not-allowed':
+            console.warn('[Voice] Permission microphone refusée');
+            if (typeof window.showToast === 'function') {
+                window.showToast('Permission microphone requise pour le comptage vocal', 'warning');
+            }
+            break;
+        case 'no-speech':
+            console.log('[Voice] Aucune parole détectée - normal');
+            break;
+        case 'audio-capture':
+            console.warn('[Voice] Problème audio détecté');
+            break;
+        default:
+            console.warn('[Voice] Erreur inconnue:', error.error);
+    }
+    
+    voiceRecognitionActive = false;
 }
 
 /**
@@ -377,11 +392,22 @@ function handleVoiceError(error) {
  * @returns {void}
  */
 function handleVoiceEnd() {
-    // TODO: Vérifier si arrêt intentionnel ou accidentel
-    // TODO: Redémarrer si encore en EXECUTING state
-    // TODO: Log état final
+    console.log('[Voice] Reconnaissance terminée naturellement');
     
-    console.log('[Voice] Reconnaissance terminée (placeholder)');
+    // Redémarrer automatiquement si l'exercice est encore en cours
+    if (voiceRecognitionActive && recognition) {
+        setTimeout(() => {
+            if (voiceRecognitionActive) {
+                try {
+                    recognition.start();
+                    console.log('[Voice] Redémarrage automatique');
+                } catch (error) {
+                    console.warn('[Voice] Impossible de redémarrer:', error);
+                    voiceRecognitionActive = false;
+                }
+            }
+        }, 100);
+    }
 }
 
 // ===== FONCTIONS UTILITAIRES =====
@@ -394,12 +420,14 @@ function handleVoiceEnd() {
  * @returns {number|null} Tempo moyen en ms, null si < 2 timestamps
  */
 function calculateAvgTempo(timestamps) {
-    // TODO: Valider input (au moins 2 timestamps)
-    // TODO: Calculer intervalles entre timestamps consécutifs
-    // TODO: Retourner moyenne arrondie
+    if (!timestamps || timestamps.length < 2) return null;
     
-    console.log('[Voice] Calcul tempo (placeholder):', timestamps);
-    return null;
+    const intervals = [];
+    for (let i = 1; i < timestamps.length; i++) {
+        intervals.push(timestamps[i] - timestamps[i-1]);
+    }
+    
+    return Math.round(intervals.reduce((a, b) => a + b) / intervals.length);
 }
 
 /**
