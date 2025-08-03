@@ -3607,9 +3607,8 @@ function resetAnimationState() {
 async function selectExercise(exercise, skipValidation = false) {
     // Pour le setup initial, on peut skipper la validation
     if (!skipValidation && !validateSessionState(true)) return;
-    // Réinitialiser l'état de l'animation au cas où
-    resetAnimationState();
     
+    // Réinitialiser le poids réel
     currentExerciseRealWeight = 0;
     console.log('[SelectExercise] Poids réel réinitialisé');
     
@@ -3686,6 +3685,7 @@ async function selectExercise(exercise, skipValidation = false) {
             exerciseHeader.insertAdjacentHTML('beforeend', mlToggleHtml);
         }
     }
+    
     // Gérer l'affichage du bouton "Changer d'exercice" selon le mode
     const changeExerciseBtn = document.querySelector('.btn-change-exercise');
     if (changeExerciseBtn) {
@@ -3693,10 +3693,25 @@ async function selectExercise(exercise, skipValidation = false) {
     }
     
     updateSeriesDots();
-   
-    // Appeler les recommandations dans un try-catch pour éviter les interruptions
+    
+    // AJOUT CRITIQUE : Toujours configurer l'UI, même en mode manuel
+    const exerciseType = getExerciseType(exercise);
+    const defaultRecommendations = {
+        weight_recommendation: exercise.default_weight || getBarWeight(exercise),
+        reps_recommendation: exercise.default_reps_min || 10,
+        confidence: 0.5,
+        reasoning: "Valeurs par défaut"
+    };
+    
+    // Configurer l'UI (charge les poids disponibles)
+    await configureUIForExerciseType(exerciseType, defaultRecommendations);
+    
+    // Appeler les recommandations ML seulement si activé
     try {
-        await updateSetRecommendations();
+        const mlEnabled = currentWorkoutSession.mlSettings[exercise.id]?.autoAdjust ?? true;
+        if (mlEnabled) {
+            await updateSetRecommendations();
+        }
     } catch (error) {
         console.error('Erreur recommandations:', error);
         // Continuer malgré l'erreur
@@ -4293,7 +4308,7 @@ function applyWeightStrategy(mlRecommendation, sessionSets, currentUser, current
     let strategyUsed = 'variable_weight';
     let userOverride = false;
     
-    // Appliquer la stratégie poids fixes si configurée
+    // Appliquer la stratégie poids fixes si configurée ET qu'on a déjà des séries
     if (!currentUser.prefer_weight_changes_between_sets && sessionSets.length > 0) {
         const lastSet = sessionSets[sessionSets.length - 1];
         if (lastSet?.weight) {
@@ -4301,6 +4316,9 @@ function applyWeightStrategy(mlRecommendation, sessionSets, currentUser, current
             strategyUsed = 'fixed_weight';
         }
     }
+    
+    // IMPORTANT : Le mode "poids fixes" n'empêche PAS l'ajustement manuel !
+    // Il empêche seulement le changement AUTOMATIQUE entre les séries
     
     // Validation critique : poids minimum = poids de la barre
     const barWeight = getBarWeight(currentExercise);
@@ -4774,14 +4792,14 @@ function applyFallbackRecommendations() {
 // ===== COUCHE 6 : CONFIGURATION EXERCICES =====
 
 async function configureWeighted(elements, exercise, weightRec) {
-    /**
-     * VERSION REFACTORISÉE : Configuration UI pure, validation déplacée en amont
-     */
     console.log('[ConfigureWeighted] Start:', {
         exercise: exercise.name,
         weightRec,
         equipment: exercise.equipment_required
     });
+    
+    // AJOUT pour debug
+    console.log('[ConfigureWeighted] SessionStorage avant:', sessionStorage.getItem('availableWeights'));
     
     // Initialiser le système charge/total
     initializeWeightMode(exercise);
@@ -4837,6 +4855,7 @@ async function configureWeighted(elements, exercise, weightRec) {
         realWeight: currentExerciseRealWeight,
         availableCount: availableWeights.length
     });
+    console.log('[ConfigureWeighted] SessionStorage après:', sessionStorage.getItem('availableWeights'));
 }
 
 // ===== SYSTÈME D'APPUI LONG =====
@@ -8988,8 +9007,25 @@ function adjustWeightUp(step = 1) {
     if (!validateSessionState()) return;
     
     let weights = JSON.parse(sessionStorage.getItem('availableWeights') || '[]');
-    if (weights.length === 0) {
-        showToast('Poids disponibles non chargés', 'warning');
+    
+    // AJOUT : Si pas de poids disponibles, essayer de les charger
+    if (weights.length === 0 && currentExercise) {
+        console.warn('[AdjustWeight] Tentative de récupération des poids...');
+        // Forcer la configuration de l'UI pour charger les poids
+        const exerciseType = getExerciseType(currentExercise);
+        const defaultRec = {
+            weight_recommendation: currentExerciseRealWeight || getBarWeight(currentExercise),
+            reps_recommendation: 10
+        };
+        configureUIForExerciseType(exerciseType, defaultRec)
+            .then(() => {
+                // Réessayer après chargement
+                adjustWeightUp(step);
+            })
+            .catch(error => {
+                console.error('[AdjustWeight] Erreur chargement poids:', error);
+                showToast('Erreur lors du chargement des poids', 'error');
+            });
         return;
     }
     
@@ -9064,10 +9100,28 @@ function adjustWeightDown(step = 1) {
     if (!validateSessionState()) return;
     
     let weights = JSON.parse(sessionStorage.getItem('availableWeights') || '[]');
-    if (weights.length === 0) {
-        showToast('Poids disponibles non chargés', 'warning');
+    
+    // AJOUT : Si pas de poids disponibles, essayer de les charger
+    if (weights.length === 0 && currentExercise) {
+        console.warn('[AdjustWeight] Tentative de récupération des poids...');
+        // Forcer la configuration de l'UI pour charger les poids
+        const exerciseType = getExerciseType(currentExercise);
+        const defaultRec = {
+            weight_recommendation: currentExerciseRealWeight || getBarWeight(currentExercise),
+            reps_recommendation: 10
+        };
+        configureUIForExerciseType(exerciseType, defaultRec)
+            .then(() => {
+                // Réessayer après chargement
+                adjustWeightDown(step);
+            })
+            .catch(error => {
+                console.error('[AdjustWeight] Erreur chargement poids:', error);
+                showToast('Erreur lors du chargement des poids', 'error');
+            });
         return;
     }
+    
     
     // Filtrer pour les dumbbells si nécessaire
     if (currentExercise?.equipment_required?.includes('dumbbells')) {
