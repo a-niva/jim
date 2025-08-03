@@ -7504,3 +7504,140 @@ input:checked+.toggle-slider:before {
         max-width: 100%;
     }
 }
+
+
+
+
+
+/* ===== COMPTAGE VOCAL - STYLES DE BASE ===== */
+
+/**
+ * Container de l'icône micro dans l'interface d'exercice
+ * Placé à côté du toggle ML pour cohérence visuelle
+ */
+.voice-toggle-container {
+    margin-left: 1rem;
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+}
+
+/**
+ * Icône microphone - États inactif/actif
+ * Utilise les variables CSS existantes du projet
+ */
+.voice-toggle-container i {
+    font-size: 1.2rem;
+    color: var(--text-muted);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+/**
+ * État actif du microphone (reconnaissance en cours)
+ * Animation pulse pour feedback visuel continu
+ */
+.voice-toggle-container i.active {
+    color: var(--danger);
+    animation: pulse 1s infinite;
+}
+
+/**
+ * Indicateur de comptage vocal en temps réel
+ * Badge affiché sur l'icône micro avec le nombre courant
+ */
+.voice-indicator {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background: var(--danger);
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: bold;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/**
+ * Animation du champ de répétitions lors de mise à jour vocale
+ * Feedback visuel quand le comptage vocal modifie la valeur
+ */
+#setReps.voice-updated {
+    animation: voiceUpdate 0.3s ease;
+}
+
+/**
+ * Animation de mise à jour - Scale et couleur temporaires
+ * Attire l'attention sur la valeur qui vient de changer
+ */
+@keyframes voiceUpdate {
+    0% { 
+        transform: scale(1); 
+        color: var(--text);
+    }
+    50% { 
+        transform: scale(1.2); 
+        color: var(--primary);
+        font-weight: bold;
+    }
+    100% { 
+        transform: scale(1); 
+        color: var(--text);
+    }
+}
+
+/**
+ * Animation pulse pour l'icône micro active
+ * Indique que la reconnaissance vocale écoute
+ */
+@keyframes pulse {
+    0% { 
+        opacity: 1; 
+        transform: scale(1);
+    }
+    50% { 
+        opacity: 0.7; 
+        transform: scale(1.05);
+    }
+    100% { 
+        opacity: 1; 
+        transform: scale(1);
+    }
+}
+
+/**
+ * Responsive - Ajustements pour mobile
+ * Taille légèrement réduite sur petits écrans
+ */
+@media (max-width: 480px) {
+    .voice-toggle-container {
+        margin-left: 0.75rem;
+    }
+    
+    .voice-toggle-container i {
+        font-size: 1.1rem;
+    }
+    
+    .voice-indicator {
+        width: 20px;
+        height: 20px;
+        font-size: 0.7rem;
+        top: -8px;
+        right: -8px;
+    }
+}
+
+/**
+ * État hover pour feedback utilisateur
+ * Indication visuelle que l'icône est cliquable
+ */
+.voice-toggle-container i:hover:not(.active) {
+    color: var(--text);
+    transform: scale(1.1);
+}
