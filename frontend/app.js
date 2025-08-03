@@ -93,15 +93,53 @@ function transitionTo(state) {
         if (el) el.style.display = 'none';
     });
     
-    // Afficher selon l'état
+    // Gestion de la reconnaissance vocale selon l'état
     switch(state) {
         case WorkoutStates.READY:
             if (elements.executeBtn) elements.executeBtn.style.display = 'block';
             if (elements.inputSection) elements.inputSection.style.display = 'block';
             break;
             
+        case WorkoutStates.EXECUTING:
+            // Démarrage automatique de la reconnaissance vocale si conditions remplies
+            if (currentUser?.voice_counting_enabled && 
+                currentExercise?.exercise_type !== 'isometric' &&
+                /Android|iPhone/i.test(navigator.userAgent) &&
+                window.startVoiceRecognition) {
+                
+                // Vérifier que la reconnaissance n'est pas déjà active
+                const isAlreadyActive = window.voiceRecognitionActive ? 
+                                       window.voiceRecognitionActive() : false;
+                
+                if (!isAlreadyActive) {
+                    try {
+                        window.startVoiceRecognition();
+                        if (typeof updateVoiceToggleUI === 'function') {
+                            updateVoiceToggleUI(true);
+                        }
+                        console.log('[Voice] Reconnaissance vocale démarrée automatiquement');
+                    } catch (error) {
+                        console.error('[Voice] Erreur au démarrage automatique:', error);
+                    }
+                }
+            }
+            break;
+            
         case WorkoutStates.FEEDBACK:
             if (elements.setFeedback) elements.setFeedback.style.display = 'block';
+            
+            // Arrêt de la reconnaissance vocale à la fin de la série
+            if (window.voiceRecognitionActive && window.voiceRecognitionActive()) {
+                try {
+                    window.stopVoiceRecognition();
+                    if (typeof updateVoiceToggleUI === 'function') {
+                        updateVoiceToggleUI(false);
+                    }
+                    console.log('[Voice] Reconnaissance vocale arrêtée (feedback)');
+                } catch (error) {
+                    console.error('[Voice] Erreur lors de l\'arrêt:', error);
+                }
+            }
             break;
             
         case WorkoutStates.RESTING:
@@ -111,6 +149,19 @@ function transitionTo(state) {
             
         case WorkoutStates.COMPLETED:
             // Géré par les fonctions spécifiques
+            
+            // Assurer l'arrêt de la reconnaissance vocale si l'exercice est terminé
+            if (window.voiceRecognitionActive && window.voiceRecognitionActive()) {
+                try {
+                    window.stopVoiceRecognition();
+                    if (typeof updateVoiceToggleUI === 'function') {
+                        updateVoiceToggleUI(false);
+                    }
+                    console.log('[Voice] Reconnaissance vocale arrêtée (exercice terminé)');
+                } catch (error) {
+                    console.error('[Voice] Erreur lors de l\'arrêt:', error);
+                }
+            }
             break;
 
         case WorkoutStates.TRANSITIONING:
@@ -3634,9 +3685,6 @@ async function selectExercise(exercise, skipValidation = false) {
         return;
     }
     
-    currentExercise = exercise;
-    currentSet = currentSet || 1;
-    
     // Récupérer les détails complets de l'exercice si nécessaire
     if (!exercise.weight_type) {
         try {
@@ -3650,15 +3698,17 @@ async function selectExercise(exercise, skipValidation = false) {
         currentExercise = exercise;
     }
     
+    // Initialiser les variables de session
     currentSet = 1;
-    currentWorkoutSession.currentExercise = exercise;
+    currentWorkoutSession.currentExercise = currentExercise;
     currentWorkoutSession.currentSetNumber = 1;
-    currentWorkoutSession.totalSets = exercise.default_sets || 3;
+    currentWorkoutSession.totalSets = currentExercise.default_sets || 3;
     currentWorkoutSession.maxSets = 6;
    
     // Enregistrer le début de l'exercice
     workoutState.exerciseStartTime = new Date();
    
+    // Mise à jour de l'affichage
     document.getElementById('exerciseSelection').style.display = 'none';
     document.getElementById('currentExercise').style.display = 'block';
     if (currentWorkoutSession.type === 'program') {
@@ -3667,15 +3717,18 @@ async function selectExercise(exercise, skipValidation = false) {
             programExercisesContainer.style.display = 'block';
         }
     }
-    document.getElementById('exerciseName').textContent = exercise.name;
-    document.getElementById('exerciseInstructions').textContent = exercise.instructions || 'Effectuez cet exercice avec une forme correcte';
+    
+    // Mise à jour du nom et des instructions
+    document.getElementById('exerciseName').textContent = currentExercise.name;
+    document.getElementById('exerciseInstructions').textContent = 
+        currentExercise.instructions || 'Effectuez cet exercice avec une forme correcte';
 
     // Initialiser les settings ML pour cet exercice
     if (!currentWorkoutSession.mlSettings) {
         currentWorkoutSession.mlSettings = {};
     }
-    if (!currentWorkoutSession.mlSettings[exercise.id]) {
-        currentWorkoutSession.mlSettings[exercise.id] = {
+    if (!currentWorkoutSession.mlSettings[currentExercise.id]) {
+        currentWorkoutSession.mlSettings[currentExercise.id] = {
             autoAdjust: currentUser.prefer_weight_changes_between_sets,
             lastManualWeight: null,
             lastMLWeight: null,
@@ -3683,84 +3736,145 @@ async function selectExercise(exercise, skipValidation = false) {
         };
     }
 
-    // Afficher le toggle ML si exercice avec poids
-    if (exercise.weight_type !== 'bodyweight' && exercise.exercise_type !== 'isometric') {
-        const mlToggleHtml = renderMLToggle(exercise.id);
-        const exerciseHeader = document.querySelector('#currentExercise .exercise-header');
-        if (exerciseHeader) {
-            const existingToggle = exerciseHeader.querySelector('.ml-toggle-container');
-            if (existingToggle) existingToggle.remove();
-            exerciseHeader.insertAdjacentHTML('beforeend', mlToggleHtml);
+    // Créer et insérer tous les contrôles de manière unifiée
+    const controlsHtml = createExerciseControlsSystem(currentExercise);
+    const exerciseNameElement = document.getElementById('exerciseName');
+    
+    if (exerciseNameElement && controlsHtml) {
+        // Nettoyer tout conteneur de contrôles existant
+        const existingControls = document.querySelector('.exercise-controls-container');
+        if (existingControls) {
+            existingControls.remove();
         }
+        
+        // Insérer les nouveaux contrôles après le nom de l'exercice
+        exerciseNameElement.insertAdjacentHTML('afterend', controlsHtml);
+        
+        console.log('[Controls] Contrôles insérés:', {
+            mlToggle: !!document.querySelector('.ml-control'),
+            voiceToggle: !!document.querySelector('.voice-control')
+        });
     }
     
     // Gérer l'affichage du bouton "Changer d'exercice" selon le mode
     const changeExerciseBtn = document.querySelector('.btn-change-exercise');
     if (changeExerciseBtn) {
-        changeExerciseBtn.style.display = currentWorkoutSession.type === 'program' ? 'none' : 'flex';
+        changeExerciseBtn.style.display = 
+            currentWorkoutSession.type === 'program' ? 'none' : 'flex';
     }
     
+    // Mettre à jour l'affichage des points de série
     updateSeriesDots();
     
-    // AJOUT CRITIQUE : Toujours configurer l'UI, même en mode manuel
-    const exerciseType = getExerciseType(exercise);
+    // Configuration de l'UI selon le type d'exercice
+    const exerciseType = getExerciseType(currentExercise);
     const defaultRecommendations = {
-        weight_recommendation: exercise.default_weight || getBarWeight(exercise),
-        reps_recommendation: exercise.default_reps_min || 10,
+        weight_recommendation: currentExercise.default_weight || getBarWeight(currentExercise),
+        reps_recommendation: currentExercise.default_reps_min || 10,
         confidence: 0.5,
         reasoning: "Valeurs par défaut"
     };
     
-    // Configurer l'UI (charge les poids disponibles)
+    // Toujours configurer l'UI pour charger les poids disponibles
     await configureUIForExerciseType(exerciseType, defaultRecommendations);
     
     // Appeler les recommandations ML seulement si activé
     try {
-        const mlEnabled = currentWorkoutSession.mlSettings[exercise.id]?.autoAdjust ?? true;
+        const mlEnabled = currentWorkoutSession.mlSettings[currentExercise.id]?.autoAdjust ?? true;
         if (mlEnabled) {
             await updateSetRecommendations();
         }
     } catch (error) {
         console.error('Erreur recommandations:', error);
-        // Continuer malgré l'erreur
+        // Continuer malgré l'erreur - la configuration par défaut est déjà appliquée
     }
    
     // Mettre à jour les compteurs d'en-tête
     updateHeaderProgress();
    
-    // Forcer la transition vers READY après sélection
+    // Transition vers l'état READY
     transitionTo(WorkoutStates.READY);
     
-    // Afficher l'icône vocal si compatible - placé après configuration complète
-    console.log('[VOICE DEBUG] After full config - exercise_type:', currentExercise.exercise_type);
-    if (currentUser.voice_counting_enabled && 
-        currentExercise.exercise_type !== 'isometric' &&
-        /Android|iPhone/i.test(navigator.userAgent)) {
-        
-        const voiceToggleHtml = renderVoiceToggle(currentExercise.id);
-        const exerciseHeader = document.querySelector('#currentExercise .exercise-header');
-        
-        if (exerciseHeader) {
-            const existingVoice = document.querySelector('.voice-toggle-container');
-            if (existingVoice) existingVoice.remove();
-            
-            exerciseHeader.insertAdjacentHTML('beforeend', voiceToggleHtml);
-            console.log('[VOICE DEBUG] Voice toggle inserted in header');
-        }
-    }
-
-    // Forcer la transition vers READY après sélection
-    transitionTo(WorkoutStates.READY);
-
     // Démarrer le timer de la première série
     startSetTimer();
 
-    setTimeout(() => {
-        console.log('[VOICE DEBUG] Final check - Voice container exists:', 
-            !!document.querySelector('.voice-toggle-container'));
-        console.log('[VOICE DEBUG] All elements with class ml-toggle-container:', 
-            document.querySelectorAll('.ml-toggle-container').length);
-    }, 100);
+    // Vérification finale après un court délai pour debug
+    if (console.log) {
+        setTimeout(() => {
+            console.log('[VOICE DEBUG] Vérification finale des contrôles:', {
+                voiceContainer: !!document.querySelector('.voice-control'),
+                mlContainer: !!document.querySelector('.ml-control'),
+                controlsContainer: !!document.querySelector('.exercise-controls-container')
+            });
+        }, 100);
+    }
+}
+
+function createExerciseControlsSystem(exercise) {
+    // Validation des entrées pour éviter les erreurs
+    if (!exercise || !exercise.id) {
+        console.warn('[Controls] Exercice invalide pour création des contrôles');
+        return '';
+    }
+
+    // Déterminer quels contrôles afficher selon le contexte
+    const showMLToggle = exercise.weight_type !== 'bodyweight' && 
+                        exercise.exercise_type !== 'isometric' &&
+                        exercise.weight_type !== undefined;
+                        
+    const showVoiceToggle = currentUser?.voice_counting_enabled && 
+                           exercise.exercise_type !== 'isometric' &&
+                           exercise.exercise_type !== undefined &&
+                           /Android|iPhone/i.test(navigator.userAgent);
+
+    // Si aucun contrôle n'est nécessaire, retourner une chaîne vide
+    if (!showMLToggle && !showVoiceToggle) {
+        return '';
+    }
+
+    // Construire le HTML des contrôles avec une structure flexible
+    let controlsHtml = '<div class="exercise-controls-container">';
+    
+    if (showMLToggle) {
+        const mlSettings = currentWorkoutSession.mlSettings?.[exercise.id];
+        const isMLEnabled = mlSettings?.autoAdjust ?? 
+                           currentUser?.prefer_weight_changes_between_sets ?? true;
+        
+        controlsHtml += `
+            <div class="control-item ml-control">
+                <label class="control-toggle">
+                    <input type="checkbox" 
+                           id="mlToggle-${exercise.id}"
+                           ${isMLEnabled ? 'checked' : ''}
+                           onchange="toggleMLAdjustment(${exercise.id})">
+                    <span class="toggle-slider"></span>
+                    <span class="control-label">
+                        <i class="fas fa-brain"></i>
+                        <span class="label-text">IA</span>
+                    </span>
+                </label>
+            </div>
+        `;
+    }
+    
+    if (showVoiceToggle) {
+        const isVoiceActive = window.voiceRecognitionActive ? 
+                             window.voiceRecognitionActive() : false;
+        
+        controlsHtml += `
+            <div class="control-item voice-control">
+                <button class="voice-toggle-btn ${isVoiceActive ? 'active' : ''}"
+                        onclick="toggleVoiceRecognition()"
+                        title="Comptage vocal ${isVoiceActive ? 'actif' : 'inactif'}">
+                    <i class="fas fa-microphone"></i>
+                    ${isVoiceActive ? '<span class="voice-indicator"></span>' : ''}
+                </button>
+            </div>
+        `;
+    }
+    
+    controlsHtml += '</div>';
+    return controlsHtml;
 }
 
 // Nouvelle fonction pour le rendu du toggle ML
@@ -3783,6 +3897,46 @@ function renderMLToggle(exerciseId) {
             </span>
         </div>
     `;
+}
+
+function toggleVoiceRecognition() {
+    if (!window.startVoiceRecognition || !window.stopVoiceRecognition) {
+        console.error('[Voice] Fonctions de reconnaissance vocale non disponibles');
+        showToast('Reconnaissance vocale non disponible', 'error');
+        return;
+    }
+    
+    const isActive = window.voiceRecognitionActive ? window.voiceRecognitionActive() : false;
+    
+    if (isActive) {
+        window.stopVoiceRecognition();
+        updateVoiceToggleUI(false);
+    } else {
+        // Vérifier que nous sommes bien en état d'exécution
+        if (workoutState.current !== WorkoutStates.EXECUTING) {
+            showToast('Démarrez une série pour activer le comptage vocal', 'warning');
+            return;
+        }
+        
+        window.startVoiceRecognition();
+        updateVoiceToggleUI(true);
+    }
+}
+
+function updateVoiceToggleUI(isActive) {
+    const voiceBtn = document.querySelector('.voice-toggle-btn');
+    if (!voiceBtn) return;
+    
+    if (isActive) {
+        voiceBtn.classList.add('active');
+        if (!voiceBtn.querySelector('.voice-indicator')) {
+            voiceBtn.insertAdjacentHTML('beforeend', '<span class="voice-indicator"></span>');
+        }
+    } else {
+        voiceBtn.classList.remove('active');
+        const indicator = voiceBtn.querySelector('.voice-indicator');
+        if (indicator) indicator.remove();
+    }
 }
 
 // Fonction pour rendre l'icône microphone du comptage vocal
