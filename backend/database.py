@@ -1,4 +1,6 @@
 # ===== backend/database.py - VERSION REFACTORISÉE =====
+# sur Render : Name : fitness_coach_db Database : fitness_coach User : fitness_coach_user
+
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker

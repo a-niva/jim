@@ -6200,6 +6200,28 @@ async function loadProfile() {
         </div>
     `;
 
+    // Ajouter le toggle pour le comptage vocal - UNIQUEMENT sur mobile
+    const isMobile = /Android|iPhone/i.test(navigator.userAgent);
+    if (isMobile) {
+        profileHTML += `
+            <div class="profile-field">
+                <span class="field-label">Comptage vocal</span>
+                <small class="field-description">Comptez vos reps à voix haute</small>
+                <div class="toggle-container">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="voiceCountingToggle"
+                            ${currentUser.voice_counting_enabled ? 'checked' : ''}
+                            onchange="toggleVoiceCounting()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span id="voiceCountingLabel">
+                        ${currentUser.voice_counting_enabled ? 'Activé' : 'Désactivé'}
+                    </span>
+                </div>
+            </div>
+        `;
+    }
+
     // Ajouter le toggle pour le mode d'affichage du poids
     const isInWorkout = currentExercise && isEquipmentCompatibleWithChargeMode(currentExercise);
     const canToggle = isInWorkout || !currentExercise; // Peut toggle si pas en séance ou si compatible
@@ -6357,6 +6379,39 @@ async function togglePlateHelper() {
         console.error('Erreur toggle aide montage:', error);
         // Revenir à l'état précédent en cas d'erreur
         toggle.checked = !toggle.checked;
+        showToast('Erreur lors de la sauvegarde', 'error');
+    }
+}
+
+async function toggleVoiceCounting() {
+    const toggle = document.getElementById('voiceCountingToggle');
+    const label = document.getElementById('voiceCountingLabel');
+    const newState = toggle.checked;
+    
+    try {
+        // Appel API pour mettre à jour la préférence
+        const response = await apiPut(`/api/users/${currentUser.id}/voice-counting`, {
+            enabled: newState
+        });
+        
+        // Mettre à jour l'objet utilisateur local
+        currentUser.voice_counting_enabled = newState;
+        
+        // Mettre à jour le label d'affichage
+        label.textContent = newState ? 'Activé' : 'Désactivé';
+        
+        // Notification de succès
+        showToast(`Comptage vocal ${newState ? 'activé' : 'désactivé'}`, 'success');
+        
+        console.log(`[Voice] Comptage vocal ${newState ? 'activé' : 'désactivé'} pour user ${currentUser.id}`);
+        
+    } catch (error) {
+        console.error('Erreur lors de la mise à jour du comptage vocal:', error);
+        
+        // Rollback visuel en cas d'erreur
+        toggle.checked = !newState;
+        
+        // Notification d'erreur
         showToast('Erreur lors de la sauvegarde', 'error');
     }
 }
@@ -11666,6 +11721,7 @@ window.toggleFavorite = toggleFavorite;
 
 window.updatePlateHelper = updatePlateHelper;
 window.togglePlateHelper = togglePlateHelper;
+window.toggleVoiceCounting = toggleVoiceCounting;
 
 window.skipExercise = skipExercise;
 window.showSkipModal = showSkipModal;
