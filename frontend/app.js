@@ -2961,7 +2961,7 @@ function buildEnhancedModalContent(program, scoringData, metadata) {
                         transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
                         backdrop-filter: blur(2px);
                     "></div>
-                    <div style="
+                    <div id="scoreValue" style="
                         position: absolute;
                         top: 50%;
                         left: 50%;
@@ -10943,9 +10943,24 @@ async function finalizeDragOperation() {
         
         // Mettre à jour l'affichage du score
         // Feedback utilisateur basé sur l'amélioration
-        const scoreDelta = newScore.total - (lastKnownScore || newScore.total);
-        updateScoreDisplay(newScore.total, scoreDelta);
+        // Calcul sécurisé du delta
+        const previousScore = lastKnownScore || null;
+        const currentScore = newScore.total || 0;
+        const scoreDelta = previousScore !== null ? currentScore - previousScore : 0;
+
+        // Validation des données
+        if (typeof currentScore !== 'number' || currentScore < 0 || currentScore > 100) {
+            console.error('Score invalide reçu:', newScore);
+            showToast('Erreur de calcul du score', 'error');
+            return;
+        }
+
+        // Mise à jour robuste avec les nouvelles signatures
+        updateScoreDisplay(newScore, scoreDelta);
         showScoreChangeFeedback(scoreDelta);
+
+        // Logging pour debug
+        console.log(`🎯 Score mis à jour: ${previousScore} → ${currentScore} (Δ${scoreDelta})`);
         
         // Mettre à jour le score de référence
         lastKnownScore = newScore.total;
@@ -10988,28 +11003,52 @@ function getCurrentExerciseOrder() {
 /**
  * Met à jour l'affichage du score dans la jauge
  */
-function updateScoreDisplay(newScore) {
+function updateScoreDisplay(scoreInput, scoreDelta = null) {
+    // Normaliser l'input - supporter objet OU nombre
+    const scoreValue = typeof scoreInput === 'object' ? scoreInput.total : scoreInput;
+    const scoreData = typeof scoreInput === 'object' ? scoreInput : { total: scoreInput };
+    
+    // Validation robuste
+    if (typeof scoreValue !== 'number' || scoreValue < 0 || scoreValue > 100) {
+        console.warn('Score invalide:', scoreValue);
+        return;
+    }
+    
+    // Chercher éléments avec fallbacks robustes
     const gaugeFill = document.querySelector('.gauge-fill');
-    const gaugeValue = document.querySelector('.quality-gauge div:last-child');
+    const gaugeValue = document.querySelector('.quality-gauge #scoreValue') || 
+                      document.querySelector('.quality-gauge [data-score]') ||
+                      document.querySelector('.quality-gauge div:last-child');
     
     if (gaugeFill) {
         // Animation fluide de la jauge
-        gaugeFill.style.width = `${newScore.total}%`;
+        gaugeFill.style.transition = 'width 0.3s ease, background-color 0.3s ease';
+        gaugeFill.style.width = `${scoreValue}%`;
         
-        // Changement de couleur si amélioration significative
-        if (newScore.total > (lastKnownScore || 0) + 5) {
-            gaugeFill.style.background = 'rgba(16, 185, 129, 0.6)'; // Vert temporaire
+        // Couleur dynamique via CSS variables
+        const scoreColor = window.getScoreColor ? window.getScoreColor(scoreValue) : 'var(--primary)';
+        gaugeFill.style.background = scoreColor;
+        
+        // Changement de couleur temporaire si amélioration significative
+        if (scoreDelta && scoreDelta > 5) {
+            gaugeFill.style.background = 'var(--success)';
             setTimeout(() => {
-                gaugeFill.style.background = 'rgba(255,255,255,0.4)';
+                gaugeFill.style.background = scoreColor;
             }, 1000);
         }
     }
     
     if (gaugeValue) {
-        gaugeValue.textContent = `${newScore.total}/100`;
+        // Ajouter ID pour futures références
+        if (!gaugeValue.id) {
+            gaugeValue.id = 'scoreValue';
+        }
+        
+        gaugeValue.textContent = `${scoreValue}/100`;
+        gaugeValue.dataset.score = scoreValue;
         
         // Animation du texte si amélioration
-        if (newScore.total > (lastKnownScore || 0)) {
+        if (scoreDelta && scoreDelta > 0) {
             gaugeValue.style.animation = 'scoreImprovement 0.6s ease';
             setTimeout(() => {
                 gaugeValue.style.animation = '';

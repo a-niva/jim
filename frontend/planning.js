@@ -1059,7 +1059,7 @@ class PlanningManager {
                         </div>
                         <div class="metric quality-metric">
                             <i class="fas fa-chart-line" style="color: ${scoreColor}"></i>
-                            <span class="metric-value" style="color: ${scoreColor}">${currentScore}%</span>
+                            <span id="scoreValue" class="metric-value" style="color: ${scoreColor}">${currentScore}%</span>
                             <span class="metric-label">qualité</span>
                         </div>
                     </div>
@@ -1740,38 +1740,93 @@ class PlanningManager {
     // ===== SCORING ET DURÉE TEMPS RÉEL =====
     
     async updateLiveScoring(exercises) {
+        // Validation d'entrée
+        if (!exercises || !Array.isArray(exercises)) {
+            console.warn('Exercices invalides pour scoring');
+            return;
+        }
+        
+        let scoreResult = null;
+        let scoringMethod = 'unknown';
+        
         try {
+            // Tentative scoring avancé
             const userContext = await window.getUserContext();
-            const score = await window.SessionQualityEngine.calculateScore(exercises, userContext);
+            scoreResult = await window.SessionQualityEngine.calculateScore(exercises, userContext);
+            scoringMethod = 'advanced';
             
-            const scoreElement = document.getElementById('scoreValue');
-            const scoreDisplay = document.getElementById('liveScore');
+        } catch (apiError) {
+            console.warn('API scoring échoué, fallback local:', apiError);
             
-            if (scoreElement && scoreDisplay) {
-                scoreElement.textContent = score.total;
-                const gauge = scoreDisplay.querySelector('.score-gauge');
-                if (gauge) {
-                    gauge.style.background = this.getScoreGradient(score.total);
-                }
+            try {
+                // Fallback déterministe local
+                scoreResult = {
+                    total: this.calculatePreviewQualityScoreFallback(exercises),
+                    breakdown: null,
+                    confidence: 0.6
+                };
+                scoringMethod = 'local';
                 
-                // Ajouter feedback visuel si amélioration
-                if (score.reorderImprovement) {
-                    const improvement = score.orderBonus || 0;
-                    if (improvement > 0) {
-                        window.showToast(`Score amélioré de ${improvement} points`, 'success');
-                    }
-                }
-            }
-            
-        } catch (error) {
-            console.warn('Erreur calcul scoring live:', error);
-            // Fallback avec SessionQualityEngine.getFallbackScore()
-            const fallbackScore = window.SessionQualityEngine.getFallbackScore();
-            const scoreElement = document.getElementById('scoreValue');
-            if (scoreElement) {
-                scoreElement.textContent = fallbackScore.total;
+            } catch (fallbackError) {
+                console.error('Tous les systèmes de scoring échoués:', fallbackError);
+                // Dernier recours
+                scoreResult = window.SessionQualityEngine?.getFallbackScore() || { total: 70 };
+                scoringMethod = 'emergency';
             }
         }
+        
+        // Mise à jour robuste de l'affichage
+        this.displayScoreResult(scoreResult, scoringMethod);
+        
+        // Feedback utilisateur si amélioration détectée
+        if (scoreResult.reorderImprovement && scoreResult.orderBonus > 0) {
+            window.showToast(`Score amélioré de ${scoreResult.orderBonus} points`, 'success');
+        }
+    }
+
+    // méthode helper pour l'affichage
+    displayScoreResult(scoreResult, method = 'unknown') {
+        const scoreValue = scoreResult.total || 70;
+        
+        // Multiples sélecteurs robustes
+        const scoreElements = [
+            document.getElementById('scoreValue'),
+            document.querySelector('[data-score-display]'),
+            document.querySelector('.quality-score .stat-value'),
+            document.querySelector('.metric-value[data-score]')
+        ].filter(Boolean);
+        
+        const gaugeElements = [
+            document.getElementById('liveScore'),
+            document.querySelector('.score-gauge'),
+            document.querySelector('[data-score-gauge]')
+        ].filter(Boolean);
+        
+        // Mise à jour de tous les éléments trouvés
+        scoreElements.forEach(element => {
+            element.textContent = `${scoreValue}%`;
+            element.dataset.score = scoreValue;
+            element.dataset.scoringMethod = method;
+            
+            // Couleur dynamique
+            if (window.getScoreColor) {
+                element.style.color = window.getScoreColor(scoreValue);
+            }
+        });
+        
+        // Mise à jour des jauges
+        gaugeElements.forEach(gauge => {
+            const fill = gauge.querySelector('.gauge-fill') || gauge.querySelector('[data-gauge-fill]');
+            if (fill) {
+                fill.style.width = `${scoreValue}%`;
+                if (this.getScoreGradient) {
+                    fill.style.background = this.getScoreGradient(scoreValue);
+                }
+            }
+        });
+        
+        // Debug pour développement
+        console.log(`🎯 Score affiché: ${scoreValue}% (méthode: ${method})`);
     }
     
     updateLiveDuration(exercises) {
