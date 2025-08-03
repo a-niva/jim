@@ -3119,7 +3119,10 @@ class PlanningManager {
 
 
     // AJOUTER mise à jour animée du score
-    updateScoreDisplay(newScore) {
+    updateScoreDisplay(scoreInput) {
+        // Normaliser l'input comme dans app.js
+        const newScore = typeof scoreInput === 'object' ? scoreInput.total : scoreInput;
+        
         const scoreElement = document.querySelector('.quality-score .stat-value');
         if (!scoreElement) return;
         
