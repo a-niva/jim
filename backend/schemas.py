@@ -33,6 +33,8 @@ class UserResponse(BaseModel):
     created_at: datetime
     favorite_exercises: Optional[List[int]] = []
     sound_notifications_enabled: bool
+    voice_counting_enabled: bool
+    voice_counting_mode: str
 
     class Config:
         from_attributes = True
@@ -143,6 +145,7 @@ class SetCreate(BaseModel):
     # Tracking du toggle ML
     ml_adjustment_enabled: Optional[bool] = True
     confidence_score: Optional[float] = None
+    voice_data: Optional[Dict] = None
 
 class SetResponse(BaseModel):
     id: int
@@ -165,6 +168,7 @@ class SetResponse(BaseModel):
     exercise_order_in_session: Optional[int]
     set_order_in_session: Optional[int]
     suggested_rest_seconds: Optional[int]
+    voice_data: Optional[Dict]
     completed_at: datetime
     
     class Config:

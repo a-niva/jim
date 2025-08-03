@@ -385,6 +385,24 @@ def update_user_preferences(
         "sound_notifications_enabled": user.sound_notifications_enabled
     }
 
+@app.put("/api/users/{user_id}/voice-counting")
+def toggle_voice_counting(
+    user_id: int, 
+    enabled: bool = Body(..., embed=True),
+    db: Session = Depends(get_db)
+):
+    """Toggle comptage vocal pour un utilisateur"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
+    user.voice_counting_enabled = enabled
+    db.commit()
+    db.refresh(user)
+    
+    logger.info(f"Comptage vocal {'activé' if enabled else 'désactivé'} pour user {user_id}")
+    return {"enabled": enabled}
+
 @app.get("/api/users/{user_id}/progression-analysis/{exercise_id}")
 def get_progression_analysis(
     user_id: int,

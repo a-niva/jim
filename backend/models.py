@@ -22,6 +22,8 @@ class User(Base):
     sound_notifications_enabled = Column(Boolean, default=True)
     show_plate_helper = Column(Boolean, default=False)
     preferred_weight_display_mode = Column(String(20), default='total')  # 'total' ou 'charge' 
+    voice_counting_enabled = Column(Boolean, default=False)
+    voice_counting_mode = Column(String(20), default='numbers')
 
     # Relations
     workouts = relationship("Workout", back_populates="user", cascade="all, delete-orphan")
@@ -276,7 +278,6 @@ class WorkoutSet(Base):
     suggested_rest_seconds = Column(Integer, nullable=True)  # Repos suggéré par le ML
     actual_rest_duration_seconds = Column(Integer, nullable=True)  # Temps de repos réellement écoulé
 
-
     # Feedback utilisateur pour le ML
     fatigue_level = Column(Integer, nullable=True)  # 1-5 (très facile à très difficile)
     effort_level = Column(Integer, nullable=True)  # 1-5 (réserve importante à échec total)
@@ -289,7 +290,8 @@ class WorkoutSet(Base):
     user_followed_ml_reps = Column(Boolean, nullable=True)
     #État du toggle ML au moment de la série
     ml_adjustment_enabled = Column(Boolean, nullable=True)
-
+    voice_data = Column(JSON, nullable=True)
+    
     # MODULE 1 : Champs swap
     swap_from_exercise_id = Column(Integer, ForeignKey('exercises.id'), nullable=True)
     swap_reason = Column(String(20), nullable=True)  # 'pain', 'equipment', 'preference'
