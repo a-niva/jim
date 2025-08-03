@@ -3650,29 +3650,6 @@ async function selectExercise(exercise, skipValidation = false) {
         currentExercise = exercise;
     }
     
-    console.log('[VOICE DEBUG] ML Toggle exists:', !!document.querySelector('.ml-toggle-container'));
-
-    // Afficher l'icône vocal si compatible
-    console.log('[VOICE DEBUG] Checking voice conditions...');
-    // Afficher l'icône vocal si compatible
-    if (currentUser.voice_counting_enabled && 
-        exercise.exercise_type !== 'isometric' &&
-        /Android|iPhone/i.test(navigator.userAgent)) {
-        
-        const voiceToggleHtml = renderVoiceToggle(exercise.id);
-        const exerciseHeader = document.querySelector('#currentExercise .exercise-header');
-        
-        if (exerciseHeader) {
-            // Nettoyer toute icône vocale existante
-            const existingVoice = document.querySelector('.voice-toggle-container');
-            if (existingVoice) existingVoice.remove();
-            
-            // Insérer directement dans l'header
-            exerciseHeader.insertAdjacentHTML('beforeend', voiceToggleHtml);
-            console.log('[VOICE DEBUG] Voice toggle inserted in header');
-        }
-    }
-
     currentSet = 1;
     currentWorkoutSession.currentExercise = exercise;
     currentWorkoutSession.currentSetNumber = 1;
@@ -3754,6 +3731,27 @@ async function selectExercise(exercise, skipValidation = false) {
     // Forcer la transition vers READY après sélection
     transitionTo(WorkoutStates.READY);
     
+    // Afficher l'icône vocal si compatible - placé après configuration complète
+    console.log('[VOICE DEBUG] After full config - exercise_type:', currentExercise.exercise_type);
+    if (currentUser.voice_counting_enabled && 
+        currentExercise.exercise_type !== 'isometric' &&
+        /Android|iPhone/i.test(navigator.userAgent)) {
+        
+        const voiceToggleHtml = renderVoiceToggle(currentExercise.id);
+        const exerciseHeader = document.querySelector('#currentExercise .exercise-header');
+        
+        if (exerciseHeader) {
+            const existingVoice = document.querySelector('.voice-toggle-container');
+            if (existingVoice) existingVoice.remove();
+            
+            exerciseHeader.insertAdjacentHTML('beforeend', voiceToggleHtml);
+            console.log('[VOICE DEBUG] Voice toggle inserted in header');
+        }
+    }
+
+    // Forcer la transition vers READY après sélection
+    transitionTo(WorkoutStates.READY);
+
     // Démarrer le timer de la première série
     startSetTimer();
 
