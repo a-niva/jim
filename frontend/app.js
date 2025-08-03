@@ -3605,6 +3605,14 @@ function resetAnimationState() {
 }
 
 async function selectExercise(exercise, skipValidation = false) {
+    console.log('[VOICE DEBUG] selectExercise - Conditions:', {
+        currentUser: currentUser,
+        voice_enabled: currentUser?.voice_counting_enabled,
+        exercise_type: exercise.exercise_type,
+        is_mobile: /Android|iPhone/i.test(navigator.userAgent),
+        user_agent: navigator.userAgent
+    });
+
     // Pour le setup initial, on peut skipper la validation
     if (!skipValidation && !validateSessionState(true)) return;
     
@@ -3685,20 +3693,17 @@ async function selectExercise(exercise, skipValidation = false) {
             exerciseHeader.insertAdjacentHTML('beforeend', mlToggleHtml);
         }
     }
+    console.log('[VOICE DEBUG] ML Toggle exists:', !!document.querySelector('.ml-toggle-container'));
 
-    // Afficher l'icône vocal si compatible - NOUVEAU
-    if (currentUser.voice_counting_enabled && 
-        exercise.exercise_type !== 'isometric' &&
-        /Android|iPhone/i.test(navigator.userAgent)) {
-        
-        const voiceToggleHtml = renderVoiceToggle(exercise.id);
-        const mlToggleContainer = document.querySelector('.ml-toggle-container');
-        if (mlToggleContainer) {
-            // Nettoyer toute icône vocale existante
-            const existingVoice = document.querySelector('.voice-toggle-container');
-            if (existingVoice) existingVoice.remove();
-            
-            mlToggleContainer.insertAdjacentHTML('afterend', voiceToggleHtml);
+    // Afficher l'icône vocal si compatible
+    console.log('[VOICE DEBUG] Checking voice conditions...');
+    // Test simplifié - À RETIRER APRÈS DEBUG
+    if (currentUser && currentUser.voice_counting_enabled) {
+        console.log('[VOICE DEBUG] Forcing voice icon display');
+        const exerciseHeader = document.querySelector('#currentExercise .exercise-header');
+        if (exerciseHeader) {
+            const voiceHtml = '<div class="voice-toggle-container" style="border: 2px solid red; padding: 10px;">🎤 MICRO TEST</div>';
+            exerciseHeader.insertAdjacentHTML('beforeend', voiceHtml);
         }
     }
     
