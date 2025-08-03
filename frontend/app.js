@@ -3749,6 +3749,18 @@ function renderMLToggle(exerciseId) {
     `;
 }
 
+// Fonction pour rendre l'icône microphone du comptage vocal
+function renderVoiceToggle(exerciseId) {
+    // Vérifier l'état de la reconnaissance vocale
+    const isActive = window.voiceRecognitionActive ? window.voiceRecognitionActive() : false;
+    
+    return `
+        <div class="voice-toggle-container">
+            <i class="fas fa-microphone ${isActive ? 'active' : ''}"></i>
+        </div>
+    `;
+}
+
 // PHASE 2.2 : Indicateurs de confiance
 // Confiance ML
 function renderMLConfidence(confidence) {
@@ -11722,6 +11734,7 @@ window.toggleFavorite = toggleFavorite;
 window.updatePlateHelper = updatePlateHelper;
 window.togglePlateHelper = togglePlateHelper;
 window.toggleVoiceCounting = toggleVoiceCounting;
+window.renderVoiceToggle = renderVoiceToggle;
 
 window.skipExercise = skipExercise;
 window.showSkipModal = showSkipModal;
