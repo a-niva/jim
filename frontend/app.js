@@ -3697,13 +3697,22 @@ async function selectExercise(exercise, skipValidation = false) {
 
     // Afficher l'icône vocal si compatible
     console.log('[VOICE DEBUG] Checking voice conditions...');
-    // Test simplifié - À RETIRER APRÈS DEBUG
-    if (currentUser && currentUser.voice_counting_enabled) {
-        console.log('[VOICE DEBUG] Forcing voice icon display');
+    // Afficher l'icône vocal si compatible
+    if (currentUser.voice_counting_enabled && 
+        exercise.exercise_type !== 'isometric' &&
+        /Android|iPhone/i.test(navigator.userAgent)) {
+        
+        const voiceToggleHtml = renderVoiceToggle(exercise.id);
         const exerciseHeader = document.querySelector('#currentExercise .exercise-header');
+        
         if (exerciseHeader) {
-            const voiceHtml = '<div class="voice-toggle-container" style="border: 2px solid red; padding: 10px;">🎤 MICRO TEST</div>';
-            exerciseHeader.insertAdjacentHTML('beforeend', voiceHtml);
+            // Nettoyer toute icône vocale existante
+            const existingVoice = document.querySelector('.voice-toggle-container');
+            if (existingVoice) existingVoice.remove();
+            
+            // Insérer directement dans l'header
+            exerciseHeader.insertAdjacentHTML('beforeend', voiceToggleHtml);
+            console.log('[VOICE DEBUG] Voice toggle inserted in header');
         }
     }
     
