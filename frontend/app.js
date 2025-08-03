@@ -3685,6 +3685,22 @@ async function selectExercise(exercise, skipValidation = false) {
             exerciseHeader.insertAdjacentHTML('beforeend', mlToggleHtml);
         }
     }
+
+    // Afficher l'icône vocal si compatible - NOUVEAU
+    if (currentUser.voice_counting_enabled && 
+        exercise.exercise_type !== 'isometric' &&
+        /Android|iPhone/i.test(navigator.userAgent)) {
+        
+        const voiceToggleHtml = renderVoiceToggle(exercise.id);
+        const mlToggleContainer = document.querySelector('.ml-toggle-container');
+        if (mlToggleContainer) {
+            // Nettoyer toute icône vocale existante
+            const existingVoice = document.querySelector('.voice-toggle-container');
+            if (existingVoice) existingVoice.remove();
+            
+            mlToggleContainer.insertAdjacentHTML('afterend', voiceToggleHtml);
+        }
+    }
     
     // Gérer l'affichage du bouton "Changer d'exercice" selon le mode
     const changeExerciseBtn = document.querySelector('.btn-change-exercise');

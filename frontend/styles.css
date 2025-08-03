@@ -7641,3 +7641,36 @@ input:checked+.toggle-slider:before {
     color: var(--text);
     transform: scale(1.1);
 }
+
+/* Intégration harmonieuse avec le toggle ML */
+.ml-toggle-container + .voice-toggle-container {
+    margin-left: 0.75rem;
+    border-left: 1px solid var(--border-color);
+    padding-left: 0.75rem;
+}
+
+/* Responsive - ajustement pour petits écrans */
+@media (max-width: 480px) {
+    .ml-toggle-container + .voice-toggle-container {
+        margin-left: 0.5rem;
+        padding-left: 0.5rem;
+    }
+    
+    .voice-toggle-container i {
+        font-size: 1rem;
+    }
+}
+
+/* Alignement vertical avec le toggle ML */
+.exercise-header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.exercise-header .ml-toggle-container,
+.exercise-header .voice-toggle-container {
+    display: inline-flex;
+    align-items: center;
+}
