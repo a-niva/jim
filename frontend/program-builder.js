@@ -125,7 +125,6 @@ class ProgramBuilder {
         // Afficher/masquer bouton précédent
         prevBtn.style.display = this.currentStep > 0 ? 'block' : 'none';
         
-        // ✅ CORRECTION : Logique de boutons simplifiée
         if (this.currentStep === this.totalSteps - 1) {
             // Dernière étape : un seul bouton "Activer le programme"
             nextBtn.textContent = "🚀 Activer le programme";

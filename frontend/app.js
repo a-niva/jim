@@ -3783,8 +3783,11 @@ function toggleMLAdjustment(exerciseId) {
             currentExerciseRealWeight = lastMLWeight;
             updateWeightDisplay();
             console.log('🔄 Poids ML restauré:', lastMLWeight);
+        } else {
+            // Charger les vraies recommandations ML
+            console.log('🔄 Aucun poids ML sauvegardé, chargement des recommandations...');
+            updateSetRecommendations(); // Ceci va charger les vraies recommandations ML
         }
-        // Sinon garder le poids actuel (pas d'appel API inutile)
     } else {
         // Mode manuel activé : utiliser le poids minimum (barre seule)
         const barWeight = getBarWeight(currentExercise);
@@ -9127,11 +9130,27 @@ function switchWeightMode(newMode = null) {
     }
     
     // Vérifier si le mode charge est possible avant de switcher
+    // Vérifier si le mode charge est possible avant de switcher
     const barWeight = getBarWeight(currentExercise);
     if (newMode === 'charge' && currentExerciseRealWeight <= barWeight) {
-        console.warn('[SwitchMode] Poids insuffisant pour mode charge');
-        showToast('Poids insuffisant pour afficher la charge', 'warning');
-        return;
+        console.warn('[SwitchMode] Poids insuffisant pour mode charge, forçage vers total');
+
+        currentWeightMode = 'total';
+        newMode = 'total';
+        
+        // Mettre à jour l'interface visuelle
+        const container = document.querySelector('.charge-weight-container');
+        if (container) {
+            container.classList.remove('charge-mode-charge');
+            container.classList.add('charge-mode-total');
+        }
+        
+        const label = document.querySelector('.charge-mode-label');
+        if (label) {
+            label.textContent = 'TOTAL';
+        }
+        
+        showToast('Mode forcé vers TOTAL (poids insuffisant)', 'info');
     }
     
     // Calculer le poids d'affichage
