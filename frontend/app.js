@@ -3590,11 +3590,26 @@ async function selectExerciseById(exerciseId) {
     }
 }
 
+// Fonction de déblocage d'urgence (à appeler si besoin)
+function resetAnimationState() {
+    if (animationTimeout) {
+        clearTimeout(animationTimeout);
+        animationTimeout = null;
+    }
+    animationInProgress = false;
+    
+    const container = document.querySelector('.charge-weight-container');
+    if (container) {
+        container.classList.remove('mode-switching');
+    }
+}
 
 async function selectExercise(exercise, skipValidation = false) {
     // Pour le setup initial, on peut skipper la validation
     if (!skipValidation && !validateSessionState(true)) return;
-    // Réinitialiser le poids réel
+    // Réinitialiser l'état de l'animation au cas où
+    resetAnimationState();
+    
     currentExerciseRealWeight = 0;
     console.log('[SelectExercise] Poids réel réinitialisé');
     
@@ -3603,7 +3618,7 @@ async function selectExercise(exercise, skipValidation = false) {
         currentWeightMode = currentUser?.preferred_weight_display_mode || 'total';
     } else {
         currentWeightMode = 'total';
-    }    
+    }
     
     // Vérifier que l'exercice est valide
     if (!exercise || !exercise.id) {
@@ -8155,6 +8170,18 @@ function showChargeTooltip() {
 // ===== COUCHE 7 : PLATE HELPER & INFRASTRUCTURE =====
 
 async function updatePlateHelper(weightTOTAL) {
+    // Validation du poids
+    if (!weightTOTAL || weightTOTAL <= 0) {
+        console.warn('[PlateHelper] Poids invalide reçu:', weightTOTAL);
+        hidePlateHelper();
+        return;
+    }
+    
+    // S'assurer qu'on a bien le poids total
+    if (currentWeightMode === 'charge' && weightTOTAL < getBarWeight(currentExercise)) {
+        console.warn('[PlateHelper] Poids semble être en mode charge, conversion nécessaire');
+        weightTOTAL = convertWeight(weightTOTAL, 'charge', 'total', currentExercise);
+    }
     // Protection contre boucles infinies
     if (plateHelperUpdateInProgress) {
         console.log('[PlateHelper] Déjà en cours, skip');
@@ -9180,6 +9207,7 @@ function animateWeightModeSwitch(newMode, displayWeight) {
     if (animationTimeout) {
         clearTimeout(animationTimeout);
         container.classList.remove('mode-switching');
+        animationInProgress = false; // AJOUT : Réinitialiser le flag
     }
     
     // Éviter les animations multiples
@@ -9192,19 +9220,25 @@ function animateWeightModeSwitch(newMode, displayWeight) {
     container.classList.add('mode-switching');
     
     animationTimeout = setTimeout(() => {
-        const weightElement = document.getElementById('setWeight');
-        if (weightElement) {
-            weightElement.textContent = displayWeight;
+        try {
+            const weightElement = document.getElementById('setWeight');
+            if (weightElement) {
+                weightElement.textContent = displayWeight;
+            }
+            
+            container.classList.remove('charge-mode-total', 'charge-mode-charge');
+            container.classList.add(`charge-mode-${newMode}`);
+            container.classList.remove('mode-switching');
+            
+            console.log('[Animation] Mode affiché:', newMode, 'Poids:', displayWeight);
+            
+        } catch (error) {
+            console.error('[Animation] Erreur pendant l\'animation:', error);
+        } finally {
+            // AJOUT : Toujours réinitialiser les flags dans finally
+            animationInProgress = false;
+            animationTimeout = null;
         }
-        
-        container.classList.remove('charge-mode-total', 'charge-mode-charge');
-        container.classList.add(`charge-mode-${newMode}`);
-        container.classList.remove('mode-switching');
-        
-        console.log('[Animation] Mode affiché:', newMode, 'Poids:', displayWeight);
-        
-        animationInProgress = false;
-        animationTimeout = null;
     }, 200);
 }
 
