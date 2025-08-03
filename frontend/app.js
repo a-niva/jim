@@ -4878,42 +4878,73 @@ function setupLongPress() {
 }
 
 function setupButton(button, direction) {
-    // Click simple - seulement si pas en appui long
-    button.addEventListener('click', (e) => {
-        if (!longPressActive) {
-            if (direction === 'down') {
-                adjustWeightDown();
-            } else {
-                adjustWeightUp();
-            }
+    // Nettoyer tous les anciens listeners
+    const newButton = button.cloneNode(true);
+    button.parentNode.replaceChild(newButton, button);
+    
+    let pressTimer = null;
+    let isLongPress = false;
+    
+    // Fonction commune pour démarrer l'ajustement
+    const startAdjustment = () => {
+        if (direction === 'down') {
+            adjustWeightDown();
+        } else {
+            adjustWeightUp();
         }
+    };
+    
+    // Fonction pour démarrer l'appui long
+    const startPress = (e) => {
+        isLongPress = false;
+        
+        // Premier ajustement immédiat
+        startAdjustment();
+        
+        // Démarrer le timer pour l'appui long
+        pressTimer = setTimeout(() => {
+            isLongPress = true;
+            // Commencer les ajustements rapides
+            fastInterval = setInterval(() => {
+                if (direction === 'down') {
+                    adjustWeightDown(3); // Saut de 3
+                } else {
+                    adjustWeightUp(3);
+                }
+            }, 500); // Toutes les 500ms
+        }, 600); // Attendre 600ms avant de considérer comme appui long
+    };
+    
+    // Fonction pour arrêter l'appui
+    const stopPress = () => {
+        if (pressTimer) {
+            clearTimeout(pressTimer);
+            pressTimer = null;
+        }
+        if (fastInterval) {
+            clearInterval(fastInterval);
+            fastInterval = null;
+        }
+        isLongPress = false;
+    };
+    
+    // Desktop
+    newButton.addEventListener('mousedown', (e) => {
+        e.preventDefault(); // Empêcher la sélection de texte
+        startPress(e);
+    });
+    
+    newButton.addEventListener('mouseup', stopPress);
+    newButton.addEventListener('mouseleave', stopPress);
+    
+    // Mobile
+    newButton.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        e.stopPropagation();
-    });
-    
-    // Appui long - Desktop
-    button.addEventListener('mousedown', (e) => {
-        startLongPress(direction);
-        e.preventDefault();
-    });
-    
-    button.addEventListener('mouseup', () => {
-        stopLongPress();
-    });
-    
-    button.addEventListener('mouseleave', () => {
-        stopLongPress();
-    });
-    
-    // Appui long - Mobile
-    button.addEventListener('touchstart', (e) => {
-        startLongPress(direction);
-        e.preventDefault();
+        startPress(e);
     }, { passive: false });
     
-    button.addEventListener('touchend', () => {
-        stopLongPress();
-    });
+    newButton.addEventListener('touchend', stopPress);
+    newButton.addEventListener('touchcancel', stopPress);
 }
 
 function startLongPress(direction) {
