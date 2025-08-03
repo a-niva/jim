@@ -3795,7 +3795,8 @@ function toggleMLAdjustment(exerciseId) {
     // Mettre à jour l'interface sans appel API
     updateToggleUI(newState);
     
-    
+    // Ne PAS appeler updateSetRecommendations qui ferait un appel ML
+    // Au lieu de ça, utiliser les poids sauvegardés
     if (newState) {
         // Mode ML activé : restaurer le dernier poids ML si disponible
         const lastMLWeight = currentWorkoutSession.mlSettings[exerciseId].lastMLWeight;
@@ -3804,21 +3805,33 @@ function toggleMLAdjustment(exerciseId) {
             updateWeightDisplay();
             console.log('🔄 Poids ML restauré:', lastMLWeight);
         } else {
-            // Pas de poids ML sauvegardé, charger les recommandations
+            // Charger les vraies recommandations ML
             console.log('🔄 Chargement des recommandations ML...');
             updateSetRecommendations();
         }
     } else {
-        // Mode manuel : GARDER LE POIDS ACTUEL
+        // Mode manuel : GARDER LE POIDS ACTUEL sauf si c'est 0
         const currentWeight = currentExerciseRealWeight;
         
-        // Sauvegarder comme poids manuel
-        currentWorkoutSession.mlSettings[exerciseId].lastManualWeight = currentWeight;
+        // AJOUT CRITIQUE : Si le poids est 0, initialiser avec le poids de la barre
+        if (currentWeight === 0) {
+            const barWeight = getBarWeight(currentExercise);
+            currentExerciseRealWeight = barWeight;
+            console.log('🔧 Mode manuel - Poids initialisé à la barre:', barWeight);
+            
+            // Mettre à jour l'affichage immédiatement
+            const weightElement = document.getElementById('setWeight');
+            if (weightElement) {
+                const displayWeight = calculateDisplayWeight(barWeight, currentWeightMode, currentExercise);
+                weightElement.textContent = displayWeight;
+            }
+        } else {
+            // Sauvegarder comme poids manuel
+            currentWorkoutSession.mlSettings[exerciseId].lastManualWeight = currentWeight;
+            console.log('🔧 Mode manuel - Poids conservé:', currentWeight);
+        }
         
-        // Ne PAS changer le poids, juste désactiver ML
-        console.log('🔧 Mode manuel - Poids conservé:', currentWeight);
-        
-        // Mettre à jour l'affichage sans changer le poids
+        // Mettre à jour l'affichage
         updateWeightDisplay();
     }
     
@@ -8972,9 +8985,6 @@ function adjustWeight(direction, availableWeights, exercise) {
 
 // ===== COUCHE 4 : AJUSTEMENTS POIDS (User Actions) =====
 function adjustWeightUp(step = 1) {
-    /**
-     * VERSION CORRIGÉE : Support du step pour saut multiple
-     */
     if (!validateSessionState()) return;
     
     let weights = JSON.parse(sessionStorage.getItem('availableWeights') || '[]');
@@ -8988,8 +8998,22 @@ function adjustWeightUp(step = 1) {
         weights = weights.filter(w => w % 2 === 0);
     }
     
+    // AJOUT : Si le poids actuel est 0, commencer avec le premier poids disponible
+    if (currentExerciseRealWeight === 0 || currentExerciseRealWeight < weights[0]) {
+        currentExerciseRealWeight = weights[0];
+        updateWeightDisplay();
+        
+        if (currentUser?.show_plate_helper) {
+            updatePlateHelper(currentExerciseRealWeight);
+        }
+        
+        console.log('[AdjustWeight] Initialisé au poids minimum:', currentExerciseRealWeight);
+        return;
+    }
+    
     // Trouver l'index actuel
     const currentIndex = weights.findIndex(w => w === currentExerciseRealWeight);
+    
     
     if (currentIndex === -1) {
         // Poids actuel non trouvé, prendre le plus proche
@@ -9037,9 +9061,6 @@ function adjustWeightUp(step = 1) {
 }
 
 function adjustWeightDown(step = 1) {
-    /**
-     * VERSION CORRIGÉE : Support du step pour saut multiple
-     */
     if (!validateSessionState()) return;
     
     let weights = JSON.parse(sessionStorage.getItem('availableWeights') || '[]');
@@ -9053,8 +9074,23 @@ function adjustWeightDown(step = 1) {
         weights = weights.filter(w => w % 2 === 0);
     }
     
+    // AJOUT : Si le poids est 0 ou inférieur au minimum, initialiser au minimum
+    if (currentExerciseRealWeight === 0 || currentExerciseRealWeight <= weights[0]) {
+        currentExerciseRealWeight = weights[0];
+        updateWeightDisplay();
+        
+        if (currentUser?.show_plate_helper) {
+            updatePlateHelper(currentExerciseRealWeight);
+        }
+        
+        showToast('Poids minimum atteint', 'info');
+        console.log('[AdjustWeight] Poids minimum:', currentExerciseRealWeight);
+        return;
+    }
+    
     // Trouver l'index actuel
     const currentIndex = weights.findIndex(w => w === currentExerciseRealWeight);
+    
     
     if (currentIndex === -1) {
         // Poids actuel non trouvé, prendre le plus proche
