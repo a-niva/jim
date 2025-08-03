@@ -199,93 +199,6 @@ class ProgramBuilder {
         `;
     }
 
-    /**
-     * Amélioration du preview (avant-dernière étape)
-     */
-    renderProgramPreview(content) {
-        if (!this.generatedProgram) {
-            content.innerHTML = `
-                <div class="loading-step">
-                    <div class="loading-spinner"></div>
-                    <p>Génération de votre programme personnalisé...</p>
-                </div>
-            `;
-            
-            // Générer async sans bloquer l'UI
-            this.generateProgramAsync(content);
-            return;
-        }
-        
-        // Programme déjà généré, afficher le contenu
-        content.innerHTML = `
-            <div class="preview-step">
-                <h3>Aperçu de votre programme</h3>
-                <p class="preview-subtitle">Vérifiez que tout correspond à vos attentes</p>
-                
-                <div class="program-overview">
-                    <div class="overview-header">
-                        <h4>${this.generatedProgram.name}</h4>
-                        <div class="overview-stats">
-                            <span class="stat">${this.generatedProgram.duration_weeks} semaines</span>
-                            <span class="stat">${this.generatedProgram.sessions_per_week} séances/sem</span>
-                            <span class="stat">${this.generatedProgram.session_duration_minutes}min/séance</span>
-                        </div>
-                    </div>
-                    
-                    <div class="focus-areas-preview">
-                        <strong>Zones ciblées :</strong>
-                        <div class="focus-tags">
-                            ${this.generatedProgram.focus_areas.map(area => 
-                                `<span class="focus-tag">${this.getFocusAreaName(area)}</span>`
-                            ).join('')}
-                        </div>
-                    </div>
-                    
-                    <div class="week-preview">
-                        <strong>Aperçu première semaine :</strong>
-                        ${this.generatedProgram.weekly_structure?.[0] ? 
-                            this.renderWeekPreview(this.generatedProgram.weekly_structure[0]) : 
-                            '<p>Séances générées automatiquement</p>'
-                        }
-                    </div>
-                </div>
-                
-                <div class="preview-actions">
-                    <button class="btn btn-secondary" onclick="programBuilder.regenerateProgram()">
-                        🔄 Régénérer
-                    </button>
-                </div>
-            </div>
-        `;
-    }
-
-    async generateProgramAsync(content) {
-        try {
-            window.showToast('Génération de votre programme...', 'info');
-            
-            this.generatedProgram = await window.apiPost(
-                `/api/users/${window.currentUser.id}/program-builder/generate`,
-                this.selections
-            );
-            
-            // Re-render maintenant qu'on a le programme
-            this.renderProgramPreview(content);
-            
-        } catch (error) {
-            console.error('Erreur génération programme:', error);
-            content.innerHTML = `
-                <div class="error-step">
-                    <h3>❌ Erreur lors de la génération</h3>
-                    <p>Une erreur est survenue. Voulez-vous réessayer ?</p>
-                    <button class="btn btn-primary" onclick="programBuilder.renderStep()">
-                        Réessayer
-                    </button>
-                </div>
-            `;
-            window.showToast('Erreur lors de la génération du programme', 'error');
-        }
-    }
-
     renderIntroStep(content) {
         // Afficher l'étape d'introduction avec insights ML
         if (!this.recommendations) {
@@ -608,14 +521,6 @@ class ProgramBuilder {
             this.currentStep--;
             this.renderStep();
         }
-    }
-    
-
-    
-    async confirmProgram() {
-        //  Confirmer le programme et passer à l'étape finale//  
-        this.currentStep++;
-        this.renderStep();
     }
     
     async complete() {
