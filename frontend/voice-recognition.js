@@ -45,13 +45,41 @@ let voiceData = {
  * @returns {boolean} true si l'initialisation réussit, false sinon
  */
 function initVoiceRecognition() {
-    // TODO: Vérifier support navigateur
-    // TODO: Créer instance SpeechRecognition
-    // TODO: Configurer langue et paramètres
-    // TODO: Attacher les gestionnaires d'événements
+    // Vérifier le support de la reconnaissance vocale
+    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+        console.warn('[Voice] Speech Recognition non supportée par ce navigateur');
+        return false;
+    }
     
-    console.log('[Voice] Module initialisé (placeholder)');
-    return false;
+    try {
+        // Créer l'instance de reconnaissance vocale
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        
+        // Configuration de base
+        recognition.lang = 'fr-FR';
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.maxAlternatives = 3;
+        
+        // Attacher les gestionnaires d'événements
+        recognition.onresult = handleVoiceResult;
+        recognition.onerror = handleVoiceError;
+        recognition.onend = handleVoiceEnd;
+        recognition.onstart = () => {
+            console.log('[Voice] Reconnaissance démarrée');
+        };
+        
+        console.log('[Voice] Module initialisé avec succès');
+        console.log('[Voice] Langue configurée:', recognition.lang);
+        console.log('[Voice] Mode continu:', recognition.continuous);
+        
+        return true;
+        
+    } catch (error) {
+        console.error('[Voice] Erreur lors de l\'initialisation:', error);
+        return false;
+    }
 }
 
 /**
@@ -61,12 +89,37 @@ function initVoiceRecognition() {
  * @returns {void}
  */
 function startVoiceRecognition() {
-    // TODO: Vérifier prérequis (batterie, permissions)
-    // TODO: Reset voiceData
-    // TODO: Démarrer recognition.start()
-    // TODO: Mettre à jour UI (icône micro active)
+    if (!recognition || voiceRecognitionActive) {
+        console.log('[Voice] Reconnaissance non disponible ou déjà active');
+        return;
+    }
     
-    console.log('[Voice] Démarrage reconnaissance (placeholder)');
+    // Réinitialiser les données de comptage
+    voiceData = {
+        count: 0,
+        timestamps: [],
+        gaps: [],
+        lastNumber: 0,
+        startTime: Date.now(),
+        confidence: 1.0
+    };
+    
+    try {
+        recognition.start();
+        voiceRecognitionActive = true;
+        
+        // Mettre à jour l'interface - icône micro active
+        const microIcon = document.querySelector('.voice-toggle-container i');
+        if (microIcon) {
+            microIcon.classList.add('active');
+        }
+        
+        console.log('[Voice] Reconnaissance démarrée avec succès');
+        
+    } catch (error) {
+        console.error('[Voice] Erreur au démarrage:', error);
+        voiceRecognitionActive = false;
+    }
 }
 
 /**
@@ -76,12 +129,39 @@ function startVoiceRecognition() {
  * @returns {void}
  */
 function stopVoiceRecognition() {
-    // TODO: Arrêter recognition.stop()
-    // TODO: Calculer confidence finale
-    // TODO: Mettre à jour UI (icône micro inactive)
-    // TODO: Log données finales
+    if (!recognition || !voiceRecognitionActive) {
+        return;
+    }
     
-    console.log('[Voice] Arrêt reconnaissance (placeholder)');
+    try {
+        recognition.stop();
+        voiceRecognitionActive = false;
+        
+        // Calculer la confiance finale basée sur les gaps
+        if (voiceData.gaps.length > 0) {
+            const gapPenalty = Math.min(voiceData.gaps.length * 0.1, 0.3);
+            voiceData.confidence = Math.max(0.6, 1.0 - gapPenalty);
+        }
+        
+        // Mettre à jour l'interface - icône micro inactive
+        const microIcon = document.querySelector('.voice-toggle-container i');
+        if (microIcon) {
+            microIcon.classList.remove('active');
+        }
+        
+        console.log('[Voice] Reconnaissance arrêtée');
+        console.log('[Voice] Données finales:', {
+            count: voiceData.count,
+            gaps: voiceData.gaps,
+            confidence: voiceData.confidence.toFixed(2),
+            duration: voiceData.timestamps.length > 0 ? 
+                Math.round((voiceData.timestamps[voiceData.timestamps.length - 1]) / 1000) + 's' : '0s'
+        });
+        
+    } catch (error) {
+        console.error('[Voice] Erreur lors de l\'arrêt:', error);
+        voiceRecognitionActive = false;
+    }
 }
 
 /**
@@ -92,14 +172,64 @@ function stopVoiceRecognition() {
  * @returns {void}
  */
 function handleVoiceResult(event) {
-    // TODO: Extraire transcript final
-    // TODO: Détecter nombres français (un, deux, trois...)
-    // TODO: Détecter nombres numériques (1, 2, 3...)
-    // TODO: Détecter mots-clés (top, hop)
-    // TODO: Détecter commandes (terminé, fini)
-    // TODO: Appeler handleNumberDetected() ou executeSet()
+    const result = event.results[event.results.length - 1];
+    if (!result.isFinal) return;
     
-    console.log('[Voice] Résultat reçu (placeholder):', event);
+    const transcript = result[0].transcript.toLowerCase().trim();
+    console.log('[Voice] Transcript reçu:', transcript);
+    
+    // Map complète des nombres français et numériques
+    const numbers = {
+        'un': 1, '1': 1,
+        'deux': 2, '2': 2,
+        'trois': 3, '3': 3,
+        'quatre': 4, '4': 4,
+        'cinq': 5, '5': 5,
+        'six': 6, '6': 6,
+        'sept': 7, '7': 7,
+        'huit': 8, '8': 8,
+        'neuf': 9, '9': 9,
+        'dix': 10, '10': 10,
+        'onze': 11, '11': 11,
+        'douze': 12, '12': 12,
+        'treize': 13, '13': 13,
+        'quatorze': 14, '14': 14,
+        'quinze': 15, '15': 15,
+        'seize': 16, '16': 16,
+        'dix-sept': 17, '17': 17,
+        'dix-huit': 18, '18': 18,
+        'dix-neuf': 19, '19': 19,
+        'vingt': 20, '20': 20
+    };
+    
+    // Détection des nombres - priorité aux correspondances exactes
+    for (const [word, number] of Object.entries(numbers)) {
+        if (transcript === word || transcript.includes(` ${word} `) || 
+            transcript.startsWith(`${word} `) || transcript.endsWith(` ${word}`)) {
+            console.log('[Voice] Nombre détecté:', number);
+            handleNumberDetected(number);
+            return;
+        }
+    }
+    
+    // Détection des mots-clés répétitifs
+    if (transcript.includes('top') || transcript.includes('hop')) {
+        console.log('[Voice] Mot-clé détecté');
+        handleKeywordDetected();
+        return;
+    }
+    
+    // Détection des commandes de fin
+    if (transcript.includes('terminé') || transcript.includes('fini') || 
+        transcript.includes('stop') || transcript.includes('fin')) {
+        console.log('[Voice] Commande de fin détectée');
+        if (typeof window.executeSet === 'function') {
+            window.executeSet();
+        }
+        return;
+    }
+    
+    console.log('[Voice] Transcript non reconnu:', transcript);
 }
 
 /**
@@ -110,13 +240,42 @@ function handleVoiceResult(event) {
  * @returns {void}
  */
 function handleNumberDetected(number) {
-    // TODO: Calculer timestamp relatif
-    // TODO: Détecter et stocker les gaps
-    // TODO: Mettre à jour voiceData.count et timestamps
-    // TODO: Appeler updateVoiceDisplay()
-    // TODO: Vibration feedback
+    const now = Date.now();
     
-    console.log('[Voice] Nombre détecté (placeholder):', number);
+    // Calculer le timestamp relatif au début de l'exercice
+    const relativeTimestamp = now - voiceData.startTime;
+    
+    // Gestion intelligente des gaps (nombres manqués)
+    if (number > voiceData.lastNumber + 1) {
+        // Nombres manqués détectés
+        for (let i = voiceData.lastNumber + 1; i < number; i++) {
+            voiceData.gaps.push(i);
+        }
+        console.log('[Voice] Gaps détectés:', voiceData.gaps);
+        
+        // Réduire légèrement la confiance
+        voiceData.confidence = Math.max(0.7, voiceData.confidence - 0.1);
+    }
+    
+    // Mettre à jour les données de comptage
+    voiceData.count = Math.max(voiceData.count, number);
+    voiceData.timestamps.push(relativeTimestamp);
+    voiceData.lastNumber = number;
+    
+    console.log('[Voice] Données mises à jour:', {
+        count: voiceData.count,
+        lastNumber: voiceData.lastNumber,
+        gaps: voiceData.gaps,
+        confidence: voiceData.confidence
+    });
+    
+    // Mettre à jour l'affichage en temps réel
+    updateVoiceDisplay(voiceData.count);
+    
+    // Feedback haptique si disponible
+    if (navigator.vibrate) {
+        navigator.vibrate(30);
+    }
 }
 
 /**
@@ -126,12 +285,22 @@ function handleNumberDetected(number) {
  * @returns {void}
  */
 function handleKeywordDetected() {
-    // TODO: Incrémenter voiceData.count
-    // TODO: Ajouter timestamp
-    // TODO: Appeler updateVoiceDisplay()
-    // TODO: Vibration feedback
+    const now = Date.now();
     
-    console.log('[Voice] Mot-clé détecté (placeholder)');
+    // Mode mot-clé : simple incrémentation
+    voiceData.count++;
+    voiceData.timestamps.push(now - voiceData.startTime);
+    voiceData.lastNumber = voiceData.count; // Cohérence avec le mode nombres
+    
+    console.log('[Voice] Comptage mot-clé:', voiceData.count);
+    
+    // Mettre à jour l'affichage
+    updateVoiceDisplay(voiceData.count);
+    
+    // Feedback haptique
+    if (navigator.vibrate) {
+        navigator.vibrate(30);
+    }
 }
 
 /**
@@ -142,12 +311,47 @@ function handleKeywordDetected() {
  * @returns {void}
  */
 function updateVoiceDisplay(count) {
-    // TODO: Mettre à jour #setReps avec animation
-    // TODO: Mettre à jour indicateur vocal (.voice-indicator)
-    // TODO: Ajouter classe d'animation temporaire
-    // TODO: Nettoyer animations après délai
+    // Mettre à jour l'affichage principal des répétitions
+    const repsElement = document.getElementById('setReps');
+    if (repsElement) {
+        repsElement.textContent = count;
+        repsElement.classList.add('voice-updated');
+        
+        // Nettoyer l'animation après 300ms
+        setTimeout(() => {
+            repsElement.classList.remove('voice-updated');
+        }, 300);
+    }
     
-    console.log('[Voice] Affichage mis à jour (placeholder):', count);
+    // Mettre à jour l'indicateur sur l'icône micro si présent
+    const indicator = document.querySelector('.voice-indicator');
+    if (indicator) {
+        indicator.textContent = count;
+        indicator.classList.add('pulse');
+        
+        setTimeout(() => {
+            indicator.classList.remove('pulse');
+        }, 300);
+    } else {
+        // Créer l'indicateur s'il n'existe pas
+        const microIcon = document.querySelector('.voice-toggle-container i');
+        if (microIcon && count > 0) {
+            const newIndicator = document.createElement('div');
+            newIndicator.className = 'voice-indicator pulse';
+            newIndicator.textContent = count;
+            
+            const container = microIcon.parentElement;
+            if (container && !container.querySelector('.voice-indicator')) {
+                container.appendChild(newIndicator);
+                
+                setTimeout(() => {
+                    newIndicator.classList.remove('pulse');
+                }, 300);
+            }
+        }
+    }
+    
+    console.log('[Voice] Interface mise à jour pour count:', count);
 }
 
 /**
