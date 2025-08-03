@@ -452,15 +452,6 @@ class ProgramBuilder {
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="preview-actions">
-                        <button class="btn btn-secondary" onclick="programBuilder.regenerateProgram()">
-                            🔄 Régénérer
-                        </button>
-                        <button class="btn btn-success" onclick="programBuilder.confirmProgram()">
-                            ✅ Confirmer ce programme
-                        </button>
-                    </div>
                 </div>
             `;
             
@@ -619,19 +610,7 @@ class ProgramBuilder {
         }
     }
     
-    async regenerateProgram() {
-        try {
-            window.showToast('Régénération en cours...', 'info');
-            this.generatedProgram = await window.apiPost(
-                `/api/users/${window.currentUser.id}/program-builder/generate`,
-                this.selections
-            );
-            this.renderStep(); // PAS await - va juste re-render avec le nouveau programme
-            window.showToast('Nouveau programme généré !', 'success');
-        } catch (error) {
-            window.showToast('Erreur lors de la régénération', 'error');
-        }
-    }
+
     
     async confirmProgram() {
         //  Confirmer le programme et passer à l'étape finale//  

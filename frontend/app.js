@@ -518,54 +518,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     setupEventListeners();
-    registerServiceWorker();
 });
-
-
-// Initialisation des range sliders modernes
-function initializeRangeSliders() {
-    // Slider séances par semaine
-    const sessionsSlider = document.getElementById('sessionsPerWeek');
-    const sessionsDisplay = document.getElementById('sessionsDisplay');
-    
-    if (sessionsSlider && sessionsDisplay) {
-        sessionsSlider.addEventListener('input', function() {
-            const value = this.value;
-            sessionsDisplay.textContent = value;
-            
-            // Mise à jour de la classe CSS pour le gradient
-            this.className = this.className.replace(/sessions-\d+/g, '');
-            this.classList.add(`sessions-${value}`);
-        });
-        
-        // Initialiser la classe par défaut
-        sessionsSlider.classList.add('sessions-3');
-    }
-    
-    // Slider durée par séance
-    const durationSlider = document.getElementById('sessionDuration');
-    const durationDisplay = document.getElementById('durationDisplay');
-    
-    if (durationSlider && durationDisplay) {
-        durationSlider.addEventListener('input', function() {
-            const value = this.value;
-            durationDisplay.textContent = value;
-            
-            // Mise à jour de la classe CSS pour le gradient
-            this.className = this.className.replace(/duration-\d+/g, '');
-            this.classList.add(`duration-${value}`);
-        });
-        
-        // Initialiser la classe par défaut
-        durationSlider.classList.add('duration-45');
-    }
-}
-
-// Appeler cette fonction quand l'onboarding se lance
-document.addEventListener('DOMContentLoaded', function() {
-    initializeRangeSliders();
-});
-
 
 // ===== GESTION DES ACTIONS URL =====
 function handleUrlAction(action) {
@@ -578,18 +531,6 @@ function handleUrlAction(action) {
             break;
         default:
             console.log('Action URL inconnue:', action);
-    }
-}
-
-// ===== PROGRESSIVE WEB APP =====
-async function registerServiceWorker() {
-    if ('serviceWorker' in navigator) {
-        try {
-            // Pour l'instant, pas de service worker complexe
-            console.log('Service Worker support détecté');
-        } catch (error) {
-            console.log('Erreur Service Worker:', error);
-        }
     }
 }
 
@@ -11165,22 +11106,6 @@ async function applyOptimalOrder() {
 }
 
 /**
- * Nettoie les event listeners pour éviter les fuites mémoire
- */
-function cleanupDragDropListeners() {
-    document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', handleMouseUp);
-    
-    const items = document.querySelectorAll('.exercise-item');
-    items.forEach(item => {
-        item.removeEventListener('touchstart', handleTouchStart);
-        item.removeEventListener('touchmove', handleTouchMove);
-        item.removeEventListener('touchend', handleTouchEnd);
-        item.removeEventListener('mousedown', handleMouseDown);
-    });
-}
-
-/**
  * Lance le ProgramBuilder avec les données utilisateur
  */
 async function showProgramBuilder(userData) {
@@ -11207,72 +11132,6 @@ async function showProgramBuilder(userData) {
     }
 }
 // ========== PARTIE 4 : ANIMATION STYLES (FIN DE FICHIER) ==========
-// À ajouter AVANT les exports (window.xxx = xxx)
-// LOCALISATION : Juste avant "// ===== EXPOSITION GLOBALE ====="
-
-/**
- * Animation CSS pour amélioration de score
- */
-function addScoreAnimations() {
-    if (document.getElementById('score-animations')) return;
-    
-    const styles = document.createElement('style');
-    styles.id = 'score-animations';
-    styles.textContent = `
-        @keyframes scoreImprovement {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
-        }
-        
-        @keyframes scoreDrop {
-            0% { transform: scale(1); }
-            50% { transform: scale(0.95); }
-            100% { transform: scale(1); }
-        }
-        
-        @keyframes slideInRight {
-            from {
-                opacity: 0;
-                transform: translateX(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-        
-        .exercise-item.dragging {
-            transition: none !important;
-            pointer-events: none;
-        }
-        
-        .exercise-item:not(.dragging) {
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        
-        /* Améliorations responsive pour le drag */
-        @media (max-width: 768px) {
-            .exercise-item.dragging {
-                transform: scale(1.08) rotate(1deg) !important;
-            }
-        }
-        
-        @media (prefers-reduced-motion: reduce) {
-            .exercise-item,
-            .gauge-fill,
-            .exercise-number {
-                transition: none !important;
-                animation: none !important;
-            }
-        }
-    `;
-    document.head.appendChild(styles);
-}
-
-// Initialiser les animations au chargement
-addScoreAnimations();
-
 // ===== NOUVELLES FONCTIONS PLANNING =====
 
 async function showPlanning() {
@@ -11542,10 +11401,6 @@ window.updateSetRecommendations = updateSetRecommendations;
 window.syncMLToggles = syncMLToggles;
 
 // ===== EXPOSITION GLOBALE TOTALE =====
-window.apiGet = apiGet;
-window.apiPost = apiPost;  
-window.apiPut = apiPut;
-window.apiDelete = apiDelete;
 window.loadStats = loadStats;
 window.loadProfile = loadProfile;
 window.updateProgramCardStatus = updateProgramCardStatus;
@@ -11588,18 +11443,6 @@ window.applyOptimalOrder = applyOptimalOrder;
 window.buildEnhancedModalContent = buildEnhancedModalContent;
 window.buildExerciseItemHTML = buildExerciseItemHTML;
 window.storeCurrentScoringData = storeCurrentScoringData;
-window.cleanupDragDropListeners = cleanupDragDropListeners;
-
-// Alias pour compatibilité tests Phase 3.1
-window.initializePreSessionDragDrop = initializeExerciseReorder;
-window.recalculateScoreAfterReorder = function(fromIndex, toIndex) {
-    // Utiliser la logique existante de réorganisation
-    return finalizeDragOperation();
-};
-window.confirmStartWithCurrentOrder = confirmStartProgramWorkout;
-window.renderReorderableExercises = function(exercises) {
-    return exercises.map((ex, index) => buildExerciseItemHTML(ex, index)).join('');
-};
 
 window.showPlanning = showPlanning;
 window.showProgramInterface = showProgramInterface;
