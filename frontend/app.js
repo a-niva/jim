@@ -3746,6 +3746,13 @@ async function selectExercise(exercise, skipValidation = false) {
     
     // Démarrer le timer de la première série
     startSetTimer();
+
+    setTimeout(() => {
+        console.log('[VOICE DEBUG] Final check - Voice container exists:', 
+            !!document.querySelector('.voice-toggle-container'));
+        console.log('[VOICE DEBUG] All elements with class ml-toggle-container:', 
+            document.querySelectorAll('.ml-toggle-container').length);
+    }, 100);
 }
 
 // Nouvelle fonction pour le rendu du toggle ML
