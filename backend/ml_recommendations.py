@@ -1434,7 +1434,7 @@ class FitnessRecommendationEngine:
         current_fatigue: int, 
         exercise_order: int,
         set_order_global: int,
-        last_set_voice_data: Optional[Dict] = None  # NOUVEAU
+        last_set_voice_data: Optional[Dict] = None
     ) -> float:
         """Calcule l'ajustement basé sur la fatigue"""
         
@@ -1453,32 +1453,96 @@ class FitnessRecommendationEngine:
         
         combined_adjustment = base_adjustment * fatigue_progression * session_fatigue
         
-        # NOUVEAU : Enrichissement avec données vocales
-        if last_set_voice_data and last_set_voice_data.get('tempo_avg'):
-            tempo_ms = last_set_voice_data['tempo_avg']
-            voice_confidence = last_set_voice_data.get('confidence', 1.0)
+        # ===== NOUVELLE LOGIQUE VOCALE INTELLIGENTE =====
+        if last_set_voice_data and last_set_voice_data.get('timestamps'):
+            voice_fatigue_analysis = self._analyze_voice_fatigue(last_set_voice_data)
             
-            # Si tempo > 1.5s entre reps = signe de fatigue supplémentaire
-            if tempo_ms > 1500:
-                # Facteur de tempo : 1.5s = 1.0, 2s = 1.33, 3s = 2.0
-                tempo_factor = min(tempo_ms / 1500, 2.0)
-                # Réduction additionnelle : 0% à 10% selon le tempo
-                tempo_reduction = 1.0 - (0.1 * (tempo_factor - 1.0))
+            if voice_fatigue_analysis['fatigued']:
+                # Appliquer la réduction de fatigue vocale
+                voice_penalty = voice_fatigue_analysis['penalty_factor']
+                combined_adjustment *= voice_penalty
                 
-                # Pondérer selon la confiance vocale
-                if voice_confidence >= 0.8:
-                    combined_adjustment *= tempo_reduction
-                else:
-                    # Réduire l'impact si données peu fiables
-                    combined_adjustment *= (1.0 - (1.0 - tempo_reduction) * voice_confidence)
-                
-                logger.info(f"[ML] Ajustement vocal appliqué - Tempo: {tempo_ms}ms, "
-                        f"Réduction: {tempo_reduction:.2f}, Confiance: {voice_confidence}")
-                
-        # Stocker pour le reasoning
-        self._last_voice_tempo_ms = tempo_ms
+                logger.info(f"[ML] Fatigue vocale détectée - "
+                        f"Dégradation: {voice_fatigue_analysis['degradation']:.2f}, "
+                        f"Instabilité: {voice_fatigue_analysis['instability']:.2f}, "
+                        f"Pénalité: {voice_penalty:.2f}")
         
         return combined_adjustment
+
+    def _analyze_voice_fatigue(self, voice_data: Dict) -> Dict:
+        """
+        Analyse la fatigue à partir des données vocales
+        OPTIMISÉ : utilise les timestamps déjà calculés
+        """
+        timestamps = voice_data.get('timestamps', [])
+        confidence = voice_data.get('confidence', 1.0)
+        
+        # Validation rapide
+        if len(timestamps) < 4:
+            return {'fatigued': False, 'penalty_factor': 1.0}
+        
+        # Convertir timestamps en tempos (intervalles entre reps)
+        # OPTIMISATION: calcul direct sans boucle coûteuse
+        tempos = [timestamps[i] - timestamps[i-1] for i in range(1, len(timestamps))]
+        
+        if len(tempos) < 3:
+            return {'fatigued': False, 'penalty_factor': 1.0}
+        
+        # ===== CALCULS STATISTIQUES RAPIDES =====
+        
+        # 1. Dégradation: comparer début vs fin
+        early_count = min(3, len(tempos) // 2)
+        late_count = min(3, len(tempos) // 2)
+        
+        early_tempos = tempos[:early_count]
+        late_tempos = tempos[-late_count:]
+        
+        early_avg = sum(early_tempos) / len(early_tempos)
+        late_avg = sum(late_tempos) / len(late_tempos)
+        
+        degradation_factor = late_avg / early_avg if early_avg > 0 else 1.0
+        
+        # 2. Instabilité: variance simplifiée (sans sqrt pour perf)
+        def simple_variance(values):
+            if len(values) < 2:
+                return 0
+            mean_val = sum(values) / len(values)
+            return sum((x - mean_val) ** 2 for x in values) / len(values)
+        
+        early_var = simple_variance(early_tempos)
+        late_var = simple_variance(late_tempos)
+        
+        instability_factor = late_var / max(early_var, 1000) if early_var > 0 else 1.0
+        
+        # ===== DÉTECTION DE FATIGUE =====
+        
+        # Seuils ajustés empiriquement
+        is_degraded = degradation_factor > 1.4  # 40% plus lent
+        is_unstable = instability_factor > 3.0  # 3x plus variable
+        
+        fatigued = is_degraded or is_unstable
+        
+        # Calcul de la pénalité (réduction performance)
+        if fatigued:
+            # Pénalité progressive basée sur l'intensité de la fatigue
+            deg_penalty = max(0.0, (degradation_factor - 1.4) * 0.2)  # Max -20% pour dégradation
+            inst_penalty = max(0.0, (instability_factor - 3.0) * 0.05)  # Max -15% pour instabilité
+            
+            total_penalty = min(0.3, deg_penalty + inst_penalty)  # Cap à -30%
+            penalty_factor = 1.0 - total_penalty
+            
+            # Ajuster selon la confiance vocale
+            penalty_factor = 1.0 - (1.0 - penalty_factor) * confidence
+        else:
+            penalty_factor = 1.0
+        
+        return {
+            'fatigued': fatigued,
+            'degradation': degradation_factor,
+            'instability': instability_factor,
+            'penalty_factor': penalty_factor,
+            'confidence': confidence
+        }
     
     def _calculate_effort_adjustment(
         self, 

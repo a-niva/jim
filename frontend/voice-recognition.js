@@ -105,8 +105,12 @@ function startVoiceRecognition() {
     };
     
     try {
+        // ===== NOUVEAU : GESTION DES PERMISSIONS =====
         recognition.start();
         voiceRecognitionActive = true;
+        
+        // Démarrer le timeout d'auto-validation (Phase 6.3)
+        startAutoValidationTimer();
         
         // Mettre à jour l'interface - icône micro active
         const microIcon = document.querySelector('.voice-toggle-container i');
@@ -119,6 +123,125 @@ function startVoiceRecognition() {
     } catch (error) {
         console.error('[Voice] Erreur au démarrage:', error);
         voiceRecognitionActive = false;
+        
+        // Gestion des erreurs de permissions
+        handleVoiceStartupError(error);
+    }
+}
+
+/**
+ * Gère les erreurs de démarrage de la reconnaissance vocale
+ */
+function handleVoiceStartupError(error) {
+    console.error('[Voice] Détail erreur démarrage:', error);
+    
+    // Désactiver le comptage vocal pour cette session
+    voiceRecognitionActive = false;
+    
+    // Messages explicites selon l'erreur
+    if (error.name === 'NotAllowedError' || error.message.includes('permission')) {
+        showToast('Permission microphone refusée. Activez-la dans les paramètres du navigateur.', 'error');
+        
+        // Guide utilisateur
+        setTimeout(() => {
+            showToast('Chrome: cliquez sur 🔒 dans la barre d\'adresse → Autoriser le microphone', 'info');
+        }, 3000);
+        
+    } else if (error.name === 'NotFoundError') {
+        showToast('Aucun microphone détecté sur cet appareil', 'error');
+        
+    } else if (error.name === 'NotSupportedError') {
+        showToast('Reconnaissance vocale non supportée par ce navigateur', 'error');
+        
+    } else {
+        showToast('Erreur microphone. Utilisez le comptage manuel.', 'warning');
+    }
+    
+    // Nettoyer l'interface
+    const microIcon = document.querySelector('.voice-toggle-container i');
+    if (microIcon) {
+        microIcon.classList.remove('active');
+    }
+}
+
+
+let autoValidationTimer = null;
+let lastVoiceActivityTime = null;
+
+/**
+ * Démarre le timer d'auto-validation (30s après dernière activité vocale)
+ */
+function startAutoValidationTimer() {
+    // Nettoyer le timer existant
+    if (autoValidationTimer) {
+        clearTimeout(autoValidationTimer);
+    }
+    
+    lastVoiceActivityTime = Date.now();
+    
+    // Timer de 30 secondes
+    autoValidationTimer = setTimeout(() => {
+        handleAutoValidation();
+    }, 30000);
+    
+    console.log('[Voice] Timer auto-validation démarré (30s)');
+}
+
+/**
+ * Remet à zéro le timer à chaque activité vocale
+ */
+function resetAutoValidationTimer() {
+    if (!voiceRecognitionActive) return;
+    
+    lastVoiceActivityTime = Date.now();
+    
+    // Redémarrer le timer
+    if (autoValidationTimer) {
+        clearTimeout(autoValidationTimer);
+    }
+    
+    autoValidationTimer = setTimeout(() => {
+        handleAutoValidation();
+    }, 30000);
+    
+    console.log('[Voice] Timer auto-validation remis à zéro');
+}
+
+/**
+ * Gère l'auto-validation après timeout
+ */
+function handleAutoValidation() {
+    if (!voiceRecognitionActive) return;
+    
+    console.log('[Voice] Timeout atteint - auto-validation');
+    
+    // Afficher notification discrète
+    showToast('Série validée automatiquement (30s sans activité vocale)', 'info');
+    
+    // Valider avec le compte actuel
+    if (voiceData.count > 0) {
+        console.log(`[Voice] Auto-validation avec ${voiceData.count} répétitions`);
+        
+        // Déclencher executeSet() si disponible
+        if (typeof executeSet === 'function') {
+            executeSet();
+        } else {
+            console.warn('[Voice] Fonction executeSet non disponible pour auto-validation');
+        }
+    } else {
+        console.log('[Voice] Auto-validation sans comptage - arrêt reconnaissance');
+        stopVoiceRecognition();
+    }
+}
+
+/**
+ * Nettoie le timer d'auto-validation
+ */
+function clearAutoValidationTimer() {
+    if (autoValidationTimer) {
+        clearTimeout(autoValidationTimer);
+        autoValidationTimer = null;
+        console.log('[Voice] Timer auto-validation supprimé');
     }
 }
 
@@ -137,6 +260,10 @@ function stopVoiceRecognition() {
         recognition.stop();
         voiceRecognitionActive = false;
         
+        // ===== NOUVEAU : NETTOYER LE TIMER =====
+        clearAutoValidationTimer();
+        
+        // ===== LOGIQUE EXISTANTE =====
         // Calculer la confiance finale basée sur les gaps
         if (voiceData.gaps.length > 0) {
             const gapPenalty = Math.min(voiceData.gaps.length * 0.1, 0.3);
@@ -153,14 +280,11 @@ function stopVoiceRecognition() {
         console.log('[Voice] Données finales:', {
             count: voiceData.count,
             gaps: voiceData.gaps,
-            confidence: voiceData.confidence.toFixed(2),
-            duration: voiceData.timestamps.length > 0 ? 
-                Math.round((voiceData.timestamps[voiceData.timestamps.length - 1]) / 1000) + 's' : '0s'
+            confidence: voiceData.confidence.toFixed(2)
         });
         
     } catch (error) {
         console.error('[Voice] Erreur lors de l\'arrêt:', error);
-        voiceRecognitionActive = false;
     }
 }
 
@@ -242,40 +366,29 @@ function handleVoiceResult(event) {
 function handleNumberDetected(number) {
     const now = Date.now();
     
-    // Calculer le timestamp relatif au début de l'exercice
-    const relativeTimestamp = now - voiceData.startTime;
-    
-    // Gestion intelligente des gaps (nombres manqués)
+    // ===== LOGIQUE EXISTANTE =====
+    // Gestion intelligente des gaps
     if (number > voiceData.lastNumber + 1) {
-        // Nombres manqués détectés
+        // Nombre manqué détecté
         for (let i = voiceData.lastNumber + 1; i < number; i++) {
             voiceData.gaps.push(i);
         }
-        console.log('[Voice] Gaps détectés:', voiceData.gaps);
-        
-        // Réduire légèrement la confiance
-        voiceData.confidence = Math.max(0.7, voiceData.confidence - 0.1);
+        console.log('[Voice] Gap détecté:', voiceData.gaps);
     }
     
-    // Mettre à jour les données de comptage
     voiceData.count = Math.max(voiceData.count, number);
-    voiceData.timestamps.push(relativeTimestamp);
+    voiceData.timestamps.push(now - voiceData.startTime);
     voiceData.lastNumber = number;
     
-    console.log('[Voice] Données mises à jour:', {
-        count: voiceData.count,
-        lastNumber: voiceData.lastNumber,
-        gaps: voiceData.gaps,
-        confidence: voiceData.confidence
-    });
+    updateVoiceDisplay(number);
     
-    // Mettre à jour l'affichage en temps réel
-    updateVoiceDisplay(voiceData.count);
-    
-    // Feedback haptique si disponible
+    // Vibration feedback si disponible
     if (navigator.vibrate) {
         navigator.vibrate(30);
     }
+    
+    // ===== NOUVEAU : RÉINITIALISER LE TIMER =====
+    resetAutoValidationTimer();
 }
 
 /**
@@ -286,21 +399,18 @@ function handleNumberDetected(number) {
  */
 function handleKeywordDetected() {
     const now = Date.now();
-    
-    // Mode mot-clé : simple incrémentation
     voiceData.count++;
     voiceData.timestamps.push(now - voiceData.startTime);
-    voiceData.lastNumber = voiceData.count; // Cohérence avec le mode nombres
     
-    console.log('[Voice] Comptage mot-clé:', voiceData.count);
-    
-    // Mettre à jour l'affichage
     updateVoiceDisplay(voiceData.count);
     
-    // Feedback haptique
+    // Vibration feedback si disponible
     if (navigator.vibrate) {
         navigator.vibrate(30);
     }
+    
+    // ===== NOUVEAU : RÉINITIALISER LE TIMER =====
+    resetAutoValidationTimer();
 }
 
 /**
