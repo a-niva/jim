@@ -7703,22 +7703,20 @@ input:checked+.toggle-slider:before {
     align-items: center;
 }
 
-
-/* Container pour le contrôle vocal uniquement */
+/* Container pour le bouton vocal seul */
 .exercise-controls-container.voice-only {
     display: inline-flex;
     align-items: center;
-    margin-top: 0.5rem;
     margin-left: 0.5rem;
     padding: 0;
     background: transparent;
     border: none;
 }
 
-/* Bouton vocal simplifié */
+/* Bouton vocal minimaliste */
 .voice-toggle-btn {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     border: none;
     background: transparent;
@@ -7727,8 +7725,8 @@ input:checked+.toggle-slider:before {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    position: relative;
     transition: all 0.3s ease;
+    font-size: 1rem;
 }
 
 .voice-toggle-btn:hover {
@@ -7737,7 +7735,7 @@ input:checked+.toggle-slider:before {
 }
 
 .voice-toggle-btn.active {
-    color: var(--primary);
+    color: var(--danger);
 }
 
 .voice-toggle-btn.active i {
@@ -7754,64 +7752,18 @@ input:checked+.toggle-slider:before {
     display: none;
 }
 
-/* Style unifié pour les items de contrôle */
-.control-item {
-    display: flex;
-    align-items: center;
-}
-
-/* Toggle ML amélioré */
-.control-toggle {
-    display: flex;
-    align-items: center;
+/* Ligne de statut IA cliquable */
+.ai-status-line {
     cursor: pointer;
-    user-select: none;
+    transition: opacity 0.2s ease;
 }
 
-.control-toggle input[type="checkbox"] {
-    display: none;
+.ai-status-line:hover {
+    opacity: 0.8;
 }
 
-.control-toggle .toggle-slider {
-    width: 44px;
-    height: 24px;
-    background: var(--text-muted);
-    border-radius: 24px;
-    position: relative;
-    transition: all 0.3s ease;
-    margin-right: 0.5rem;
-}
-
-.control-toggle .toggle-slider::before {
-    content: '';
-    position: absolute;
-    width: 18px;
-    height: 18px;
-    background: white;
-    border-radius: 50%;
-    top: 3px;
-    left: 3px;
-    transition: all 0.3s ease;
-}
-
-.control-toggle input:checked + .toggle-slider {
-    background: var(--primary);
-}
-
-.control-toggle input:checked + .toggle-slider::before {
-    transform: translateX(20px);
-}
-
-.control-label {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--text);
-    font-size: 0.9rem;
-}
-
-.control-label i {
-    font-size: 1.1rem;
+.ai-status-line:active {
+    opacity: 0.6;
 }
 
 /* Bouton vocal avec design moderne */
