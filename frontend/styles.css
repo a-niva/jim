@@ -3527,7 +3527,35 @@ input:checked+.toggle-slider:before {
     border-radius: var(--radius);
     padding: var(--spacing-sm) var(--spacing-md);
     margin-top: var(--spacing-md);
-    transition: all .3s ease
+    transition: background-color 0.2s ease;
+    user-select: none;
+}
+
+.ai-status-line:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.ai-status-line:active {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+
+/* Indicateur visuel de l'état */
+#aiStatus {
+    color: var(--success);
+}
+
+.ai-status-line[data-inactive] #aiStatus {
+    color: var(--text-muted);
+}
+
+/* Ajustement pour l'icône cerveau */
+.ai-status-text .fa-brain {
+    transition: color 0.3s ease;
+}
+
+.ai-status-line[data-inactive] .fa-brain {
+    opacity: 0.4;
 }
 
 .ai-confidence,.ai-status-text {

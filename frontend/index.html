@@ -487,21 +487,19 @@
                         </div>
                     </div>
                     
-                    <!-- 3. Toggle AI compact sur une ligne -->
-                    <div class="ai-status-line">
+                    <!-- 3. Ligne de statut IA cliquable -->
+                    <div class="ai-status-line" onclick="if(currentExercise && event.target.closest('.ai-expand-btn') === null) { document.getElementById('mlToggle').click(); }" style="cursor: pointer;">
                         <div class="ai-toggle-container">
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="mlToggle" checked onchange="if(currentExercise) toggleMLAdjustment(currentExercise.id)">
-                                <span class="toggle-slider"></span>
-                            </label>
+                            <input type="checkbox" id="mlToggle" checked onchange="if(currentExercise) toggleMLAdjustment(currentExercise.id)" style="display: none;">
                             <span class="ai-status-text">
-                                IA : <span id="aiStatus">Actif</span>
+                                <i class="fas fa-brain" style="margin-right: 0.5rem; opacity: 0.8;"></i>
+                                IA : <span id="aiStatus" style="font-weight: 600;">Actif</span>
                             </span>
-                            <span class="ai-confidence">
+                            <span class="ai-confidence" style="margin-left: 1rem;">
                                 Confiance : <span id="aiConfidence">85</span>%
                             </span>
                         </div>
-                        <button class="ai-expand-btn" onclick="toggleAIDetails()" title="Détails IA">
+                        <button class="ai-expand-btn" onclick="event.stopPropagation(); toggleAIDetails();" title="Détails IA">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M19 9l-7 7-7-7"/>
                             </svg>
