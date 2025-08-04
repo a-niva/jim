@@ -520,9 +520,8 @@ function handleInterimResult(transcript) {
     // Parsing rapide pour nombre unique
     const number = parseNumber(cleanTranscript);
     
-    if (number && number === predictedNext && !pendingValidation) {
-        // Affichage prédictif SEULEMENT si pas déjà en attente
-        displayPredictedNumber(number);
+    if (number && number > voiceData.count) {
+        handleNumberDetected(number);
     }
 }
 
@@ -914,32 +913,6 @@ function validateNumberJump(newNumber, lastDetected) {
 }
 
 /**
- * Affiche immédiatement le nombre prédit (version silencieuse)
- */
-function displayPredictedNumber(number) {
-    displayedCount = number;
-    pendingValidation = number;
-    updateVoiceDisplayImmediate(number);
-    updatePrediction(number + 1);
-    
-    // Log unique et concis
-    console.log(`[Voice] Prédit: ${number}`);
-}
-
-/**
- * Met à jour la prédiction pour le prochain nombre
- */
-function updatePrediction(nextNumber) {
-    predictedNext = nextNumber;
-    
-    // Préparer visuellement (optionnel)
-    const repsElement = document.getElementById('setReps');
-    if (repsElement) {
-        repsElement.setAttribute('data-next', nextNumber);
-    }
-}
-
-/**
  * Affichage immédiat optimisé (sans animation lourde)
  */
 function updateVoiceDisplayImmediate(count) {
@@ -1004,14 +977,7 @@ function handleNumberDetected(number) {
     voiceData.timestamps.push(now - voiceData.startTime);
     voiceData.lastNumber = number;
     
-    // CONSERVER le reste de la logique existante...
-    if (pendingValidation === number) {
-        pendingValidation = null;
-    } else {
-        updateVoiceDisplay(number);
-    }
-    
-    updatePrediction(number + 1);
+    updateVoiceDisplay(number);
     
     if (navigator.vibrate) {
         navigator.vibrate(30);
@@ -1877,22 +1843,3 @@ if (typeof scheduleStandardValidation !== 'undefined') {
 
 console.log('[Voice] ✅ Toutes les expositions globales configurées');
 
-
-// NOUVEAU - Mode preview pour tests internes
-if (DEBUG_MODE) {
-    console.log('🧪 [Voice] MODE DEBUG ACTIVÉ - Interface validation disponible');
-    
-    // Fonction de test rapide
-    window.testValidationUI = (count = 12, confidence = 0.6) => {
-        voiceData.count = count;
-        voiceData.confidence = confidence;
-        showValidationUI(count, confidence);
-    };
-    
-    // Raccourci clavier pour tests (Ctrl+Shift+V)
-    document.addEventListener('keydown', (e) => {
-        if (e.ctrlKey && e.shiftKey && e.key === 'V') {
-            window.testValidationUI();
-        }
-    });
-}
