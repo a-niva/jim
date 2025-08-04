@@ -2602,7 +2602,8 @@ def add_set(workout_id: int, set_data: SetCreate, db: Session = Depends(get_db))
         user_followed_ml_reps=set_data.user_followed_ml_reps,
         exercise_order_in_session=set_data.exercise_order_in_session,
         set_order_in_session=set_data.set_order_in_session,
-        ml_adjustment_enabled=set_data.ml_adjustment_enabled
+        ml_adjustment_enabled=set_data.ml_adjustment_enabled,
+        voice_data=set_data.voice_data  # AJOUT
     )
     
     db.add(db_set)
@@ -2697,19 +2698,34 @@ def get_set_recommendations(
     last_rest_duration = request.get("last_rest_duration", None)
     exercise_order = request.get("exercise_order", 1)
     set_order_global = request.get("set_order_global", 1)
-    
+    # Récupérer les données vocales de la dernière série
+    last_set_voice_data = None
+    if workout_id and set_number > 1:
+        last_set = db.query(WorkoutSet).filter(
+            WorkoutSet.workout_id == workout_id,
+            WorkoutSet.exercise_id == exercise.id,
+            WorkoutSet.set_number == set_number - 1
+        ).first()
+        if last_set and last_set.voice_data:
+            last_set_voice_data = last_set.voice_data
+            logger.info(f"[ML] Données vocales trouvées pour série précédente: tempo={last_set_voice_data.get('tempo_avg')}ms")
+
+    # Transmettre les données vocales au moteur ML
+    if last_set_voice_data:
+        request['last_set_voice_data'] = last_set_voice_data
     # Appel au moteur ML avec les bonnes variables
     base_recommendations = ml_engine.get_set_recommendations(
         user=user,
         exercise=exercise,
         set_number=set_number,
         current_fatigue=current_fatigue,
-        current_effort=current_effort,  # Pas previous_effort
+        current_effort=current_effort,
         last_rest_duration=last_rest_duration,
         exercise_order=exercise_order,
         set_order_global=set_order_global,
         available_weights=available_weights,
-        workout_id=workout_id
+        workout_id=workout_id,
+        last_set_voice_data=last_set_voice_data  # AJOUT
     )
         
     if base_recommendations.get('weight_recommendation') is None or base_recommendations.get('weight_recommendation') == 0:
@@ -2855,6 +2871,24 @@ def get_set_recommendations(
         logger.info(f"  Raison: {base_recommendations['reasoning']}")
     
     return base_recommendations
+
+@app.put("/api/users/{user_id}/voice-counting")
+def toggle_voice_counting(
+    user_id: int, 
+    enabled: bool = Body(..., embed=True),
+    db: Session = Depends(get_db)
+):
+    """Toggle comptage vocal pour un utilisateur"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
+    user.voice_counting_enabled = enabled
+    db.commit()
+    
+    logger.info(f"[Voice] Comptage vocal {'activé' if enabled else 'désactivé'} pour user {user_id}")
+    
+    return {"enabled": enabled}
 
 @app.get("/api/exercises/{exercise_id}/alternatives")
 async def get_exercise_alternatives(

@@ -420,6 +420,8 @@ class FitnessRecommendationEngine:
         if baseline_reps is None or baseline_reps <= 0:
             baseline_reps = 10
             
+        # Récupérer l'ajustement de fatigue depuis performance_state
+        # (il a déjà été calculé avec les données vocales dans get_set_recommendations)
         fatigue_adjustment = performance_state.get('fatigue_adjustment', 1.0)
         
         # ===== RÉCUPÉRATION ROBUSTE DE L'HISTORIQUE =====
@@ -1424,7 +1426,8 @@ class FitnessRecommendationEngine:
         self, 
         current_fatigue: int, 
         exercise_order: int,
-        set_order_global: int
+        set_order_global: int,
+        last_set_voice_data: Optional[Dict] = None  # NOUVEAU
     ) -> float:
         """Calcule l'ajustement basé sur la fatigue"""
         
@@ -1441,7 +1444,34 @@ class FitnessRecommendationEngine:
         fatigue_progression = 1.0 - (exercise_order - 1) * 0.03  # -3% par exercice
         session_fatigue = 1.0 - (set_order_global - 1) * 0.01   # -1% par série globale
         
-        return base_adjustment * fatigue_progression * session_fatigue
+        combined_adjustment = base_adjustment * fatigue_progression * session_fatigue
+        
+        # NOUVEAU : Enrichissement avec données vocales
+        if last_set_voice_data and last_set_voice_data.get('tempo_avg'):
+            tempo_ms = last_set_voice_data['tempo_avg']
+            voice_confidence = last_set_voice_data.get('confidence', 1.0)
+            
+            # Si tempo > 1.5s entre reps = signe de fatigue supplémentaire
+            if tempo_ms > 1500:
+                # Facteur de tempo : 1.5s = 1.0, 2s = 1.33, 3s = 2.0
+                tempo_factor = min(tempo_ms / 1500, 2.0)
+                # Réduction additionnelle : 0% à 10% selon le tempo
+                tempo_reduction = 1.0 - (0.1 * (tempo_factor - 1.0))
+                
+                # Pondérer selon la confiance vocale
+                if voice_confidence >= 0.8:
+                    combined_adjustment *= tempo_reduction
+                else:
+                    # Réduire l'impact si données peu fiables
+                    combined_adjustment *= (1.0 - (1.0 - tempo_reduction) * voice_confidence)
+                
+                logger.info(f"[ML] Ajustement vocal appliqué - Tempo: {tempo_ms}ms, "
+                        f"Réduction: {tempo_reduction:.2f}, Confiance: {voice_confidence}")
+                
+        # Stocker pour le reasoning
+        self._last_voice_tempo_ms = tempo_ms
+        
+        return combined_adjustment
     
     def _calculate_effort_adjustment(
         self, 
@@ -1644,6 +1674,11 @@ class FitnessRecommendationEngine:
             reasons.append("Repos recommandé plus court")
         elif rest_adj > 1.2:
             reasons.append("Repos prolongé recommandé")
+
+        # Si des données vocales ont influencé la recommandation
+        if hasattr(self, '_last_voice_tempo_ms') and self._last_voice_tempo_ms > 1500:
+            tempo_seconds = self._last_voice_tempo_ms / 1000
+            reasons.append(f"Tempo d'exécution lent ({tempo_seconds:.1f}s/rep)")
         
         if not reasons:
             return "Conditions normales"
