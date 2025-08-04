@@ -82,7 +82,8 @@ class FitnessRecommendationEngine:
         exercise_order: int = 1,
         set_order_global: int = 1,
         available_weights: List[float] = None,
-        workout_id: Optional[int] = None 
+        workout_id: Optional[int] = None,
+        last_set_voice_data: Optional[Dict] = None  # AJOUT
     ) -> Dict[str, any]:
         """
         Génère des recommandations de poids/reps/repos pour la prochaine série
@@ -99,7 +100,8 @@ class FitnessRecommendationEngine:
             
             # 2. Calculer l'état de performance (nouveau modèle)
             performance_state = self._calculate_performance_state(
-                user, exercise, historical_data, current_fatigue
+                user, exercise, historical_data, current_fatigue,
+                exercise_order, set_order_global, last_set_voice_data
             )
             if exercise.weight_type == "bodyweight":
                 performance_state['baseline_weight'] = None
@@ -248,10 +250,13 @@ class FitnessRecommendationEngine:
     def _calculate_performance_state(
         self, 
         user: User, 
-        exercise: Exercise, 
+        exercise: Exercise,
         historical_data: List[Dict],
-        current_fatigue: int
-    ) -> Dict[str, any]:
+        current_fatigue: int,
+        exercise_order: int = 1,
+        set_order_global: int = 1,
+        last_set_voice_data: Optional[Dict] = None
+    ) -> Dict:
         """Calcule l'état de performance avec le modèle Fitness-Fatigue simplifié"""
         
         # Récupérer ou créer l'état de performance
@@ -360,9 +365,11 @@ class FitnessRecommendationEngine:
         patterns = self._detect_progression_patterns(user.id, exercise.id)
         perf_state.progression_pattern = patterns
         self.db.commit()
-        
+                
         # Calculer l'ajustement de fatigue
-        fatigue_adjustment = 1.0 - perf_state.acute_fatigue * 0.3  # Max 30% de réduction
+        fatigue_adjustment = self._calculate_fatigue_adjustment(
+            current_fatigue, exercise_order, set_order_global, last_set_voice_data
+        )
         
         # PROTECTION ANTI-CRASH - Garantir des valeurs valides
         if baseline_weight is None or baseline_weight <= 0:
@@ -1608,7 +1615,14 @@ class FitnessRecommendationEngine:
         # Ajustement pour fatigue/effort extrêmes (pénalité)
         if current_fatigue >= 4 or current_effort >= 5:
             final_confidence *= 0.9  # Réduction de 10% en conditions extrêmes
-        
+
+        # Bonus si utilisation récente de données vocales
+        # Note: On ne peut pas accéder à l'historique complet avec voice_data ici,
+        # donc on se base sur l'existence de _last_voice_tempo_ms comme indicateur
+        if hasattr(self, '_last_voice_tempo_ms') and self._last_voice_tempo_ms is not None:
+            # Boost léger de confiance car on a des données objectives supplémentaires
+            final_confidence = min(0.95, final_confidence * 1.05)  # +5% max
+
         return round(max(0.2, min(0.95, final_confidence)), 2)
 
     def _calculate_rest_consistency(self, historical_data: List[Dict]) -> float:
