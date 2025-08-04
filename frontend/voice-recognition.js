@@ -1841,8 +1841,41 @@ window.forceExecuteSet = () => {
     }
 };
 
+// ===== EXPOSITIONS MANQUANTES ÉTAPE 4 =====
 
-console.log('[Voice] Module voice-recognition.js chargé - Phase 0');
+// Exposer les constantes
+window.VOICE_FEATURES = VOICE_FEATURES;
+window.CONFIDENCE_LEVELS = CONFIDENCE_LEVELS;
+window.DEBUG_MODE = DEBUG_MODE;
+
+// Exposer les variables d'état
+window.voiceState = () => voiceState;
+window.validationTimer = () => validationTimer;
+
+// S'assurer que les métriques sont exposées
+window.voiceMetrics = voiceMetrics;
+
+// Vérifier que les fonctions auto-validation sont exposées
+if (typeof scheduleAutoValidation !== 'undefined') {
+    window.scheduleAutoValidation = scheduleAutoValidation;
+} else {
+    console.warn('[Voice] scheduleAutoValidation non définie');
+}
+
+if (typeof scheduleQuickValidation !== 'undefined') {
+    window.scheduleQuickValidation = scheduleQuickValidation;
+} else {
+    console.warn('[Voice] scheduleQuickValidation non définie');
+}
+
+if (typeof scheduleStandardValidation !== 'undefined') {
+    window.scheduleStandardValidation = scheduleStandardValidation;
+} else {
+    console.warn('[Voice] scheduleStandardValidation non définie');
+}
+
+console.log('[Voice] ✅ Toutes les expositions globales configurées');
+
 
 // NOUVEAU - Mode preview pour tests internes
 if (DEBUG_MODE) {
