@@ -3973,6 +3973,18 @@ function toggleMLAdjustment(exerciseId) {
         currentWorkoutSession.mlSettings[exerciseId].lastManualWeight = currentExerciseRealWeight;
     }
     
+    // Ajouter cette section après la mise à jour de l'état
+    const aiStatusLine = document.querySelector('.ai-status-line');
+    const aiStatusText = document.getElementById('aiStatus');
+    
+    if (newState) {
+        aiStatusLine.removeAttribute('data-inactive');
+        aiStatusText.textContent = 'Actif';
+    } else {
+        aiStatusLine.setAttribute('data-inactive', 'true');
+        aiStatusText.textContent = 'Inactif';
+    }
+
     // Mettre à jour l'interface sans appel API
     updateToggleUI(newState);
     
