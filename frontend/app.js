@@ -79,32 +79,34 @@ function transitionTo(state) {
     }
     
     workoutState.current = state;
+    
     // Gestion de la reconnaissance vocale selon l'état
     switch(state) {
-        case WorkoutStates.EXECUTING:
-            // Démarrer la reconnaissance vocale si conditions OK
+        case WorkoutStates.READY:
+            // Démarrer la reconnaissance vocale dès qu'on est prêt
             if (currentUser?.voice_counting_enabled && 
                 currentExercise?.exercise_type !== 'isometric' &&
                 /Android|iPhone/i.test(navigator.userAgent) &&
                 window.startVoiceRecognition &&
                 !window.voiceRecognitionActive?.()) {
                 
-                console.log('[Voice] Démarrage automatique de la reconnaissance vocale');
+                console.log('[Voice] Démarrage reconnaissance en état READY');
                 window.startVoiceRecognition();
                 updateVoiceToggleUI(true);
             }
             break;
             
         case WorkoutStates.FEEDBACK:
+        case WorkoutStates.COMPLETED:
             // Arrêter la reconnaissance vocale
-            if (window.voiceRecognitionActive && window.voiceRecognitionActive() &&
-                window.stopVoiceRecognition) {
-                console.log('[Voice] Arrêt de la reconnaissance vocale - Transition vers FEEDBACK');
+            if (window.voiceRecognitionActive && window.voiceRecognitionActive()) {
+                console.log('[Voice] Arrêt reconnaissance vocale');
                 window.stopVoiceRecognition();
                 updateVoiceToggleUI(false);
             }
             break;
     }
+    
     // Cacher tout par défaut
     const elements = {
         executeBtn: document.getElementById('executeSetBtn'),
@@ -118,53 +120,15 @@ function transitionTo(state) {
         if (el) el.style.display = 'none';
     });
     
-    // Gestion de la reconnaissance vocale selon l'état
+    // Afficher les éléments selon l'état
     switch(state) {
         case WorkoutStates.READY:
             if (elements.executeBtn) elements.executeBtn.style.display = 'block';
             if (elements.inputSection) elements.inputSection.style.display = 'block';
             break;
             
-        case WorkoutStates.EXECUTING:
-            // Démarrage automatique de la reconnaissance vocale si conditions remplies
-            if (currentUser?.voice_counting_enabled && 
-                currentExercise?.exercise_type !== 'isometric' &&
-                /Android|iPhone/i.test(navigator.userAgent) &&
-                window.startVoiceRecognition) {
-                
-                // Vérifier que la reconnaissance n'est pas déjà active
-                const isAlreadyActive = window.voiceRecognitionActive ? 
-                                       window.voiceRecognitionActive() : false;
-                
-                if (!isAlreadyActive) {
-                    try {
-                        window.startVoiceRecognition();
-                        if (typeof updateVoiceToggleUI === 'function') {
-                            updateVoiceToggleUI(true);
-                        }
-                        console.log('[Voice] Reconnaissance vocale démarrée automatiquement');
-                    } catch (error) {
-                        console.error('[Voice] Erreur au démarrage automatique:', error);
-                    }
-                }
-            }
-            break;
-            
         case WorkoutStates.FEEDBACK:
             if (elements.setFeedback) elements.setFeedback.style.display = 'block';
-            
-            // Arrêt de la reconnaissance vocale à la fin de la série
-            if (window.voiceRecognitionActive && window.voiceRecognitionActive()) {
-                try {
-                    window.stopVoiceRecognition();
-                    if (typeof updateVoiceToggleUI === 'function') {
-                        updateVoiceToggleUI(false);
-                    }
-                    console.log('[Voice] Reconnaissance vocale arrêtée (feedback)');
-                } catch (error) {
-                    console.error('[Voice] Erreur lors de l\'arrêt:', error);
-                }
-            }
             break;
             
         case WorkoutStates.RESTING:
@@ -174,19 +138,6 @@ function transitionTo(state) {
             
         case WorkoutStates.COMPLETED:
             // Géré par les fonctions spécifiques
-            
-            // Assurer l'arrêt de la reconnaissance vocale si l'exercice est terminé
-            if (window.voiceRecognitionActive && window.voiceRecognitionActive()) {
-                try {
-                    window.stopVoiceRecognition();
-                    if (typeof updateVoiceToggleUI === 'function') {
-                        updateVoiceToggleUI(false);
-                    }
-                    console.log('[Voice] Reconnaissance vocale arrêtée (exercice terminé)');
-                } catch (error) {
-                    console.error('[Voice] Erreur lors de l\'arrêt:', error);
-                }
-            }
             break;
 
         case WorkoutStates.TRANSITIONING:
