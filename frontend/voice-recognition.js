@@ -111,7 +111,8 @@ const VOICE_FEATURES = {
     confidence_system: true,    // Étape 1 - ACTIF
     validation_ui: DEBUG_MODE,  // Étape 2 - CONTRÔLÉ PAR DEBUG_MODE
     voice_correction: true,     // Étape 3 - ACTIF
-    auto_validation: true       // Étape 4 - ACTIVER
+    auto_validation: true,      // Étape 4 - ACTIVER
+    ml_enrichment: true         // Étape 5 - ACTIVER
 };
 
 // NOUVEAU - Variables d'état pour la validation
