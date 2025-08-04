@@ -108,11 +108,11 @@ const DEBUG_MODE = false; // Passer à true pour tester l'interface
 
 // NOUVEAU - Feature toggles avec référence correcte
 const VOICE_FEATURES = {
-    confidence_system: true,    // Étape 1 - ACTIF
-    validation_ui: DEBUG_MODE,  // Étape 2 - CONTRÔLÉ PAR DEBUG_MODE
-    voice_correction: true,     // Étape 3 - ACTIF
-    auto_validation: true,      // Étape 4 - ACTIVER
-    ml_enrichment: true         // Étape 5 - ACTIVER
+    confidence_system: true,
+    validation_ui: true,        // ← Forcer à true (production)
+    voice_correction: true,
+    auto_validation: true,
+    ml_enrichment: true
 };
 
 // NOUVEAU - Variables d'état pour la validation
@@ -1566,24 +1566,22 @@ function updateCorrectionUI(newCount, previousCount) {
  * Traite la détection d'un mot-clé avec logique de monotonie
  */
 function handleKeywordDetected() {
-    const now = Date.now();
-    const newCount = voiceData.count + 1;
+    voiceData.count++;
     
-    voiceData.count = newCount;
-    voiceData.timestamps.push(now - voiceData.startTime);
+    // Mise à jour UI
+    updateVoiceDisplayImmediate(voiceData.count);
     
-    updateVoiceDisplay(newCount);
-    updatePrediction(newCount + 1);
-    
+    // Feedback
     if (navigator.vibrate) {
         navigator.vibrate(30);
     }
     
+    // Reset timer
     if (typeof resetAutoValidationTimer === 'function') {
         resetAutoValidationTimer();
     }
     
-    console.log('[Voice] Mot-clé détecté, count:', newCount);
+    console.log(`[Voice] Keyword → ${voiceData.count}`);
 }
 
 /**

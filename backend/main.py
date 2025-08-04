@@ -2603,7 +2603,7 @@ def add_set(workout_id: int, set_data: SetCreate, db: Session = Depends(get_db))
         exercise_order_in_session=set_data.exercise_order_in_session,
         set_order_in_session=set_data.set_order_in_session,
         ml_adjustment_enabled=set_data.ml_adjustment_enabled,
-        voice_data=set_data.voice_data  # AJOUT
+        voice_data=set_data.voice_data.dict() if set_data.voice_data else None
     )
     
     db.add(db_set)
