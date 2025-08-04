@@ -714,17 +714,22 @@ function calculateConfidence() {
  */
 function showValidationUI(count, confidence) {
     if (!VOICE_FEATURES.validation_ui) {
-        return; // Interface désactivée
-    }
-    
-    const repsElement = document.getElementById('setReps');
-    if (!repsElement) {
-        console.warn('[Voice] Élément setReps non trouvé');
+        console.log('[Voice] Interface validation désactivée');
         return;
     }
     
-    // Sauvegarder le contenu original
-    repsElement.setAttribute('data-original', repsElement.textContent);
+    const repsElement = document.getElementById('setReps');
+    console.log('[Voice] Élément setReps trouvé:', !!repsElement, repsElement);
+    
+    if (!repsElement) {
+        console.warn('[Voice] Élément setReps non trouvé - Interface impossible');
+        return;
+    }
+    
+    // Sauvegarder et vérifier le contenu original
+    const originalContent = repsElement.textContent;
+    repsElement.setAttribute('data-original', originalContent);
+    console.log('[Voice] Contenu original sauvé:', originalContent);
     
     // Interface inline minimaliste
     repsElement.innerHTML = `
@@ -735,24 +740,25 @@ function showValidationUI(count, confidence) {
         </div>
     `;
     
+    // Vérifier que le contenu a changé
+    console.log('[Voice] Nouveau contenu DOM:', repsElement.innerHTML);
+    
     // Classe CSS selon niveau de confiance
-    repsElement.className = getConfidenceClass(confidence);
+    const confidenceClass = getConfidenceClass(confidence);
+    repsElement.className = confidenceClass;
+    console.log('[Voice] Classe CSS appliquée:', confidenceClass);
     
     // Animation discrète
     repsElement.style.transform = 'scale(1.02)';
+    repsElement.style.border = '2px solid orange'; // Debug visuel
     setTimeout(() => {
         repsElement.style.transform = '';
     }, 200);
     
     // Timer auto-validation
     startValidationTimer(count);
-
-    // NOUVEAU - Démarrer écoute passive pour corrections vocales
-    if (VOICE_FEATURES.voice_correction) {
-        startPassiveListening();
-    }
     
-    console.log(`[Voice] UI validation affichée - Count: ${count}, Confiance: ${confidence.toFixed(2)}`);
+    console.log(`[Voice] Interface validation complète - Count: ${count}, Confiance: ${confidence.toFixed(2)}`);
 }
 
 /**
@@ -834,6 +840,12 @@ function resetValidationTimer(newCount) {
  * @param {number} finalCount - Count définitif
  */
 function confirmVoiceCount(finalCount) {
+    // NOUVEAU - Empêcher double confirmation
+    if (voiceState === 'CONFIRMED') {
+        console.log('[Voice] Déjà confirmé, ignore');
+        return;
+    }
+    
     // NOUVEAU - Arrêter écoute passive avant confirmation
     if (VOICE_FEATURES.voice_correction) {
         stopPassiveListening();
@@ -847,8 +859,9 @@ function confirmVoiceCount(finalCount) {
     
     // Exposer pour executeSet
     window.voiceData = voiceData;
+    window.voiceState = voiceState;  // AJOUTER cette ligne
     
-    console.log(`[Voice] Count confirmé: ${finalCount}`);
+    console.log(`[Voice] Count confirmé: ${finalCount} - État: ${voiceState}`);
     
     // Auto-trigger executeSet si activé dans étapes futures
     if (VOICE_FEATURES.auto_validation && typeof window.executeSet === 'function') {
@@ -1280,6 +1293,12 @@ function recordValidationMetrics(isAuto, startTime) {
  */
 function startPassiveListening() {
     if (!VOICE_FEATURES.voice_correction || passiveListening || !recognition) {
+        return;
+    }
+    
+    // Vérifier l'état avant de démarrer
+    if (voiceRecognitionActive) {
+        console.log('[Voice] Reconnaissance déjà active, pas de mode passif');
         return;
     }
     
