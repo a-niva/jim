@@ -8878,47 +8878,60 @@ function executeSet() {
         setTimer = null;
     }
     
-    // === SAUVEGARDER DONNÉES SÉRIE PAR TYPE D'EXERCICE (CONSERVÉ + CORRIGÉ) ===
+    // === TRAITEMENT DES DONNÉES VOCALES (DÉPLACÉ ICI POUR TOUS LES EXERCICES NON-ISOMÉTRIQUES) ===
     const isIsometric = currentExercise.exercise_type === 'isometric';
+    
+    if (!isIsometric && window.voiceData && window.voiceData.count > 0) {
+        console.log('[Voice] Données vocales détectées:', window.voiceData);
+        
+        // Calculer le tempo moyen si la fonction existe
+        const tempoAvg = window.calculateAvgTempo ? 
+            window.calculateAvgTempo(window.voiceData.timestamps) : null;
+        
+        // Préparer les données vocales pour l'envoi
+        voiceData = {
+            count: window.voiceData.count,
+            tempo_avg: tempoAvg,
+            gaps: window.voiceData.gaps || [],
+            confidence: parseFloat(window.voiceData.confidence) || 1.0
+        };
+        
+        console.log('[Voice] Données vocales préparées:', voiceData);
+    }
+    
+    // === SAUVEGARDER DONNÉES SÉRIE PAR TYPE D'EXERCICE (CONSERVÉ + CORRIGÉ) ===
     const isBodyweight = currentExercise.weight_type === 'bodyweight';
     
     if (isIsometric) {
         workoutState.pendingSetData = {
             duration_seconds: parseInt(document.getElementById('setReps').textContent),
             reps: parseInt(document.getElementById('setReps').textContent),
-            weight: null
+            weight: null,
+            voice_data: null // Pas de vocal pour isométrique
         };
     } else if (isBodyweight) {
+        // Récupérer les reps (avec priorité au vocal si disponible)
+        repsValue = voiceData ? voiceData.count : parseInt(document.getElementById('setReps').textContent);
+        
+        // Mettre à jour l'affichage si données vocales
+        if (voiceData) {
+            document.getElementById('setReps').textContent = repsValue;
+        }
+        
         workoutState.pendingSetData = {
             duration_seconds: setTime,  // durée réelle chronométrée (CONSERVÉ)
-            reps: parseInt(document.getElementById('setReps').textContent),
-            weight: null
+            reps: repsValue,
+            weight: null,
+            voice_data: voiceData // AJOUT des données vocales
         };
     } else {
-        // === EXERCICES AVEC POIDS - CORRECTION CRITIQUE ===
-        repsValue = parseInt(document.getElementById('setReps').textContent);
+        // === EXERCICES AVEC POIDS ===
+        // Récupérer les reps (avec priorité au vocal si disponible)
+        repsValue = voiceData ? voiceData.count : parseInt(document.getElementById('setReps').textContent);
         
-        // Vérifier et utiliser les données vocales si disponibles
-        if (window.voiceData && window.voiceData.count > 0) {
-            console.log('[Voice] Données vocales détectées:', window.voiceData);
-            
-            // Priorité au comptage vocal pour les répétitions
-            repsValue = window.voiceData.count;
-            document.getElementById('setReps').textContent = repsValue; // Mettre à jour l'affichage
-            
-            // Calculer le tempo moyen si la fonction existe
-            const tempoAvg = window.calculateAvgTempo ? 
-                window.calculateAvgTempo(window.voiceData.timestamps) : null;
-            
-            // Préparer les données vocales pour l'envoi
-            voiceData = {
-                count: window.voiceData.count,
-                tempo_avg: tempoAvg,
-                gaps: window.voiceData.gaps || [],
-                confidence: window.voiceData.confidence || 1.0
-            };
-            
-            console.log('[Voice] Données vocales préparées:', voiceData);
+        // Mettre à jour l'affichage si données vocales
+        if (voiceData) {
+            document.getElementById('setReps').textContent = repsValue;
         }
         
         // IMPORTANT : Utiliser currentExerciseRealWeight (code existant)
@@ -8938,14 +8951,8 @@ function executeSet() {
             duration_seconds: setTime,  // durée réelle chronométrée (CONSERVÉ)
             reps: repsValue,
             weight: finalWeight,  // Toujours TOTAL, jamais converti
-            // AJOUT : Données vocales si disponibles
-            voice_data: voiceData
+            voice_data: voiceData // AJOUT des données vocales
         };
-        
-        // Log pour debug
-        if (voiceData) {
-            console.log('[Voice] Série enrichie avec données vocales');
-        }
     }
     
     // === ENRICHISSEMENT MÉTADONNÉES STRATÉGIQUES ===
@@ -8966,6 +8973,11 @@ function executeSet() {
         strategy: workoutState.pendingSetData.strategy_applied,
         voice: voiceData ? 'avec données vocales' : 'sans données vocales'
     });
+    
+    // Log spécifique si données vocales
+    if (voiceData) {
+        console.log('[Voice] Série enrichie avec données vocales:', voiceData);
+    }
     
     // === TRANSITION VERS FEEDBACK (CONSERVÉ) ===
     transitionTo(WorkoutStates.FEEDBACK);

@@ -361,28 +361,27 @@ function updateVoiceDisplay(count) {
  * @param {SpeechRecognitionError} error - Erreur de reconnaissance
  * @returns {void}
  */
-function handleVoiceError(error) {
-    console.error('[Voice] Erreur de reconnaissance:', error.error);
+function handleVoiceError(event) {
+    console.log('[Voice] Erreur de reconnaissance:', event.error);
     
-    // Gérer les différents types d'erreurs
-    switch (error.error) {
-        case 'not-allowed':
-            console.warn('[Voice] Permission microphone refusée');
-            if (typeof window.showToast === 'function') {
-                window.showToast('Permission microphone requise pour le comptage vocal', 'warning');
-            }
-            break;
+    switch(event.error) {
         case 'no-speech':
             console.log('[Voice] Aucune parole détectée - normal');
+            // Ne PAS afficher d'erreur pour no-speech
             break;
         case 'audio-capture':
-            console.warn('[Voice] Problème audio détecté');
+            console.error('[Voice] Pas de microphone disponible');
+            showToast('Microphone non disponible', 'error');
+            voiceRecognitionActive = false;
+            break;
+        case 'not-allowed':
+            console.error('[Voice] Permission microphone refusée');
+            showToast('Permission microphone refusée', 'error');
+            voiceRecognitionActive = false;
             break;
         default:
-            console.warn('[Voice] Erreur inconnue:', error.error);
+            console.error('[Voice] Erreur:', event.error);
     }
-    
-    voiceRecognitionActive = false;
 }
 
 /**
@@ -392,21 +391,27 @@ function handleVoiceError(error) {
  * @returns {void}
  */
 function handleVoiceEnd() {
-    console.log('[Voice] Reconnaissance terminée naturellement');
+    console.log('[Voice] Reconnaissance terminée');
     
-    // Redémarrer automatiquement si l'exercice est encore en cours
-    if (voiceRecognitionActive && recognition) {
+    // Redémarrer SEULEMENT si on est toujours en état READY et actif
+    if (voiceRecognitionActive && 
+        window.workoutState && 
+        window.workoutState.current === 'ready') {
+        
+        // Délai plus long pour éviter l'effet stroboscopique
         setTimeout(() => {
-            if (voiceRecognitionActive) {
+            if (voiceRecognitionActive && recognition) {
                 try {
                     recognition.start();
-                    console.log('[Voice] Redémarrage automatique');
-                } catch (error) {
-                    console.warn('[Voice] Impossible de redémarrer:', error);
-                    voiceRecognitionActive = false;
+                    console.log('[Voice] Redémarrage silencieux');
+                } catch (e) {
+                    // Ignorer l'erreur si déjà démarré
+                    if (e.name !== 'InvalidStateError') {
+                        console.error('[Voice] Erreur redémarrage:', e);
+                    }
                 }
             }
-        }, 100);
+        }, 500); // 500ms au lieu de 100ms
     }
 }
 
