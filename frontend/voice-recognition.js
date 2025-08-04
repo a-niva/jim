@@ -109,14 +109,26 @@ const DEBUG_MODE = false; // Passer à true pour tester l'interface
 // NOUVEAU - Feature toggles avec référence correcte
 const VOICE_FEATURES = {
     confidence_system: true,    // Étape 1 - ACTIF
-    validation_ui: DEBUG_MODE,  // ✅ Étape 2 - CONTRÔLÉ PAR DEBUG_MODE
-    voice_correction: false,    // Étape 3
+    validation_ui: DEBUG_MODE,  // Étape 2 - CONTRÔLÉ PAR DEBUG_MODE
+    voice_correction: true,     // Étape 3 - ACTIVER
     auto_validation: false      // Étape 4
 };
 
 // NOUVEAU - Variables d'état pour la validation
 let voiceState = 'LISTENING'; // 'LISTENING' | 'VALIDATING' | 'CONFIRMED'
 let validationTimer = null;
+// NOUVEAU - Variables pour correction vocale
+let correctionMode = false;
+let correctionTimer = null;
+let passiveListening = false;
+
+// NOUVEAU - Patterns de correction vocale
+const CORRECTION_PATTERNS = [
+    /correction\s+(\d+)/,           // "correction 15"
+    /corriger\s+(\d+)/,             // "corriger 15"  
+    /rectifier\s+(\d+)/,            // "rectifier 15"
+    /correction\s+(un|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|treize|quatorze|quinze|seize|dix-sept|dix-huit|dix-neuf|vingt|vingt-et-un|vingt-deux|vingt-trois|vingt-quatre|vingt-cinq|vingt-six|vingt-sept|vingt-huit|vingt-neuf|trente|trente-et-un|trente-deux|trente-trois|trente-quatre|trente-cinq|trente-six|trente-sept|trente-huit|trente-neuf|quarante|quarante-et-un|quarante-deux|quarante-trois|quarante-quatre|quarante-cinq|quarante-six|quarante-sept|quarante-huit|quarante-neuf|cinquante)/ // "correction trente-cinq"
+];
 const recognitionCache = new Map();
 
 // SYSTÈME DE PRÉDICTION
@@ -733,6 +745,11 @@ function showValidationUI(count, confidence) {
     
     // Timer auto-validation
     startValidationTimer(count);
+
+    // NOUVEAU - Démarrer écoute passive pour corrections vocales
+    if (VOICE_FEATURES.voice_correction) {
+        startPassiveListening();
+    }
     
     console.log(`[Voice] UI validation affichée - Count: ${count}, Confiance: ${confidence.toFixed(2)}`);
 }
@@ -816,6 +833,11 @@ function resetValidationTimer(newCount) {
  * @param {number} finalCount - Count définitif
  */
 function confirmVoiceCount(finalCount) {
+    // NOUVEAU - Arrêter écoute passive avant confirmation
+    if (VOICE_FEATURES.voice_correction) {
+        stopPassiveListening();
+    }
+
     voiceData.count = finalCount;
     voiceState = 'CONFIRMED';
     
@@ -853,6 +875,11 @@ function clearValidationUI() {
     }
     
     voiceState = 'LISTENING';
+
+    // NOUVEAU - Nettoyer écoute passive
+    if (VOICE_FEATURES.voice_correction) {
+        stopPassiveListening();
+    }
 }
 
 /**
@@ -996,6 +1023,331 @@ function handleNumberDetected(number) {
     const confidence = calculateConfidence();
     const gapCount = voiceData.gaps.length;
     console.log(`[Voice] ${previousCount} → ${number}${gapCount > 0 ? ` (${gapCount} gaps)` : ''} - Confiance: ${confidence.toFixed(2)}`);
+}
+
+/**
+ * Traite les commandes de correction vocale
+ * Parse "correction N" avec nombres français et chiffres
+ * 
+ * @param {string} transcript - Transcription contenant la correction
+ * @returns {boolean} true si correction traitée, false sinon
+ */
+function handleCorrection(transcript) {
+    if (!VOICE_FEATURES.voice_correction) {
+        return false;
+    }
+    
+    const cleanTranscript = transcript.toLowerCase().trim();
+    
+    for (const pattern of CORRECTION_PATTERNS) {
+        const match = cleanTranscript.match(pattern);
+        if (match) {
+            const correctionValue = match[1];
+            let newCount;
+            
+            // Parser nombre (chiffre ou mot français)
+            if (/^\d+$/.test(correctionValue)) {
+                newCount = parseInt(correctionValue);
+            } else {
+                newCount = FRENCH_NUMBERS.get(correctionValue);
+            }
+            
+            if (newCount !== undefined && newCount >= 0 && newCount <= 50) {
+                applyCorrectionCount(newCount);
+                return true;
+            }
+        }
+    }
+    
+    return false;
+}
+
+/**
+ * Démarre l'écoute passive pour corrections vocales
+ * Optimisé pour préserver la batterie
+ */
+function startPassiveListening() {
+    if (!VOICE_FEATURES.voice_correction || passiveListening || !recognition) {
+        return;
+    }
+    
+    try {
+        // Configuration légère pour écoute passive
+        recognition.continuous = true;
+        recognition.interimResults = false; // Réduire le processing
+        recognition.maxAlternatives = 1;   // Réduire le processing
+        
+        // Handler spécialisé pour corrections
+        recognition.onresult = handlePassiveResult;
+        recognition.onerror = handlePassiveError;
+        recognition.onend = handlePassiveEnd;
+        
+        recognition.start();
+        passiveListening = true;
+        correctionMode = true;
+        
+        // Timeout automatique pour préserver batterie
+        correctionTimer = setTimeout(() => {
+            stopPassiveListening();
+        }, 10000); // 10s max d'écoute passive
+        
+        console.log('[Voice] Écoute passive démarrée pour corrections');
+        
+    } catch (error) {
+        console.warn('[Voice] Impossible de démarrer écoute passive:', error.message);
+        passiveListening = false;
+    }
+}
+
+/**
+ * Traite les résultats en mode écoute passive
+ * 
+ * @param {SpeechRecognitionEvent} event
+ */
+function handlePassiveResult(event) {
+    const result = event.results[event.results.length - 1];
+    if (!result.isFinal) return;
+    
+    const transcript = result[0].transcript;
+    
+    // Traiter uniquement les corrections
+    if (handleCorrection(transcript)) {
+        // Correction trouvée et appliquée
+        return;
+    }
+    
+    // Vérifier commandes d'arrêt
+    const lowerTranscript = transcript.toLowerCase();
+    if (lowerTranscript.includes('stop') || 
+        lowerTranscript.includes('arrêt') || 
+        lowerTranscript.includes('terminé')) {
+        stopPassiveListening();
+    }
+}
+
+/**
+ * Gère les erreurs en mode passif
+ * 
+ * @param {SpeechRecognitionError} event
+ */
+function handlePassiveError(event) {
+    if (event.error === 'no-speech' || event.error === 'audio-capture') {
+        // Erreurs normales en mode passif - continuer silencieusement
+        return;
+    }
+    
+    console.warn('[Voice] Erreur écoute passive:', event.error);
+    stopPassiveListening();
+}
+
+/**
+ * Gère la fin de l'écoute passive
+ */
+function handlePassiveEnd() {
+    if (passiveListening && correctionMode) {
+        // Redémarrer automatiquement si mode correction actif
+        setTimeout(() => {
+            if (correctionMode && passiveListening) {
+                try {
+                    recognition.start();
+                } catch (error) {
+                    stopPassiveListening();
+                }
+            }
+        }, 100);
+    }
+}
+
+/**
+ * Arrête l'écoute passive et nettoie les timers
+ */
+function stopPassiveListening() {
+    if (!passiveListening) return;
+    
+    passiveListening = false;
+    correctionMode = false;
+    
+    if (correctionTimer) {
+        clearTimeout(correctionTimer);
+        correctionTimer = null;
+    }
+    
+    try {
+        if (recognition && voiceRecognitionActive) {
+            recognition.stop();
+        }
+    } catch (error) {
+        // Erreur silencieuse
+    }
+    
+    // Restaurer configuration normale
+    if (recognition) {
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.maxAlternatives = 3;
+        recognition.onresult = handleVoiceResult;
+        recognition.onerror = handleVoiceError;
+        recognition.onend = handleVoiceEnd;
+    }
+    
+    console.log('[Voice] Écoute passive arrêtée');
+}
+
+/**
+ * Valide les cas limites pour corrections vocales
+ * 
+ * @param {number} count - Count à valider
+ * @returns {Object} {valid: boolean, adjustedCount?: number, reason?: string}
+ */
+function validateCorrectionCount(count) {
+    // Cas limite: correction 0
+    if (count === 0) {
+        return {
+            valid: true,
+            adjustedCount: 0,
+            reason: 'Reset à zéro autorisé'
+        };
+    }
+    
+    // Cas limite: correction > 50
+    if (count > 50) {
+        return {
+            valid: true,
+            adjustedCount: 50,
+            reason: 'Plafonné à 50 reps maximum'
+        };
+    }
+    
+    // Cas limite: correction négative
+    if (count < 0) {
+        return {
+            valid: false,
+            reason: 'Count négatif impossible'
+        };
+    }
+    
+    // Validation supplémentaire: saut très important
+    const currentCount = voiceData.count;
+    const jump = Math.abs(count - currentCount);
+    
+    if (jump > 20) {
+        return {
+            valid: true,
+            adjustedCount: count,
+            reason: `Correction importante: ${currentCount} → ${count}`
+        };
+    }
+    
+    return { valid: true, adjustedCount: count };
+}
+
+/**
+ * Version améliorée d'applyCorrectionCount avec validation
+ * 
+ * @param {number} rawCount - Count brut de la correction
+ */
+function applyCorrectionCount(rawCount) {
+    const validation = validateCorrectionCount(rawCount);
+    
+    if (!validation.valid) {
+        console.warn(`[Voice] Correction rejetée: ${validation.reason}`);
+        return;
+    }
+    
+    const newCount = validation.adjustedCount;
+    const previousCount = voiceData.count;
+    
+    // Appliquer la correction
+    voiceData.count = newCount;
+    
+    // Mise à jour interface
+    updateCorrectionUI(newCount, previousCount);
+    
+    // Feedback utilisateur
+    if (navigator.vibrate) {
+        navigator.vibrate([50, 50, 50]);
+    }
+    
+    // Log avec détails
+    const logMessage = validation.reason ? 
+        `[Voice] Correction: ${previousCount} → ${newCount} (${validation.reason})` :
+        `[Voice] Correction: ${previousCount} → ${newCount}`;
+    console.log(logMessage);
+    
+    // Arrêter écoute passive et confirmer
+    stopPassiveListening();
+    
+    // Confirmation immédiate
+    if (VOICE_FEATURES.validation_ui && voiceState === 'VALIDATING') {
+        confirmVoiceCount(newCount);
+    }
+}
+
+/**
+ * Applique la correction de count avec feedback utilisateur
+ * 
+ * @param {number} newCount - Nouveau count corrigé
+ */
+function applyCorrectionCount(newCount) {
+    const previousCount = voiceData.count;
+    voiceData.count = newCount;
+    
+    // Mise à jour interface immédiate
+    updateCorrectionUI(newCount, previousCount);
+    
+    // Feedback utilisateur
+    if (navigator.vibrate) {
+        navigator.vibrate([50, 50, 50]); // Triple vibration pour correction
+    }
+    
+    // Log de correction
+    console.log(`[Voice] Correction appliquée: ${previousCount} → ${newCount}`);
+    
+    // Arrêter écoute passive et confirmer
+    stopPassiveListening();
+    
+    // Confirmer immédiatement après correction vocale
+    if (VOICE_FEATURES.validation_ui && voiceState === 'VALIDATING') {
+        confirmVoiceCount(newCount);
+    }
+}
+
+/**
+ * Met à jour l'interface après correction
+ * 
+ * @param {number} newCount - Nouveau count
+ * @param {number} previousCount - Ancien count
+ */
+function updateCorrectionUI(newCount, previousCount) {
+    const repsElement = document.getElementById('setReps');
+    if (!repsElement) return;
+    
+    // Si interface de validation active, mettre à jour
+    const voiceCountElement = document.querySelector('.voice-count');
+    if (voiceCountElement) {
+        voiceCountElement.textContent = newCount;
+        
+        // Animation de correction
+        voiceCountElement.style.background = 'var(--info, #17a2b8)';
+        voiceCountElement.style.color = 'white';
+        voiceCountElement.style.padding = '0.2rem 0.4rem';
+        voiceCountElement.style.borderRadius = '4px';
+        voiceCountElement.style.transition = 'all 0.3s ease';
+        
+        setTimeout(() => {
+            voiceCountElement.style.background = '';
+            voiceCountElement.style.color = '';
+            voiceCountElement.style.padding = '';
+            voiceCountElement.style.borderRadius = '';
+        }, 1000);
+    } else {
+        // Interface normale
+        repsElement.textContent = newCount;
+        repsElement.style.color = 'var(--info, #17a2b8)';
+        setTimeout(() => {
+            repsElement.style.color = '';
+        }, 800);
+    }
 }
 
 /**
@@ -1200,6 +1552,28 @@ window.toggleValidationUI = () => {
 window.voiceRecognitionActive = () => voiceRecognitionActive;
 window.getVoiceData = () => voiceData;
 window.calculateAvgTempo = calculateAvgTempo;
+// NOUVEAU - Exposer les fonctions de correction vocale
+window.handleCorrection = handleCorrection;
+window.startPassiveListening = startPassiveListening;
+window.stopPassiveListening = stopPassiveListening;
+window.applyCorrectionCount = applyCorrectionCount;
+
+// Debug helpers pour correction
+window.testCorrection = (count = 15) => {
+    applyCorrectionCount(count);
+};
+
+window.toggleCorrectionMode = () => {
+    if (passiveListening) {
+        stopPassiveListening();
+    } else {
+        startPassiveListening();
+    }
+    console.log('[Voice] Mode correction:', passiveListening ? 'ACTIF' : 'INACTIF');
+};
+
+
+
 console.log('[Voice] Module voice-recognition.js chargé - Phase 0');
 
 // NOUVEAU - Mode preview pour tests internes
