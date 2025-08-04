@@ -7628,3 +7628,100 @@ input:checked+.toggle-slider:before {
         font-size: 0.9rem;
     }
 }
+
+/* ===== INTERFACE VALIDATION VOCALE ===== */
+
+/* Conteneur principal avec confiance */
+#setReps.voice-high-confidence {
+    border: 2px solid var(--success, #28a745);
+    border-radius: 6px;
+    padding: 0.3rem 0.5rem;
+    background: rgba(40, 167, 69, 0.1);
+}
+
+#setReps.voice-medium-confidence {
+    border: 2px solid var(--warning, #ffc107);
+    border-radius: 6px;
+    padding: 0.3rem 0.5rem;
+    background: rgba(255, 193, 7, 0.1);
+}
+
+#setReps.voice-low-confidence {
+    border: 2px solid var(--danger, #dc3545);
+    border-radius: 6px;
+    padding: 0.3rem 0.5rem;
+    background: rgba(220, 53, 69, 0.1);
+}
+
+/* Count vocal stylisé */
+.voice-count {
+    font-weight: 600;
+    font-size: 1.1em;
+    color: var(--primary, #007bff);
+}
+
+/* Boutons d'ajustement rapide */
+.quick-actions {
+    display: inline-flex;
+    margin-left: 0.5rem;
+    gap: 0.25rem;
+    align-items: center;
+}
+
+.adjust-btn {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--border, #dee2e6);
+    background: var(--card-bg, #fff);
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.adjust-btn:hover {
+    background: var(--hover-bg, #f8f9fa);
+    border-color: var(--primary, #007bff);
+    color: var(--primary, #007bff);
+}
+
+.adjust-btn:active {
+    transform: scale(0.95);
+}
+
+/* Animation discrète */
+.voice-count, .quick-actions {
+    transition: all 0.2s ease;
+}
+
+/* Responsive mobile */
+@media (max-width: 768px) {
+    .adjust-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 1rem;
+    }
+    
+    .quick-actions {
+        margin-left: 0.3rem;
+        gap: 0.2rem;
+    }
+}
+
+/* Mode sombre (si applicable) */
+@media (prefers-color-scheme: dark) {
+    .adjust-btn {
+        background: var(--dark-card-bg, #343a40);
+        border-color: var(--dark-border, #495057);
+        color: var(--dark-text, #fff);
+    }
+    
+    .adjust-btn:hover {
+        background: var(--dark-hover-bg, #495057);
+    }
+}

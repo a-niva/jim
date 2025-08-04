@@ -25,20 +25,23 @@ let voiceRecognitionActive = false;
 
 /**
  * Données de comptage vocal de la session courante
- * @type {Object}
  */
 let voiceData = {
     count: 0,
     timestamps: [],
     gaps: [],
     lastNumber: 0,
+    lastDetected: 0,        // NOUVEAU - dernier nombre explicitement détecté
     startTime: null,
-    confidence: 1.0
+    confidence: 1.0,
+    suspiciousJumps: 0,     // NOUVEAU - compteur de sauts suspects (+3)
+    repetitions: 0,         // NOUVEAU - compteur de répétitions du même nombre
+    needsValidation: false  // NOUVEAU - flag pour forcer validation UI
 };
 
 
-// OPTIMISATIONS PERFORMANCE
 const FRENCH_NUMBERS = new Map([
+    // Existant 1-20 (conserver)
     ['un', 1], ['1', 1],
     ['deux', 2], ['2', 2], 
     ['trois', 3], ['3', 3],
@@ -58,10 +61,62 @@ const FRENCH_NUMBERS = new Map([
     ['dix-sept', 17], ['17', 17],
     ['dix-huit', 18], ['18', 18],
     ['dix-neuf', 19], ['19', 19],
-    ['vingt', 20], ['20', 20]
+    ['vingt', 20], ['20', 20],
+    ['vingt-et-un', 21], ['21', 21],
+    ['vingt-deux', 22], ['22', 22],
+    ['vingt-trois', 23], ['23', 23],
+    ['vingt-quatre', 24], ['24', 24],
+    ['vingt-cinq', 25], ['25', 25],
+    ['vingt-six', 26], ['26', 26],
+    ['vingt-sept', 27], ['27', 27],
+    ['vingt-huit', 28], ['28', 28],
+    ['vingt-neuf', 29], ['29', 29],
+    ['trente', 30], ['30', 30],
+    ['trente-et-un', 31], ['31', 31],
+    ['trente-deux', 32], ['32', 32],
+    ['trente-trois', 33], ['33', 33],
+    ['trente-quatre', 34], ['34', 34],
+    ['trente-cinq', 35], ['35', 35],
+    ['trente-six', 36], ['36', 36],
+    ['trente-sept', 37], ['37', 37],
+    ['trente-huit', 38], ['38', 38],
+    ['trente-neuf', 39], ['39', 39],
+    ['quarante', 40], ['40', 40],
+    ['quarante-et-un', 41], ['41', 41],
+    ['quarante-deux', 42], ['42', 42],
+    ['quarante-trois', 43], ['43', 43],
+    ['quarante-quatre', 44], ['44', 44],
+    ['quarante-cinq', 45], ['45', 45],
+    ['quarante-six', 46], ['46', 46],
+    ['quarante-sept', 47], ['47', 47],
+    ['quarante-huit', 48], ['48', 48],
+    ['quarante-neuf', 49], ['49', 49],
+    ['cinquante', 50], ['50', 50]
 ]);
 
 const QUICK_PATTERNS = new Set(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']);
+
+// Niveaux de confiance simplifiés
+const CONFIDENCE_LEVELS = {
+    HIGH: 0.8,    // Auto-validation 1.5s
+    MEDIUM: 0.5   // Quick validation 4s
+    // LOW: < 0.5  // Manuel requis
+};
+
+// NOUVEAU - Mode preview pour tests (DÉCLARER EN PREMIER)
+const DEBUG_MODE = false; // Passer à true pour tester l'interface
+
+// NOUVEAU - Feature toggles avec référence correcte
+const VOICE_FEATURES = {
+    confidence_system: true,    // Étape 1 - ACTIF
+    validation_ui: DEBUG_MODE,  // ✅ Étape 2 - CONTRÔLÉ PAR DEBUG_MODE
+    voice_correction: false,    // Étape 3
+    auto_validation: false      // Étape 4
+};
+
+// NOUVEAU - Variables d'état pour la validation
+let voiceState = 'LISTENING'; // 'LISTENING' | 'VALIDATING' | 'CONFIRMED'
+let validationTimer = null;
 const recognitionCache = new Map();
 
 // SYSTÈME DE PRÉDICTION
@@ -308,6 +363,31 @@ function stopVoiceRecognition() {
             voiceData.confidence = Math.max(0.6, 1.0 - gapPenalty);
         }
         
+        // Calcul confiance finale intelligent
+        if (VOICE_FEATURES.confidence_system) {
+            voiceData.confidence = calculateConfidence();
+            
+            // Déterminer si validation nécessaire
+            voiceData.needsValidation = voiceData.confidence < CONFIDENCE_LEVELS.HIGH;
+            
+            console.log('[Voice] Confiance finale:', {
+                score: voiceData.confidence.toFixed(2),
+                level: voiceData.confidence >= CONFIDENCE_LEVELS.HIGH ? 'HIGH' : 
+                    voiceData.confidence >= CONFIDENCE_LEVELS.MEDIUM ? 'MEDIUM' : 'LOW',
+                needsValidation: voiceData.needsValidation,
+                suspiciousJumps: voiceData.suspiciousJumps,
+                gaps: voiceData.gaps.length
+            });
+        }
+
+        // Déclencher validation UI si confiance faible
+        if (VOICE_FEATURES.validation_ui && voiceData.needsValidation) {
+            showValidationUI(voiceData.count, voiceData.confidence);
+        } else {
+            // Mode normal - pas de validation UI
+            console.log('[Voice] Confiance suffisante, pas de validation UI requise');
+        }
+
         // Mettre à jour l'interface - icône micro inactive
         const microIcon = document.querySelector('.voice-toggle-container i');
         if (microIcon) {
@@ -578,6 +658,233 @@ function parseNumber(text) {
 }
 
 /**
+ * Calcule le niveau de confiance des données vocales
+ * Optimisé pour performance - calculs simples
+ * 
+ * @returns {number} Score de confiance entre 0.1 et 1.0
+ */
+function calculateConfidence() {
+    if (!VOICE_FEATURES.confidence_system) {
+        return 1.0; // Mode legacy
+    }
+    
+    let score = 1.0;
+    
+    // Pénalités simples et rapides
+    if (voiceData.gaps.length > 0) {
+        score -= voiceData.gaps.length * 0.1; // -10% par gap
+    }
+    
+    if (voiceData.suspiciousJumps > 0) {
+        score -= voiceData.suspiciousJumps * 0.15; // -15% par saut suspect
+    }
+    
+    if (voiceData.repetitions > 1) {
+        score -= 0.2; // -20% si répétitions détectées
+    }
+    
+    // Bonus pour séquences courtes et cohérentes
+    if (voiceData.count <= 5 && voiceData.gaps.length === 0) {
+        score += 0.1; // +10% bonus
+    }
+    
+    // Borner le résultat
+    return Math.max(0.1, Math.min(1.0, score));
+}
+
+/**
+ * Affiche l'interface de validation inline intégrée
+ * Version minimaliste sans overlay lourd
+ * 
+ * @param {number} count - Nombre à valider
+ * @param {number} confidence - Score de confiance (0-1)
+ */
+function showValidationUI(count, confidence) {
+    if (!VOICE_FEATURES.validation_ui) {
+        return; // Interface désactivée
+    }
+    
+    const repsElement = document.getElementById('setReps');
+    if (!repsElement) {
+        console.warn('[Voice] Élément setReps non trouvé');
+        return;
+    }
+    
+    // Sauvegarder le contenu original
+    repsElement.setAttribute('data-original', repsElement.textContent);
+    
+    // Interface inline minimaliste
+    repsElement.innerHTML = `
+        <span class="voice-count">${count}</span>
+        <div class="quick-actions">
+            <button onclick="adjustVoiceCount(-1)" class="adjust-btn">−</button>
+            <button onclick="adjustVoiceCount(1)" class="adjust-btn">+</button>
+        </div>
+    `;
+    
+    // Classe CSS selon niveau de confiance
+    repsElement.className = getConfidenceClass(confidence);
+    
+    // Animation discrète
+    repsElement.style.transform = 'scale(1.02)';
+    setTimeout(() => {
+        repsElement.style.transform = '';
+    }, 200);
+    
+    // Timer auto-validation
+    startValidationTimer(count);
+    
+    console.log(`[Voice] UI validation affichée - Count: ${count}, Confiance: ${confidence.toFixed(2)}`);
+}
+
+/**
+ * Ajuste le count vocal via les boutons +/-
+ * Interaction rapide et responsive
+ * 
+ * @param {number} delta - Changement (-1 ou +1)
+ */
+function adjustVoiceCount(delta) {
+    const countElement = document.querySelector('.voice-count');
+    if (!countElement) return;
+    
+    const currentCount = parseInt(countElement.textContent);
+    const newCount = Math.max(0, Math.min(50, currentCount + delta));
+    
+    // Mise à jour immédiate
+    countElement.textContent = newCount;
+    voiceData.count = newCount;
+    
+    // Reset timer sur interaction utilisateur
+    resetValidationTimer(newCount);
+    
+    // Feedback vibration sur mobile
+    if (navigator.vibrate) {
+        navigator.vibrate(20);
+    }
+    
+    console.log(`[Voice] Count ajusté: ${currentCount} → ${newCount}`);
+}
+
+/**
+ * Détermine la classe CSS selon le niveau de confiance
+ * 
+ * @param {number} confidence - Score de confiance (0-1)
+ * @returns {string} Nom de classe CSS
+ */
+function getConfidenceClass(confidence) {
+    if (confidence >= CONFIDENCE_LEVELS.HIGH) {
+        return 'voice-high-confidence';
+    } else if (confidence >= CONFIDENCE_LEVELS.MEDIUM) {
+        return 'voice-medium-confidence';
+    } else {
+        return 'voice-low-confidence';
+    }
+}
+
+/**
+ * Démarre le timer d'auto-validation
+ * 
+ * @param {number} count - Count à confirmer automatiquement
+ */
+function startValidationTimer(count) {
+    voiceState = 'VALIDATING';
+    
+    validationTimer = setTimeout(() => {
+        confirmVoiceCount(count);
+    }, 4000); // 4s pour validation manuelle
+}
+
+/**
+ * Reset le timer de validation sur interaction utilisateur
+ * 
+ * @param {number} newCount - Nouveau count après ajustement
+ */
+function resetValidationTimer(newCount) {
+    if (validationTimer) {
+        clearTimeout(validationTimer);
+    }
+    
+    // Nouveau timer avec le count ajusté
+    validationTimer = setTimeout(() => {
+        confirmVoiceCount(newCount);
+    }, 2000); // 2s après interaction
+}
+
+/**
+ * Confirme le count final et nettoie l'interface
+ * 
+ * @param {number} finalCount - Count définitif
+ */
+function confirmVoiceCount(finalCount) {
+    voiceData.count = finalCount;
+    voiceState = 'CONFIRMED';
+    
+    // Nettoyer l'interface
+    clearValidationUI();
+    
+    // Exposer pour executeSet
+    window.voiceData = voiceData;
+    
+    console.log(`[Voice] Count confirmé: ${finalCount}`);
+    
+    // Auto-trigger executeSet si activé dans étapes futures
+    if (VOICE_FEATURES.auto_validation && typeof window.executeSet === 'function') {
+        setTimeout(window.executeSet, 100);
+    }
+}
+
+/**
+ * Nettoie l'interface de validation
+ */
+function clearValidationUI() {
+    const repsElement = document.getElementById('setReps');
+    if (!repsElement) return;
+    
+    // Restaurer contenu original ou afficher count final
+    const originalContent = repsElement.getAttribute('data-original');
+    repsElement.innerHTML = originalContent || voiceData.count.toString();
+    repsElement.className = '';
+    repsElement.removeAttribute('data-original');
+    
+    // Nettoyer timer
+    if (validationTimer) {
+        clearTimeout(validationTimer);
+        validationTimer = null;
+    }
+    
+    voiceState = 'LISTENING';
+}
+
+/**
+ * Valide un saut de nombre et détecte les patterns suspects
+ * 
+ * @param {number} newNumber - Nouveau nombre détecté
+ * @param {number} lastDetected - Dernier nombre explicitement détecté
+ * @returns {Object} {valid: boolean, suspicious: boolean, reason?: string}
+ */
+function validateNumberJump(newNumber, lastDetected) {
+    const jump = newNumber - lastDetected;
+    
+    // Validation de base
+    if (jump <= 0) {
+        return { valid: false, reason: 'Nombre déjà atteint ou en arrière' };
+    }
+    
+    if (jump > 8) {
+        return { valid: false, reason: `Saut trop important: +${jump}` };
+    }
+    
+    // Détection de pattern suspect
+    const suspicious = jump === 3; // Saut exactement de +3
+    
+    return { 
+        valid: true, 
+        suspicious: suspicious,
+        jump: jump
+    };
+}
+
+/**
  * Affiche immédiatement le nombre prédit (version silencieuse)
  */
 function displayPredictedNumber(number) {
@@ -628,20 +935,33 @@ function updateVoiceDisplayImmediate(count) {
 function handleNumberDetected(number) {
     const now = Date.now();
     
-    // Monotonie croissante
+    // NOUVEAU - Validation intelligente du saut
+    const validation = validateNumberJump(number, voiceData.lastDetected || voiceData.count);
+    
+    if (!validation.valid) {
+        console.log(`[Voice] Rejeté: ${number} - ${validation.reason}`);
+        return;
+    }
+    
+    // NOUVEAU - Tracking des patterns suspects
+    if (validation.suspicious) {
+        voiceData.suspiciousJumps++;
+        console.log(`[Voice] Saut suspect détecté: +${validation.jump}`);
+    }
+    
+    // NOUVEAU - Détection répétitions
+    if (number === voiceData.lastDetected) {
+        voiceData.repetitions++;
+        return; // Ignorer les répétitions
+    }
+    
+    // Monotonie croissante (CONSERVER logique existante)
     if (number <= voiceData.count) {
         console.log(`[Voice] Ignoré: ${number} <= ${voiceData.count}`);
         return;
     }
     
-    // Limite anti-erreur
-    const maxJump = voiceData.count + 8;
-    if (number > maxJump) {
-        console.log(`[Voice] Plafonné: ${number} -> ${maxJump}`);
-        number = maxJump;
-    }
-    
-    // Gestion des gaps
+    // Gestion des gaps (CONSERVER)
     const previousCount = voiceData.count;
     if (number > voiceData.count + 1) {
         for (let i = voiceData.count + 1; i < number; i++) {
@@ -649,34 +969,33 @@ function handleNumberDetected(number) {
         }
     }
     
-    // Mise à jour des données
+    // Mise à jour des données (MODIFIER)
     voiceData.count = number;
+    voiceData.lastDetected = number; // NOUVEAU
     voiceData.timestamps.push(now - voiceData.startTime);
     voiceData.lastNumber = number;
     
-    // Validation de la prédiction
+    // CONSERVER le reste de la logique existante...
     if (pendingValidation === number) {
         pendingValidation = null;
     } else {
         updateVoiceDisplay(number);
     }
     
-    // Mise à jour prédiction
     updatePrediction(number + 1);
     
-    // Feedback
     if (navigator.vibrate) {
         navigator.vibrate(30);
     }
     
-    // Timer
     if (typeof resetAutoValidationTimer === 'function') {
         resetAutoValidationTimer();
     }
     
-    // Log concis UNIQUEMENT
+    // NOUVEAU - Log avec confiance
+    const confidence = calculateConfidence();
     const gapCount = voiceData.gaps.length;
-    console.log(`[Voice] ${previousCount} → ${number}${gapCount > 0 ? ` (${gapCount} gaps)` : ''}`);
+    console.log(`[Voice] ${previousCount} → ${number}${gapCount > 0 ? ` (${gapCount} gaps)` : ''} - Confiance: ${confidence.toFixed(2)}`);
 }
 
 /**
@@ -868,10 +1187,36 @@ window.voiceData = voiceData;
 window.initVoiceRecognition = initVoiceRecognition;
 window.startVoiceRecognition = startVoiceRecognition;
 window.stopVoiceRecognition = stopVoiceRecognition;
-
+window.showValidationUI = showValidationUI;
+window.adjustVoiceCount = adjustVoiceCount;
+window.confirmVoiceCount = confirmVoiceCount;
+window.clearValidationUI = clearValidationUI;
+window.toggleValidationUI = () => {
+    VOICE_FEATURES.validation_ui = !VOICE_FEATURES.validation_ui;
+    console.log('[Voice] Validation UI:', VOICE_FEATURES.validation_ui ? 'ACTIVÉE' : 'DÉSACTIVÉE');
+};
 
 // Exposer variables globales pour debug et monitoring
 window.voiceRecognitionActive = () => voiceRecognitionActive;
 window.getVoiceData = () => voiceData;
 window.calculateAvgTempo = calculateAvgTempo;
 console.log('[Voice] Module voice-recognition.js chargé - Phase 0');
+
+// NOUVEAU - Mode preview pour tests internes
+if (DEBUG_MODE) {
+    console.log('🧪 [Voice] MODE DEBUG ACTIVÉ - Interface validation disponible');
+    
+    // Fonction de test rapide
+    window.testValidationUI = (count = 12, confidence = 0.6) => {
+        voiceData.count = count;
+        voiceData.confidence = confidence;
+        showValidationUI(count, confidence);
+    };
+    
+    // Raccourci clavier pour tests (Ctrl+Shift+V)
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.shiftKey && e.key === 'V') {
+            window.testValidationUI();
+        }
+    });
+}
