@@ -36,6 +36,39 @@ let voiceData = {
     confidence: 1.0
 };
 
+
+// OPTIMISATIONS PERFORMANCE
+const FRENCH_NUMBERS = new Map([
+    ['un', 1], ['1', 1],
+    ['deux', 2], ['2', 2], 
+    ['trois', 3], ['3', 3],
+    ['quatre', 4], ['4', 4],
+    ['cinq', 5], ['5', 5],
+    ['six', 6], ['6', 6],
+    ['sept', 7], ['7', 7],
+    ['huit', 8], ['8', 8],
+    ['neuf', 9], ['9', 9],
+    ['dix', 10], ['10', 10],
+    ['onze', 11], ['11', 11],
+    ['douze', 12], ['12', 12],
+    ['treize', 13], ['13', 13],
+    ['quatorze', 14], ['14', 14],
+    ['quinze', 15], ['15', 15],
+    ['seize', 16], ['16', 16],
+    ['dix-sept', 17], ['17', 17],
+    ['dix-huit', 18], ['18', 18],
+    ['dix-neuf', 19], ['19', 19],
+    ['vingt', 20], ['20', 20]
+]);
+
+const QUICK_PATTERNS = new Set(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']);
+const recognitionCache = new Map();
+
+// SYSTÈME DE PRÉDICTION
+let predictedNext = 1;
+let displayedCount = 0;
+let pendingValidation = null;
+
 // ===== FONCTIONS PRINCIPALES =====
 
 /**
@@ -246,45 +279,55 @@ function clearAutoValidationTimer() {
 }
 
 /**
- * Arrête la reconnaissance vocale et finalise les données
- * Calcule la confiance finale et nettoie l'état
- * 
- * @returns {void}
+ * Démarre la reconnaissance avec système de prédiction initialisé
  */
-function stopVoiceRecognition() {
-    if (!recognition || !voiceRecognitionActive) {
+function startVoiceRecognition() {
+    if (!recognition || voiceRecognitionActive) {
+        console.log('[Voice] Reconnaissance non disponible ou déjà active');
         return;
     }
     
+    // RÉINITIALISATION COMPLÈTE
+    voiceData = {
+        count: 0,
+        timestamps: [],
+        gaps: [],
+        lastNumber: 0,
+        startTime: Date.now(),
+        confidence: 1.0
+    };
+    
+    // RÉINITIALISATION PRÉDICTION
+    predictedNext = 1;
+    displayedCount = 0;
+    pendingValidation = null;
+    recognitionCache.clear(); // Nettoyer le cache pour cette série
+    
     try {
-        recognition.stop();
-        voiceRecognitionActive = false;
+        recognition.start();
+        voiceRecognitionActive = true;
         
-        // ===== NOUVEAU : NETTOYER LE TIMER =====
-        clearAutoValidationTimer();
-        
-        // ===== LOGIQUE EXISTANTE =====
-        // Calculer la confiance finale basée sur les gaps
-        if (voiceData.gaps.length > 0) {
-            const gapPenalty = Math.min(voiceData.gaps.length * 0.1, 0.3);
-            voiceData.confidence = Math.max(0.6, 1.0 - gapPenalty);
+        // Timer auto-validation (si implémenté)
+        if (typeof startAutoValidationTimer === 'function') {
+            startAutoValidationTimer();
         }
         
-        // Mettre à jour l'interface - icône micro inactive
+        // UI feedback
         const microIcon = document.querySelector('.voice-toggle-container i');
         if (microIcon) {
-            microIcon.classList.remove('active');
+            microIcon.classList.add('active');
         }
         
-        console.log('[Voice] Reconnaissance arrêtée');
-        console.log('[Voice] Données finales:', {
-            count: voiceData.count,
-            gaps: voiceData.gaps,
-            confidence: voiceData.confidence.toFixed(2)
-        });
+        console.log('[Voice] Reconnaissance démarrée avec prédiction initialisée');
         
     } catch (error) {
-        console.error('[Voice] Erreur lors de l\'arrêt:', error);
+        console.error('[Voice] Erreur au démarrage:', error);
+        voiceRecognitionActive = false;
+        
+        // Gestion d'erreurs (si implémentée)
+        if (typeof handleVoiceStartupError === 'function') {
+            handleVoiceStartupError(error);
+        }
     }
 }
 
@@ -297,53 +340,61 @@ function stopVoiceRecognition() {
  */
 function handleVoiceResult(event) {
     const result = event.results[event.results.length - 1];
-    if (!result.isFinal) return;
-    
     const transcript = result[0].transcript.toLowerCase().trim();
-    console.log('[Voice] Transcript reçu:', transcript);
     
-    // Map complète des nombres français et numériques
-    const numbers = {
-        'un': 1, '1': 1,
-        'deux': 2, '2': 2,
-        'trois': 3, '3': 3,
-        'quatre': 4, '4': 4,
-        'cinq': 5, '5': 5,
-        'six': 6, '6': 6,
-        'sept': 7, '7': 7,
-        'huit': 8, '8': 8,
-        'neuf': 9, '9': 9,
-        'dix': 10, '10': 10,
-        'onze': 11, '11': 11,
-        'douze': 12, '12': 12,
-        'treize': 13, '13': 13,
-        'quatorze': 14, '14': 14,
-        'quinze': 15, '15': 15,
-        'seize': 16, '16': 16,
-        'dix-sept': 17, '17': 17,
-        'dix-huit': 18, '18': 18,
-        'dix-neuf': 19, '19': 19,
-        'vingt': 20, '20': 20
-    };
+    console.log(`[Voice] ${result.isFinal ? 'Final' : 'Interim'}:`, transcript);
     
-    // Détection des nombres - priorité aux correspondances exactes
-    for (const [word, number] of Object.entries(numbers)) {
-        if (transcript === word || transcript.includes(` ${word} `) || 
-            transcript.startsWith(`${word} `) || transcript.endsWith(` ${word}`)) {
-            console.log('[Voice] Nombre détecté:', number);
-            handleNumberDetected(number);
+    // TRAITEMENT INTERMÉDIAIRE pour réactivité
+    if (!result.isFinal) {
+        handleInterimResult(transcript);
+        return;
+    }
+    
+    // TRAITEMENT FINAL pour validation
+    handleFinalResult(transcript);
+}
+
+
+/**
+ * Traite les résultats intermédiaires pour affichage immédiat
+ */
+function handleInterimResult(transcript) {
+    const number = parseNumber(transcript);
+    if (number && number === predictedNext) {
+        // Prédiction correcte ! Affichage immédiat
+        displayPredictedNumber(number);
+        console.log('[Voice] Prédiction validée:', number);
+    }
+}
+
+/**
+ * Traite les résultats finaux pour validation définitive
+ */
+function handleFinalResult(transcript) {
+    // Vérifier cache d'abord (optimisation)
+    if (recognitionCache.has(transcript)) {
+        const cachedNumber = recognitionCache.get(transcript);
+        if (cachedNumber) {
+            handleNumberDetected(cachedNumber);
             return;
         }
     }
     
-    // Détection des mots-clés répétitifs
+    const number = parseNumber(transcript);
+    if (number) {
+        // Ajouter au cache pour prochaines fois
+        recognitionCache.set(transcript, number);
+        handleNumberDetected(number);
+        return;
+    }
+    
+    // Mots-clés
     if (transcript.includes('top') || transcript.includes('hop')) {
-        console.log('[Voice] Mot-clé détecté');
         handleKeywordDetected();
         return;
     }
     
-    // Détection des commandes de fin
+    // Commandes de fin
     if (transcript.includes('terminé') || transcript.includes('fini') || 
         transcript.includes('stop') || transcript.includes('fin')) {
         console.log('[Voice] Commande de fin détectée');
@@ -357,111 +408,209 @@ function handleVoiceResult(event) {
 }
 
 /**
- * Traite la détection d'un nombre spécifique
- * Gère les gaps et met à jour le compteur
- * 
- * @param {number} number - Nombre détecté (1, 2, 3...)
- * @returns {void}
+ * Parse intelligent et optimisé des nombres
+ */
+function parseNumber(transcript) {
+    // Short-circuit pour patterns fréquents (90% des cas)
+    if (QUICK_PATTERNS.has(transcript)) {
+        return parseInt(transcript);
+    }
+    
+    // Recherche dans la map française
+    for (const [word, number] of FRENCH_NUMBERS) {
+        if (transcript === word || 
+            transcript.includes(` ${word} `) || 
+            transcript.startsWith(`${word} `) || 
+            transcript.endsWith(` ${word}`)) {
+            return number;
+        }
+    }
+    
+    return null;
+}
+
+/**
+ * Affiche immédiatement le nombre prédit (réactivité)
+ */
+function displayPredictedNumber(number) {
+    displayedCount = number;
+    pendingValidation = number;
+    updateVoiceDisplayImmediate(number);
+    updatePrediction(number + 1);
+}
+
+/**
+ * Met à jour la prédiction pour le prochain nombre
+ */
+function updatePrediction(nextNumber) {
+    predictedNext = nextNumber;
+    
+    // Préparer visuellement le prochain nombre (optionnel)
+    const repsElement = document.getElementById('setReps');
+    if (repsElement) {
+        // Subtle visual hint pour le nombre suivant
+        repsElement.setAttribute('data-next', nextNumber);
+    }
+    
+    console.log('[Voice] Prédiction mise à jour:', nextNumber);
+}
+
+/**
+ * Affichage immédiat optimisé (sans animation lourde)
+ */
+function updateVoiceDisplayImmediate(count) {
+    const repsElement = document.getElementById('setReps');
+    if (repsElement) {
+        repsElement.textContent = count;
+        // Animation légère mais immédiate
+        repsElement.style.transform = 'scale(1.05)';
+        repsElement.style.color = 'var(--primary)';
+        
+        setTimeout(() => {
+            repsElement.style.transform = '';
+            repsElement.style.color = '';
+        }, 150);
+    }
+}
+
+/**
+ * Traite la détection VALIDÉE d'un nombre
+ * Applique la logique de monotonie croissante (pas de retour arrière)
  */
 function handleNumberDetected(number) {
     const now = Date.now();
     
-    // ===== LOGIQUE EXISTANTE =====
-    // Gestion intelligente des gaps
-    if (number > voiceData.lastNumber + 1) {
-        // Nombre manqué détecté
-        for (let i = voiceData.lastNumber + 1; i < number; i++) {
-            voiceData.gaps.push(i);
-        }
-        console.log('[Voice] Gap détecté:', voiceData.gaps);
+    // MONOTONIE CROISSANTE : ignorer si retour arrière
+    if (number <= voiceData.count) {
+        console.log(`[Voice] Retour arrière ignoré: ${number} <= ${voiceData.count}`);
+        return;
     }
     
-    voiceData.count = Math.max(voiceData.count, number);
+    // LIMITE ANTI-ERREUR : plafonner les sauts énormes
+    const maxJump = voiceData.count + 8; // Max +8 reps d'un coup
+    if (number > maxJump) {
+        console.log(`[Voice] Saut énorme plafonné: ${number} -> ${maxJump}`);
+        number = maxJump;
+    }
+    
+    // GESTION DES GAPS (logique existante améliorée)
+    if (number > voiceData.count + 1) {
+        for (let i = voiceData.count + 1; i < number; i++) {
+            voiceData.gaps.push(i);
+        }
+        console.log('[Voice] Gaps détectés:', voiceData.gaps);
+    }
+    
+    // MISE À JOUR DES DONNÉES
+    const previousCount = voiceData.count;
+    voiceData.count = number;
     voiceData.timestamps.push(now - voiceData.startTime);
     voiceData.lastNumber = number;
     
-    updateVoiceDisplay(number);
+    // VALIDATION DE LA PRÉDICTION
+    if (pendingValidation === number) {
+        console.log('[Voice] Validation confirmée pour:', number);
+        pendingValidation = null;
+    } else {
+        // Correction différée nécessaire
+        updateVoiceDisplay(number);
+    }
     
-    // Vibration feedback si disponible
+    // MISE À JOUR PRÉDICTION
+    updatePrediction(number + 1);
+    
+    // FEEDBACK
     if (navigator.vibrate) {
         navigator.vibrate(30);
     }
     
-    // ===== NOUVEAU : RÉINITIALISER LE TIMER =====
-    resetAutoValidationTimer();
+    // TIMER (si déjà implémenté)
+    if (typeof resetAutoValidationTimer === 'function') {
+        resetAutoValidationTimer();
+    }
+    
+    console.log(`[Voice] Count: ${previousCount} -> ${number} (gaps: ${voiceData.gaps.length})`);
 }
 
 /**
- * Traite la détection d'un mot-clé répétitif
- * Incrémente le compteur sans logique de gaps
- * 
- * @returns {void}
+ * Traite la détection d'un mot-clé avec logique de monotonie
  */
 function handleKeywordDetected() {
     const now = Date.now();
-    voiceData.count++;
+    const newCount = voiceData.count + 1;
+    
+    voiceData.count = newCount;
     voiceData.timestamps.push(now - voiceData.startTime);
     
-    updateVoiceDisplay(voiceData.count);
+    updateVoiceDisplay(newCount);
+    updatePrediction(newCount + 1);
     
-    // Vibration feedback si disponible
     if (navigator.vibrate) {
         navigator.vibrate(30);
     }
     
-    // ===== NOUVEAU : RÉINITIALISER LE TIMER =====
-    resetAutoValidationTimer();
+    if (typeof resetAutoValidationTimer === 'function') {
+        resetAutoValidationTimer();
+    }
+    
+    console.log('[Voice] Mot-clé détecté, count:', newCount);
 }
 
 /**
- * Met à jour l'affichage en temps réel du comptage
- * Anime l'UI pour feedback utilisateur
- * 
- * @param {number} count - Nouveau nombre à afficher
- * @returns {void}
+ * Met à jour l'affichage avec optimisations performance
  */
 function updateVoiceDisplay(count) {
-    // Mettre à jour l'affichage principal des répétitions
+    // Éviter les mises à jour inutiles
+    if (displayedCount === count) return;
+    
+    displayedCount = count;
+    
+    // Mise à jour principale (optimisée)
     const repsElement = document.getElementById('setReps');
     if (repsElement) {
+        // Utiliser textContent direct (plus rapide que innerHTML)
         repsElement.textContent = count;
+        
+        // Animation plus légère
         repsElement.classList.add('voice-updated');
         
-        // Nettoyer l'animation après 300ms
+        // Cleanup optimisé
         setTimeout(() => {
             repsElement.classList.remove('voice-updated');
         }, 300);
     }
     
-    // Mettre à jour l'indicateur sur l'icône micro si présent
-    const indicator = document.querySelector('.voice-indicator');
+    // Indicateur micro (optimisé)
+    updateMicroIndicator(count);
+    
+    console.log('[Voice] Affichage mis à jour:', count);
+}
+
+/**
+ * Met à jour l'indicateur micro de façon optimisée
+ */
+function updateMicroIndicator(count) {
+    let indicator = document.querySelector('.voice-indicator');
+    
+    if (!indicator && count > 0) {
+        // Créer seulement si nécessaire
+        const microIcon = document.querySelector('.voice-toggle-container i');
+        if (microIcon) {
+            indicator = document.createElement('div');
+            indicator.className = 'voice-indicator';
+            microIcon.parentElement.appendChild(indicator);
+        }
+    }
+    
     if (indicator) {
+        // Mise à jour directe
         indicator.textContent = count;
         indicator.classList.add('pulse');
         
         setTimeout(() => {
             indicator.classList.remove('pulse');
         }, 300);
-    } else {
-        // Créer l'indicateur s'il n'existe pas
-        const microIcon = document.querySelector('.voice-toggle-container i');
-        if (microIcon && count > 0) {
-            const newIndicator = document.createElement('div');
-            newIndicator.className = 'voice-indicator pulse';
-            newIndicator.textContent = count;
-            
-            const container = microIcon.parentElement;
-            if (container && !container.querySelector('.voice-indicator')) {
-                container.appendChild(newIndicator);
-                
-                setTimeout(() => {
-                    newIndicator.classList.remove('pulse');
-                }, 300);
-            }
-        }
     }
-    
-    console.log('[Voice] Interface mise à jour pour count:', count);
 }
 
 /**
