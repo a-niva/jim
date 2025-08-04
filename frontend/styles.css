@@ -7535,75 +7535,58 @@ input:checked+.toggle-slider:before {
 
 
 
+/* ===== CONTRÔLE VOCAL - STYLES RATIONALISÉS ===== */
 
-
-/* ===== COMPTAGE VOCAL - STYLES DE BASE ===== */
-
-/**
- * Container de l'icône micro dans l'interface d'exercice
- * Placé à côté du toggle ML pour cohérence visuelle
- */
-.voice-toggle-container {
-    margin-left: 1rem;
+/* Container pour le bouton vocal uniquement */
+.exercise-controls-container.voice-only {
     display: inline-flex;
     align-items: center;
-    position: relative;
+    margin-left: 0.5rem;
+    padding: 0;
+    background: transparent;
+    border: none;
 }
 
-/**
- * Icône microphone - États inactif/actif
- * Utilise les variables CSS existantes du projet
- */
-.voice-toggle-container i {
-    font-size: 1.2rem;
-    color: var(--text-muted);
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-
-/**
- * État actif du microphone (reconnaissance en cours)
- * Animation pulse pour feedback visuel continu
- */
-.voice-toggle-container i.active {
-    color: var(--danger);
-    animation: pulse 1s infinite;
-}
-
-/**
- * Indicateur de comptage vocal en temps réel
- * Badge affiché sur l'icône micro avec le nombre courant
- */
-.voice-indicator {
-    position: absolute;
-    top: -10px;
-    right: -10px;
-    background: var(--danger);
-    color: white;
+/* Bouton vocal principal */
+.voice-toggle-btn {
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
-    width: 24px;
-    height: 24px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.8rem;
-    font-weight: bold;
-    z-index: 10;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s ease;
 }
 
-/**
- * Animation du champ de répétitions lors de mise à jour vocale
- * Feedback visuel quand le comptage vocal modifie la valeur
- */
+.voice-toggle-btn:hover {
+    color: var(--primary);
+    transform: scale(1.1);
+}
+
+.voice-toggle-btn.active {
+    color: var(--danger);
+}
+
+.voice-toggle-btn.active i {
+    animation: pulse-subtle 2s infinite;
+}
+
+/* Animation subtile pour l'état actif */
+@keyframes pulse-subtle {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Animation du champ de répétitions lors de mise à jour vocale */
 #setReps.voice-updated {
     animation: voiceUpdate 0.3s ease;
 }
 
-/**
- * Animation de mise à jour - Scale et couleur temporaires
- * Attire l'attention sur la valeur qui vient de changer
- */
 @keyframes voiceUpdate {
     0% { 
         transform: scale(1); 
@@ -7620,138 +7603,6 @@ input:checked+.toggle-slider:before {
     }
 }
 
-/**
- * Animation pulse pour l'icône micro active
- * Indique que la reconnaissance vocale écoute
- */
-@keyframes pulse {
-    0% { 
-        opacity: 1; 
-        transform: scale(1);
-    }
-    50% { 
-        opacity: 0.7; 
-        transform: scale(1.05);
-    }
-    100% { 
-        opacity: 1; 
-        transform: scale(1);
-    }
-}
-
-/**
- * Responsive - Ajustements pour mobile
- * Taille légèrement réduite sur petits écrans
- */
-@media (max-width: 480px) {
-    .voice-toggle-container {
-        margin-left: 0.75rem;
-    }
-    
-    .voice-toggle-container i {
-        font-size: 1.1rem;
-    }
-    
-    .voice-indicator {
-        width: 20px;
-        height: 20px;
-        font-size: 0.7rem;
-        top: -8px;
-        right: -8px;
-    }
-}
-
-/**
- * État hover pour feedback utilisateur
- * Indication visuelle que l'icône est cliquable
- */
-.voice-toggle-container i:hover:not(.active) {
-    color: var(--text);
-    transform: scale(1.1);
-}
-
-/* Intégration harmonieuse avec le toggle ML */
-.ml-toggle-container + .voice-toggle-container {
-    margin-left: 0.75rem;
-    border-left: 1px solid var(--border-color);
-    padding-left: 0.75rem;
-}
-
-/* Responsive - ajustement pour petits écrans */
-@media (max-width: 480px) {
-    .ml-toggle-container + .voice-toggle-container {
-        margin-left: 0.5rem;
-        padding-left: 0.5rem;
-    }
-    
-    .voice-toggle-container i {
-        font-size: 1rem;
-    }
-}
-
-/* Alignement vertical avec le toggle ML */
-.exercise-header {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
-
-.exercise-header .ml-toggle-container,
-.exercise-header .voice-toggle-container {
-    display: inline-flex;
-    align-items: center;
-}
-
-/* Container pour le bouton vocal seul */
-.exercise-controls-container.voice-only {
-    display: inline-flex;
-    align-items: center;
-    margin-left: 0.5rem;
-    padding: 0;
-    background: transparent;
-    border: none;
-}
-
-/* Bouton vocal minimaliste */
-.voice-toggle-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: none;
-    background: transparent;
-    color: var(--text-muted);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 1rem;
-}
-
-.voice-toggle-btn:hover {
-    color: var(--primary);
-    transform: scale(1.1);
-}
-
-.voice-toggle-btn.active {
-    color: var(--danger);
-}
-
-.voice-toggle-btn.active i {
-    animation: pulse-subtle 2s infinite;
-}
-
-@keyframes pulse-subtle {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
-}
-
-/* Retirer l'indicateur visuel redondant */
-.voice-indicator {
-    display: none;
-}
-
 /* Ligne de statut IA cliquable */
 .ai-status-line {
     cursor: pointer;
@@ -7766,87 +7617,14 @@ input:checked+.toggle-slider:before {
     opacity: 0.6;
 }
 
-/* Bouton vocal avec design moderne */
-.voice-toggle-btn {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    border: 2px solid var(--border-color);
-    background: var(--bg-primary);
-    color: var(--text-muted);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    position: relative;
-    transition: all 0.3s ease;
-}
-
-.voice-toggle-btn:hover {
-    border-color: var(--primary);
-    color: var(--primary);
-    transform: scale(1.05);
-}
-
-.voice-toggle-btn.active {
-    background: var(--danger);
-    border-color: var(--danger);
-    color: white;
-    animation: pulse 1.5s infinite;
-}
-
-.voice-toggle-btn i {
-    font-size: 1.2rem;
-}
-
-/* Indicateur de comptage actif */
-.voice-indicator {
-    position: absolute;
-    top: -4px;
-    right: -4px;
-    width: 12px;
-    height: 12px;
-    background: white;
-    border-radius: 50%;
-    border: 2px solid var(--danger);
-    animation: blink 1s infinite;
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.8; }
-}
-
-@keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-}
-
-/* Responsive design */
+/* Responsive - Ajustements pour mobile */
 @media (max-width: 480px) {
-    .exercise-controls-container {
-        padding: 0.5rem;
-        gap: 0.75rem;
-    }
-    
-    .control-label .label-text {
-        display: none;
-    }
-    
     .voice-toggle-btn {
-        width: 40px;
-        height: 40px;
-    }
-}
-
-/* Mode sombre - ajustements */
-@media (prefers-color-scheme: dark) {
-    .exercise-controls-container {
-        background: rgba(255, 255, 255, 0.05);
-        border-color: rgba(255, 255, 255, 0.1);
+        width: 32px;
+        height: 32px;
     }
     
-    .voice-toggle-btn {
-        background: rgba(255, 255, 255, 0.1);
+    .voice-toggle-btn i {
+        font-size: 0.9rem;
     }
 }
