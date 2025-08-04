@@ -1587,6 +1587,21 @@ function handleKeywordDetected() {
 }
 
 /**
+ * Met à jour la prédiction pour le prochain nombre
+ * 
+ * @param {number} nextNumber - Prochain nombre attendu
+ */
+function updatePrediction(nextNumber) {
+    predictedNext = nextNumber;
+    
+    // Optionnel: indicateur visuel du prochain nombre attendu
+    const repsElement = document.getElementById('setReps');
+    if (repsElement && predictedNext <= 50) {
+        repsElement.setAttribute('data-next', predictedNext);
+    }
+}
+
+/**
  * Met à jour l'affichage avec optimisations performance
  */
 function updateVoiceDisplay(count) {
