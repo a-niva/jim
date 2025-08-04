@@ -110,8 +110,8 @@ const DEBUG_MODE = false; // Passer à true pour tester l'interface
 const VOICE_FEATURES = {
     confidence_system: true,    // Étape 1 - ACTIF
     validation_ui: DEBUG_MODE,  // Étape 2 - CONTRÔLÉ PAR DEBUG_MODE
-    voice_correction: true,     // Étape 3 - ACTIVER
-    auto_validation: false      // Étape 4
+    voice_correction: true,     // Étape 3 - ACTIF
+    auto_validation: true       // Étape 4 - ACTIVER
 };
 
 // NOUVEAU - Variables d'état pour la validation
@@ -392,12 +392,13 @@ function stopVoiceRecognition() {
             });
         }
 
-        // Déclencher validation UI si confiance faible
-        if (VOICE_FEATURES.validation_ui && voiceData.needsValidation) {
-            showValidationUI(voiceData.count, voiceData.confidence);
+        // NOUVEAU - Déclencher auto-validation au lieu d'exposition simple
+        if (VOICE_FEATURES.auto_validation && voiceData.count > 0) {
+            scheduleAutoValidation();
         } else {
-            // Mode normal - pas de validation UI
-            console.log('[Voice] Confiance suffisante, pas de validation UI requise');
+            // Mode legacy - exposition simple
+            window.voiceData = voiceData;
+            console.log('[Voice] Données exposées en mode legacy');
         }
 
         // Mettre à jour l'interface - icône micro inactive
@@ -1063,6 +1064,250 @@ function handleCorrection(transcript) {
 }
 
 /**
+ * Démarre le processus d'auto-validation intelligent
+ * Pattern optimisé: Confiance HAUTE → 1.5s, Confiance BASSE → 4s
+ */
+function scheduleAutoValidation() {
+    if (!VOICE_FEATURES.auto_validation) {
+        return;
+    }
+    
+    const confidence = calculateConfidence();
+    voiceData.confidence = confidence;
+    
+    if (confidence >= CONFIDENCE_LEVELS.HIGH) {
+        // Auto-validation rapide et discrète
+        scheduleQuickValidation();
+    } else {
+        // Validation avec UI et temps supplémentaire
+        scheduleStandardValidation();
+    }
+}
+
+/**
+ * Auto-validation rapide pour confiance élevée (1.5s)
+ */
+function scheduleQuickValidation() {
+    voiceState = 'AUTO_VALIDATING';
+    
+    // Indicateur discret
+    showSubtleConfirmation(voiceData.count);
+    
+    validationTimer = setTimeout(() => {
+        confirmFinalCount(voiceData.count);
+    }, 1500); // 1.5s pour confiance haute
+    
+    console.log(`[Voice] Auto-validation rapide programmée - Count: ${voiceData.count}, Confiance: ${voiceData.confidence.toFixed(2)}`);
+}
+
+/**
+ * Validation standard avec UI pour confiance faible (4s)
+ */
+function scheduleStandardValidation() {
+    voiceState = 'VALIDATING';
+    
+    // Afficher UI de validation si activée
+    if (VOICE_FEATURES.validation_ui) {
+        showValidationUI(voiceData.count, voiceData.confidence);
+    } else {
+        // Mode legacy - simple indicateur
+        showSubtleConfirmation(voiceData.count);
+    }
+    
+    validationTimer = setTimeout(() => {
+        confirmFinalCount(voiceData.count);
+    }, 4000); // 4s pour confiance faible
+    
+    console.log(`[Voice] Validation standard programmée - Count: ${voiceData.count}, Confiance: ${voiceData.confidence.toFixed(2)}`);
+}
+
+/**
+ * Affiche une confirmation discrète sans UI lourde
+ * 
+ * @param {number} count - Count à confirmer
+ */
+function showSubtleConfirmation(count) {
+    const repsElement = document.getElementById('setReps');
+    if (!repsElement) return;
+    
+    // Mise à jour immédiate du count
+    repsElement.textContent = count;
+    
+    // Animation discrète
+    repsElement.classList.add('voice-confirming');
+    repsElement.style.transform = 'scale(1.02)';
+    repsElement.style.color = 'var(--success, #28a745)';
+    
+    setTimeout(() => {
+        repsElement.style.transform = '';
+        repsElement.style.color = '';
+        repsElement.classList.remove('voice-confirming');
+    }, 300);
+}
+
+/**
+ * Confirme le count final et déclenche executeSet automatiquement
+ * 
+ * @param {number} finalCount - Count définitif validé
+ */
+function confirmFinalCount(finalCount) {
+    // Enregistrer métriques de validation
+    const isAutoValidation = voiceState === 'AUTO_VALIDATING';
+    const startTime = voiceData.startTime || Date.now();
+    recordValidationMetrics(isAutoValidation, startTime);
+        
+    // Arrêter écoute passive si active
+    if (VOICE_FEATURES.voice_correction) {
+        stopPassiveListening();
+    }
+    
+    // Finaliser les données
+    voiceData.count = finalCount;
+    voiceData.needsValidation = false;
+    voiceState = 'CONFIRMED';
+    
+    // Nettoyer l'interface
+    clearValidationUI();
+    
+    // Exposer globalement pour executeSet
+    window.voiceData = voiceData;
+    window.voiceState = voiceState;
+    
+    // NOUVEAU - Déclencher executeSet automatiquement
+    if (VOICE_FEATURES.auto_validation && typeof window.executeSet === 'function') {
+        console.log('[Voice] Déclenchement automatique executeSet()');
+        
+        // Micro-délai pour fluidité visuelle
+        setTimeout(() => {
+            window.executeSet();
+            
+            // Reset état après exécution
+            setTimeout(() => {
+                resetVoiceState();
+            }, 500);
+        }, 100);
+    }
+    
+    console.log(`[Voice] Count final confirmé: ${finalCount} - État: ${voiceState}`);
+}
+
+/**
+ * Remet à zéro l'état vocal après executeSet
+ */
+function resetVoiceState() {
+    voiceState = 'LISTENING';
+    voiceData = {
+        count: 0,
+        timestamps: [],
+        gaps: [],
+        lastNumber: 0,
+        lastDetected: 0,
+        startTime: null,
+        confidence: 1.0,
+        suspiciousJumps: 0,
+        repetitions: 0,
+        needsValidation: false
+    };
+    
+    // Nettoyer les variables globales
+    window.voiceData = null;
+    window.voiceState = 'LISTENING';
+    
+    console.log('[Voice] État vocal réinitialisé');
+}
+
+/**
+ * Annule la validation vocale en cours
+ * Utilisée par transitionTo() pour nettoyer l'état
+ */
+function cancelVoiceValidation() {
+    if (voiceState === 'LISTENING' || voiceState === 'CONFIRMED') {
+        return; // Rien à annuler
+    }
+    
+    console.log('[Voice] Annulation validation en cours');
+    
+    // Nettoyer timers
+    if (validationTimer) {
+        clearTimeout(validationTimer);
+        validationTimer = null;
+    }
+    
+    // Arrêter écoute passive
+    if (VOICE_FEATURES.voice_correction) {
+        stopPassiveListening();
+    }
+    
+    // Nettoyer interface
+    clearValidationUI();
+    
+    // Reset état
+    voiceState = 'LISTENING';
+    
+    console.log('[Voice] Validation annulée, retour en mode écoute');
+}
+
+/**
+ * Collecte des métriques UX pour monitoring
+ */
+const voiceMetrics = {
+    validationsTotal: 0,
+    validationsAuto: 0,
+    validationsManual: 0,
+    averageValidationTime: 0,
+    confidenceScores: [],
+    
+    recordValidation: function(isAuto, validationTime, confidence) {
+        this.validationsTotal++;
+        
+        if (isAuto) {
+            this.validationsAuto++;
+        } else {
+            this.validationsManual++;
+        }
+        
+        this.confidenceScores.push(confidence);
+        
+        // Calculer temps moyen
+        const totalTime = this.averageValidationTime * (this.validationsTotal - 1) + validationTime;
+        this.averageValidationTime = totalTime / this.validationsTotal;
+        
+        console.log('[Voice] Métriques:', this.getStats());
+    },
+    
+    getStats: function() {
+        const autoRate = this.validationsTotal > 0 ? 
+            (this.validationsAuto / this.validationsTotal * 100).toFixed(1) : 0;
+        
+        const avgConfidence = this.confidenceScores.length > 0 ?
+            (this.confidenceScores.reduce((a, b) => a + b, 0) / this.confidenceScores.length).toFixed(2) : 0;
+        
+        return {
+            total: this.validationsTotal,
+            autoRate: `${autoRate}%`,
+            avgTime: `${this.averageValidationTime.toFixed(1)}s`,
+            avgConfidence: avgConfidence
+        };
+    },
+    
+    reset: function() {
+        this.validationsTotal = 0;
+        this.validationsAuto = 0;
+        this.validationsManual = 0;
+        this.averageValidationTime = 0;
+        this.confidenceScores = [];
+    }
+};
+
+/**
+ * Fonction de monitoring intégrée dans confirmFinalCount
+ */
+function recordValidationMetrics(isAuto, startTime) {
+    const validationTime = (Date.now() - startTime) / 1000;
+    voiceMetrics.recordValidation(isAuto, validationTime, voiceData.confidence);
+}
+
+/**
  * Démarre l'écoute passive pour corrections vocales
  * Optimisé pour préserver la batterie
  */
@@ -1571,7 +1816,30 @@ window.toggleCorrectionMode = () => {
     }
     console.log('[Voice] Mode correction:', passiveListening ? 'ACTIF' : 'INACTIF');
 };
+// NOUVEAU - Exposer les fonctions d'auto-validation
+window.scheduleAutoValidation = scheduleAutoValidation;
+window.confirmFinalCount = confirmFinalCount;
+window.cancelVoiceValidation = cancelVoiceValidation;
+window.resetVoiceState = resetVoiceState;
 
+// NOUVEAU - Exposer métriques pour debug
+window.voiceMetrics = voiceMetrics;
+window.getVoiceStats = () => voiceMetrics.getStats();
+window.resetVoiceStats = () => voiceMetrics.reset();
+
+// Debug helpers pour auto-validation
+window.testAutoValidation = (count = 15, confidence = 0.9) => {
+    voiceData.count = count;
+    voiceData.confidence = confidence;
+    voiceData.startTime = Date.now();
+    scheduleAutoValidation();
+};
+
+window.forceExecuteSet = () => {
+    if (typeof window.executeSet === 'function') {
+        window.executeSet();
+    }
+};
 
 
 console.log('[Voice] Module voice-recognition.js chargé - Phase 0');

@@ -7767,3 +7767,50 @@ input:checked+.toggle-slider:before {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.7; }
 }
+
+/* ===== AUTO-VALIDATION ===== */
+
+/* Confirmation discrète */
+.voice-confirming {
+    transition: all 0.3s ease;
+    box-shadow: 0 0 8px rgba(40, 167, 69, 0.3);
+}
+
+/* Indicateur validation en cours */
+.voice-validating::after {
+    content: '⏱️';
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    font-size: 0.8rem;
+    animation: pulse-validation 1s infinite;
+}
+
+@keyframes pulse-validation {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Indicateur auto-validation */
+.voice-auto-validating {
+    background: linear-gradient(45deg, transparent 30%, rgba(40, 167, 69, 0.1) 70%);
+    animation: progress-validation 1.5s ease-out;
+}
+
+@keyframes progress-validation {
+    0% { background-position: -200px 0; }
+    100% { background-position: 200px 0; }
+}
+
+/* État confirmé */
+.voice-confirmed {
+    border: 2px solid var(--success, #28a745);
+    background: rgba(40, 167, 69, 0.1);
+}
+
+/* Toast personnalisé pour vocal */
+.toast.voice-info {
+    background: linear-gradient(135deg, #17a2b8, #138496);
+    color: white;
+    border: none;
+}

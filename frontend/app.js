@@ -62,7 +62,22 @@ function storeCurrentScoringData(scoringData) {
 }
 
 function transitionTo(state) {
-    // CONSERVER LA LOGIQUE EXISTANTE DE NETTOYAGE DES TIMERS
+    // === NOUVELLE GESTION NETTOYAGE VOCAL (AJOUT ÉTAPE 4) ===
+    
+    // Annuler validation vocale si transition vers FEEDBACK ou autre
+    if (state === WorkoutStates.FEEDBACK || state === WorkoutStates.READY || state === WorkoutStates.COMPLETED) {
+        if (window.voiceState && 
+            (window.voiceState === 'VALIDATING' || window.voiceState === 'AUTO_VALIDATING')) {
+            
+            console.log('[Voice] Transition détectée, annulation validation en cours');
+            
+            if (typeof window.cancelVoiceValidation === 'function') {
+                window.cancelVoiceValidation();
+            }
+        }
+    }
+    
+    // === CONSERVER LA LOGIQUE EXISTANTE DE NETTOYAGE DES TIMERS ===
     switch(workoutState.current) {
         case WorkoutStates.RESTING:
             if (restTimer) {
@@ -80,7 +95,7 @@ function transitionTo(state) {
     
     workoutState.current = state;
     
-    // Gestion de la reconnaissance vocale selon l'état
+    // === CONSERVER GESTION RECONNAISSANCE VOCALE SELON L'ÉTAT ===
     switch(state) {
         case WorkoutStates.READY:
             // Démarrer la reconnaissance vocale dès qu'on est prêt
@@ -107,6 +122,7 @@ function transitionTo(state) {
             break;
     }
     
+    // === CONSERVER LOGIQUE UI EXISTANTE ===
     // Cacher tout par défaut
     const elements = {
         executeBtn: document.getElementById('executeSetBtn'),
@@ -8842,8 +8858,18 @@ function hidePlateHelper() {
 
 function executeSet() {
     /**
-     * VERSION REFACTORISÉE : Conservation complète des fonctionnalités + correction pollution
+     * VERSION INTÉGRÉE ÉTAPE 4 : Auto-validation + conservation complète fonctionnalités
      */
+    
+    // === NOUVELLE GESTION ÉTATS VOCAUX (AJOUT ÉTAPE 4) ===
+    
+    // 1. Vérifier si validation vocale en cours
+    if (window.voiceState === 'VALIDATING' || window.voiceState === 'AUTO_VALIDATING') {
+        console.log('[Voice] Série en attente de validation vocal, executeSet() suspendu');
+        showToast('Validation vocale en cours...', 'info');
+        return; // Attendre validation utilisateur
+    }
+    
     // === VALIDATION PRÉALABLE (CONSERVÉ) ===
     console.log(`🔧 executeSet(): currentSet=${currentSet}, currentSetNumber=${currentWorkoutSession.currentSetNumber}`);
     
@@ -8878,29 +8904,13 @@ function executeSet() {
         setTimer = null;
     }
     
-    // === TRAITEMENT DES DONNÉES VOCALES (DÉPLACÉ ICI POUR TOUS LES EXERCICES NON-ISOMÉTRIQUES) ===
+    // === TRAITEMENT PRIORITAIRE DONNÉES VOCALES VALIDÉES (NOUVEAU ÉTAPE 4) ===
     const isIsometric = currentExercise.exercise_type === 'isometric';
     
-    // Méthode 1 : Via fonction globale (priorité)
-    if (window.getVoiceData && typeof window.getVoiceData === 'function') {
-        const globalVoiceData = window.getVoiceData();
-        if (globalVoiceData && globalVoiceData.count > 0) {
-            const tempoAvg = window.calculateAvgTempo ? 
-                window.calculateAvgTempo(globalVoiceData.timestamps) : null;
-            
-            voiceData = {
-                count: globalVoiceData.count,
-                tempo_avg: tempoAvg,
-                gaps: globalVoiceData.gaps || [],
-                confidence: parseFloat(globalVoiceData.confidence) || 1.0
-            };
-            
-            console.log('[Voice] Données vocales récupérées via getVoiceData():', voiceData);
-        }
-    }
-
-    // Méthode 2 : Fallback via window.voiceData
-    if (!voiceData && window.voiceData && window.voiceData.count > 0) {
+    // 2. Traitement prioritaire des données vocales confirmées (ÉTAPE 4)
+    if (window.voiceState === 'CONFIRMED' && window.voiceData && window.voiceData.count > 0) {
+        
+        // Calculer tempo moyen si pas déjà fait
         const tempoAvg = window.calculateAvgTempo ? 
             window.calculateAvgTempo(window.voiceData.timestamps) : null;
         
@@ -8908,20 +8918,61 @@ function executeSet() {
             count: window.voiceData.count,
             tempo_avg: tempoAvg,
             gaps: window.voiceData.gaps || [],
-            confidence: parseFloat(window.voiceData.confidence) || 1.0
+            confidence: window.voiceData.confidence || 1.0,
+            validated: true,  // Flag crucial pour ML (ÉTAPE 4)
+            suspicious_jumps: window.voiceData.suspiciousJumps || 0,
+            correction_applied: window.voiceData.correctionApplied || false
         };
         
-        console.log('[Voice] Données vocales récupérées via window.voiceData:', voiceData);
+        console.log('[Voice] Données vocales VALIDÉES intégrées (priorité):', voiceData);
     }
-
-    // Debug : afficher l'état des variables globales
-    console.log('[Voice] État debug:', {
-        hasGetVoiceData: typeof window.getVoiceData === 'function',
-        hasWindowVoiceData: !!window.voiceData,
-        voiceDataPrepared: !!voiceData
-    });
     
-    // === SAUVEGARDER DONNÉES SÉRIE PAR TYPE D'EXERCICE (CONSERVÉ + CORRIGÉ) ===
+    // === FALLBACK DONNÉES VOCALES EXISTANTES (CONSERVÉ) ===
+    if (!voiceData) {
+        // Méthode 1 : Via fonction globale (priorité)
+        if (window.getVoiceData && typeof window.getVoiceData === 'function') {
+            const globalVoiceData = window.getVoiceData();
+            if (globalVoiceData && globalVoiceData.count > 0) {
+                const tempoAvg = window.calculateAvgTempo ? 
+                    window.calculateAvgTempo(globalVoiceData.timestamps) : null;
+                
+                voiceData = {
+                    count: globalVoiceData.count,
+                    tempo_avg: tempoAvg,
+                    gaps: globalVoiceData.gaps || [],
+                    confidence: parseFloat(globalVoiceData.confidence) || 1.0,
+                    validated: false  // Données non validées (ÉTAPE 4)
+                };
+                
+                console.log('[Voice] Données vocales récupérées via getVoiceData() (non validées):', voiceData);
+            }
+        }
+
+        // Méthode 2 : Fallback via window.voiceData
+        if (!voiceData && window.voiceData && window.voiceData.count > 0) {
+            const tempoAvg = window.calculateAvgTempo ? 
+                window.calculateAvgTempo(window.voiceData.timestamps) : null;
+            
+            voiceData = {
+                count: window.voiceData.count,
+                tempo_avg: tempoAvg,
+                gaps: window.voiceData.gaps || [],
+                confidence: parseFloat(window.voiceData.confidence) || 1.0,
+                validated: false  // Données non validées (ÉTAPE 4)
+            };
+            
+            console.log('[Voice] Données vocales récupérées via window.voiceData (non validées):', voiceData);
+        }
+
+        // Debug : afficher l'état des variables globales
+        console.log('[Voice] État debug:', {
+            hasGetVoiceData: typeof window.getVoiceData === 'function',
+            hasWindowVoiceData: !!window.voiceData,
+            voiceDataPrepared: !!voiceData
+        });
+    }
+    
+    // === SAUVEGARDER DONNÉES SÉRIE PAR TYPE D'EXERCICE (CONSERVÉ + ENRICHI) ===
     const isBodyweight = currentExercise.weight_type === 'bodyweight';
     
     if (isIsometric) {
@@ -8977,7 +9028,7 @@ function executeSet() {
         };
     }
     
-    // === ENRICHISSEMENT MÉTADONNÉES STRATÉGIQUES ===
+    // === ENRICHISSEMENT MÉTADONNÉES STRATÉGIQUES (CONSERVÉ) ===
     // Ajouter les informations ML et stratégiques pour la sauvegarde finale
     if (workoutState.currentRecommendation) {
         workoutState.pendingSetData.ml_weight_suggestion = workoutState.currentRecommendation.ml_pure_recommendation;
@@ -8993,12 +9044,20 @@ function executeSet() {
         reps: workoutState.pendingSetData.reps,
         duration: workoutState.pendingSetData.duration_seconds,
         strategy: workoutState.pendingSetData.strategy_applied,
-        voice: voiceData ? 'avec données vocales' : 'sans données vocales'
+        voice: voiceData ? `avec données vocales ${voiceData.validated ? '(validées)' : '(non validées)'}` : 'sans données vocales'
     });
     
     // Log spécifique si données vocales
     if (voiceData) {
         console.log('[Voice] Série enrichie avec données vocales:', voiceData);
+        
+        // NOUVEAU ÉTAPE 4 - Reset état vocal après intégration
+        if (window.voiceState === 'CONFIRMED' && typeof window.resetVoiceState === 'function') {
+            // Délai pour permettre la transition
+            setTimeout(() => {
+                window.resetVoiceState();
+            }, 500);
+        }
     }
     
     // === TRANSITION VERS FEEDBACK (CONSERVÉ) ===
