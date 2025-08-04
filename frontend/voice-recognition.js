@@ -342,16 +342,14 @@ function handleVoiceResult(event) {
     const result = event.results[event.results.length - 1];
     const transcript = result[0].transcript.toLowerCase().trim();
     
-    console.log(`[Voice] ${result.isFinal ? 'Final' : 'Interim'}:`, transcript);
-    
-    // TRAITEMENT INTERMÉDIAIRE pour réactivité
+    // NOUVELLE LOGIQUE : identifier ce qui a changé
     if (!result.isFinal) {
+        // Traitement interim SEULEMENT pour prédiction immédiate
         handleInterimResult(transcript);
-        return;
+    } else {
+        // Traitement final SEULEMENT pour validation définitive
+        handleFinalResult(transcript);
     }
-    
-    // TRAITEMENT FINAL pour validation
-    handleFinalResult(transcript);
 }
 
 
@@ -359,11 +357,15 @@ function handleVoiceResult(event) {
  * Traite les résultats intermédiaires pour affichage immédiat
  */
 function handleInterimResult(transcript) {
-    const number = parseNumber(transcript);
-    if (number && number === predictedNext) {
-        // Prédiction correcte ! Affichage immédiat
+    // Ne traiter QUE si c'est exactement le nombre prédit
+    const cleanTranscript = transcript.trim();
+    
+    // Parsing rapide pour nombre unique
+    const number = parseNumber(cleanTranscript);
+    
+    if (number && number === predictedNext && !pendingValidation) {
+        // Affichage prédictif SEULEMENT si pas déjà en attente
         displayPredictedNumber(number);
-        console.log('[Voice] Prédiction validée:', number);
     }
 }
 
@@ -371,20 +373,32 @@ function handleInterimResult(transcript) {
  * Traite les résultats finaux pour validation définitive
  */
 function handleFinalResult(transcript) {
-    // Vérifier cache d'abord (optimisation)
+    console.log('[Voice] Final:', transcript);
+    
+    // Si on a déjà une validation en attente, ignorer si c'est le même
+    if (pendingValidation && transcript.includes(pendingValidation.toString())) {
+        console.log('[Voice] Validation confirmée via final:', pendingValidation);
+        pendingValidation = null;
+        return;
+    }
+    
+    // Vérifier cache d'abord
     if (recognitionCache.has(transcript)) {
         const cachedNumber = recognitionCache.get(transcript);
         if (cachedNumber) {
-            handleNumberDetected(cachedNumber);
+            processValidatedNumber(cachedNumber);
             return;
         }
     }
     
-    const number = parseNumber(transcript);
-    if (number) {
-        // Ajouter au cache pour prochaines fois
-        recognitionCache.set(transcript, number);
-        handleNumberDetected(number);
+    // Parser le transcript (peut contenir plusieurs nombres)
+    const numbers = extractNumbersFromTranscript(transcript);
+    
+    if (numbers.length > 0) {
+        // Prendre le DERNIER nombre (le plus récent)
+        const latestNumber = Math.max(...numbers);
+        recognitionCache.set(transcript, latestNumber);
+        processValidatedNumber(latestNumber);
         return;
     }
     
@@ -403,25 +417,61 @@ function handleFinalResult(transcript) {
         }
         return;
     }
-    
-    console.log('[Voice] Transcript non reconnu:', transcript);
 }
+
+/**
+ * Extrait TOUS les nombres d'un transcript (ex: "1 2 3" -> [1,2,3])
+ */
+function extractNumbersFromTranscript(transcript) {
+    const numbers = [];
+    const words = transcript.split(/\s+/);
+    
+    for (const word of words) {
+        const number = parseNumber(word.trim());
+        if (number) {
+            numbers.push(number);
+        }
+    }
+    
+    return numbers.sort((a, b) => a - b); // Tri croissant
+}
+
+
+/**
+ * Traite un nombre validé (unifie la logique)
+ */
+function processValidatedNumber(number) {
+    // Éviter le double processing
+    if (number === voiceData.count) {
+        return; // Déjà traité
+    }
+    
+    handleNumberDetected(number);
+}
+
 
 /**
  * Parse intelligent et optimisé des nombres
  */
-function parseNumber(transcript) {
-    // Short-circuit pour patterns fréquents (90% des cas)
-    if (QUICK_PATTERNS.has(transcript)) {
-        return parseInt(transcript);
+function parseNumber(text) {
+    if (!text || text.length === 0) return null;
+    
+    // Nettoyer le texte
+    const cleanText = text.trim().toLowerCase();
+    
+    // Short-circuit pour patterns fréquents
+    if (QUICK_PATTERNS.has(cleanText)) {
+        return parseInt(cleanText);
     }
     
-    // Recherche dans la map française
+    // Recherche exacte dans la map française
+    if (FRENCH_NUMBERS.has(cleanText)) {
+        return FRENCH_NUMBERS.get(cleanText);
+    }
+    
+    // Recherche flexible (contient le mot)
     for (const [word, number] of FRENCH_NUMBERS) {
-        if (transcript === word || 
-            transcript.includes(` ${word} `) || 
-            transcript.startsWith(`${word} `) || 
-            transcript.endsWith(` ${word}`)) {
+        if (cleanText === word) {
             return number;
         }
     }
@@ -430,13 +480,16 @@ function parseNumber(transcript) {
 }
 
 /**
- * Affiche immédiatement le nombre prédit (réactivité)
+ * Affiche immédiatement le nombre prédit (version silencieuse)
  */
 function displayPredictedNumber(number) {
     displayedCount = number;
     pendingValidation = number;
     updateVoiceDisplayImmediate(number);
     updatePrediction(number + 1);
+    
+    // Log unique et concis
+    console.log(`[Voice] Prédit: ${number}`);
 }
 
 /**
@@ -445,14 +498,11 @@ function displayPredictedNumber(number) {
 function updatePrediction(nextNumber) {
     predictedNext = nextNumber;
     
-    // Préparer visuellement le prochain nombre (optionnel)
+    // Préparer visuellement (optionnel)
     const repsElement = document.getElementById('setReps');
     if (repsElement) {
-        // Subtle visual hint pour le nombre suivant
         repsElement.setAttribute('data-next', nextNumber);
     }
-    
-    console.log('[Voice] Prédiction mise à jour:', nextNumber);
 }
 
 /**
@@ -480,56 +530,55 @@ function updateVoiceDisplayImmediate(count) {
 function handleNumberDetected(number) {
     const now = Date.now();
     
-    // MONOTONIE CROISSANTE : ignorer si retour arrière
+    // Monotonie croissante
     if (number <= voiceData.count) {
-        console.log(`[Voice] Retour arrière ignoré: ${number} <= ${voiceData.count}`);
+        console.log(`[Voice] Ignoré: ${number} <= ${voiceData.count}`);
         return;
     }
     
-    // LIMITE ANTI-ERREUR : plafonner les sauts énormes
-    const maxJump = voiceData.count + 8; // Max +8 reps d'un coup
+    // Limite anti-erreur
+    const maxJump = voiceData.count + 8;
     if (number > maxJump) {
-        console.log(`[Voice] Saut énorme plafonné: ${number} -> ${maxJump}`);
+        console.log(`[Voice] Plafonné: ${number} -> ${maxJump}`);
         number = maxJump;
     }
     
-    // GESTION DES GAPS (logique existante améliorée)
+    // Gestion des gaps
+    const previousCount = voiceData.count;
     if (number > voiceData.count + 1) {
         for (let i = voiceData.count + 1; i < number; i++) {
             voiceData.gaps.push(i);
         }
-        console.log('[Voice] Gaps détectés:', voiceData.gaps);
     }
     
-    // MISE À JOUR DES DONNÉES
-    const previousCount = voiceData.count;
+    // Mise à jour des données
     voiceData.count = number;
     voiceData.timestamps.push(now - voiceData.startTime);
     voiceData.lastNumber = number;
     
-    // VALIDATION DE LA PRÉDICTION
+    // Validation de la prédiction
     if (pendingValidation === number) {
-        console.log('[Voice] Validation confirmée pour:', number);
         pendingValidation = null;
     } else {
-        // Correction différée nécessaire
         updateVoiceDisplay(number);
     }
     
-    // MISE À JOUR PRÉDICTION
+    // Mise à jour prédiction
     updatePrediction(number + 1);
     
-    // FEEDBACK
+    // Feedback
     if (navigator.vibrate) {
         navigator.vibrate(30);
     }
     
-    // TIMER (si déjà implémenté)
+    // Timer
     if (typeof resetAutoValidationTimer === 'function') {
         resetAutoValidationTimer();
     }
     
-    console.log(`[Voice] Count: ${previousCount} -> ${number} (gaps: ${voiceData.gaps.length})`);
+    // Log concis UNIQUEMENT
+    const gapCount = voiceData.gaps.length;
+    console.log(`[Voice] ${previousCount} → ${number}${gapCount > 0 ? ` (${gapCount} gaps)` : ''}`);
 }
 
 /**
@@ -565,13 +614,10 @@ function updateVoiceDisplay(count) {
     
     displayedCount = count;
     
-    // Mise à jour principale (optimisée)
+    // Mise à jour principale optimisée
     const repsElement = document.getElementById('setReps');
     if (repsElement) {
-        // Utiliser textContent direct (plus rapide que innerHTML)
         repsElement.textContent = count;
-        
-        // Animation plus légère
         repsElement.classList.add('voice-updated');
         
         // Cleanup optimisé
@@ -580,10 +626,8 @@ function updateVoiceDisplay(count) {
         }, 300);
     }
     
-    // Indicateur micro (optimisé)
+    // Indicateur micro
     updateMicroIndicator(count);
-    
-    console.log('[Voice] Affichage mis à jour:', count);
 }
 
 /**
