@@ -127,7 +127,7 @@ function startVoiceRecognition() {
         return;
     }
     
-    // Réinitialiser les données de comptage
+    // RESET COMPLET
     voiceData = {
         count: 0,
         timestamps: [],
@@ -137,28 +137,40 @@ function startVoiceRecognition() {
         confidence: 1.0
     };
     
+    // Reset flags de protection
+    executionInProgress = false;
+    predictedNext = 1;
+    displayedCount = 0;
+    pendingValidation = null;
+    recognitionCache.clear();
+    
     try {
-        // ===== NOUVEAU : GESTION DES PERMISSIONS =====
         recognition.start();
         voiceRecognitionActive = true;
         
-        // Démarrer le timeout d'auto-validation (Phase 6.3)
-        startAutoValidationTimer();
+        // Timer auto-validation
+        if (typeof startAutoValidationTimer === 'function') {
+            startAutoValidationTimer();
+        }
         
-        // Mettre à jour l'interface - icône micro active
+        // UI feedback
         const microIcon = document.querySelector('.voice-toggle-container i');
         if (microIcon) {
             microIcon.classList.add('active');
         }
         
-        console.log('[Voice] Reconnaissance démarrée avec succès');
+        // Exposer globalement
+        window.voiceData = voiceData;
+        
+        console.log('[Voice] Reconnaissance démarrée avec prédiction initialisée');
         
     } catch (error) {
         console.error('[Voice] Erreur au démarrage:', error);
         voiceRecognitionActive = false;
         
-        // Gestion des erreurs de permissions
-        handleVoiceStartupError(error);
+        if (typeof handleVoiceStartupError === 'function') {
+            handleVoiceStartupError(error);
+        }
     }
 }
 
@@ -244,26 +256,77 @@ function resetAutoValidationTimer() {
  * Gère l'auto-validation après timeout
  */
 function handleAutoValidation() {
-    if (!voiceRecognitionActive) return;
+    if (!voiceRecognitionActive || executionInProgress) {
+        return;
+    }
     
     console.log('[Voice] Timeout atteint - auto-validation');
     
-    // Afficher notification discrète
-    showToast('Série validée automatiquement (30s sans activité vocale)', 'info');
+    // Marquer l'exécution en cours
+    executionInProgress = true;
+    
+    // Arrêter la reconnaissance
+    stopVoiceRecognition();
     
     // Valider avec le compte actuel
     if (voiceData.count > 0) {
         console.log(`[Voice] Auto-validation avec ${voiceData.count} répétitions`);
         
         // Déclencher executeSet() si disponible
-        if (typeof executeSet === 'function') {
-            executeSet();
-        } else {
-            console.warn('[Voice] Fonction executeSet non disponible pour auto-validation');
+        if (typeof window.executeSet === 'function') {
+            window.executeSet();
         }
-    } else {
-        console.log('[Voice] Auto-validation sans comptage - arrêt reconnaissance');
-        stopVoiceRecognition();
+    }
+    
+    // Reset flag après délai
+    setTimeout(() => {
+        executionInProgress = false;
+    }, 2000);
+}
+
+/**
+ * Arrête la reconnaissance vocale et finalise les données
+ * Version complète avec nettoyage et export global
+ */
+function stopVoiceRecognition() {
+    if (!recognition || !voiceRecognitionActive) {
+        return;
+    }
+    
+    try {
+        recognition.stop();
+        voiceRecognitionActive = false;
+        
+        // Nettoyer les timers (si la fonction existe)
+        if (typeof clearAutoValidationTimer === 'function') {
+            clearAutoValidationTimer();
+        }
+        
+        // Calculer la confiance finale basée sur les gaps
+        if (voiceData.gaps.length > 0) {
+            const gapPenalty = Math.min(voiceData.gaps.length * 0.1, 0.3);
+            voiceData.confidence = Math.max(0.6, 1.0 - gapPenalty);
+        }
+        
+        // Mettre à jour l'interface - icône micro inactive
+        const microIcon = document.querySelector('.voice-toggle-container i');
+        if (microIcon) {
+            microIcon.classList.remove('active');
+        }
+        
+        // CRUCIAL : Exposer les données finales globalement pour executeSet()
+        window.voiceData = voiceData;
+        
+        console.log('[Voice] Reconnaissance arrêtée');
+        console.log('[Voice] Données finales:', {
+            count: voiceData.count,
+            gaps: voiceData.gaps.length,
+            confidence: voiceData.confidence.toFixed(2),
+            timestamps: voiceData.timestamps.length
+        });
+        
+    } catch (error) {
+        console.error('[Voice] Erreur lors de l\'arrêt:', error);
     }
 }
 
@@ -375,13 +438,6 @@ function handleInterimResult(transcript) {
 function handleFinalResult(transcript) {
     console.log('[Voice] Final:', transcript);
     
-    // Si on a déjà une validation en attente, ignorer si c'est le même
-    if (pendingValidation && transcript.includes(pendingValidation.toString())) {
-        console.log('[Voice] Validation confirmée via final:', pendingValidation);
-        pendingValidation = null;
-        return;
-    }
-    
     // Vérifier cache d'abord
     if (recognitionCache.has(transcript)) {
         const cachedNumber = recognitionCache.get(transcript);
@@ -391,14 +447,28 @@ function handleFinalResult(transcript) {
         }
     }
     
-    // Parser le transcript (peut contenir plusieurs nombres)
+    // NOUVEAU : Traiter les suites de nombres correctement
     const numbers = extractNumbersFromTranscript(transcript);
     
     if (numbers.length > 0) {
-        // Prendre le DERNIER nombre (le plus récent)
-        const latestNumber = Math.max(...numbers);
-        recognitionCache.set(transcript, latestNumber);
-        processValidatedNumber(latestNumber);
+        // CORRECTION CRITIQUE : Traiter TOUS les nombres en séquence
+        for (const number of numbers) {
+            // Éviter les doublons avec pendingValidation
+            if (number !== pendingValidation) {
+                processValidatedNumber(number);
+            }
+        }
+        
+        // Mettre en cache le dernier nombre pour ce transcript
+        const lastNumber = numbers[numbers.length - 1];
+        recognitionCache.set(transcript, lastNumber);
+        return;
+    }
+    
+    // Si pendingValidation existe et transcript la contient, valider
+    if (pendingValidation && transcript.includes(pendingValidation.toString())) {
+        console.log('[Voice] Validation confirmée:', pendingValidation);
+        pendingValidation = null;
         return;
     }
     
@@ -408,16 +478,44 @@ function handleFinalResult(transcript) {
         return;
     }
     
-    // Commandes de fin
+    // Commandes de fin - AVEC PROTECTION ANTI-DOUBLE
     if (transcript.includes('terminé') || transcript.includes('fini') || 
         transcript.includes('stop') || transcript.includes('fin')) {
-        console.log('[Voice] Commande de fin détectée');
-        if (typeof window.executeSet === 'function') {
-            window.executeSet();
-        }
+        handleEndCommand();
         return;
     }
 }
+
+let executionInProgress = false; // Flag pour éviter double exécution
+
+/**
+ * Gère les commandes de fin avec protection anti-double
+ */
+function handleEndCommand() {
+    if (executionInProgress) {
+        console.log('[Voice] Exécution déjà en cours, commande ignorée');
+        return;
+    }
+    
+    executionInProgress = true;
+    console.log('[Voice] Commande de fin détectée');
+    
+    // Arrêter la reconnaissance avant executeSet
+    if (voiceRecognitionActive) {
+        stopVoiceRecognition();
+    }
+    
+    // Déclencher executeSet si disponible
+    if (typeof window.executeSet === 'function') {
+        window.executeSet();
+    }
+    
+    // Reset flag après délai
+    setTimeout(() => {
+        executionInProgress = false;
+    }, 2000);
+}
+
 
 /**
  * Extrait TOUS les nombres d'un transcript (ex: "1 2 3" -> [1,2,3])
@@ -766,9 +864,11 @@ function validateVoiceData(data) {
 
 // Exposer les fonctions principales dans l'objet window
 // pour utilisation depuis app.js et autres modules
+window.voiceData = voiceData;
 window.initVoiceRecognition = initVoiceRecognition;
 window.startVoiceRecognition = startVoiceRecognition;
 window.stopVoiceRecognition = stopVoiceRecognition;
+
 
 // Exposer variables globales pour debug et monitoring
 window.voiceRecognitionActive = () => voiceRecognitionActive;

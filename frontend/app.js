@@ -8881,14 +8881,29 @@ function executeSet() {
     // === TRAITEMENT DES DONNÉES VOCALES (DÉPLACÉ ICI POUR TOUS LES EXERCICES NON-ISOMÉTRIQUES) ===
     const isIsometric = currentExercise.exercise_type === 'isometric';
     
-    if (!isIsometric && window.voiceData && window.voiceData.count > 0) {
-        console.log('[Voice] Données vocales détectées:', window.voiceData);
-        
-        // Calculer le tempo moyen si la fonction existe
+    // Méthode 1 : Via fonction globale (priorité)
+    if (window.getVoiceData && typeof window.getVoiceData === 'function') {
+        const globalVoiceData = window.getVoiceData();
+        if (globalVoiceData && globalVoiceData.count > 0) {
+            const tempoAvg = window.calculateAvgTempo ? 
+                window.calculateAvgTempo(globalVoiceData.timestamps) : null;
+            
+            voiceData = {
+                count: globalVoiceData.count,
+                tempo_avg: tempoAvg,
+                gaps: globalVoiceData.gaps || [],
+                confidence: parseFloat(globalVoiceData.confidence) || 1.0
+            };
+            
+            console.log('[Voice] Données vocales récupérées via getVoiceData():', voiceData);
+        }
+    }
+
+    // Méthode 2 : Fallback via window.voiceData
+    if (!voiceData && window.voiceData && window.voiceData.count > 0) {
         const tempoAvg = window.calculateAvgTempo ? 
             window.calculateAvgTempo(window.voiceData.timestamps) : null;
         
-        // Préparer les données vocales pour l'envoi
         voiceData = {
             count: window.voiceData.count,
             tempo_avg: tempoAvg,
@@ -8896,8 +8911,15 @@ function executeSet() {
             confidence: parseFloat(window.voiceData.confidence) || 1.0
         };
         
-        console.log('[Voice] Données vocales préparées:', voiceData);
+        console.log('[Voice] Données vocales récupérées via window.voiceData:', voiceData);
     }
+
+    // Debug : afficher l'état des variables globales
+    console.log('[Voice] État debug:', {
+        hasGetVoiceData: typeof window.getVoiceData === 'function',
+        hasWindowVoiceData: !!window.voiceData,
+        voiceDataPrepared: !!voiceData
+    });
     
     // === SAUVEGARDER DONNÉES SÉRIE PAR TYPE D'EXERCICE (CONSERVÉ + CORRIGÉ) ===
     const isBodyweight = currentExercise.weight_type === 'bodyweight';
