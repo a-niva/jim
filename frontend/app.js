@@ -3736,10 +3736,10 @@ async function selectExercise(exercise, skipValidation = false) {
         };
     }
 
-    // Créer et insérer tous les contrôles de manière unifiée
+    // Créer et insérer le contrôle vocal si nécessaire
     const controlsHtml = createExerciseControlsSystem(currentExercise);
     const exerciseNameElement = document.getElementById('exerciseName');
-    
+
     if (exerciseNameElement && controlsHtml) {
         // Nettoyer tout conteneur de contrôles existant
         const existingControls = document.querySelector('.exercise-controls-container');
@@ -3747,13 +3747,11 @@ async function selectExercise(exercise, skipValidation = false) {
             existingControls.remove();
         }
         
-        // Insérer les nouveaux contrôles après le nom de l'exercice
-        exerciseNameElement.insertAdjacentHTML('afterend', controlsHtml);
+        // Insérer le contrôle vocal dans le même conteneur que le nom
+        exerciseNameElement.insertAdjacentHTML('beforeend', controlsHtml);
         
-        console.log('[Controls] Contrôles insérés:', {
-            mlToggle: !!document.querySelector('.ml-control'),
-            voiceToggle: !!document.querySelector('.voice-control')
-        });
+        console.log('[Controls] Contrôle vocal inséré:', 
+            !!document.querySelector('.voice-toggle-btn'));
     }
     
     // Gérer l'affichage du bouton "Changer d'exercice" selon le mode
@@ -3817,64 +3815,30 @@ function createExerciseControlsSystem(exercise) {
         return '';
     }
 
-    // Déterminer quels contrôles afficher selon le contexte
-    const showMLToggle = exercise.weight_type !== 'bodyweight' && 
-                        exercise.exercise_type !== 'isometric' &&
-                        exercise.weight_type !== undefined;
-                        
+    // Ne montrer que l'icône vocale si activée et compatible
     const showVoiceToggle = currentUser?.voice_counting_enabled && 
                            exercise.exercise_type !== 'isometric' &&
                            exercise.exercise_type !== undefined &&
                            /Android|iPhone/i.test(navigator.userAgent);
 
-    // Si aucun contrôle n'est nécessaire, retourner une chaîne vide
-    if (!showMLToggle && !showVoiceToggle) {
+    // Si aucun contrôle vocal nécessaire, retourner une chaîne vide
+    if (!showVoiceToggle) {
         return '';
     }
 
-    // Construire le HTML des contrôles avec une structure flexible
-    let controlsHtml = '<div class="exercise-controls-container">';
+    // Construire uniquement le contrôle vocal
+    const isVoiceActive = window.voiceRecognitionActive ? 
+                         window.voiceRecognitionActive() : false;
     
-    if (showMLToggle) {
-        const mlSettings = currentWorkoutSession.mlSettings?.[exercise.id];
-        const isMLEnabled = mlSettings?.autoAdjust ?? 
-                           currentUser?.prefer_weight_changes_between_sets ?? true;
-        
-        controlsHtml += `
-            <div class="control-item ml-control">
-                <label class="control-toggle">
-                    <input type="checkbox" 
-                           id="mlToggle-${exercise.id}"
-                           ${isMLEnabled ? 'checked' : ''}
-                           onchange="toggleMLAdjustment(${exercise.id})">
-                    <span class="toggle-slider"></span>
-                    <span class="control-label">
-                        <i class="fas fa-brain"></i>
-                        <span class="label-text">IA</span>
-                    </span>
-                </label>
-            </div>
-        `;
-    }
-    
-    if (showVoiceToggle) {
-        const isVoiceActive = window.voiceRecognitionActive ? 
-                             window.voiceRecognitionActive() : false;
-        
-        controlsHtml += `
-            <div class="control-item voice-control">
-                <button class="voice-toggle-btn ${isVoiceActive ? 'active' : ''}"
-                        onclick="toggleVoiceRecognition()"
-                        title="Comptage vocal ${isVoiceActive ? 'actif' : 'inactif'}">
-                    <i class="fas fa-microphone"></i>
-                    ${isVoiceActive ? '<span class="voice-indicator"></span>' : ''}
-                </button>
-            </div>
-        `;
-    }
-    
-    controlsHtml += '</div>';
-    return controlsHtml;
+    return `
+        <div class="exercise-controls-container voice-only">
+            <button class="voice-toggle-btn ${isVoiceActive ? 'active' : ''}"
+                    onclick="toggleVoiceRecognition()"
+                    title="Comptage vocal ${isVoiceActive ? 'actif' : 'inactif'}">
+                <i class="fas fa-microphone"></i>
+            </button>
+        </div>
+    `;
 }
 
 // Nouvelle fonction pour le rendu du toggle ML

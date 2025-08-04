@@ -7676,16 +7676,54 @@ input:checked+.toggle-slider:before {
 }
 
 
-/* Container principal des contrôles */
-.exercise-controls-container {
+/* Container pour le contrôle vocal uniquement */
+.exercise-controls-container.voice-only {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 0.5rem;
+    margin-left: 0.5rem;
+    padding: 0;
+    background: transparent;
+    border: none;
+}
+
+/* Bouton vocal simplifié */
+.voice-toggle-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
     display: flex;
     align-items: center;
-    gap: 1rem;
-    margin-top: 1rem;
-    padding: 0.75rem;
-    background: var(--bg-secondary);
-    border-radius: 12px;
-    border: 1px solid var(--border-color);
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.voice-toggle-btn:hover {
+    color: var(--primary);
+    transform: scale(1.1);
+}
+
+.voice-toggle-btn.active {
+    color: var(--primary);
+}
+
+.voice-toggle-btn.active i {
+    animation: pulse-subtle 2s infinite;
+}
+
+@keyframes pulse-subtle {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Retirer l'indicateur visuel redondant */
+.voice-indicator {
+    display: none;
 }
 
 /* Style unifié pour les items de contrôle */
