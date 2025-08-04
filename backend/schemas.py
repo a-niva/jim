@@ -399,3 +399,41 @@ class WeeklySessionPreview(BaseModel):
     muscle_distribution: Dict[str, float]
     estimated_weekly_duration: int
     progression_notes: List[str]
+
+# ===== SCHÉMA VOCAL ML =====
+
+class VoiceDataML(BaseModel):
+    """Schéma pour données vocales enrichies ML"""
+    count: int
+    tempo_avg: Optional[float] = None
+    gaps: List[int] = []
+    timestamps: List[int] = []
+    confidence: float = 1.0
+    suspicious_jumps: int = 0
+    repetitions: int = 0
+    validated: bool = False
+    validation_method: str = 'unknown'  # 'auto_confirmed', 'user_confirmed', 'legacy'
+    start_time: Optional[int] = None
+    total_duration: Optional[int] = None
+    data_quality: Optional[Dict[str, Any]] = None
+
+class SetCreate(BaseModel):
+    exercise_id: int
+    set_number: int
+    reps: int
+    weight: Optional[float] = None
+    duration_seconds: Optional[int] = None
+    target_reps: Optional[int] = None
+    target_weight: Optional[float] = None
+    fatigue_level: Optional[int] = None
+    effort_level: Optional[int] = None
+    base_rest_time_seconds: Optional[int] = None
+    ml_weight_suggestion: Optional[float] = None
+    ml_reps_suggestion: Optional[int] = None
+    ml_confidence: Optional[float] = None
+    user_followed_ml_weight: Optional[bool] = None
+    user_followed_ml_reps: Optional[bool] = None
+    exercise_order_in_session: Optional[int] = None
+    set_order_in_session: Optional[int] = None
+    ml_adjustment_enabled: Optional[bool] = None
+    voice_data: Optional[VoiceDataML] = None  # MODIFIER POUR UTILISER LE NOUVEAU SCHÉMA

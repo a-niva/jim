@@ -83,11 +83,9 @@ class FitnessRecommendationEngine:
         set_order_global: int = 1,
         available_weights: List[float] = None,
         workout_id: Optional[int] = None,
-        last_set_voice_data: Optional[Dict] = None  # AJOUT
+        last_set_voice_data: Optional[Dict] = None  # DÉJÀ PRÉSENT
     ) -> Dict[str, any]:
-        """
-        Génère des recommandations de poids/reps/repos pour la prochaine série
-        """
+        """Génère des recommandations ML enrichies avec données vocales validées"""
         # Assurer que exercise_order et set_order_global ne sont jamais None
         exercise_order = exercise_order or 1
         set_order_global = set_order_global or 1
@@ -250,13 +248,13 @@ class FitnessRecommendationEngine:
     def _calculate_performance_state(
         self, 
         user: User, 
-        exercise: Exercise,
-        historical_data: List[Dict],
+        exercise: Exercise, 
+        historical_data: List[Dict], 
         current_fatigue: int,
-        exercise_order: int = 1,
-        set_order_global: int = 1,
-        last_set_voice_data: Optional[Dict] = None
-    ) -> Dict:
+        exercise_order: int, 
+        set_order_global: int,
+        last_set_voice_data: Optional[Dict] = None  # AJOUTER CE PARAMÈTRE
+    ) -> Dict[str, any]:
         """Calcule l'état de performance avec le modèle Fitness-Fatigue simplifié"""
         
         # Récupérer ou créer l'état de performance
@@ -368,7 +366,8 @@ class FitnessRecommendationEngine:
                 
         # Calculer l'ajustement de fatigue
         fatigue_adjustment = self._calculate_fatigue_adjustment(
-            current_fatigue, exercise_order, set_order_global, last_set_voice_data
+            current_fatigue, exercise_order, set_order_global,
+            last_set_voice_data=last_set_voice_data
         )
         
         # PROTECTION ANTI-CRASH - Garantir des valeurs valides
@@ -1436,9 +1435,9 @@ class FitnessRecommendationEngine:
         set_order_global: int,
         last_set_voice_data: Optional[Dict] = None
     ) -> float:
-        """Calcule l'ajustement basé sur la fatigue"""
+        """Calcule l'ajustement basé sur la fatigue avec données vocales validées"""
         
-        # Fatigue de base (1=très frais, 5=très fatigué)
+        # CONSERVER logique existante de base
         base_adjustment = {
             1: 1.05,  # Très frais : peut pousser un peu plus
             2: 1.0,   # Frais : performance normale
@@ -1453,21 +1452,153 @@ class FitnessRecommendationEngine:
         
         combined_adjustment = base_adjustment * fatigue_progression * session_fatigue
         
-        # ===== NOUVELLE LOGIQUE VOCALE INTELLIGENTE =====
-        if last_set_voice_data and last_set_voice_data.get('timestamps'):
-            voice_fatigue_analysis = self._analyze_voice_fatigue(last_set_voice_data)
+        # NOUVEAU - Enrichissement vocal validé UNIQUEMENT pour données fiables
+        if last_set_voice_data and self._is_voice_data_reliable(last_set_voice_data):
+            voice_adjustment = self._analyze_validated_voice_data(last_set_voice_data)
+            combined_adjustment *= voice_adjustment
             
-            if voice_fatigue_analysis['fatigued']:
-                # Appliquer la réduction de fatigue vocale
-                voice_penalty = voice_fatigue_analysis['penalty_factor']
-                combined_adjustment *= voice_penalty
-                
-                logger.info(f"[ML] Fatigue vocale détectée - "
-                        f"Dégradation: {voice_fatigue_analysis['degradation']:.2f}, "
-                        f"Instabilité: {voice_fatigue_analysis['instability']:.2f}, "
-                        f"Pénalité: {voice_penalty:.2f}")
+            # Log détaillé pour monitoring
+            logger.info(f"[ML] Données vocales validées utilisées - "
+                    f"Confiance: {last_set_voice_data.get('confidence', 0):.2f}, "
+                    f"Validation: {last_set_voice_data.get('validation_method', 'unknown')}, "
+                    f"Ajustement: {voice_adjustment:.3f}")
+        else:
+            # Log pour données non utilisées
+            if last_set_voice_data:
+                logger.debug(f"[ML] Données vocales ignorées - "
+                            f"Fiabilité insuffisante ou non validées")
         
         return combined_adjustment
+
+    def _is_voice_data_reliable(self, voice_data: Dict) -> bool:
+        """
+        Vérifie si les données vocales sont fiables pour l'analyse ML
+        
+        Args:
+            voice_data: Dictionnaire des données vocales
+            
+        Returns:
+            bool: True si les données sont fiables pour ML
+        """
+        if not voice_data:
+            return False
+        
+        # Critère 1: Données validées par l'utilisateur
+        is_validated = voice_data.get('validated', False)
+        if not is_validated:
+            return False
+        
+        # Critère 2: Confiance suffisante
+        confidence = voice_data.get('confidence', 0.0)
+        if confidence < 0.5:
+            return False
+        
+        # Critère 3: Données temporelles cohérentes
+        timestamps = voice_data.get('timestamps', [])
+        if len(timestamps) < 2:  # Au moins 2 reps pour analyser le tempo
+            return False
+        
+        # Critère 4: Count réaliste
+        count = voice_data.get('count', 0)
+        if count < 1 or count > 50:
+            return False
+        
+        # Critère 5: Qualité de données acceptable
+        data_quality = voice_data.get('data_quality', {})
+        gaps_count = data_quality.get('gaps_count', 0)
+        
+        # Rejeter si trop de gaps (> 30% du count)
+        if gaps_count > (count * 0.3):
+            return False
+        
+        # Critère 6: Temps total réaliste
+        total_duration = voice_data.get('total_duration')
+        if total_duration and total_duration > 300000:  # > 5 minutes = suspect
+            return False
+        
+        logger.debug(f"[ML] Données vocales validées comme fiables - "
+                    f"Count: {count}, Confiance: {confidence:.2f}, "
+                    f"Gaps: {gaps_count}, Validation: {voice_data.get('validation_method')}")
+        
+        return True
+
+    def _analyze_validated_voice_data(self, voice_data: Dict) -> float:
+        """
+        Analyse les données vocales validées pour ajuster les recommandations
+        
+        Args:
+            voice_data: Données vocales fiables et validées
+            
+        Returns:
+            float: Facteur d'ajustement (0.7 à 1.2)
+        """
+        # Initialiser l'ajustement neutre
+        adjustment = 1.0
+        
+        # 1. ANALYSE DU TEMPO MOYEN
+        tempo_avg = voice_data.get('tempo_avg')
+        if tempo_avg and tempo_avg > 0:
+            
+            # Tempo très lent = fatigue détectée
+            if tempo_avg > 2500:  # > 2.5s entre reps
+                tempo_penalty = min((tempo_avg - 2500) / 2500 * 0.15, 0.15)
+                adjustment -= tempo_penalty
+                logger.debug(f"[ML] Tempo lent détecté ({tempo_avg}ms) - Pénalité: {tempo_penalty:.3f}")
+                
+            # Tempo très rapide = peut pousser plus
+            elif tempo_avg < 1000:  # < 1s entre reps
+                tempo_bonus = min((1000 - tempo_avg) / 1000 * 0.1, 0.1)
+                adjustment += tempo_bonus
+                logger.debug(f"[ML] Tempo rapide détecté ({tempo_avg}ms) - Bonus: {tempo_bonus:.3f}")
+        
+        # 2. ANALYSE DE LA PROGRESSION DANS LA SÉRIE
+        timestamps = voice_data.get('timestamps', [])
+        if len(timestamps) >= 4:
+            
+            # Calculer les tempos individuels
+            tempos = [timestamps[i] - timestamps[i-1] for i in range(1, len(timestamps))]
+            
+            # Analyser la dégradation (début vs fin)
+            early_tempos = tempos[:len(tempos)//2]
+            late_tempos = tempos[len(tempos)//2:]
+            
+            if early_tempos and late_tempos:
+                early_avg = sum(early_tempos) / len(early_tempos)
+                late_avg = sum(late_tempos) / len(late_tempos)
+                
+                # Si ralentissement significatif = fatigue
+                if late_avg > early_avg * 1.5:  # 50% plus lent
+                    degradation_penalty = min((late_avg / early_avg - 1.5) * 0.1, 0.1)
+                    adjustment -= degradation_penalty
+                    logger.debug(f"[ML] Dégradation tempo détectée - Pénalité: {degradation_penalty:.3f}")
+        
+        # 3. ANALYSE DE LA QUALITÉ DE SÉQUENCE
+        data_quality = voice_data.get('data_quality', {})
+        confidence_level = data_quality.get('confidence_level', 'medium')
+        
+        if confidence_level == 'high':
+            adjustment += 0.05  # Bonus pour données très fiables
+        elif confidence_level == 'low':
+            adjustment -= 0.05  # Pénalité pour données moins fiables
+        
+        # 4. ANALYSE DES GAPS ET IRRÉGULARITÉS
+        gaps_count = data_quality.get('gaps_count', 0)
+        count = voice_data.get('count', 1)
+        
+        if gaps_count > 0:
+            gap_ratio = gaps_count / count
+            gap_penalty = min(gap_ratio * 0.1, 0.1)  # Max 10% de pénalité
+            adjustment -= gap_penalty
+            logger.debug(f"[ML] Gaps détectés ({gaps_count}/{count}) - Pénalité: {gap_penalty:.3f}")
+        
+        # 5. BORNER LE RÉSULTAT
+        adjustment = max(0.7, min(1.2, adjustment))  # Entre -30% et +20%
+        
+        logger.info(f"[ML] Analyse données vocales terminée - "
+                f"Ajustement final: {adjustment:.3f} "
+                f"(Tempo: {tempo_avg}ms, Count: {count}, Gaps: {gaps_count})")
+        
+        return adjustment
 
     def _analyze_voice_fatigue(self, voice_data: Dict) -> Dict:
         """

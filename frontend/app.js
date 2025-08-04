@@ -8974,13 +8974,49 @@ function executeSet() {
     
     // === SAUVEGARDER DONNÉES SÉRIE PAR TYPE D'EXERCICE (CONSERVÉ + ENRICHI) ===
     const isBodyweight = currentExercise.weight_type === 'bodyweight';
-    
+
+    // NOUVEAU - Enrichissement données vocales validées pour ML
+    let voiceDataToSend = null;
+    if (window.voiceData && window.voiceState === 'CONFIRMED' && window.VOICE_FEATURES?.ml_enrichment) {
+        voiceDataToSend = {
+            count: window.voiceData.count,
+            tempo_avg: calculateAvgTempo(window.voiceData.timestamps),
+            gaps: window.voiceData.gaps || [],
+            timestamps: window.voiceData.timestamps || [],
+            confidence: window.voiceData.confidence || 1.0,
+            suspicious_jumps: window.voiceData.suspiciousJumps || 0,
+            repetitions: window.voiceData.repetitions || 0,
+            
+            // CRUCIAL - Flag de validation utilisateur
+            validated: true,
+            validation_method: window.voiceData.needsValidation ? 'user_confirmed' : 'auto_confirmed',
+            
+            // Métadonnées pour ML
+            start_time: window.voiceData.startTime,
+            total_duration: window.voiceData.timestamps.length > 0 ? 
+                window.voiceData.timestamps[window.voiceData.timestamps.length - 1] : null,
+            
+            // Qualité de données
+            data_quality: {
+                gaps_count: window.voiceData.gaps?.length || 0,
+                sequence_complete: (window.voiceData.gaps?.length || 0) === 0,
+                confidence_level: window.voiceData.confidence >= 0.8 ? 'high' : 
+                                window.voiceData.confidence >= 0.5 ? 'medium' : 'low'
+            }
+        };
+        
+        // Utiliser count vocal comme reps si validé
+        workoutState.pendingSetData.reps = window.voiceData.count;
+        
+        console.log('[Voice] Données validées préparées pour ML:', voiceDataToSend);
+    }
+
     if (isIsometric) {
         workoutState.pendingSetData = {
             duration_seconds: parseInt(document.getElementById('setReps').textContent),
             reps: parseInt(document.getElementById('setReps').textContent),
             weight: null,
-            voice_data: null // Pas de vocal pour isométrique
+            voice_data: voiceDataToSend || voiceData // Priorité aux données enrichies ML
         };
     } else if (isBodyweight) {
         // Récupérer les reps (avec priorité au vocal si disponible)
@@ -8995,7 +9031,7 @@ function executeSet() {
             duration_seconds: setTime,  // durée réelle chronométrée (CONSERVÉ)
             reps: repsValue,
             weight: null,
-            voice_data: voiceData // AJOUT des données vocales
+            voice_data: voiceDataToSend || voiceData // Priorité aux données enrichies ML
         };
     } else {
         // === EXERCICES AVEC POIDS ===
@@ -9024,7 +9060,7 @@ function executeSet() {
             duration_seconds: setTime,  // durée réelle chronométrée (CONSERVÉ)
             reps: repsValue,
             weight: finalWeight,  // Toujours TOTAL, jamais converti
-            voice_data: voiceData // AJOUT des données vocales
+            voice_data: voiceDataToSend || voiceData // Priorité aux données enrichies ML
         };
     }
     
