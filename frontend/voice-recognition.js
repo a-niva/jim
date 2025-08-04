@@ -414,20 +414,27 @@ function handleVoiceEnd() {
 
 /**
  * Calcule le tempo moyen entre les répétitions
- * Utilisé pour enrichir les données ML
- * 
- * @param {number[]} timestamps - Tableau des timestamps en ms
- * @returns {number|null} Tempo moyen en ms, null si < 2 timestamps
+ * @param {number[]} timestamps - Tableau des timestamps en millisecondes
+ * @returns {number|null} - Tempo moyen en millisecondes ou null si insuffisant
  */
 function calculateAvgTempo(timestamps) {
-    if (!timestamps || timestamps.length < 2) return null;
+    if (!timestamps || timestamps.length < 2) {
+        console.log('[Voice] Pas assez de timestamps pour calculer le tempo');
+        return null;
+    }
     
     const intervals = [];
     for (let i = 1; i < timestamps.length; i++) {
-        intervals.push(timestamps[i] - timestamps[i-1]);
+        const interval = timestamps[i] - timestamps[i-1];
+        intervals.push(interval);
     }
     
-    return Math.round(intervals.reduce((a, b) => a + b) / intervals.length);
+    const avgTempo = Math.round(
+        intervals.reduce((sum, interval) => sum + interval, 0) / intervals.length
+    );
+    
+    console.log('[Voice] Tempo moyen calculé:', avgTempo, 'ms entre reps');
+    return avgTempo;
 }
 
 /**
@@ -458,5 +465,5 @@ window.stopVoiceRecognition = stopVoiceRecognition;
 // Exposer variables globales pour debug et monitoring
 window.voiceRecognitionActive = () => voiceRecognitionActive;
 window.getVoiceData = () => voiceData;
-
+window.calculateAvgTempo = calculateAvgTempo;
 console.log('[Voice] Module voice-recognition.js chargé - Phase 0');
