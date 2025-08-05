@@ -13138,7 +13138,6 @@ window.showPlanningFromProgram = showPlanningFromProgram;
 window.preloadNextSeriesRecommendations = preloadNextSeriesRecommendations;
 window.renderNextSeriesPreview = renderNextSeriesPreview;
 window.clearNextSeriesPreview = clearNextSeriesPreview;
-window.updateMicrophoneVisualState = updateMicrophoneVisualState;
 
 // === EXPOSITION FONCTIONS PHASE 2 ===
 window.getCurrentRepsValue = getCurrentRepsValue;

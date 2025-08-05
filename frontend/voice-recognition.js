@@ -1166,16 +1166,15 @@ function updateVoiceDisplayImmediate(count) {
 function handleNumberDetected(number) {
     console.log(`[Voice] Nombre détecté: ${number}`);
     
-    // PHASE 4 - Validation stricte avant traitement
+    // === COMMENTER TEMPORAIREMENT - PHASE 4 ===
+    /*
     if (validationMode === VALIDATION_LEVELS.STRICT) {
         const validation = validateWithStrictMode(number, voiceData.lastNumber);
         
         if (!validation.valid) {
             console.warn(`[Voice] Nombre rejeté: ${validation.reason}`);
             
-            // === NOUVEAU : Feedback visuel erreur ===
             if (window.applyVoiceErrorState) {
-                // Mapper la raison vers le type d'erreur
                 let errorType = 'generic';
                 if (validation.reason.includes('saut')) {
                     errorType = 'jump';
@@ -1188,14 +1187,14 @@ function handleNumberDetected(number) {
                 window.applyVoiceErrorState(errorType, 1000);
             }
             
-            // Vibration mobile
             if (navigator.vibrate) {
-                navigator.vibrate([50, 50, 50]); // Pattern d'erreur
+                navigator.vibrate([50, 50, 50]);
             }
             
             return;
         }
     }
+    */
     
     // Validation de base existante
     const expectedNext = voiceData.lastNumber + 1;
