@@ -4354,19 +4354,38 @@ function updateSeriesDots() {
 }
 
 function updateHeaderProgress() {
-    // Mettre à jour le compteur de série
+    // Mettre à jour le compteur de série (toujours affiché)
     const setProgressEl = document.getElementById('setProgress');
     if (setProgressEl) {
         setProgressEl.textContent = `Série ${currentSet}/${currentWorkoutSession.totalSets}`;
     }
     
-    // Mettre à jour le compteur d'exercice (pour le mode programme)
+    // Gestion conditionnelle exercice progress
+    const exerciseProgressEl = document.getElementById('exerciseProgress');
+    const separatorEl = document.querySelector('.progress-separator');
+    
     if (currentWorkoutSession.type === 'program' && currentWorkoutSession.program) {
-        const exerciseProgressEl = document.getElementById('exerciseProgress');
+        // MODE PROGRAMME : afficher exercice progress
         if (exerciseProgressEl) {
             const totalExercises = currentWorkoutSession.program.exercises.length;
             const currentExerciseIndex = currentWorkoutSession.exerciseOrder || 1;
             exerciseProgressEl.textContent = `Exercice ${currentExerciseIndex}/${totalExercises}`;
+            exerciseProgressEl.style.display = 'inline';
+        }
+        
+        // Afficher le séparateur
+        if (separatorEl) {
+            separatorEl.style.display = 'inline';
+        }
+    } else {
+        // MODE SÉANCE LIBRE : masquer exercice progress
+        if (exerciseProgressEl) {
+            exerciseProgressEl.style.display = 'none';
+        }
+        
+        // Masquer le séparateur
+        if (separatorEl) {
+            separatorEl.style.display = 'none';
         }
     }
     
