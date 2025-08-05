@@ -4717,6 +4717,162 @@ async function updateSetRecommendations() {
     }
 }
 
+// ===== PREVIEW SÉRIE SUIVANTE - FONCTIONS CORE =====
+
+/**
+ * Cache pour éviter appels API doublons
+ */
+let nextSeriesRecommendationsCache = null;
+
+/**
+ * Précharge les recommandations pour la série suivante
+ * @returns {Promise<Object|null>} Recommandations ML ou null
+ */
+async function preloadNextSeriesRecommendations() {
+    // Vérification : pas dernière série
+    if (currentSet >= currentWorkoutSession.totalSets) {
+        console.log('[Preview] Dernière série - pas de preview');
+        return null;
+    }
+    
+    // Vérification cache
+    if (nextSeriesRecommendationsCache) {
+        console.log('[Preview] Utilisation cache');
+        return nextSeriesRecommendationsCache;
+    }
+    
+    try {
+        console.log(`[Preview] Appel API série ${currentSet + 1}`);
+        
+        const recommendations = await apiPost(`/api/workouts/${currentWorkout.id}/recommendations`, {
+            exercise_id: currentExercise.id,
+            set_number: currentSet + 1,
+            current_fatigue: currentWorkoutSession.sessionFatigue,
+            current_effort: workoutState.pendingSetData?.effort_level || 3,
+            last_rest_duration: workoutState.plannedRestDuration || 90,
+            exercise_order: currentWorkoutSession.exerciseOrder || 1,
+            set_order_global: currentWorkoutSession.globalSetCount + 1
+        });
+        
+        // Cache pour éviter double appel
+        nextSeriesRecommendationsCache = recommendations;
+        
+        console.log('[Preview] Recommandations reçues:', {
+            weight: recommendations.weight_recommendation,
+            reps: recommendations.reps_recommendation,
+            confidence: recommendations.confidence
+        });
+        
+        return recommendations;
+        
+    } catch (error) {
+        console.warn('[Preview] Erreur API (silencieuse):', error);
+        return null;
+    }
+}
+
+/**
+ * Affiche la preview de la série suivante dans l'interface repos
+ * @param {Object} recommendations - Données ML
+ */
+function displayNextSeriesPreview(recommendations) {
+    const previewContainer = document.getElementById('nextSeriesPreview');
+    const previewContent = document.getElementById('nextSeriesContent');
+    
+    if (!previewContainer || !previewContent || !recommendations) {
+        return;
+    }
+    
+    // Construction du contenu selon le type d'exercice
+    let content = '';
+    
+    // Poids/Durée selon exercise.weight_type
+    if (currentExercise.weight_type === 'bodyweight') {
+        // Exercice au poids de corps : pas de poids
+        content = `
+            <div class="preview-metric">
+                <div class="preview-value">${recommendations.reps_recommendation}</div>
+                <div class="preview-label">Reps</div>
+            </div>
+        `;
+    } else if (currentExercise.weight_type === 'duration') {
+        // Exercice durée (planche, etc.)
+        content = `
+            <div class="preview-metric">
+                <div class="preview-value">${recommendations.weight_recommendation || recommendations.reps_recommendation}s</div>
+                <div class="preview-label">Durée</div>
+            </div>
+        `;
+    } else {
+        // Exercice avec poids standard
+        content = `
+            <div class="preview-metric">
+                <div class="preview-value">${recommendations.weight_recommendation || 0}kg</div>
+                <div class="preview-label">Poids</div>
+            </div>
+            <div class="preview-metric">
+                <div class="preview-value">${recommendations.reps_recommendation}</div>
+                <div class="preview-label">Reps</div>
+            </div>
+        `;
+    }
+    
+    // Temps repos suivant (toujours affiché)
+    content += `
+        <div class="preview-metric">
+            <div class="preview-value">${Math.round(recommendations.rest_seconds_recommendation / 10) * 10}s</div>
+            <div class="preview-label">Repos</div>
+        </div>
+    `;
+    
+    previewContent.innerHTML = content;
+    previewContainer.style.display = 'block';
+    
+    console.log('[Preview] Interface mise à jour');
+}
+
+/**
+ * Affiche l'info AI sur la plage de repos conseillée
+ * @param {Object} mlData - Données ML avec rest_range et confidence
+ */
+function displayRestAiInfo(mlData) {
+    const aiInfoContainer = document.getElementById('restAiInfo');
+    const aiRangeEl = document.getElementById('aiRestRange');
+    const aiConfidenceEl = document.getElementById('aiConfidence');
+    
+    if (!aiInfoContainer || !mlData || !mlData.rest_range) {
+        return;
+    }
+    
+    const range = mlData.rest_range;
+    const confidence = Math.round((mlData.rest_confidence || mlData.confidence || 0) * 100);
+    
+    aiRangeEl.textContent = `Recommandé: ${range.min}-${range.max}s`;
+    aiConfidenceEl.textContent = `${confidence}% confiance`;
+    
+    aiInfoContainer.style.display = 'block';
+}
+
+/**
+ * Nettoie la preview et le cache avant transition
+ */
+function clearNextSeriesPreview() {
+    const previewContainer = document.getElementById('nextSeriesPreview');
+    const aiInfoContainer = document.getElementById('restAiInfo');
+    
+    if (previewContainer) {
+        previewContainer.style.display = 'none';
+    }
+    
+    if (aiInfoContainer) {
+        aiInfoContainer.style.display = 'none';
+    }
+    
+    // Reset cache
+    nextSeriesRecommendationsCache = null;
+    
+    console.log('[Preview] Nettoyage effectué');
+}
 
 async function fetchMLRecommendations() {
     /**
@@ -5907,6 +6063,7 @@ function updateRestTimer(seconds) {
 }
 
 function skipRest() {
+    clearNextSeriesPreview();
     if (restTimer) {
         clearInterval(restTimer);
         restTimer = null;
@@ -5938,6 +6095,7 @@ function skipRest() {
 
 function endRest() {
     // Calculer et accumuler le temps de repos réel
+    clearNextSeriesPreview();
     if (workoutState.restStartTime) {
         const actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
         currentWorkoutSession.totalRestTime += actualRestTime;
@@ -9330,6 +9488,25 @@ function startRestPeriod(customTime = null, isMLRecommendation = false) {
             });
         }, timeLeft * 1000);
     }
+
+    // === NOUVEAU MODULE 4 : PREVIEW SÉRIE SUIVANTE ===
+    // Afficher info AI repos si disponible
+    if (currentWorkoutSession.mlRestData) {
+        displayRestAiInfo(currentWorkoutSession.mlRestData);
+    }
+    
+    // Preload recommandations série suivante (async, non-bloquant)
+    if (currentSet < currentWorkoutSession.totalSets) {
+        preloadNextSeriesRecommendations()
+            .then(nextRecs => {
+                if (nextRecs) {
+                    displayNextSeriesPreview(nextRecs);
+                }
+            })
+            .catch(error => {
+                console.warn('[Preview] Erreur preload (ignorée):', error);
+            });
+    }
     
     // Timer principal
     restTimer = setInterval(() => {
@@ -10090,6 +10267,7 @@ function validateSessionState(skipExerciseCheck = false) {
 // ===== FIN DE SÉRIE =====
 function completeRest() {
     // Rétablir les sections de feedback pour la série suivante
+    clearNextSeriesPreview();
     document.querySelectorAll('.feedback-section-modern').forEach(section => {
         section.style.display = 'block';
     });
@@ -10097,7 +10275,7 @@ function completeRest() {
     // Déclarer actualRestTime au début pour qu'elle soit accessible partout
     let actualRestTime = 0;
     
-    // Calculer et accumuler le temps de repos réel
+    // Calculer et accumuler le temps de repos réel   
     if (workoutState.restStartTime) {
         actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
         currentWorkoutSession.totalRestTime += actualRestTime;
