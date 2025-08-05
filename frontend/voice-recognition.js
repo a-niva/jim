@@ -1205,72 +1205,105 @@ function updateVoiceDisplayImmediate(count) {
 }
 
 /**
- * Traite la détection VALIDÉE d'un nombre
- * Applique la logique de monotonie croissante (pas de retour arrière)
+ * Gère la détection d'un nombre dans la reconnaissance vocale
+ * 
+ * @param {number} number - Nombre détecté
+ * @returns {void}
  */
 function handleNumberDetected(number) {
-    const now = Date.now();
+    console.log(`[Voice] Nombre détecté: ${number}`);
     
-    // NOUVEAU - Validation intelligente du saut
-    const validation = validateDetectionRobust(number, {
-        currentState: voiceState,
-        confidence: voiceData.confidence
-    });
+    // PHASE 4 - Validation stricte avant traitement
+    if (validationMode === VALIDATION_LEVELS.STRICT) {
+        const validation = validateWithStrictMode(number, voiceData.lastNumber);
         
-    if (!validation.valid) {
-        console.log(`[Voice] Rejeté: ${number} - ${validation.errorType}`);
-        enhancedErrorFeedback(validation.errorType, validation.details);
-        return;
-    }
-    
-    // NOUVEAU - Tracking des patterns suspects
-    if (validation.suspicious) {
-        voiceData.suspiciousJumps++;
-        console.log(`[Voice] Saut suspect détecté: +${validation.jump}`);
-    }
-    
-    // NOUVEAU - Détection répétitions
-    if (number === voiceData.lastDetected) {
-        voiceData.repetitions++;
-        // NOUVEAU : Feedback erreur répétition
-        applyVoiceErrorState('repetition');
-        return; // Ignorer les répétitions
-    }
-    
-    // Monotonie croissante (CONSERVER logique existante)
-    if (number <= voiceData.count) {
-        console.log(`[Voice] Ignoré: ${number} <= ${voiceData.count}`);
-        return;
-    }
-    
-    // Gestion des gaps (CONSERVER)
-    const previousCount = voiceData.count;
-    if (number > voiceData.count + 1) {
-        for (let i = voiceData.count + 1; i < number; i++) {
-            voiceData.gaps.push(i);
+        if (!validation.valid) {
+            console.warn(`[Voice] Nombre rejeté: ${validation.reason}`);
+            
+            // === NOUVEAU : Feedback visuel erreur ===
+            if (window.applyVoiceErrorState) {
+                // Mapper la raison vers le type d'erreur
+                let errorType = 'generic';
+                if (validation.reason.includes('saut')) {
+                    errorType = 'jump';
+                } else if (validation.reason.includes('répétition')) {
+                    errorType = 'repeat';
+                } else if (validation.reason.includes('séquence')) {
+                    errorType = 'invalid';
+                }
+                
+                window.applyVoiceErrorState(errorType, 1000);
+            }
+            
+            // Vibration mobile
+            if (navigator.vibrate) {
+                navigator.vibrate([50, 50, 50]); // Pattern d'erreur
+            }
+            
+            return;
         }
     }
     
-    // Mise à jour des données (MODIFIER)
-    voiceData.count = number;
-    voiceData.lastDetected = number; // NOUVEAU
-    voiceData.timestamps.push(now - voiceData.startTime);
-    voiceData.lastNumber = number;
+    // Validation de base existante
+    const expectedNext = voiceData.lastNumber + 1;
+    const jump = number - voiceData.lastNumber;
     
+    if (jump > 10) {
+        console.warn(`[Voice] Saut trop important ignoré: ${voiceData.lastNumber} -> ${number}`);
+        voiceData.suspiciousJumps++;
+        
+        // === NOUVEAU : Feedback erreur saut ===
+        if (window.applyVoiceErrorState) {
+            window.applyVoiceErrorState('jump', 1500);
+        }
+        
+        return;
+    }
+    
+    // Détection de répétition
+    if (number === voiceData.lastNumber && voiceData.count > 0) {
+        console.log('[Voice] Répétition détectée');
+        voiceData.repetitions++;
+        
+        if (voiceData.repetitions > 2) {
+            console.warn('[Voice] Trop de répétitions - validation requise');
+            voiceData.needsValidation = true;
+            
+            // === NOUVEAU : Feedback erreur répétition ===
+            if (window.applyVoiceErrorState) {
+                window.applyVoiceErrorState('repeat', 800);
+            }
+        }
+        return;
+    }
+    
+    // Réinitialiser compteur répétitions si nombre différent
+    if (number !== voiceData.lastNumber) {
+        voiceData.repetitions = 0;
+    }
+    
+    // Gestion des gaps
+    if (jump > 1 && jump <= 10) {
+        console.log(`[Voice] Gap détecté: ${expectedNext} à ${number-1}`);
+        for (let i = expectedNext; i < number; i++) {
+            if (!voiceData.gaps.includes(i)) {
+                voiceData.gaps.push(i);
+            }
+        }
+        voiceData.needsValidation = true;
+    }
+    
+    // Mise à jour normale
+    voiceData.count = number;
+    voiceData.lastNumber = number;
+    voiceData.timestamps.push(Date.now());
+    voiceData.lastDetected = number;
     updateVoiceDisplay(number);
     
-    if (navigator.vibrate) {
-        navigator.vibrate(30);
-    }
+    // NOUVEAU - Mettre à jour la prédiction
+    predictedNext = number + 1;
     
-    if (typeof resetAutoValidationTimer === 'function') {
-        resetAutoValidationTimer();
-    }
-    
-    // NOUVEAU - Log avec confiance
-    const confidence = calculateConfidence();
-    const gapCount = voiceData.gaps.length;
-    console.log(`[Voice] ${previousCount} → ${number}${gapCount > 0 ? ` (${gapCount} gaps)` : ''} - Confiance: ${confidence.toFixed(2)}`);
+    console.log(`[Voice] État: count=${voiceData.count}, gaps=[${voiceData.gaps}], confiance=${voiceData.confidence}`);
 }
 
 /**
