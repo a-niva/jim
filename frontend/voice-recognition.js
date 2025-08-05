@@ -249,53 +249,6 @@ function initVoiceRecognition() {
 }
 
 /**
- * Met à jour l'état visuel du microphone
- * @param {'inactive' | 'listening' | 'processing' | 'error'} state - État du micro
- */
-function updateMicrophoneVisualState(state) {
-    // Trouver ou créer le bouton indicateur
-    let voiceIndicator = document.getElementById('voiceIndicator');
-    
-    // Si pas d'indicateur, essayer de le trouver via la classe
-    if (!voiceIndicator) {
-        voiceIndicator = document.querySelector('.voice-toggle-btn');
-    }
-    
-    if (!voiceIndicator) {
-        console.warn('[Voice] Indicateur visuel micro introuvable');
-        return;
-    }
-    
-    // Retirer toutes les classes d'état
-    voiceIndicator.classList.remove('mic-inactive', 'mic-listening', 'mic-processing', 'mic-error');
-    
-    // Ajouter la classe appropriée
-    switch(state) {
-        case 'inactive':
-            voiceIndicator.classList.add('mic-inactive');
-            voiceIndicator.setAttribute('aria-label', 'Microphone inactif');
-            break;
-        case 'listening':
-            voiceIndicator.classList.add('mic-listening');
-            voiceIndicator.setAttribute('aria-label', 'Écoute en cours');
-            break;
-        case 'processing':
-            voiceIndicator.classList.add('mic-processing');
-            voiceIndicator.setAttribute('aria-label', 'Traitement en cours');
-            break;
-        case 'error':
-            voiceIndicator.classList.add('mic-error');
-            voiceIndicator.setAttribute('aria-label', 'Erreur microphone');
-            // Auto-retour à inactive après 2s
-            setTimeout(() => {
-                updateMicrophoneVisualState('inactive');
-            }, 2000);
-            break;
-    }
-}
-
-
-/**
  * Gère les erreurs de démarrage de la reconnaissance vocale
  */
 function handleVoiceStartupError(error) {
@@ -2012,73 +1965,6 @@ function updateMicroIndicator(count) {
             indicator.classList.remove('pulse');
         }, 300);
     }
-}
-
-/**
- * Met à jour l'état visuel du microphone
- * @param {'inactive'|'listening'|'processing'|'error'} state - État du micro
- */
-function updateMicrophoneVisualState(state) {
-    // Chercher l'indicateur vocal dans différents endroits possibles
-    let voiceIndicator = document.getElementById('voiceIndicator');
-    
-    // Si pas trouvé, chercher dans la section d'exercice
-    if (!voiceIndicator) {
-        const exerciseControls = document.querySelector('.exercise-controls-container.voice-only');
-        if (exerciseControls) {
-            // Créer l'indicateur s'il n'existe pas
-            voiceIndicator = document.createElement('button');
-            voiceIndicator.id = 'voiceIndicator';
-            voiceIndicator.className = 'voice-indicator';
-            voiceIndicator.setAttribute('aria-label', 'État reconnaissance vocale');
-            voiceIndicator.innerHTML = `
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 1a4 4 0 0 1 4 4v7a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4z"></path>
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                    <line x1="12" y1="19" x2="12" y2="23"></line>
-                    <line x1="8" y1="23" x2="16" y2="23"></line>
-                </svg>
-            `;
-            exerciseControls.appendChild(voiceIndicator);
-        }
-    }
-    
-    if (!voiceIndicator) {
-        console.warn('[Voice] Indicateur visuel introuvable');
-        return;
-    }
-    
-    // Retirer toutes les classes d'état précédentes
-    voiceIndicator.classList.remove('mic-inactive', 'mic-listening', 'mic-processing', 'mic-error');
-    
-    // Appliquer la nouvelle classe selon l'état
-    switch(state) {
-        case 'inactive':
-            voiceIndicator.classList.add('mic-inactive');
-            voiceIndicator.setAttribute('aria-label', 'Microphone inactif');
-            break;
-            
-        case 'listening':
-            voiceIndicator.classList.add('mic-listening');
-            voiceIndicator.setAttribute('aria-label', 'Écoute en cours');
-            break;
-            
-        case 'processing':
-            voiceIndicator.classList.add('mic-processing');
-            voiceIndicator.setAttribute('aria-label', 'Traitement en cours');
-            break;
-            
-        case 'error':
-            voiceIndicator.classList.add('mic-error');
-            voiceIndicator.setAttribute('aria-label', 'Erreur microphone');
-            // Reset après 2 secondes
-            setTimeout(() => {
-                updateMicrophoneVisualState('inactive');
-            }, 2000);
-            break;
-    }
-    
-    console.log(`[Voice] État visuel micro: ${state}`);
 }
 
 /**
