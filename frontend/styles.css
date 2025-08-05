@@ -7651,7 +7651,7 @@ input:checked+.toggle-slider:before {
     gap: 4px;
     font-family: "Courier New", monospace;
     min-height: 1.2em;
-    position: relative;
+    position: relative; /* ← AJOUTER CETTE LIGNE */
 }
 
 .current-rep {

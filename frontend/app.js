@@ -4904,6 +4904,7 @@ function initializeRepsDisplay(targetReps, state = 'ready') {
     
     targetRepEl.textContent = targetReps || 12;
     nextRepPreviewEl.textContent = '1';
+    nextRepPreviewEl.style.opacity = '0';
     nextRepPreviewEl.className = 'next-rep-preview';
     
     // Backward compatibility
