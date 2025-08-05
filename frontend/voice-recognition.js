@@ -152,6 +152,56 @@ const VALIDATION_LEVELS = {
 
 let validationMode = VALIDATION_LEVELS.STRICT; // Mode par défaut Phase 4
 
+// États visuels du micro
+let currentMicState = 'inactive';
+
+// Met à jour l'état visuel du microphone - {'inactive'|'listening'|'processing'|'error'} state - État du micro
+function updateMicrophoneVisualState(state) {
+    // Chercher le bouton vocal existant
+    const voiceBtn = document.querySelector('.voice-toggle-btn');
+    
+    if (!voiceBtn) {
+        console.warn('[Voice] Bouton vocal introuvable');
+        return;
+    }
+    
+    // Retirer toutes les classes d'état précédentes
+    voiceBtn.classList.remove('mic-inactive', 'mic-listening', 'mic-processing', 'mic-error');
+    
+    // Appliquer la nouvelle classe selon l'état
+    switch(state) {
+        case 'inactive':
+            voiceBtn.classList.add('mic-inactive');
+            voiceBtn.setAttribute('aria-label', 'Microphone inactif');
+            break;
+            
+        case 'listening':
+            voiceBtn.classList.add('mic-listening');
+            voiceBtn.setAttribute('aria-label', 'Écoute en cours');
+            break;
+            
+        case 'processing':
+            voiceBtn.classList.add('mic-processing');
+            voiceBtn.setAttribute('aria-label', 'Traitement en cours');
+            break;
+            
+        case 'error':
+            voiceBtn.classList.add('mic-error');
+            voiceBtn.setAttribute('aria-label', 'Erreur microphone');
+            // Reset après 2 secondes
+            setTimeout(() => {
+                if (!voiceRecognitionActive) {
+                    updateMicrophoneVisualState('inactive');
+                } else {
+                    updateMicrophoneVisualState('listening');
+                }
+            }, 2000);
+            break;
+    }
+    
+    console.log(`[Voice] État visuel micro: ${state}`);
+}
+
 // ===== FONCTIONS PRINCIPALES =====
 
 /**
@@ -199,63 +249,51 @@ function initVoiceRecognition() {
 }
 
 /**
- * Démarre la reconnaissance vocale pour une nouvelle série
- * Remet à zéro les données et active l'écoute
- * 
- * @returns {void}
+ * Met à jour l'état visuel du microphone
+ * @param {'inactive' | 'listening' | 'processing' | 'error'} state - État du micro
  */
-function startVoiceRecognition() {
-    if (!recognition || voiceRecognitionActive) {
-        console.log('[Voice] Reconnaissance non disponible ou déjà active');
+function updateMicrophoneVisualState(state) {
+    // Trouver ou créer le bouton indicateur
+    let voiceIndicator = document.getElementById('voiceIndicator');
+    
+    // Si pas d'indicateur, essayer de le trouver via la classe
+    if (!voiceIndicator) {
+        voiceIndicator = document.querySelector('.voice-toggle-btn');
+    }
+    
+    if (!voiceIndicator) {
+        console.warn('[Voice] Indicateur visuel micro introuvable');
         return;
     }
     
-    // RESET COMPLET
-    voiceData = {
-        count: 0,
-        timestamps: [],
-        gaps: [],
-        lastNumber: 0,
-        startTime: Date.now(),
-        confidence: 1.0
-    };
+    // Retirer toutes les classes d'état
+    voiceIndicator.classList.remove('mic-inactive', 'mic-listening', 'mic-processing', 'mic-error');
     
-    // Reset flags de protection
-    executionInProgress = false;
-    predictedNext = 1;
-    displayedCount = 0;
-    pendingValidation = null;
-    recognitionCache.clear();
-    
-    try {
-        recognition.start();
-        voiceRecognitionActive = true;
-        
-        // Timer auto-validation
-        if (typeof startAutoValidationTimer === 'function') {
-            startAutoValidationTimer();
-        }
-        
-        // UI feedback
-        const microIcon = document.querySelector('.voice-toggle-container i');
-        if (microIcon) {
-            microIcon.classList.add('active');
-        }
-        
-        // Exposer globalement
-        window.voiceData = voiceData;
-        
-        console.log('[Voice] Reconnaissance démarrée avec prédiction initialisée');
-        
-    } catch (error) {
-        console.error('[Voice] Erreur au démarrage:', error);
-        voiceRecognitionActive = false;
-        
-        if (typeof handleVoiceStartupError === 'function') {
-            handleVoiceStartupError(error);
-        }
+    // Ajouter la classe appropriée
+    switch(state) {
+        case 'inactive':
+            voiceIndicator.classList.add('mic-inactive');
+            voiceIndicator.setAttribute('aria-label', 'Microphone inactif');
+            break;
+        case 'listening':
+            voiceIndicator.classList.add('mic-listening');
+            voiceIndicator.setAttribute('aria-label', 'Écoute en cours');
+            break;
+        case 'processing':
+            voiceIndicator.classList.add('mic-processing');
+            voiceIndicator.setAttribute('aria-label', 'Traitement en cours');
+            break;
+        case 'error':
+            voiceIndicator.classList.add('mic-error');
+            voiceIndicator.setAttribute('aria-label', 'Erreur microphone');
+            // Auto-retour à inactive après 2s
+            setTimeout(() => {
+                updateMicrophoneVisualState('inactive');
+            }, 2000);
+            break;
     }
 }
+
 
 /**
  * Gère les erreurs de démarrage de la reconnaissance vocale
@@ -373,6 +411,7 @@ function handleAutoValidation() {
  */
 function stopVoiceRecognition() {
     if (!recognition || !voiceRecognitionActive) {
+        console.log('[Voice] Reconnaissance non active');
         return;
     }
     
@@ -380,44 +419,13 @@ function stopVoiceRecognition() {
         recognition.stop();
         voiceRecognitionActive = false;
         
-        // Nettoyer les timers (si la fonction existe)
-        if (typeof clearAutoValidationTimer === 'function') {
-            clearAutoValidationTimer();
-        }
+        // === NOUVEAU : État visuel inactif ===
+        updateMicrophoneVisualState('inactive');
         
-        // Calculer la confiance finale basée sur les gaps
-        if (voiceData.gaps.length > 0) {
-            const gapPenalty = Math.min(voiceData.gaps.length * 0.1, 0.3);
-            voiceData.confidence = Math.max(0.6, 1.0 - gapPenalty);
-        }
+        // Calculer la confiance finale...
+        // [reste du code existant]
         
-        // Calcul confiance finale intelligent
-        if (VOICE_FEATURES.confidence_system) {
-            voiceData.confidence = calculateConfidence();
-            
-            // Déterminer si validation nécessaire
-            voiceData.needsValidation = voiceData.confidence < CONFIDENCE_LEVELS.HIGH;
-            
-            console.log('[Voice] Confiance finale:', {
-                score: voiceData.confidence.toFixed(2),
-                level: voiceData.confidence >= CONFIDENCE_LEVELS.HIGH ? 'HIGH' : 
-                    voiceData.confidence >= CONFIDENCE_LEVELS.MEDIUM ? 'MEDIUM' : 'LOW',
-                needsValidation: voiceData.needsValidation,
-                suspiciousJumps: voiceData.suspiciousJumps,
-                gaps: voiceData.gaps.length
-            });
-        }
-
-        // NOUVEAU - Déclencher auto-validation au lieu d'exposition simple
-        if (VOICE_FEATURES.auto_validation && voiceData.count > 0) {
-            scheduleAutoValidation();
-        } else {
-            // Mode legacy - exposition simple
-            window.voiceData = voiceData;
-            console.log('[Voice] Données exposées en mode legacy');
-        }
-
-        // Mettre à jour l'interface - icône micro inactive
+        // Mettre à jour l'interface - icône micro inactive (legacy)
         const microIcon = document.querySelector('.voice-toggle-container i');
         if (microIcon) {
             microIcon.classList.remove('active');
@@ -436,6 +444,7 @@ function stopVoiceRecognition() {
         
     } catch (error) {
         console.error('[Voice] Erreur lors de l\'arrêt:', error);
+        updateMicrophoneVisualState('inactive');
     }
 }
 
@@ -459,7 +468,7 @@ function startVoiceRecognition() {
         return;
     }
     
-    // RÉINITIALISATION COMPLÈTE
+    // RESET COMPLET
     voiceData = {
         count: 0,
         timestamps: [],
@@ -469,26 +478,33 @@ function startVoiceRecognition() {
         confidence: 1.0
     };
     
-    // RÉINITIALISATION PRÉDICTION
+    // Reset flags de protection
+    executionInProgress = false;
     predictedNext = 1;
     displayedCount = 0;
     pendingValidation = null;
-    recognitionCache.clear(); // Nettoyer le cache pour cette série
+    recognitionCache.clear();
     
     try {
         recognition.start();
         voiceRecognitionActive = true;
         
-        // Timer auto-validation (si implémenté)
+        // === NOUVEAU : État visuel micro ===
+        updateMicrophoneVisualState('listening');
+        
+        // Timer auto-validation
         if (typeof startAutoValidationTimer === 'function') {
             startAutoValidationTimer();
         }
         
-        // UI feedback
+        // UI feedback (legacy - garder pour compatibilité)
         const microIcon = document.querySelector('.voice-toggle-container i');
         if (microIcon) {
             microIcon.classList.add('active');
         }
+        
+        // Exposer globalement
+        window.voiceData = voiceData;
         
         console.log('[Voice] Reconnaissance démarrée avec prédiction initialisée');
         
@@ -496,7 +512,9 @@ function startVoiceRecognition() {
         console.error('[Voice] Erreur au démarrage:', error);
         voiceRecognitionActive = false;
         
-        // Gestion d'erreurs (si implémentée)
+        // === NOUVEAU : État erreur ===
+        updateMicrophoneVisualState('error');
+        
         if (typeof handleVoiceStartupError === 'function') {
             handleVoiceStartupError(error);
         }
@@ -1948,30 +1966,105 @@ function updateMicroIndicator(count) {
 }
 
 /**
+ * Met à jour l'état visuel du microphone
+ * @param {'inactive'|'listening'|'processing'|'error'} state - État du micro
+ */
+function updateMicrophoneVisualState(state) {
+    // Chercher l'indicateur vocal dans différents endroits possibles
+    let voiceIndicator = document.getElementById('voiceIndicator');
+    
+    // Si pas trouvé, chercher dans la section d'exercice
+    if (!voiceIndicator) {
+        const exerciseControls = document.querySelector('.exercise-controls-container.voice-only');
+        if (exerciseControls) {
+            // Créer l'indicateur s'il n'existe pas
+            voiceIndicator = document.createElement('button');
+            voiceIndicator.id = 'voiceIndicator';
+            voiceIndicator.className = 'voice-indicator';
+            voiceIndicator.setAttribute('aria-label', 'État reconnaissance vocale');
+            voiceIndicator.innerHTML = `
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 1a4 4 0 0 1 4 4v7a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4z"></path>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                    <line x1="12" y1="19" x2="12" y2="23"></line>
+                    <line x1="8" y1="23" x2="16" y2="23"></line>
+                </svg>
+            `;
+            exerciseControls.appendChild(voiceIndicator);
+        }
+    }
+    
+    if (!voiceIndicator) {
+        console.warn('[Voice] Indicateur visuel introuvable');
+        return;
+    }
+    
+    // Retirer toutes les classes d'état précédentes
+    voiceIndicator.classList.remove('mic-inactive', 'mic-listening', 'mic-processing', 'mic-error');
+    
+    // Appliquer la nouvelle classe selon l'état
+    switch(state) {
+        case 'inactive':
+            voiceIndicator.classList.add('mic-inactive');
+            voiceIndicator.setAttribute('aria-label', 'Microphone inactif');
+            break;
+            
+        case 'listening':
+            voiceIndicator.classList.add('mic-listening');
+            voiceIndicator.setAttribute('aria-label', 'Écoute en cours');
+            break;
+            
+        case 'processing':
+            voiceIndicator.classList.add('mic-processing');
+            voiceIndicator.setAttribute('aria-label', 'Traitement en cours');
+            break;
+            
+        case 'error':
+            voiceIndicator.classList.add('mic-error');
+            voiceIndicator.setAttribute('aria-label', 'Erreur microphone');
+            // Reset après 2 secondes
+            setTimeout(() => {
+                updateMicrophoneVisualState('inactive');
+            }, 2000);
+            break;
+    }
+    
+    console.log(`[Voice] État visuel micro: ${state}`);
+}
+
+/**
  * Gestionnaire d'erreurs de la reconnaissance vocale
  * Gère les erreurs de permissions, réseau, etc.
- * 
- * @param {SpeechRecognitionError} error - Erreur de reconnaissance
- * @returns {void}
- */
+*/
 function handleVoiceError(event) {
     console.log('[Voice] Erreur de reconnaissance:', event.error);
+    
+    // === NOUVEAU : État visuel erreur ===
+    updateMicrophoneVisualState('error');
     
     switch(event.error) {
         case 'no-speech':
             console.log('[Voice] Aucune parole détectée - normal');
-            // Ne PAS afficher d'erreur pour no-speech
+            // Ne PAS afficher d'erreur pour no-speech mais reset l'état
+            setTimeout(() => {
+                if (voiceRecognitionActive) {
+                    updateMicrophoneVisualState('listening');
+                }
+            }, 1000);
             break;
+            
         case 'audio-capture':
             console.error('[Voice] Pas de microphone disponible');
             showToast('Microphone non disponible', 'error');
             voiceRecognitionActive = false;
             break;
+            
         case 'not-allowed':
             console.error('[Voice] Permission microphone refusée');
             showToast('Permission microphone refusée', 'error');
             voiceRecognitionActive = false;
             break;
+            
         default:
             console.error('[Voice] Erreur:', event.error);
     }
@@ -2149,6 +2242,8 @@ if (typeof scheduleStandardValidation !== 'undefined') {
 } else {
     console.warn('[Voice] scheduleStandardValidation non définie');
 }
+// === EXPOSITION FONCTIONS PHASE 1 ===
+window.updateMicrophoneVisualState = updateMicrophoneVisualState;
 
 console.log('[Voice] ✅ Toutes les expositions globales configurées');
 

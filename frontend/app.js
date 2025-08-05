@@ -4515,18 +4515,22 @@ function updateSeriesDots() {
 }
 
 function updateHeaderProgress() {
+    // Déterminer le type de séance
+    const isProgram = currentWorkoutSession.type === 'program' && currentWorkoutSession.program;
+    
     // Mettre à jour le compteur de série (toujours affiché)
     const setProgressEl = document.getElementById('setProgress');
     if (setProgressEl) {
         setProgressEl.textContent = `Série ${currentSet}/${currentWorkoutSession.totalSets}`;
     }
     
-    // Gestion conditionnelle exercice progress
+    // Gestion conditionnelle exercice progress et séparateur
     const exerciseProgressEl = document.getElementById('exerciseProgress');
     const separatorEl = document.querySelector('.progress-separator');
+    const workoutProgressContainer = document.querySelector('.workout-progress-compact');
     
-    if (currentWorkoutSession.type === 'program' && currentWorkoutSession.program) {
-        // MODE PROGRAMME : afficher exercice progress
+    if (isProgram) {
+        // MODE PROGRAMME : afficher exercice progress et séparateur
         if (exerciseProgressEl) {
             const totalExercises = currentWorkoutSession.program.exercises.length;
             const currentExerciseIndex = currentWorkoutSession.exerciseOrder || 1;
@@ -4534,19 +4538,27 @@ function updateHeaderProgress() {
             exerciseProgressEl.style.display = 'inline';
         }
         
-        // Afficher le séparateur
         if (separatorEl) {
             separatorEl.style.display = 'inline';
         }
+        
+        // Retirer la classe single-item si présente
+        if (workoutProgressContainer) {
+            workoutProgressContainer.classList.remove('single-item');
+        }
     } else {
-        // MODE SÉANCE LIBRE : masquer exercice progress
+        // MODE SÉANCE LIBRE : masquer exercice progress et séparateur
         if (exerciseProgressEl) {
             exerciseProgressEl.style.display = 'none';
         }
         
-        // Masquer le séparateur
         if (separatorEl) {
             separatorEl.style.display = 'none';
+        }
+        
+        // Ajouter classe pour centrer le contenu restant
+        if (workoutProgressContainer) {
+            workoutProgressContainer.classList.add('single-item');
         }
     }
     
@@ -5074,48 +5086,166 @@ let nextSeriesRecommendationsCache = null;
 
 /**
  * Précharge les recommandations pour la série suivante
- * @returns {Promise<Object|null>} Recommandations ML ou null
+ * @returns {Promise<Object>} Recommandations {weight, reps, rest, confidence}
  */
 async function preloadNextSeriesRecommendations() {
-    // Vérification : pas dernière série
-    if (currentSet >= currentWorkoutSession.totalSets) {
-        console.log('[Preview] Dernière série - pas de preview');
-        return null;
-    }
-    
-    // Vérification cache
-    if (nextSeriesRecommendationsCache) {
-        console.log('[Preview] Utilisation cache');
-        return nextSeriesRecommendationsCache;
-    }
-    
     try {
-        console.log(`[Preview] Appel API série ${currentSet + 1}`);
+        // Si pas de workout actif ou pas d'exercice, retourner valeurs par défaut
+        if (!currentWorkoutSession.id || !currentExercise) {
+            return null;
+        }
         
-        const recommendations = await apiPost(`/api/workouts/${currentWorkout.id}/recommendations`, {
-            exercise_id: currentExercise.id,
-            set_number: currentSet + 1,
-            current_fatigue: currentWorkoutSession.sessionFatigue,
-            current_effort: workoutState.pendingSetData?.effort_level || 3,
-            last_rest_duration: workoutState.plannedRestDuration || 90,
-            exercise_order: currentWorkoutSession.exerciseOrder || 1,
-            set_order_global: currentWorkoutSession.globalSetCount + 1
+        const nextSetNumber = currentSet + 1;
+        
+        // Vérifier le cache d'abord
+        const cacheKey = `${currentExercise.id}-${nextSetNumber}`;
+        const cached = workoutState.nextSeriesCache?.get(cacheKey);
+        if (cached && (Date.now() - cached.timestamp < 300000)) { // 5 minutes
+            return cached.data;
+        }
+        
+        // Appel API avec timeout strict
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+        
+        const response = await fetch(`/api/workouts/${currentWorkoutSession.id}/recommendations`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+                exercise_id: currentExercise.id,
+                set_number: nextSetNumber,
+                workout_id: currentWorkoutSession.id
+            }),
+            signal: controller.signal
         });
         
-        // Cache pour éviter double appel
-        nextSeriesRecommendationsCache = recommendations;
+        clearTimeout(timeoutId);
         
-        console.log('[Preview] Recommandations reçues:', {
-            weight: recommendations.weight_recommendation,
-            reps: recommendations.reps_recommendation,
-            confidence: recommendations.confidence
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Mettre en cache
+        if (!workoutState.nextSeriesCache) {
+            workoutState.nextSeriesCache = new Map();
+        }
+        workoutState.nextSeriesCache.set(cacheKey, {
+            data: data,
+            timestamp: Date.now()
         });
         
-        return recommendations;
+        // Nettoyer le cache si trop gros
+        if (workoutState.nextSeriesCache.size > 20) {
+            const firstKey = workoutState.nextSeriesCache.keys().next().value;
+            workoutState.nextSeriesCache.delete(firstKey);
+        }
+        
+        return data;
         
     } catch (error) {
-        console.warn('[Preview] Erreur API (silencieuse):', error);
-        return null;
+        console.error('[Preview] Erreur preload:', error);
+        
+        // Retourner les dernières valeurs connues ou défaut
+        return {
+            weight: currentExercise.last_weight || 20,
+            reps: currentExercise.last_reps || 12,
+            rest: currentExercise.base_rest_time_seconds || 90,
+            confidence: 0.5
+        };
+    }
+}
+
+/**
+ * Affiche le preview de la série suivante avec design moderne
+ * @param {Object|null} previewData - Données ou null pour skeleton
+ */
+function renderNextSeriesPreview(previewData) {
+    const restPeriodEl = document.getElementById('restPeriod');
+    if (!restPeriodEl) return;
+    
+    // Vérifier si le preview existe déjà
+    let previewEl = document.getElementById('nextSeriesPreview');
+    
+    if (!previewEl) {
+        // Créer la structure si elle n'existe pas
+        previewEl = document.createElement('div');
+        previewEl.id = 'nextSeriesPreview';
+        previewEl.className = 'next-series-preview';
+        previewEl.innerHTML = `
+            <div class="preview-header">Prochaine série</div>
+            <div class="preview-content">
+                <div class="preview-metric">
+                    <div class="preview-value" id="previewWeight">--</div>
+                    <div class="preview-label">kg</div>
+                </div>
+                <div class="preview-metric">
+                    <div class="preview-value" id="previewReps">--</div>
+                    <div class="preview-label">reps</div>
+                </div>
+                <div class="preview-metric">
+                    <div class="preview-value" id="previewRest">--</div>
+                    <div class="preview-label">repos</div>
+                </div>
+            </div>
+            <div class="preview-confidence hidden" id="previewConfidence">
+                <span>⚠️ Estimation approximative</span>
+            </div>
+        `;
+        
+        // Insérer après le timer de repos
+        const restTimer = restPeriodEl.querySelector('.rest-content') || restPeriodEl;
+        restTimer.appendChild(previewEl);
+    }
+    
+    // Animer l'apparition
+    previewEl.classList.remove('hidden');
+    previewEl.style.opacity = '0';
+    previewEl.style.transform = 'translateY(10px)';
+    
+    setTimeout(() => {
+        previewEl.style.transition = 'all 0.3s ease-out';
+        previewEl.style.opacity = '1';
+        previewEl.style.transform = 'translateY(0)';
+    }, 100);
+    
+    if (previewData) {
+        // Remplir avec les vraies données
+        document.getElementById('previewWeight').textContent = previewData.weight || '--';
+        document.getElementById('previewReps').textContent = previewData.reps || '--';
+        document.getElementById('previewRest').textContent = previewData.rest ? `${previewData.rest}s` : '--';
+        
+        // Afficher avertissement si faible confiance
+        const confidenceEl = document.getElementById('previewConfidence');
+        if (previewData.confidence < 0.7) {
+            confidenceEl.classList.remove('hidden');
+        } else {
+            confidenceEl.classList.add('hidden');
+        }
+    } else {
+        // Skeleton loader
+        ['previewWeight', 'previewReps', 'previewRest'].forEach(id => {
+            const el = document.getElementById(id);
+            el.innerHTML = '<div class="skeleton-loader"></div>';
+        });
+    }
+}
+
+/**
+ * Nettoie le preview de série suivante
+ */
+function clearNextSeriesPreview() {
+    const previewEl = document.getElementById('nextSeriesPreview');
+    if (previewEl) {
+        previewEl.style.transition = 'opacity 0.2s ease-out';
+        previewEl.style.opacity = '0';
+        setTimeout(() => {
+            previewEl.remove();
+        }, 200);
     }
 }
 
@@ -9868,63 +9998,18 @@ function startRestPeriod(customTime = null, isMLRecommendation = false) {
         setTimer = null;
     }
     
-    // Le repos s'affiche maintenant DANS le feedback
-    document.getElementById('setFeedback').style.display = 'block';
-    document.getElementById('restPeriod').style.display = 'flex';
-    
-    // AJOUTER : Cacher spécifiquement les sections de feedback pendant le repos
-    document.querySelectorAll('.feedback-section-modern').forEach(section => {
-        section.style.display = 'none';
-    });
-    
-    // Cacher les inputs pendant le repos
-    const inputSection = document.querySelector('.input-section');
-    if (inputSection) {
-        inputSection.style.display = 'none';
-    }
-    
-    // Reset des sélections fatigue/effort
-    document.querySelectorAll('.emoji-btn-modern.selected').forEach(btn => {
-        btn.classList.remove('selected');
-    });
-    document.getElementById('fatigueProgress')?.classList.remove('completed');
-    document.getElementById('effortProgress')?.classList.remove('completed');
-    currentWorkoutSession.currentSetFatigue = null;
-    currentWorkoutSession.currentSetEffort = null;
-    
-    // Forcer la transition vers RESTING
+    // Le repos s'affiche maintenant dans le DOM existant
     transitionTo(WorkoutStates.RESTING);
+    const restPeriodDiv = document.getElementById('restPeriod');
     
-    // === MODULE 2: AFFICHAGE BADGE ML ===
-    // Vérifier si on a des données ML du Module 1 pour l'affichage
-    if (currentWorkoutSession.mlRestData?.seconds) {
-        const mlSeconds = currentWorkoutSession.mlRestData.seconds;
-        const mlReason = currentWorkoutSession.mlRestData.reason || '';
-        const mlRange = currentWorkoutSession.mlRestData.range;
-        
-        console.log(`🧠 Données ML détectées: ${mlSeconds}s (raison: ${mlReason})`);
-        
-        // Remplacer complètement le HTML statique pour afficher le badge ML
-        document.getElementById('restPeriod').innerHTML = `
-            <div class="rest-content">
-                <h3>🧘 Temps de repos <span class="ai-badge">🤖 IA</span></h3>
-                <div class="ml-rest-suggestion">
-                    ✨ IA suggère : ${mlSeconds}s
-                    ${mlReason ? `(${mlReason})` : ''}
-                    ${mlRange ? `<div class="ml-range">Plage optimale: ${mlRange.min}-${mlRange.max}s</div>` : ''}
-                </div>
-                <div class="rest-timer" id="restTimer">01:30</div>
-                <div class="rest-actions">
-                    <button class="btn btn-secondary btn-sm" onclick="adjustRestTime(-30)">-30s</button>
-                    <button class="btn btn-secondary btn-sm" onclick="adjustRestTime(30)">+30s</button>
-                    <button class="btn btn-primary btn-sm" onclick="endRest()">Passer</button>
-                </div>
-            </div>
-        `;
+    if (!restPeriodDiv) {
+        console.error('Element restPeriod non trouvé');
+        return;
     }
-
+    
+    restPeriodDiv.style.display = 'block';
+    
     // === MODULE 3: TIMER ADAPTATIF ML AUTOMATIQUE ===
-    // Feature flag pour désactiver rapidement en cas de problème
     const ML_REST_ENABLED = localStorage.getItem('mlRestFeatureFlag') !== 'false';
     
     // Calcul du temps avec priorité directe aux données ML
@@ -9935,16 +10020,6 @@ function startRestPeriod(customTime = null, isMLRecommendation = false) {
 
     // Garde-fou de sécurité sur les valeurs
     timeLeft = Math.max(15, Math.min(300, timeLeft));
-    
-    const initialTime = timeLeft;
-    
-    // Logging pour traçabilité et debug
-    const source = (ML_REST_ENABLED && currentWorkoutSession.mlRestData?.seconds) ? 
-                   `ML(${currentWorkoutSession.mlRestData.seconds}s)` :
-                   customTime ? `Personnalisé(${customTime}s)` : 
-                   `Défaut(${currentExercise.base_rest_time_seconds || 60}s)`;
-    
-    console.log(`⏱️ MODULE 3 - Source timer: ${source} - Flag ML: ${ML_REST_ENABLED} - Final: ${timeLeft}s`);
     
     // Enregistrer le début du repos
     workoutState.restStartTime = Date.now();
@@ -9976,22 +10051,20 @@ function startRestPeriod(customTime = null, isMLRecommendation = false) {
         }, timeLeft * 1000);
     }
 
-    // === NOUVEAU MODULE 4 : PREVIEW SÉRIE SUIVANTE ===
-    // Afficher info AI repos si disponible
-    if (currentWorkoutSession.mlRestData) {
-        displayRestAiInfo(currentWorkoutSession.mlRestData);
-    }
-    
-    // Preload recommandations série suivante (async, non-bloquant)
+    // === NOUVEAU : PREVIEW SÉRIE SUIVANTE ===
+    // Preloader les recommandations pour la série suivante
     if (currentSet < currentWorkoutSession.totalSets) {
+        // Appel asynchrone non-bloquant
         preloadNextSeriesRecommendations()
             .then(nextRecs => {
-                if (nextRecs) {
-                    displayNextSeriesPreview(nextRecs);
+                if (nextRecs && restPeriodDiv.style.display === 'block') {
+                    renderNextSeriesPreview(nextRecs);
                 }
             })
             .catch(error => {
-                console.warn('[Preview] Erreur preload (ignorée):', error);
+                console.warn('[Preview] Erreur chargement:', error);
+                // Afficher skeleton loader en cas d'erreur
+                renderNextSeriesPreview(null);
             });
     }
     
@@ -10004,7 +10077,6 @@ function startRestPeriod(customTime = null, isMLRecommendation = false) {
             clearInterval(restTimer);
             restTimer = null;
             
-            // Annuler la notification si elle n'a pas encore été déclenchée
             if (notificationTimeout) {
                 clearTimeout(notificationTimeout);
                 notificationTimeout = null;
@@ -10013,9 +10085,7 @@ function startRestPeriod(customTime = null, isMLRecommendation = false) {
             // Calculer et enregistrer le temps de repos réel
             const actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
             currentWorkoutSession.totalRestTime += actualRestTime;
-            console.log(`⏱️ MODULE 3 - Repos terminé: ${actualRestTime}s réels vs ${initialTime}s planifiés`);
             
-            // Auto-transition vers la série suivante si configuré
             if (currentWorkoutSession.autoAdvance) {
                 setTimeout(() => {
                     if (currentWorkoutSession.state === WorkoutStates.RESTING) {
@@ -12791,3 +12861,9 @@ window.showProgramInterface = showProgramInterface;
 window.showProgramChoiceModal = showProgramChoiceModal;
 window.showNextSession = showNextSession;
 window.showPlanningFromProgram = showPlanningFromProgram;
+
+// === EXPOSITION NOUVELLES FONCTIONS PHASE 1 ===
+window.preloadNextSeriesRecommendations = preloadNextSeriesRecommendations;
+window.renderNextSeriesPreview = renderNextSeriesPreview;
+window.clearNextSeriesPreview = clearNextSeriesPreview;
+window.updateMicrophoneVisualState = updateMicrophoneVisualState;

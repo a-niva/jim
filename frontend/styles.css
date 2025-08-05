@@ -8280,3 +8280,155 @@ input:checked+.toggle-slider:before {
         flex-direction: column;
     }
 }
+
+/* === PHASE 1.1 : HEADER INTELLIGENT === */
+
+/* Container avec classe single-item pour séances libres */
+.workout-progress-compact.single-item {
+    justify-content: center;
+}
+
+.workout-progress-compact.single-item .set-progress {
+    font-weight: 600;
+    font-size: var(--font-lg);
+}
+
+/* === PHASE 1.2 : ÉTATS VISUELS MICRO === */
+
+/* Réutilisation du bouton vocal existant */
+.voice-toggle-btn.mic-inactive {
+    color: var(--text-muted);
+    opacity: 0.6;
+}
+
+.voice-toggle-btn.mic-listening {
+    color: #3b82f6;
+    animation: mic-pulse 2s infinite;
+}
+
+.voice-toggle-btn.mic-processing {
+    color: #f59e0b;
+}
+
+.voice-toggle-btn.mic-error {
+    color: #ef4444;
+    animation: mic-shake 0.3s ease-in-out;
+}
+
+/* Animations micro */
+@keyframes mic-pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.1);
+    }
+}
+
+@keyframes mic-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+}
+
+/* === PHASE 1.3 : PREVIEW SÉRIE SUIVANTE === */
+
+/* Container preview compact - réutilise les variables existantes */
+.next-series-preview {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    animation: slideIn 0.3s ease-out;
+}
+
+/* Réutilisation animation existante slideIn */
+
+.preview-header {
+    font-size: var(--font-sm);
+    font-weight: 600;
+    color: var(--text-muted);
+    text-align: center;
+    margin-bottom: var(--spacing-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.preview-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.preview-metric {
+    flex: 1;
+    text-align: center;
+}
+
+.preview-value {
+    font-size: var(--font-xl);
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: var(--spacing-xs);
+}
+
+.preview-label {
+    font-size: var(--font-xs);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.preview-confidence {
+    margin-top: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    background: rgba(245, 158, 11, 0.1);
+    border-radius: var(--radius);
+    font-size: var(--font-sm);
+    color: #f59e0b;
+    text-align: center;
+}
+
+/* Skeleton loader pour chargement */
+.skeleton-loader {
+    height: 24px;
+    background: linear-gradient(
+        90deg,
+        var(--bg-light) 25%,
+        rgba(255, 255, 255, 0.1) 50%,
+        var(--bg-light) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+    border-radius: var(--radius);
+}
+
+@keyframes skeleton-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Responsive mobile - preview compact */
+@media (max-width: 768px) {
+    .next-series-preview {
+        margin-top: var(--spacing-sm);
+        padding: var(--spacing-sm);
+    }
+    
+    .preview-value {
+        font-size: var(--font-lg);
+    }
+    
+    .preview-content {
+        gap: var(--spacing-sm);
+    }
+    
+    .preview-label {
+        font-size: 10px;
+    }
+}
