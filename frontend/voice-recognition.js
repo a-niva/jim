@@ -137,6 +137,21 @@ let predictedNext = 1;
 let displayedCount = 0;
 let pendingValidation = null;
 
+
+// PHASE 4 - Variables interpolation et validation renforcée
+let interpolationInProgress = false;
+let interpolationIndex = 0;
+let originalGapsArray = [];
+let interpolationAnimationSpeed = 300; // ms entre chaque gap
+
+// États validation renforcée
+const VALIDATION_LEVELS = {
+    STRICT: 'strict',      // Saut max +3, pas de répétitions
+    PERMISSIVE: 'permissive' // Mode actuel tolérant
+};
+
+let validationMode = VALIDATION_LEVELS.STRICT; // Mode par défaut Phase 4
+
 // ===== FONCTIONS PRINCIPALES =====
 
 /**
@@ -677,32 +692,260 @@ function parseNumber(text) {
  * @returns {number} Score de confiance entre 0.1 et 1.0
  */
 function calculateConfidence() {
-    if (!VOICE_FEATURES.confidence_system) {
-        return 1.0; // Mode legacy
-    }
-    
     let score = 1.0;
     
-    // Pénalités simples et rapides
+    // PHASE 4 - Pénalité gaps proportionnelle
     if (voiceData.gaps.length > 0) {
-        score -= voiceData.gaps.length * 0.1; // -10% par gap
+        const gapPenalty = Math.min(voiceData.gaps.length * 0.15, 0.4); // Pénalité plus sévère
+        score -= gapPenalty;
+        console.log(`[Confidence] Pénalité gaps: -${(gapPenalty * 100).toFixed(1)}%`);
     }
     
+    // Pénalité sauts suspects
     if (voiceData.suspiciousJumps > 0) {
-        score -= voiceData.suspiciousJumps * 0.15; // -15% par saut suspect
+        const jumpPenalty = Math.min(voiceData.suspiciousJumps * 0.2, 0.3);
+        score -= jumpPenalty;
+        console.log(`[Confidence] Pénalité sauts suspects: -${(jumpPenalty * 100).toFixed(1)}%`);
     }
     
-    if (voiceData.repetitions > 1) {
-        score -= 0.2; // -20% si répétitions détectées
+    // Pénalité répétitions
+    if (voiceData.repetitions > 0) {
+        const repPenalty = Math.min(voiceData.repetitions * 0.1, 0.2);
+        score -= repPenalty;
+        console.log(`[Confidence] Pénalité répétitions: -${(repPenalty * 100).toFixed(1)}%`);
     }
     
-    // Bonus pour séquences courtes et cohérentes
-    if (voiceData.count <= 5 && voiceData.gaps.length === 0) {
-        score += 0.1; // +10% bonus
+    // PHASE 4 - Bonus série courte sans problème
+    if (voiceData.count <= 15 && voiceData.gaps.length === 0 && voiceData.suspiciousJumps === 0) {
+        score += 0.1; // Bonus série propre
+        console.log(`[Confidence] Bonus série propre: +10%`);
     }
     
-    // Borner le résultat
-    return Math.max(0.1, Math.min(1.0, score));
+    const finalScore = Math.max(0.1, Math.min(1.0, score));
+    console.log(`[Confidence] Score final: ${(finalScore * 100).toFixed(1)}%`);
+    
+    return finalScore;
+}
+
+// ===== PHASE 4 - INTERPOLATION GAPS AVEC ANIMATIONS =====
+
+/**
+ * Interpole les gaps manqués avec animations séquentielles
+ * Fonction principale d'interpolation Phase 4
+ * @returns {Promise<boolean>} true si interpolation acceptée
+ */
+async function interpolateGapsWithAnimation() {
+    if (voiceData.gaps.length === 0 || interpolationInProgress) {
+        return true; // Pas de gaps ou déjà en cours
+    }
+    
+    console.log(`[Gaps] Début interpolation: ${voiceData.gaps.length} gaps à combler`);
+    
+    interpolationInProgress = true;
+    originalGapsArray = [...voiceData.gaps]; // Sauvegarde pour rollback
+    
+    // Trier gaps par ordre croissant
+    const sortedGaps = voiceData.gaps.sort((a, b) => a - b);
+    
+    try {
+        // Animation séquentielle de chaque gap
+        for (let i = 0; i < sortedGaps.length; i++) {
+            interpolationIndex = i;
+            const gap = sortedGaps[i];
+            
+            console.log(`[Gaps] Animation gap ${gap} (${i + 1}/${sortedGaps.length})`);
+            
+            // Animation visuelle gap comblé
+            await showGapInterpolation(gap, sortedGaps.length, i);
+            
+            // Délai entre animations pour fluidité
+            if (i < sortedGaps.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, interpolationAnimationSpeed));
+            }
+        }
+        
+        // Confirmation utilisateur finale
+        const accepted = await confirmGapInterpolation(voiceData.count, voiceData.count - sortedGaps.length, sortedGaps);
+        
+        if (!accepted) {
+            // Rollback vers count original
+            rollbackInterpolation();
+            return false;
+        }
+        
+        console.log(`[Gaps] Interpolation confirmée: ${voiceData.count} reps finales`);
+        return true;
+        
+    } catch (error) {
+        console.error('[Gaps] Erreur interpolation:', error);
+        rollbackInterpolation();
+        return false;
+        
+    } finally {
+        interpolationInProgress = false;
+        interpolationIndex = 0;
+    }
+}
+
+/**
+ * Affiche l'animation pour un gap spécifique
+ * @param {number} gapNumber - Numéro gap à combler
+ * @param {number} totalGaps - Total gaps à interpoler
+ * @param {number} currentIndex - Index progression
+ * @returns {Promise<void>}
+ */
+async function showGapInterpolation(gapNumber, totalGaps, currentIndex) {
+    const targetRepEl = document.getElementById('targetRep');
+    const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) : 12;
+    
+    // Animation distincte de l'interface N/R normale
+    updateRepDisplayModern(gapNumber, targetReps, {
+        interpolating: true,
+        interpolationProgress: `${currentIndex + 1}/${totalGaps}`
+    });
+    
+    // Vibration différenciée pour interpolation
+    if (navigator.vibrate) {
+        navigator.vibrate([50, 30, 50]); // Pattern vibration interpolation
+    }
+    
+    // Log pour debug
+    console.log(`[Gaps] Gap ${gapNumber} interpolé visuellement`);
+    
+    // Attendre fin animation CSS
+    await new Promise(resolve => setTimeout(resolve, 200));
+}
+
+/**
+ * Validation robuste stricte pour Phase 4
+ * @param {number} detectedNumber - Nombre détecté
+ * @param {Object} context - Contexte détection
+ * @returns {Object} Résultat validation
+ */
+function validateDetectionRobust(detectedNumber, context = {}) {
+    const result = {
+        valid: true,
+        confidence: 1.0,
+        action: 'accept',
+        errorType: null,
+        details: {}
+    };
+    
+    // 1. Validation saut maximum strict
+    const jump = detectedNumber - (voiceData.lastDetected || voiceData.count);
+    
+    if (validationMode === VALIDATION_LEVELS.STRICT) {
+        // PHASE 4 : Saut maximum +3 strict
+        if (jump > 3) {
+            result.valid = false;
+            result.errorType = 'jump_too_large';
+            result.details = { jump, maxAllowed: 3 };
+            result.confidence = 0.1;
+            console.log(`[Validation] Saut trop grand: +${jump} > +3 autorisé`);
+            return result;
+        }
+    }
+    
+    // 2. Détection répétitions stricte
+    if (detectedNumber === voiceData.lastDetected) {
+        result.valid = false;
+        result.errorType = 'repetition';
+        result.details = { repeatedNumber: detectedNumber };
+        result.confidence = 0.2;
+        console.log(`[Validation] Répétition détectée: ${detectedNumber}`);
+        return result;
+    }
+    
+    // 3. Validation monotonie croissante
+    if (detectedNumber <= voiceData.count) {
+        result.valid = false;
+        result.errorType = 'backward_count';
+        result.details = { detected: detectedNumber, current: voiceData.count };
+        result.confidence = 0.1;
+        console.log(`[Validation] Compte arrière: ${detectedNumber} <= ${voiceData.count}`);
+        return result;
+    }
+    
+    // 4. Calcul confiance selon contexte
+    let confidence = 1.0;
+    
+    if (jump === 3) {
+        confidence = 0.7; // Saut suspect mais autorisé
+        result.action = 'confirm';
+    } else if (jump === 2) {
+        confidence = 0.85; // Léger gap normal
+    }
+    
+    // Pénalité si gaps déjà présents
+    if (voiceData.gaps.length > 0) {
+        confidence -= Math.min(voiceData.gaps.length * 0.05, 0.2);
+    }
+    
+    result.confidence = Math.max(0.3, confidence);
+    
+    console.log(`[Validation] Nombre ${detectedNumber} validé - Confiance: ${result.confidence.toFixed(2)}`);
+    return result;
+}
+
+/**
+ * Feedback erreur amélioré Phase 4
+ * @param {string} errorType - Type erreur détaillé
+ * @param {Object} details - Contexte erreur
+ */
+function enhancedErrorFeedback(errorType, details = {}) {
+    // Interface N/R avec erreur spécifique
+    const targetRepEl = document.getElementById('targetRep');
+    const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) : 12;
+    
+    const options = {
+        voiceError: true,
+        errorType: errorType
+    };
+    
+    // Feedback différencié selon type erreur
+    switch (errorType) {
+        case 'jump_too_large':
+            options.errorMessage = `Saut trop grand: +${details.jump}`;
+            updateRepDisplayModern(voiceData.count, targetReps, options);
+            // Double vibration pour erreur grave
+            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+            break;
+            
+        case 'repetition':
+            options.errorMessage = `Répétition: ${details.repeatedNumber}`;
+            updateRepDisplayModern(voiceData.count, targetReps, options);
+            // Vibration simple pour répétition
+            if (navigator.vibrate) navigator.vibrate(150);
+            break;
+            
+        case 'backward_count':
+            options.errorMessage = 'Compte arrière détecté';
+            updateRepDisplayModern(voiceData.count, targetReps, options);
+            // Triple vibration pour erreur logique
+            if (navigator.vibrate) navigator.vibrate([80, 30, 80, 30, 80]);
+            break;
+            
+        default:
+            updateRepDisplayModern(voiceData.count, targetReps, options);
+            if (navigator.vibrate) navigator.vibrate(100);
+    }
+    
+    console.log(`[Feedback] Erreur ${errorType} signalée visuellement`);
+}
+
+// Rollback interpolation en cas d'annulation
+function rollbackInterpolation() {
+    if (originalGapsArray.length > 0) {
+        voiceData.gaps = [...originalGapsArray];
+        voiceData.count = voiceData.count - originalGapsArray.length;
+        
+        // Restaurer interface
+        const targetRepEl = document.getElementById('targetRep');
+        const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) : 12;
+        updateRepDisplayModern(voiceData.count, targetReps);
+        
+        console.log(`[Gaps] Rollback effectué: count restauré à ${voiceData.count}`);
+    }
 }
 
 /**
@@ -951,12 +1194,14 @@ function handleNumberDetected(number) {
     const now = Date.now();
     
     // NOUVEAU - Validation intelligente du saut
-    const validation = validateNumberJump(number, voiceData.lastDetected || voiceData.count);
+    const validation = validateDetectionRobust(number, {
+        currentState: voiceState,
+        confidence: voiceData.confidence
+    });
         
     if (!validation.valid) {
-        console.log(`[Voice] Rejeté: ${number} - ${validation.reason}`);
-        // NOUVEAU : Feedback erreur visuel
-        applyVoiceErrorState('jump');
+        console.log(`[Voice] Rejeté: ${number} - ${validation.errorType}`);
+        enhancedErrorFeedback(validation.errorType, validation.details);
         return;
     }
     
@@ -1156,7 +1401,36 @@ function confirmFinalCount(finalCount) {
     // Exposer globalement pour executeSet
     window.voiceData = voiceData;
     window.voiceState = voiceState;
-    
+    // PHASE 4 - Interpolation gaps automatique
+    if (voiceData.gaps.length > 0) {
+        console.log(`[Gaps] ${voiceData.gaps.length} gaps détectés, démarrage interpolation`);
+        
+        // Lancer interpolation en arrière-plan
+        interpolateGapsWithAnimation()
+            .then(accepted => {
+                if (accepted) {
+                    console.log('[Gaps] Interpolation acceptée, finalisation données');
+                    // Recalculer confiance après interpolation
+                    voiceData.confidence = calculateConfidence();
+                    
+                    // Continuer avec validation normale
+                    if (VOICE_FEATURES.auto_validation && voiceData.count > 0) {
+                        scheduleAutoValidation();
+                    } else {
+                        window.voiceData = voiceData;
+                    }
+                } else {
+                    console.log('[Gaps] Interpolation rejetée, données rollback');
+                    window.voiceData = voiceData;
+                }
+            })
+            .catch(error => {
+                console.error('[Gaps] Erreur interpolation:', error);
+                window.voiceData = voiceData;
+            });
+        
+        return; // Sortir ici, interpolation gère la suite
+    }
     // NOUVEAU - Déclencher executeSet automatiquement
     if (VOICE_FEATURES.auto_validation && typeof window.executeSet === 'function') {
         console.log('[Voice] Déclenchement automatique executeSet()');
@@ -1634,14 +1908,8 @@ function updateVoiceDisplay(count) {
     const targetRepEl = document.getElementById('targetRep');
     const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) : 12;
     
-    // Utiliser nouvelle interface N/R
+    // Utiliser interface N/R moderne
     updateRepDisplayModern(count, targetReps, { voiceActive: true });
-    
-    // Fallback backward compatibility
-    const backwardCompatEl = document.getElementById('setReps');
-    if (backwardCompatEl) {
-        backwardCompatEl.textContent = count;
-    }
     
     console.log(`[Voice] Interface mise à jour: ${count}/${targetReps}`);
 }

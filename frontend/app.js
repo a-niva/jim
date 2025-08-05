@@ -204,6 +204,114 @@ function applyVoiceErrorState(errorType = 'detection') {
     console.log(`[RepsDisplay] État erreur appliqué: ${errorType}`);
 }
 
+// ===== PHASE 3/4 - FONCTION CORE INTERFACE N/R =====
+
+/**
+ * Met à jour l'interface N/R moderne avec animations et états
+ * @param {number} currentRep - Répétition actuelle
+ * @param {number} targetRep - Objectif reps
+ * @param {Object} options - Options animation et états
+ */
+function updateRepDisplayModern(currentRep, targetRep, options = {}) {
+    const currentRepEl = document.getElementById('currentRep');
+    const targetRepEl = document.getElementById('targetRep');
+    const nextRepPreviewEl = document.getElementById('nextRepPreview');
+    const repsDisplayEl = document.getElementById('repsDisplay');
+    const backwardCompatEl = document.getElementById('setReps');
+    
+    if (!currentRepEl || !targetRepEl) {
+        console.warn('[RepsDisplay] Éléments manquants, fallback mode simple');
+        if (backwardCompatEl) backwardCompatEl.textContent = currentRep;
+        return;
+    }
+    
+    // Animation transition nombre actuel
+    if (currentRepEl.textContent !== currentRep.toString()) {
+        currentRepEl.classList.add('updating');
+        
+        setTimeout(() => {
+            currentRepEl.textContent = currentRep;
+            currentRepEl.classList.remove('updating');
+            
+            // État dépassement objectif
+            if (currentRep > targetRep) {
+                currentRepEl.classList.add('exceeded');
+                setTimeout(() => currentRepEl.classList.remove('exceeded'), 600);
+            }
+        }, 125);
+    }
+    
+    // Mise à jour target si changé
+    if (targetRepEl.textContent !== targetRep.toString()) {
+        targetRepEl.textContent = targetRep;
+    }
+    
+    // Preview N+1 intelligent
+    const nextRep = currentRep + 1;
+    if (nextRep <= targetRep + 2) { // Afficher jusqu'à +2 de l'objectif
+        nextRepPreviewEl.textContent = nextRep;
+        nextRepPreviewEl.className = 'next-rep-preview visible';
+    } else {
+        nextRepPreviewEl.className = 'next-rep-preview';
+    }
+    
+    // PHASE 4 - Gestion indicateur progression interpolation
+    let existingProgressEl = repsDisplayEl.querySelector('.interpolation-progress');
+    
+    if (options.interpolating && options.interpolationProgress) {
+        if (!existingProgressEl) {
+            existingProgressEl = document.createElement('div');
+            existingProgressEl.className = 'interpolation-progress';
+            repsDisplayEl.appendChild(existingProgressEl);
+        }
+        existingProgressEl.textContent = options.interpolationProgress;
+    } else if (existingProgressEl) {
+        // Nettoyer indicateur si plus d'interpolation
+        existingProgressEl.remove();
+    }
+    
+    // PHASE 4 - États visuels système vocal améliorés
+    if (options.interpolating) {
+        repsDisplayEl.className = 'reps-display-modern interpolating';
+        console.log(`[RepsDisplay] Mode interpolation: ${options.interpolationProgress}`);
+        
+    } else if (options.voiceError) {
+        // PHASE 4 - États erreur spécifiques
+        const errorClass = options.errorType ? `voice-error ${options.errorType}` : 'voice-error';
+        repsDisplayEl.className = `reps-display-modern ${errorClass}`;
+        
+        // PHASE 4 - Message erreur optionnel
+        if (options.errorMessage) {
+            console.log(`[RepsDisplay] Erreur: ${options.errorMessage}`);
+        }
+        
+        setTimeout(() => {
+            repsDisplayEl.className = 'reps-display-modern voice-active';
+        }, 800);
+        
+    } else if (options.voiceValidating) {
+        repsDisplayEl.className = 'reps-display-modern voice-validating';
+        
+    } else if (options.voiceActive) {
+        repsDisplayEl.className = 'reps-display-modern voice-active';
+        
+    } else if (options.readyState) {
+        // PHASE 4 - État ready avec objectif affiché
+        repsDisplayEl.className = 'reps-display-modern ready-state';
+        currentRepEl.textContent = '0'; // Force l'affichage 0 en ready
+        
+    } else {
+        repsDisplayEl.className = 'reps-display-modern';
+    }
+    
+    // Backward compatibility critique
+    if (backwardCompatEl) {
+        backwardCompatEl.textContent = currentRep;
+    }
+    
+    console.log(`[RepsDisplay] Mis à jour: ${currentRep}/${targetRep}, État: ${repsDisplayEl.className}`);
+}
+
 function updateUIForState(state) {
     // CORRECTION: Arrêter tous les timers selon l'état
     switch(state) {
@@ -4799,12 +4907,7 @@ function initializeRepsDisplay(targetReps, state = 'ready') {
     console.log(`[RepsDisplay] Initialisé - Target: ${targetReps}, État: ${state}`);
 }
 
-/**
- * Met à jour l'interface N/R avec animation
- * @param {number} currentRep - Répétition actuelle
- * @param {number} targetRep - Objectif reps
- * @param {Object} options - Options animation et états
- */
+// Met à jour l'interface N/R avec animation
 function updateRepDisplayModern(currentRep, targetRep, options = {}) {
     const currentRepEl = document.getElementById('currentRep');
     const targetRepEl = document.getElementById('targetRep');
@@ -4848,16 +4951,51 @@ function updateRepDisplayModern(currentRep, targetRep, options = {}) {
         nextRepPreviewEl.className = 'next-rep-preview';
     }
     
-    // États visuels système vocal
-    if (options.voiceError) {
-        repsDisplayEl.className = 'reps-display-modern voice-error';
+    // PHASE 4 - Gestion indicateur progression interpolation
+    let existingProgressEl = repsDisplayEl.querySelector('.interpolation-progress');
+    
+    if (options.interpolating && options.interpolationProgress) {
+        if (!existingProgressEl) {
+            existingProgressEl = document.createElement('div');
+            existingProgressEl.className = 'interpolation-progress';
+            repsDisplayEl.appendChild(existingProgressEl);
+        }
+        existingProgressEl.textContent = options.interpolationProgress;
+    } else if (existingProgressEl) {
+        // Nettoyer indicateur si plus d'interpolation
+        existingProgressEl.remove();
+    }
+    
+    // PHASE 4 - États visuels système vocal améliorés
+    if (options.interpolating) {
+        repsDisplayEl.className = 'reps-display-modern interpolating';
+        console.log(`[RepsDisplay] Mode interpolation: ${options.interpolationProgress}`);
+        
+    } else if (options.voiceError) {
+        // PHASE 4 - États erreur spécifiques
+        const errorClass = options.errorType ? `voice-error ${options.errorType}` : 'voice-error';
+        repsDisplayEl.className = `reps-display-modern ${errorClass}`;
+        
+        // PHASE 4 - Message erreur optionnel
+        if (options.errorMessage) {
+            console.log(`[RepsDisplay] Erreur: ${options.errorMessage}`);
+        }
+        
         setTimeout(() => {
             repsDisplayEl.className = 'reps-display-modern voice-active';
-        }, 500);
+        }, 800);
+        
     } else if (options.voiceValidating) {
         repsDisplayEl.className = 'reps-display-modern voice-validating';
+        
     } else if (options.voiceActive) {
         repsDisplayEl.className = 'reps-display-modern voice-active';
+        
+    } else if (options.readyState) {
+        // PHASE 4 - État ready avec objectif affiché
+        repsDisplayEl.className = 'reps-display-modern ready-state';
+        currentRepEl.textContent = '0'; // Force l'affichage 0 en ready
+        
     } else {
         repsDisplayEl.className = 'reps-display-modern';
     }
@@ -4870,10 +5008,8 @@ function updateRepDisplayModern(currentRep, targetRep, options = {}) {
     console.log(`[RepsDisplay] Mis à jour: ${currentRep}/${targetRep}, État: ${repsDisplayEl.className}`);
 }
 
-/**
- * Applique les états d'erreur vocale avec feedback visuel
- * @param {string} errorType - Type erreur ('detection'|'jump'|'validation')
- */
+
+// Applique les états d'erreur vocale avec feedback visuel
 function applyVoiceErrorState(errorType = 'detection') {
     const repsDisplayEl = document.getElementById('repsDisplay');
     
@@ -4890,23 +5026,37 @@ function applyVoiceErrorState(errorType = 'detection') {
     console.log(`[RepsDisplay] État erreur appliqué: ${errorType}`);
 }
 
-/**
- * Transition vers état prêt avec objectif affiché
- */
+// Transition vers état prêt avec objectif affiché
 function transitionToReadyState() {
-    const repsDisplayEl = document.getElementById('repsDisplay');
-    const currentRepEl = document.getElementById('currentRep');
+    const targetRepEl = document.getElementById('targetRep');
+    const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) : 12;
     
-    if (repsDisplayEl && currentRepEl) {
-        repsDisplayEl.className = 'reps-display-modern ready-state';
-        currentRepEl.textContent = '0';
-        
-        // Masquer preview pendant préparation
-        const nextRepPreviewEl = document.getElementById('nextRepPreview');
-        if (nextRepPreviewEl) {
-            nextRepPreviewEl.className = 'next-rep-preview';
-        }
-    }
+    // PHASE 4 - Affichage objectif avec état ready
+    updateRepDisplayModern(0, targetReps, { readyState: true });
+    
+    console.log(`[RepsDisplay] Transition ready: Objectif ${targetReps} reps`);
+}
+
+function applyVoiceErrorState(errorType = 'detection') {
+    const targetRepEl = document.getElementById('targetRep');
+    const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) : 12;
+    const currentRep = getCurrentRepsValue();
+    
+    // Mapping types erreur vers détails
+    const errorDetails = {
+        'detection': { errorType: 'detection', errorMessage: 'Détection incertaine' },
+        'jump': { errorType: 'jump_too_large', errorMessage: 'Saut trop important' },
+        'validation': { errorType: 'repetition', errorMessage: 'Nombre répété' }
+    };
+    
+    const details = errorDetails[errorType] || errorDetails.detection;
+    
+    updateRepDisplayModern(currentRep, targetReps, {
+        voiceError: true,
+        ...details
+    });
+    
+    console.log(`[RepsDisplay] État erreur appliqué: ${errorType}`);
 }
 
 /**
@@ -4929,7 +5079,6 @@ function getCurrentRepsValue() {
 }
 
 // ===== PREVIEW SÉRIE SUIVANTE - FONCTIONS CORE =====
-
 /**
  * Cache pour éviter appels API doublons
  */
@@ -5083,6 +5232,141 @@ function clearNextSeriesPreview() {
     nextSeriesRecommendationsCache = null;
     
     console.log('[Preview] Nettoyage effectué');
+}
+
+// ===== PHASE 4 - MODAL CONFIRMATION INTERPOLATION =====
+
+/**
+ * Modal confirmation interpolation gaps
+ * @param {number} interpolatedCount - Count final avec gaps
+ * @param {number} originalCount - Count original détecté
+ * @param {Array} gaps - Liste gaps comblés
+ * @returns {Promise<boolean>} true si accepté
+ */
+function confirmGapInterpolation(interpolatedCount, originalCount, gaps) {
+    return new Promise((resolve) => {
+        const gapsList = gaps.map(g => `<span class="gap-number">${g}</span>`).join(', ');
+        
+        const modalContent = `
+            <div class="gap-interpolation-modal">
+                <div class="interpolation-summary">
+                    <div class="count-comparison">
+                        <div class="count-detected">
+                            <span class="count-label">Détecté</span>
+                            <span class="count-value">${originalCount}</span>
+                        </div>
+                        <div class="interpolation-arrow">→</div>
+                        <div class="count-final">
+                            <span class="count-label">Final</span>
+                            <span class="count-value">${interpolatedCount}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="gaps-explanation">
+                        <p><strong>Numéros manqués comblés :</strong></p>
+                        <div class="gaps-list">${gapsList}</div>
+                        <p class="explanation-text">
+                            Ces numéros n'ont pas été détectés clairement. 
+                            Voulez-vous les inclure dans votre série ?
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="interpolation-actions">
+                    <button class="btn btn-success" onclick="window.resolveInterpolation(true)">
+                        ✅ Accepter (${interpolatedCount} reps)
+                    </button>
+                    <button class="btn btn-secondary" onclick="window.resolveInterpolation('modify')">
+                        ✏️ Modifier
+                    </button>
+                    <button class="btn btn-danger" onclick="window.resolveInterpolation(false)">
+                        ❌ Rejeter (${originalCount} reps)
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // Fonction de résolution globale
+        window.resolveInterpolation = (result) => {
+            closeModal();
+            
+            if (result === 'modify') {
+                // Ouvrir interface modification manuelle
+                showManualCountAdjustment(interpolatedCount).then(resolve);
+            } else {
+                resolve(result === true);
+            }
+            
+            // Nettoyer fonction globale
+            delete window.resolveInterpolation;
+        };
+        
+        showModal('🎯 Confirmation interpolation', modalContent);
+    });
+}
+
+/**
+ * Interface modification manuelle du count
+ * @param {number} currentCount - Count actuel
+ * @returns {Promise<boolean>}
+ */
+function showManualCountAdjustment(currentCount) {
+    return new Promise((resolve) => {
+        const modalContent = `
+            <div class="manual-adjustment-modal">
+                <p>Quel est le nombre correct de répétitions ?</p>
+                
+                <div class="count-adjuster">
+                    <button class="btn-stepper" onclick="adjustManualCount(-1)">−</button>
+                    <span class="manual-count" id="manualCount">${currentCount}</span>
+                    <button class="btn-stepper" onclick="adjustManualCount(1)">+</button>
+                </div>
+                
+                <div class="manual-actions">
+                    <button class="btn btn-primary" onclick="window.confirmManualCount()">
+                        Confirmer
+                    </button>
+                    <button class="btn btn-secondary" onclick="window.cancelManualCount()">
+                        Annuler
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        window.adjustManualCount = (delta) => {
+            const countEl = document.getElementById('manualCount');
+            const newCount = Math.max(0, Math.min(50, parseInt(countEl.textContent) + delta));
+            countEl.textContent = newCount;
+        };
+        
+        window.confirmManualCount = () => {
+            const finalCount = parseInt(document.getElementById('manualCount').textContent);
+            closeModal();
+            
+            // Appliquer count manuel
+            if (window.voiceData) {
+                window.voiceData.count = finalCount;
+                window.voiceData.gaps = []; // Reset gaps car corrigé manuellement
+            }
+            
+            resolve(true);
+            cleanupManualFunctions();
+        };
+        
+        window.cancelManualCount = () => {
+            closeModal();
+            resolve(false);
+            cleanupManualFunctions();
+        };
+        
+        const cleanupManualFunctions = () => {
+            delete window.adjustManualCount;
+            delete window.confirmManualCount;
+            delete window.cancelManualCount;
+        };
+        
+        showModal('✏️ Ajustement manuel', modalContent);
+    });
 }
 
 async function fetchMLRecommendations() {
