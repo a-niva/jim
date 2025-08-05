@@ -423,17 +423,26 @@
                                 </div>
                                 <button class="stepper-modern" onclick="adjustWeightUp()">+</button>
                             </div>
-                            
-                            <!-- Répétitions -->
+                                                        
+                            <!-- Répétitions - NOUVELLE INTERFACE N/R -->
                             <div class="input-row">
                                 <span class="input-icon">🔢</span>
                                 <button class="stepper-modern" onclick="adjustReps(-1)">−</button>
                                 <div class="value-display">
-                                    <span id="setReps" class="value">10</span>
+                                    <!-- NOUVELLE ARCHITECTURE N/R -->
+                                    <div id="repsDisplay" class="reps-display-modern">
+                                        <div class="current-rep" id="currentRep">0</div>
+                                        <div class="rep-separator">/</div>
+                                        <div class="target-rep" id="targetRep">12</div>
+                                        <div class="next-rep-preview" id="nextRepPreview">1</div>
+                                    </div>
                                     <span class="unit">reps</span>
                                 </div>
                                 <button class="stepper-modern" onclick="adjustReps(1)">+</button>
                             </div>
+
+                            <!-- BACKWARD COMPATIBILITY : Element caché pour anciennes fonctions -->
+                            <span id="setReps" style="display: none;">12</span>
                             
                             <!-- Bouton de validation -->
                             <button id="executeSetBtn" class="action-btn" onclick="executeSet()" style="display: none;">

@@ -98,6 +98,9 @@ function transitionTo(state) {
     // === CONSERVER GESTION RECONNAISSANCE VOCALE SELON L'ÉTAT ===
     switch(state) {
         case WorkoutStates.READY:
+            // NOUVEAU : Transition interface N/R vers état prêt
+            transitionToReadyState();
+            
             // Démarrer la reconnaissance vocale dès qu'on est prêt
             if (currentUser?.voice_counting_enabled && 
                 currentExercise?.exercise_type !== 'isometric' &&
@@ -111,8 +114,22 @@ function transitionTo(state) {
             }
             break;
             
+        case WorkoutStates.EXECUTING:
+            // NOUVEAU : Interface N/R en mode actif
+            const repsDisplayElExecuting = document.getElementById('repsDisplay');
+            if (repsDisplayElExecuting) {
+                repsDisplayElExecuting.className = 'reps-display-modern voice-active';
+            }
+            break;
+            
         case WorkoutStates.FEEDBACK:
         case WorkoutStates.COMPLETED:
+            // NOUVEAU : Interface N/R mode normal
+            const repsDisplayEl = document.getElementById('repsDisplay');
+            if (repsDisplayEl) {
+                repsDisplayEl.className = 'reps-display-modern';
+            }
+            
             // Arrêter la reconnaissance vocale
             if (window.voiceRecognitionActive && window.voiceRecognitionActive()) {
                 console.log('[Voice] Arrêt reconnaissance vocale');
@@ -160,6 +177,31 @@ function transitionTo(state) {
             // État temporaire : tout est masqué
             break;
     }
+}
+
+// Applique les états d'erreur vocale avec feedback visuel
+function applyVoiceErrorState(errorType = 'detection') {
+    const repsDisplayEl = document.getElementById('repsDisplay');
+    const currentRepEl = document.getElementById('currentRep');
+    
+    if (repsDisplayEl) {
+        // Animation erreur spécifique selon type
+        repsDisplayEl.className = `reps-display-modern voice-error ${errorType}`;
+        
+        // Nettoyage automatique après feedback
+        setTimeout(() => {
+            repsDisplayEl.className = 'reps-display-modern voice-active';
+        }, 800);
+    }
+    
+    if (currentRepEl) {
+        currentRepEl.classList.add('voice-error');
+        setTimeout(() => {
+            currentRepEl.classList.remove('voice-error');
+        }, 800);
+    }
+    
+    console.log(`[RepsDisplay] État erreur appliqué: ${errorType}`);
 }
 
 function updateUIForState(state) {
@@ -4717,6 +4759,175 @@ async function updateSetRecommendations() {
     }
 }
 
+// ===== INTERFACE N/R MODERNE - FONCTIONS CORE =====
+
+/**
+ * Initialise l'interface N/R avec les valeurs recommandées
+ * @param {number} targetReps - Objectif reps ML
+ * @param {string} state - État interface ('ready'|'executing'|'validating')
+ */
+function initializeRepsDisplay(targetReps, state = 'ready') {
+    const currentRepEl = document.getElementById('currentRep');
+    const targetRepEl = document.getElementById('targetRep');
+    const nextRepPreviewEl = document.getElementById('nextRepPreview');
+    const repsDisplayEl = document.getElementById('repsDisplay');
+    const backwardCompatEl = document.getElementById('setReps');
+    
+    if (!currentRepEl || !targetRepEl || !nextRepPreviewEl) {
+        console.error('[RepsDisplay] Éléments interface N/R manquants');
+        return;
+    }
+    
+    // Configuration selon état
+    if (state === 'ready') {
+        currentRepEl.textContent = '0';
+        repsDisplayEl.className = 'reps-display-modern ready-state';
+    } else {
+        currentRepEl.textContent = '0';
+        repsDisplayEl.className = 'reps-display-modern';
+    }
+    
+    targetRepEl.textContent = targetReps || 12;
+    nextRepPreviewEl.textContent = '1';
+    nextRepPreviewEl.className = 'next-rep-preview';
+    
+    // Backward compatibility
+    if (backwardCompatEl) {
+        backwardCompatEl.textContent = targetReps || 12;
+    }
+    
+    console.log(`[RepsDisplay] Initialisé - Target: ${targetReps}, État: ${state}`);
+}
+
+/**
+ * Met à jour l'interface N/R avec animation
+ * @param {number} currentRep - Répétition actuelle
+ * @param {number} targetRep - Objectif reps
+ * @param {Object} options - Options animation et états
+ */
+function updateRepDisplayModern(currentRep, targetRep, options = {}) {
+    const currentRepEl = document.getElementById('currentRep');
+    const targetRepEl = document.getElementById('targetRep');
+    const nextRepPreviewEl = document.getElementById('nextRepPreview');
+    const repsDisplayEl = document.getElementById('repsDisplay');
+    const backwardCompatEl = document.getElementById('setReps');
+    
+    if (!currentRepEl || !targetRepEl) {
+        console.warn('[RepsDisplay] Éléments manquants, fallback mode simple');
+        if (backwardCompatEl) backwardCompatEl.textContent = currentRep;
+        return;
+    }
+    
+    // Animation transition nombre actuel
+    if (currentRepEl.textContent !== currentRep.toString()) {
+        currentRepEl.classList.add('updating');
+        
+        setTimeout(() => {
+            currentRepEl.textContent = currentRep;
+            currentRepEl.classList.remove('updating');
+            
+            // État dépassement objectif
+            if (currentRep > targetRep) {
+                currentRepEl.classList.add('exceeded');
+                setTimeout(() => currentRepEl.classList.remove('exceeded'), 600);
+            }
+        }, 125);
+    }
+    
+    // Mise à jour target si changé
+    if (targetRepEl.textContent !== targetRep.toString()) {
+        targetRepEl.textContent = targetRep;
+    }
+    
+    // Preview N+1 intelligent
+    const nextRep = currentRep + 1;
+    if (nextRep <= targetRep + 2) { // Afficher jusqu'à +2 de l'objectif
+        nextRepPreviewEl.textContent = nextRep;
+        nextRepPreviewEl.className = 'next-rep-preview visible';
+    } else {
+        nextRepPreviewEl.className = 'next-rep-preview';
+    }
+    
+    // États visuels système vocal
+    if (options.voiceError) {
+        repsDisplayEl.className = 'reps-display-modern voice-error';
+        setTimeout(() => {
+            repsDisplayEl.className = 'reps-display-modern voice-active';
+        }, 500);
+    } else if (options.voiceValidating) {
+        repsDisplayEl.className = 'reps-display-modern voice-validating';
+    } else if (options.voiceActive) {
+        repsDisplayEl.className = 'reps-display-modern voice-active';
+    } else {
+        repsDisplayEl.className = 'reps-display-modern';
+    }
+    
+    // Backward compatibility critique
+    if (backwardCompatEl) {
+        backwardCompatEl.textContent = currentRep;
+    }
+    
+    console.log(`[RepsDisplay] Mis à jour: ${currentRep}/${targetRep}, État: ${repsDisplayEl.className}`);
+}
+
+/**
+ * Applique les états d'erreur vocale avec feedback visuel
+ * @param {string} errorType - Type erreur ('detection'|'jump'|'validation')
+ */
+function applyVoiceErrorState(errorType = 'detection') {
+    const repsDisplayEl = document.getElementById('repsDisplay');
+    
+    if (repsDisplayEl) {
+        // Animation erreur spécifique selon type
+        repsDisplayEl.className = `reps-display-modern voice-error ${errorType}`;
+        
+        // Nettoyage automatique après feedback
+        setTimeout(() => {
+            repsDisplayEl.className = 'reps-display-modern voice-active';
+        }, 800);
+    }
+    
+    console.log(`[RepsDisplay] État erreur appliqué: ${errorType}`);
+}
+
+/**
+ * Transition vers état prêt avec objectif affiché
+ */
+function transitionToReadyState() {
+    const repsDisplayEl = document.getElementById('repsDisplay');
+    const currentRepEl = document.getElementById('currentRep');
+    
+    if (repsDisplayEl && currentRepEl) {
+        repsDisplayEl.className = 'reps-display-modern ready-state';
+        currentRepEl.textContent = '0';
+        
+        // Masquer preview pendant préparation
+        const nextRepPreviewEl = document.getElementById('nextRepPreview');
+        if (nextRepPreviewEl) {
+            nextRepPreviewEl.className = 'next-rep-preview';
+        }
+    }
+}
+
+/**
+ * Récupère la valeur actuelle des reps (compatible ancien/nouveau système)
+ * @returns {number} Nombre de reps actuel
+ */
+function getCurrentRepsValue() {
+    const currentRepEl = document.getElementById('currentRep');
+    const backwardCompatEl = document.getElementById('setReps');
+    
+    if (currentRepEl && currentRepEl.textContent !== '0') {
+        return parseInt(currentRepEl.textContent) || 0;
+    }
+    
+    if (backwardCompatEl) {
+        return parseInt(backwardCompatEl.textContent) || 0;
+    }
+    
+    return 0;
+}
+
 // ===== PREVIEW SÉRIE SUIVANTE - FONCTIONS CORE =====
 
 /**
@@ -5800,6 +6011,7 @@ function configureBodyweight(elements, recommendations) {
     // Mettre à jour les valeurs
     const reps = recommendations.reps_recommendation || 10;
     if (elements.setReps) elements.setReps.textContent = reps;
+    initializeRepsDisplay(reps, 'ready');
     if (elements.repsHint) elements.repsHint.textContent = `IA: ${reps}`;
 }
 
@@ -5857,17 +6069,20 @@ function applyDefaultValues(exercise) {
     switch (type) {
         case 'isometric':
             if (elements.setReps) elements.setReps.textContent = '30';
+            initializeRepsDisplay(30, 'ready');
             if (elements.weightRow) elements.weightRow.setAttribute('data-hidden', 'true');
             break;
             
         case 'bodyweight':
             if (elements.setReps) elements.setReps.textContent = '10';
+            initializeRepsDisplay(10, 'ready');
             if (elements.weightRow) elements.weightRow.setAttribute('data-hidden', 'true');
             break;
             
         default:
             if (elements.setWeight) elements.setWeight.textContent = '20';
             if (elements.setReps) elements.setReps.textContent = '10';
+            initializeRepsDisplay(10, 'ready');
             break;
     }
 }
@@ -9197,7 +9412,7 @@ function executeSet() {
         };
     } else if (isBodyweight) {
         // Récupérer les reps (avec priorité au vocal si disponible)
-        repsValue = voiceData ? voiceData.count : parseInt(document.getElementById('setReps').textContent);
+        repsValue = voiceData ? voiceData.count : getCurrentRepsValue();
         
         // Mettre à jour l'affichage si données vocales
         if (voiceData) {
@@ -9213,7 +9428,7 @@ function executeSet() {
     } else {
         // === EXERCICES AVEC POIDS ===
         // Récupérer les reps (avec priorité au vocal si disponible)
-        repsValue = voiceData ? voiceData.count : parseInt(document.getElementById('setReps').textContent);
+        repsValue = voiceData ? voiceData.count : getCurrentRepsValue();
         
         // Mettre à jour l'affichage si données vocales
         if (voiceData) {
@@ -9944,15 +10159,25 @@ function animateWeightModeSwitch(newMode, displayWeight) {
     }, 200);
 }
 
+/**
+ * Ajuste les reps via steppers +/- avec nouvelle interface
+ * @param {number} delta - Changement (-1 ou +1)
+ */
 function adjustReps(delta) {
-    const repsElement = document.getElementById('setReps');
-    const current = parseInt(repsElement.textContent);
+    const currentRep = getCurrentRepsValue();
+    const targetRepEl = document.getElementById('targetRep');
+    const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) : 12;
     
-    // Pour les exercices isométriques, ajuster par 5 secondes
-    const isIsometric = currentExercise?.exercise_type === 'isometric';
-    const increment = isIsometric ? delta * 5 : delta;
+    const newRep = Math.max(0, Math.min(50, currentRep + delta));
     
-    repsElement.textContent = Math.max(1, current + increment);
+    if (newRep !== currentRep) {
+        updateRepDisplayModern(newRep, targetReps);
+        
+        // Vibration feedback
+        if (navigator.vibrate) {
+            navigator.vibrate(20);
+        }
+    }
 }
 
 function adjustDuration(delta) {

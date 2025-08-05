@@ -952,9 +952,11 @@ function handleNumberDetected(number) {
     
     // NOUVEAU - Validation intelligente du saut
     const validation = validateNumberJump(number, voiceData.lastDetected || voiceData.count);
-    
+        
     if (!validation.valid) {
         console.log(`[Voice] Rejeté: ${number} - ${validation.reason}`);
+        // NOUVEAU : Feedback erreur visuel
+        applyVoiceErrorState('jump');
         return;
     }
     
@@ -967,6 +969,8 @@ function handleNumberDetected(number) {
     // NOUVEAU - Détection répétitions
     if (number === voiceData.lastDetected) {
         voiceData.repetitions++;
+        // NOUVEAU : Feedback erreur répétition
+        applyVoiceErrorState('repetition');
         return; // Ignorer les répétitions
     }
     
@@ -1622,25 +1626,24 @@ function updatePrediction(nextNumber) {
  * Met à jour l'affichage avec optimisations performance
  */
 function updateVoiceDisplay(count) {
-    // Éviter les mises à jour inutiles
+    // Éviter mises à jour inutiles
     if (displayedCount === count) return;
-    
     displayedCount = count;
     
-    // Mise à jour principale optimisée
-    const repsElement = document.getElementById('setReps');
-    if (repsElement) {
-        repsElement.textContent = count;
-        repsElement.classList.add('voice-updated');
-        
-        // Cleanup optimisé
-        setTimeout(() => {
-            repsElement.classList.remove('voice-updated');
-        }, 300);
+    // Récupérer objectif reps
+    const targetRepEl = document.getElementById('targetRep');
+    const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) : 12;
+    
+    // Utiliser nouvelle interface N/R
+    updateRepDisplayModern(count, targetReps, { voiceActive: true });
+    
+    // Fallback backward compatibility
+    const backwardCompatEl = document.getElementById('setReps');
+    if (backwardCompatEl) {
+        backwardCompatEl.textContent = count;
     }
     
-    // Indicateur micro
-    updateMicroIndicator(count);
+    console.log(`[Voice] Interface mise à jour: ${count}/${targetReps}`);
 }
 
 /**
