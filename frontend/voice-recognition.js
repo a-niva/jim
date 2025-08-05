@@ -1909,7 +1909,13 @@ function updateVoiceDisplay(count) {
     const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) : 12;
     
     // Utiliser interface N/R moderne
-    updateRepDisplayModern(count, targetReps, { voiceActive: true });
+    if (typeof window.updateRepDisplayModern === 'function') {
+        window.updateRepDisplayModern(count, targetReps, { voiceActive: true });
+    } else {
+        // Fallback sur ancienne méthode
+        const repsElement = document.getElementById('setReps');
+        if (repsElement) repsElement.textContent = count;
+    }
     
     console.log(`[Voice] Interface mise à jour: ${count}/${targetReps}`);
 }

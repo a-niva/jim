@@ -112,6 +112,10 @@ function transitionTo(state) {
                 window.startVoiceRecognition();
                 updateVoiceToggleUI(true);
             }
+            // === ACTIVATION ÉTAT READY INTERFACE N/R ===
+            const targetRepEl = document.getElementById('targetRep');
+            const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) : 12;
+            applyReadyStateToRepsDisplay(targetReps);
             break;
             
         case WorkoutStates.EXECUTING:
@@ -181,25 +185,23 @@ function transitionTo(state) {
 
 // Applique les états d'erreur vocale avec feedback visuel
 function applyVoiceErrorState(errorType = 'detection') {
-    const repsDisplayEl = document.getElementById('repsDisplay');
-    const currentRepEl = document.getElementById('currentRep');
+    const targetRepEl = document.getElementById('targetRep');
+    const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) : 12;
+    const currentRep = getCurrentRepsValue();
     
-    if (repsDisplayEl) {
-        // Animation erreur spécifique selon type
-        repsDisplayEl.className = `reps-display-modern voice-error ${errorType}`;
-        
-        // Nettoyage automatique après feedback
-        setTimeout(() => {
-            repsDisplayEl.className = 'reps-display-modern voice-active';
-        }, 800);
-    }
+    // Mapping types erreur vers détails
+    const errorDetails = {
+        'detection': { errorType: 'detection', errorMessage: 'Détection incertaine' },
+        'jump': { errorType: 'jump_too_large', errorMessage: 'Saut trop important' },
+        'validation': { errorType: 'repetition', errorMessage: 'Nombre répété' }
+    };
     
-    if (currentRepEl) {
-        currentRepEl.classList.add('voice-error');
-        setTimeout(() => {
-            currentRepEl.classList.remove('voice-error');
-        }, 800);
-    }
+    const details = errorDetails[errorType] || errorDetails.detection;
+    
+    updateRepDisplayModern(currentRep, targetReps, {
+        voiceError: true,
+        ...details
+    });
     
     console.log(`[RepsDisplay] État erreur appliqué: ${errorType}`);
 }
@@ -4847,6 +4849,11 @@ async function updateSetRecommendations() {
             strategy: strategyResult.strategy_used
         });
         
+        // === ACTIVATION INTERFACE N/R MODERNE ===
+        const targetReps = strategyResult.reps_recommendation || strategyResult.reps || 
+                          currentExercise.default_reps_min || 12;
+        initializeRepsDisplay(targetReps, 'ready');
+        
     } catch (error) {
         console.error('Erreur recommandations ML:', error);
         
@@ -5009,25 +5016,8 @@ function updateRepDisplayModern(currentRep, targetRep, options = {}) {
 }
 
 
-// Applique les états d'erreur vocale avec feedback visuel
-function applyVoiceErrorState(errorType = 'detection') {
-    const repsDisplayEl = document.getElementById('repsDisplay');
-    
-    if (repsDisplayEl) {
-        // Animation erreur spécifique selon type
-        repsDisplayEl.className = `reps-display-modern voice-error ${errorType}`;
-        
-        // Nettoyage automatique après feedback
-        setTimeout(() => {
-            repsDisplayEl.className = 'reps-display-modern voice-active';
-        }, 800);
-    }
-    
-    console.log(`[RepsDisplay] État erreur appliqué: ${errorType}`);
-}
-
 // Transition vers état prêt avec objectif affiché
-function transitionToReadyState() {
+function transitionToReadyState() {  // Supprimer le paramètre
     const targetRepEl = document.getElementById('targetRep');
     const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) : 12;
     
@@ -5035,28 +5025,6 @@ function transitionToReadyState() {
     updateRepDisplayModern(0, targetReps, { readyState: true });
     
     console.log(`[RepsDisplay] Transition ready: Objectif ${targetReps} reps`);
-}
-
-function applyVoiceErrorState(errorType = 'detection') {
-    const targetRepEl = document.getElementById('targetRep');
-    const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) : 12;
-    const currentRep = getCurrentRepsValue();
-    
-    // Mapping types erreur vers détails
-    const errorDetails = {
-        'detection': { errorType: 'detection', errorMessage: 'Détection incertaine' },
-        'jump': { errorType: 'jump_too_large', errorMessage: 'Saut trop important' },
-        'validation': { errorType: 'repetition', errorMessage: 'Nombre répété' }
-    };
-    
-    const details = errorDetails[errorType] || errorDetails.detection;
-    
-    updateRepDisplayModern(currentRep, targetReps, {
-        voiceError: true,
-        ...details
-    });
-    
-    console.log(`[RepsDisplay] État erreur appliqué: ${errorType}`);
 }
 
 /**
@@ -5076,6 +5044,16 @@ function getCurrentRepsValue() {
     }
     
     return 0;
+}
+
+function applyReadyStateToRepsDisplay() {
+    const targetRepEl = document.getElementById('targetRep');
+    const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) : 12;
+    
+    // PHASE 4 - Affichage objectif avec état ready
+    updateRepDisplayModern(0, targetReps, { readyState: true });
+    
+    console.log(`[RepsDisplay] Transition ready: Objectif ${targetReps} reps`);
 }
 
 // ===== PREVIEW SÉRIE SUIVANTE - FONCTIONS CORE =====
@@ -12696,6 +12674,13 @@ window.restartExercise = restartExercise;
 window.handleExerciseCardClick = handleExerciseCardClick;
 window.showProgramExerciseList = showProgramExerciseList;
 window.updateHeaderProgress = updateHeaderProgress;
+// === EXPOSITION FONCTIONS INTERFACE N/R ===
+window.updateRepDisplayModern = updateRepDisplayModern;
+window.initializeRepsDisplay = initializeRepsDisplay;
+window.getCurrentRepsValue = getCurrentRepsValue;
+window.applyVoiceErrorState = applyVoiceErrorState;
+window.transitionToReadyState = transitionToReadyState;
+
 window.updateProgramExerciseProgress = updateProgramExerciseProgress;
 window.abandonActiveWorkout = abandonActiveWorkout;
 window.finishExercise = finishExercise;
