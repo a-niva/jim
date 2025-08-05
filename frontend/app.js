@@ -4936,6 +4936,201 @@ function initializeRepsDisplay(targetReps, state = 'ready') {
     console.log(`[RepsDisplay] Initialisé - Target: ${targetReps}, État: ${state}`);
 }
 
+/**
+ * Récupère la valeur actuelle des reps de manière abstraite
+ * Compatible avec ancienne et nouvelle UI
+ * @returns {number} Nombre de répétitions actuel
+ */
+function getCurrentRepsValue() {
+    // Priorité à la nouvelle interface
+    const modernRep = document.getElementById('currentRep');
+    if (modernRep) {
+        const value = parseInt(modernRep.textContent) || 0;
+        console.log('[UI] Lecture reps moderne:', value);
+        return value;
+    }
+    
+    // Fallback sur ancienne interface
+    const legacyRep = document.getElementById('setReps');
+    if (legacyRep) {
+        const value = parseInt(legacyRep.textContent) || 0;
+        console.log('[UI] Lecture reps legacy:', value);
+        return value;
+    }
+    
+    console.warn('[UI] Aucun élément reps trouvé');
+    return 0;
+}
+
+/**
+ * Initialise l'interface moderne N/R
+ * @param {number} targetReps - Objectif de répétitions
+ * @param {number} currentReps - Compteur initial (défaut 0)
+ */
+function initializeModernRepsDisplay(targetReps = 12, currentReps = 0) {
+    console.log(`[UI] Initialisation interface N/R: ${currentReps}/${targetReps}`);
+    
+    // Vérifier si container existe déjà
+    let repsDisplay = document.getElementById('repsDisplay');
+    
+    if (!repsDisplay) {
+        // Chercher l'ancienne structure pour la remplacer
+        const oldSetReps = document.getElementById('setReps');
+        if (oldSetReps && oldSetReps.parentNode) {
+            repsDisplay = document.createElement('div');
+            repsDisplay.id = 'repsDisplay';
+            repsDisplay.className = 'reps-display-modern';
+            
+            // Remplacer l'ancien élément
+            oldSetReps.parentNode.replaceChild(repsDisplay, oldSetReps);
+        } else {
+            console.error('[UI] Impossible de créer interface N/R - pas de container parent');
+            return;
+        }
+    }
+    
+    // Structure HTML moderne
+    repsDisplay.innerHTML = `
+        <div class="current-rep" id="currentRep">${currentReps}</div>
+        <div class="rep-separator">/</div>
+        <div class="target-rep" id="targetRep">${targetReps}</div>
+        <div class="next-rep-preview" id="nextRepPreview">${currentReps + 1}</div>
+    `;
+    
+    // État initial selon le workflow
+    if (workoutState.current === WorkoutStates.READY) {
+        transitionToReadyState();
+    }
+    
+    console.log('[UI] Interface N/R initialisée avec succès');
+}
+
+/**
+ * Met à jour l'affichage moderne des reps avec animations
+ * @param {number} currentRep - Répétition actuelle
+ * @param {number} targetRep - Objectif (optionnel)
+ * @param {Object} options - Options d'animation
+ */
+function updateRepDisplayModern(currentRep, targetRep = null, options = {}) {
+    const repsDisplayEl = document.getElementById('repsDisplay');
+    if (!repsDisplayEl) {
+        console.warn('[UI] Interface N/R non trouvée');
+        return;
+    }
+    
+    const currentRepEl = document.getElementById('currentRep');
+    const targetRepEl = document.getElementById('targetRep');
+    const nextRepPreviewEl = document.getElementById('nextRepPreview');
+    
+    if (!currentRepEl || !targetRepEl) {
+        console.error('[UI] Éléments N/R manquants');
+        return;
+    }
+    
+    // Si pas de target fourni, lire depuis DOM
+    if (targetRep === null) {
+        targetRep = parseInt(targetRepEl.textContent) || 12;
+    }
+    
+    // Animation de transition pour current
+    if (currentRepEl.textContent !== currentRep.toString()) {
+        currentRepEl.classList.add('updating');
+        
+        setTimeout(() => {
+            currentRepEl.textContent = currentRep;
+            currentRepEl.classList.remove('updating');
+            
+            // État dépassement objectif
+            if (currentRep > targetRep) {
+                currentRepEl.classList.add('exceeded');
+                // Pulse effect
+                setTimeout(() => currentRepEl.classList.remove('exceeded'), 600);
+            }
+        }, 150);
+    }
+    
+    // Mise à jour target si changé
+    if (targetRepEl.textContent !== targetRep.toString()) {
+        targetRepEl.textContent = targetRep;
+    }
+    
+    // Preview N+1 intelligent
+    const nextRep = currentRep + 1;
+    if (nextRep <= targetRep + 2) { // Afficher jusqu'à +2 de l'objectif
+        nextRepPreviewEl.textContent = nextRep;
+        nextRepPreviewEl.classList.add('visible');
+    } else {
+        nextRepPreviewEl.classList.remove('visible');
+    }
+    
+    // Gestion des options (erreur vocale, etc.)
+    if (options.voiceError) {
+        applyVoiceErrorState(options.errorType || 'generic');
+    }
+    
+    console.log(`[UI] Reps mis à jour: ${currentRep}/${targetRep}`);
+}
+
+/**
+ * Transition vers l'état READY avec interface moderne
+ */
+function transitionToReadyState() {
+    const repsDisplayEl = document.getElementById('repsDisplay');
+    if (!repsDisplayEl) return;
+    
+    const currentRepEl = document.getElementById('currentRep');
+    const targetRepEl = document.getElementById('targetRep');
+    
+    if (currentRepEl && targetRepEl) {
+        // Afficher "Objectif: X reps" en état ready
+        repsDisplayEl.classList.add('ready-state');
+        const targetValue = targetRepEl.textContent;
+        currentRepEl.textContent = targetValue;
+        currentRepEl.setAttribute('data-label', 'Objectif');
+    }
+    
+    // Masquer preview en état ready
+    const previewEl = document.getElementById('nextRepPreview');
+    if (previewEl) {
+        previewEl.classList.remove('visible');
+    }
+}
+
+/**
+ * Applique l'état d'erreur visuel pour feedback vocal
+ * @param {string} errorType - Type d'erreur ('jump'|'repeat'|'invalid')
+ * @param {number} duration - Durée en ms (défaut 1000)
+ */
+function applyVoiceErrorState(errorType = 'generic', duration = 1000) {
+    const currentRepEl = document.getElementById('currentRep');
+    if (!currentRepEl) return;
+    
+    // Mapper le type d'erreur vers la classe CSS
+    const errorClasses = {
+        'jump': 'voice-error-jump',
+        'repeat': 'voice-error-repeat',
+        'invalid': 'voice-error-invalid',
+        'generic': 'voice-error'
+    };
+    
+    const errorClass = errorClasses[errorType] || errorClasses.generic;
+    
+    // Appliquer la classe d'erreur
+    currentRepEl.classList.add(errorClass);
+    
+    // Vibration sur mobile si disponible
+    if (navigator.vibrate && errorType !== 'generic') {
+        navigator.vibrate(50);
+    }
+    
+    // Retirer après duration
+    setTimeout(() => {
+        currentRepEl.classList.remove(errorClass);
+    }, duration);
+    
+    console.log(`[UI] État erreur appliqué: ${errorType}`);
+}
+
 // Met à jour l'interface N/R avec animation
 function updateRepDisplayModern(currentRep, targetRep, options = {}) {
     const currentRepEl = document.getElementById('currentRep');
@@ -5761,15 +5956,21 @@ function applyFallbackRecommendations() {
 
 // ===== COUCHE 6 : CONFIGURATION EXERCICES =====
 
+/**
+ * Configuration pour exercices avec poids (pas de changement)
+ */
 async function configureWeighted(elements, exercise, weightRec) {
+    // [Code identique à ma réponse précédente]
+    if (!exercise || !exercise.id) {
+        console.error('[ConfigureWeighted] Exercice invalide');
+        return;
+    }
+
     console.log('[ConfigureWeighted] Start:', {
         exercise: exercise.name,
         weightRec,
         equipment: exercise.equipment_required
     });
-    
-    // AJOUT pour debug
-    console.log('[ConfigureWeighted] SessionStorage avant:', sessionStorage.getItem('availableWeights'));
     
     // Initialiser le système charge/total
     initializeWeightMode(exercise);
@@ -5780,8 +5981,9 @@ async function configureWeighted(elements, exercise, weightRec) {
         elements.weightRow.style.display = 'flex';
     }
     
+    // S'assurer que la ligne reps est visible
     if (elements.repsRow) {
-        elements.repsRow.setAttribute('data-hidden', 'false');
+        elements.repsRow.removeAttribute('data-hidden');
         elements.repsRow.style.display = 'flex';
     }
     
@@ -5825,7 +6027,6 @@ async function configureWeighted(elements, exercise, weightRec) {
         realWeight: currentExerciseRealWeight,
         availableCount: availableWeights.length
     });
-    console.log('[ConfigureWeighted] SessionStorage après:', sessionStorage.getItem('availableWeights'));
 }
 
 // ===== SYSTÈME D'APPUI LONG =====
@@ -6157,6 +6358,7 @@ async function configureUIForExerciseType(type, recommendations) {
     console.log('Exercice:', currentExercise?.name);
     console.log('exercise_type:', currentExercise?.exercise_type);
     console.log('weight_type:', currentExercise?.weight_type);
+    
     // Récupérer les éléments DOM une seule fois
     const elements = {
         weightRow: document.querySelector('.input-row:has(#setWeight)'),
@@ -6175,30 +6377,49 @@ async function configureUIForExerciseType(type, recommendations) {
         increaseWeight: document.querySelector('.input-row:has(#setWeight) .stepper-modern:last-of-type')
     };
 
+    // === NOUVEAU : Initialiser interface moderne SAUF pour isométrique ===
+    let shouldInitModernDisplay = true;
+    let targetReps = 12; // Défaut
+    
     switch (type) {
         case 'isometric':
+            // PAS d'interface moderne pour isométrique - ils ont leur propre timer
+            shouldInitModernDisplay = false;
             configureIsometric(elements, recommendations);
             break;
             
         case 'bodyweight':
+            targetReps = recommendations?.reps_recommendation || currentExercise?.last_reps || 15;
             configureBodyweight(elements, recommendations);
             break;
             
         case 'weighted':
+            targetReps = recommendations?.reps_recommendation || currentExercise?.last_reps || 12;
             await configureWeighted(elements, currentExercise, recommendations.weight_recommendation || 20);
             break;
     }
+    
+    // === NOUVEAU : Initialiser interface moderne SEULEMENT si approprié ===
+    if (shouldInitModernDisplay) {
+        setTimeout(() => {
+            initializeModernRepsDisplay(targetReps, 0);
+        }, 100);
+    }
+    
     // Créer bouton GO seulement quand nécessaire
     const executeBtn = document.getElementById('executeSetBtn');
     if (executeBtn) {
         updateExecuteButtonState('ready');
     }
+    
     // Afficher le temps de repos si recommandé (commun à tous les types)
     updateRestRecommendation(recommendations);
     updateConfidence(recommendations);
 }
 
-// Configuration pour exercices isométriques
+/**
+ * Configuration pour exercices isométriques
+ */
 function configureIsometric(elements, recommendations) {
     console.log('=== DEBUG configureIsometric ===');
     console.log('currentExercise:', currentExercise?.name);
@@ -6207,57 +6428,25 @@ function configureIsometric(elements, recommendations) {
     // VÉRIFICATION STRICTE : Ne pas continuer si ce n'est PAS un isométrique
     if (!currentExercise || currentExercise.exercise_type !== 'isometric') {
         console.error('❌ configureIsometric appelé pour un exercice NON-isométrique !');
-        console.error('Exercice:', currentExercise?.name, 'Type:', currentExercise?.exercise_type);
-        return; // SORTIR IMMÉDIATEMENT
+        return;
     }
     
-    console.log('✅ Exercice isométrique confirmé, configuration du timer...');
-    
-    if (elements.weightRow) elements.weightRow.setAttribute('data-hidden', 'true');
-    if (elements.repsRow) elements.repsRow.setAttribute('data-hidden', 'true');
-    
-    // Adapter l'emoji vert pour les isométriques (ne PAS masquer)
-    const executeBtn = document.getElementById('executeSetBtn');
-    if (executeBtn) {
-        executeBtn.style.display = 'block';
-        const emoji = executeBtn.querySelector('.go-emoji');
-        if (emoji) emoji.textContent = '✅';  // Utiliser textContent au lieu de innerHTML
-        executeBtn.setAttribute('data-isometric-mode', 'start');
-        executeBtn.classList.remove('btn-danger');
-        executeBtn.classList.add('btn-success');
-        executeBtn.onclick = () => handleIsometricAction();
-    }
-        
-    // Masquer aussi la section de feedback temporairement
-    const feedbackSection = document.getElementById('setFeedback');
-    if (feedbackSection) {
-        feedbackSection.style.display = 'none';
+    // Masquer la ligne de poids (non applicable)
+    if (elements.weightRow) {
+        elements.weightRow.setAttribute('data-hidden', 'true');
+        elements.weightRow.style.display = 'none';
     }
     
-    const targetDuration = Math.max(15, recommendations.reps_recommendation || 30);
+    // === PRÉSERVER LE COMPORTEMENT ORIGINAL : Masquer ligne reps ===
+    if (elements.repsRow) {
+        elements.repsRow.setAttribute('data-hidden', 'true');
+        elements.repsRow.style.display = 'none';
+    }
     
-    // Supprimer timer existant si présent
-    const existingTimer = document.getElementById('isometric-timer');
-    if (existingTimer) existingTimer.remove();
-        
-    const timerHtml = `
-        <div class="isometric-timer" id="isometric-timer">
-            <svg class="timer-svg" viewBox="0 0 200 200">
-                <circle class="timer-track" cx="100" cy="100" r="80"/>
-                <circle class="timer-progress target" cx="100" cy="100" r="80" id="progress-target"/>
-                <circle class="timer-progress overflow" cx="100" cy="100" r="80" id="progress-overflow"/>
-            </svg>
-            <div class="timer-center">
-                <div id="timer-display">0s</div>
-                <div class="timer-target">Objectif: ${targetDuration}s</div>
-            </div>
-        </div>`;
+    // Le timer isométrique sera créé par le système existant
+    // PAS d'interface moderne N/R pour les isométriques
     
-    document.querySelector('.input-section').insertAdjacentHTML('beforeend', timerHtml);
-    setupIsometricTimer(targetDuration);
-    updateExecuteButtonState('isometric-start');
-    
-    console.log(`✅ Timer isométrique configuré - Objectif: ${targetDuration}s`);
+    console.log('[Isometric] Configuration terminée - Timer mode');
 }
 
 function setupIsometricTimer(targetDuration) {
@@ -6394,27 +6583,94 @@ function cleanupIsometricTimer() {
     console.log('Timer isométrique nettoyé - Bouton restauré pour exercices classiques');
 }
 
-// Configuration pour exercices bodyweight
+/**
+ * Configure l'UI selon le type d'exercice - FONCTION PRINCIPALE
+ */
+async function configureUIForExerciseType(type, recommendations) {
+    console.log('=== DEBUG configureUIForExerciseType ===');
+    console.log('Type déterminé:', type);
+    console.log('Exercice:', currentExercise?.name);
+    console.log('exercise_type:', currentExercise?.exercise_type);
+    console.log('weight_type:', currentExercise?.weight_type);
+    
+    // Récupérer les éléments DOM une seule fois
+    const elements = {
+        weightRow: document.querySelector('.input-row:has(#setWeight)'),
+        repsRow: document.querySelector('.input-row:has(#setReps)'),
+        weightHint: document.getElementById('weightHint'),
+        repsHint: document.getElementById('repsHint'),
+        setWeight: document.getElementById('setWeight'),
+        setReps: document.getElementById('setReps'),
+        repsIcon: document.querySelector('.input-row:has(#setReps) .input-icon'),
+        repsUnit: document.querySelector('.input-row:has(#setReps) .unit'),
+        
+        // CORRECTIF : Ajouter les contrôles manquants
+        weightedControls: document.querySelector('.weighted-controls'),
+        bodyweightControls: document.querySelector('.bodyweight-controls'),
+        decreaseWeight: document.querySelector('.input-row:has(#setWeight) .stepper-modern:first-of-type'),
+        increaseWeight: document.querySelector('.input-row:has(#setWeight) .stepper-modern:last-of-type')
+    };
+
+    // === NOUVEAU : Déterminer l'objectif de reps selon le type ===
+    let targetReps = 12; // Défaut
+    
+    switch (type) {
+        case 'isometric':
+            targetReps = recommendations?.duration_recommendation || 30; // Durée en secondes
+            configureIsometric(elements, recommendations);
+            break;
+            
+        case 'bodyweight':
+            targetReps = recommendations?.reps_recommendation || currentExercise?.last_reps || 15;
+            configureBodyweight(elements, recommendations);
+            break;
+            
+        case 'weighted':
+            targetReps = recommendations?.reps_recommendation || currentExercise?.last_reps || 12;
+            await configureWeighted(elements, currentExercise, recommendations.weight_recommendation || 20);
+            break;
+    }
+    
+    // === NOUVEAU : Initialiser l'interface moderne N/R après configuration ===
+    // Attendre un tick pour que les éléments soient bien configurés
+    setTimeout(() => {
+        initializeModernRepsDisplay(targetReps, 0);
+    }, 100);
+    
+    // Créer bouton GO seulement quand nécessaire
+    const executeBtn = document.getElementById('executeSetBtn');
+    if (executeBtn) {
+        updateExecuteButtonState('ready');
+    }
+    
+    // Afficher le temps de repos si recommandé (commun à tous les types)
+    updateRestRecommendation(recommendations);
+    updateConfidence(recommendations);
+}
+
+/**
+ * Configuration pour exercices bodyweight
+ */
 function configureBodyweight(elements, recommendations) {
     // Masquer la ligne de poids
     if (elements.weightRow) {
         elements.weightRow.setAttribute('data-hidden', 'true');
+        elements.weightRow.style.display = 'none';
     }
     
-    // S'assurer que l'affichage des reps est normal
+    // S'assurer que la ligne reps est visible
     if (elements.repsRow) {
-        elements.repsRow.classList.remove('duration-display');
+        elements.repsRow.removeAttribute('data-hidden');
+        elements.repsRow.style.display = 'flex';
     }
     
-    // Icône et unité normales
-    if (elements.repsIcon) elements.repsIcon.textContent = '🔢';
-    if (elements.repsUnit) elements.repsUnit.textContent = 'reps';
+    // Configuration de base
+    const typeText = document.querySelector('.type-text');
+    if (typeText) {
+        typeText.textContent = 'Corps';
+    }
     
-    // Mettre à jour les valeurs
-    const reps = recommendations.reps_recommendation || 10;
-    if (elements.setReps) elements.setReps.textContent = reps;
-    initializeRepsDisplay(reps, 'ready');
-    if (elements.repsHint) elements.repsHint.textContent = `IA: ${reps}`;
+    console.log('[Bodyweight] Configuration terminée');
 }
 
 // Calculer le poids maximum théorique pour dumbbells
@@ -9650,10 +9906,26 @@ function hidePlateHelper() {
 }
 // ===== COUCHE 8 : EXECUTE SET =====
 
-function executeSet() {
-    /**
-     * VERSION INTÉGRÉE ÉTAPE 4 : Auto-validation + conservation complète fonctionnalités
-     */
+async function executeSet() {
+    console.log('=== EXECUTE SET APPELÉ ===');
+    
+    // PHASE 4 - Vérifier si interpolation en cours
+    if (window.interpolationInProgress) {
+        console.log('[ExecuteSet] Interpolation en cours, attente...');
+        showToast('⏳ Finalisation du comptage...', 'info');
+        return;
+    }
+    
+    // Validation basique de l'état
+    if (!currentExercise || !currentWorkoutSession.id) {
+        console.error('Pas d\'exercice ou de séance active');
+        showToast('Erreur: Aucune séance active', 'error');
+        return;
+    }
+
+    // Capturer feedback sélectionné
+    const selectedEmoji = document.querySelector('.emoji-btn.selected, .emoji-btn-modern.selected');
+    const feedback = selectedEmoji ? selectedEmoji.dataset.feedback : 3;
     
     // === NOUVELLE GESTION ÉTATS VOCAUX (AJOUT ÉTAPE 4) ===
     
@@ -12867,3 +13139,10 @@ window.preloadNextSeriesRecommendations = preloadNextSeriesRecommendations;
 window.renderNextSeriesPreview = renderNextSeriesPreview;
 window.clearNextSeriesPreview = clearNextSeriesPreview;
 window.updateMicrophoneVisualState = updateMicrophoneVisualState;
+
+// === EXPOSITION FONCTIONS PHASE 2 ===
+window.getCurrentRepsValue = getCurrentRepsValue;
+window.initializeModernRepsDisplay = initializeModernRepsDisplay;
+window.updateRepDisplayModern = updateRepDisplayModern;
+window.transitionToReadyState = transitionToReadyState;
+window.applyVoiceErrorState = applyVoiceErrorState;

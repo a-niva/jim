@@ -1915,27 +1915,43 @@ function updatePrediction(nextNumber) {
 }
 
 /**
- * Met à jour l'affichage avec optimisations performance
+ * Met à jour l'affichage du compteur de répétitions
+ * Compatible avec ancienne et nouvelle interface
+ * 
+ * @param {number} count - Nombre de répétitions détectées
+ * @returns {void}
  */
 function updateVoiceDisplay(count) {
-    // Éviter mises à jour inutiles
-    if (displayedCount === count) return;
-    displayedCount = count;
-    
-    // Récupérer objectif reps
-    const targetRepEl = document.getElementById('targetRep');
-    const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) : 12;
-    
-    // Utiliser interface N/R moderne
-    if (typeof window.updateRepDisplayModern === 'function') {
-        window.updateRepDisplayModern(count, targetReps, { voiceActive: true });
-    } else {
-        // Fallback sur ancienne méthode
-        const repsElement = document.getElementById('setReps');
-        if (repsElement) repsElement.textContent = count;
+    // Priorité à l'interface moderne
+    if (document.getElementById('repsDisplay')) {
+        // Récupérer l'objectif depuis l'interface
+        const targetEl = document.getElementById('targetRep');
+        const targetReps = targetEl ? parseInt(targetEl.textContent) || 12 : 12;
+        
+        // Utiliser la fonction moderne
+        updateRepDisplayModern(count, targetReps);
+        
+        // Mettre à jour voiceData
+        voiceData.count = count;
+        displayedCount = count;
+        
+        console.log(`[Voice] Affichage moderne mis à jour: ${count}/${targetReps}`);
+        return;
     }
     
-    console.log(`[Voice] Interface mise à jour: ${count}/${targetReps}`);
+    // Fallback sur ancienne interface
+    const repsElement = document.getElementById('setReps');
+    if (!repsElement) {
+        console.warn('[Voice] Aucun élément d\'affichage trouvé');
+        return;
+    }
+    
+    // Mise à jour simple pour legacy
+    repsElement.textContent = count;
+    voiceData.count = count;
+    displayedCount = count;
+    
+    console.log(`[Voice] Affichage legacy mis à jour: ${count}`);
 }
 
 /**
