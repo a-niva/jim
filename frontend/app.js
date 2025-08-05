@@ -178,7 +178,16 @@ function transitionTo(state) {
             break;
 
         case WorkoutStates.TRANSITIONING:
-            // État temporaire : tout est masqué
+            // AJOUTER UN FALLBACK DE SÉCURITÉ
+            console.warn('[State] TRANSITIONING détecté - scheduling safety fallback');
+            
+            // Timer de sécurité pour éviter de rester bloqué
+            setTimeout(() => {
+                if (workoutState.current === WorkoutStates.TRANSITIONING) {
+                    console.error('[State] TRANSITIONING timeout - force READY');
+                    transitionTo(WorkoutStates.READY);
+                }
+            }, 5000); // 5s max en transition
             break;
     }
 }
