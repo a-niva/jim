@@ -57,7 +57,76 @@ let currentScoringData = null;
 let draggedElement = null;
 let lastKnownScore = null;
 
+/**
+ * Fonction debounce simple pour optimiser les updates fréquents
+ */
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
 
+// Version debouncée de updateRepDisplayModern
+const debouncedUpdateDisplay = debounce(
+    (currentRep, targetRep, options) => {
+        if (typeof window.updateRepDisplayModern === 'function') {
+            window.updateRepDisplayModern(currentRep, targetRep, options);
+        }
+    }, 
+    50
+);
+
+// Exposition globale
+window.debouncedUpdateDisplay = debouncedUpdateDisplay;
+
+/**
+ * Cache LRU optimisé pour les recommandations
+ */
+class LRUCache {
+    constructor(maxSize = 20) {
+        this.cache = new Map();
+        this.maxSize = maxSize;
+    }
+    
+    get(key) {
+        if (this.cache.has(key)) {
+            const value = this.cache.get(key);
+            this.cache.delete(key);
+            this.cache.set(key, value); // Move to end (most recent)
+            return value;
+        }
+        return null;
+    }
+    
+    set(key, value) {
+        if (this.cache.has(key)) {
+            this.cache.delete(key);
+        } else if (this.cache.size >= this.maxSize) {
+            const firstKey = this.cache.keys().next().value;
+            this.cache.delete(firstKey);
+        }
+        this.cache.set(key, value);
+    }
+    
+    clear() {
+        this.cache.clear();
+    }
+    
+    size() {
+        return this.cache.size;
+    }
+}
+
+// Remplacer le cache simple par LRU
+if (!workoutState.nextSeriesCache) {
+    workoutState.nextSeriesCache = new LRUCache(20);
+}
 
 // ===== GESTIONNAIRE OVERLAYS UNIFIÉ =====
 const OverlayManager = {
@@ -176,7 +245,15 @@ function storeCurrentScoringData(scoringData) {
 // REMPLACER LA LOGIQUE EXISTANTE PAR :
 function transitionTo(state) {
     console.log(`[State] Transition: ${workoutState.current} → ${state}`);
-    
+
+    // Cleanup automatique des timers selon l'état
+    if (typeof cleanupAllVoiceTimers === 'function') {
+        cleanupAllVoiceTimers();
+    }
+    if (state === WorkoutStates.IDLE && typeof cleanupAllWorkoutTimers === 'function') {
+        cleanupAllWorkoutTimers();
+    }
+
     // === NETTOYAGE GLOBAL STRICT ===
     // 1. Fermer TOUS les overlays avant transition
     if (window.OverlayManager) {

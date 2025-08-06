@@ -2092,6 +2092,54 @@ function validateVoiceData(data) {
     return false;
 }
 
+/**
+ * Collecte l'état de santé du système vocal pour monitoring
+ */
+function getVoiceSystemHealth() {
+    const timersActive = [
+        window.validationTimer,
+        window.autoValidationTimer,
+        window.correctionTimer
+    ].filter(t => t !== null).length;
+    
+    return {
+        recognitionActive: voiceRecognitionActive,
+        currentState: voiceState,
+        timersActive: timersActive,
+        memoryUsage: recognitionCache ? recognitionCache.size : 0,
+        lastActivity: voiceData.startTime,
+        confidenceLevel: voiceData.confidence,
+        gapsDetected: voiceData.gaps.length
+    };
+}
+
+/**
+ * Valide la cohérence du système vocal
+ */
+function validateVoiceSystemCoherence() {
+    const health = getVoiceSystemHealth();
+    const issues = [];
+    
+    // Vérifications cohérence
+    if (health.recognitionActive && health.currentState === 'LISTENING' && health.timersActive === 0) {
+        issues.push('Recognition active mais aucun timer');
+    }
+    
+    if (health.memoryUsage > 100) {
+        issues.push('Cache recognition surchargé');
+    }
+    
+    if (issues.length > 0) {
+        console.warn('[Voice] Issues détectées:', issues);
+    }
+    
+    return { healthy: issues.length === 0, issues };
+}
+
+// Exposition pour debug
+window.getVoiceSystemHealth = getVoiceSystemHealth;
+window.validateVoiceSystemCoherence = validateVoiceSystemCoherence;
+
 // ===== EXPORTS GLOBAUX =====
 
 // Exposer les fonctions principales dans l'objet window
