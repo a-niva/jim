@@ -5501,34 +5501,43 @@ async function preloadNextSeriesRecommendations() {
  * @param {Object|null} previewData - Données ou null pour skeleton
  */
 function renderNextSeriesPreview(previewData) {
-    // Utiliser la structure HTML existante au lieu de la créer
     const previewEl = document.getElementById('nextSeriesPreview');
     if (!previewEl) {
-        console.log('[Preview] Élément nextSeriesPreview introuvable dans le HTML');
+        console.log('[Preview] Élément preview introuvable');
         return;
     }
     
     console.log('[Preview] Mise à jour avec données:', previewData);
     
-    if (previewData) {
-        // Mettre à jour les valeurs existantes
-        const weightEl = document.getElementById('previewWeight');
-        const repsEl = document.getElementById('previewReps');
-        const restEl = document.getElementById('previewRest');
-        
-        if (weightEl) weightEl.textContent = `${previewData.weight || '--'}`;
-        if (repsEl) repsEl.textContent = `${previewData.reps || '--'}`;
-        if (restEl) restEl.textContent = `${previewData.rest || '--'}`;
-        
-        // Afficher l'élément s'il était caché
-        previewEl.style.display = 'block';
-        previewEl.classList.remove('hidden');
-    } else {
-        // Afficher des tirets si pas de données
-        document.getElementById('previewWeight').textContent = '--';
-        document.getElementById('previewReps').textContent = '--';
-        document.getElementById('previewRest').textContent = '--';
-    }
+    // S'assurer que l'élément est visible
+    previewEl.style.display = 'block';
+    previewEl.classList.remove('hidden');
+    
+    // Mettre à jour les valeurs
+    const updates = {
+        'previewWeight': previewData?.weight || '--',
+        'previewReps': previewData?.reps || '--', 
+        'previewRest': previewData?.rest || '--'
+    };
+    
+    Object.entries(updates).forEach(([id, value]) => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.textContent = String(value);
+            // Ajouter unités si valeur numérique
+            if (value !== '--') {
+                if (id === 'previewWeight') el.textContent += 'kg';
+                if (id === 'previewRest') el.textContent += 's';
+            }
+        }
+    });
+    
+    // Animation d'apparition
+    previewEl.style.opacity = '0';
+    requestAnimationFrame(() => {
+        previewEl.style.transition = 'opacity 0.3s ease-out';
+        previewEl.style.opacity = '1';
+    });
 }
 
 /**
@@ -5537,10 +5546,17 @@ function renderNextSeriesPreview(previewData) {
 function clearNextSeriesPreview() {
     const previewEl = document.getElementById('nextSeriesPreview');
     if (previewEl) {
-        // Remettre les valeurs par défaut au lieu de supprimer l'élément
+        // NE PAS supprimer l'élément, juste réinitialiser les valeurs
         document.getElementById('previewWeight').textContent = '--';
         document.getElementById('previewReps').textContent = '--';
         document.getElementById('previewRest').textContent = '--';
+        
+        // Cacher temporairement sans détruire
+        previewEl.style.opacity = '0';
+        setTimeout(() => {
+            previewEl.style.opacity = '1';
+        }, 300);
+        
         console.log('[Preview] Nettoyage effectué');
     }
 }

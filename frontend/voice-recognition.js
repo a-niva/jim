@@ -372,19 +372,58 @@ function stopVoiceRecognition() {
         recognition.stop();
         voiceRecognitionActive = false;
         
-        // === NOUVEAU : État visuel inactif ===
+        // État visuel inactif
         updateMicrophoneVisualState('inactive');
         
-        // Calculer la confiance finale...
-        // [reste du code existant]
+        // Nettoyer les timers actifs
+        if (typeof clearAutoValidationTimer === 'function') {
+            clearAutoValidationTimer();
+        }
         
-        // Mettre à jour l'interface - icône micro inactive (legacy)
+        // === CALCUL DE CONFIANCE INTELLIGENT ===
+        if (voiceData.count > 0) {
+            // Méthode 1 : Si calculateConfidence() existe, l'utiliser
+            if (typeof calculateConfidence === 'function') {
+                voiceData.confidence = calculateConfidence();
+            } else {
+                // Méthode 2 : Calcul simple basé sur les gaps et sauts
+                let confidence = 1.0;
+                
+                // Pénalité pour les gaps (max 30%)
+                if (voiceData.gaps.length > 0) {
+                    const gapPenalty = Math.min(voiceData.gaps.length * 0.15, 0.3);
+                    confidence -= gapPenalty;
+                }
+                
+                // Pénalité pour les sauts suspects (max 20%)
+                if (voiceData.suspiciousJumps > 0) {
+                    const jumpPenalty = Math.min(voiceData.suspiciousJumps * 0.1, 0.2);
+                    confidence -= jumpPenalty;
+                }
+                
+                voiceData.confidence = Math.max(0.1, confidence);
+            }
+            
+            // Déterminer si validation nécessaire (seuil à 0.7)
+            voiceData.needsValidation = voiceData.confidence < 0.7;
+            
+            console.log('[Voice] Confiance finale:', {
+                score: voiceData.confidence.toFixed(2),
+                level: voiceData.confidence >= 0.8 ? 'HIGH' : 
+                       voiceData.confidence >= 0.6 ? 'MEDIUM' : 'LOW',
+                needsValidation: voiceData.needsValidation,
+                gaps: voiceData.gaps,
+                suspiciousJumps: voiceData.suspiciousJumps || 0
+            });
+        }
+        
+        // Mise à jour interface micro (legacy)
         const microIcon = document.querySelector('.voice-toggle-container i');
         if (microIcon) {
             microIcon.classList.remove('active');
         }
         
-        // CRUCIAL : Exposer les données finales globalement pour executeSet()
+        // === EXPOSITION GLOBALE POUR executeSet() ===
         window.voiceData = voiceData;
         
         console.log('[Voice] Reconnaissance arrêtée');
@@ -398,6 +437,7 @@ function stopVoiceRecognition() {
     } catch (error) {
         console.error('[Voice] Erreur lors de l\'arrêt:', error);
         updateMicrophoneVisualState('inactive');
+        voiceRecognitionActive = false;
     }
 }
 
