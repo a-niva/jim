@@ -421,7 +421,20 @@ function startVoiceRecognition() {
         return;
     }
     
-    // RESET COMPLET
+    // 🚨 NOUVEAU : Nettoyage des modes conflictuels
+    passiveListening = false;
+    correctionMode = false;
+    if (correctionTimer) {
+        clearTimeout(correctionTimer);
+        correctionTimer = null;
+    }
+    
+    // 🚨 NOUVEAU : Restaurer handlers normaux
+    recognition.onresult = handleVoiceResult;
+    recognition.onerror = handleVoiceError;
+    recognition.onend = handleVoiceEnd;
+    
+    // RESET COMPLET (code existant)
     voiceData = {
         count: 0,
         timestamps: [],
