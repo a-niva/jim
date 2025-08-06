@@ -5429,6 +5429,8 @@ let nextSeriesRecommendationsCache = null;
  * @returns {Promise<Object>} Recommandations {weight, reps, rest, confidence}
  */
 async function preloadNextSeriesRecommendations() {
+    console.log('[Preview] Début preload - Session:', currentWorkoutSession?.id, 'Exercise:', currentExercise?.id);
+    
     if (!workoutState.nextSeriesCache) {
         workoutState.nextSeriesCache = new LRUCache(20);
     }
@@ -5499,73 +5501,33 @@ async function preloadNextSeriesRecommendations() {
  * @param {Object|null} previewData - Données ou null pour skeleton
  */
 function renderNextSeriesPreview(previewData) {
-    const restPeriodEl = document.getElementById('restPeriod');
-    if (!restPeriodEl) return;
-    
-    // Vérifier si le preview existe déjà
-    let previewEl = document.getElementById('nextSeriesPreview');
-    
+    // Utiliser la structure HTML existante au lieu de la créer
+    const previewEl = document.getElementById('nextSeriesPreview');
     if (!previewEl) {
-        // Créer la structure si elle n'existe pas
-        previewEl = document.createElement('div');
-        previewEl.id = 'nextSeriesPreview';
-        previewEl.className = 'next-series-preview';
-        previewEl.innerHTML = `
-            <div class="preview-header">Prochaine série</div>
-            <div class="preview-content">
-                <div class="preview-metric">
-                    <div class="preview-value" id="previewWeight">--</div>
-                    <div class="preview-label">kg</div>
-                </div>
-                <div class="preview-metric">
-                    <div class="preview-value" id="previewReps">--</div>
-                    <div class="preview-label">reps</div>
-                </div>
-                <div class="preview-metric">
-                    <div class="preview-value" id="previewRest">--</div>
-                    <div class="preview-label">repos</div>
-                </div>
-            </div>
-            <div class="preview-confidence hidden" id="previewConfidence">
-                <span>⚠️ Estimation approximative</span>
-            </div>
-        `;
-        
-        // Insérer après le timer de repos
-        const restTimer = restPeriodEl.querySelector('.rest-content') || restPeriodEl;
-        restTimer.appendChild(previewEl);
+        console.log('[Preview] Élément nextSeriesPreview introuvable dans le HTML');
+        return;
     }
     
-    // Animer l'apparition
-    previewEl.classList.remove('hidden');
-    previewEl.style.opacity = '0';
-    previewEl.style.transform = 'translateY(10px)';
-    
-    setTimeout(() => {
-        previewEl.style.transition = 'all 0.3s ease-out';
-        previewEl.style.opacity = '1';
-        previewEl.style.transform = 'translateY(0)';
-    }, 100);
+    console.log('[Preview] Mise à jour avec données:', previewData);
     
     if (previewData) {
-        // Remplir avec les vraies données
-        document.getElementById('previewWeight').textContent = previewData.weight || '--';
-        document.getElementById('previewReps').textContent = previewData.reps || '--';
-        document.getElementById('previewRest').textContent = previewData.rest ? `${previewData.rest}s` : '--';
+        // Mettre à jour les valeurs existantes
+        const weightEl = document.getElementById('previewWeight');
+        const repsEl = document.getElementById('previewReps');
+        const restEl = document.getElementById('previewRest');
         
-        // Afficher avertissement si faible confiance
-        const confidenceEl = document.getElementById('previewConfidence');
-        if (previewData.confidence < 0.7) {
-            confidenceEl.classList.remove('hidden');
-        } else {
-            confidenceEl.classList.add('hidden');
-        }
+        if (weightEl) weightEl.textContent = `${previewData.weight || '--'}`;
+        if (repsEl) repsEl.textContent = `${previewData.reps || '--'}`;
+        if (restEl) restEl.textContent = `${previewData.rest || '--'}`;
+        
+        // Afficher l'élément s'il était caché
+        previewEl.style.display = 'block';
+        previewEl.classList.remove('hidden');
     } else {
-        // Skeleton loader
-        ['previewWeight', 'previewReps', 'previewRest'].forEach(id => {
-            const el = document.getElementById(id);
-            el.innerHTML = '<div class="skeleton-loader"></div>';
-        });
+        // Afficher des tirets si pas de données
+        document.getElementById('previewWeight').textContent = '--';
+        document.getElementById('previewReps').textContent = '--';
+        document.getElementById('previewRest').textContent = '--';
     }
 }
 
@@ -5575,11 +5537,11 @@ function renderNextSeriesPreview(previewData) {
 function clearNextSeriesPreview() {
     const previewEl = document.getElementById('nextSeriesPreview');
     if (previewEl) {
-        previewEl.style.transition = 'opacity 0.2s ease-out';
-        previewEl.style.opacity = '0';
-        setTimeout(() => {
-            previewEl.remove();
-        }, 200);
+        // Remettre les valeurs par défaut au lieu de supprimer l'élément
+        document.getElementById('previewWeight').textContent = '--';
+        document.getElementById('previewReps').textContent = '--';
+        document.getElementById('previewRest').textContent = '--';
+        console.log('[Preview] Nettoyage effectué');
     }
 }
 
