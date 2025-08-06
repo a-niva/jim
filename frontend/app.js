@@ -9,6 +9,7 @@ let currentExercise = null;
 let currentSet = 1;
 let workoutTimer = null;
 let restTimer = null;
+
 let notificationTimeout = null;
 let currentStep = 1;
 let currentWorkoutSession = {
@@ -47,7 +48,8 @@ let workoutState = {
     exerciseStartTime: null,
     setStartTime: null,
     restStartTime: null,
-    pendingSetData: null
+    pendingSetData: null,
+    plannedRestDuration: null
 };
 
 // === VARIABLES PHASE 3.1 - SCORING ===
@@ -10365,14 +10367,26 @@ function startRestPeriod(duration = null, isMLSuggested = false) {
         // Utiliser le gestionnaire unifié
         window.OverlayManager.show('rest', restPeriod);
         
-        // Configuration du contenu (conserver logique existante)
-        const timerDisplay = document.getElementById('restTimerDisplay');
+        const timerDisplay = document.getElementById('restTimer');
         if (timerDisplay) {
             timerDisplay.textContent = formatTime(restDuration);
         }
-        
-        // Démarrer le timer (conserver logique existante)
-        startRestTimer(restDuration);
+
+        // Stocker durée planifiée pour calcul progression
+        workoutState.plannedRestDuration = restDuration;
+
+        // Démarrer timer avec fonction existante updateRestTimer
+        let timeLeft = restDuration;
+        restTimer = setInterval(() => {
+            timeLeft--;
+            updateRestTimer(timeLeft);
+            
+            if (timeLeft <= 0) {
+                clearInterval(restTimer);
+                restTimer = null;
+                endRest();
+            }
+        }, 1000);
     }
     
     // Transition état SANS affichage automatique du modal (déjà géré dans cette fonction)
