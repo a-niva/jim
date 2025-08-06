@@ -267,6 +267,7 @@
         transform: scale(1)
     }
 }
+
 :root {
     --primary: #6366f1;
     --primary-dark: #4f46e5;
@@ -1232,18 +1233,6 @@ input:focus,select:focus,textarea:focus {
     gap: var(--spacing-sm)
 }
 
-::before{
-    content: "";
-    position: absolute;
-    top: -4px;
-    left: -4px;
-    right: -4px;
-    bottom: -4px;
-    border-radius: 50%;
-    background: currentColor;
-    opacity: .2
-}
-
 .muscle-item.recovering{
     opacity: .6;
     background: var(--warning);
@@ -1797,11 +1786,6 @@ small, .workout-stats-line{
     padding: var(--spacing-md)
 }
 
-:hover, .stepper:hover{
-    background: var(--primary);
-    color: #fff
-}
-
 .stepper{
     display: flex;
     justify-content: center
@@ -1833,15 +1817,6 @@ input{
     border: 0;
     font-size: var(--font-2xl);
     font-weight: 700
-}
-
-:hover{
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(59,130,246,.4)
-}
-
-:active{
-    transform: translateY(0)
 }
 
 .go-emoji {
@@ -2213,14 +2188,6 @@ input{
 #executeSetBtn, .isometric-timer{
     margin: var(--spacing-xl) auto;
     cursor: pointer;
-}
-
-:hover{
-    transform: scale(1.2)
-}
-
-:active{
-    transform: scale(.95)
 }
 
 .isometric-timer {
@@ -3000,30 +2967,11 @@ input{
     margin: 0
 }
 
-:hover, :hover{
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(16,185,129,.4)
-}
-
-:hover{
-    box-shadow: 0 6px 20px rgba(239,68,68,.4)
-}
-
-:disabled, :disabled{
-    opacity: .6;
-    cursor: not-allowed;
-    transform: none
-}
 
 span{
     display: block;
     font-size: .7rem;
     opacity: .8
-}
-
-:hover{
-    transform: scale(1.1);
-    border-color: var(--primary)
 }
 
 .selected{
@@ -3065,10 +3013,6 @@ span{
 .set-feedback-modern{
     border-radius: var(--radius);
     margin-top: var(--spacing-lg)
-}
-
-:hover{
-    background: var(--primary-dark)
 }
 
 .feedback-section-modern {
@@ -3189,18 +3133,6 @@ input:checked+, input:checked+.toggle-slider{
 
 input:checked+.toggle-slider:before {
     transform: translateX(18px)
-}
-
-:before{
-    position: absolute;
-    content: "";
-    height: 14px;
-    width: 14px;
-    left: 3px;
-    bottom: 3px;
-    background-color: #fff;
-    transition: .3s;
-    border-radius: 50%
 }
 
 input:checked+:before{
@@ -5715,15 +5647,6 @@ input:checked+:before{
     border-radius: var(--radius)
 }
 
-:hover, .reason-btn:hover{
-    background: rgba(59,130,246,.05);
-    transform: translateX(4px)
-}
-
-:hover{
-    border-color: var(--primary)
-}
-
 .alternatives-list {
     gap: .75rem
 }
@@ -5735,11 +5658,6 @@ input:checked+:before{
 .keep-current-card:hover, :hover{
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(99,102,241,.2)
-}
-
-:hover{
-    box-shadow: 0 8px 25px rgba(0,0,0,.15);
-    border-color: var(--primary)
 }
 
 @media (max-width:768px) { .alternatives-modal{
@@ -5770,23 +5688,6 @@ p{
     color: var(--text-muted);
     font-size: .9rem;
     line-height: 1.4
-}
-
-::before{
-    top: 0;
-    height: 3px;
-    background: var(--primary);
-    transform: scaleX(0);
-    transform-origin: left;
-    transition: transform .3s ease
-}
-
-:hover::before{
-    transform: scaleX(1)
-}
-
-:active{
-    transform: translateY(0) scale(.98)
 }
 
 .pain-card:hover {
@@ -5826,27 +5727,9 @@ p{
     transition: transform .3s ease
 }
 
-:hover .reason-icon{
-    transform: scale(1.1)
-}
-
-:hover .reason-icon{
-    transform: scale(1.2)
-}
-
 .reason-content p {
     margin: 0;
     line-height: 1.3
-}
-
-:hover{
-    color: var(--primary);
-    transform: translateX(4px)
-}
-
-:hover{
-    background: var(--border);
-    transform: translateY(-1px)
 }
 
 /* ===== ALTERNATIVES MODAL SYSTÈME UNIFIÉ ===== */
