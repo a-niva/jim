@@ -184,9 +184,13 @@ function transitionTo(state) {
     // 2. Nettoyer timers selon état sortant
     switch(workoutState.current) {
         case WorkoutStates.RESTING:
-            if (restTimer) {
-                clearInterval(restTimer);
-                restTimer = null;
+            // ===== EXCLUSIVITÉ STRICTE MAIS CONDITIONNELLE =====
+            // N'afficher le modal QUE si c'est une transition normale (pas une restauration)
+            if (arguments[1] !== 'restore') {  // Paramètre optionnel pour distinguer
+                const restPeriod = document.getElementById('restPeriod');
+                if (restPeriod && window.OverlayManager) {
+                    window.OverlayManager.show('rest', restPeriod);
+                }
             }
             break;
         case WorkoutStates.EXECUTING:
@@ -9471,20 +9475,31 @@ function handleWorkoutError(error, context) {
 
 // ===== INITIALISATION AU CHARGEMENT DE LA PAGE =====
 document.addEventListener('DOMContentLoaded', () => {
-    // Vérifier s'il y a un état de séance sauvegardé
+    // === NETTOYAGE PRÉVENTIF AU DÉMARRAGE ===
+    if (window.OverlayManager) {
+        window.OverlayManager.hideAll();
+    }
+    
     const savedState = loadWorkoutState();
     if (savedState && savedState.workout) {
-        // Proposer de reprendre la séance
         setTimeout(() => {
             if (confirm('Une séance était en cours. Voulez-vous la reprendre ?')) {
                 resumeWorkout(savedState.workout.id);
             } else {
                 clearWorkoutState();
+                // Force état IDLE au démarrage si refus
+                workoutState.current = WorkoutStates.IDLE;
             }
         }, 1000);
+    } else {
+        // === GARANTIR ÉTAT NEUTRE AU DÉMARRAGE ===
+        workoutState.current = WorkoutStates.IDLE;
+        if (window.OverlayManager) {
+            window.OverlayManager.hideAll();
+        }
     }
     
-    // Demander les permissions
+    // Permissions (conserver)
     setTimeout(() => {
         requestNotificationPermission();
     }, 2000);
@@ -10360,8 +10375,8 @@ function startRestPeriod(duration = null, isMLSuggested = false) {
         startRestTimer(restDuration);
     }
     
-    // Transition état
-    transitionTo(WorkoutStates.RESTING);
+    // Transition état SANS affichage automatique du modal (déjà géré dans cette fonction)
+    workoutState.current = WorkoutStates.RESTING;  // Changement direct sans transitionTo()
 }
 
 // ===== DEMANDE DE PERMISSIONS =====
