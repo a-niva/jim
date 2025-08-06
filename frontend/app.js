@@ -6933,6 +6933,13 @@ function updateRestTimer(seconds) {
     const sign = seconds < 0 ? '-' : '';
     document.getElementById('restTimer').textContent = 
         `${sign}${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    // Mettre à jour la barre de progression
+    const progressFill = document.getElementById('restProgressFill');
+    if (progressFill && workoutState.plannedRestDuration) {
+        const elapsed = workoutState.plannedRestDuration - Math.abs(seconds);
+        const progress = (elapsed / workoutState.plannedRestDuration) * 100;
+        progressFill.style.width = `${Math.max(0, Math.min(100, progress))}%`;
+    }
 }
 
 function skipRest() {
@@ -10304,7 +10311,12 @@ function startRestPeriod(customTime = null, isMLRecommendation = false) {
     
     restPeriodDiv.style.display = 'block';
     // Afficher le preview de la série suivante
-    displayNextSeriesPreview();
+    renderNextSeriesPreview({
+        weight: currentWorkoutSession.mlRestData?.weight || currentExercise?.last_weight || 20,
+        reps: currentWorkoutSession.mlRestData?.reps || currentExercise?.last_reps || 10,
+        rest: currentWorkoutSession.mlRestData?.seconds || currentExercise?.base_rest_time_seconds || 90,
+        confidence: currentWorkoutSession.mlRestData?.confidence || 0.8
+    });
     
     // === MODULE 3: TIMER ADAPTATIF ML AUTOMATIQUE ===
     const ML_REST_ENABLED = localStorage.getItem('mlRestFeatureFlag') !== 'false';
