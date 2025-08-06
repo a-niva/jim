@@ -9916,10 +9916,20 @@ async function executeSet() {
         return;
     }
     
-    // Validation basique de l'état
-    if (!currentExercise || !currentWorkoutSession.id) {
-        console.error('Pas d\'exercice ou de séance active');
-        showToast('Erreur: Aucune séance active', 'error');
+    // Validation corrigée
+    if (!currentWorkout || !currentExercise) {
+        console.error('executeSet() validation échouée:', {
+            currentWorkout: !!currentWorkout,
+            currentExercise: !!currentExercise
+        });
+        showToast('Erreur: Séance ou exercice manquant', 'error');
+        return;
+    }
+    
+    // Vérification cohérence session
+    if (!currentWorkoutSession.workout) {
+        console.error('currentWorkoutSession.workout manquant');
+        showToast('Erreur: État de session invalide', 'error');
         return;
     }
 
@@ -9948,7 +9958,7 @@ async function executeSet() {
         currentSet = currentWorkoutSession.totalSets;
         currentWorkoutSession.currentSetNumber = currentSet;
     }
-    
+
     // Fix temporaire : Les variables sont vérifiées correctes avant l'appel
     if (!currentWorkout) {
         showToast('Aucune séance active', 'error');
@@ -11100,11 +11110,10 @@ function setEffort(setId, value) {
 }
 
 function validateSessionState(skipExerciseCheck = false) {
-    if (!currentWorkout) {
+    if (!currentWorkout || !currentWorkoutSession.workout) {
         showToast('Aucune séance active', 'error');
         return false;
     }
-    // Pour certains flows (comme setupProgramWorkout), on n'a pas encore d'exercice
     if (!skipExerciseCheck && !currentExercise) {
         showToast('Pas d\'exercice sélectionné', 'error');
         return false;
