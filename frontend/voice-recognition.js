@@ -131,6 +131,14 @@ const CORRECTION_PATTERNS = [
     /correction\s+(un|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|treize|quatorze|quinze|seize|dix-sept|dix-huit|dix-neuf|vingt|vingt-et-un|vingt-deux|vingt-trois|vingt-quatre|vingt-cinq|vingt-six|vingt-sept|vingt-huit|vingt-neuf|trente|trente-et-un|trente-deux|trente-trois|trente-quatre|trente-cinq|trente-six|trente-sept|trente-huit|trente-neuf|quarante|quarante-et-un|quarante-deux|quarante-trois|quarante-quatre|quarante-cinq|quarante-six|quarante-sept|quarante-huit|quarante-neuf|cinquante)/ // "correction trente-cinq"
 ];
 const recognitionCache = new Map();
+recognition.onend = function() {
+    handleVoiceEnd();
+    
+    // Cleanup cache si trop gros
+    if (recognitionCache.size > 50) {
+        recognitionCache.clear();
+    }
+};
 
 // SYSTÈME DE PRÉDICTION
 let predictedNext = 1;
@@ -519,7 +527,12 @@ function handleVoiceResult(event) {
 /**
  * Traite les résultats intermédiaires pour affichage immédiat
  */
+let lastInterimTime = 0;
 function handleInterimResult(transcript) {
+    // Limiter à 5 updates par seconde max
+    const now = Date.now();
+    if (now - lastInterimTime < 200) return;
+    lastInterimTime = now;
     // Ne traiter QUE si c'est exactement le nombre prédit
     const cleanTranscript = transcript.trim();
     

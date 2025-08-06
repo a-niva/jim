@@ -2,20 +2,26 @@
  * Centralise le nettoyage de tous les timers du système vocal
  */
 function cleanupAllVoiceTimers() {
-    const timers = [
-        { name: 'validationTimer', ref: window.validationTimer },
-        { name: 'autoValidationTimer', ref: window.autoValidationTimer },
-        { name: 'correctionTimer', ref: window.correctionTimer }
-    ];
+    // Au lieu d'accéder directement aux propriétés window
+    // Utiliser une approche plus sûre
     
-    timers.forEach(timer => {
-        if (timer.ref) {
-            clearTimeout(timer.ref);
-            window[timer.name] = null;
-        }
-    });
+    if (typeof window.validationTimer !== 'undefined' && window.validationTimer) {
+        clearTimeout(window.validationTimer);
+        window.validationTimer = null;
+    }
     
-    console.log('[Voice] Cleanup: tous timers vocaux nettoyés');
+    // Pour autoValidationTimer, vérifier d'abord son existence
+    if ('autoValidationTimer' in window && window.autoValidationTimer) {
+        clearTimeout(window.autoValidationTimer);
+        window.autoValidationTimer = null;
+    }
+    
+    if ('correctionTimer' in window && window.correctionTimer) {
+        clearTimeout(window.correctionTimer);
+        window.correctionTimer = null;
+    }
+    
+    console.log('[Voice] Cleanup: timers vocaux nettoyés');
 }
 
 /**

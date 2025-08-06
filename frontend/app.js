@@ -238,25 +238,36 @@ function storeCurrentScoringData(scoringData) {
     lastKnownScore = scoringData.currentScore.total;
 }
 
-// REMPLACER LA LOGIQUE EXISTANTE PAR :
 function transitionTo(state) {
     console.log(`[State] Transition: ${workoutState.current} → ${state}`);
-
-    // Cleanup automatique des timers selon l'état
-    if (typeof cleanupAllVoiceTimers === 'function') {
-        cleanupAllVoiceTimers();
+    
+    // === NETTOYAGE CIBLÉ SELON LA TRANSITION ===
+    // Ne nettoyer que si on SORT d'un état qui utilise des timers
+    const oldState = workoutState.current;
+    const newState = state;
+    
+    // Nettoyer les timers vocaux SEULEMENT si on quitte un état vocal
+    if ((oldState === WorkoutStates.EXECUTING || oldState === WorkoutStates.FEEDBACK) && 
+        (newState === WorkoutStates.IDLE || newState === WorkoutStates.COMPLETED)) {
+        if (typeof cleanupAllVoiceTimers === 'function') {
+            cleanupAllVoiceTimers();
+        }
     }
-    if (state === WorkoutStates.IDLE && typeof cleanupAllWorkoutTimers === 'function') {
-        cleanupAllWorkoutTimers();
+    
+    // Nettoyer les timers workout SEULEMENT si on termine vraiment
+    if (newState === WorkoutStates.IDLE || newState === WorkoutStates.COMPLETED) {
+        if (typeof cleanupAllWorkoutTimers === 'function') {
+            cleanupAllWorkoutTimers();
+        }
     }
-
-    // === NETTOYAGE GLOBAL STRICT ===
+    
+    // === RESTE DU CODE INCHANGÉ ===
     // 1. Fermer TOUS les overlays avant transition
     if (window.OverlayManager) {
         window.OverlayManager.hideAll();
     }
     
-    // 2. Nettoyer timers selon état sortant
+    // 2. Nettoyer timers spécifiques selon état sortant
     switch(workoutState.current) {
         case WorkoutStates.RESTING:
             // ===== EXCLUSIVITÉ STRICTE MAIS CONDITIONNELLE =====
@@ -13043,6 +13054,17 @@ window.updateProgramExerciseProgress = updateProgramExerciseProgress;
 window.abandonActiveWorkout = abandonActiveWorkout;
 window.finishExercise = finishExercise;
 window.updateLastSetRestDuration = updateLastSetRestDuration;
+
+window.debugTimers = function() {
+    console.log('Timers actifs:', {
+        workout: !!workoutTimer,
+        set: !!setTimer,
+        rest: !!restTimer,
+        notification: !!notificationTimeout,
+        voice_validation: !!window.validationTimer,
+        voice_auto: !!window.autoValidationTimer
+    });
+};
 
 // ===== EXPORT DES FONCTIONS API MANQUANTES =====
 window.apiGet = apiGet;
