@@ -485,7 +485,11 @@ p {
     margin: 0 auto;
     padding: calc(var(--header-height) + var(--spacing-md)) var(--spacing-md) calc(var(--bottom-nav-height) + var(--spacing-md));
     min-height: 100vh;
-    overflow: visible
+    
+    /* ===== ÉVITER CONFLICTS AVEC POSITION FIXED ===== */
+    overflow: visible;               /* Conserver existing */
+    transform: none;                 /* Éviter casser position fixed enfants */
+    contain: none;                   /* Éviter isolation CSS excessive */
 }
 
 .bottom-nav {
@@ -497,9 +501,14 @@ p {
     border-top: 1px solid var(--border);
     display: flex;
     justify-content: space-around;
-    padding: var(--spacing-md)0;
+    padding: var(--spacing-md) 0;
+    height: var(--bottom-nav-height);
     z-index: var(--z-nav);
-    height: var(--bottom-nav-height)
+    
+    /* ===== ISOLATION GARANTIE ===== */
+    contain: layout style;           /* Évite influence parents */
+    will-change: auto;               /* Reset optimisations GPU */
+    transform: translateZ(0);        /* Force layer GPU isolé */
 }
 
 .nav-item {
