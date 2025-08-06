@@ -1,7 +1,0 @@
-{
-  "css_files": ["frontend/styles.css", "frontend/muscle-colors.css"],
-  "search_directories": ["frontend/", "backend/", "."],
-  "search_extensions": [".html", ".js", ".py"],
-  "ignore_patterns": [],
-  "exclude_dirs": ["__pycache__", "node_modules", ".git", "venv"]
-}
