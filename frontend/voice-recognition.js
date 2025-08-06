@@ -131,14 +131,6 @@ const CORRECTION_PATTERNS = [
     /correction\s+(un|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|treize|quatorze|quinze|seize|dix-sept|dix-huit|dix-neuf|vingt|vingt-et-un|vingt-deux|vingt-trois|vingt-quatre|vingt-cinq|vingt-six|vingt-sept|vingt-huit|vingt-neuf|trente|trente-et-un|trente-deux|trente-trois|trente-quatre|trente-cinq|trente-six|trente-sept|trente-huit|trente-neuf|quarante|quarante-et-un|quarante-deux|quarante-trois|quarante-quatre|quarante-cinq|quarante-six|quarante-sept|quarante-huit|quarante-neuf|cinquante)/ // "correction trente-cinq"
 ];
 const recognitionCache = new Map();
-recognition.onend = function() {
-    handleVoiceEnd();
-    
-    // Cleanup cache si trop gros
-    if (recognitionCache.size > 50) {
-        recognitionCache.clear();
-    }
-};
 
 // SYSTÈME DE PRÉDICTION
 let predictedNext = 1;
@@ -162,13 +154,6 @@ let validationMode = VALIDATION_LEVELS.STRICT; // Mode par défaut Phase 4
 
 // États visuels du micro
 let currentMicState = 'inactive';
-
-const debouncedUpdateDisplay = window.debouncedUpdateDisplay || function(currentRep, targetRep, options) {
-    // Fallback si debounce pas encore disponible
-    if (typeof window.updateRepDisplayModern === 'function') {
-        window.updateRepDisplayModern(currentRep, targetRep, options);
-    }
-};
 
 // Met à jour l'état visuel du microphone - {'inactive'|'listening'|'processing'|'error'} state - État du micro
 function updateMicrophoneVisualState(state) {
@@ -900,40 +885,43 @@ function enhancedErrorFeedback(errorType, details = {}) {
     // Interface N/R avec erreur spécifique
     const targetRepEl = document.getElementById('targetRep');
     const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) : 12;
-    
+   
     const options = {
         voiceError: true,
         errorType: errorType
     };
     
+    // Utiliser la version globale ou fallback
+    const updateDisplay = window.debouncedUpdateDisplay || window.updateRepDisplayModern;
+   
     // Feedback différencié selon type erreur
     switch (errorType) {
         case 'jump_too_large':
             options.errorMessage = `Saut trop grand: +${details.jump}`;
-            debouncedUpdateDisplay(voiceData.count, targetReps, options);
+            updateDisplay(voiceData.count, targetReps, options);
             // Double vibration pour erreur grave
             if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
             break;
-            
+           
         case 'repetition':
             options.errorMessage = `Répétition: ${details.repeatedNumber}`;
-            debouncedUpdateDisplay(voiceData.count, targetReps, options);
+            updateDisplay(voiceData.count, targetReps, options);
             // Vibration simple pour répétition
             if (navigator.vibrate) navigator.vibrate(150);
             break;
-            
+           
         case 'backward_count':
             options.errorMessage = 'Compte arrière détecté';
-            debouncedUpdateDisplay(voiceData.count, targetReps, options);
+            updateDisplay(voiceData.count, targetReps, options);
             // Triple vibration pour erreur logique
             if (navigator.vibrate) navigator.vibrate([80, 30, 80, 30, 80]);
             break;
-            
+           
         default:
-            debouncedUpdateDisplay(voiceData.count, targetReps, options);
+            updateDisplay(voiceData.count, targetReps, options);
             if (navigator.vibrate) navigator.vibrate(100);
     }
-    
+   
     console.log(`[Feedback] Erreur ${errorType} signalée visuellement`);
 }
 
@@ -2065,6 +2053,9 @@ function handleVoiceEnd() {
                 }
             }
         }, 500); // 500ms au lieu de 100ms
+    }
+    if (recognitionCache && recognitionCache.size > 50) {
+        recognitionCache.clear();
     }
 }
 
