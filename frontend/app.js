@@ -6926,6 +6926,11 @@ async function loadNextProgramExercise() {
 }
 
 function updateRestTimer(seconds) {
+    const restTimerDiv = document.getElementById('restTimer');
+    if (!restTimerDiv) {
+        console.error('[Timer] Element restTimer non trouvé');
+        return;
+    }
     // Remplacer tout le contenu par :
     const absSeconds = Math.abs(seconds);
     const mins = Math.floor(absSeconds / 60);
@@ -10311,12 +10316,7 @@ function startRestPeriod(customTime = null, isMLRecommendation = false) {
     
     restPeriodDiv.style.display = 'block';
     // Afficher le preview de la série suivante
-    renderNextSeriesPreview({
-        weight: currentWorkoutSession.mlRestData?.weight || currentExercise?.last_weight || 20,
-        reps: currentWorkoutSession.mlRestData?.reps || currentExercise?.last_reps || 10,
-        rest: currentWorkoutSession.mlRestData?.seconds || currentExercise?.base_rest_time_seconds || 90,
-        confidence: currentWorkoutSession.mlRestData?.confidence || 0.8
-    });
+    displayNextSeriesPreview();
     
     // === MODULE 3: TIMER ADAPTATIF ML AUTOMATIQUE ===
     const ML_REST_ENABLED = localStorage.getItem('mlRestFeatureFlag') !== 'false';
