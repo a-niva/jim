@@ -9907,7 +9907,7 @@ function hidePlateHelper() {
 // ===== COUCHE 8 : EXECUTE SET =====
 
 async function executeSet() {
-    console.log('=== EXECUTE SET APPELÉ ===');
+    console.log('=== EXECUTE SET APPELÉ [VERSION CORRIGÉE] ===');
     
     // PHASE 4 - Vérifier si interpolation en cours
     if (window.interpolationInProgress) {
@@ -9916,22 +9916,26 @@ async function executeSet() {
         return;
     }
     
-    // Validation corrigée
-    if (!currentWorkout || !currentExercise) {
-        console.error('executeSet() validation échouée:', {
-            currentWorkout: !!currentWorkout,
-            currentExercise: !!currentExercise
-        });
-        showToast('Erreur: Séance ou exercice manquant', 'error');
+    // Validation CORRIGÉE - Plus de currentWorkoutSession.id
+    if (!currentWorkout) {
+        console.error('executeSet(): currentWorkout manquant');
+        showToast('Aucune séance active', 'error');
         return;
     }
     
-    // Vérification cohérence session
-    if (!currentWorkoutSession.workout) {
-        console.error('currentWorkoutSession.workout manquant');
-        showToast('Erreur: État de session invalide', 'error');
+    if (!currentExercise) {
+        console.error('executeSet(): currentExercise manquant');
+        showToast('Aucun exercice sélectionné', 'error');
         return;
     }
+    
+    if (!currentWorkoutSession.workout) {
+        console.error('executeSet(): currentWorkoutSession.workout manquant');
+        showToast('État de session invalide', 'error');
+        return;
+    }
+    
+    console.log('✅ VALIDATION executeSet RÉUSSIE');
 
     // Capturer feedback sélectionné
     const selectedEmoji = document.querySelector('.emoji-btn.selected, .emoji-btn-modern.selected');
