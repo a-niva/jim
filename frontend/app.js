@@ -10303,6 +10303,8 @@ function startRestPeriod(customTime = null, isMLRecommendation = false) {
     }
     
     restPeriodDiv.style.display = 'block';
+    // Afficher le preview de la série suivante
+    displayNextSeriesPreview();
     
     // === MODULE 3: TIMER ADAPTATIF ML AUTOMATIQUE ===
     const ML_REST_ENABLED = localStorage.getItem('mlRestFeatureFlag') !== 'false';

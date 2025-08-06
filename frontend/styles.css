@@ -3256,19 +3256,6 @@ button:focus-visible,input:focus-visible,select:focus-visible {
     padding: var(--spacing-md)
 }
 
-.set-feedback-modern .rest-period {
-    position: relative;
-    top: auto;
-    left: auto;
-    right: auto;
-    bottom: auto;
-    background: var(--bg-light);
-    padding: var(--spacing-lg);
-    border-radius: var(--radius);
-    margin-top: var(--spacing-md);
-    z-index: auto
-}
-
 .rest-content {
     background: var(--bg-card);
     padding: var(--spacing-xl);
@@ -3290,13 +3277,6 @@ button:focus-visible,input:focus-visible,select:focus-visible {
         opacity: 1;
         transform: scale(1) translateY(0);
     }
-}
-
-.set-feedback-modern .rest-content {
-    padding: var(--spacing-lg);
-    background: 0 0;
-    border: 0;
-    animation: none;
 }
 
 .rest-timer {
@@ -3322,7 +3302,7 @@ button:focus-visible,input:focus-visible,select:focus-visible {
 }
 
 .rest-progress {
-    margin: var(--spacing-lg)0;
+    margin: var(--spacing-lg) 0;
     width: 100%
 }
 
@@ -3332,7 +3312,7 @@ button:focus-visible,input:focus-visible,select:focus-visible {
     background: var(--bg-light);
     border-radius: 4px;
     overflow: hidden;
-    margin: var(--spacing-md)0
+    margin: var(--spacing-md) 0
 }
 
 .rest-progress-fill {
@@ -3343,7 +3323,7 @@ button:focus-visible,input:focus-visible,select:focus-visible {
 }
 
 .rest-info {
-    margin: var(--spacing-lg)0;
+    margin: var(--spacing-lg) 0;
     color: var(--text-muted)
 }
 
@@ -3826,7 +3806,7 @@ input:checked+.toggle-slider:before {
     background: var(--bg-secondary);
     border-radius: 8px;
     padding: var(--spacing-sm);
-    margin: var(--spacing-md)0
+    margin: var(--spacing-md) 0
 }
 
 .ml-history-header {

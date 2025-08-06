@@ -481,32 +481,6 @@
                                     <button class="emoji-btn-modern" data-effort="5" onclick="selectEffort(this, 5)">☀️</button>
                                 </div>
                             </div>
-
-                            <!-- Période de repos (remplace tout après validation fatigue+effort) -->
-                            <div id="restPeriod" class="rest-period" style="display: none;">
-                                <div class="rest-content">
-                                    <!-- Info AI repos avec plage conseillée -->
-                                    <div class="rest-ai-info" id="restAiInfo" style="display: none;">
-                                        <span class="ai-rest-range" id="aiRestRange"></span>
-                                        <span class="ai-confidence" id="aiConfidence"></span>
-                                    </div>
-                                    
-                                    <h3>🧘 Temps de repos</h3>
-                                    <div class="rest-timer" id="restTimer">01:30</div>
-                                    
-                                    <!-- NOUVEAU : Preview série suivante -->
-                                    <div id="nextSeriesPreview" class="next-series-preview" style="display: none;">
-                                        <div class="preview-header">📋 Série suivante</div>
-                                        <div class="preview-content" id="nextSeriesContent"></div>
-                                    </div>
-                                    
-                                    <div class="rest-actions">
-                                        <button class="btn btn-secondary btn-sm" onclick="adjustRestTime(-30)">-30s</button>
-                                        <button class="btn btn-secondary btn-sm" onclick="adjustRestTime(30)">+30s</button>
-                                        <button class="btn btn-primary btn-sm" onclick="endRest()">Passer</button>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                     
@@ -778,6 +752,32 @@
             </div>
             <div class="modal-body" id="modalBody">
                 <!-- Contenu dynamique -->
+            </div>
+        </div>
+    </div>
+
+        <!-- Période de repos (remplace tout après validation fatigue+effort) -->
+    <div id="restPeriod" class="rest-period" style="display: none;">
+        <div class="rest-content">
+            <!-- Info AI repos avec plage conseillée -->
+            <div class="rest-ai-info" id="restAiInfo" style="display: none;">
+                <span class="ai-rest-range" id="aiRestRange"></span>
+                <span class="ai-confidence" id="aiConfidence"></span>
+            </div>
+            
+            <h3>🧘 Temps de repos</h3>
+            <div class="rest-timer" id="restTimer">01:30</div>
+            
+            <!-- NOUVEAU : Preview série suivante -->
+            <div id="nextSeriesPreview" class="next-series-preview" style="display: none;">
+                <div class="preview-header">📋 Série suivante</div>
+                <div class="preview-content" id="nextSeriesContent"></div>
+            </div>
+            
+            <div class="rest-actions">
+                <button class="btn btn-secondary btn-sm" onclick="adjustRestTime(-30)">-30s</button>
+                <button class="btn btn-secondary btn-sm" onclick="adjustRestTime(30)">+30s</button>
+                <button class="btn btn-primary btn-sm" onclick="endRest()">Passer</button>
             </div>
         </div>
     </div>
