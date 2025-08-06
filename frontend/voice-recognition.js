@@ -155,6 +155,13 @@ let validationMode = VALIDATION_LEVELS.STRICT; // Mode par défaut Phase 4
 // États visuels du micro
 let currentMicState = 'inactive';
 
+const debouncedUpdateDisplay = window.debouncedUpdateDisplay || function(currentRep, targetRep, options) {
+    // Fallback si debounce pas encore disponible
+    if (typeof window.updateRepDisplayModern === 'function') {
+        window.updateRepDisplayModern(currentRep, targetRep, options);
+    }
+};
+
 // Met à jour l'état visuel du microphone - {'inactive'|'listening'|'processing'|'error'} state - État du micro
 function updateMicrophoneVisualState(state) {
     // Chercher le bouton vocal existant
@@ -890,27 +897,27 @@ function enhancedErrorFeedback(errorType, details = {}) {
     switch (errorType) {
         case 'jump_too_large':
             options.errorMessage = `Saut trop grand: +${details.jump}`;
-            updateRepDisplayModern(voiceData.count, targetReps, options);
+            debouncedUpdateDisplay(voiceData.count, targetReps, options);
             // Double vibration pour erreur grave
             if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
             break;
             
         case 'repetition':
             options.errorMessage = `Répétition: ${details.repeatedNumber}`;
-            updateRepDisplayModern(voiceData.count, targetReps, options);
+            debouncedUpdateDisplay(voiceData.count, targetReps, options);
             // Vibration simple pour répétition
             if (navigator.vibrate) navigator.vibrate(150);
             break;
             
         case 'backward_count':
             options.errorMessage = 'Compte arrière détecté';
-            updateRepDisplayModern(voiceData.count, targetReps, options);
+            debouncedUpdateDisplay(voiceData.count, targetReps, options);
             // Triple vibration pour erreur logique
             if (navigator.vibrate) navigator.vibrate([80, 30, 80, 30, 80]);
             break;
             
         default:
-            updateRepDisplayModern(voiceData.count, targetReps, options);
+            debouncedUpdateDisplay(voiceData.count, targetReps, options);
             if (navigator.vibrate) navigator.vibrate(100);
     }
     
@@ -926,7 +933,7 @@ function rollbackInterpolation() {
         // Restaurer interface
         const targetRepEl = document.getElementById('targetRep');
         const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) : 12;
-        updateRepDisplayModern(voiceData.count, targetReps);
+        debouncedUpdateDisplay(voiceData.count, targetReps);
         
         console.log(`[Gaps] Rollback effectué: count restauré à ${voiceData.count}`);
     }
@@ -1927,7 +1934,7 @@ function updateVoiceDisplay(count) {
         const targetReps = targetEl ? parseInt(targetEl.textContent) || 12 : 12;
         
         // Utiliser la fonction moderne
-        updateRepDisplayModern(count, targetReps);
+        debouncedUpdateDisplay(count, targetReps, { voiceActive: true });
         
         // Mettre à jour voiceData
         voiceData.count = count;

@@ -123,10 +123,6 @@ class LRUCache {
     }
 }
 
-// Remplacer le cache simple par LRU
-if (!workoutState.nextSeriesCache) {
-    workoutState.nextSeriesCache = new LRUCache(20);
-}
 
 // ===== GESTIONNAIRE OVERLAYS UNIFIÉ =====
 const OverlayManager = {
@@ -5422,6 +5418,9 @@ let nextSeriesRecommendationsCache = null;
  * @returns {Promise<Object>} Recommandations {weight, reps, rest, confidence}
  */
 async function preloadNextSeriesRecommendations() {
+    if (!workoutState.nextSeriesCache) {
+        workoutState.nextSeriesCache = new LRUCache(20);
+    }
     try {
         // Si pas de workout actif ou pas d'exercice, retourner valeurs par défaut
         if (!currentWorkoutSession.id || !currentExercise) {
@@ -5463,20 +5462,11 @@ async function preloadNextSeriesRecommendations() {
         
         const data = await response.json();
         
-        // Mettre en cache
-        if (!workoutState.nextSeriesCache) {
-            workoutState.nextSeriesCache = new Map();
-        }
+        // Mettre en cache avec LRU automatique
         workoutState.nextSeriesCache.set(cacheKey, {
             data: data,
             timestamp: Date.now()
         });
-        
-        // Nettoyer le cache si trop gros
-        if (workoutState.nextSeriesCache.size > 20) {
-            const firstKey = workoutState.nextSeriesCache.keys().next().value;
-            workoutState.nextSeriesCache.delete(firstKey);
-        }
         
         return data;
         
