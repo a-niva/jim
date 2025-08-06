@@ -1,0 +1,206 @@
+/* ===== SYSTÈME DE COULEURS MUSCULAIRES CENTRALISÉ ===== */
+:root {
+    /* ===== GROUPES MUSCULAIRES PRINCIPAUX ===== */
+    --muscle-dos: #3b82f6;
+    --muscle-dos-rgb: 59, 130, 246;
+    --muscle-pectoraux: #ec4899;
+    --muscle-pectoraux-rgb: 236, 72, 153;
+    --muscle-jambes: #10b981;
+    --muscle-jambes-rgb: 16, 185, 129;
+    --muscle-epaules: #f59e0b;
+    --muscle-epaules-rgb: 245, 158, 11;
+    --muscle-bras: #8b5cf6;
+    --muscle-bras-rgb: 139, 92, 246;
+    --muscle-abdominaux: #ef4444;
+    --muscle-abdominaux-rgb: 239, 68, 68;
+    
+    /* ===== MUSCLES SPÉCIFIQUES - DOS ===== */
+    --muscle-trapezes: #5b95f8;
+    --muscle-grand-dorsal: #2563eb;
+    --muscle-lombaires: #60a5fa;
+    
+    /* ===== MUSCLES SPÉCIFIQUES - PECTORAUX ===== */
+    --muscle-pectoraux-superieurs: #f472b6;
+    --muscle-pectoraux-inferieurs: #db2777;
+    
+    /* ===== MUSCLES SPÉCIFIQUES - JAMBES ===== */
+    --muscle-quadriceps: #34d399;
+    --muscle-ischio-jambiers: #059669;
+    --muscle-fessiers: #6ee7b7;
+    --muscle-mollets: #047857;
+    
+    /* ===== MUSCLES SPÉCIFIQUES - ÉPAULES ===== */
+    --muscle-deltoides-anterieurs: #fbbf24;
+    --muscle-deltoides-lateraux: #f59e0b;
+    --muscle-deltoides-posterieurs: #d97706;
+    
+    /* ===== MUSCLES SPÉCIFIQUES - BRAS ===== */
+    --muscle-biceps: #a78bfa;
+    --muscle-triceps: #7c3aed;
+    
+    /* ===== MUSCLES SPÉCIFIQUES - ABDOMINAUX ===== */
+    --muscle-abdominaux-muscle: #f87171;
+    --muscle-obliques: #dc2626;
+    
+    /* ===== VARIANTES D'OPACITÉ ===== */
+    /* Pour les backgrounds */
+    --muscle-opacity-light: 0.15;
+    --muscle-opacity-medium: 0.3;
+    --muscle-opacity-heavy: 0.5;
+}
+
+/* ===== CLASSES UTILITAIRES - GROUPES PRINCIPAUX ===== */
+
+/* Dos */
+.muscle-color-dos { color: var(--muscle-dos); }
+.muscle-bg-dos { background-color: var(--muscle-dos); }
+.muscle-bg-dos-light { background-color: rgba(59, 130, 246, var(--muscle-opacity-light)); }
+.muscle-border-dos { border-color: var(--muscle-dos); }
+.muscle-border-left-dos { border-left: 3px solid var(--muscle-dos); }
+
+/* Pectoraux */
+.muscle-color-pectoraux { color: var(--muscle-pectoraux); }
+.muscle-bg-pectoraux { background-color: var(--muscle-pectoraux); }
+.muscle-bg-pectoraux-light { background-color: rgba(236, 72, 153, var(--muscle-opacity-light)); }
+.muscle-border-pectoraux { border-color: var(--muscle-pectoraux); }
+.muscle-border-left-pectoraux { border-left: 3px solid var(--muscle-pectoraux); }
+
+/* Jambes */
+.muscle-color-jambes { color: var(--muscle-jambes); }
+.muscle-bg-jambes { background-color: var(--muscle-jambes); }
+.muscle-bg-jambes-light { background-color: rgba(16, 185, 129, var(--muscle-opacity-light)); }
+.muscle-border-jambes { border-color: var(--muscle-jambes); }
+.muscle-border-left-jambes { border-left: 3px solid var(--muscle-jambes); }
+
+/* Épaules */
+.muscle-color-epaules { color: var(--muscle-epaules); }
+.muscle-bg-epaules { background-color: var(--muscle-epaules); }
+.muscle-bg-epaules-light { background-color: rgba(245, 158, 11, var(--muscle-opacity-light)); }
+.muscle-border-epaules { border-color: var(--muscle-epaules); }
+.muscle-border-left-epaules { border-left: 3px solid var(--muscle-epaules); }
+
+/* Bras */
+.muscle-color-bras { color: var(--muscle-bras); }
+.muscle-bg-bras { background-color: var(--muscle-bras); }
+.muscle-bg-bras-light { background-color: rgba(139, 92, 246, var(--muscle-opacity-light)); }
+.muscle-border-bras { border-color: var(--muscle-bras); }
+.muscle-border-left-bras { border-left: 3px solid var(--muscle-bras); }
+
+/* Abdominaux */
+.muscle-color-abdominaux { color: var(--muscle-abdominaux); }
+.muscle-bg-abdominaux { background-color: var(--muscle-abdominaux); }
+.muscle-bg-abdominaux-light { background-color: rgba(239, 68, 68, var(--muscle-opacity-light)); }
+.muscle-border-abdominaux { border-color: var(--muscle-abdominaux); }
+.muscle-border-left-abdominaux { border-left: 3px solid var(--muscle-abdominaux); }
+
+/* ===== CLASSES UTILITAIRES - MUSCLES SPÉCIFIQUES ===== */
+
+/* Muscles du dos */
+.muscle-color-trapezes { color: var(--muscle-trapezes); }
+.muscle-bg-trapezes { background-color: var(--muscle-trapezes); }
+.muscle-color-grand-dorsal { color: var(--muscle-grand-dorsal); }
+.muscle-bg-grand-dorsal { background-color: var(--muscle-grand-dorsal); }
+.muscle-color-lombaires { color: var(--muscle-lombaires); }
+.muscle-bg-lombaires { background-color: var(--muscle-lombaires); }
+
+/* Muscles des pectoraux */
+.muscle-color-pectoraux-superieurs { color: var(--muscle-pectoraux-superieurs); }
+.muscle-bg-pectoraux-superieurs { background-color: var(--muscle-pectoraux-superieurs); }
+.muscle-color-pectoraux-inferieurs { color: var(--muscle-pectoraux-inferieurs); }
+.muscle-bg-pectoraux-inferieurs { background-color: var(--muscle-pectoraux-inferieurs); }
+
+/* Muscles des jambes */
+.muscle-color-quadriceps { color: var(--muscle-quadriceps); }
+.muscle-bg-quadriceps { background-color: var(--muscle-quadriceps); }
+.muscle-color-ischio-jambiers { color: var(--muscle-ischio-jambiers); }
+.muscle-bg-ischio-jambiers { background-color: var(--muscle-ischio-jambiers); }
+.muscle-color-fessiers { color: var(--muscle-fessiers); }
+.muscle-bg-fessiers { background-color: var(--muscle-fessiers); }
+.muscle-color-mollets { color: var(--muscle-mollets); }
+.muscle-bg-mollets { background-color: var(--muscle-mollets); }
+
+/* Muscles des épaules */
+.muscle-color-deltoides-anterieurs { color: var(--muscle-deltoides-anterieurs); }
+.muscle-bg-deltoides-anterieurs { background-color: var(--muscle-deltoides-anterieurs); }
+.muscle-color-deltoides-lateraux { color: var(--muscle-deltoides-lateraux); }
+.muscle-bg-deltoides-lateraux { background-color: var(--muscle-deltoides-lateraux); }
+.muscle-color-deltoides-posterieurs { color: var(--muscle-deltoides-posterieurs); }
+.muscle-bg-deltoides-posterieurs { background-color: var(--muscle-deltoides-posterieurs); }
+
+/* Muscles des bras */
+.muscle-color-biceps { color: var(--muscle-biceps); }
+.muscle-bg-biceps { background-color: var(--muscle-biceps); }
+.muscle-color-triceps { color: var(--muscle-triceps); }
+.muscle-bg-triceps { background-color: var(--muscle-triceps); }
+
+/* Muscles abdominaux */
+.muscle-color-obliques { color: var(--muscle-obliques); }
+.muscle-bg-obliques { background-color: var(--muscle-obliques); }
+
+/* ===== CLASSES COMPOSÉES POUR LES CARTES ===== */
+.muscle-card-dos {
+    border-left: 3px solid var(--muscle-dos);
+    background: linear-gradient(to right, rgba(59, 130, 246, 0.05), transparent);
+}
+
+.muscle-card-pectoraux {
+    border-left: 3px solid var(--muscle-pectoraux);
+    background: linear-gradient(to right, rgba(236, 72, 153, 0.05), transparent);
+}
+
+.muscle-card-jambes {
+    border-left: 3px solid var(--muscle-jambes);
+    background: linear-gradient(to right, rgba(16, 185, 129, 0.05), transparent);
+}
+
+.muscle-card-epaules {
+    border-left: 3px solid var(--muscle-epaules);
+    background: linear-gradient(to right, rgba(245, 158, 11, 0.05), transparent);
+}
+
+.muscle-card-bras {
+    border-left: 3px solid var(--muscle-bras);
+    background: linear-gradient(to right, rgba(139, 92, 246, 0.05), transparent);
+}
+
+.muscle-card-abdominaux {
+    border-left: 3px solid var(--muscle-abdominaux);
+    background: linear-gradient(to right, rgba(239, 68, 68, 0.05), transparent);
+}
+
+/* Border classes pour muscles spécifiques */
+.muscle-border-trapezes { border-color: var(--muscle-trapezes); }
+.muscle-border-left-trapezes { border-left: 3px solid var(--muscle-trapezes); }
+.muscle-border-grand-dorsal { border-color: var(--muscle-grand-dorsal); }
+.muscle-border-left-grand-dorsal { border-left: 3px solid var(--muscle-grand-dorsal); }
+.muscle-border-lombaires { border-color: var(--muscle-lombaires); }
+.muscle-border-left-lombaires { border-left: 3px solid var(--muscle-lombaires); }
+
+.muscle-border-pectoraux-superieurs { border-color: var(--muscle-pectoraux-superieurs); }
+.muscle-border-left-pectoraux-superieurs { border-left: 3px solid var(--muscle-pectoraux-superieurs); }
+.muscle-border-pectoraux-inferieurs { border-color: var(--muscle-pectoraux-inferieurs); }
+.muscle-border-left-pectoraux-inferieurs { border-left: 3px solid var(--muscle-pectoraux-inferieurs); }
+
+.muscle-border-quadriceps { border-color: var(--muscle-quadriceps); }
+.muscle-border-left-quadriceps { border-left: 3px solid var(--muscle-quadriceps); }
+.muscle-border-ischio-jambiers { border-color: var(--muscle-ischio-jambiers); }
+.muscle-border-left-ischio-jambiers { border-left: 3px solid var(--muscle-ischio-jambiers); }
+.muscle-border-fessiers { border-color: var(--muscle-fessiers); }
+.muscle-border-left-fessiers { border-left: 3px solid var(--muscle-fessiers); }
+.muscle-border-mollets { border-color: var(--muscle-mollets); }
+.muscle-border-left-mollets { border-left: 3px solid var(--muscle-mollets); }
+
+.muscle-border-deltoides-anterieurs { border-color: var(--muscle-deltoides-anterieurs); }
+.muscle-border-left-deltoides-anterieurs { border-left: 3px solid var(--muscle-deltoides-anterieurs); }
+.muscle-border-deltoides-lateraux { border-color: var(--muscle-deltoides-lateraux); }
+.muscle-border-left-deltoides-lateraux { border-left: 3px solid var(--muscle-deltoides-lateraux); }
+.muscle-border-deltoides-posterieurs { border-color: var(--muscle-deltoides-posterieurs); }
+.muscle-border-left-deltoides-posterieurs { border-left: 3px solid var(--muscle-deltoides-posterieurs); }
+
+.muscle-border-biceps { border-color: var(--muscle-biceps); }
+.muscle-border-left-biceps { border-left: 3px solid var(--muscle-biceps); }
+.muscle-border-triceps { border-color: var(--muscle-triceps); }
+.muscle-border-left-triceps { border-left: 3px solid var(--muscle-triceps); }
+
+.muscle-border-obliques { border-color: var(--muscle-obliques); }
+.muscle-border-left-obliques { border-left: 3px solid var(--muscle-obliques); }

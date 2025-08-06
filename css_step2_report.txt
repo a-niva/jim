@@ -1,11 +1,11 @@
-ÉTAPE 1: DÉTECTION DES CLASSES INUTILISÉES
+ÉTAPE 2: VÉRIFICATION PARALLÉLISÉE
 ==================================================
 
-Classes totales: 637
-Classes utilisées: 501
-Classes inutilisées: 136
+Classes confirmées inutilisées: 136
+Classes effectivement utilisées: 0
+Cas suspects: 0
 
-CLASSES POTENTIELLEMENT INUTILISÉES:
+CLASSES CONFIRMÉES INUTILISÉES:
 .difficulty-card
 .duration-30
 .duration-45
