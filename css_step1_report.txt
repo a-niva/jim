@@ -1,0 +1,7 @@
+ÉTAPE 1: DÉTECTION DES CLASSES INUTILISÉES
+==================================================
+
+Classes totales: 473
+Classes utilisées: 473
+Classes inutilisées: 0
+

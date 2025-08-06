@@ -876,6 +876,11 @@ input:focus,select:focus,textarea:focus {
     gap: var(--spacing-sm)
 }
 
+.muscle-readiness2 {
+    display: grid;
+    gap: var(--spacing-sm)
+}
+
 /* ===== MUSCLE READINESS BARS ===== */
 .muscle-readiness-bars-container {
     display: grid;
