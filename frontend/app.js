@@ -5139,7 +5139,9 @@ function transitionToReadyState() {
     
     const currentRepEl = document.getElementById('currentRep');
     const targetRepEl = document.getElementById('targetRep');
-    
+    if (currentRepEl) {
+        currentRepEl.textContent = '0';
+    }
     if (currentRepEl && targetRepEl) {
         // Afficher "Objectif: X reps" en état ready
         repsDisplayEl.classList.add('ready-state');
@@ -9960,7 +9962,13 @@ function hidePlateHelper() {
 // ===== COUCHE 8 : EXECUTE SET =====
 
 async function executeSet() {
-    console.log('=== EXECUTE SET APPELÉ [VERSION CORRIGÉE] ===');
+    console.log('=== EXECUTE SET APPELÉ ===');
+    // AJOUTER au tout début de executeSet() :
+    if (window.setExecutionInProgress) {
+        console.log('[ExecuteSet] Déjà en cours, abandon');
+        return;
+    }
+    window.setExecutionInProgress = true;
     
     // PHASE 4 - Vérifier si interpolation en cours
     if (window.interpolationInProgress) {
@@ -10240,6 +10248,9 @@ async function executeSet() {
     
     // === TRANSITION VERS FEEDBACK (CONSERVÉ) ===
     transitionTo(WorkoutStates.FEEDBACK);
+    setTimeout(() => {
+        window.setExecutionInProgress = false;
+    }, 1000);
 }
 
 // ===== COUCHE 9 : INTERFACE SETUP =====
@@ -10387,6 +10398,14 @@ function startRestPeriod(duration = null, isMLSuggested = false) {
                 endRest();
             }
         }, 1000);
+        // Activer preview série suivante
+        preloadNextSeriesRecommendations()
+            .then(previewData => {
+                renderNextSeriesPreview(previewData);
+            })
+            .catch(error => {
+                console.log('[Preview] Erreur preload, skip preview');
+            });
     }
     
     // Transition état SANS affichage automatique du modal (déjà géré dans cette fonction)
@@ -11161,7 +11180,7 @@ function completeRest() {
         updateSeriesDots();
         updateHeaderProgress();
         updateSetRecommendations();
-        
+        transitionToReadyState();  // Garantit reset interface N/R
         // Transition vers READY (interface exclusive)
         transitionTo(WorkoutStates.READY);
     }
