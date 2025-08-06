@@ -267,7 +267,6 @@
         transform: scale(1)
     }
 }
-
 :root {
     --primary: #6366f1;
     --primary-dark: #4f46e5;
@@ -313,9 +312,20 @@
     --font-2xl: 1.5rem;
     --font-3xl: 2rem;
     --font-4xl: 2.5rem;
-    --z-nav: 100;
-    --z-modal: 300;
-    --z-tooltip: 400
+    
+    --level-1-color: #22c55e; /* Vert - niveau faible */
+    --level-2-color: #84cc16; /* Vert-lime - niveau bon */
+    --level-3-color: #3b82f6; /* Bleu - niveau neutre */
+    --level-4-color: #f97316; /* Orange - niveau élevé */
+    --level-5-color: #ef4444; /* Rouge - niveau intense */
+
+    /* ===== Z-INDEX HIÉRARCHIE STRICTE ===== */
+    --z-nav: 100;              /* Navigation bottom */
+    --z-header: 200;           /* Header fixe */
+    --z-modal: 1000;           /* Modals généraux */
+    --z-modal-rest: 1500;      /* Modal repos (plus haut) */
+    --z-overlay: 2000;         /* Overlays système */
+    --z-tooltip: 3000;         /* Tooltips */
 }
 
 @media (max-width:768px) {
@@ -324,7 +334,16 @@
         --spacing-lg: 1.25rem;
         --spacing-xl: 1.5rem;
         --spacing-2xl: 2rem;
-        --radius: 10px
+        --radius: 10px;
+        
+        /* ===== VARIABLES CRITIQUES MANQUANTES ===== */
+        --z-nav: 100;              /* Navigation bottom */
+        --z-header: 200;           /* Header fixe */
+        --z-modal: 1000;           /* Modals généraux */
+        --z-modal-rest: 1500;      /* Modal repos (plus haut) */
+        --z-overlay: 2000;         /* Overlays système */
+        --z-tooltip: 3000;         /* Tooltips */              
+        --container-max-width: 100%;      
 
         /* Variables de couleurs pour les niveaux */
         --level-1-color: #22c55e; /* Vert - niveau faible */
@@ -332,6 +351,8 @@
         --level-3-color: #3b82f6; /* Bleu - niveau neutre */
         --level-4-color: #f97316; /* Orange - niveau élevé */
         --level-5-color: #ef4444; /* Rouge - niveau intense */
+        
+        --header-height: 35px;
     }
 }
 
@@ -477,7 +498,7 @@ p {
     display: flex;
     justify-content: space-around;
     padding: var(--spacing-md)0;
-    z-index: 100000;
+    z-index: var(--z-nav);
     height: var(--bottom-nav-height)
 }
 
@@ -580,12 +601,7 @@ input:focus,select:focus,textarea:focus {
     .user-avatar {
         display: none !important;
     }
-    
-    /* Variables mobile */
-    :root {
-        --header-height: 35px;
-    }
-    
+
     .container {
         padding: calc(35px + var(--spacing-sm)) var(--spacing-md) calc(var(--bottom-nav-height) + var(--spacing-md));
     }
@@ -2277,28 +2293,27 @@ button:focus-visible,input:focus-visible,select:focus-visible {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    z-index: var(--z-modal-rest);
     padding: 0;
 }
 
-/* Forcer le centrage sur mobile */
+/* ===== MODAL REPOS MOBILE - CORRECT ===== */
 @media (max-width: 768px) {
     .rest-period {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 100%;
-        height: 100%;
+        padding: var(--spacing-md);
     }
     
     .rest-content {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 90vw;
-        max-width: 420px;
+        max-width: 90vw;
+        width: 100%;
+        margin: 0 auto;
+    }
+    
+    /* Assurer que le modal reste centré */
+    .rest-period {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
     }
 }
 
@@ -4079,7 +4094,7 @@ input:checked+:before{
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: var(--z-modal);
+    z-index: var(--z-modal); 
     padding: var(--spacing-md);
     backdrop-filter: blur(4px)
 }

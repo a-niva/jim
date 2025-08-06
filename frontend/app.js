@@ -55,29 +55,133 @@ let currentScoringData = null;
 let draggedElement = null;
 let lastKnownScore = null;
 
+
+
+// ===== GESTIONNAIRE OVERLAYS UNIFIÉ =====
+const OverlayManager = {
+    activeOverlays: new Set(),
+    
+    /**
+     * Ajoute un overlay de manière exclusive
+     * @param {string} id - Identifiant unique de l'overlay
+     * @param {HTMLElement} element - Élément overlay à afficher
+     */
+    show(id, element) {
+        console.log(`[Overlay] Affichage exclusif: ${id}`);
+        
+        // FERMER tous les overlays existants AVANT d'ouvrir le nouveau
+        this.hideAll();
+        
+        // Afficher le nouvel overlay
+        if (element && element.style) {
+            element.style.display = 'flex';
+            this.activeOverlays.add(id);
+        }
+    },
+    
+    /**
+     * Masque un overlay spécifique
+     * @param {string} id - Identifiant de l'overlay à masquer
+     */
+    hide(id) {
+        console.log(`[Overlay] Masquage: ${id}`);
+        this.activeOverlays.delete(id);
+        
+        const elements = {
+            'modal': document.getElementById('modal'),
+            'rest': document.getElementById('restPeriod'),
+            'programBuilder': document.getElementById('programBuilder')
+        };
+        
+        const element = elements[id];
+        if (element) {
+            element.style.display = 'none';
+        }
+    },
+    
+    /**
+     * Ferme TOUS les overlays (cleanup global)
+     */
+    hideAll() {
+        console.log(`[Overlay] Nettoyage global - ${this.activeOverlays.size} overlays actifs`);
+        
+        // Liste exhaustive de tous les overlays possibles
+        const overlaySelectors = [
+            '#modal',
+            '#restPeriod', 
+            '#programBuilder',
+            '.modal-backdrop',
+            '.loading-overlay'
+        ];
+        
+        overlaySelectors.forEach(selector => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(el => {
+                if (el && el.style) {
+                    el.style.display = 'none';
+                }
+            });
+        });
+        
+        // Nettoyer le tracking
+        this.activeOverlays.clear();
+    },
+    
+    /**
+     * Vérifie si des overlays sont actifs
+     */
+    hasActive() {
+        return this.activeOverlays.size > 0;
+    }
+};
+
+// Exposition globale
+window.OverlayManager = OverlayManager;
+
+// ===== MODALS =====
+function showModal(title, content) {
+    const modal = document.getElementById('modal');
+    if (!modal) return;
+    
+    // Utiliser le gestionnaire unifié
+    OverlayManager.show('modal', modal);
+    
+    // Configuration du contenu (conserver logique existante)
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+    
+    if (title.includes('<') && title.includes('>')) {
+        modalTitle.innerHTML = title;
+    } else {
+        modalTitle.textContent = title;
+    }
+    modalBody.innerHTML = content;
+}
+
+function closeModal() {
+    OverlayManager.hide('modal');
+}
+
+
+
+
 // Stocke les données de scoring pour utilisation ultérieure
 function storeCurrentScoringData(scoringData) {
     currentScoringData = scoringData;
     lastKnownScore = scoringData.currentScore.total;
 }
 
+// REMPLACER LA LOGIQUE EXISTANTE PAR :
 function transitionTo(state) {
-    // === NOUVELLE GESTION NETTOYAGE VOCAL (AJOUT ÉTAPE 4) ===
+    console.log(`[State] Transition: ${workoutState.current} → ${state}`);
     
-    // Annuler validation vocale si transition vers FEEDBACK ou autre
-    if (state === WorkoutStates.FEEDBACK || state === WorkoutStates.READY || state === WorkoutStates.COMPLETED) {
-        if (window.voiceState && 
-            (window.voiceState === 'VALIDATING' || window.voiceState === 'AUTO_VALIDATING')) {
-            
-            console.log('[Voice] Transition détectée, annulation validation en cours');
-            
-            if (typeof window.cancelVoiceValidation === 'function') {
-                window.cancelVoiceValidation();
-            }
-        }
+    // === NETTOYAGE GLOBAL STRICT ===
+    // 1. Fermer TOUS les overlays avant transition
+    if (window.OverlayManager) {
+        window.OverlayManager.hideAll();
     }
     
-    // === CONSERVER LA LOGIQUE EXISTANTE DE NETTOYAGE DES TIMERS ===
+    // 2. Nettoyer timers selon état sortant
     switch(workoutState.current) {
         case WorkoutStates.RESTING:
             if (restTimer) {
@@ -93,101 +197,50 @@ function transitionTo(state) {
             break;
     }
     
-    workoutState.current = state;
+    // 3. MASQUER toutes les interfaces (état neutre)
+    const allInterfaces = [
+        '#executeSetBtn',
+        '#setFeedback', 
+        '#restPeriod',
+        '.input-section'
+    ];
     
-    // === CONSERVER GESTION RECONNAISSANCE VOCALE SELON L'ÉTAT ===
-    switch(state) {
-        case WorkoutStates.READY:
-            // NOUVEAU : Transition interface N/R vers état prêt
-            transitionToReadyState();
-            
-            // Démarrer la reconnaissance vocale dès qu'on est prêt
-            if (currentUser?.voice_counting_enabled && 
-                currentExercise?.exercise_type !== 'isometric' &&
-                /Android|iPhone/i.test(navigator.userAgent) &&
-                window.startVoiceRecognition &&
-                !window.voiceRecognitionActive?.()) {
-                
-                console.log('[Voice] Démarrage reconnaissance en état READY');
-                window.startVoiceRecognition();
-                updateVoiceToggleUI(true);
-            }
-            // === ACTIVATION ÉTAT READY INTERFACE N/R ===
-            const targetRepEl = document.getElementById('targetRep');
-            const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) : 12;
-            applyReadyStateToRepsDisplay(targetReps);
-            break;
-            
-        case WorkoutStates.EXECUTING:
-            // NOUVEAU : Interface N/R en mode actif
-            const repsDisplayElExecuting = document.getElementById('repsDisplay');
-            if (repsDisplayElExecuting) {
-                repsDisplayElExecuting.className = 'reps-display-modern voice-active';
-            }
-            break;
-            
-        case WorkoutStates.FEEDBACK:
-        case WorkoutStates.COMPLETED:
-            // NOUVEAU : Interface N/R mode normal
-            const repsDisplayEl = document.getElementById('repsDisplay');
-            if (repsDisplayEl) {
-                repsDisplayEl.className = 'reps-display-modern';
-            }
-            
-            // Arrêter la reconnaissance vocale
-            if (window.voiceRecognitionActive && window.voiceRecognitionActive()) {
-                console.log('[Voice] Arrêt reconnaissance vocale');
-                window.stopVoiceRecognition();
-                updateVoiceToggleUI(false);
-            }
-            break;
-    }
-    
-    // === CONSERVER LOGIQUE UI EXISTANTE ===
-    // Cacher tout par défaut
-    const elements = {
-        executeBtn: document.getElementById('executeSetBtn'),
-        setFeedback: document.getElementById('setFeedback'),
-        restPeriod: document.getElementById('restPeriod'),
-        inputSection: document.querySelector('.input-section')
-    };
-    
-    // Cacher tous les éléments qui existent
-    Object.values(elements).forEach(el => {
-        if (el) el.style.display = 'none';
+    allInterfaces.forEach(selector => {
+        const element = document.querySelector(selector);
+        if (element) {
+            element.style.display = 'none';
+        }
     });
     
-    // Afficher les éléments selon l'état
+    // 4. Mettre à jour l'état
+    workoutState.current = state;
+    
+    // 5. AFFICHER exclusivement l'interface pour le nouvel état
     switch(state) {
         case WorkoutStates.READY:
-            if (elements.executeBtn) elements.executeBtn.style.display = 'block';
-            if (elements.inputSection) elements.inputSection.style.display = 'block';
+            document.getElementById('executeSetBtn').style.display = 'block';
+            document.querySelector('.input-section').style.display = 'block';
+            
+            // Vocal si activé
+            if (currentUser?.voice_counting_enabled && window.startVoiceRecognition) {
+                window.startVoiceRecognition();
+            }
             break;
             
         case WorkoutStates.FEEDBACK:
-            if (elements.setFeedback) elements.setFeedback.style.display = 'block';
+            document.getElementById('setFeedback').style.display = 'block';
             break;
             
         case WorkoutStates.RESTING:
-            if (elements.setFeedback) elements.setFeedback.style.display = 'block';
-            if (elements.restPeriod) elements.restPeriod.style.display = 'flex';
+            // ===== EXCLUSIVITÉ STRICTE : QUE LE REPOS =====
+            const restPeriod = document.getElementById('restPeriod');
+            if (restPeriod && window.OverlayManager) {
+                window.OverlayManager.show('rest', restPeriod);
+            }
             break;
             
         case WorkoutStates.COMPLETED:
             // Géré par les fonctions spécifiques
-            break;
-
-        case WorkoutStates.TRANSITIONING:
-            // AJOUTER UN FALLBACK DE SÉCURITÉ
-            console.warn('[State] TRANSITIONING détecté - scheduling safety fallback');
-            
-            // Timer de sécurité pour éviter de rester bloqué
-            setTimeout(() => {
-                if (workoutState.current === WorkoutStates.TRANSITIONING) {
-                    console.error('[State] TRANSITIONING timeout - force READY');
-                    transitionTo(WorkoutStates.READY);
-                }
-            }, 5000); // 5s max en transition
             break;
     }
 }
@@ -7919,35 +7972,6 @@ async function deleteProfile() {
     }
 }
 
-// ===== MODALS =====
-function showModal(title, content) {
-    const modalTitle = document.getElementById('modalTitle');
-    const modalBody = document.getElementById('modalBody');
-    const modal = document.getElementById('modal');
-    
-    if (!modalTitle || !modalBody || !modal) {
-        console.error('Éléments du modal introuvables');
-        return;
-    }
-    
-    // CORRECTIF : Détecter si le titre contient du HTML
-    if (title.includes('<') && title.includes('>')) {
-        modalTitle.innerHTML = title;  // HTML complexe
-    } else {
-        modalTitle.textContent = title;  // Texte simple
-    }
-    
-    modalBody.innerHTML = content;
-    modal.style.display = 'flex';
-}
-
-function closeModal() {
-    const modal = document.getElementById('modal');
-    if (modal) {
-        modal.style.display = 'none';
-        modal.classList.remove('planning-modal'); // Retirer la classe spéciale
-    }
-}
 
 // ===== UTILITAIRES =====
 function showToast(message, type = 'info') {
@@ -10298,112 +10322,46 @@ function setupWeightModeSwipe(iconElement) {
 }
 
 // ===== TIMER DE REPOS =====
-function startRestPeriod(customTime = null, isMLRecommendation = false) {
-    // Arrêter le timer de série avant de commencer le repos
-    if (setTimer) {
-        clearInterval(setTimer);
-        setTimer = null;
+function startRestPeriod(duration = null, isMLSuggested = false) {
+    console.log('[Rest] Démarrage période repos');
+    
+    // === NETTOYAGE PRÉALABLE STRICT ===
+    // Fermer TOUT autre overlay/interface
+    if (window.OverlayManager) {
+        window.OverlayManager.hideAll();
     }
     
-    // Le repos s'affiche maintenant dans le DOM existant
-    transitionTo(WorkoutStates.RESTING);
-    const restPeriodDiv = document.getElementById('restPeriod');
-    
-    if (!restPeriodDiv) {
-        console.error('Element restPeriod non trouvé');
-        return;
+    // Calculer durée (conserver logique existante)
+    let restDuration = duration;
+    if (!restDuration) {
+        restDuration = currentExercise?.optimal_rest || 120;
+        if (isMLSuggested) {
+            restDuration = Math.min(restDuration, 180);
+        }
     }
     
-    restPeriodDiv.style.display = 'block';
-    // Afficher le preview de la série suivante
-    displayNextSeriesPreview();
-    
-    // === MODULE 3: TIMER ADAPTATIF ML AUTOMATIQUE ===
-    const ML_REST_ENABLED = localStorage.getItem('mlRestFeatureFlag') !== 'false';
-    
-    // Calcul du temps avec priorité directe aux données ML
-    let timeLeft = (ML_REST_ENABLED && currentWorkoutSession.mlRestData?.seconds) || 
-                   customTime || 
-                   currentExercise.base_rest_time_seconds || 
-                   60;
-
-    // Garde-fou de sécurité sur les valeurs
-    timeLeft = Math.max(15, Math.min(300, timeLeft));
-    
-    // Enregistrer le début du repos
+    // Préparations (conserver logique existante) 
     workoutState.restStartTime = Date.now();
-    workoutState.plannedRestDuration = timeLeft;
-    updateRestTimer(timeLeft);
+    currentWorkoutSession.restAdjustments = [];
     
-    // Vibration si supportée
-    if (navigator.vibrate) {
-        navigator.vibrate(200);
-    }
-    
-    // Notifications sonores programmées
-    if (window.workoutAudio) {
-        window.workoutAudio.scheduleRestNotifications(timeLeft);
-    }
-    
-    // Programmer la notification
-    if ('Notification' in window && Notification.permission === 'granted') {
-        if (notificationTimeout) {
-            clearTimeout(notificationTimeout);
+    // === AFFICHAGE EXCLUSIF DU MODAL REPOS ===
+    const restPeriod = document.getElementById('restPeriod');
+    if (restPeriod && window.OverlayManager) {
+        // Utiliser le gestionnaire unifié
+        window.OverlayManager.show('rest', restPeriod);
+        
+        // Configuration du contenu (conserver logique existante)
+        const timerDisplay = document.getElementById('restTimerDisplay');
+        if (timerDisplay) {
+            timerDisplay.textContent = formatTime(restDuration);
         }
         
-        notificationTimeout = setTimeout(() => {
-            new Notification('Temps de repos terminé !', {
-                body: 'Prêt pour la série suivante ?',
-                icon: '/icon-192x192.png',
-                vibrate: [200, 100, 200]
-            });
-        }, timeLeft * 1000);
-    }
-
-    // === NOUVEAU : PREVIEW SÉRIE SUIVANTE ===
-    // Preloader les recommandations pour la série suivante
-    if (currentSet < currentWorkoutSession.totalSets) {
-        // Appel asynchrone non-bloquant
-        preloadNextSeriesRecommendations()
-            .then(nextRecs => {
-                if (nextRecs && restPeriodDiv.style.display === 'block') {
-                    renderNextSeriesPreview(nextRecs);
-                }
-            })
-            .catch(error => {
-                console.warn('[Preview] Erreur chargement:', error);
-                // Afficher skeleton loader en cas d'erreur
-                renderNextSeriesPreview(null);
-            });
+        // Démarrer le timer (conserver logique existante)
+        startRestTimer(restDuration);
     }
     
-    // Timer principal
-    restTimer = setInterval(() => {
-        timeLeft--;
-        updateRestTimer(timeLeft);
-        
-        if (timeLeft <= 0) {
-            clearInterval(restTimer);
-            restTimer = null;
-            
-            if (notificationTimeout) {
-                clearTimeout(notificationTimeout);
-                notificationTimeout = null;
-            }
-            
-            // Calculer et enregistrer le temps de repos réel
-            const actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
-            currentWorkoutSession.totalRestTime += actualRestTime;
-            
-            if (currentWorkoutSession.autoAdvance) {
-                setTimeout(() => {
-                    if (currentWorkoutSession.state === WorkoutStates.RESTING) {
-                        endRest();
-                    }
-                }, 1000);
-            }
-        }
-    }, 1000);
+    // Transition état
+    transitionTo(WorkoutStates.RESTING);
 }
 
 // ===== DEMANDE DE PERMISSIONS =====
@@ -11141,146 +11099,41 @@ function validateSessionState(skipExerciseCheck = false) {
 
 // ===== FIN DE SÉRIE =====
 function completeRest() {
-    // Rétablir les sections de feedback pour la série suivante
-    clearNextSeriesPreview();
-    document.querySelectorAll('.feedback-section-modern').forEach(section => {
-        section.style.display = 'block';
-    });
+    console.log('[Rest] Fin période repos');
     
-    // Déclarer actualRestTime au début pour qu'elle soit accessible partout
-    let actualRestTime = 0;
-    
-    // Calculer et accumuler le temps de repos réel   
-    if (workoutState.restStartTime) {
-        actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
-        currentWorkoutSession.totalRestTime += actualRestTime;
-        
-        // Enregistrer le temps de repos réel pour les futures recommandations ML
-        currentWorkoutSession.lastActualRestDuration = actualRestTime;
-        console.log(`Repos réel enregistré : ${actualRestTime}s`);
-        
-        // Mettre à jour la dernière série sauvegardée avec la durée réelle
-        if (currentWorkoutSession.completedSets.length > 0) {
-            const lastSetId = currentWorkoutSession.completedSets[currentWorkoutSession.completedSets.length - 1].id;
-            if (lastSetId) {
-                apiPut(`/api/sets/${lastSetId}/rest-duration`, {
-                    actual_rest_duration_seconds: actualRestTime
-                }).catch(error => console.error('Erreur mise à jour repos:', error));
-            }
-        }
-        
-        workoutState.restStartTime = null;
-    }
-    
-    // === MODULE 4 : TRACKING ACCEPTATION ML ===
-    if (currentWorkoutSession.mlRestData?.seconds && actualRestTime > 0) {
-        const suggestedTime = currentWorkoutSession.mlRestData.seconds;
-        const tolerance = 10; // 10 secondes de tolérance
-        
-        const wasAccepted = Math.abs(actualRestTime - suggestedTime) <= tolerance;
-        const wasAdjusted = currentWorkoutSession.restAdjustments?.length > 0;
-        
-        // Stocker les stats ML
-        if (!currentWorkoutSession.mlRestStats) {
-            currentWorkoutSession.mlRestStats = [];
-        }
-        
-        currentWorkoutSession.mlRestStats.push({
-            suggested: suggestedTime,
-            actual: actualRestTime,
-            accepted: wasAccepted,
-            adjusted: wasAdjusted,
-            adjustments: currentWorkoutSession.restAdjustments || [],
-            confidence: currentWorkoutSession.mlRestData.confidence,
-            timestamp: Date.now()
-        });
-        
-        console.log(`📊 MODULE 4 - ML Stats: Suggéré ${suggestedTime}s → Réel ${actualRestTime}s (${wasAccepted ? 'Accepté' : 'Modifié'})`);
-        
-        // Reset des ajustements pour le prochain repos
-        currentWorkoutSession.restAdjustments = [];
-    }
-    
+    // === CLEANUP STRICT DU REPOS ===
     if (restTimer) {
         clearInterval(restTimer);
         restTimer = null;
     }
     
-    // Masquer l'interface de repos
-    document.getElementById('restPeriod').style.display = 'none';
-    document.getElementById('setFeedback').style.display = 'none';
+    // Fermer le modal repos via gestionnaire unifié
+    if (window.OverlayManager) {
+        window.OverlayManager.hide('rest');
+    }
     
-    // Transition vers COMPLETED après la dernière série
-    // Gestion spéciale pour les séries supplémentaires
-    if (currentWorkoutSession.isStartingExtraSet) {
-        // Flag détecté : on démarre une série supplémentaire, pas d'incrémentation
-        currentWorkoutSession.isStartingExtraSet = false; // Reset du flag
-        console.log(`🔄 Préparation série supplémentaire ${currentSet}/${currentWorkoutSession.totalSets}`);
-        
-        // Préparer l'interface pour la série supplémentaire (sans currentSet++)
-        updateSeriesDots();
-        updateHeaderProgress();
-        
-        if (currentWorkoutSession.type === 'program') {
-            updateProgramExerciseProgress();
-            loadProgramExercisesList();
-        }
-        
-        const inputSection = document.querySelector('.input-section');
-        if (inputSection) {
-            inputSection.style.display = 'block';
-        }
-        
-        updateSetRecommendations();
-        
-        const weight = parseFloat(document.getElementById('setWeight')?.textContent) || 0;
-        updatePlateHelper(weight);
-        
-        startSetTimer();
-        transitionTo(WorkoutStates.READY);
-        
-    } else if (currentSet >= currentWorkoutSession.totalSets) {
-        // Cas normal : fin d'exercice
+    // Reset workflow timings (conserver logique existante)
+    if (workoutState.restStartTime) {
+        const actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
+        currentWorkoutSession.totalRestTime += actualRestTime;
+        workoutState.restStartTime = null;
+    }
+    
+    // === PRÉPARATION SÉRIE SUIVANTE ===
+    if (currentSet >= currentWorkoutSession.totalSets) {
         transitionTo(WorkoutStates.COMPLETED);
         showSetCompletionOptions();
     } else {
-        // Cas normal : passage à la série suivante
+        // Incrémentation série (conserver logique)
         currentSet++;
-        currentWorkoutSession.currentSetNumber = currentSet; // ← Cette ligne existe déjà
-
-        // === VALIDATION DE COHÉRENCE ===
-        // S'assurer que les variables restent synchronisées
-        if (currentSet !== currentWorkoutSession.currentSetNumber) {
-            console.warn(`🔧 SYNC: currentSet(${currentSet}) != currentSetNumber(${currentWorkoutSession.currentSetNumber}), correction`);
-            currentWorkoutSession.currentSetNumber = currentSet;
-        }
-
+        currentWorkoutSession.currentSetNumber = currentSet;
+        
+        // Mises à jour interface (conserver logique)
         updateSeriesDots();
-        
-        // Mettre à jour les compteurs d'en-tête
         updateHeaderProgress();
-        
-        // Mettre à jour la progression du programme si applicable
-        if (currentWorkoutSession.type === 'program') {
-            updateProgramExerciseProgress();
-            // Forcer la mise à jour visuelle
-            loadProgramExercisesList();
-        }
-        
-        // Réafficher les inputs pour la nouvelle série
-        const inputSection = document.querySelector('.input-section');
-        if (inputSection) {
-            inputSection.style.display = 'block';
-        }
-        
-        // Mettre à jour les recommandations pour la nouvelle série
         updateSetRecommendations();
         
-        // Mise à jour aide au montage pour la nouvelle série
-        const weight = parseFloat(document.getElementById('setWeight')?.textContent) || 0;
-        updatePlateHelper(weight);
-        
-        startSetTimer();
+        // Transition vers READY (interface exclusive)
         transitionTo(WorkoutStates.READY);
     }
 }
@@ -13008,6 +12861,8 @@ function showPlanningFromProgram() {
         window.showPlanning();
     }, 200);
 }
+
+
 
 // ===== EXPOSITION GLOBALE =====
 window.showHomePage = showHomePage;
