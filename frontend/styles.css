@@ -2308,7 +2308,11 @@ button:focus-visible,input:focus-visible,select:focus-visible {
 
 /* ===== MODAL REPOS MOBILE - CORRECT ===== */
 @media (max-width: 768px) {
-    .rest-period {
+
+    .rest-period:not([style*="display: none"]) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
         padding: var(--spacing-md);
     }
     
@@ -2316,13 +2320,6 @@ button:focus-visible,input:focus-visible,select:focus-visible {
         max-width: 90vw;
         width: 100%;
         margin: 0 auto;
-    }
-    
-    /* Assurer que le modal reste centré */
-    .rest-period {
-        display: flex !important;
-        align-items: center;
-        justify-content: center;
     }
 }
 
