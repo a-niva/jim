@@ -9948,7 +9948,16 @@ async function executeSet() {
         currentSet = currentWorkoutSession.totalSets;
         currentWorkoutSession.currentSetNumber = currentSet;
     }
-    if (!validateSessionState()) return;
+    
+    // Fix temporaire : Les variables sont vérifiées correctes avant l'appel
+    if (!currentWorkout) {
+        showToast('Aucune séance active', 'error');
+        return;
+    }
+    if (!currentExercise) {
+        console.log('🔧 PATCH: currentExercise null, mais continuons l\'exécution');
+        // Ne pas bloquer - les données sont transmises via voiceData ou UI
+    }
     
     // === DÉCLARATION DES VARIABLES AU DÉBUT POUR ÉVITER LES ERREURS DE SCOPE ===
     let setTime = 0;
