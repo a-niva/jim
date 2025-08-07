@@ -4225,16 +4225,16 @@ function toggleVoiceRecognition() {
     
     if (isActive) {
         window.stopVoiceRecognition();
-        updateVoiceToggleUI(false);
+        // La fonction updateMicrophoneVisualState s'occupe du reste
     } else {
-        // Vérifier que nous sommes bien en état d'exécution
+        // Vérifier état séance
         if (workoutState.current !== WorkoutStates.EXECUTING) {
             showToast('Démarrez une série pour activer le comptage vocal', 'warning');
             return;
         }
         
         window.startVoiceRecognition();
-        updateVoiceToggleUI(true);
+        // La fonction updateMicrophoneVisualState s'occupe du reste
     }
 }
 
@@ -5187,19 +5187,15 @@ function initializeModernRepsDisplay(targetReps = 12, currentReps = 0) {
         <div class="next-rep-preview" id="nextRepPreview">${currentReps + 1}</div>
     `;
 
-    // === MICRO : Synchroniser container statique avec état initial ===
+    // === MICRO : Synchroniser container statique header avec état ===
     const voiceContainer = document.getElementById('voiceStatusContainer');
     if (voiceContainer && currentUser?.voice_counting_enabled) {
         voiceContainer.style.display = 'flex';
         
-        // Appliquer état initial via fonction existante
-        checkMicrophonePermissions().then(hasPermission => {
-            if (hasPermission) {
-                window.updateMicrophoneVisualState('inactive');
-            } else {
-                window.updateMicrophoneVisualState('error');
-            }
-        });
+        // Synchroniser état initial selon contexte
+        if (workoutState.current === WorkoutStates.READY || workoutState.current === WorkoutStates.EXECUTING) {
+            window.updateMicrophoneVisualState('inactive');
+        }
     }
 
     // État initial selon le workflow
