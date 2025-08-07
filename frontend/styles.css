@@ -2978,11 +2978,8 @@ span{
     box-shadow: 0 0 15px rgba(255,255,255,.3)
 }
 
-.selected, :hover{
-    border-color: var(--primary)
-}
-
-.selected{
+.selected {
+    border-color: var(--primary);
     background: var(--primary);
     color: #fff
 }
@@ -5653,7 +5650,7 @@ input:checked+:before{
     transition: all .3s ease
 }
 
-.keep-current-card:hover, :hover{
+.keep-current-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(99,102,241,.2)
 }
@@ -6878,6 +6875,11 @@ p{
         max-width: 100%;
         margin: 0;
         padding: var(--spacing-sm);
+        /* NOUVEAU : Limitation hauteur */
+        max-height: calc(100vh - 35px - 70px);
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
     }
     
     /* Zone de feedback compacte */
