@@ -3992,7 +3992,7 @@ async function selectExercise(exercise, skipValidation = false) {
         showToast('Erreur: exercice invalide', 'error');
         return;
     }
-    
+
     // Récupérer les détails complets de l'exercice si nécessaire
     if (!exercise.weight_type) {
         try {
@@ -4004,6 +4004,21 @@ async function selectExercise(exercise, skipValidation = false) {
         }
     } else {
         currentExercise = exercise;
+    }
+
+    // Créer session workout si mode libre
+    if (!currentWorkout && !currentWorkoutSession.id) {
+        try {
+            const response = await apiPost('/api/workouts', {
+                type: 'free',
+                exercises: [currentExercise.id]
+            });
+            currentWorkoutSession.id = response.id;
+            console.log('[Session] Workout créé pour ML:', response.id);
+        } catch (error) {
+            console.error('[Session] Erreur création workout:', error);
+            // Pas de fallback - on continue sans ML
+        }
     }
     
     // Initialiser les variables de session
@@ -5447,70 +5462,36 @@ let nextSeriesRecommendationsCache = null;
  * @returns {Promise<Object>} Recommandations {weight, reps, rest, confidence}
  */
 async function preloadNextSeriesRecommendations() {
-    console.log('[Preview] Début preload - Session:', currentWorkoutSession?.id, 'Exercise:', currentExercise?.id);
-    
-    if (!workoutState.nextSeriesCache) {
-        workoutState.nextSeriesCache = new LRUCache(20);
+    // Pas de recommandations si pas de session
+    if (!currentWorkoutSession.id) {
+        console.log('[Preview] Pas de session - première série');
+        return null;
     }
+    
     try {
-        // Si pas de workout actif ou pas d'exercice, retourner valeurs par défaut
-        if (!currentWorkoutSession.id || !currentExercise) {
-            return null;
-        }
-        
+        // Appeler directement l'API ML pour la série suivante
         const nextSetNumber = currentSet + 1;
         
-        // Vérifier le cache d'abord
-        const cacheKey = `${currentExercise.id}-${nextSetNumber}`;
-        const cached = workoutState.nextSeriesCache?.get(cacheKey);
-        if (cached && (Date.now() - cached.timestamp < 300000)) { // 5 minutes
-            return cached.data;
-        }
-        
-        // Appel API avec timeout strict
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2000);
-        
-        const response = await fetch(`/api/workouts/${currentWorkoutSession.id}/recommendations`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            body: JSON.stringify({
-                exercise_id: currentExercise.id,
-                set_number: nextSetNumber,
-                workout_id: currentWorkoutSession.id
-            }),
-            signal: controller.signal
+        const response = await apiPost(`/api/workouts/${currentWorkoutSession.id}/recommendations`, {
+            exercise_id: currentExercise.id,
+            set_number: nextSetNumber,
+            workout_id: currentWorkoutSession.id
         });
         
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) {
-            throw new Error(`API error: ${response.status}`);
+        if (response && response.weight_recommendation !== null) {
+            return {
+                weight: response.weight_recommendation,
+                reps: response.reps_recommendation,
+                rest: response.rest_seconds_recommendation || 90,
+                confidence: response.confidence
+            };
         }
         
-        const data = await response.json();
-        
-        // Mettre en cache avec LRU automatique
-        workoutState.nextSeriesCache.set(cacheKey, {
-            data: data,
-            timestamp: Date.now()
-        });
-        
-        return data;
+        return null;
         
     } catch (error) {
-        console.error('[Preview] Erreur preload:', error);
-        
-        // Retourner les dernières valeurs connues ou défaut
-        return {
-            weight: currentExercise.last_weight || 20,
-            reps: currentExercise.last_reps || 12,
-            rest: currentExercise.base_rest_time_seconds || 90,
-            confidence: 0.5
-        };
+        console.error('[Preview] Erreur ML:', error);
+        return null;
     }
 }
 
@@ -5520,42 +5501,20 @@ async function preloadNextSeriesRecommendations() {
  */
 function renderNextSeriesPreview(previewData) {
     const previewEl = document.getElementById('nextSeriesPreview');
-    if (!previewEl) {
-        console.log('[Preview] Élément preview introuvable');
+    if (!previewEl) return;
+    
+    // Si pas de données (première série), afficher '--'
+    if (!previewData) {
+        document.getElementById('previewWeight').textContent = '--';
+        document.getElementById('previewReps').textContent = '--';
+        document.getElementById('previewRest').textContent = '--';
         return;
     }
     
-    console.log('[Preview] Mise à jour avec données:', previewData);
-    
-    // S'assurer que l'élément est visible
-    previewEl.style.display = 'block';
-    previewEl.classList.remove('hidden');
-    
-    // Mettre à jour les valeurs
-    const updates = {
-        'previewWeight': previewData?.weight || '--',
-        'previewReps': previewData?.reps || '--', 
-        'previewRest': previewData?.rest || '--'
-    };
-    
-    Object.entries(updates).forEach(([id, value]) => {
-        const el = document.getElementById(id);
-        if (el) {
-            el.textContent = String(value);
-            // Ajouter unités si valeur numérique
-            if (value !== '--') {
-                if (id === 'previewWeight') el.textContent += 'kg';
-                if (id === 'previewRest') el.textContent += 's';
-            }
-        }
-    });
-    
-    // Animation d'apparition
-    previewEl.style.opacity = '0';
-    requestAnimationFrame(() => {
-        previewEl.style.transition = 'opacity 0.3s ease-out';
-        previewEl.style.opacity = '1';
-    });
+    // Afficher les vraies recommandations ML
+    document.getElementById('previewWeight').textContent = `${previewData.weight}`;
+    document.getElementById('previewReps').textContent = `${previewData.reps}`;
+    document.getElementById('previewRest').textContent = `${previewData.rest}`;
 }
 
 /**
@@ -6929,6 +6888,17 @@ async function finishExercise() {
         currentExercise = null;
         currentSet = 1;
         
+        // Nettoyer session vide en mode libre
+        if (currentWorkoutSession.id && currentWorkoutSession.completedSets.length === 0) {
+            try {
+                await apiDelete(`/api/workouts/${currentWorkoutSession.id}`);
+                console.log('[Session] Workout vide supprimé');
+                currentWorkoutSession.id = null;
+            } catch (e) {
+                console.error('[Session] Erreur suppression:', e);
+            }
+        }
+        
         // Réinitialiser proprement l'état
         transitionTo(WorkoutStates.IDLE);
         
@@ -7164,40 +7134,6 @@ function endRest() {
     document.getElementById('restPeriod').style.display = 'none';
     // Appeler la logique correcte de fin de repos
     completeRest();
-}
-
-function showExerciseCompletion() {
-    // Arrêter tous les timers
-    if (restTimer) {
-        clearInterval(restTimer);
-        restTimer = null;
-    }
-    if (setTimer) {
-        clearInterval(setTimer);
-        setTimer = null;
-    }
-
-    cleanupIsometricTimer();
-
-    // Réinitialiser l'interface
-    document.getElementById('executeSetBtn').style.display = 'block';
-    document.getElementById('setFeedback').style.display = 'none';
-    document.getElementById('restPeriod').style.display = 'none';
-    
-    // Afficher les options
-    showModal('Exercice terminé', `
-        <div style="text-align: center;">
-            <p>Vous avez terminé ${currentSet} séries de ${currentExercise.name}</p>
-            <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">
-                <button class="btn btn-secondary" onclick="handleExtraSet(); closeModal();">
-                    Série supplémentaire
-                </button>
-                <button class="btn btn-primary" onclick="finishExercise(); closeModal();">
-                    Exercice suivant
-                </button>
-            </div>
-        </div>
-    `);
 }
 
 // ===== GESTION DES TIMERS =====
