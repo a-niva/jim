@@ -83,3 +83,4 @@ mapper.py
 mapper.mmd
 css_analyzer_v3.py
 css_optimizer.py
+compile_css.py
