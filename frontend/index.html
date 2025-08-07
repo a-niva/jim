@@ -399,7 +399,7 @@
                     </div>
                     
                     <!-- 2. Zone d'input poids/reps et validation -->
-                    <div class="workout-card">
+                    <div class="dashboard-history-workout-card ${workout.status === 'pending' ? 'dashboard-history-workout-card--pending' : ''}">
                         <!-- Progression des séries -->
                         <div class="series-dots">
                             <span class="dot active"></span>
@@ -528,7 +528,7 @@
             </div>
 
             <!-- Container pour les exercices du programme -->
-            <div class="program-exercises-container" id="programExercisesContainer" style="display: none;">
+            <div class="program-active-workout-container" id="programExercisesContainer" style="display: none;">
                 <!-- Contenu généré dynamiquement -->
             </div>
         </div>

@@ -855,7 +855,8 @@ input:focus,select:focus,textarea:focus {
     box-shadow: 0 16px 48px rgba(99,102,241,.2)
 }
 
-.action-card:hover::after,.workout-card:hover::before {
+.action-card:hover::after,
+.dashboard-history-workout-card:hover::before {
     opacity: 1
 }
 
@@ -1254,18 +1255,20 @@ input:focus,select:focus,textarea:focus {
     gap: var(--spacing-md)
 }
 
-.workout-card {
+/* ===== HISTORIQUE SÉANCES DASHBOARD ===== */
+.dashboard-history-workout-card {
     background: linear-gradient(135deg,var(--bg-card) 0%,#253545 100%);
     border-radius: 16px;
     padding: var(--spacing-lg);
     border: 1px solid var(--glass-border);
-    transition: all .3s ease;
+    transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
     position: relative;
     overflow: hidden;
-    backdrop-filter: blur(10px)
+    backdrop-filter: blur(10px);
+    will-change: transform;
 }
 
-.workout-card::before {
+.dashboard-history-workout-card::before {
     content: "";
     position: absolute;
     top: 0;
@@ -1274,24 +1277,130 @@ input:focus,select:focus,textarea:focus {
     height: 2px;
     background: linear-gradient(90deg,var(--primary),var(--accent-purple),var(--accent-emerald));
     opacity: 0;
-    transition: opacity .3s ease
+    transition: opacity .3s ease;
 }
 
-.workout-card:hover {
+.dashboard-history-workout-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 12px 40px rgba(99,102,241,.15);
-    border-color: var(--primary)
+    border-color: var(--primary);
 }
 
-.workout-card.pending {
+.dashboard-history-workout-card:hover::before {
+    opacity: 1;
+}
+
+/* ===== ÉTAT PENDING POUR HISTORIQUE ===== */
+.dashboard-history-workout-card--pending {
     opacity: .8;
     border-style: dashed;
     border-color: var(--warning);
 }
 
-.workout-card::before{
+.dashboard-history-workout-card--pending::before {
     background: linear-gradient(90deg,var(--warning),var(--accent-orange));
-    opacity: .6
+    opacity: .6;
+}
+
+/* ===== PROGRAMME ACTIF CONTAINER ===== */
+.program-active-workout-container {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: var(--spacing-md);
+    border: 1px solid var(--border);
+    margin-bottom: var(--spacing-lg);
+}
+
+.program-active-workout-container--resuming {
+    border-color: var(--warning);
+    background: rgba(245, 158, 11, 0.05);
+}
+
+/* ===== PLANNING SESSION PREVIEW ===== */
+.planning-session-preview-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: var(--spacing-lg);
+    transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.planning-session-preview-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(99,102,241,.1);
+    border-color: var(--primary);
+}
+
+.planning-session-preview-card--completed {
+    opacity: 0.7;
+    background: var(--bg-tertiary);
+}
+
+.planning-session-preview-card--completed::after {
+    content: '✓';
+    position: absolute;
+    top: var(--spacing-xs);
+    right: var(--spacing-xs);
+    color: var(--success);
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+/* ===== SÉANCE ACTIVE INTERFACE ===== */
+.active-workout-interface-container {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: var(--spacing-lg);
+    border: 1px solid var(--border);
+    position: relative;
+    transition: border-color .3s ease;
+}
+
+.active-workout-interface-container--voice-active {
+    border-color: var(--success);
+    box-shadow: 0 0 12px rgba(16,185,129,.2);
+}
+
+.active-workout-interface-container--error {
+    border-color: var(--danger);
+    animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+/* ===== BANNIÈRE REPRISE SÉANCE ===== */
+.workout-resume-notification-banner {
+    background: linear-gradient(135deg, var(--warning) 0%, #f59e0b 100%);
+    color: white;
+    padding: var(--spacing-lg);
+    border-radius: var(--radius);
+    margin-bottom: var(--spacing-lg);
+    position: relative;
+    overflow: hidden;
+    animation: slideInFromTop .5s ease;
+}
+
+.workout-resume-notification-banner::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #fbbf24, #f59e0b);
+    opacity: 1;
+}
+
+@keyframes slideInFromTop {
+    from { transform: translateY(-100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
 }
 
 .empty-workouts {

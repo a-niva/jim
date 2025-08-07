@@ -1827,7 +1827,7 @@ async function loadDashboard() {
     document.getElementById('bottomNav').style.display = 'flex';
     
     // Supprimer toute bannière existante d'abord
-    const existingBanner = document.querySelector('.workout-resume-banner');
+    const existingBanner = document.querySelector('.workout-resume-notification-banner');
     if (existingBanner) {
         existingBanner.remove();
     }
@@ -2110,12 +2110,12 @@ async function showWorkoutResumeBanner(workout) {
     }
     
     // Supprimer toute bannière existante
-    const existingBanner = document.querySelector('.workout-resume-banner');
+    const existingBanner = document.querySelector('.workout-resume-notification-banner');
     if (existingBanner) {
         existingBanner.remove();
     }
     const banner = document.createElement('div');
-    banner.className = 'workout-resume-banner';
+    banner.className = 'workout-resume-notification-banner';
     banner.style.cssText = `
         background: linear-gradient(135deg, var(--warning), #f97316);
         color: white;
@@ -2188,7 +2188,7 @@ async function resumeWorkout(workoutId) {
         
         // Nettoyer l'état en cas d'erreur
         localStorage.removeItem('fitness_workout_state');
-        const banner = document.querySelector('.workout-resume-banner');
+        const banner = document.querySelector('.workout-resume-notification-banner');
         if (banner) banner.remove();
     }
 }
@@ -2203,7 +2203,7 @@ async function abandonActiveWorkout(workoutId) {
         // Nettoyer IMMÉDIATEMENT l'état local et la bannière
         localStorage.removeItem('fitness_workout_state');
         clearWorkoutState();
-        const banner = document.querySelector('.workout-resume-banner');
+        const banner = document.querySelector('.workout-resume-notification-banner');
         if (banner) banner.remove();
         
         try {
@@ -2599,7 +2599,7 @@ function loadRecentWorkouts(workouts) {
             (transitionSeconds / totalDurationSeconds * 100).toFixed(1) : 0;
 
         return `
-            <div class="workout-card">
+            <div class="dashboard-history-workout-card ${workout.status === 'pending' ? 'dashboard-history-workout-card--pending' : ''}">
                 <!-- Ligne 1: Header -->
                 <div class="workout-header-line">
                     <div class="workout-type">
@@ -2752,7 +2752,7 @@ async function startFreeWorkout() {
         localStorage.removeItem('fitness_workout_state');
         
         // Supprimer toute bannière résiduelle
-        const oldBanner = document.querySelector('.workout-resume-banner');
+        const oldBanner = document.querySelector('.workout-resume-notification-banner');
         if (oldBanner) oldBanner.remove();
         
         const workoutData = { type: 'free' };
@@ -7377,7 +7377,7 @@ async function endWorkout() {
         // Réinitialiser l'état
         clearWorkoutState();
         // Retirer la bannière de reprise de séance si elle existe
-        const banner = document.querySelector('.workout-resume-banner');
+        const banner = document.querySelector('.workout-resume-notification-banner');
         if (banner) banner.remove();
         
         // Nettoyer les données de pause
@@ -8017,7 +8017,7 @@ async function clearHistory() {
         currentWorkoutSession = null;
         
         // Supprimer la bannière si elle existe
-        const banner = document.querySelector('.workout-resume-banner');
+        const banner = document.querySelector('.workout-resume-notification-banner');
         if (banner) {
             banner.remove();
         }
@@ -12193,7 +12193,7 @@ function abandonWorkout() {
     transitionTo(WorkoutStates.IDLE);
     
     // Retirer la bannière immédiatement
-    const banner = document.querySelector('.workout-resume-banner');
+    const banner = document.querySelector('.workout-resume-notification-banner');
     if (banner) banner.remove();
     
     // Tenter l'API en arrière-plan sans bloquer

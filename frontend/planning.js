@@ -1521,7 +1521,7 @@ class PlanningManager {
                 const modalContent = `
                     <div class="swap-modal-v2">
                         <h3>Remplacer ${exercise.name}</h3>
-                        <div class="current-exercise">
+                        <div class="active-workout-interface-container">
                             <h4>Exercice actuel</h4>
                             <div class="exercise-card current">
                                 <span>${exercise.name}</span>
