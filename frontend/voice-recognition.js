@@ -155,51 +155,114 @@ let validationMode = VALIDATION_LEVELS.STRICT; // Mode par défaut Phase 4
 // États visuels du micro
 let currentMicState = 'inactive';
 
+// Gestionnaire de clic sur l'icône micro (appelé depuis HTML)
+window.handleVoiceStatusClick = async function() {
+    const container = document.getElementById('voiceStatusContainer');
+    const icon = document.getElementById('voiceStatusIcon');
+    
+    if (!container || !icon) return;
+    
+    // Si micro en erreur ou non autorisé, tenter d'obtenir permission
+    if (icon.classList.contains('unavailable') || icon.classList.contains('denied')) {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            stream.getTracks().forEach(track => track.stop());
+            updateMicrophoneVisualState('inactive');
+            if (typeof showToast === 'function') {
+                showToast('Microphone autorisé !', 'success');
+            }
+        } catch (e) {
+            if (typeof showToast === 'function') {
+                showToast('Accès au microphone refusé', 'error');
+            }
+        }
+    }
+};
+
+// Vérifier les permissions au démarrage des séances
+async function checkMicrophonePermissions() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        return false;
+    }
+    
+    try {
+        const result = await navigator.permissions.query({ name: 'microphone' });
+        
+        if (result.state === 'granted') {
+            return true;
+        } else if (result.state === 'denied') {
+            return false;
+        } else {
+            return true; // État 'prompt' 
+        }
+    } catch (e) {
+        return true; // Fallback
+    }
+}
+
+// Masquer l'indicateur micro (appelé en fin de séance)
+function hideVoiceStatus() {
+    const container = document.getElementById('voiceStatusContainer');
+    if (container) {
+        container.style.display = 'none';
+    }
+}
+
+// Exposer globalement
+window.hideVoiceStatus = hideVoiceStatus;
+
 // Met à jour l'état visuel du microphone - {'inactive'|'listening'|'processing'|'error'} state - État du micro
 function updateMicrophoneVisualState(state) {
-    // Chercher le bouton vocal existant
-    const voiceBtn = document.querySelector('.voice-toggle-btn');
+    const icon = document.getElementById('voiceStatusIcon');
+    const text = document.getElementById('voiceStatusText');
+    const container = document.getElementById('voiceStatusContainer');
     
-    if (!voiceBtn) {
-        console.warn('[Voice] Bouton vocal introuvable');
+    if (!icon || !text || !container) {
+        console.log(`[Voice] État visuel micro: ${state} (interface non prête)`);
         return;
     }
     
-    // Retirer toutes les classes d'état précédentes
-    voiceBtn.classList.remove('mic-inactive', 'mic-listening', 'mic-processing', 'mic-error');
+    // Afficher le container pour les séances avec vocal
+    container.style.display = 'flex';
     
-    // Appliquer la nouvelle classe selon l'état
+    // Animation de transition
+    container.classList.add('transitioning');
+    setTimeout(() => container.classList.remove('transitioning'), 300);
+    
+    // Mise à jour directe selon l'état
     switch(state) {
         case 'inactive':
-            voiceBtn.classList.add('mic-inactive');
-            voiceBtn.setAttribute('aria-label', 'Microphone inactif');
+            icon.className = 'fas fa-microphone ready';
+            text.textContent = 'Micro prêt';
             break;
             
         case 'listening':
-            voiceBtn.classList.add('mic-listening');
-            voiceBtn.setAttribute('aria-label', 'Écoute en cours');
+            icon.className = 'fas fa-microphone active';
+            text.textContent = 'Écoute en cours...';
             break;
             
         case 'processing':
-            voiceBtn.classList.add('mic-processing');
-            voiceBtn.setAttribute('aria-label', 'Traitement en cours');
+            icon.className = 'fas fa-microphone ready';
+            text.textContent = 'Traitement...';
             break;
             
         case 'error':
-            voiceBtn.classList.add('mic-error');
-            voiceBtn.setAttribute('aria-label', 'Erreur microphone');
-            // Reset après 2 secondes
+            icon.className = 'fas fa-microphone-slash unavailable';
+            text.textContent = 'Erreur microphone';
+            // Auto-reset après 2 secondes
             setTimeout(() => {
-                if (!voiceRecognitionActive) {
-                    updateMicrophoneVisualState('inactive');
-                } else {
-                    updateMicrophoneVisualState('listening');
-                }
+                updateMicrophoneVisualState(voiceRecognitionActive ? 'listening' : 'inactive');
             }, 2000);
             break;
+            
+        default:
+            // Fallback pour états inconnus
+            icon.className = 'fas fa-microphone ready';
+            text.textContent = 'Micro prêt';
     }
     
-    console.log(`[Voice] État visuel micro: ${state}`);
+    currentMicState = state;
+    console.log(`[Voice] État micro: ${state}`);
 }
 
 // ===== FONCTIONS PRINCIPALES =====
@@ -2293,3 +2356,19 @@ window.updateMicrophoneVisualState = updateMicrophoneVisualState;
 
 console.log('[Voice] ✅ Toutes les expositions globales configurées');
 
+// Initialiser l'état micro au chargement des séances
+document.addEventListener('DOMContentLoaded', () => {
+    // Attendre que l'interface soit construite
+    setTimeout(() => {
+        const container = document.getElementById('voiceStatusContainer');
+        if (container) {
+            checkMicrophonePermissions().then(hasPermission => {
+                if (hasPermission) {
+                    updateMicrophoneVisualState('inactive');
+                } else {
+                    updateMicrophoneVisualState('error');
+                }
+            });
+        }
+    }, 600);
+});

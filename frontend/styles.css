@@ -7787,3 +7787,81 @@ p{
         background: rgba(255, 255, 255, 0.03);
     }
 }
+
+/* === INDICATEUR MICRO MODERNE - INTÉGRÉ DANS SÉANCE === */
+
+.voice-status-container {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    background: var(--bg-light);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    margin-top: var(--spacing-md);
+    transition: all 0.3s ease;
+}
+
+.voice-status-btn {
+    background: none;
+    border: none;
+    padding: var(--spacing-xs);
+    cursor: pointer;
+    font-size: 1.5rem;
+    transition: transform 0.2s ease;
+}
+
+.voice-status-btn:hover {
+    transform: scale(1.1);
+}
+
+.voice-status-btn:active {
+    transform: scale(0.95);
+}
+
+/* États du micro */
+.voice-status-btn .fa-microphone-slash.unavailable {
+    color: #ef4444; /* Rouge */
+}
+
+.voice-status-btn .fa-microphone-slash.denied {
+    color: #f59e0b; /* Jaune/Orange */
+    animation: pulse 2s infinite;
+}
+
+.voice-status-btn .fa-microphone.active {
+    color: #22c55e; /* Vert */
+    animation: recording 1s ease-in-out infinite;
+}
+
+.voice-status-btn .fa-microphone.ready {
+    color: #3b82f6; /* Bleu */
+}
+
+/* Animations */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+@keyframes recording {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+}
+
+.voice-status-text {
+    font-size: var(--font-sm);
+    color: var(--text-muted);
+    min-width: 120px;
+}
+
+/* Animation de transition d'état */
+.voice-status-container.transitioning {
+    animation: statusChange 0.3s ease;
+}
+
+@keyframes statusChange {
+    0% { transform: translateX(5px); }
+    50% { transform: translateX(-5px); }
+    100% { transform: translateX(0); }
+}

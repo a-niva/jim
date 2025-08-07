@@ -5132,14 +5132,32 @@ function initializeModernRepsDisplay(targetReps = 12, currentReps = 0) {
         }
     }
     
-    // Structure HTML moderne
+    // Structure HTML moderne EXISTANTE
     repsDisplay.innerHTML = `
         <div class="current-rep" id="currentRep">${currentReps}</div>
         <div class="rep-separator">/</div>
         <div class="target-rep" id="targetRep">${targetReps}</div>
         <div class="next-rep-preview" id="nextRepPreview">${currentReps + 1}</div>
     `;
-    
+
+    // === NOUVEAU : Ajouter l'indicateur micro après l'interface N/R ===
+    if (!document.getElementById('voiceStatusContainer')) {
+        const voiceStatusContainer = document.createElement('div');
+        voiceStatusContainer.id = 'voiceStatusContainer';
+        voiceStatusContainer.className = 'voice-status-container';
+        voiceStatusContainer.style.display = 'none';
+        
+        voiceStatusContainer.innerHTML = `
+            <button class="voice-status-btn" id="voiceStatusBtn" onclick="handleVoiceStatusClick()">
+                <i class="fas fa-microphone-slash" id="voiceStatusIcon"></i>
+            </button>
+            <span class="voice-status-text" id="voiceStatusText">Micro désactivé</span>
+        `;
+        
+        // L'insérer après repsDisplay
+        repsDisplay.parentNode.insertBefore(voiceStatusContainer, repsDisplay.nextSibling);
+    }
+
     // État initial selon le workflow
     if (workoutState.current === WorkoutStates.READY) {
         transitionToReadyState();
