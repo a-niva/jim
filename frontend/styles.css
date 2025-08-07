@@ -1349,19 +1349,20 @@ input:focus,select:focus,textarea:focus {
     font-weight: bold;
 }
 
-/* ===== SÉANCE ACTIVE INTERFACE ===== */
+/* ===== CONTAINER PRINCIPAL ANTI-DÉBORDEMENT ===== */
 .active-workout-interface-container {
     background: var(--bg-card);
     border-radius: var(--radius);
+    padding: var(--spacing-md);
     border: 1px solid var(--border);
     position: relative;
     transition: border-color .3s ease;
-    will-change: transform, box-shadow;
-    transform: translateZ(0);
-    /* AJOUTER CES LIGNES POUR ÉVITER DÉBORDEMENT */
+    
+    /* ANTI-DÉBORDEMENT STRICT */
     max-width: 100%;
     overflow: hidden;
     box-sizing: border-box;
+    contain: layout style;
 }
 
 .active-workout-interface-container--voice-active {
@@ -1990,14 +1991,30 @@ input{
 }
 
 .input-row {
-    display: flex!important;
-    flex-direction: row!important;
-    align-items: center!important;
-    justify-content: space-between!important;
-    gap: var(--spacing-md)!important;
+    display: grid !important;
+    grid-template-columns: 44px 44px 1fr 44px; /* icône - stepper - value - stepper+ */
+    align-items: center !important;
+    gap: var(--spacing-sm) !important;
     margin-bottom: var(--spacing-lg);
     position: relative;
-    width: 100%!important
+    width: 100% !important;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* Grille mobile adaptée pour input-row */
+.input-row {
+    grid-template-columns: 40px 40px 1fr 40px !important;
+    gap: var(--spacing-xs) !important;
+}
+
+.input-row .input-icon,
+.input-row .charge-mode-icon,
+.input-row .stepper-modern {
+    width: 40px !important;
+    height: 40px !important;
+    font-size: var(--font-lg) !important;
 }
 
 .input-row .stepper-modern,.input-row .value-display {
@@ -7655,6 +7672,11 @@ p{
     font-size: var(--font-sm);
     font-weight: 400;
     font-style: normal;
+}
+
+/* Fix alignement ready-state */
+.reps-display-modern.ready-state {
+    align-items: center; /* Force centrage même en ready */
 }
 
 /* État dépassement objectif - version optimisée */

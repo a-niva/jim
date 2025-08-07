@@ -412,11 +412,12 @@ function updateRepDisplayModern(currentRep, targetRep, options = {}) {
     
     // Preview N+1 intelligent - ne montrer que si on progresse
     const nextRep = currentRep + 1;
-    if (currentRep > 0 && currentRep < targetRep && nextRep <= targetRep) {
+    if (currentRep > 0 && currentRep < targetRep) {
         nextRepPreviewEl.textContent = nextRep;
         nextRepPreviewEl.classList.add('visible');
     } else {
         nextRepPreviewEl.classList.remove('visible');
+        nextRepPreviewEl.textContent = ''; // Vider le contenu
     }
     
     // PHASE 4 - Gestion indicateur progression interpolation
@@ -5352,11 +5353,12 @@ function updateRepDisplayModern(currentRep, targetRep = null, options = {}) {
     
     // Preview N+1 intelligent
     const nextRep = currentRep + 1;
-    if (nextRep <= targetRep + 2) { // Afficher jusqu'à +2 de l'objectif
+    if (currentRep > 0 && currentRep < targetRep) {
         nextRepPreviewEl.textContent = nextRep;
         nextRepPreviewEl.classList.add('visible');
     } else {
         nextRepPreviewEl.classList.remove('visible');
+        nextRepPreviewEl.textContent = ''; // Vider le contenu
     }
     
     // Gestion des options (erreur vocale, etc.)
@@ -5439,11 +5441,12 @@ function updateRepDisplayModern(currentRep, targetRep, options = {}) {
     
     // Preview N+1 intelligent
     const nextRep = currentRep + 1;
-    if (nextRep <= targetRep + 2) { // Afficher jusqu'à +2 de l'objectif
+    if (currentRep > 0 && currentRep < targetRep) {
         nextRepPreviewEl.textContent = nextRep;
-        nextRepPreviewEl.className = 'next-rep-preview visible';
+        nextRepPreviewEl.classList.add('visible');
     } else {
-        nextRepPreviewEl.className = 'next-rep-preview';
+        nextRepPreviewEl.classList.remove('visible');
+        nextRepPreviewEl.textContent = ''; // Vider le contenu
     }
     
     // PHASE 4 - Gestion indicateur progression interpolation
