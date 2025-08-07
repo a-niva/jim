@@ -2972,13 +2972,9 @@ span{
     opacity: .8
 }
 
-.selected{
-    transform: scale(1.15);
-    border-color: #fff;
-    box-shadow: 0 0 15px rgba(255,255,255,.3)
-}
-
 .selected {
+    transform: scale(1.15);
+    box-shadow: 0 0 15px rgba(255,255,255,.3);
     border-color: var(--primary);
     background: var(--primary);
     color: #fff
@@ -6875,11 +6871,6 @@ p{
         max-width: 100%;
         margin: 0;
         padding: var(--spacing-sm);
-        /* NOUVEAU : Limitation hauteur */
-        max-height: calc(100vh - 35px - 70px);
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
     }
     
     /* Zone de feedback compacte */
