@@ -11390,8 +11390,8 @@ function handleExtraSet() {
     
     console.log(`🔄 Série supplémentaire ${currentSet}/${currentWorkoutSession.totalSets} - Démarrage repos`);
     
-    // 9. === NOUVEAUTÉ : AJOUTER LE REPOS ===
-    startRestPeriod();
+    // 9. Transition directe vers READY pour exécuter la série
+    transitionTo(WorkoutStates.READY);
     
     // Note: completeRest() détectera le flag isStartingExtraSet et ne fera PAS currentSet++
     // Il préparera directement l'interface pour la série supplémentaire

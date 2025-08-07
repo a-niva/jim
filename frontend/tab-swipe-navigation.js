@@ -101,9 +101,6 @@ class TabSwipeNavigation {
     navigateToTab(index) {
         const targetTab = this.tabs[index];
         
-        // Animation subtile
-        this.animateTransition();
-        
         // Navigation après délai
         setTimeout(() => {
             if (targetTab === 'planning') {
@@ -114,19 +111,6 @@ class TabSwipeNavigation {
         }, 100);
         
         this.currentTabIndex = index;
-    }
-
-    animateTransition() {
-        // Animation discrète sur bottom nav
-        const nav = document.getElementById('bottomNav');
-        if (nav) {
-            nav.style.transform = 'scale(0.95)';
-            nav.style.transition = 'transform 0.2s ease';
-            
-            setTimeout(() => {
-                nav.style.transform = 'scale(1)';
-            }, 200);
-        }
     }
 
     getCurrentTab() {
