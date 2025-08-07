@@ -1353,12 +1353,12 @@ input:focus,select:focus,textarea:focus {
 .active-workout-interface-container {
     background: var(--bg-card);
     border-radius: var(--radius);
-    padding: var(--spacing-md);
+    padding: var(--spacing-lg); /* ← Plus de padding */
     border: 1px solid var(--border);
     position: relative;
     transition: border-color .3s ease;
-    
-    /* ANTI-DÉBORDEMENT STRICT */
+    will-change: transform, box-shadow;
+    transform: translateZ(0);
     max-width: 100%;
     overflow: hidden;
     box-sizing: border-box;
@@ -2222,9 +2222,18 @@ input{
     margin: 0 auto var(--spacing-lg)
 }
 
-.input-icon {
-    font-size: 1.8rem;
-    margin-right: var(--spacing-md)
+.input-row .input-icon {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 1.5rem;
+    border-radius: 8px;
+    background: var(--bg-light);
+    border: 1px solid var(--border);
+    margin: 0; /* ← SUPPRIME LE MARGIN */
 }
 
 .stepper-modern,.value-display {
@@ -2233,8 +2242,8 @@ input{
 }
 
 .stepper-modern {
-    width: 48px;
-    height: 48px;
+    width: 44px; /* Cohérent avec grille */
+    height: 44px;
     border-radius: 12px;
     background: var(--bg-secondary);
     border: 2px solid var(--border);
@@ -2247,6 +2256,7 @@ input{
     justify-content: center;
     touch-action: manipulation;
     backdrop-filter: blur(10px);
+    flex-shrink: 0; /* Éviter rétrécissement */
 }
 
 .stepper-modern:hover {
@@ -2279,9 +2289,13 @@ input{
 }
 
 .value-display span:first-child {
-    font-size: var(--font-4xl);
+    font-size: clamp(1.8rem, 4vw, 3rem); /* Taille adaptative uniforme */
     font-weight: 700;
-    color: var(--text)
+    color: var(--text);
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .unit {
