@@ -9,6 +9,10 @@ let currentExercise = null;
 let currentSet = 1;
 let workoutTimer = null;
 let restTimer = null;
+// Tracking vue courante pour cleanup intelligent
+let currentView = null;
+// Protection race conditions
+let setExecutionInProgress = false;
 
 let notificationTimeout = null;
 let currentStep = 1;
@@ -139,9 +143,15 @@ const OverlayManager = {
         // FERMER tous les overlays existants AVANT d'ouvrir le nouveau
         this.hideAll();
         
-        // Afficher le nouvel overlay
+        // Afficher le nouvel overlay avec z-index FORCÉ
         if (element && element.style) {
             element.style.display = 'flex';
+            
+            // NOUVEAU : Forcer z-index selon type overlay
+            if (id === 'rest') {
+                element.style.zIndex = '1600';  // Plus haut que records
+            }
+            
             this.activeOverlays.add(id);
         }
     },
@@ -893,13 +903,56 @@ function handleUrlAction(action) {
     }
 }
 
+function cleanupSpecializedViewContent(previousView) {
+    switch(previousView) {
+        case 'stats':
+            // Nettoyer le contenu M6 Stats
+            const recordsContainer = document.getElementById('recordsWaterfall');
+            if (recordsContainer) {
+                recordsContainer.innerHTML = '';
+            }
+            
+            // Nettoyer autres containers stats si nécessaire
+            const containers = ['progressionChart', 'timeDistributionChart', 'muscleBalanceChart'];
+            containers.forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.innerHTML.includes('canvas')) {
+                    // Garder structure de base mais nettoyer contenu dynamique
+                    const canvases = el.querySelectorAll('canvas');
+                    canvases.forEach(canvas => canvas.remove());
+                }
+            });
+            break;
+            
+        case 'planning':
+            // Nettoyer événements drag-drop Planning si nécessaire
+            if (window.planningManager?.cleanup) {
+                window.planningManager.cleanup();
+            }
+            break;
+            
+        case 'workout':
+            // Nettoyer timers et états workout si transition brutale
+            if (typeof cleanupAllWorkoutTimers === 'function') {
+                cleanupAllWorkoutTimers();
+            }
+            break;
+    }
+    
+    console.log(`[Cleanup] Contenu spécialisé nettoyé pour vue: ${previousView}`);
+}
+
 // ===== NAVIGATION =====
 async function showView(viewName) {
-    console.log(`🔍 showView(${viewName}) - currentUser:`, currentUser ? currentUser.name : 'UNDEFINED');
+    console.log(`🔍 showView(${viewName}) - currentUser: ${currentUser?.name || 'UNDEFINED'}`);
+    
+    // Stocker vue précédente pour cleanup
+    const previousView = currentView;
+    currentView = viewName;
 
     // Gérer le cas où currentUser est perdu
     if (!currentUser && ['dashboard', 'stats', 'profile'].includes(viewName)) {
-        const savedUserId = localStorage.getItem('fitness_user_id');  // ← AJOUTER CETTE LIGNE
+        const savedUserId = localStorage.getItem('fitness_user_id');
         if (savedUserId) {
             // Recharger l'utilisateur de façon asynchrone
             console.log('currentUser perdu, rechargement depuis localStorage...');
@@ -929,6 +982,8 @@ async function showView(viewName) {
         el.classList.remove('active');
         el.style.display = 'none';
     });
+    // Nettoyage spécialisé contenus modules
+    cleanupSpecializedViewContent(previousView);  // Utiliser previousView au lieu de currentView
     
     document.querySelectorAll('.nav-item').forEach(el => {
         el.classList.remove('active');
@@ -4114,35 +4169,25 @@ async function selectExercise(exercise, skipValidation = false) {
     }
 }
 
-function createExerciseControlsSystem(exercise) {
-    // Validation des entrées pour éviter les erreurs
-    if (!exercise || !exercise.id) {
-        console.warn('[Controls] Exercice invalide pour création des contrôles');
+/**
+ * Système vocal unifié - plus de duplication
+ */
+function createVoiceControlsUnified(exercise) {
+    if (!exercise?.id || !currentUser?.voice_counting_enabled || 
+        exercise.exercise_type === 'isometric') {
         return '';
     }
-
-    // Ne montrer que l'icône vocale si activée et compatible
-    const showVoiceToggle = currentUser?.voice_counting_enabled && 
-                           exercise.exercise_type !== 'isometric' &&
-                           exercise.exercise_type !== undefined &&
-                           /Android|iPhone/i.test(navigator.userAgent);
-
-    // Si aucun contrôle vocal nécessaire, retourner une chaîne vide
-    if (!showVoiceToggle) {
-        return '';
-    }
-
-    // Construire uniquement le contrôle vocal
-    const isVoiceActive = window.voiceRecognitionActive ? 
-                         window.voiceRecognitionActive() : false;
+    
+    const isVoiceActive = window.voiceRecognitionActive?.() || false;
     
     return `
-        <div class="exercise-controls-container voice-only">
-            <button class="voice-toggle-btn ${isVoiceActive ? 'active' : ''}"
-                    onclick="toggleVoiceRecognition()"
-                    title="Comptage vocal ${isVoiceActive ? 'actif' : 'inactif'}">
-                <i class="fas fa-microphone"></i>
+        <div class="voice-status-container" id="voiceStatusContainer">
+            <button class="voice-status-btn" onclick="toggleVoiceRecognition()">
+                <i class="fas fa-microphone ${isVoiceActive ? 'active' : 'ready'}"></i>
             </button>
+            <span class="voice-status-text">
+                ${isVoiceActive ? 'Écoute en cours...' : 'Micro prêt'}
+            </span>
         </div>
     `;
 }
@@ -5162,6 +5207,56 @@ function initializeModernRepsDisplay(targetReps = 12, currentReps = 0) {
     }
     
     console.log('[UI] Interface N/R initialisée avec succès');
+}
+
+/**
+ * Version synchrone pour éviter race conditions
+ */
+async function initializeModernRepsDisplaySync(targetReps, currentRep = 0) {
+    try {
+        // Création immédiate sans setTimeout
+        initializeModernRepsDisplay(targetReps, currentRep);
+        
+        // Attendre que le DOM soit effectivement créé
+        await waitForElement('#voiceStatusContainer', 500);
+        
+        console.log('[DOM] Interface moderne créée et vérifiée');
+        return true;
+    } catch (error) {
+        console.error('[DOM] Erreur création interface:', error);
+        return false;
+    }
+}
+
+/**
+ * Attendre qu'un élément existe dans le DOM
+ */
+function waitForElement(selector, timeout = 1000) {
+    return new Promise((resolve, reject) => {
+        const element = document.querySelector(selector);
+        if (element) {
+            resolve(element);
+            return;
+        }
+        
+        const observer = new MutationObserver((mutations, obs) => {
+            const element = document.querySelector(selector);
+            if (element) {
+                obs.disconnect();
+                resolve(element);
+            }
+        });
+        
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+        
+        setTimeout(() => {
+            observer.disconnect();
+            reject(new Error(`Element ${selector} non trouvé après ${timeout}ms`));
+        }, timeout);
+    });
 }
 
 /**
@@ -6478,13 +6573,12 @@ async function configureUIForExerciseType(type, recommendations) {
             break;
     }
     
-    // === NOUVEAU : Initialiser interface moderne SEULEMENT si approprié ===
-    if (shouldInitModernDisplay) {
-        setTimeout(() => {
-            initializeModernRepsDisplay(targetReps, 0);
-        }, 100);
+    // Création DOM synchrone garantie AVANT activation vocale
+    const modernDisplayReady = await initializeModernRepsDisplaySync(targetReps, 0);
+    if (!modernDisplayReady) {
+        console.error('[DOM] Impossible de créer interface moderne');
+        return;
     }
-    
     // Créer bouton GO seulement quand nécessaire
     const executeBtn = document.getElementById('executeSetBtn');
     if (executeBtn) {
@@ -9957,144 +10051,113 @@ function hidePlateHelper() {
 // ===== COUCHE 8 : EXECUTE SET =====
 
 async function executeSet() {
-    console.log('=== EXECUTE SET APPELÉ ===');
-    // AJOUTER au tout début de executeSet() :
-    if (window.setExecutionInProgress) {
+    // Protection double exécution
+    if (setExecutionInProgress) {
         console.log('[ExecuteSet] Déjà en cours, abandon');
         return;
     }
-    window.setExecutionInProgress = true;
+    setExecutionInProgress = true;
     
-    // PHASE 4 - Vérifier si interpolation en cours
-    if (window.interpolationInProgress) {
-        console.log('[ExecuteSet] Interpolation en cours, attente...');
-        showToast('⏳ Finalisation du comptage...', 'info');
-        return;
-    }
-    
-    // Validation CORRIGÉE - Plus de currentWorkoutSession.id
-    if (!currentWorkout) {
-        console.error('executeSet(): currentWorkout manquant');
-        showToast('Aucune séance active', 'error');
-        return;
-    }
-    
-    if (!currentExercise) {
-        console.error('executeSet(): currentExercise manquant');
-        showToast('Aucun exercice sélectionné', 'error');
-        return;
-    }
-    
-    if (!currentWorkoutSession.workout) {
-        console.error('executeSet(): currentWorkoutSession.workout manquant');
-        showToast('État de session invalide', 'error');
-        return;
-    }
-    
-    console.log('✅ VALIDATION executeSet RÉUSSIE');
+    try {
+        console.log('=== EXECUTE SET APPELÉ ===');
+        // AJOUTER au tout début de executeSet() :
+        if (window.setExecutionInProgress) {
+            console.log('[ExecuteSet] Déjà en cours, abandon');
+            return;
+        }
+        window.setExecutionInProgress = true;
+        
+        // PHASE 4 - Vérifier si interpolation en cours
+        if (window.interpolationInProgress) {
+            console.log('[ExecuteSet] Interpolation en cours, attente...');
+            showToast('⏳ Finalisation du comptage...', 'info');
+            return;
+        }
+        
+        // Validation CORRIGÉE - Plus de currentWorkoutSession.id
+        if (!currentWorkout) {
+            console.error('executeSet(): currentWorkout manquant');
+            showToast('Aucune séance active', 'error');
+            return;
+        }
+        
+        if (!currentExercise) {
+            console.error('executeSet(): currentExercise manquant');
+            showToast('Aucun exercice sélectionné', 'error');
+            return;
+        }
+        
+        if (!currentWorkoutSession.workout) {
+            console.error('executeSet(): currentWorkoutSession.workout manquant');
+            showToast('État de session invalide', 'error');
+            return;
+        }
+        
+        console.log('✅ VALIDATION executeSet RÉUSSIE');
 
-    // Capturer feedback sélectionné
-    const selectedEmoji = document.querySelector('.emoji-btn.selected, .emoji-btn-modern.selected');
-    const feedback = selectedEmoji ? selectedEmoji.dataset.feedback : 3;
-    
-    // === NOUVELLE GESTION ÉTATS VOCAUX (AJOUT ÉTAPE 4) ===
-    
-    // 1. Vérifier si validation vocale en cours
-    if (window.voiceState === 'VALIDATING' || window.voiceState === 'AUTO_VALIDATING') {
-        console.log('[Voice] Série en attente de validation vocal, executeSet() suspendu');
-        showToast('Validation vocale en cours...', 'info');
-        return; // Attendre validation utilisateur
-    }
-    
-    // === VALIDATION PRÉALABLE (CONSERVÉ) ===
-    console.log(`🔧 executeSet(): currentSet=${currentSet}, currentSetNumber=${currentWorkoutSession.currentSetNumber}`);
-    
-    // Synchroniser les variables avant exécution (CONSERVÉ)
-    currentWorkoutSession.currentSetNumber = currentSet;
-    
-    // Si incohérence détectée, corriger (CONSERVÉ)
-    if (currentSet > currentWorkoutSession.totalSets) {
-        console.warn(`🔧 ANOMALIE: currentSet(${currentSet}) > totalSets(${currentWorkoutSession.totalSets}), correction à totalSets`);
-        currentSet = currentWorkoutSession.totalSets;
+        // Capturer feedback sélectionné
+        const selectedEmoji = document.querySelector('.emoji-btn.selected, .emoji-btn-modern.selected');
+        const feedback = selectedEmoji ? selectedEmoji.dataset.feedback : 3;
+        
+        // === NOUVELLE GESTION ÉTATS VOCAUX (AJOUT ÉTAPE 4) ===
+        
+        // 1. Vérifier si validation vocale en cours
+        if (window.voiceState === 'VALIDATING' || window.voiceState === 'AUTO_VALIDATING') {
+            console.log('[Voice] Série en attente de validation vocal, executeSet() suspendu');
+            showToast('Validation vocale en cours...', 'info');
+            return; // Attendre validation utilisateur
+        }
+        
+        // === VALIDATION PRÉALABLE (CONSERVÉ) ===
+        console.log(`🔧 executeSet(): currentSet=${currentSet}, currentSetNumber=${currentWorkoutSession.currentSetNumber}`);
+        
+        // Synchroniser les variables avant exécution (CONSERVÉ)
         currentWorkoutSession.currentSetNumber = currentSet;
-    }
-
-    // Fix temporaire : Les variables sont vérifiées correctes avant l'appel
-    if (!currentWorkout) {
-        showToast('Aucune séance active', 'error');
-        return;
-    }
-    if (!currentExercise) {
-        console.log('🔧 PATCH: currentExercise null, mais continuons l\'exécution');
-        // Ne pas bloquer - les données sont transmises via voiceData ou UI
-    }
-    
-    // === DÉCLARATION DES VARIABLES AU DÉBUT POUR ÉVITER LES ERREURS DE SCOPE ===
-    let setTime = 0;
-    let repsValue = 0;
-    let finalWeight = null;
-    let voiceData = null;
-    
-    // === CALCUL DURÉE RÉELLE AVEC TIMESTAMPS PRÉCIS (CONSERVÉ) ===
-    if (setTimer) {
-        // Utiliser le timestamp de début stocké globalement (CONSERVÉ)
-        const setStartTime = window.currentSetStartTime || Date.now();
-        setTime = Math.round((Date.now() - setStartTime) / 1000);
         
-        // Durée minimale de 10 secondes pour éviter les clics trop rapides (CONSERVÉ)
-        setTime = Math.max(setTime, 10);
-        
-        currentWorkoutSession.totalSetTime += setTime;
-        clearInterval(setTimer);
-        setTimer = null;
-    }
-    
-    // === TRAITEMENT PRIORITAIRE DONNÉES VOCALES VALIDÉES (NOUVEAU ÉTAPE 4) ===
-    const isIsometric = currentExercise.exercise_type === 'isometric';
-    
-    // 2. Traitement prioritaire des données vocales confirmées (ÉTAPE 4)
-    if (window.voiceState === 'CONFIRMED' && window.voiceData && window.voiceData.count > 0) {
-        
-        // Calculer tempo moyen si pas déjà fait
-        const tempoAvg = window.calculateAvgTempo ? 
-            window.calculateAvgTempo(window.voiceData.timestamps) : null;
-        
-        voiceData = {
-            count: window.voiceData.count,
-            tempo_avg: tempoAvg,
-            gaps: window.voiceData.gaps || [],
-            confidence: window.voiceData.confidence || 1.0,
-            validated: true,  // Flag crucial pour ML (ÉTAPE 4)
-            suspicious_jumps: window.voiceData.suspiciousJumps || 0,
-            correction_applied: window.voiceData.correctionApplied || false
-        };
-        
-        console.log('[Voice] Données vocales VALIDÉES intégrées (priorité):', voiceData);
-    }
-    
-    // === FALLBACK DONNÉES VOCALES EXISTANTES (CONSERVÉ) ===
-    if (!voiceData) {
-        // Méthode 1 : Via fonction globale (priorité)
-        if (window.getVoiceData && typeof window.getVoiceData === 'function') {
-            const globalVoiceData = window.getVoiceData();
-            if (globalVoiceData && globalVoiceData.count > 0) {
-                const tempoAvg = window.calculateAvgTempo ? 
-                    window.calculateAvgTempo(globalVoiceData.timestamps) : null;
-                
-                voiceData = {
-                    count: globalVoiceData.count,
-                    tempo_avg: tempoAvg,
-                    gaps: globalVoiceData.gaps || [],
-                    confidence: parseFloat(globalVoiceData.confidence) || 1.0,
-                    validated: false  // Données non validées (ÉTAPE 4)
-                };
-                
-                console.log('[Voice] Données vocales récupérées via getVoiceData() (non validées):', voiceData);
-            }
+        // Si incohérence détectée, corriger (CONSERVÉ)
+        if (currentSet > currentWorkoutSession.totalSets) {
+            console.warn(`🔧 ANOMALIE: currentSet(${currentSet}) > totalSets(${currentWorkoutSession.totalSets}), correction à totalSets`);
+            currentSet = currentWorkoutSession.totalSets;
+            currentWorkoutSession.currentSetNumber = currentSet;
         }
 
-        // Méthode 2 : Fallback via window.voiceData
-        if (!voiceData && window.voiceData && window.voiceData.count > 0) {
+        // Fix temporaire : Les variables sont vérifiées correctes avant l'appel
+        if (!currentWorkout) {
+            showToast('Aucune séance active', 'error');
+            return;
+        }
+        if (!currentExercise) {
+            console.log('🔧 PATCH: currentExercise null, mais continuons l\'exécution');
+            // Ne pas bloquer - les données sont transmises via voiceData ou UI
+        }
+        
+        // === DÉCLARATION DES VARIABLES AU DÉBUT POUR ÉVITER LES ERREURS DE SCOPE ===
+        let setTime = 0;
+        let repsValue = 0;
+        let finalWeight = null;
+        let voiceData = null;
+        
+        // === CALCUL DURÉE RÉELLE AVEC TIMESTAMPS PRÉCIS (CONSERVÉ) ===
+        if (setTimer) {
+            // Utiliser le timestamp de début stocké globalement (CONSERVÉ)
+            const setStartTime = window.currentSetStartTime || Date.now();
+            setTime = Math.round((Date.now() - setStartTime) / 1000);
+            
+            // Durée minimale de 10 secondes pour éviter les clics trop rapides (CONSERVÉ)
+            setTime = Math.max(setTime, 10);
+            
+            currentWorkoutSession.totalSetTime += setTime;
+            clearInterval(setTimer);
+            setTimer = null;
+        }
+        
+        // === TRAITEMENT PRIORITAIRE DONNÉES VOCALES VALIDÉES (NOUVEAU ÉTAPE 4) ===
+        const isIsometric = currentExercise.exercise_type === 'isometric';
+        
+        // 2. Traitement prioritaire des données vocales confirmées (ÉTAPE 4)
+        if (window.voiceState === 'CONFIRMED' && window.voiceData && window.voiceData.count > 0) {
+            
+            // Calculer tempo moyen si pas déjà fait
             const tempoAvg = window.calculateAvgTempo ? 
                 window.calculateAvgTempo(window.voiceData.timestamps) : null;
             
@@ -10102,150 +10165,197 @@ async function executeSet() {
                 count: window.voiceData.count,
                 tempo_avg: tempoAvg,
                 gaps: window.voiceData.gaps || [],
-                confidence: parseFloat(window.voiceData.confidence) || 1.0,
-                validated: false  // Données non validées (ÉTAPE 4)
+                confidence: window.voiceData.confidence || 1.0,
+                validated: true,  // Flag crucial pour ML (ÉTAPE 4)
+                suspicious_jumps: window.voiceData.suspiciousJumps || 0,
+                correction_applied: window.voiceData.correctionApplied || false
             };
             
-            console.log('[Voice] Données vocales récupérées via window.voiceData (non validées):', voiceData);
+            console.log('[Voice] Données vocales VALIDÉES intégrées (priorité):', voiceData);
         }
-
-        // Debug : afficher l'état des variables globales
-        console.log('[Voice] État debug:', {
-            hasGetVoiceData: typeof window.getVoiceData === 'function',
-            hasWindowVoiceData: !!window.voiceData,
-            voiceDataPrepared: !!voiceData
-        });
-    }
-    
-    // === SAUVEGARDER DONNÉES SÉRIE PAR TYPE D'EXERCICE (CONSERVÉ + ENRICHI) ===
-    const isBodyweight = currentExercise.weight_type === 'bodyweight';
-
-    // NOUVEAU - Enrichissement données vocales validées pour ML
-    let voiceDataToSend = null;
-    if (window.voiceData && window.voiceState === 'CONFIRMED' && window.VOICE_FEATURES?.ml_enrichment) {
-        voiceDataToSend = {
-            count: window.voiceData.count,
-            tempo_avg: calculateAvgTempo(window.voiceData.timestamps),
-            gaps: window.voiceData.gaps || [],
-            timestamps: window.voiceData.timestamps || [],
-            confidence: window.voiceData.confidence || 1.0,
-            suspicious_jumps: window.voiceData.suspiciousJumps || 0,
-            repetitions: window.voiceData.repetitions || 0,
-            
-            // CRUCIAL - Flag de validation utilisateur
-            validated: true,
-            validation_method: window.voiceData.needsValidation ? 'user_confirmed' : 'auto_confirmed',
-            
-            // Métadonnées pour ML
-            start_time: window.voiceData.startTime,
-            total_duration: window.voiceData.timestamps.length > 0 ? 
-                window.voiceData.timestamps[window.voiceData.timestamps.length - 1] : null,
-            
-            // Qualité de données
-            data_quality: {
-                gaps_count: window.voiceData.gaps?.length || 0,
-                sequence_complete: (window.voiceData.gaps?.length || 0) === 0,
-                confidence_level: window.voiceData.confidence >= 0.8 ? 'high' : 
-                                window.voiceData.confidence >= 0.5 ? 'medium' : 'low'
+        
+        // === FALLBACK DONNÉES VOCALES EXISTANTES (CONSERVÉ) ===
+        if (!voiceData) {
+            // Méthode 1 : Via fonction globale (priorité)
+            if (window.getVoiceData && typeof window.getVoiceData === 'function') {
+                const globalVoiceData = window.getVoiceData();
+                if (globalVoiceData && globalVoiceData.count > 0) {
+                    const tempoAvg = window.calculateAvgTempo ? 
+                        window.calculateAvgTempo(globalVoiceData.timestamps) : null;
+                    
+                    voiceData = {
+                        count: globalVoiceData.count,
+                        tempo_avg: tempoAvg,
+                        gaps: globalVoiceData.gaps || [],
+                        confidence: parseFloat(globalVoiceData.confidence) || 1.0,
+                        validated: false  // Données non validées (ÉTAPE 4)
+                    };
+                    
+                    console.log('[Voice] Données vocales récupérées via getVoiceData() (non validées):', voiceData);
+                }
             }
-        };
-        
-        // Utiliser count vocal comme reps si validé
-        workoutState.pendingSetData.reps = window.voiceData.count;
-        
-        console.log('[Voice] Données validées préparées pour ML:', voiceDataToSend);
-    }
 
-    if (isIsometric) {
-        workoutState.pendingSetData = {
-            duration_seconds: parseInt(document.getElementById('setReps').textContent),
-            reps: parseInt(document.getElementById('setReps').textContent),
-            weight: null,
-            voice_data: voiceDataToSend || voiceData // Priorité aux données enrichies ML
-        };
-    } else if (isBodyweight) {
-        // Récupérer les reps (avec priorité au vocal si disponible)
-        repsValue = voiceData ? voiceData.count : getCurrentRepsValue();
+            // Méthode 2 : Fallback via window.voiceData
+            if (!voiceData && window.voiceData && window.voiceData.count > 0) {
+                const tempoAvg = window.calculateAvgTempo ? 
+                    window.calculateAvgTempo(window.voiceData.timestamps) : null;
+                
+                voiceData = {
+                    count: window.voiceData.count,
+                    tempo_avg: tempoAvg,
+                    gaps: window.voiceData.gaps || [],
+                    confidence: parseFloat(window.voiceData.confidence) || 1.0,
+                    validated: false  // Données non validées (ÉTAPE 4)
+                };
+                
+                console.log('[Voice] Données vocales récupérées via window.voiceData (non validées):', voiceData);
+            }
+
+            // Debug : afficher l'état des variables globales
+            console.log('[Voice] État debug:', {
+                hasGetVoiceData: typeof window.getVoiceData === 'function',
+                hasWindowVoiceData: !!window.voiceData,
+                voiceDataPrepared: !!voiceData
+            });
+        }
         
-        // Mettre à jour l'affichage si données vocales
+        // === SAUVEGARDER DONNÉES SÉRIE PAR TYPE D'EXERCICE (CONSERVÉ + ENRICHI) ===
+        const isBodyweight = currentExercise.weight_type === 'bodyweight';
+
+        // NOUVEAU - Enrichissement données vocales validées pour ML
+        let voiceDataToSend = null;
+        if (window.voiceData && window.voiceState === 'CONFIRMED' && window.VOICE_FEATURES?.ml_enrichment) {
+            voiceDataToSend = {
+                count: window.voiceData.count,
+                tempo_avg: calculateAvgTempo(window.voiceData.timestamps),
+                gaps: window.voiceData.gaps || [],
+                timestamps: window.voiceData.timestamps || [],
+                confidence: window.voiceData.confidence || 1.0,
+                suspicious_jumps: window.voiceData.suspiciousJumps || 0,
+                repetitions: window.voiceData.repetitions || 0,
+                
+                // CRUCIAL - Flag de validation utilisateur
+                validated: true,
+                validation_method: window.voiceData.needsValidation ? 'user_confirmed' : 'auto_confirmed',
+                
+                // Métadonnées pour ML
+                start_time: window.voiceData.startTime,
+                total_duration: window.voiceData.timestamps.length > 0 ? 
+                    window.voiceData.timestamps[window.voiceData.timestamps.length - 1] : null,
+                
+                // Qualité de données
+                data_quality: {
+                    gaps_count: window.voiceData.gaps?.length || 0,
+                    sequence_complete: (window.voiceData.gaps?.length || 0) === 0,
+                    confidence_level: window.voiceData.confidence >= 0.8 ? 'high' : 
+                                    window.voiceData.confidence >= 0.5 ? 'medium' : 'low'
+                }
+            };
+            
+            // Utiliser count vocal comme reps si validé
+            workoutState.pendingSetData.reps = window.voiceData.count;
+            
+            console.log('[Voice] Données validées préparées pour ML:', voiceDataToSend);
+        }
+
+        if (isIsometric) {
+            workoutState.pendingSetData = {
+                duration_seconds: parseInt(document.getElementById('setReps').textContent),
+                reps: parseInt(document.getElementById('setReps').textContent),
+                weight: null,
+                voice_data: voiceDataToSend || voiceData // Priorité aux données enrichies ML
+            };
+        } else if (isBodyweight) {
+            // Récupérer les reps (avec priorité au vocal si disponible)
+            repsValue = voiceData ? voiceData.count : getCurrentRepsValue();
+            
+            // Mettre à jour l'affichage si données vocales
+            if (voiceData) {
+                document.getElementById('setReps').textContent = repsValue;
+            }
+            
+            workoutState.pendingSetData = {
+                duration_seconds: setTime,  // durée réelle chronométrée (CONSERVÉ)
+                reps: repsValue,
+                weight: null,
+                voice_data: voiceDataToSend || voiceData // Priorité aux données enrichies ML
+            };
+        } else {
+            // === EXERCICES AVEC POIDS ===
+            // Récupérer les reps (avec priorité au vocal si disponible)
+            repsValue = voiceData ? voiceData.count : getCurrentRepsValue();
+            
+            // Mettre à jour l'affichage si données vocales
+            if (voiceData) {
+                document.getElementById('setReps').textContent = repsValue;
+            }
+            
+            // IMPORTANT : Utiliser currentExerciseRealWeight (code existant)
+            finalWeight = currentExerciseRealWeight;
+            
+            // Validation de sécurité
+            const barWeight = getBarWeight(currentExercise);
+            if (finalWeight < barWeight) {
+                console.error(`[ExecuteSet] Poids final invalide: ${finalWeight}kg < ${barWeight}kg`);
+                showToast('Erreur: poids insuffisant', 'error');
+                return;
+            }
+            
+            console.log('[ExecuteSet] Utilisation poids TOTAL de référence:', finalWeight);
+            
+            workoutState.pendingSetData = {
+                duration_seconds: setTime,  // durée réelle chronométrée (CONSERVÉ)
+                reps: repsValue,
+                weight: finalWeight,  // Toujours TOTAL, jamais converti
+                voice_data: voiceDataToSend || voiceData // Priorité aux données enrichies ML
+            };
+        }
+        
+        // === ENRICHISSEMENT MÉTADONNÉES STRATÉGIQUES (CONSERVÉ) ===
+        // Ajouter les informations ML et stratégiques pour la sauvegarde finale
+        if (workoutState.currentRecommendation) {
+            workoutState.pendingSetData.ml_weight_suggestion = workoutState.currentRecommendation.ml_pure_recommendation;
+            workoutState.pendingSetData.ml_reps_suggestion = workoutState.currentRecommendation.reps_recommendation;
+            workoutState.pendingSetData.ml_confidence = workoutState.currentRecommendation.confidence;
+            workoutState.pendingSetData.strategy_applied = workoutState.currentRecommendation.strategy_used;
+            workoutState.pendingSetData.user_override = workoutState.currentRecommendation.user_override;
+        }
+        
+        console.log('📦 Données série préparées:', {
+            type: isIsometric ? 'isometric' : isBodyweight ? 'bodyweight' : 'weighted',
+            weight: workoutState.pendingSetData.weight,
+            reps: workoutState.pendingSetData.reps,
+            duration: workoutState.pendingSetData.duration_seconds,
+            strategy: workoutState.pendingSetData.strategy_applied,
+            voice: voiceData ? `avec données vocales ${voiceData.validated ? '(validées)' : '(non validées)'}` : 'sans données vocales'
+        });
+        
+        // Log spécifique si données vocales
         if (voiceData) {
-            document.getElementById('setReps').textContent = repsValue;
+            console.log('[Voice] Série enrichie avec données vocales:', voiceData);
+            
+            // NOUVEAU ÉTAPE 4 - Reset état vocal après intégration
+            if (window.voiceState === 'CONFIRMED' && typeof window.resetVoiceState === 'function') {
+                // Délai pour permettre la transition
+                setTimeout(() => {
+                    window.resetVoiceState();
+                }, 500);
+            }
         }
         
-        workoutState.pendingSetData = {
-            duration_seconds: setTime,  // durée réelle chronométrée (CONSERVÉ)
-            reps: repsValue,
-            weight: null,
-            voice_data: voiceDataToSend || voiceData // Priorité aux données enrichies ML
-        };
-    } else {
-        // === EXERCICES AVEC POIDS ===
-        // Récupérer les reps (avec priorité au vocal si disponible)
-        repsValue = voiceData ? voiceData.count : getCurrentRepsValue();
-        
-        // Mettre à jour l'affichage si données vocales
-        if (voiceData) {
-            document.getElementById('setReps').textContent = repsValue;
-        }
-        
-        // IMPORTANT : Utiliser currentExerciseRealWeight (code existant)
-        finalWeight = currentExerciseRealWeight;
-        
-        // Validation de sécurité
-        const barWeight = getBarWeight(currentExercise);
-        if (finalWeight < barWeight) {
-            console.error(`[ExecuteSet] Poids final invalide: ${finalWeight}kg < ${barWeight}kg`);
-            showToast('Erreur: poids insuffisant', 'error');
-            return;
-        }
-        
-        console.log('[ExecuteSet] Utilisation poids TOTAL de référence:', finalWeight);
-        
-        workoutState.pendingSetData = {
-            duration_seconds: setTime,  // durée réelle chronométrée (CONSERVÉ)
-            reps: repsValue,
-            weight: finalWeight,  // Toujours TOTAL, jamais converti
-            voice_data: voiceDataToSend || voiceData // Priorité aux données enrichies ML
-        };
+        // === TRANSITION VERS FEEDBACK (CONSERVÉ) ===
+        transitionTo(WorkoutStates.FEEDBACK);
+        setTimeout(() => {
+            window.setExecutionInProgress = false;
+        }, 1000);
+
+
+    } finally {
+        // Libération mutex après délai sécurité
+        setTimeout(() => {
+            setExecutionInProgress = false;
+        }, 1000);
     }
-    
-    // === ENRICHISSEMENT MÉTADONNÉES STRATÉGIQUES (CONSERVÉ) ===
-    // Ajouter les informations ML et stratégiques pour la sauvegarde finale
-    if (workoutState.currentRecommendation) {
-        workoutState.pendingSetData.ml_weight_suggestion = workoutState.currentRecommendation.ml_pure_recommendation;
-        workoutState.pendingSetData.ml_reps_suggestion = workoutState.currentRecommendation.reps_recommendation;
-        workoutState.pendingSetData.ml_confidence = workoutState.currentRecommendation.confidence;
-        workoutState.pendingSetData.strategy_applied = workoutState.currentRecommendation.strategy_used;
-        workoutState.pendingSetData.user_override = workoutState.currentRecommendation.user_override;
-    }
-    
-    console.log('📦 Données série préparées:', {
-        type: isIsometric ? 'isometric' : isBodyweight ? 'bodyweight' : 'weighted',
-        weight: workoutState.pendingSetData.weight,
-        reps: workoutState.pendingSetData.reps,
-        duration: workoutState.pendingSetData.duration_seconds,
-        strategy: workoutState.pendingSetData.strategy_applied,
-        voice: voiceData ? `avec données vocales ${voiceData.validated ? '(validées)' : '(non validées)'}` : 'sans données vocales'
-    });
-    
-    // Log spécifique si données vocales
-    if (voiceData) {
-        console.log('[Voice] Série enrichie avec données vocales:', voiceData);
-        
-        // NOUVEAU ÉTAPE 4 - Reset état vocal après intégration
-        if (window.voiceState === 'CONFIRMED' && typeof window.resetVoiceState === 'function') {
-            // Délai pour permettre la transition
-            setTimeout(() => {
-                window.resetVoiceState();
-            }, 500);
-        }
-    }
-    
-    // === TRANSITION VERS FEEDBACK (CONSERVÉ) ===
-    transitionTo(WorkoutStates.FEEDBACK);
-    setTimeout(() => {
-        window.setExecutionInProgress = false;
-    }, 1000);
 }
 
 // ===== COUCHE 9 : INTERFACE SETUP =====

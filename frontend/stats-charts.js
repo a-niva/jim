@@ -456,6 +456,35 @@ async function loadRecordsWaterfall(userId) {
     }
 }
 
+/**
+ * Module M6 - Fonction cleanup pour éviter memory leaks
+ */
+const M6 = {
+    cleanup() {
+        // Nettoyer containers DOM
+        const containers = ['recordsWaterfall', 'progressionInfo', 'burndownStats'];
+        containers.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.innerHTML = '';
+            }
+        });
+        
+        // Détruire charts actifs pour éviter memory leaks
+        Object.keys(window.charts || {}).forEach(chartKey => {
+            if (window.charts[chartKey]?.destroy) {
+                window.charts[chartKey].destroy();
+                window.charts[chartKey] = null;
+            }
+        });
+        
+        console.log('[M6] Cleanup effectué');
+    }
+};
+
+// Exposition globale
+window.M6 = M6;
+
 // ===== GRAPHIQUE 5: CALENDRIER D'ASSIDUITÉ =====
 async function loadAttendanceCalendar(userId) {
     try {

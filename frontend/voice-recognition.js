@@ -212,42 +212,36 @@ function hideVoiceStatus() {
 window.hideVoiceStatus = hideVoiceStatus;
 
 // Met à jour l'état visuel du microphone - {'inactive'|'listening'|'processing'|'error'} state - État du micro
+/**
+ * Mise à jour état visuel micro - SYSTÈME UNIFIÉ
+ */
 function updateMicrophoneVisualState(state) {
-    // NOUVEAU : Chercher le nouvel indicateur moderne
-    const icon = document.getElementById('voiceStatusIcon');
-    const text = document.getElementById('voiceStatusText');
-    const container = document.getElementById('voiceStatusContainer');
+    // SYSTÈME MODERNE PRIORITAIRE
+    const modernContainer = document.querySelector('.voice-status-container');
+    const modernIcon = modernContainer?.querySelector('.voice-status-btn i');
+    const modernText = modernContainer?.querySelector('.voice-status-text');
     
-    // Si les nouveaux éléments existent, les utiliser
-    if (icon && text && container) {
-        // Afficher le container pour les séances avec vocal
-        container.style.display = 'flex';
+    if (modernContainer && modernIcon && modernText) {
+        modernContainer.style.display = 'flex';
+        modernContainer.classList.add('transitioning');
+        setTimeout(() => modernContainer.classList.remove('transitioning'), 300);
         
-        // Animation de transition
-        container.classList.add('transitioning');
-        setTimeout(() => container.classList.remove('transitioning'), 300);
-        
-        // Mise à jour selon l'état
         switch(state) {
             case 'inactive':
-                icon.className = 'fas fa-microphone ready';
-                text.textContent = 'Micro prêt';
+                modernIcon.className = 'fas fa-microphone ready';
+                modernText.textContent = 'Micro prêt';
                 break;
-                
             case 'listening':
-                icon.className = 'fas fa-microphone active';
-                text.textContent = 'Écoute en cours...';
+                modernIcon.className = 'fas fa-microphone active';
+                modernText.textContent = 'Écoute en cours...';
                 break;
-                
             case 'processing':
-                icon.className = 'fas fa-microphone ready';
-                text.textContent = 'Traitement...';
+                modernIcon.className = 'fas fa-microphone ready';
+                modernText.textContent = 'Traitement...';
                 break;
-                
             case 'error':
-                icon.className = 'fas fa-microphone-slash unavailable';
-                text.textContent = 'Erreur microphone';
-                // Reset après 2 secondes
+                modernIcon.className = 'fas fa-microphone-slash unavailable';
+                modernText.textContent = 'Erreur microphone';
                 setTimeout(() => {
                     if (!voiceRecognitionActive) {
                         updateMicrophoneVisualState('inactive');
@@ -258,53 +252,22 @@ function updateMicrophoneVisualState(state) {
                 break;
         }
         
-        currentMicState = state;
         console.log(`[Voice] État micro moderne: ${state}`);
+        currentMicState = state;
         return;
     }
     
-    // FALLBACK : Ancien système (legacy) si nouveaux éléments pas trouvés
-    const voiceBtn = document.querySelector('.voice-toggle-btn');
-    
-    if (!voiceBtn) {
-        console.log(`[Voice] État visuel micro: ${state} (éléments UI non trouvés)`);
+    // FALLBACK LEGACY (pour compatibilité temporaire)
+    const legacyBtn = document.querySelector('.voice-toggle-btn');
+    if (legacyBtn) {
+        legacyBtn.classList.remove('mic-inactive', 'mic-listening', 'mic-processing', 'mic-error');
+        legacyBtn.classList.add(`mic-${state}`);
+        console.log(`[Voice] État micro legacy: ${state}`);
+        currentMicState = state;
         return;
     }
     
-    // Code legacy existant (inchangé)
-    voiceBtn.classList.remove('mic-inactive', 'mic-listening', 'mic-processing', 'mic-error');
-    
-    switch(state) {
-        case 'inactive':
-            voiceBtn.classList.add('mic-inactive');
-            voiceBtn.setAttribute('aria-label', 'Microphone inactif');
-            break;
-            
-        case 'listening':
-            voiceBtn.classList.add('mic-listening');
-            voiceBtn.setAttribute('aria-label', 'Écoute en cours');
-            break;
-            
-        case 'processing':
-            voiceBtn.classList.add('mic-processing');
-            voiceBtn.setAttribute('aria-label', 'Traitement en cours');
-            break;
-            
-        case 'error':
-            voiceBtn.classList.add('mic-error');
-            voiceBtn.setAttribute('aria-label', 'Erreur microphone');
-            setTimeout(() => {
-                if (!voiceRecognitionActive) {
-                    updateMicrophoneVisualState('inactive');
-                } else {
-                    updateMicrophoneVisualState('listening');
-                }
-            }, 2000);
-            break;
-    }
-    
-    currentMicState = state;
-    console.log(`[Voice] État visuel micro legacy: ${state}`);
+    console.log(`[Voice] Aucun système vocal trouvé pour état: ${state}`);
 }
 
 // ===== FONCTIONS PRINCIPALES =====

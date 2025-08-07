@@ -167,17 +167,34 @@ class TabSwipeNavigation {
 let tabSwipeNavigation;
 
 function initTabSwipeNavigation() {
-    if (!document.getElementById('bottomNav')) {
-        setTimeout(initTabSwipeNavigation, 200);
-        return;
-    }
-    
-    tabSwipeNavigation = new TabSwipeNavigation();
-    window.tabSwipeNavigation = tabSwipeNavigation;
+    return new Promise((resolve, reject) => {
+        const checkBottomNav = () => {
+            const bottomNav = document.getElementById('bottomNav');
+            if (bottomNav) {
+                tabSwipeNavigation = new TabSwipeNavigation();
+                window.tabSwipeNavigation = tabSwipeNavigation;
+                console.log('📱 Navigation swipe initialisée');
+                resolve();
+            } else {
+                setTimeout(checkBottomNav, 100);
+            }
+        };
+        checkBottomNav();
+        
+        // Timeout sécurité
+        setTimeout(() => reject(new Error('bottomNav introuvable')), 2000);
+    });
 }
 
+// Initialisation avec gestion d'erreur
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initTabSwipeNavigation);
+    document.addEventListener('DOMContentLoaded', () => {
+        initTabSwipeNavigation().catch(error => {
+            console.warn('Navigation swipe échouée:', error);
+        });
+    });
 } else {
-    initTabSwipeNavigation();
+    initTabSwipeNavigation().catch(error => {
+        console.warn('Navigation swipe échouée:', error);
+    });
 }

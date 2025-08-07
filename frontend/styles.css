@@ -506,10 +506,8 @@ p {
     height: var(--bottom-nav-height);
     z-index: var(--z-nav);
     
-    /* ===== ISOLATION GARANTIE ===== */
-    contain: layout style;           /* Évite influence parents */
-    will-change: auto;               /* Reset optimisations GPU */
-    transform: translateZ(0);        /* Force layer GPU isolé */
+    /* CSS propre et minimal */
+    will-change: auto;
 }
 
 .nav-item {
@@ -7549,46 +7547,6 @@ p{
 .workout-progress-compact.single-item{
     font-weight: 600;
     font-size: var(--font-lg);
-}
-
-/* === PHASE 1.2 : ÉTATS VISUELS MICRO === */
-
-/* Réutilisation du bouton vocal existant */
-.voice-toggle-btn.mic-inactive {
-    color: var(--text-muted);
-    opacity: 0.6;
-}
-
-.voice-toggle-btn.mic-listening {
-    color: #3b82f6;
-    animation: mic-pulse 2s infinite;
-}
-
-.voice-toggle-btn.mic-processing {
-    color: #f59e0b;
-}
-
-.voice-toggle-btn.mic-error {
-    color: #ef4444;
-    animation: mic-shake 0.3s ease-in-out;
-}
-
-/* Animations micro */
-@keyframes mic-pulse {
-    0%, 100% {
-        opacity: 1;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 0.7;
-        transform: scale(1.1);
-    }
-}
-
-@keyframes mic-shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-4px); }
-    75% { transform: translateX(4px); }
 }
 
 /* === PHASE 1.3 : PREVIEW SÉRIE SUIVANTE === */
