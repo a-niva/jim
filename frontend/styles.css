@@ -2946,10 +2946,6 @@ input{
         font-size: var(--font-xl)
     }
 
-    .workout-card {
-        padding: var(--spacing-md)
-    }
-
     .free-workout-header h2 {
         font-size: calc(var(--font-3xl)*.8)
     }

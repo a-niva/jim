@@ -8445,7 +8445,8 @@ async function loadProgramExercisesList() {
         
         // Générer le HTML
         container.innerHTML = `
-            <div class="program-header">
+            <div class="program-active-workout-container">
+                <div class="program-header">
                 <h3>Programme du jour</h3>
                 <div class="program-summary">
                     <div class="progress-circle">${completedCount}/${totalCount}</div>
@@ -8521,6 +8522,7 @@ ${canSwapExercise(exerciseData.exercise_id) ?
                                     </div>
                             </div>
                         </div>
+                    </div>
                     `;
                 }).join('')}
             </div>
