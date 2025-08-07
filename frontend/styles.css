@@ -838,7 +838,7 @@ input:focus,select:focus,textarea:focus {
     padding: var(--spacing-xl);
     text-align: center;
     cursor: pointer;
-    transition: all .3s ease;
+    transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
     position: relative;
     overflow: hidden
 }
@@ -1181,7 +1181,7 @@ input:focus,select:focus,textarea:focus {
     border-radius: var(--radius);
     position: relative;
     overflow: hidden;
-    transition: all .3s ease;
+    transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
     min-height: 70px;
     border-left: 4px solid transparent
 }
@@ -1357,6 +1357,8 @@ input:focus,select:focus,textarea:focus {
     border: 1px solid var(--border);
     position: relative;
     transition: border-color .3s ease;
+    will-change: transform, box-shadow;
+    transform: translateZ(0); /* Force hardware acceleration */
 }
 
 .active-workout-interface-container--voice-active {
@@ -1485,7 +1487,7 @@ input:focus,select:focus,textarea:focus {
 
 .time-segment {
     height: 100%;
-    transition: all .3s ease;
+    transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
     min-width: 40px;
     align-items: center;
     justify-content: center;
@@ -1537,7 +1539,7 @@ input:focus,select:focus,textarea:focus {
 
 .muscle-segment {
     height: 100%;
-    transition: all .3s ease;
+    transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
     position: relative;
     cursor: pointer
 }
@@ -1717,15 +1719,6 @@ small, .workout-stats-line{
     margin-top: var(--spacing-sm)
 }
 
-.current-exercise {
-    background: var(--bg-card) !important;
-    border-radius: var(--radius);
-    padding: var(--spacing-xs);
-    margin-bottom: var(--spacing-lg);
-    border: 1px solid var(--border) !important;
-    border-style: solid !important;  /* Force solid over dashed */
-}
-
 .exercise-header {
     display: flex;
     justify-content: space-between;
@@ -1842,6 +1835,39 @@ small, .workout-stats-line{
     flex: 1
 }
 
+
+/* === NOUVEAU : Header exercice avec micro intégré === */
+.exercise-header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.exercise-header-actions .voice-status-container {
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: var(--radius);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    margin-right: var(--spacing-sm);
+}
+
+/* Mobile : Réorganisation header exercice */
+@media (max-width: 768px) {
+    .exercise-header-modern {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--spacing-sm);
+    }
+    
+    .exercise-header-actions {
+        justify-content: space-between;
+    }
+    
+    .exercise-header-actions .voice-status-text {
+        display: none; /* Masquer texte sur mobile */
+    }
+}
+
 .exercise-instructions {
     font-size: var(--font-sm);
     color: var(--text-muted);
@@ -1869,7 +1895,7 @@ small, .workout-stats-line{
     font-size: var(--font-sm);
     font-weight: 500;
     cursor: pointer;
-    transition: all .3s ease;
+    transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
     white-space: nowrap
 }
 
@@ -2653,10 +2679,6 @@ button:focus-visible,input:focus-visible,select:focus-visible {
     
     .fatigue-btn span {
         display: none;
-    }
-
-    .current-exercise {
-        padding: var(--spacing-xs);
     }
 
     .exercise-header {
@@ -4905,7 +4927,7 @@ input:checked+:before{
     font-size: var(--font-sm);
     font-weight: 600;
     cursor: pointer;
-    transition: all .3s ease;
+    transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
     white-space: nowrap;
     flex-shrink: 0;
     position: relative;
@@ -5021,7 +5043,7 @@ input:checked+:before{
     border: 2px solid transparent;
     border-radius: 50%; /* Boutons ronds comme les muscles */
     cursor: pointer;
-    transition: all .3s ease;
+    transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
     flex: 0 0 auto;
     padding: 0; /* Suppression du padding pour un meilleur centrage */
 }
@@ -5033,7 +5055,7 @@ input:checked+:before{
     object-fit: contain;
     filter: grayscale(0.3); /* Moins de grayscale pour mieux voir avec le fond clair */
     opacity: 0.9; /* Plus opaque */
-    transition: all .3s ease;
+    transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
 }
 
 @media (max-width: 480px) {
@@ -6310,7 +6332,7 @@ p{
     font-size: .9rem;
     font-weight: 500;
     cursor: pointer;
-    transition: all .3s ease;
+    transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
     font-family: inherit
 }
 
@@ -7949,3 +7971,4 @@ p{
     50% { transform: translateX(-5px); }
     100% { transform: translateX(0); }
 }
+

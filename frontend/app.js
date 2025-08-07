@@ -4256,14 +4256,31 @@ function updateVoiceToggleUI(isActive) {
 
 // Fonction pour rendre l'icône microphone du comptage vocal
 function renderVoiceToggle(exerciseId) {
-    // Vérifier l'état de la reconnaissance vocale
-    const isActive = window.voiceRecognitionActive ? window.voiceRecognitionActive() : false;
+    // Synchroniser le container statique au lieu de créer du HTML
+    const voiceContainer = document.getElementById('voiceStatusContainer');
     
-    return `
-        <div class="voice-toggle-container">
-            <i class="fas fa-microphone ${isActive ? 'active' : ''}"></i>
-        </div>
-    `;
+    if (voiceContainer && currentUser?.voice_counting_enabled) {
+        // Afficher et synchroniser état
+        voiceContainer.style.display = 'flex';
+        
+        const isActive = window.voiceRecognitionActive?.() || false;
+        const icon = voiceContainer.querySelector('#voiceStatusIcon');
+        const text = voiceContainer.querySelector('#voiceStatusText');
+        
+        if (icon) {
+            icon.className = `fas fa-microphone ${isActive ? 'active' : 'ready'}`;
+        }
+        
+        if (text) {
+            text.textContent = isActive ? 'Écoute en cours...' : 'Micro prêt';
+        }
+        
+        // CONSERVÉ : Retourner indicateur pour backward compatibility
+        return `<i class="fas fa-microphone-check" style="color: var(--success); margin-left: 4px;"></i>`;
+    }
+    
+    // Si pas de micro activé, retourner vide mais ne pas casser
+    return '';
 }
 
 // PHASE 2.2 : Indicateurs de confiance
@@ -5183,22 +5200,19 @@ function initializeModernRepsDisplay(targetReps = 12, currentReps = 0) {
         <div class="next-rep-preview" id="nextRepPreview">${currentReps + 1}</div>
     `;
 
-    // === NOUVEAU : Ajouter l'indicateur micro après l'interface N/R ===
-    if (!document.getElementById('voiceStatusContainer')) {
-        const voiceStatusContainer = document.createElement('div');
-        voiceStatusContainer.id = 'voiceStatusContainer';
-        voiceStatusContainer.className = 'voice-status-container';
-        voiceStatusContainer.style.display = 'flex';
-        
-        voiceStatusContainer.innerHTML = `
-            <button class="voice-status-btn" id="voiceStatusBtn" onclick="toggleVoiceRecognition()">
-                <i class="fas fa-microphone ready" id="voiceStatusIcon"></i>
-            </button>
-            <span class="voice-status-text" id="voiceStatusText">Micro prêt</span>
-        `;
-        
-        // L'insérer après repsDisplay
-        repsDisplay.parentNode.insertBefore(voiceStatusContainer, repsDisplay.nextSibling);
+    // === MICRO : Utiliser container statique dans header ===
+    const voiceStatusContainer = document.getElementById('voiceStatusContainer');
+    if (voiceStatusContainer) {
+        // Synchroniser visibilité selon préférences utilisateur
+        if (currentUser?.voice_counting_enabled) {
+            voiceStatusContainer.style.display = 'flex';
+            
+            // Synchroniser état initial du micro
+            const isActive = window.voiceRecognitionActive?.() || false;
+            updateVoiceToggleUI(isActive);
+        } else {
+            voiceStatusContainer.style.display = 'none';
+        }
     }
 
     // État initial selon le workflow
@@ -5217,8 +5231,13 @@ async function initializeModernRepsDisplaySync(targetReps, currentRep = 0) {
         // Création immédiate sans setTimeout
         initializeModernRepsDisplay(targetReps, currentRep);
         
-        // Attendre que le DOM soit effectivement créé
+        // Vérifier que le container statique est disponible et configuré
         await waitForElement('#voiceStatusContainer', 500);
+        const voiceContainer = document.getElementById('voiceStatusContainer');
+        if (voiceContainer && currentUser?.voice_counting_enabled) {
+            // S'assurer qu'il est visible et configuré
+            voiceContainer.style.display = 'flex';
+        }
         
         console.log('[DOM] Interface moderne créée et vérifiée');
         return true;
