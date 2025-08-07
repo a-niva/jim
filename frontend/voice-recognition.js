@@ -193,7 +193,7 @@ window.hideVoiceStatus = hideVoiceStatus;
  */
 function updateMicrophoneVisualState(state) {
     // SYSTÈME MODERNE PRIORITAIRE
-    const modernContainer = document.querySelector('.voice-status-container');
+    const modernContainer = document.getElementById('voiceStatusContainer') || document.querySelector('.voice-status-container');
     const modernIcon = modernContainer?.querySelector('.voice-status-btn i');
     const modernText = modernContainer?.querySelector('.voice-status-text');
     

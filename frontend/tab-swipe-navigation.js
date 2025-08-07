@@ -19,7 +19,6 @@ class TabSwipeNavigation {
         this.bindEvents();
         this.watchTabChanges();
         this.updateCurrentTab();
-        console.log('📱 Navigation swipe initialisée');
     }
 
     bindEvents() {

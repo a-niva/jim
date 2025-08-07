@@ -506,8 +506,10 @@ p {
     height: var(--bottom-nav-height);
     z-index: var(--z-nav);
     
-    /* CSS propre et minimal */
+    /* NOUVEAUX : Isolation stricte */
     will-change: auto;
+    isolation: isolate;           /* Force nouveau stacking context */
+    transform: translate3d(0,0,0); /* Force hardware acceleration */
 }
 
 .nav-item {
@@ -1283,10 +1285,10 @@ input:focus,select:focus,textarea:focus {
     border-color: var(--primary)
 }
 
-.workout-card{
+.workout-card.pending {
     opacity: .8;
     border-style: dashed;
-    border-color: var(--warning)
+    border-color: var(--warning);
 }
 
 .workout-card::before{
@@ -1609,11 +1611,12 @@ small, .workout-stats-line{
 }
 
 .current-exercise {
-    background: var(--bg-card);
+    background: var(--bg-card) !important;
     border-radius: var(--radius);
     padding: var(--spacing-xs);
     margin-bottom: var(--spacing-lg);
-    border: 1px solid var(--border)
+    border: 1px solid var(--border) !important;
+    border-style: solid !important;  /* Force solid over dashed */
 }
 
 .exercise-header {
