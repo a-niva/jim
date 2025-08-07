@@ -7802,6 +7802,34 @@ p{
     transition: all 0.3s ease;
 }
 
+/* Position relative au container exercice */
+#currentExercise .voice-status-container {
+    position: relative;
+    margin-top: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+/* Ajustement mobile pour éviter débordement */
+@media (max-width: 768px) {
+    .voice-status-container {
+        justify-content: center;
+        padding: var(--spacing-xs) var(--spacing-sm);
+    }
+    
+    .voice-status-text {
+        display: none; /* Masquer texte sur mobile pour gagner place */
+    }
+    
+    .voice-status-btn {
+        font-size: 1.2rem;
+    }
+    
+    /* Si dans l'interface N/R */
+    .reps-display-modern + .voice-status-container {
+        margin-top: var(--spacing-sm);
+    }
+}
+
 .voice-status-btn {
     background: none;
     border: none;

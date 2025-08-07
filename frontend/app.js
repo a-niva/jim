@@ -4034,6 +4034,9 @@ async function selectExercise(exercise, skipValidation = false) {
     // Mise à jour de l'affichage
     document.getElementById('exerciseSelection').style.display = 'none';
     document.getElementById('currentExercise').style.display = 'block';
+    // Créer l'interface N/R immédiatement pour que le micro soit prêt
+    const targetReps = currentExercise.default_reps_min || 10;
+    initializeModernRepsDisplay(targetReps, 0);
     if (currentWorkoutSession.type === 'program') {
         const programExercisesContainer = document.getElementById('programExercisesContainer');
         if (programExercisesContainer) {
@@ -4057,24 +4060,6 @@ async function selectExercise(exercise, skipValidation = false) {
             lastMLWeight: null,
             confidence: null
         };
-    }
-
-    // Créer et insérer le contrôle vocal si nécessaire
-    const controlsHtml = createExerciseControlsSystem(currentExercise);
-    const exerciseNameElement = document.getElementById('exerciseName');
-
-    if (exerciseNameElement && controlsHtml) {
-        // Nettoyer tout conteneur de contrôles existant
-        const existingControls = document.querySelector('.exercise-controls-container');
-        if (existingControls) {
-            existingControls.remove();
-        }
-        
-        // Insérer le contrôle vocal dans le même conteneur que le nom
-        exerciseNameElement.insertAdjacentHTML('beforeend', controlsHtml);
-        
-        console.log('[Controls] Contrôle vocal inséré:', 
-            !!document.querySelector('.voice-toggle-btn'));
     }
     
     // Gérer l'affichage du bouton "Changer d'exercice" selon le mode
@@ -5462,35 +5447,46 @@ let nextSeriesRecommendationsCache = null;
  * @returns {Promise<Object>} Recommandations {weight, reps, rest, confidence}
  */
 async function preloadNextSeriesRecommendations() {
-    // Pas de recommandations si pas de session
+    console.log('[Preview] Session ID:', currentWorkoutSession.id);
+    console.log('[Preview] Exercise ID:', currentExercise?.id);
+    console.log('[Preview] Current set:', currentSet);
+    
     if (!currentWorkoutSession.id) {
         console.log('[Preview] Pas de session - première série');
         return null;
     }
     
     try {
-        // Appeler directement l'API ML pour la série suivante
         const nextSetNumber = currentSet + 1;
-        
-        const response = await apiPost(`/api/workouts/${currentWorkoutSession.id}/recommendations`, {
+        const payload = {
             exercise_id: currentExercise.id,
             set_number: nextSetNumber,
             workout_id: currentWorkoutSession.id
-        });
+        };
+        
+        console.log('[Preview] Payload API:', payload);
+        
+        const response = await apiPost(`/api/workouts/${currentWorkoutSession.id}/recommendations`, payload);
+        
+        console.log('[Preview] Réponse API:', response);
         
         if (response && response.weight_recommendation !== null) {
-            return {
+            const preview = {
                 weight: response.weight_recommendation,
                 reps: response.reps_recommendation,
                 rest: response.rest_seconds_recommendation || 90,
                 confidence: response.confidence
             };
+            console.log('[Preview] Preview final:', preview);
+            return preview;
         }
         
+        console.log('[Preview] Réponse invalide');
         return null;
         
     } catch (error) {
-        console.error('[Preview] Erreur ML:', error);
+        console.error('[Preview] Erreur ML détaillée:', error);
+        console.error('[Preview] Stack:', error.stack);
         return null;
     }
 }
