@@ -4153,6 +4153,7 @@ async function selectExercise(exercise, skipValidation = false) {
    
     // Transition vers l'état READY
     transitionTo(WorkoutStates.READY);
+    activateVoiceForWorkout();
     
     // Démarrer le timer de la première série
     startSetTimer();
@@ -4215,58 +4216,42 @@ function renderMLToggle(exerciseId) {
 }
 
 function toggleVoiceRecognition() {
+    console.log('[Voice] Toggle appelé, état actuel:', window.voiceRecognitionActive?.());
+    
     if (!window.startVoiceRecognition || !window.stopVoiceRecognition) {
-        console.error('[Voice] Fonctions de reconnaissance vocale non disponibles');
+        console.error('[Voice] Fonctions de reconnaissance non disponibles');
         showToast('Reconnaissance vocale non disponible', 'error');
         return;
     }
     
-    const isActive = window.voiceRecognitionActive ? window.voiceRecognitionActive() : false;
+    // Vérification préférence utilisateur
+    if (!currentUser?.voice_counting_enabled) {
+        showToast('Comptage vocal désactivé. Activez-le depuis votre profil.', 'warning');
+        return;
+    }
+    
+    const isActive = window.voiceRecognitionActive?.() || false;
     
     if (isActive) {
+        // ARRÊT
+        console.log('[Voice] Arrêt demandé');
         window.stopVoiceRecognition();
-        // La fonction updateMicrophoneVisualState s'occupe du reste
+        
     } else {
-        // Vérifier état séance
+        // DÉMARRAGE - Vérifier état séance
         if (workoutState.current !== WorkoutStates.EXECUTING) {
+            console.log('[Voice] État séance incorrect:', workoutState.current);
             showToast('Démarrez une série pour activer le comptage vocal', 'warning');
             return;
         }
         
-        window.startVoiceRecognition();
-        // La fonction updateMicrophoneVisualState s'occupe du reste
-    }
-}
-
-function updateVoiceToggleUI(isActive) {
-    // Utiliser le container statique dans header au lieu de .voice-toggle-btn
-    const voiceContainer = document.getElementById('voiceStatusContainer');
-    const voiceBtn = voiceContainer?.querySelector('#voiceStatusBtn');
-    const voiceIcon = voiceContainer?.querySelector('#voiceStatusIcon');
-    const voiceText = voiceContainer?.querySelector('#voiceStatusText');
-    
-    if (!voiceContainer || !voiceBtn || !voiceIcon || !voiceText) {
-        console.warn('[Voice] Éléments micro statiques non trouvés');
-        return;
-    }
-    
-    if (isActive) {
-        voiceBtn.classList.add('active');
-        voiceIcon.className = 'fas fa-microphone active';
-        voiceText.textContent = 'Écoute en cours...';
+        console.log('[Voice] Démarrage demandé');
+        const success = window.startVoiceRecognition();
         
-        // Animation indicateur
-        if (!voiceBtn.querySelector('.voice-indicator')) {
-            voiceBtn.insertAdjacentHTML('beforeend', '<span class="voice-indicator"></span>');
+        if (!success) {
+            console.error('[Voice] Échec démarrage reconnaissance');
+            showToast('Impossible de démarrer la reconnaissance vocale', 'error');
         }
-    } else {
-        voiceBtn.classList.remove('active');
-        voiceIcon.className = 'fas fa-microphone ready';
-        voiceText.textContent = 'Micro prêt';
-        
-        // Retirer indicateur
-        const indicator = voiceBtn.querySelector('.voice-indicator');
-        if (indicator) indicator.remove();
     }
 }
 
@@ -5159,10 +5144,10 @@ function getCurrentRepsValue() {
  */
 function initializeModernRepsDisplay(targetReps = 12, currentReps = 0) {
     console.log(`[UI] Initialisation interface N/R: ${currentReps}/${targetReps}`);
-    
+   
     // Vérifier si container existe déjà
     let repsDisplay = document.getElementById('repsDisplay');
-    
+   
     if (!repsDisplay) {
         // Chercher l'ancienne structure pour la remplacer
         const oldSetReps = document.getElementById('setReps');
@@ -5170,7 +5155,7 @@ function initializeModernRepsDisplay(targetReps = 12, currentReps = 0) {
             repsDisplay = document.createElement('div');
             repsDisplay.id = 'repsDisplay';
             repsDisplay.className = 'reps-display-modern';
-            
+           
             // Remplacer l'ancien élément
             oldSetReps.parentNode.replaceChild(repsDisplay, oldSetReps);
         } else {
@@ -5178,8 +5163,8 @@ function initializeModernRepsDisplay(targetReps = 12, currentReps = 0) {
             return;
         }
     }
-    
-    // Structure HTML moderne EXISTANTE
+   
+    // Structure HTML moderne
     repsDisplay.innerHTML = `
         <div class="current-rep" id="currentRep">${currentReps}</div>
         <div class="rep-separator">/</div>
@@ -5187,23 +5172,78 @@ function initializeModernRepsDisplay(targetReps = 12, currentReps = 0) {
         <div class="next-rep-preview" id="nextRepPreview">${currentReps + 1}</div>
     `;
 
-    // === MICRO : Synchroniser container statique header avec état ===
+    // === MICRO : Synchroniser état avec container statique ===
     const voiceContainer = document.getElementById('voiceStatusContainer');
     if (voiceContainer && currentUser?.voice_counting_enabled) {
         voiceContainer.style.display = 'flex';
         
-        // Synchroniser état initial selon contexte
-        if (workoutState.current === WorkoutStates.READY || workoutState.current === WorkoutStates.EXECUTING) {
-            window.updateMicrophoneVisualState('inactive');
-        }
+        // Vérifier permissions et initialiser état
+        checkMicrophonePermissions().then(hasPermission => {
+            if (hasPermission) {
+                window.updateMicrophoneVisualState?.('inactive');
+            } else {
+                window.updateMicrophoneVisualState?.('error');
+            }
+        });
+    } else if (voiceContainer) {
+        // Masquer si vocal désactivé
+        voiceContainer.style.display = 'none';
     }
 
-    // État initial selon le workflow
+    // État initial selon workflow
     if (workoutState.current === WorkoutStates.READY) {
         transitionToReadyState();
     }
-    
+   
     console.log('[UI] Interface N/R initialisée avec succès');
+}
+
+async function syncVoiceCountingWithProfile(enabled) {
+    try {
+        // 1. Mettre à jour DB
+        const response = await apiPut(`/api/users/${currentUser.id}/voice-counting`, {
+            enabled: enabled
+        });
+        
+        // 2. Mettre à jour objet utilisateur local
+        currentUser.voice_counting_enabled = enabled;
+        
+        // 3. Mettre à jour interface profil si visible
+        const profileToggle = document.getElementById('voiceCountingToggle');
+        const profileLabel = document.getElementById('voiceCountingLabel');
+        
+        if (profileToggle) {
+            profileToggle.checked = enabled;
+        }
+        if (profileLabel) {
+            profileLabel.textContent = enabled ? 'Activé' : 'Désactivé';
+        }
+        
+        // 4. Mettre à jour interface séance
+        const voiceContainer = document.getElementById('voiceStatusContainer');
+        if (voiceContainer) {
+            if (enabled) {
+                voiceContainer.style.display = 'flex';
+                window.updateMicrophoneVisualState?.('inactive');
+            } else {
+                voiceContainer.style.display = 'none';
+                // Arrêter reconnaissance si active
+                if (window.voiceRecognitionActive?.()) {
+                    window.stopVoiceRecognition?.();
+                }
+            }
+        }
+        
+        console.log(`[Voice] Comptage vocal ${enabled ? 'activé' : 'désactivé'} avec sync profil`);
+        showToast(`Comptage vocal ${enabled ? 'activé' : 'désactivé'}`, 'success');
+        
+        return true;
+        
+    } catch (error) {
+        console.error('[Voice] Erreur sync avec profil:', error);
+        showToast('Erreur lors de la sauvegarde', 'error');
+        return false;
+    }
 }
 
 /**
@@ -7765,36 +7805,38 @@ async function togglePlateHelper() {
 
 async function toggleVoiceCounting() {
     const toggle = document.getElementById('voiceCountingToggle');
-    const label = document.getElementById('voiceCountingLabel');
     const newState = toggle.checked;
     
-    try {
-        // Appel API pour mettre à jour la préférence
-        const response = await apiPut(`/api/users/${currentUser.id}/voice-counting`, {
-            enabled: newState
-        });
-        
-        // Mettre à jour l'objet utilisateur local
-        currentUser.voice_counting_enabled = newState;
-        
-        // Mettre à jour le label d'affichage
-        label.textContent = newState ? 'Activé' : 'Désactivé';
-        
-        // Notification de succès
-        showToast(`Comptage vocal ${newState ? 'activé' : 'désactivé'}`, 'success');
-        
-        console.log(`[Voice] Comptage vocal ${newState ? 'activé' : 'désactivé'} pour user ${currentUser.id}`);
-        
-    } catch (error) {
-        console.error('Erreur lors de la mise à jour du comptage vocal:', error);
-        
-        // Rollback visuel en cas d'erreur
+    const success = await syncVoiceCountingWithProfile(newState);
+    
+    if (!success) {
+        // Rollback en cas d'erreur
         toggle.checked = !newState;
-        
-        // Notification d'erreur
-        showToast('Erreur lors de la sauvegarde', 'error');
     }
 }
+
+function activateVoiceForWorkout() {
+    // S'assurer que le vocal est prêt quand on démarre une série
+    const voiceContainer = document.getElementById('voiceStatusContainer');
+    
+    if (!voiceContainer || !currentUser?.voice_counting_enabled) {
+        return;
+    }
+    
+    // Afficher le container
+    voiceContainer.style.display = 'flex';
+    
+    // Vérifier permissions et état
+    checkMicrophonePermissions().then(hasPermission => {
+        if (hasPermission) {
+            window.updateMicrophoneVisualState?.('inactive');
+        } else {
+            window.updateMicrophoneVisualState?.('error');
+            showToast('Permission microphone requise pour le comptage vocal', 'warning');
+        }
+    });
+}
+
 
 async function toggleWeightDisplayMode(toggle) {
     try {
@@ -13187,3 +13229,6 @@ window.initializeModernRepsDisplay = initializeModernRepsDisplay;
 window.updateRepDisplayModern = updateRepDisplayModern;
 window.transitionToReadyState = transitionToReadyState;
 window.applyVoiceErrorState = applyVoiceErrorState;
+
+window.syncVoiceCountingWithProfile = syncVoiceCountingWithProfile;
+window.activateVoiceForWorkout = activateVoiceForWorkout;

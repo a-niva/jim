@@ -192,68 +192,68 @@ window.hideVoiceStatus = hideVoiceStatus;
  * Mise à jour état visuel micro - SYSTÈME UNIFIÉ
  */
 function updateMicrophoneVisualState(state) {
+    console.log(`[Voice] Changement état micro: ${state}`);
+    
+    // SYSTÈME MODERNE - UNIQUE SOURCE DE VÉRITÉ
+    const voiceContainer = document.getElementById('voiceStatusContainer');
+    const voiceIcon = voiceContainer?.querySelector('#voiceStatusIcon');
+    const voiceText = voiceContainer?.querySelector('#voiceStatusText');
+    const voiceBtn = voiceContainer?.querySelector('#voiceStatusBtn');
+    
+    if (!voiceContainer || !voiceIcon || !voiceText || !voiceBtn) {
+        console.warn('[Voice] Éléments micro statiques non trouvés pour état:', state);
+        return;
+    }
+    
     // S'assurer que le container est visible si vocal activé
-    const modernContainer = document.getElementById('voiceStatusContainer') || document.querySelector('.voice-status-container');
-    const modernIcon = modernContainer?.querySelector('.voice-status-btn i');
-    const modernText = modernContainer?.querySelector('.voice-status-text');
-    if (modernContainer && currentUser?.voice_counting_enabled) {
-        modernContainer.style.display = 'flex';
-    }
-    // SYSTÈME MODERNE PRIORITAIRE
-
-    
-    if (modernContainer && modernIcon && modernText) {
-        modernContainer.style.display = 'flex';
-        modernContainer.classList.add('transitioning');
-        setTimeout(() => modernContainer.classList.remove('transitioning'), 300);
-        
-        switch(state) {
-            case 'inactive':
-                modernIcon.className = 'fas fa-microphone ready';
-                modernText.textContent = 'Micro prêt';
-                break;
-            case 'listening':
-                modernIcon.className = 'fas fa-microphone active';
-                modernText.textContent = 'Écoute en cours...';
-                break;
-            case 'processing':
-                modernIcon.className = 'fas fa-microphone ready';
-                modernText.textContent = 'Traitement...';
-                break;
-            case 'error':
-                modernIcon.className = 'fas fa-microphone-slash unavailable';
-                modernText.textContent = 'Erreur microphone';
-                setTimeout(() => {
-                    if (!voiceRecognitionActive) {
-                        updateMicrophoneVisualState('inactive');
-                    } else {
-                        updateMicrophoneVisualState('listening');
-                        // Synchroniser interface moderne avec état réel
-                        const voiceContainer = document.getElementById('voiceStatusContainer');
-                        if (voiceContainer) {
-                            voiceContainer.style.display = 'flex';
-                        }
-                    }
-                }, 2000);
-                break;
-        }
-        
-        console.log(`[Voice] État micro moderne: ${state}`);
-        currentMicState = state;
-        return;
+    if (currentUser?.voice_counting_enabled && state !== 'inactive') {
+        voiceContainer.style.display = 'flex';
     }
     
-    // FALLBACK LEGACY (pour compatibilité temporaire)
-    const legacyBtn = document.querySelector('.voice-toggle-btn');
-    if (legacyBtn) {
-        legacyBtn.classList.remove('mic-inactive', 'mic-listening', 'mic-processing', 'mic-error');
-        legacyBtn.classList.add(`mic-${state}`);
-        console.log(`[Voice] État micro legacy: ${state}`);
-        currentMicState = state;
-        return;
+    // Animation transition
+    voiceContainer.classList.add('transitioning');
+    setTimeout(() => voiceContainer.classList.remove('transitioning'), 300);
+    
+    // Application état selon state
+    switch(state) {
+        case 'inactive':
+            voiceIcon.className = 'fas fa-microphone ready';
+            voiceText.textContent = 'Micro prêt';
+            voiceBtn.classList.remove('active');
+            break;
+            
+        case 'listening':
+            voiceIcon.className = 'fas fa-microphone active';
+            voiceText.textContent = 'Écoute en cours...';
+            voiceBtn.classList.add('active');
+            break;
+            
+        case 'processing':
+            voiceIcon.className = 'fas fa-microphone ready';
+            voiceText.textContent = 'Traitement...';
+            voiceBtn.classList.add('active');
+            break;
+            
+        case 'error':
+            voiceIcon.className = 'fas fa-microphone-slash unavailable';
+            voiceText.textContent = 'Erreur microphone';
+            voiceBtn.classList.remove('active');
+            // Auto-recovery après 3s
+            setTimeout(() => {
+                if (!voiceRecognitionActive) {
+                    updateMicrophoneVisualState('inactive');
+                }
+            }, 3000);
+            break;
+            
+        case 'validating':
+            voiceIcon.className = 'fas fa-microphone ready';
+            voiceText.textContent = 'Validation...';
+            voiceBtn.classList.add('active');
+            break;
     }
     
-    console.log(`[Voice] Aucun système vocal trouvé pour état: ${state}`);
+    currentMicState = state;
 }
 
 // ===== FONCTIONS PRINCIPALES =====
@@ -417,8 +417,8 @@ function handleAutoValidation() {
  * Version complète avec nettoyage et export global
  */
 function stopVoiceRecognition() {
-    if (!recognition || !voiceRecognitionActive) {
-        console.log('[Voice] Reconnaissance non active');
+    if (!voiceRecognitionActive) {
+        console.log('[Voice] Reconnaissance déjà inactive');
         return;
     }
     
@@ -426,72 +426,32 @@ function stopVoiceRecognition() {
         recognition.stop();
         voiceRecognitionActive = false;
         
-        // État visuel inactif
+        // ÉTAT VISUEL - SOURCE UNIQUE
         updateMicrophoneVisualState('inactive');
         
-        // Nettoyer les timers actifs
-        if (typeof clearAutoValidationTimer === 'function') {
-            clearAutoValidationTimer();
+        // Cleanup timers
+        clearAutoValidationTimer();
+        if (correctionTimer) {
+            clearTimeout(correctionTimer);
+            correctionTimer = null;
         }
         
-        // === CALCUL DE CONFIANCE INTELLIGENT ===
-        if (voiceData.count > 0) {
-            // Méthode 1 : Si calculateConfidence() existe, l'utiliser
-            if (typeof calculateConfidence === 'function') {
-                voiceData.confidence = calculateConfidence();
-            } else {
-                // Méthode 2 : Calcul simple basé sur les gaps et sauts
-                let confidence = 1.0;
-                
-                // Pénalité pour les gaps (max 30%)
-                if (voiceData.gaps.length > 0) {
-                    const gapPenalty = Math.min(voiceData.gaps.length * 0.15, 0.3);
-                    confidence -= gapPenalty;
-                }
-                
-                // Pénalité pour les sauts suspects (max 20%)
-                if (voiceData.suspiciousJumps > 0) {
-                    const jumpPenalty = Math.min(voiceData.suspiciousJumps * 0.1, 0.2);
-                    confidence -= jumpPenalty;
-                }
-                
-                voiceData.confidence = Math.max(0.1, confidence);
-            }
-            
-            // Déterminer si validation nécessaire (seuil à 0.7)
-            voiceData.needsValidation = voiceData.confidence < 0.7;
-            
-            console.log('[Voice] Confiance finale:', {
-                score: voiceData.confidence.toFixed(2),
-                level: voiceData.confidence >= 0.8 ? 'HIGH' : 
-                       voiceData.confidence >= 0.6 ? 'MEDIUM' : 'LOW',
-                needsValidation: voiceData.needsValidation,
-                gaps: voiceData.gaps,
-                suspiciousJumps: voiceData.suspiciousJumps || 0
-            });
-        }
+        // Calcul confiance finale
+        voiceData.confidence = calculateConfidence();
         
-        // Mise à jour interface micro (legacy)
-        const microIcon = document.querySelector('.voice-toggle-container i');
-        if (microIcon) {
-            microIcon.classList.remove('active');
-        }
-        
-        // === EXPOSITION GLOBALE POUR executeSet() ===
+        // Exposition pour executeSet
         window.voiceData = voiceData;
         
         console.log('[Voice] Reconnaissance arrêtée');
         console.log('[Voice] Données finales:', {
             count: voiceData.count,
-            gaps: voiceData.gaps.length,
-            confidence: voiceData.confidence.toFixed(2),
-            timestamps: voiceData.timestamps.length
+            confidence: voiceData.confidence.toFixed(2)
         });
         
     } catch (error) {
-        console.error('[Voice] Erreur lors de l\'arrêt:', error);
-        updateMicrophoneVisualState('inactive');
+        console.error('[Voice] Erreur arrêt:', error);
         voiceRecognitionActive = false;
+        updateMicrophoneVisualState('inactive');
     }
 }
 
@@ -512,10 +472,17 @@ function clearAutoValidationTimer() {
 function startVoiceRecognition() {
     if (!recognition || voiceRecognitionActive) {
         console.log('[Voice] Reconnaissance non disponible ou déjà active');
-        return;
+        return false;
     }
     
-    // 🚨 NOUVEAU : Nettoyage des modes conflictuels
+    // Vérification utilisateur autorise vocal
+    if (!currentUser?.voice_counting_enabled) {
+        console.log('[Voice] Comptage vocal désactivé pour cet utilisateur');
+        showToast('Comptage vocal désactivé', 'info');
+        return false;
+    }
+    
+    // Cleanup modes conflictuels
     passiveListening = false;
     correctionMode = false;
     if (correctionTimer) {
@@ -523,12 +490,7 @@ function startVoiceRecognition() {
         correctionTimer = null;
     }
     
-    // 🚨 NOUVEAU : Restaurer handlers normaux
-    recognition.onresult = handleVoiceResult;
-    recognition.onerror = handleVoiceError;
-    recognition.onend = handleVoiceEnd;
-    
-    // RESET COMPLET (code existant)
+    // Reset données
     voiceData = {
         count: 0,
         timestamps: [],
@@ -538,7 +500,7 @@ function startVoiceRecognition() {
         confidence: 1.0
     };
     
-    // Reset flags de protection
+    // Reset flags
     executionInProgress = false;
     predictedNext = 1;
     displayedCount = 0;
@@ -549,38 +511,22 @@ function startVoiceRecognition() {
         recognition.start();
         voiceRecognitionActive = true;
         
-        // === NOUVEAU : État visuel micro ===
+        // ÉTAT VISUEL - SOURCE UNIQUE
         updateMicrophoneVisualState('listening');
-        
-        // Timer auto-validation
-        if (typeof startAutoValidationTimer === 'function') {
-            startAutoValidationTimer();
-        }
-        
-        // UI feedback (legacy - garder pour compatibilité)
-        const microIcon = document.querySelector('.voice-toggle-container i');
-        if (microIcon) {
-            microIcon.classList.add('active');
-        }
         
         // Exposer globalement
         window.voiceData = voiceData;
         
-        console.log('[Voice] Reconnaissance démarrée avec prédiction initialisée');
+        console.log('[Voice] Reconnaissance démarrée avec succès');
+        return true;
         
     } catch (error) {
-        console.error('[Voice] Erreur au démarrage:', error);
+        console.error('[Voice] Erreur démarrage:', error);
         voiceRecognitionActive = false;
-        
-        // === NOUVEAU : État erreur ===
         updateMicrophoneVisualState('error');
-        
-        if (typeof handleVoiceStartupError === 'function') {
-            handleVoiceStartupError(error);
-        }
+        return false;
     }
 }
-
 /**
  * Gestionnaire principal des résultats de reconnaissance
  * Parse les transcripts et identifie les nombres/commandes
@@ -2201,22 +2147,66 @@ function validateVoiceData(data) {
  * Collecte l'état de santé du système vocal pour monitoring
  */
 function getVoiceSystemHealth() {
-    const timersActive = [
-        window.validationTimer,
-        window.autoValidationTimer,
-        window.correctionTimer
-    ].filter(t => t !== null).length;
-    
     return {
-        recognitionActive: voiceRecognitionActive,
-        currentState: voiceState,
-        timersActive: timersActive,
-        memoryUsage: recognitionCache ? recognitionCache.size : 0,
-        lastActivity: voiceData.startTime,
-        confidenceLevel: voiceData.confidence,
-        gapsDetected: voiceData.gaps.length
+        // État système
+        speechRecognitionSupported: !!window.SpeechRecognition || !!window.webkitSpeechRecognition,
+        voiceRecognitionActive: voiceRecognitionActive,
+        userVoiceEnabled: currentUser?.voice_counting_enabled || false,
+        workoutState: workoutState.current,
+        
+        // État DOM
+        voiceContainer: !!document.getElementById('voiceStatusContainer'),
+        voiceIcon: !!document.querySelector('#voiceStatusIcon'),
+        voiceText: !!document.querySelector('#voiceStatusText'),
+        
+        // État données
+        currentMicState: currentMicState,
+        voiceDataCount: voiceData?.count || 0,
+        
+        // Permissions
+        microphonePermission: 'unknown' // sera mis à jour par checkMicrophonePermissions
     };
 }
+
+function forceVoiceSystemReset() {
+    console.log('[Voice] RESET FORCÉ du système vocal');
+    
+    // Arrêter tout
+    if (voiceRecognitionActive) {
+        try {
+            recognition.stop();
+        } catch (e) {}
+        voiceRecognitionActive = false;
+    }
+    
+    // Cleanup timers
+    clearAutoValidationTimer();
+    if (correctionTimer) {
+        clearTimeout(correctionTimer);
+        correctionTimer = null;
+    }
+    
+    // Reset état visuel
+    updateMicrophoneVisualState('inactive');
+    
+    // Re-initialiser si possible
+    if (currentUser?.voice_counting_enabled) {
+        setTimeout(() => {
+            checkMicrophonePermissions().then(hasPermission => {
+                if (hasPermission) {
+                    updateMicrophoneVisualState('inactive');
+                } else {
+                    updateMicrophoneVisualState('error');
+                }
+            });
+        }, 1000);
+    }
+}
+
+// Exposer fonctions debug
+window.getVoiceSystemHealth = getVoiceSystemHealth;
+window.forceVoiceSystemReset = forceVoiceSystemReset;
+console.log('[Voice] ✅ Système vocal consolidé et exposé');
 
 /**
  * Valide la cohérence du système vocal
