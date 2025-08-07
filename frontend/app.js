@@ -410,13 +410,13 @@ function updateRepDisplayModern(currentRep, targetRep, options = {}) {
         targetRepEl.textContent = targetRep;
     }
     
-    // Preview N+1 intelligent
+    // Preview N+1 intelligent - ne montrer que si on progresse
     const nextRep = currentRep + 1;
-    if (nextRep <= targetRep + 2) { // Afficher jusqu'à +2 de l'objectif
+    if (currentRep > 0 && currentRep < targetRep && nextRep <= targetRep) {
         nextRepPreviewEl.textContent = nextRep;
-        nextRepPreviewEl.className = 'next-rep-preview visible';
+        nextRepPreviewEl.classList.add('visible');
     } else {
-        nextRepPreviewEl.className = 'next-rep-preview';
+        nextRepPreviewEl.classList.remove('visible');
     }
     
     // PHASE 4 - Gestion indicateur progression interpolation
@@ -5169,7 +5169,7 @@ function initializeModernRepsDisplay(targetReps = 12, currentReps = 0) {
         <div class="current-rep" id="currentRep">${currentReps}</div>
         <div class="rep-separator">/</div>
         <div class="target-rep" id="targetRep">${targetReps}</div>
-        <div class="next-rep-preview" id="nextRepPreview">${currentReps + 1}</div>
+        <div class="next-rep-preview" id="nextRepPreview"></div>
     `;
 
     // === MICRO : Synchroniser état avec container statique ===

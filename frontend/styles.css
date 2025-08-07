@@ -1358,7 +1358,11 @@ input:focus,select:focus,textarea:focus {
     position: relative;
     transition: border-color .3s ease;
     will-change: transform, box-shadow;
-    transform: translateZ(0); /* Force hardware acceleration */
+    transform: translateZ(0);
+    /* AJOUTER CES LIGNES POUR ÉVITER DÉBORDEMENT */
+    max-width: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
 .active-workout-interface-container--voice-active {
@@ -7043,12 +7047,12 @@ p{
 
 .reps-display-modern {
     display: flex;
-    align-items: baseline;
+    align-items: center; /* Changé de baseline à center */
     justify-content: center;
     gap: 4px;
-    font-family: "Courier New", monospace;
+    font-family: system-ui, -apple-system, sans-serif; /* Police plus stable */
     min-height: 1.2em;
-    position: relative; /* ← AJOUTER CETTE LIGNE */
+    position: relative;
 }
 
 .current-rep {
