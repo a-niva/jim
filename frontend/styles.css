@@ -1353,6 +1353,7 @@ input:focus,select:focus,textarea:focus {
 .active-workout-interface-container {
     background: var(--bg-card);
     border-radius: var(--radius);
+    border: 1px solid var(--border);
     position: relative;
     transition: border-color .3s ease;
     will-change: transform, box-shadow;
