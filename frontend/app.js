@@ -4034,9 +4034,7 @@ async function selectExercise(exercise, skipValidation = false) {
     // Mise à jour de l'affichage
     document.getElementById('exerciseSelection').style.display = 'none';
     document.getElementById('currentExercise').style.display = 'block';
-    // Créer l'interface N/R immédiatement pour que le micro soit prêt
-    const targetReps = currentExercise.default_reps_min || 10;
-    initializeModernRepsDisplay(targetReps, 0);
+    
     if (currentWorkoutSession.type === 'program') {
         const programExercisesContainer = document.getElementById('programExercisesContainer');
         if (programExercisesContainer) {
@@ -5447,9 +5445,8 @@ let nextSeriesRecommendationsCache = null;
  * @returns {Promise<Object>} Recommandations {weight, reps, rest, confidence}
  */
 async function preloadNextSeriesRecommendations() {
-    console.log('[Preview] Session ID:', currentWorkoutSession.id);
-    console.log('[Preview] Exercise ID:', currentExercise?.id);
-    console.log('[Preview] Current set:', currentSet);
+    console.log('[Preview] Debug - Session ID:', currentWorkoutSession.id);
+    console.log('[Preview] Debug - Exercise:', currentExercise?.id);
     
     if (!currentWorkoutSession.id) {
         console.log('[Preview] Pas de session - première série');
@@ -5458,35 +5455,27 @@ async function preloadNextSeriesRecommendations() {
     
     try {
         const nextSetNumber = currentSet + 1;
-        const payload = {
+        console.log('[Preview] Appel API pour série:', nextSetNumber);
+        
+        const response = await apiPost(`/api/workouts/${currentWorkoutSession.id}/recommendations`, {
             exercise_id: currentExercise.id,
             set_number: nextSetNumber,
             workout_id: currentWorkoutSession.id
-        };
-        
-        console.log('[Preview] Payload API:', payload);
-        
-        const response = await apiPost(`/api/workouts/${currentWorkoutSession.id}/recommendations`, payload);
-        
-        console.log('[Preview] Réponse API:', response);
+        });
         
         if (response && response.weight_recommendation !== null) {
-            const preview = {
+            return {
                 weight: response.weight_recommendation,
                 reps: response.reps_recommendation,
                 rest: response.rest_seconds_recommendation || 90,
                 confidence: response.confidence
             };
-            console.log('[Preview] Preview final:', preview);
-            return preview;
         }
         
-        console.log('[Preview] Réponse invalide');
         return null;
         
     } catch (error) {
-        console.error('[Preview] Erreur ML détaillée:', error);
-        console.error('[Preview] Stack:', error.stack);
+        console.error('[Preview] Erreur ML:', error);
         return null;
     }
 }
