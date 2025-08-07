@@ -7829,7 +7829,9 @@ function activateVoiceForWorkout() {
     // Vérifier permissions et état
     checkMicrophonePermissions().then(hasPermission => {
         if (hasPermission) {
-            window.updateMicrophoneVisualState?.('inactive');
+            // Ne pas écraser l'état si la reconnaissance est déjà active
+            const isCurrentlyActive = window.voiceRecognitionActive?.() || false;
+            window.updateMicrophoneVisualState?.(isCurrentlyActive ? 'listening' : 'inactive');
         } else {
             window.updateMicrophoneVisualState?.('error');
             showToast('Permission microphone requise pour le comptage vocal', 'warning');
