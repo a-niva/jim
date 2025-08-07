@@ -192,10 +192,15 @@ window.hideVoiceStatus = hideVoiceStatus;
  * Mise à jour état visuel micro - SYSTÈME UNIFIÉ
  */
 function updateMicrophoneVisualState(state) {
-    // SYSTÈME MODERNE PRIORITAIRE
+    // S'assurer que le container est visible si vocal activé
     const modernContainer = document.getElementById('voiceStatusContainer') || document.querySelector('.voice-status-container');
     const modernIcon = modernContainer?.querySelector('.voice-status-btn i');
     const modernText = modernContainer?.querySelector('.voice-status-text');
+    if (modernContainer && currentUser?.voice_counting_enabled) {
+        modernContainer.style.display = 'flex';
+    }
+    // SYSTÈME MODERNE PRIORITAIRE
+
     
     if (modernContainer && modernIcon && modernText) {
         modernContainer.style.display = 'flex';

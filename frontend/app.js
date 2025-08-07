@@ -4239,48 +4239,35 @@ function toggleVoiceRecognition() {
 }
 
 function updateVoiceToggleUI(isActive) {
-    const voiceBtn = document.querySelector('.voice-toggle-btn');
-    if (!voiceBtn) return;
+    // Utiliser le container statique dans header au lieu de .voice-toggle-btn
+    const voiceContainer = document.getElementById('voiceStatusContainer');
+    const voiceBtn = voiceContainer?.querySelector('#voiceStatusBtn');
+    const voiceIcon = voiceContainer?.querySelector('#voiceStatusIcon');
+    const voiceText = voiceContainer?.querySelector('#voiceStatusText');
+    
+    if (!voiceContainer || !voiceBtn || !voiceIcon || !voiceText) {
+        console.warn('[Voice] Éléments micro statiques non trouvés');
+        return;
+    }
     
     if (isActive) {
         voiceBtn.classList.add('active');
+        voiceIcon.className = 'fas fa-microphone active';
+        voiceText.textContent = 'Écoute en cours...';
+        
+        // Animation indicateur
         if (!voiceBtn.querySelector('.voice-indicator')) {
             voiceBtn.insertAdjacentHTML('beforeend', '<span class="voice-indicator"></span>');
         }
     } else {
         voiceBtn.classList.remove('active');
+        voiceIcon.className = 'fas fa-microphone ready';
+        voiceText.textContent = 'Micro prêt';
+        
+        // Retirer indicateur
         const indicator = voiceBtn.querySelector('.voice-indicator');
         if (indicator) indicator.remove();
     }
-}
-
-// Fonction pour rendre l'icône microphone du comptage vocal
-function renderVoiceToggle(exerciseId) {
-    // Synchroniser le container statique au lieu de créer du HTML
-    const voiceContainer = document.getElementById('voiceStatusContainer');
-    
-    if (voiceContainer && currentUser?.voice_counting_enabled) {
-        // Afficher et synchroniser état
-        voiceContainer.style.display = 'flex';
-        
-        const isActive = window.voiceRecognitionActive?.() || false;
-        const icon = voiceContainer.querySelector('#voiceStatusIcon');
-        const text = voiceContainer.querySelector('#voiceStatusText');
-        
-        if (icon) {
-            icon.className = `fas fa-microphone ${isActive ? 'active' : 'ready'}`;
-        }
-        
-        if (text) {
-            text.textContent = isActive ? 'Écoute en cours...' : 'Micro prêt';
-        }
-        
-        // CONSERVÉ : Retourner indicateur pour backward compatibility
-        return `<i class="fas fa-microphone-check" style="color: var(--success); margin-left: 4px;"></i>`;
-    }
-    
-    // Si pas de micro activé, retourner vide mais ne pas casser
-    return '';
 }
 
 // PHASE 2.2 : Indicateurs de confiance
@@ -5200,19 +5187,19 @@ function initializeModernRepsDisplay(targetReps = 12, currentReps = 0) {
         <div class="next-rep-preview" id="nextRepPreview">${currentReps + 1}</div>
     `;
 
-    // === MICRO : Utiliser container statique dans header ===
-    const voiceStatusContainer = document.getElementById('voiceStatusContainer');
-    if (voiceStatusContainer) {
-        // Synchroniser visibilité selon préférences utilisateur
-        if (currentUser?.voice_counting_enabled) {
-            voiceStatusContainer.style.display = 'flex';
-            
-            // Synchroniser état initial du micro
-            const isActive = window.voiceRecognitionActive?.() || false;
-            updateVoiceToggleUI(isActive);
-        } else {
-            voiceStatusContainer.style.display = 'none';
-        }
+    // === MICRO : Synchroniser container statique avec état initial ===
+    const voiceContainer = document.getElementById('voiceStatusContainer');
+    if (voiceContainer && currentUser?.voice_counting_enabled) {
+        voiceContainer.style.display = 'flex';
+        
+        // Appliquer état initial via fonction existante
+        checkMicrophonePermissions().then(hasPermission => {
+            if (hasPermission) {
+                window.updateMicrophoneVisualState('inactive');
+            } else {
+                window.updateMicrophoneVisualState('error');
+            }
+        });
     }
 
     // État initial selon le workflow
@@ -13155,7 +13142,6 @@ window.toggleFavorite = toggleFavorite;
 window.updatePlateHelper = updatePlateHelper;
 window.togglePlateHelper = togglePlateHelper;
 window.toggleVoiceCounting = toggleVoiceCounting;
-window.renderVoiceToggle = renderVoiceToggle;
 
 window.skipExercise = skipExercise;
 window.showSkipModal = showSkipModal;
