@@ -155,30 +155,6 @@ let validationMode = VALIDATION_LEVELS.STRICT; // Mode par défaut Phase 4
 // États visuels du micro
 let currentMicState = 'inactive';
 
-// Gestionnaire de clic sur l'icône micro (appelé depuis HTML)
-window.handleVoiceStatusClick = async function() {
-    const container = document.getElementById('voiceStatusContainer');
-    const icon = document.getElementById('voiceStatusIcon');
-    
-    if (!container || !icon) return;
-    
-    // Si micro en erreur ou non autorisé, tenter d'obtenir permission
-    if (icon.classList.contains('unavailable') || icon.classList.contains('denied')) {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            stream.getTracks().forEach(track => track.stop());
-            updateMicrophoneVisualState('inactive');
-            if (typeof showToast === 'function') {
-                showToast('Microphone autorisé !', 'success');
-            }
-        } catch (e) {
-            if (typeof showToast === 'function') {
-                showToast('Accès au microphone refusé', 'error');
-            }
-        }
-    }
-};
-
 // Vérifier les permissions au démarrage des séances
 async function checkMicrophonePermissions() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -247,6 +223,11 @@ function updateMicrophoneVisualState(state) {
                         updateMicrophoneVisualState('inactive');
                     } else {
                         updateMicrophoneVisualState('listening');
+                        // Synchroniser interface moderne avec état réel
+                        const voiceContainer = document.getElementById('voiceStatusContainer');
+                        if (voiceContainer) {
+                            voiceContainer.style.display = 'flex';
+                        }
                     }
                 }, 2000);
                 break;

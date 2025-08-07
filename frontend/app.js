@@ -5188,13 +5188,13 @@ function initializeModernRepsDisplay(targetReps = 12, currentReps = 0) {
         const voiceStatusContainer = document.createElement('div');
         voiceStatusContainer.id = 'voiceStatusContainer';
         voiceStatusContainer.className = 'voice-status-container';
-        voiceStatusContainer.style.display = 'none';
+        voiceStatusContainer.style.display = 'flex';
         
         voiceStatusContainer.innerHTML = `
-            <button class="voice-status-btn" id="voiceStatusBtn" onclick="handleVoiceStatusClick()">
-                <i class="fas fa-microphone-slash" id="voiceStatusIcon"></i>
+            <button class="voice-status-btn" id="voiceStatusBtn" onclick="toggleVoiceRecognition()">
+                <i class="fas fa-microphone ready" id="voiceStatusIcon"></i>
             </button>
-            <span class="voice-status-text" id="voiceStatusText">Micro désactivé</span>
+            <span class="voice-status-text" id="voiceStatusText">Micro prêt</span>
         `;
         
         // L'insérer après repsDisplay
@@ -5323,33 +5323,6 @@ function updateRepDisplayModern(currentRep, targetRep = null, options = {}) {
     }
     
     console.log(`[UI] Reps mis à jour: ${currentRep}/${targetRep}`);
-}
-
-/**
- * Transition vers l'état READY avec interface moderne
- */
-function transitionToReadyState() {
-    const repsDisplayEl = document.getElementById('repsDisplay');
-    if (!repsDisplayEl) return;
-    
-    const currentRepEl = document.getElementById('currentRep');
-    const targetRepEl = document.getElementById('targetRep');
-    if (currentRepEl) {
-        currentRepEl.textContent = '0';
-    }
-    if (currentRepEl && targetRepEl) {
-        // Afficher "Objectif: X reps" en état ready
-        repsDisplayEl.classList.add('ready-state');
-        const targetValue = targetRepEl.textContent;
-        currentRepEl.textContent = targetValue;
-        currentRepEl.setAttribute('data-label', 'Objectif');
-    }
-    
-    // Masquer preview en état ready
-    const previewEl = document.getElementById('nextRepPreview');
-    if (previewEl) {
-        previewEl.classList.remove('visible');
-    }
 }
 
 /**
@@ -5490,12 +5463,23 @@ function updateRepDisplayModern(currentRep, targetRep, options = {}) {
 
 
 // Transition vers état prêt avec objectif affiché
-function transitionToReadyState() {  // Supprimer le paramètre
+function transitionToReadyState() {
     const targetRepEl = document.getElementById('targetRep');
     const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) : 12;
     
-    // PHASE 4 - Affichage objectif avec état ready
+    // Affichage objectif avec état ready
     updateRepDisplayModern(0, targetReps, { readyState: true });
+    
+    // NOUVEAU : Synchroniser interface vocal avec état ready
+    const voiceContainer = document.getElementById('voiceStatusContainer');
+    if (voiceContainer) {
+        voiceContainer.style.display = 'flex';
+        
+        // Mettre à jour état visuel si vocal pas encore actif
+        if (!window.voiceRecognitionActive || !window.voiceRecognitionActive()) {
+            updateMicrophoneVisualState('inactive');
+        }
+    }
     
     console.log(`[RepsDisplay] Transition ready: Objectif ${targetReps} reps`);
 }
