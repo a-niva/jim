@@ -288,27 +288,28 @@ function updateMicrophoneVisualState(state) {
     // Utiliser requestAnimationFrame pour regrouper les updates DOM
     requestAnimationFrame(() => {
         const { voiceContainer, voiceIcon, voiceText, voiceBtn } = domCache;
-        
-        // Reset classes en une seule opération
+        // Reset classes en une seule opération :
         voiceBtn.className = 'voice-status-btn';
-        
+        voiceIcon.className = ''; // AJOUTER CETTE LIGNE pour reset complet
+                
         // Switch optimisé avec moins d'opérations DOM
         switch(state) {
             case 'inactive':
                 voiceIcon.className = 'fas fa-microphone';
                 voiceIcon.style.color = '#6b7280';
-                voiceText.textContent = 'Micro désactivé';
+                voiceText.textContent = 'Micro prêt';
+                voiceBtn.classList.remove('pulse', 'shake', 'shake-error');
                 break;
                 
             case 'listening':
                 voiceIcon.className = 'fas fa-microphone';
                 voiceIcon.style.color = '#22c55e';
                 voiceText.textContent = 'Écoute en cours...';
-                voiceBtn.classList.add('active', 'pulse');
+                voiceBtn.classList.add('pulse'); // Animation sur le bouton
                 break;
                 
             case 'ready':
-                voiceIcon.className = 'fa-regular fa-microphone'; // Changé en regular
+                voiceIcon.className = 'fa-regular fa-microphone';
                 voiceIcon.style.color = '#3b82f6';
                 voiceText.textContent = 'Cliquez pour activer';
                 voiceBtn.classList.add('shake');

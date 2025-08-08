@@ -321,8 +321,10 @@ function transitionTo(state) {
             document.getElementById('executeSetBtn').style.display = 'block';
             document.querySelector('.input-section').style.display = 'block';
             
-            // Vocal si activé
-            if (currentUser?.voice_counting_enabled && window.startVoiceRecognition) {
+            // Vocal si activé ET pas déjà en cours
+            if (currentUser?.voice_counting_enabled && 
+                window.startVoiceRecognition && 
+                !window.voiceRecognitionActive?.()) {  // AJOUTER CETTE CONDITION
                 window.startVoiceRecognition();
             }
             break;
