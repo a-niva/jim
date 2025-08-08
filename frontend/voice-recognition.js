@@ -663,7 +663,7 @@ function handleInterimResult(transcript) {
 function handleFinalResult(transcript) {
     console.log('[Voice] Final:', transcript);
     
-    // Vérifier cache d'abord
+    // 1. Vérifier cache (existant)
     if (recognitionCache.has(transcript)) {
         const cachedNumber = recognitionCache.get(transcript);
         if (cachedNumber) {
@@ -672,41 +672,52 @@ function handleFinalResult(transcript) {
         }
     }
     
-    // NOUVEAU : Traiter les suites de nombres correctement
+    // 2. PRIORITÉ : Détecter commandes de fin AVANT les nombres
+    const hasEndCommand = transcript.includes('terminé') || 
+                         transcript.includes('fini') || 
+                         transcript.includes('stop') || 
+                         transcript.includes('fin');
+    
+    // 3. Extraire et traiter les nombres
     const numbers = extractNumbersFromTranscript(transcript);
     
     if (numbers.length > 0) {
-        // CORRECTION CRITIQUE : Traiter TOUS les nombres en séquence
+        // Traiter tous les nombres
         for (const number of numbers) {
-            // Éviter les doublons avec pendingValidation
             if (number !== pendingValidation) {
                 processValidatedNumber(number);
             }
         }
         
-        // Mettre en cache le dernier nombre pour ce transcript
+        // Mettre en cache le dernier nombre
         const lastNumber = numbers[numbers.length - 1];
         recognitionCache.set(transcript, lastNumber);
+    }
+    
+    // 4. Si commande de fin détectée, la traiter APRÈS les nombres
+    if (hasEndCommand) {
+        console.log('[Voice] Commande fin détectée après traitement nombres');
+        // Petit délai pour s'assurer que l'UI est à jour
+        setTimeout(() => {
+            handleEndCommand();
+        }, 100);
         return;
     }
     
-    // Si pendingValidation existe et transcript la contient, valider
+    // 5. Autres détections (inchangé)
     if (pendingValidation && transcript.includes(pendingValidation.toString())) {
         console.log('[Voice] Validation confirmée:', pendingValidation);
         pendingValidation = null;
         return;
     }
     
-    // Mots-clés
     if (transcript.includes('top') || transcript.includes('hop')) {
         handleKeywordDetected();
         return;
     }
     
-    // Commandes de fin - AVEC PROTECTION ANTI-DOUBLE
-    if (transcript.includes('terminé') || transcript.includes('fini') || 
-        transcript.includes('stop') || transcript.includes('fin')) {
-        handleEndCommand();
+    // Tentative de correction
+    if (handleCorrection(transcript)) {
         return;
     }
 }
