@@ -333,12 +333,6 @@
                         <span id="exerciseProgress">Exercice 1/3</span>
                     </div>
                 </div>
-                
-                <div class="workout-actions-header">
-                    <button class="btn btn-warning btn-sm" onclick="pauseWorkout()">⏸️ Pause</button>
-                    <button class="btn btn-success btn-sm" onclick="endWorkout()">✅ Terminer</button>
-                    <button class="btn btn-danger btn-sm" onclick="abandonWorkout()">❌ Abandonner</button>
-                </div>
             </div>
             
             <!-- Fatigue globale de la séance -->
@@ -449,11 +443,6 @@
 
                             <!-- BACKWARD COMPATIBILITY : Element caché pour anciennes fonctions -->
                             <span id="setReps" style="display: none;">12</span>
-                            
-                            <!-- Bouton de validation -->
-                            <button id="executeSetBtn" class="action-btn" onclick="executeSet()" style="display: none;">
-                                <span class="go-emoji"></span>
-                            </button>
                         </div>
                         
                         <!-- Feedback après série (remplace la zone d'input après validation) -->
@@ -534,6 +523,38 @@
             <!-- Container pour les exercices du programme -->
             <div class="program-active-workout-container" id="programExercisesContainer" style="display: none;">
                 <!-- Contenu généré dynamiquement -->
+            </div>
+
+            <!-- NOUVEAUX BOUTONS FLOTTANTS -->
+            <div class="floating-workout-actions" id="floatingWorkoutActions">
+                <button class="floating-btn floating-btn-pause" onclick="pauseWorkout()" title="Pause">
+                    <i class="fas fa-pause"></i>
+                </button>
+                <button class="floating-btn floating-btn-execute" id="executeSetBtn" onclick="executeSet()" title="Valider série">
+                    <i class="fas fa-check"></i>
+                </button>
+                <button class="floating-btn floating-btn-end" onclick="showEndWorkoutModal()" title="Terminer séance">
+                    <i class="fas fa-arrow-right-from-bracket"></i>
+                </button>
+            </div>
+
+            <!-- MODAL DE CONFIRMATION FIN -->
+            <div class="workout-end-modal" id="workoutEndModal" style="display: none;">
+                <div class="workout-end-backdrop"></div>
+                <div class="workout-end-content">
+                    <h3>Terminer la séance ?</h3>
+                    <div class="workout-end-actions">
+                        <button class="floating-btn floating-btn-complete" onclick="endWorkout()" title="Terminer">
+                            <i class="fas fa-stopwatch"></i>
+                            <span>Terminer</span>
+                        </button>
+                        <button class="floating-btn floating-btn-abandon" onclick="abandonWorkout()" title="Abandonner">
+                            <i class="fas fa-person-skiing"></i>
+                            <span>Abandonner</span>
+                        </button>
+                    </div>
+                    <button class="modal-cancel" onclick="hideEndWorkoutModal()">Annuler</button>
+                </div>
             </div>
         </div>
 
