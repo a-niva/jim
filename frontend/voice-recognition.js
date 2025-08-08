@@ -728,46 +728,40 @@ function handleEndCommand() {
     // Arrêter reconnaissance vocale et calculer confiance finale
     stopVoiceRecognition();
     
-    // VALIDATION FINALE basée sur confiance
     const finalConfidence = calculateConfidence();
     voiceData.confidence = finalConfidence;
     
     console.log(`[Voice] Confiance finale calculée: ${(finalConfidence * 100).toFixed(1)}%`);
     
-    // TOUJOURS préparer les données vocales pour executeSet
+    // Préparer les données
+    voiceData.validated = false; // Important : pas encore validé
     window.voiceData = voiceData;
     window.voiceState = voiceState;
     
-    // DÉCISION : Validation automatique si confiance >= 0.8 ET pas de gaps
+    // Décision basée sur confiance ET gaps
     if (finalConfidence >= 0.8 && voiceData.gaps.length === 0) {
         console.log('[Voice] Confiance suffisante (>= 0.8) et pas de gaps - Validation automatique');
         
-        // Marquer comme validé et confirmer automatiquement
+        // Validation automatique immédiate
         voiceData.validated = true;
         voiceState = 'CONFIRMED';
         window.voiceData = voiceData;
         window.voiceState = voiceState;
         
-        // Confirmer et déclencher executeSet automatiquement
         confirmFinalCount(voiceData.count);
         
     } else {
-        // Confiance faible OU gaps détectés - Validation manuelle requise
         console.log('[Voice] Validation manuelle requise - Confiance:', finalConfidence.toFixed(2), 'Gaps:', voiceData.gaps.length);
         
-        // Forcer affichage UI de validation
+        // Afficher modal de validation - PAS DE TIMEOUT !
         voiceState = 'VALIDATING';
         window.voiceState = voiceState;
-        showValidationUI(voiceData.count, finalConfidence);
         
-        // Timer de validation (4s) puis confirmation sans executeSet automatique
-        timers.set('validation', setTimeout(() => {
-            console.log('[Voice] Timeout validation - Confirmation count');
-            confirmFinalCount(voiceData.count);
-        }, 4000));
+        showValidationModal(voiceData.count, finalConfidence);
+        // PAS de setTimeout ici - attendre action utilisateur
     }
     
-    // Reset mutex après délai sécurité
+    // Reset mutex
     setTimeout(() => {
         executionInProgress = false;
     }, 2000);
@@ -1105,67 +1099,93 @@ function rollbackInterpolation() {
     }
 }
 
-/**
- * Affiche l'interface de validation inline intégrée
- * Version minimaliste sans overlay lourd
- * 
- * @param {number} count - Nombre à valider
- * @param {number} confidence - Score de confiance (0-1)
- */
-function showValidationUI(count, confidence) {
-    if (!VOICE_FEATURES.validation_ui) {
-        console.log('[Voice] Interface validation désactivée');
-        return;
-    }
+function showValidationModal(count, confidence) {
+    // Nettoyer tout modal existant
+    const existingModal = document.getElementById('voice-validation-modal');
+    if (existingModal) existingModal.remove();
     
-    const repsElement = document.getElementById('setReps');
-    console.log('[Voice] Élément setReps trouvé:', !!repsElement, repsElement);
-    
-    // VÉRIFICATION EN PREMIER
-    if (!repsElement) {
-        console.warn('[Voice] Élément setReps non trouvé - Interface impossible');
-        return;
-    }
-    
-    // FORCER VISIBILITÉ pour validation - MAINTENANT SÛRE
-    repsElement.style.display = 'inline-block';
-    repsElement.style.visibility = 'visible';
-    repsElement.style.opacity = '1';
-    console.log('[Voice] Élément setReps rendu visible pour validation');
-    
-    // Reste du code INCHANGÉ...
-    const originalContent = repsElement.textContent;
-    repsElement.setAttribute('data-original', originalContent);
-    console.log('[Voice] Contenu original sauvé:', originalContent);
-    
-    // Interface inline minimaliste
-    repsElement.innerHTML = `
-        <span class="voice-count">${count}</span>
-        <div class="quick-actions">
-            <button onclick="adjustVoiceCount(-1)" class="adjust-btn">−</button>
-            <button onclick="adjustVoiceCount(1)" class="adjust-btn">+</button>
+    // Créer overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'voice-validation-modal';
+    overlay.className = 'voice-validation-modal';
+    overlay.innerHTML = `
+        <div class="voice-modal-content">
+            <h3>Valider le nombre de répétitions</h3>
+            
+            <div class="voice-count-display">
+                <button class="count-btn minus" onclick="adjustModalCount(-1)">−</button>
+                <span class="count-value" id="modalCount">${count}</span>
+                <button class="count-btn plus" onclick="adjustModalCount(1)">+</button>
+            </div>
+            
+            <div class="voice-info">
+                <p class="confidence-text">Confiance: ${(confidence * 100).toFixed(0)}%</p>
+                ${voiceData.gaps.length > 0 ? 
+                    `<p class="gaps-text">Répétitions manquées: ${voiceData.gaps.join(', ')}</p>` : 
+                    ''}
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn-validate" onclick="validateVoiceCount()">
+                    Valider ${count} répétitions
+                </button>
+            </div>
+            
+            <p class="help-text">Ajustez si nécessaire puis validez</p>
         </div>
     `;
     
-    console.log('[Voice] Nouveau contenu DOM:', repsElement.innerHTML);
+    document.body.appendChild(overlay);
     
-    // Classe CSS selon niveau de confiance
-    const confidenceClass = getConfidenceClass(confidence);
-    repsElement.className = confidenceClass;
-    console.log('[Voice] Classe CSS appliquée:', confidenceClass);
+    // Animation d'entrée
+    requestAnimationFrame(() => {
+        overlay.classList.add('visible');
+    });
     
-    // Animation discrète
-    repsElement.style.transform = 'scale(1.02)';
-    repsElement.style.border = '2px solid orange'; // Debug visuel
-    setTimeout(() => {
-        repsElement.style.transform = '';
-    }, 200);
-    
-    // Timer auto-validation
-    startValidationTimer(count);
-    
-    console.log(`[Voice] Interface validation complète - Count: ${count}, Confiance: ${confidence.toFixed(2)}`);
+    console.log(`[Voice] Modal validation affiché - Count: ${count}, Confiance: ${confidence.toFixed(2)}`);
 }
+
+// Fonction pour ajuster le count dans le modal
+window.adjustModalCount = function(delta) {
+    const countEl = document.getElementById('modalCount');
+    if (!countEl) return;
+    
+    let currentCount = parseInt(countEl.textContent);
+    let newCount = Math.max(0, Math.min(50, currentCount + delta));
+    
+    countEl.textContent = newCount;
+    
+    // Mettre à jour le bouton
+    const btnValidate = document.querySelector('.btn-validate');
+    if (btnValidate) {
+        btnValidate.textContent = `Valider ${newCount} répétitions`;
+    }
+    
+    // Vibration feedback
+    if (navigator.vibrate) navigator.vibrate(20);
+};
+
+// Fonction pour valider depuis le modal
+window.validateVoiceCount = function() {
+    const count = parseInt(document.getElementById('modalCount').textContent);
+    const modal = document.getElementById('voice-validation-modal');
+    
+    // Animation de sortie
+    modal.classList.remove('visible');
+    
+    setTimeout(() => {
+        modal.remove();
+        
+        // Confirmer le count
+        voiceData.count = count;
+        voiceData.validated = true;
+        voiceState = 'CONFIRMED';
+        window.voiceData = voiceData;
+        window.voiceState = voiceState;
+        
+        confirmFinalCount(count);
+    }, 300);
+};
 
 /**
  * Ajuste le count vocal via les boutons +/-
@@ -1513,7 +1533,7 @@ function scheduleStandardValidation() {
     
     // Afficher UI de validation si activée
     if (VOICE_FEATURES.validation_ui) {
-        showValidationUI(voiceData.count, voiceData.confidence);
+        showValidationModal(voiceData.count, voiceData.confidence);
     } else {
         // Mode legacy - simple indicateur
         showSubtleConfirmation(voiceData.count);
@@ -1563,7 +1583,8 @@ function confirmFinalCount(finalCount) {
     }
     
     // Enregistrer métriques de validation
-    const isAutoValidation = voiceState === 'AUTO_VALIDATING' || voiceData.validated;
+    const isAutoValidation = voiceState === 'AUTO_VALIDATING' || 
+                            (voiceData.confidence >= 0.8 && voiceData.gaps.length === 0);
     const startTime = voiceData.startTime || Date.now();
     recordValidationMetrics(isAutoValidation, startTime);
     
@@ -1578,8 +1599,15 @@ function confirmFinalCount(finalCount) {
     voiceData.validated = true; // IMPORTANT: Marquer comme validé
     voiceState = 'CONFIRMED';
     
-    // Nettoyer l'interface
+    // Nettoyer l'interface (modal ou ancienne UI)
     clearValidationUI();
+    
+    // Fermer le modal si présent
+    const modal = document.getElementById('voice-validation-modal');
+    if (modal) {
+        modal.classList.remove('visible');
+        setTimeout(() => modal.remove(), 300);
+    }
     
     // INTERPOLATION SILENCIEUSE si gaps présents
     if (voiceData.gaps.length > 0) {
@@ -1599,11 +1627,10 @@ function confirmFinalCount(finalCount) {
                 interpolatedTimestamps.push(lastTime);
             } else {
                 // Rep réelle: utiliser timestamp existant
-                const realIndex = voiceData.timestamps.findIndex((t, idx) => {
-                    const prevGaps = voiceData.gaps.filter(g => g <= i).length;
-                    return idx === (i - prevGaps - 1);
-                });
-                if (realIndex >= 0) {
+                const prevGaps = voiceData.gaps.filter(g => g < i).length;
+                const realIndex = i - prevGaps - 1;
+                
+                if (realIndex >= 0 && realIndex < voiceData.timestamps.length) {
                     lastTime = voiceData.timestamps[realIndex];
                     interpolatedTimestamps.push(lastTime);
                 }
@@ -1621,14 +1648,14 @@ function confirmFinalCount(finalCount) {
     window.voiceData = voiceData;
     window.voiceState = voiceState;
     
-    // UN SEUL appel à executeSet si validation automatique OU bouton cliqué
-    const executeBtn = document.getElementById('executeSetBtn');
-    const shouldAutoExecute = voiceData.validated && 
+    // DÉCISION CRITIQUE : executeSet automatique SEULEMENT si validation auto
+    // C'est-à-dire : confiance >= 0.8 ET pas de gaps ET pas depuis modal
+    const wasAutoValidation = isAutoValidation && 
                              voiceData.confidence >= 0.8 && 
                              voiceData.gaps.length === 0;
     
-    if (shouldAutoExecute || (executeBtn && executeBtn.style.display === 'block')) {
-        console.log('[Voice] Déclenchement executeSet()');
+    if (wasAutoValidation) {
+        console.log('[Voice] Validation automatique confirmée - Déclenchement executeSet()');
         
         // Micro-délai pour fluidité visuelle
         setTimeout(() => {
@@ -1641,10 +1668,20 @@ function confirmFinalCount(finalCount) {
                 resetVoiceState();
             }, 200);
         }, 50);
+        
     } else {
-        // Afficher le bouton pour validation manuelle
+        console.log('[Voice] Validation manuelle - Affichage bouton executeSet');
+        
+        // Pour validation manuelle, juste afficher le bouton
+        const executeBtn = document.getElementById('executeSetBtn');
         if (executeBtn) {
             executeBtn.style.display = 'block';
+            
+            // S'assurer que le bouton garde son apparence normale
+            const emoji = executeBtn.querySelector('.go-emoji');
+            if (emoji) {
+                emoji.textContent = ''; // Garder l'emoji par défaut
+            }
         }
     }
     
@@ -2343,7 +2380,7 @@ window.voiceData = voiceData;
 window.initVoiceRecognition = initVoiceRecognition;
 window.startVoiceRecognition = startVoiceRecognition;
 window.stopVoiceRecognition = stopVoiceRecognition;
-window.showValidationUI = showValidationUI;
+window.showValidationModal = showValidationModal;
 window.adjustVoiceCount = adjustVoiceCount;
 window.confirmVoiceCount = confirmVoiceCount;
 window.clearValidationUI = clearValidationUI;

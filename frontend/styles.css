@@ -7911,3 +7911,120 @@ input {
         transform: translateX(0) translateZ(0); 
     }
 }
+
+/* Modal de validation vocale */
+.voice-validation-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    padding: 1rem;
+}
+
+.voice-validation-modal.visible {
+    opacity: 1;
+}
+
+.voice-modal-content {
+    background: var(--bg-dark);
+    border-radius: 16px;
+    padding: 2rem;
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.voice-modal-content h3 {
+    margin: 0 0 1.5rem 0;
+    font-size: 1.25rem;
+    color: var(--text);
+}
+
+.voice-count-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    margin: 2rem 0;
+}
+
+.count-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 2px solid var(--primary);
+    background: transparent;
+    color: var(--primary);
+    font-size: 2rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.count-btn:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.count-btn:active {
+    transform: scale(0.95);
+}
+
+.count-value {
+    font-size: 4rem;
+    font-weight: bold;
+    color: var(--primary);
+    min-width: 100px;
+}
+
+.voice-info {
+    margin: 1.5rem 0;
+}
+
+.confidence-text {
+    color: var(--text-muted);
+    margin: 0.5rem 0;
+}
+
+.gaps-text {
+    color: var(--warning);
+    font-size: 0.9rem;
+    margin: 0.5rem 0;
+}
+
+.btn-validate {
+    background: var(--success);
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    max-width: 300px;
+}
+
+.btn-validate:hover {
+    background: var(--success-hover);
+    transform: translateY(-2px);
+}
+
+.btn-validate:active {
+    transform: translateY(0);
+}
+
+.help-text {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-top: 1rem;
+}
