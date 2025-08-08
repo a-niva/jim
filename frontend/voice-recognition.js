@@ -802,44 +802,48 @@ function parseNumber(text) {
     return null;
 }
 
-/**
- * Calcule le niveau de confiance des données vocales
- * Optimisé pour performance - calculs simples
- * 
- * @returns {number} Score de confiance entre 0.1 et 1.0
- */
+// Calcule le niveau de confiance des données vocales
+// Score de confiance entre 0.1 et 1.0
 function calculateConfidence() {
     let score = 1.0;
     
-    // Pénalité gaps ratio-based (ligne ~818)
+    // Protection séries trop courtes pour évaluation fiable
+    if (voiceData.count < 3) {
+        score = 0.8; // Confiance réduite car échantillon insuffisant
+        console.log(`[Confidence] Série courte (${voiceData.count} reps) - Confiance limitée: 80%`);
+    }
+    
+    // Pénalité gaps basée sur ratio - RÉALISTE et SÉVÈRE
     if (voiceData.gaps.length > 0 && voiceData.count > 0) {
         const gapRatio = voiceData.gaps.length / voiceData.count;
-        const gapPenalty = Math.min(gapRatio * 1.5, 0.95);
+        const gapPenalty = Math.min(gapRatio * 1.2, 0.9); // Légèrement moins sévère
         score -= gapPenalty;
         console.log(`[Confidence] Gaps: ${voiceData.gaps.length}/${voiceData.count} (${(gapRatio*100).toFixed(1)}%) - Pénalité: -${(gapPenalty * 100).toFixed(1)}%`);
-    } else {
+    }
     
     // Pénalité sauts suspects
     if (voiceData.suspiciousJumps > 0) {
-        const jumpPenalty = Math.min(voiceData.suspiciousJumps * 0.2, 0.3);
+        const jumpPenalty = Math.min(voiceData.suspiciousJumps * 0.15, 0.25); // Légèrement réduit
         score -= jumpPenalty;
         console.log(`[Confidence] Pénalité sauts suspects: -${(jumpPenalty * 100).toFixed(1)}%`);
     }
     
     // Pénalité répétitions
     if (voiceData.repetitions > 0) {
-        const repPenalty = Math.min(voiceData.repetitions * 0.1, 0.2);
+        const repPenalty = Math.min(voiceData.repetitions * 0.08, 0.15); // Légèrement réduit
         score -= repPenalty;
         console.log(`[Confidence] Pénalité répétitions: -${(repPenalty * 100).toFixed(1)}%`);
     }
     
-    // PHASE 4 - Bonus série courte sans problème
-    if (voiceData.count <= 15 && voiceData.gaps.length === 0 && voiceData.suspiciousJumps === 0) {
-        score += 0.1; // Bonus série propre
-        console.log(`[Confidence] Bonus série propre: +10%`);
+    // Bonus série longue et propre (appliqué à la fin)
+    if (voiceData.count >= 8 && voiceData.gaps.length === 0 && 
+        voiceData.suspiciousJumps === 0 && voiceData.repetitions === 0) {
+        const bonus = Math.min(0.05, 1.0 - score); // Max +5%, sans dépasser 1.0
+        score += bonus;
+        console.log(`[Confidence] Bonus série longue propre: +${(bonus * 100).toFixed(1)}%`);
     }
     
-    const finalScore = Math.max(0.1, Math.min(1.0, score));
+    const finalScore = Math.max(0.05, Math.min(1.0, score)); // Plancher à 5%
     console.log(`[Confidence] Score final: ${(finalScore * 100).toFixed(1)}%`);
     
     return finalScore;
