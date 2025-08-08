@@ -4736,13 +4736,7 @@ function updateSeriesDots() {
 function updateHeaderProgress() {
     // Déterminer le type de séance
     const isProgram = currentWorkoutSession.type === 'program' && currentWorkoutSession.program;
-    
-    // Mettre à jour le compteur de série (toujours affiché)
-    const setProgressEl = document.getElementById('setProgress');
-    if (setProgressEl) {
-        setProgressEl.textContent = `Série ${currentSet}/${currentWorkoutSession.totalSets}`;
-    }
-    
+        
     // Gestion conditionnelle exercice progress et séparateur
     const exerciseProgressEl = document.getElementById('exerciseProgress');
     const separatorEl = document.querySelector('.progress-separator');
@@ -7032,8 +7026,7 @@ async function loadNextProgramExercise() {
             
             // Mettre à jour l'interface
             document.getElementById('exerciseName').textContent = nextExercise.name;
-            document.getElementById('setProgress').textContent = 
-                `Exercice ${currentWorkoutSession.exerciseOrder}/${program.exercises.length} • Série ${currentSet}`;
+            // Série progress géré par updateSeriesDots()
             
             updateSeriesDots();
             await updateSetRecommendations();
@@ -11373,12 +11366,6 @@ function previousSet() {
     currentSet--;
     currentWorkoutSession.currentSetNumber = currentSet;
     updateSeriesDots();
-
-    // Mettre à jour l'interface
-    const setProgressEl = document.getElementById('setProgress');
-    if (setProgressEl) {
-        setProgressEl.textContent = `Série ${currentSet}/${currentWorkoutSession.totalSets}`;
-    }
     
     // Recharger les données de la série précédente si elle existe
     const previousSetData = currentWorkoutSession.completedSets.find(
