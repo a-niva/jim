@@ -6582,7 +6582,7 @@ span {
 /* RESPONSIVE SPÉCIFIQUE */
 @media (max-width: 768px) {
     .floating-workout-actions {
-        height: 35px; /* Augmenté pour mobile */
+        height: 45px; /* Augmenté pour mobile */
     }
     
     .floating-btn-execute {

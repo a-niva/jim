@@ -240,7 +240,7 @@ function closeModal() {
 }
 
 
-// === CALCUL ARC AVEC DEBUG COMPLET ===
+// === CALCUL ARC AVEC LOGIQUE INVERSÉE ===
 function calculateAdaptiveArc() {
     console.log('=== DEBUT calculateAdaptiveArc ===');
     
@@ -249,14 +249,21 @@ function calculateAdaptiveArc() {
     const path = svg?.querySelector('path');
     
     if (!container || !path) {
-        console.log('❌ Éléments manquants:', { container: !!container, path: !!path });
-        setTimeout(calculateAdaptiveArc, 50);
+        console.log('❌ Éléments manquants');
+        setTimeout(calculateAdaptiveArc, 100);
         return;
     }
     
     const isMobile = window.innerWidth <= 768;
     const containerWidth = container.offsetWidth;
     const containerHeight = container.offsetHeight;
+    
+    // PROTECTION DIVISION PAR ZÉRO
+    if (containerWidth === 0 || containerHeight === 0) {
+        console.log('❌ Container pas dimensionné, retry dans 200ms');
+        setTimeout(calculateAdaptiveArc, 200);
+        return;
+    }
     
     console.log('📱 Info écran:', { 
         isMobile, 
@@ -265,13 +272,13 @@ function calculateAdaptiveArc() {
         screenWidth: window.innerWidth 
     });
     
-    // PARAMÈTRES SELON L'ÉCRAN
+    // PARAMÈTRES CORRIGÉS
     let arcHeight, buttonSpacing;
     if (isMobile) {
-        arcHeight = 25; // Réduit pour mobile
-        buttonSpacing = 70; // Réduit pour mobile
+        arcHeight = 20; // Réduit pour laisser place aux boutons
+        buttonSpacing = 70;
     } else {
-        arcHeight = 30;
+        arcHeight = 25;
         buttonSpacing = 100;
     }
     
@@ -284,8 +291,7 @@ function calculateAdaptiveArc() {
     console.log('🎯 Arc calculé:', { 
         arcHeight, 
         arcHeightPercent: arcHeightPercent.toFixed(1), 
-        arcTopY: arcTopY.toFixed(1),
-        pathData 
+        arcTopY: arcTopY.toFixed(1)
     });
     
     // RÉCUPÉRATION BOUTONS
@@ -294,75 +300,56 @@ function calculateAdaptiveArc() {
     const endBtn = document.querySelector('.floating-btn-end');
     
     if (!executeBtn || !pauseBtn || !endBtn) {
-        console.log('❌ Boutons manquants:', { 
-            executeBtn: !!executeBtn, 
-            pauseBtn: !!pauseBtn, 
-            endBtn: !!endBtn 
-        });
+        console.log('❌ Boutons manquants');
         return;
     }
     
-    // FORMULE MATHÉMATIQUE CORRIGÉE POUR COURBE QUADRATIQUE
-    // Pour une courbe Bézier quadratique P₀(0,100), P₁(50,arcTopY), P₂(100,100)
+    // FORMULE MATHÉMATIQUE CORRIGÉE
     function getYOnCurve(xPercent) {
         const t = xPercent / 100;
         const y = (1-t)*(1-t)*100 + 2*(1-t)*t*arcTopY + t*t*100;
         return y;
     }
     
-    // POSITIONS DES BOUTONS
+    // POSITIONS DES BOUTONS - LOGIQUE CORRIGÉE
     const centerX = containerWidth / 2;
     const halfSpacing = buttonSpacing / 2;
     
-    // BOUTON CENTRAL (validation) - exactement au centre
+    // BOUTON CENTRAL - Au sommet de l'arc  
     const centerXPercent = 50;
-    const centerY = getYOnCurve(centerXPercent);
-    const centerBottomPx = containerHeight - (centerY / 100 * containerHeight) - 3; // -3px pour être dans l'arc
+    const centerYPercent = getYOnCurve(centerXPercent);
+    const centerBottomPx = containerHeight - (centerYPercent / 100 * containerHeight) - 2;
     
     executeBtn.style.left = '50%';
     executeBtn.style.transform = 'translateX(-50%)';
     executeBtn.style.bottom = `${centerBottomPx}px`;
     
-    console.log('✅ Bouton centre:', { 
-        xPercent: centerXPercent, 
-        yPercent: centerY.toFixed(1), 
-        bottomPx: centerBottomPx.toFixed(1) 
-    });
-    
     // BOUTON PAUSE (gauche)
     const pauseX = centerX - halfSpacing;
     const pauseXPercent = (pauseX / containerWidth) * 100;
-    const pauseY = getYOnCurve(pauseXPercent);
-    const pauseBottomPx = containerHeight - (pauseY / 100 * containerHeight) - 1; // -1px pour être dans l'arc
+    const pauseYPercent = getYOnCurve(pauseXPercent);
+    const pauseBottomPx = containerHeight - (pauseYPercent / 100 * containerHeight) - 2;
     
     pauseBtn.style.left = `${pauseX}px`;
     pauseBtn.style.transform = 'translateX(-50%)';
     pauseBtn.style.bottom = `${pauseBottomPx}px`;
     pauseBtn.style.right = 'auto';
     
-    console.log('⏸️ Bouton pause:', { 
-        xPx: pauseX.toFixed(1), 
-        xPercent: pauseXPercent.toFixed(1), 
-        yPercent: pauseY.toFixed(1), 
-        bottomPx: pauseBottomPx.toFixed(1) 
-    });
-    
     // BOUTON FIN (droite)
     const endX = centerX + halfSpacing;
     const endXPercent = (endX / containerWidth) * 100;
-    const endY = getYOnCurve(endXPercent);
-    const endBottomPx = containerHeight - (endY / 100 * containerHeight) - 1; // -1px pour être dans l'arc
+    const endYPercent = getYOnCurve(endXPercent);
+    const endBottomPx = containerHeight - (endYPercent / 100 * containerHeight) - 2;
     
     endBtn.style.left = `${endX}px`;
     endBtn.style.transform = 'translateX(-50%)';
     endBtn.style.bottom = `${endBottomPx}px`;
     endBtn.style.right = 'auto';
     
-    console.log('🔚 Bouton fin:', { 
-        xPx: endX.toFixed(1), 
-        xPercent: endXPercent.toFixed(1), 
-        yPercent: endY.toFixed(1), 
-        bottomPx: endBottomPx.toFixed(1) 
+    console.log('✅ Positions finales:', {
+        center: `bottom: ${centerBottomPx.toFixed(1)}px`,
+        pause: `bottom: ${pauseBottomPx.toFixed(1)}px`, 
+        end: `bottom: ${endBottomPx.toFixed(1)}px`
     });
     
     console.log('=== FIN calculateAdaptiveArc ===');
