@@ -6450,8 +6450,6 @@ span {
 
 
 
-
-
 /* ================================================= */
 /* BARRE FLOTTANTE - SECTION COMPLÈTE */
 /* ================================================= */
@@ -6480,7 +6478,7 @@ span {
     right: 0;
     width: 100%;
     height: 7vw; /* 50% du diamètre des boutons (14vw) */
-    max-height: 35px;
+    max-height: 35px; /* 50% de 70px */
     background: white;
     border-top: 2px solid;
     border-bottom: 2px solid;
@@ -6536,29 +6534,48 @@ span {
 
 /* États hover et active */
 .floating-btn:hover {
-    transform: translateY(calc(-50% - 3px));
     box-shadow: 0 1.5vw 4vw rgba(0, 0, 0, 0.25),
                 0 0.75vw 1.5vw rgba(0, 0, 0, 0.15);
     border-color: rgba(0, 0, 0, 0.2);
 }
 
+.floating-btn-pause:hover,
+.floating-btn-end:hover {
+    transform: translateY(calc(-50% - 3px)) !important;
+}
+
 .floating-btn:active {
-    transform: translateY(-50%);
     transition: all 0.1s;
+}
+
+.floating-btn-pause:active,
+.floating-btn-end:active {
+    transform: translateY(-50%) !important;
 }
 
 /* Hover spécifique pour le bouton central */
 .floating-btn-execute:hover {
-    transform: translateX(-50%) translateY(calc(-50% - 3px));
+    transform: translateX(-50%) translateY(calc(-50% - 3px)) !important;
 }
 
 .floating-btn-execute:active {
-    transform: translateX(-50%) translateY(-50%);
+    transform: translateX(-50%) translateY(-50%) !important;
 }
 
 /* ================================================= */
 /* TAILLES DES ICÔNES */
+/* NOTE: Tous les boutons ont maintenant la MÊME taille */
 /* ================================================= */
+
+/* Tous les boutons ont exactement la même taille */
+.floating-btn-pause,
+.floating-btn-execute, 
+.floating-btn-end {
+    width: 14vw !important;
+    height: 14vw !important;
+    max-width: 70px !important;
+    max-height: 70px !important;
+}
 
 .floating-btn i {
     font-size: 4vw;
@@ -6600,7 +6617,7 @@ span {
 
 .floating-btn-execute {
     left: 50%;
-    transform: translateX(-50%) translateY(-50%);
+    /* Transform géré dans la section base commune */
 }
 
 .floating-btn-end {
@@ -6608,25 +6625,50 @@ span {
     left: auto;
 }
 
-/* Fix hover pour le bouton central */
-.floating-btn-execute:hover {
-    transform: translateX(-50%) translateY(calc(-50% - 3px));
-}
-
-.floating-btn-execute:active {
-    transform: translateX(-50%) translateY(-50%);
-}
-
 /* ================================================= */
 /* ÉTATS SPÉCIAUX EXECUTESETBTN */
 /* ================================================= */
 
+/* Force l'alignement du bouton central */
+#executeSetBtn {
+    top: 50% !important;
+    transform: translateX(-50%) translateY(-50%) !important;
+}
+
+/* Override les styles de .btn-success pour executeSetBtn */
+#executeSetBtn.btn-success {
+    background: white !important; /* Force le fond blanc */
+    color: inherit !important; /* Empêche le texte blanc */
+    top: 50% !important; /* Force l'alignement vertical */
+    transform: translateX(-50%) translateY(-50%) !important; /* Maintient le centrage */
+    width: 14vw !important; /* Force la même taille */
+    height: 14vw !important;
+    max-width: 70px !important;
+    max-height: 70px !important;
+    padding: 0 !important; /* Retire tout padding hérité */
+    min-height: unset !important; /* Annule min-height hérité */
+}
+
 #executeSetBtn.ready {
     animation: pulse-floating-subtle 3s infinite;
+    background: white !important; /* Force le fond blanc */
+}
+
+#executeSetBtn.btn-danger {
+    background: white !important; /* Force le fond blanc même en danger */
 }
 
 #executeSetBtn.btn-danger i {
     color: #ef4444;
+}
+
+/* S'assurer que l'icône reste centrée */
+#executeSetBtn i {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    height: 100% !important;
 }
 
 @keyframes pulse-floating-subtle {
@@ -6650,7 +6692,7 @@ span {
 
 @media (min-width: 1200px) {
     .floating-btn {
-        border-width: 5px;
+        border-width: 4px;
         box-shadow: 0 12px 36px rgba(0, 0, 0, 0.2),
                     0 6px 12px rgba(0, 0, 0, 0.1);
     }
@@ -6894,7 +6936,6 @@ span {
 /* ================================================= */
 /* FIN SECTION BARRE FLOTTANTE */
 /* ================================================= */
-
 
 
 
