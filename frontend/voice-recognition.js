@@ -1186,6 +1186,12 @@ window.validateVoiceCount = function() {
         window.voiceState = voiceState;
         
         confirmFinalCount(count);
+        // Déclencher automatiquement executeSet après validation manuelle
+        setTimeout(() => {
+            if (typeof window.executeSet === 'function') {
+                window.executeSet();
+            }
+        }, 100);
     }, 300);
 };
 
