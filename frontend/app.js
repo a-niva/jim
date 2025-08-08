@@ -8803,8 +8803,7 @@ async function loadAvailableExercises() {
                             <circle cx="11" cy="11" r="8"/>
                             <path d="m21 21-4.35-4.35"/>
                         </svg>
-                        <input type="text" id="exerciseSearch" placeholder="Rechercher un exercice..." 
-                            oninput="searchExercises(this.value)">
+                        <input type="text" id="exerciseSearch" class="free-exercise-search" placeholder="Rechercher un exercice..." oninput="searchExercises(this.value)">
                     </div>
                     
                     <!-- Onglets de filtrage par muscle -->

@@ -4440,6 +4440,25 @@ span {
     box-shadow: 0 0 0 3px rgba(59,130,246,.1);
 }
 
+/* Classe spécifique pour recherche exercices séance libre */
+.free-exercise-search {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    color: var(--text) !important;
+    font-size: var(--font-base) !important;
+    width: 100% !important;
+    padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) calc(var(--spacing-md)*3) !important;
+}
+
+@media (max-width: 768px) {
+    .free-exercise-search {
+        font-size: var(--font-base) !important;
+        min-height: 44px !important;
+        padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) calc(var(--spacing-sm)*2.5) !important;
+    }
+}
+
 .muscle-tabs {
     display: flex;
     justify-content: center;
@@ -6526,12 +6545,17 @@ input:checked+:before {
             --level-5-color: #ef4444;
             --header-height: 35px;
     }
+input {
+    font-size: var(--font-xl);
+    min-height: 48px;
+    width: 100%;
+}
 
-    input {
-            font-size: var(--font-xl);
-            min-height: 48px;
-            width: 100%;
-    }
+.search-container input {
+    font-size: var(--font-base) !important;
+    min-height: 44px !important;
+    padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) calc(var(--spacing-sm) * 2.5) !important;
+}
 
     select {
             font-size: 16px;
