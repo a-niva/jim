@@ -317,7 +317,7 @@ function transitionTo(state) {
     // Contrôle de l'affichage des boutons flottants avec animation
     const floatingActions = document.getElementById('floatingWorkoutActions');
 
-    switch(newState) {
+    switch(state) {
         case WorkoutStates.IDLE:
             // Masquer les boutons en sélection d'exercice
             if (floatingActions) {
