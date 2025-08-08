@@ -6579,31 +6579,23 @@ span {
     color: #ef4444;
 }
 
-/* RESPONSIVE DESKTOP */
-@media (min-width: 769px) {
+/* RESPONSIVE SPÉCIFIQUE */
+@media (max-width: 768px) {
     .floating-workout-actions {
-        height: 82px; /* Plus haut pour accommoder le bouton 72px */
+        height: 35px; /* Augmenté pour mobile */
+    }
+    
+    .floating-btn-execute {
+        width: 32px; /* Augmenté pour visibilité */
+        height: 32px;
+        font-size: 1rem;
     }
     
     .floating-btn-pause,
     .floating-btn-end {
-        width: 36px;
-        height: 36px;
-    }
-    
-    .floating-btn-pause i,
-    .floating-btn-end i {
-        font-size: 1rem;
-    }
-    
-    .floating-btn-execute {
-        width: 72px;
-        height: 72px;
-        font-size: 29px; /* 40% de 72px pour l'emoji */
-    }
-    
-    .floating-btn-execute i {
-        font-size: 2rem; /* Pour les icônes FontAwesome */
+        width: 30px;
+        height: 30px;
+        font-size: 0.8rem;
     }
 }
 

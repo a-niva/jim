@@ -240,14 +240,16 @@ function closeModal() {
 }
 
 
-// === CALCUL ARC SIMPLIFIÉ ET PRÉCIS ===
-// === CALCUL ARC AVEC POSITIONNEMENT GÉOMÉTRIQUE CORRECT ===
+// === CALCUL ARC AVEC DEBUG COMPLET ===
 function calculateAdaptiveArc() {
+    console.log('=== DEBUT calculateAdaptiveArc ===');
+    
     const container = document.querySelector('.floating-workout-actions');
     const svg = container?.querySelector('svg');
     const path = svg?.querySelector('path');
     
     if (!container || !path) {
+        console.log('❌ Éléments manquants:', { container: !!container, path: !!path });
         setTimeout(calculateAdaptiveArc, 50);
         return;
     }
@@ -256,14 +258,21 @@ function calculateAdaptiveArc() {
     const containerWidth = container.offsetWidth;
     const containerHeight = container.offsetHeight;
     
+    console.log('📱 Info écran:', { 
+        isMobile, 
+        containerWidth, 
+        containerHeight,
+        screenWidth: window.innerWidth 
+    });
+    
     // PARAMÈTRES SELON L'ÉCRAN
     let arcHeight, buttonSpacing;
     if (isMobile) {
-        arcHeight = 30;
-        buttonSpacing = 80;
+        arcHeight = 25; // Réduit pour mobile
+        buttonSpacing = 70; // Réduit pour mobile
     } else {
-        arcHeight = 35;
-        buttonSpacing = 120;
+        arcHeight = 30;
+        buttonSpacing = 100;
     }
     
     // CALCUL ARC SVG
@@ -272,69 +281,95 @@ function calculateAdaptiveArc() {
     const pathData = `M 0,100 Q 50,${arcTopY} 100,100 L 100,100 L 0,100 Z`;
     path.setAttribute('d', pathData);
     
-    // POINTS DE CONTRÔLE DE L'ARC
-    // P₀ = (0, 100)     - Point de départ (bas gauche)
-    // P₁ = (50, arcTopY) - Point de contrôle (sommet centre)  
-    // P₂ = (100, 100)   - Point d'arrivée (bas droite)
-
-    // FORMULE POUR HAUTEUR SUR LA COURBE
-    function getHeightOnCurve(xPercent) {
-        const t = xPercent / 100;
-        return 100 + (arcTopY - 100) * 4 * t * (1 - t);
-    }
+    console.log('🎯 Arc calculé:', { 
+        arcHeight, 
+        arcHeightPercent: arcHeightPercent.toFixed(1), 
+        arcTopY: arcTopY.toFixed(1),
+        pathData 
+    });
     
-    // CALCUL POSITIONS DES BOUTONS SUR LA COURBE
+    // RÉCUPÉRATION BOUTONS
     const executeBtn = document.getElementById('executeSetBtn');
     const pauseBtn = document.querySelector('.floating-btn-pause');
     const endBtn = document.querySelector('.floating-btn-end');
     
-    if (executeBtn && pauseBtn && endBtn) {
-        // BOUTON CENTRAL (50% de largeur) - Au sommet de la courbe
-        const centerXPercent = 50;
-        const centerHeightPercent = getHeightOnCurve(centerXPercent);
-        const centerHeightPx = (centerHeightPercent / 100) * containerHeight;
-        
-        executeBtn.style.left = '50%';
-        executeBtn.style.transform = 'translateX(-50%)';
-        executeBtn.style.bottom = `${containerHeight - centerHeightPx + 5}px`; // +5px pour être légèrement dans l'arc
-        
-        // CALCUL POSITIONS LATÉRALES SELON L'ESPACEMENT VOULU
-        const halfSpacing = buttonSpacing / 2;
-        const centerXPx = containerWidth / 2;
-        
-        // Position pause (à gauche)
-        const pauseXPx = centerXPx - halfSpacing;
-        const pauseXPercent = (pauseXPx / containerWidth) * 100;
-        const pauseHeightPercent = getHeightOnCurve(pauseXPercent);
-        const pauseHeightPx = (pauseHeightPercent / 100) * containerHeight;
-        
-        pauseBtn.style.left = `${pauseXPx}px`;
-        pauseBtn.style.transform = 'translateX(-50%)';
-        pauseBtn.style.bottom = `${containerHeight - pauseHeightPx + 8}px`; // +8px pour être dans l'arc
-        
-        // Position fin (à droite)
-        const endXPx = centerXPx + halfSpacing;
-        const endXPercent = (endXPx / containerWidth) * 100;
-        const endHeightPercent = getHeightOnCurve(endXPercent);
-        const endHeightPx = (endHeightPercent / 100) * containerHeight;
-        
-        endBtn.style.left = `${endXPx}px`;
-        endBtn.style.transform = 'translateX(-50%)';
-        endBtn.style.bottom = `${containerHeight - endHeightPx + 8}px`; // +8px pour être dans l'arc
-        
-        // Supprime les propriétés right qui peuvent interférer
-        endBtn.style.right = 'auto';
-        pauseBtn.style.right = 'auto';
+    if (!executeBtn || !pauseBtn || !endBtn) {
+        console.log('❌ Boutons manquants:', { 
+            executeBtn: !!executeBtn, 
+            pauseBtn: !!pauseBtn, 
+            endBtn: !!endBtn 
+        });
+        return;
     }
     
-    console.log('Arc mathématique calculé:', {
-        mode: isMobile ? 'mobile' : 'desktop',
-        containerWidth,
-        arcHeight,
-        buttonSpacing,
-        arcTopY: arcTopY.toFixed(1)
+    // FORMULE MATHÉMATIQUE CORRIGÉE POUR COURBE QUADRATIQUE
+    // Pour une courbe Bézier quadratique P₀(0,100), P₁(50,arcTopY), P₂(100,100)
+    function getYOnCurve(xPercent) {
+        const t = xPercent / 100;
+        const y = (1-t)*(1-t)*100 + 2*(1-t)*t*arcTopY + t*t*100;
+        return y;
+    }
+    
+    // POSITIONS DES BOUTONS
+    const centerX = containerWidth / 2;
+    const halfSpacing = buttonSpacing / 2;
+    
+    // BOUTON CENTRAL (validation) - exactement au centre
+    const centerXPercent = 50;
+    const centerY = getYOnCurve(centerXPercent);
+    const centerBottomPx = containerHeight - (centerY / 100 * containerHeight) - 3; // -3px pour être dans l'arc
+    
+    executeBtn.style.left = '50%';
+    executeBtn.style.transform = 'translateX(-50%)';
+    executeBtn.style.bottom = `${centerBottomPx}px`;
+    
+    console.log('✅ Bouton centre:', { 
+        xPercent: centerXPercent, 
+        yPercent: centerY.toFixed(1), 
+        bottomPx: centerBottomPx.toFixed(1) 
     });
+    
+    // BOUTON PAUSE (gauche)
+    const pauseX = centerX - halfSpacing;
+    const pauseXPercent = (pauseX / containerWidth) * 100;
+    const pauseY = getYOnCurve(pauseXPercent);
+    const pauseBottomPx = containerHeight - (pauseY / 100 * containerHeight) - 1; // -1px pour être dans l'arc
+    
+    pauseBtn.style.left = `${pauseX}px`;
+    pauseBtn.style.transform = 'translateX(-50%)';
+    pauseBtn.style.bottom = `${pauseBottomPx}px`;
+    pauseBtn.style.right = 'auto';
+    
+    console.log('⏸️ Bouton pause:', { 
+        xPx: pauseX.toFixed(1), 
+        xPercent: pauseXPercent.toFixed(1), 
+        yPercent: pauseY.toFixed(1), 
+        bottomPx: pauseBottomPx.toFixed(1) 
+    });
+    
+    // BOUTON FIN (droite)
+    const endX = centerX + halfSpacing;
+    const endXPercent = (endX / containerWidth) * 100;
+    const endY = getYOnCurve(endXPercent);
+    const endBottomPx = containerHeight - (endY / 100 * containerHeight) - 1; // -1px pour être dans l'arc
+    
+    endBtn.style.left = `${endX}px`;
+    endBtn.style.transform = 'translateX(-50%)';
+    endBtn.style.bottom = `${endBottomPx}px`;
+    endBtn.style.right = 'auto';
+    
+    console.log('🔚 Bouton fin:', { 
+        xPx: endX.toFixed(1), 
+        xPercent: endXPercent.toFixed(1), 
+        yPercent: endY.toFixed(1), 
+        bottomPx: endBottomPx.toFixed(1) 
+    });
+    
+    console.log('=== FIN calculateAdaptiveArc ===');
 }
+
+
+
 
 // INITIALISATION IMMÉDIATE ET ROBUSTE
 function initFloatingActions() {
