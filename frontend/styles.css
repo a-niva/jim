@@ -4440,6 +4440,23 @@ span {
     box-shadow: 0 0 0 3px rgba(59,130,246,.1);
 }
 
+.free-workout-search {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    color: var(--text) !important;
+    font-size: var(--font-base) !important;
+    padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) calc(var(--spacing-md)*3) !important;
+}
+
+@media (max-width: 768px) {
+    .free-workout-search {
+        font-size: var(--font-base) !important;
+        min-height: 44px !important;
+        padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) calc(var(--spacing-sm)*2.5) !important;
+    }
+}
+
 /* Classe spécifique pour recherche exercices séance libre */
 .free-exercise-search {
     background: var(--bg-card) !important;
@@ -4461,12 +4478,19 @@ span {
 
 .muscle-tabs {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
-    gap: var(--spacing-xs);
+    gap: var(--spacing-sm);
     padding: var(--spacing-sm) 0;
     margin: 0;
     width: 100%;
+}
+
+.muscle-tabs-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--spacing-xs);
     flex-wrap: wrap;
 }
 

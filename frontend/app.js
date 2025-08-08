@@ -8803,18 +8803,20 @@ async function loadAvailableExercises() {
                             <circle cx="11" cy="11" r="8"/>
                             <path d="m21 21-4.35-4.35"/>
                         </svg>
-                        <input type="text" id="exerciseSearch" class="free-exercise-search" placeholder="Rechercher un exercice..." oninput="searchExercises(this.value)">
+                        <input type="text" id="exerciseSearch" class="free-workout-search" placeholder="Rechercher un exercice..." oninput="searchExercises(this.value)">
                     </div>
                     
                     <!-- Onglets de filtrage par muscle -->
                     <div class="muscle-tabs">
-                        <button class="muscle-tab active" data-muscle="all" onclick="filterByMuscleGroup('all')" title="Tous">
-                            <span class="tab-icon">♾️</span>
-                        </button>
-                        <button class="muscle-tab" data-muscle="favoris" onclick="filterByMuscleGroup('favoris')" 
-                                style="${userFavorites.length === 0 ? 'display: none;' : ''}" title="Favoris (${exercisesByMuscle.favoris.length})">
-                            <span class="tab-icon">⭐</span>
-                        </button>
+                        <div class="muscle-tabs-row">
+                            <button class="muscle-tab active" data-muscle="all" onclick="filterByMuscleGroup('all')" title="Tous">
+                                <span class="tab-icon">♾️</span>
+                            </button>
+                            <button class="muscle-tab" data-muscle="favoris" onclick="filterByMuscleGroup('favoris')" title="Favoris">
+                                <span class="tab-icon">⭐</span>
+                            </button>
+                        </div>
+                        <div class="muscle-tabs-row">
                         ${Object.entries(exercisesByMuscle)
                             .filter(([muscle, exercises]) => muscle !== 'favoris' && exercises.length > 0)
                             .map(([muscle, exercises]) => `

@@ -739,7 +739,9 @@ function handleEndCommand() {
     window.voiceState = voiceState;
     
     // Décision basée sur confiance ET gaps
-    if (finalConfidence >= 0.8 && voiceData.gaps.length === 0) {
+    // Tolérer 1 gap si confiance >= 85%, sinon 0 gap
+    const acceptableGaps = finalConfidence >= 0.85 ? 1 : 0;
+    if (finalConfidence >= 0.8 && voiceData.gaps.length <= acceptableGaps) {
         console.log('[Voice] Confiance suffisante (>= 0.8) et pas de gaps - Validation automatique');
         
         // Validation automatique immédiate
