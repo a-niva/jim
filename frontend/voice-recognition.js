@@ -761,7 +761,6 @@ function handleEndCommand() {
         const executeBtn = document.getElementById('executeSetBtn');
         if (executeBtn) {
             executeBtn.style.display = 'block';
-            executeBtn.textContent = '✅ Valider la série';
             executeBtn.classList.add('btn-success');
         }
     }
@@ -1576,36 +1575,7 @@ function confirmFinalCount(finalCount) {
     // Exposer globalement pour executeSet
     window.voiceData = voiceData;
     window.voiceState = voiceState;
-    // PHASE 4 - Interpolation gaps automatique
-    if (voiceData.gaps.length > 0) {
-        console.log(`[Gaps] ${voiceData.gaps.length} gaps détectés, démarrage interpolation`);
-        
-        // Lancer interpolation en arrière-plan
-        interpolateGapsWithAnimation()
-            .then(accepted => {
-                if (accepted) {
-                    console.log('[Gaps] Interpolation acceptée, finalisation données');
-                    // Recalculer confiance après interpolation
-                    voiceData.confidence = calculateConfidence();
-                    
-                    // Continuer avec validation normale
-                    if (VOICE_FEATURES.auto_validation && voiceData.count > 0) {
-                        scheduleAutoValidation();
-                    } else {
-                        window.voiceData = voiceData;
-                    }
-                } else {
-                    console.log('[Gaps] Interpolation rejetée, données rollback');
-                    window.voiceData = voiceData;
-                }
-            })
-            .catch(error => {
-                console.error('[Gaps] Erreur interpolation:', error);
-                window.voiceData = voiceData;
-            });
-        
-        return; // Sortir ici, interpolation gère la suite
-    }
+
     // NOUVEAU - Déclencher executeSet automatiquement
     if (VOICE_FEATURES.auto_validation && typeof window.executeSet === 'function') {
         console.log('[Voice] Déclenchement automatique executeSet()');
@@ -1617,18 +1587,6 @@ function confirmFinalCount(finalCount) {
             // Reset état après exécution
             setTimeout(() => {
                 resetVoiceState();
-            }, 200);
-        }, 50);
-    }
-    
-    // IMPORTANT : Déclencher executeSet après confirmation
-    if (typeof window.executeSet === 'function') {
-        setTimeout(() => {
-            window.executeSet();
-            
-            // Reset état après exécution
-            setTimeout(() => {
-                executionInProgress = false;
             }, 200);
         }, 50);
     }
