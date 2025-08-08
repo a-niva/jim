@@ -6442,13 +6442,13 @@ span {
     transform: scale(1.2);
 }
 
-/* CHAPEAU ARC DE CERCLE ADAPTATIF */
+/* CHAPEAU ARC DE CERCLE CALCULATOIRE */
 .floating-workout-actions {
     position: fixed;
     bottom: var(--bottom-nav-height);
     left: 0;
     right: 0;
-    height: 40px;
+    height: 60px;
     z-index: calc(var(--z-nav) + 10);
     pointer-events: none;
 }
@@ -6458,7 +6458,7 @@ span {
     bottom: 0;
     left: 0;
     right: 0;
-    height: 40px;
+    height: 100%;
 }
 
 .floating-workout-arc svg {
@@ -6469,19 +6469,17 @@ span {
 
 .floating-workout-actions-content {
     position: absolute;
-    bottom: 8px;
+    bottom: 0;
     left: 50%;
     transform: translateX(-50%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 24px;
+    width: 180px;
+    height: 100%;
     pointer-events: auto;
 }
 
+/* BOUTONS AVEC TAILLES DIFFÉRENCIÉES */
 .floating-btn {
-    width: 28px;
-    height: 28px;
+    position: absolute;
     border-radius: 50%;
     background: white;
     border: 2px solid rgba(0,0,0,0.12);
@@ -6489,7 +6487,6 @@ span {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.8rem;
     box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     transition: all 0.2s ease;
     touch-action: manipulation;
@@ -6506,12 +6503,40 @@ span {
     transition: all 0.1s;
 }
 
+/* BOUTON PAUSE - 30% plus grand, positionné plus bas */
+.floating-btn-pause {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+    left: 20px;
+    bottom: 8px;
+}
+
 .floating-btn-pause i {
     color: #3b82f6;
 }
 
+/* BOUTON VALIDATION - 30% plus petit, positionné plus haut */
+.floating-btn-execute {
+    width: 20px;
+    height: 20px;
+    font-size: 0.7rem;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 16px;
+}
+
 .floating-btn-execute i {
     color: #10b981;
+}
+
+/* BOUTON FIN - 30% plus grand, positionné plus bas */
+.floating-btn-end {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+    right: 20px;
+    bottom: 8px;
 }
 
 .floating-btn-end i {
@@ -6535,6 +6560,48 @@ span {
     50% { 
         box-shadow: 0 3px 8px rgba(16,185,129,0.4);
         border-color: rgba(16,185,129,0.5);
+    }
+}
+
+/* RESPONSIVE ADAPTATIF */
+@media (max-width: 768px) {
+    .floating-workout-actions {
+        height: 50px;
+    }
+    
+    .floating-workout-actions-content {
+        width: 160px;
+    }
+    
+    .floating-btn-pause,
+    .floating-btn-end {
+        left: 15px;
+    }
+    
+    .floating-btn-end {
+        right: 15px;
+        left: auto;
+    }
+}
+
+@media (min-width: 1024px) {
+    .floating-workout-actions {
+        height: 70px;
+        max-width: 600px;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+    
+    .floating-workout-actions-content {
+        width: 200px;
+    }
+    
+    .floating-btn-pause {
+        left: 25px;
+    }
+    
+    .floating-btn-end {
+        right: 25px;
     }
 }
 

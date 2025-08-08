@@ -528,11 +528,11 @@
             <!-- NOUVEAUX BOUTONS FLOTTANTS -->
             <div class="floating-workout-actions" id="floatingWorkoutActions">
                 <div class="floating-workout-arc">
-                    <svg viewBox="0 0 100 10" preserveAspectRatio="none">
-                        <path d="M 0,10 Q 50,0 100,10 L 100,10 L 0,10 Z" 
+                    <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+                        <path d="M 0,100 Q 50,20 100,100 L 100,100 L 0,100 Z" 
                             fill="white" 
                             stroke="rgba(0,0,0,0.1)" 
-                            stroke-width="0.1"/>
+                            stroke-width="0.2"/>
                     </svg>
                 </div>
                 <div class="floating-workout-actions-content">
@@ -547,6 +547,13 @@
                     </button>
                 </div>
             </div>
+
+            <script>
+            // Initialiser l'arc adaptatif dès que possible
+            document.addEventListener('DOMContentLoaded', () => {
+                setTimeout(calculateAdaptiveArc, 100);
+            });
+            </script>
 
             <!-- MODAL DE CONFIRMATION FIN -->
             <div class="workout-end-modal" id="workoutEndModal" style="display: none;">

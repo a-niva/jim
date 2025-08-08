@@ -239,6 +239,39 @@ function closeModal() {
     OverlayManager.hide('modal');
 }
 
+// === CALCUL ARC ADAPTATIF ===
+function calculateAdaptiveArc() {
+    const container = document.querySelector('.floating-workout-actions');
+    if (!container) return;
+    
+    const width = container.offsetWidth;
+    const height = container.offsetHeight;
+    
+    // Calcul du rayon pour que l'arc contienne les boutons
+    // Formule: R = (W²/8H) + (H/2)
+    const arcHeight = Math.min(height * 0.8, width * 0.15);
+    const radius = (width * width) / (8 * arcHeight) + (arcHeight / 2);
+    
+    // Mise à jour du SVG path
+    const svg = container.querySelector('svg');
+    const path = svg?.querySelector('path');
+    
+    if (path) {
+        // Calcul des points de l'arc basé sur le rayon
+        const centerX = 50;
+        const startY = 100;
+        const arcTopY = Math.max(0, 100 - (arcHeight / height) * 100);
+        
+        const pathData = `M 0,${startY} Q ${centerX},${arcTopY} 100,${startY} L 100,100 L 0,100 Z`;
+        path.setAttribute('d', pathData);
+    }
+}
+
+// Initialiser au chargement et redimensionnement
+window.addEventListener('resize', calculateAdaptiveArc);
+window.addEventListener('load', calculateAdaptiveArc);
+window.calculateAdaptiveArc = calculateAdaptiveArc;
+
 
 
 
