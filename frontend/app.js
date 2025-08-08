@@ -12985,103 +12985,62 @@ function showPlanningFromProgram() {
 
 // === CALCUL ARC EN POURCENTAGES PURS ===
 function calculateAdaptiveArc() {
-    console.log('=== DEBUT calculateAdaptiveArc POURCENTAGES ===');
-    
     const container = document.querySelector('.floating-workout-actions');
-    const svg = container?.querySelector('svg');
-    const path = svg?.querySelector('path');
-    
-    if (!container || !path) {
-        setTimeout(calculateAdaptiveArc, 100);
-        return;
-    }
-    
-    const containerWidth = container.offsetWidth;
-    const containerHeight = container.offsetHeight;
-    
-    if (containerWidth === 0 || containerHeight === 0) {
-        setTimeout(calculateAdaptiveArc, 200);
-        return;
-    }
-    
-    console.log('📏 Dimensions:', { containerWidth, containerHeight });
+    if (!container) return;
     
     const isMobile = window.innerWidth <= 768;
-    const buttonSpacing = isMobile ? 60 : 80;
     
-    // PARAMÈTRES EN POURCENTAGES PURS
-    const arcHeightPercent = 55; // L'arc monte à 55% depuis le bas (45% depuis le haut)
-    const arcTopY = 100 - arcHeightPercent; // 45% depuis le haut en coordonnées SVG
+    // Récupérer les éléments
+    const pauseBtn = container.querySelector('.floating-btn-pause');
+    const executeBtn = container.querySelector('.floating-btn-execute');
+    const endBtn = container.querySelector('.floating-btn-end');
+    const svgPath = container.querySelector('svg path');
     
-    // CALCUL ARC SVG
-    const pathData = `M 0,100 Q 50,${arcTopY} 100,100 L 100,100 L 0,100 Z`;
-    path.setAttribute('d', pathData);
+    if (!pauseBtn || !executeBtn || !endBtn || !svgPath) return;
     
-    console.log('🎯 Arc:', { 
-        arcHeightPercent, 
-        arcTopY, 
-        pathData 
-    });
+    // Dimensions selon le mode
+    const buttonSizeLateral = isMobile ? 26 : 30;
+    const buttonSizeValidation = isMobile ? 52 : 60; // Double
+    const containerHeight = container.offsetHeight;
     
-    // RÉCUPÉRATION BOUTONS
-    const executeBtn = document.getElementById('executeSetBtn');
-    const pauseBtn = document.querySelector('.floating-btn-pause');
-    const endBtn = document.querySelector('.floating-btn-end');
+    // L'arc doit contenir le grand bouton central + marge
+    // Pour un bouton de 52px, l'arc doit monter à ~55px minimum
+    const requiredArcHeight = buttonSizeValidation + 10;
     
-    if (!executeBtn || !pauseBtn || !endBtn) {
-        console.log('❌ Boutons manquants');
-        return;
-    }
+    // Calcul du point de contrôle de l'arc en coordonnées SVG
+    // Plus arcTopY est petit, plus l'arc monte haut
+    const arcTopY = Math.max(10, 100 - (requiredArcHeight / containerHeight) * 150);
     
-    // FONCTION POUR CALCULER LA POSITION SUR LA COURBE DE BÉZIER
-    function getYPercentOnCurve(xPercent) {
-        // Courbe quadratique Bézier: P₀(0,100), P₁(50,arcTopY), P₂(100,100)
-        const t = xPercent / 100;
-        const yPercent = (1-t)*(1-t)*100 + 2*(1-t)*t*arcTopY + t*t*100;
-        return yPercent;
-    }
+    // Mise à jour du path SVG avec un arc qui englobe les boutons
+    svgPath.setAttribute('d', `M 0,100 Q 50,${arcTopY} 100,100 L 100,100 L 0,100 Z`);
     
-    // POSITIONNEMENT EN POURCENTAGES PURS
-    const centerX = containerWidth / 2;
-    const halfSpacing = buttonSpacing / 2;
+    // Espacement horizontal adapté au grand bouton central
+    const buttonSpacing = isMobile ? 90 : 110;
     
-    // BOUTON CENTRAL (50% de largeur)
-    const centerXPercent = 50;
-    const centerYPercent = getYPercentOnCurve(centerXPercent);
-    const centerBottomPercent = 100 - centerYPercent; // Conversion en bottom
-    
+    // Positionnement horizontal
+    pauseBtn.style.left = `calc(50% - ${buttonSpacing/2}px)`;
     executeBtn.style.left = '50%';
-    executeBtn.style.bottom = `${centerBottomPercent}%`;
+    endBtn.style.left = `calc(50% + ${buttonSpacing/2}px)`;
     
-    // BOUTON PAUSE (gauche)
-    const pauseX = centerX - halfSpacing;
-    const pauseXPercent = (pauseX / containerWidth) * 100;
-    const pauseYPercent = getYPercentOnCurve(pauseXPercent);
-    const pauseBottomPercent = 100 - pauseYPercent;
+    // Positionnement vertical
+    // Les petits boutons touchent le bas
+    pauseBtn.style.bottom = '8px';
+    endBtn.style.bottom = '8px';
     
-    pauseBtn.style.left = `${pauseXPercent}%`;
-    pauseBtn.style.bottom = `${pauseBottomPercent}%`;
-    pauseBtn.style.right = 'auto';
-    
-    // BOUTON FIN (droite)
-    const endX = centerX + halfSpacing;
-    const endXPercent = (endX / containerWidth) * 100;
-    const endYPercent = getYPercentOnCurve(endXPercent);
-    const endBottomPercent = 100 - endYPercent;
-    
-    endBtn.style.left = `${endXPercent}%`;
-    endBtn.style.bottom = `${endBottomPercent}%`;
-    endBtn.style.right = 'auto';
-    
-    console.log('✅ Positions POURCENTAGES:', {
-        arc: `centre à ${centerYPercent.toFixed(1)}% depuis le haut`,
-        center: `x:50%, bottom:${centerBottomPercent.toFixed(1)}%`,
-        pause: `x:${pauseXPercent.toFixed(1)}%, bottom:${pauseBottomPercent.toFixed(1)}%`,
-        end: `x:${endXPercent.toFixed(1)}%, bottom:${endBottomPercent.toFixed(1)}%`
-    });
-    
-    console.log('=== FIN calculateAdaptiveArc POURCENTAGES ===');
+    // Le grand bouton de validation est centré verticalement dans l'arc
+    // Il doit être plus bas que le sommet de l'arc mais dans la zone blanche
+    const validateBottomPosition = (containerHeight - buttonSizeValidation) / 2;
+    executeBtn.style.bottom = `${Math.max(5, validateBottomPosition)}px`;
 }
+
+// Appels d'initialisation
+document.addEventListener('DOMContentLoaded', calculateAdaptiveArc);
+window.addEventListener('resize', calculateAdaptiveArc);
+window.addEventListener('orientationchange', () => {
+    setTimeout(calculateAdaptiveArc, 100);
+});
+
+
 
 function showEndWorkoutModal() {
     const modal = document.getElementById('workoutEndModal');
