@@ -4218,7 +4218,16 @@ function renderMLToggle(exerciseId) {
 
 function toggleVoiceRecognition() {
     console.log('[Voice] Toggle appelé, état actuel:', window.voiceRecognitionActive?.());
-    
+        
+    // Vérifier que les éléments DOM existent
+    const voiceBtn = document.getElementById('voiceStatusBtn');
+    const voiceIcon = document.getElementById('voiceStatusIcon');
+    console.log('[Voice] Elements DOM:', { 
+        btn: !!voiceBtn, 
+        icon: !!voiceIcon,
+        iconClasses: voiceIcon?.className
+    });
+
     if (!window.startVoiceRecognition || !window.stopVoiceRecognition) {
         console.error('[Voice] Fonctions de reconnaissance non disponibles');
         showToast('Reconnaissance vocale non disponible', 'error');
@@ -4241,9 +4250,10 @@ function toggleVoiceRecognition() {
         
     } else {
         // DÉMARRAGE - Vérifier état séance
-        if (workoutState.current !== WorkoutStates.EXECUTING) {
+        if (workoutState.current !== WorkoutStates.READY && 
+            workoutState.current !== WorkoutStates.EXECUTING) {
             console.log('[Voice] État séance incorrect:', workoutState.current);
-            showToast('Démarrez une série pour activer le comptage vocal', 'warning');
+            showToast('Sélectionnez un exercice pour activer le comptage vocal', 'warning');
             return;
         }
         
