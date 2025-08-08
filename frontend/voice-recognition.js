@@ -718,24 +718,51 @@ let executionInProgress = false; // Flag pour éviter double exécution
  */
 function handleEndCommand() {
     if (executionInProgress) {
-        console.log('[Voice] Exécution déjà en cours, commande ignorée');
+        console.log('[Voice] Fin déjà en cours, ignorer');
         return;
     }
     
     executionInProgress = true;
     console.log('[Voice] Commande de fin détectée');
     
-    // Arrêter la reconnaissance avant executeSet
-    if (voiceRecognitionActive) {
-        stopVoiceRecognition();
+    // Arrêter reconnaissance vocale et calculer confiance finale
+    stopVoiceRecognition();
+    
+    // NOUVEAU : VALIDATION FINALE basée sur confiance
+    const finalConfidence = calculateConfidence();
+    voiceData.confidence = finalConfidence;
+    
+    console.log(`[Voice] Confiance finale calculée: ${(finalConfidence * 100).toFixed(1)}%`);
+    
+    // DÉCISION : Validation UI si confiance < 70% OU gaps présents
+    if (finalConfidence < 0.7 || voiceData.gaps.length > 0) {
+        console.log('[Voice] Confiance faible ou gaps détectés - Affichage validation UI');
+        
+        // Forcer affichage UI de validation
+        voiceState = 'VALIDATING';
+        showValidationUI(voiceData.count, finalConfidence);
+        
+        // Timer de validation avec executeSet automatique après 4s
+        timers.set('validation', setTimeout(() => {
+            console.log('[Voice] Timeout validation - Confirmation automatique');
+            confirmFinalCount(voiceData.count);
+            executeSet();
+        }, 4000));
+        
+    } else {
+        // Confiance suffisante - validation automatique immédiate
+        console.log('[Voice] Confiance suffisante - Validation automatique');
+        voiceState = 'CONFIRMED';
+        window.voiceData = voiceData;
+        window.voiceState = voiceState;
+        
+        // Déclencher executeSet immédiatement
+        if (typeof window.executeSet === 'function') {
+            window.executeSet();
+        }
     }
     
-    // Déclencher executeSet si disponible
-    if (typeof window.executeSet === 'function') {
-        window.executeSet();
-    }
-    
-    // Reset flag après délai
+    // Reset mutex après délai sécurité
     setTimeout(() => {
         executionInProgress = false;
     }, 2000);
@@ -1586,6 +1613,18 @@ function confirmFinalCount(finalCount) {
             // Reset état après exécution
             setTimeout(() => {
                 resetVoiceState();
+            }, 200);
+        }, 50);
+    }
+    
+    // IMPORTANT : Déclencher executeSet après confirmation
+    if (typeof window.executeSet === 'function') {
+        setTimeout(() => {
+            window.executeSet();
+            
+            // Reset état après exécution
+            setTimeout(() => {
+                executionInProgress = false;
             }, 200);
         }, 50);
     }
