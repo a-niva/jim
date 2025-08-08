@@ -12956,7 +12956,26 @@ function showPlanningFromProgram() {
     }, 200);
 }
 
+// === GESTION MODAL FIN DE SÉANCE ===
+function showEndWorkoutModal() {
+    const modal = document.getElementById('workoutEndModal');
+    if (modal) {
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+}
 
+function hideEndWorkoutModal() {
+    const modal = document.getElementById('workoutEndModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+}
+
+// Exposer globalement
+window.showEndWorkoutModal = showEndWorkoutModal;
+window.hideEndWorkoutModal = hideEndWorkoutModal;
 
 // ===== EXPOSITION GLOBALE =====
 window.showHomePage = showHomePage;
