@@ -243,79 +243,34 @@ function closeModal() {
 // === CALCUL ARC SIMPLIFIÉ ET PRÉCIS ===
 function calculateAdaptiveArc() {
     const container = document.querySelector('.floating-workout-actions');
-    const svg = container?.querySelector('svg');
-    const path = svg?.querySelector('path');
-    
-    if (!container || !path) {
-        setTimeout(calculateAdaptiveArc, 50);
-        return;
-    }
-    
     const isMobile = window.innerWidth <= 768;
-    const containerWidth = container.offsetWidth;
+    
+    // Dimensions adaptatives
+    const buttonSizeLateral = isMobile ? 30 : 36;
+    const buttonSizeValidation = buttonSizeLateral * 2;
+    const arcHeight = buttonSizeValidation + 10;
+    
+    // Calcul arc SVG
     const containerHeight = container.offsetHeight;
-    
-    // PARAMÈTRES SELON L'ÉCRAN
-    let arcHeight, buttonSpacing;
-    if (isMobile) {
-        arcHeight = 30;
-        buttonSpacing = 80;
-    } else {
-        arcHeight = 35;
-        buttonSpacing = 120;
-    }
-    
-    // CALCUL ARC SVG
     const arcHeightPercent = (arcHeight / containerHeight) * 100;
     const arcTopY = 100 - arcHeightPercent;
-    const pathData = `M 0,100 Q 50,${arcTopY} 100,100 L 100,100 L 0,100 Z`;
-    path.setAttribute('d', pathData);
     
-    // POSITIONNEMENT DES BOUTONS - MÉTHODE SIMPLE
-    const executeBtn = document.getElementById('executeSetBtn');
-    const pauseBtn = document.querySelector('.floating-btn-pause');
-    const endBtn = document.querySelector('.floating-btn-end');
+    // Mise à jour du path SVG
+    const path = container.querySelector('svg path');
+    path.setAttribute('d', `M 0,100 Q 50,${arcTopY} 100,100 L 100,100 L 0,100 Z`);
     
-    if (executeBtn && pauseBtn && endBtn) {
-        // Bouton central (validation) - au sommet
-        executeBtn.style.left = '50%';
-        executeBtn.style.transform = 'translateX(-50%)';
-        executeBtn.style.bottom = `${arcHeight - 5}px`; // Juste sous le sommet
-        
-        if (isMobile) {
-            // MOBILE - Positions relatives simples
-            pauseBtn.style.left = `calc(50% - ${buttonSpacing/2}px)`;
-            pauseBtn.style.transform = 'translateX(-50%)';
-            pauseBtn.style.bottom = '12px';
-            
-            endBtn.style.left = `calc(50% + ${buttonSpacing/2}px)`;
-            endBtn.style.transform = 'translateX(-50%)';
-            endBtn.style.bottom = '12px';
-        } else {
-            // DESKTOP - Centrage avec container max-width
-            const maxContainerWidth = 400; // Largeur max pour desktop
-            const centerOffset = Math.min(containerWidth, maxContainerWidth) / 2;
-            const centerX = containerWidth / 2;
-            
-            pauseBtn.style.left = `${centerX - buttonSpacing/2}px`;
-            pauseBtn.style.transform = 'translateX(-50%)';
-            pauseBtn.style.bottom = '15px';
-            
-            endBtn.style.left = `${centerX + buttonSpacing/2}px`;
-            endBtn.style.transform = 'translateX(-50%)';
-            endBtn.style.bottom = '15px';
-        }
-        
-        // Supprime la propriété right qui peut interférer
-        endBtn.style.right = 'auto';
-    }
+    // Positionnement des boutons
+    const buttonSpacing = isMobile ? 90 : 110;
+    const pauseBtn = container.querySelector('.floating-btn-pause');
+    const executeBtn = container.querySelector('.floating-btn-execute');
+    const endBtn = container.querySelector('.floating-btn-end');
     
-    console.log('Arc recalculé:', {
-        mode: isMobile ? 'mobile' : 'desktop',
-        containerWidth,
-        arcHeight,
-        buttonSpacing
-    });
+    pauseBtn.style.left = `calc(50% - ${buttonSpacing/2}px)`;
+    executeBtn.style.left = '50%';
+    endBtn.style.left = `calc(50% + ${buttonSpacing/2}px)`;
+    
+    // Position verticale du bouton de validation
+    executeBtn.style.bottom = `${arcHeight - buttonSizeValidation/2 - 5}px`;
 }
 
 // INITIALISATION IMMÉDIATE ET ROBUSTE
