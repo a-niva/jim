@@ -5202,13 +5202,18 @@ function initializeModernRepsDisplay(targetReps = 12, currentReps = 0) {
             if (hasPermission) {
                 // Si séance libre ET utilisateur a activé vocal, démarrer directement
                 if (currentWorkoutSession?.type === 'free' && currentUser?.voice_counting_enabled) {
-                    window.updateMicrophoneVisualState?.('ready');
-                    // Démarrer la reconnaissance après un petit délai
-                    setTimeout(() => {
-                        if (window.startVoiceRecognition && window.initVoiceRecognition()) {
-                            window.startVoiceRecognition();
+                    // Démarrer IMMÉDIATEMENT sans passer par 'ready'
+                    if (window.startVoiceRecognition && window.initVoiceRecognition()) {
+                        if (window.startVoiceRecognition()) {
+                            // État directement à 'listening' si démarrage réussi
+                            window.updateMicrophoneVisualState?.('listening');
+                        } else {
+                            // État 'inactive' si échec démarrage
+                            window.updateMicrophoneVisualState?.('inactive');
                         }
-                    }, 200);
+                    } else {
+                        window.updateMicrophoneVisualState?.('inactive');
+                    }
                 } else {
                     window.updateMicrophoneVisualState?.('inactive');
                 }

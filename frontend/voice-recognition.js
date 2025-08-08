@@ -309,8 +309,9 @@ function updateMicrophoneVisualState(state) {
                 break;
                 
             case 'ready':
-                voiceIcon.className = 'fa-regular fa-microphone';
+                voiceIcon.className = 'fas fa-microphone';
                 voiceIcon.style.color = '#3b82f6';
+                voiceIcon.style.opacity = '0.8';
                 voiceText.textContent = 'Cliquez pour activer';
                 voiceBtn.classList.add('shake');
                 break;
