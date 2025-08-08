@@ -1089,12 +1089,19 @@ function showValidationUI(count, confidence) {
     const repsElement = document.getElementById('setReps');
     console.log('[Voice] Élément setReps trouvé:', !!repsElement, repsElement);
     
+    // VÉRIFICATION EN PREMIER
     if (!repsElement) {
         console.warn('[Voice] Élément setReps non trouvé - Interface impossible');
         return;
     }
     
-    // Sauvegarder et vérifier le contenu original
+    // FORCER VISIBILITÉ pour validation - MAINTENANT SÛRE
+    repsElement.style.display = 'inline-block';
+    repsElement.style.visibility = 'visible';
+    repsElement.style.opacity = '1';
+    console.log('[Voice] Élément setReps rendu visible pour validation');
+    
+    // Reste du code INCHANGÉ...
     const originalContent = repsElement.textContent;
     repsElement.setAttribute('data-original', originalContent);
     console.log('[Voice] Contenu original sauvé:', originalContent);
@@ -1108,7 +1115,6 @@ function showValidationUI(count, confidence) {
         </div>
     `;
     
-    // Vérifier que le contenu a changé
     console.log('[Voice] Nouveau contenu DOM:', repsElement.innerHTML);
     
     // Classe CSS selon niveau de confiance
@@ -1244,21 +1250,24 @@ function clearValidationUI() {
     const repsElement = document.getElementById('setReps');
     if (!repsElement) return;
     
-    // Restaurer contenu original ou afficher count final
-    const originalContent = repsElement.getAttribute('data-original');
-    repsElement.innerHTML = originalContent || voiceData.count.toString();
-    repsElement.className = '';
-    repsElement.removeAttribute('data-original');
-    
-    // Nettoyer timer
-    timers.clear('validation');
-    
-    voiceState = 'LISTENING';
-
-    // NOUVEAU - Nettoyer écoute passive
-    if (VOICE_FEATURES.voice_correction) {
-        stopPassiveListening();
+    // Restaurer contenu original
+    const original = repsElement.getAttribute('data-original');
+    if (original) {
+        repsElement.textContent = original;
+        repsElement.removeAttribute('data-original');
     }
+    
+    // Nettoyer styles
+    repsElement.className = '';
+    repsElement.style.transform = '';
+    repsElement.style.color = '';
+    repsElement.style.border = '';
+    
+    // REMETTRE CACHÉ
+    repsElement.style.display = 'none';
+    console.log('[Voice] Élément setReps remis en mode caché');
+    
+    console.log('[Voice] Interface validation nettoyée');
 }
 
 /**
