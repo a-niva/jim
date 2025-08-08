@@ -1459,7 +1459,7 @@ span {
     transition: border-color .3s ease;
     will-change: transform, box-shadow;
     transform: translateZ(0);
-    max-width: 600px;
+    max-width: 700px;
     overflow: hidden;
     box-sizing: border-box;
     contain: layout style;
@@ -1969,10 +1969,11 @@ span {
 
 
 .exercise-header-modern h2 {
-    font-size: var(--font-2xl);
+    font-size: 1.8rem;
     font-weight: 600;
     color: var(--text);
     margin: 0;
+    line-height: 1.3;
 }
 
 .exercise-title-section {
@@ -2344,8 +2345,7 @@ span {
     align-items: center;
     justify-content: center;
     gap: 4px;
-    font-size: 4vw;
-    max-font-size: 1.4rem;
+    font-size: 2rem;
     font-weight: 700;
     color: #1e293b;
     line-height: 1.1;
@@ -2364,7 +2364,7 @@ span {
 }
 
 .value-display span:first-child {
-    font-size: clamp(1.8rem, 4vw, 3rem);
+    font-size: 2.2rem;
     font-weight: 700;
     color: var(--text);
     line-height: 1;
@@ -2400,12 +2400,11 @@ span {
     align-items: center;
     gap: var(--spacing-sm);
     flex-direction: column;
-    padding: 2% 1%;
+    padding: var(--spacing-md);
     background: #f1f5f9;
     border-radius: 8px;
     width: 100%;
-    min-height: 12vw;
-    max-height: 60px;
+    min-height: 70px;
 }
 
 .stepper-modern:hover {
@@ -2568,9 +2567,7 @@ span {
 }
 
 .ai-confidence {
-    font-size: var(--font-sm);
-    color: var(--text-muted);
-    margin-left: var(--spacing-xs);
+    font-size: var(--font-base);
 }
 
 .next-series-preview {
@@ -2823,7 +2820,7 @@ span {
 }
 
 .ai-status-text {
-    font-size: var(--font-sm);
+    font-size: var(--font-base);
     color: var(--text);
 }
 
@@ -2889,14 +2886,14 @@ span {
 }
 
 .detail-label {
-    font-size: var(--font-xs);
+    font-size: var(--font-sm);
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: .5px;
 }
 
 .detail-value {
-    font-size: var(--font-sm);
+    font-size: var(--font-base);
     color: var(--text);
     font-weight: 600;
 }
@@ -6550,9 +6547,11 @@ span {
     transform: translateX(-50%) translateY(-50%) scale(0);
 }
 
+/* Bouton central plus grand */
 .floating-btn-execute {
-    left: 50%;
-    transform: translateX(-50%) translateY(-50%) scale(0);
+    width: 80px;
+    height: 80px;
+    transform: translateX(-50%) translateY(-50%) scale(0); /* ← AJOUT de cette ligne */
 }
 
 .floating-btn-end {
@@ -7542,6 +7541,11 @@ input {
         padding: 3% 2%;
     }
 
+    .charge-weight-value {
+        font-size: 4vw;
+        max-font-size: 1.4rem;
+    }
+
     .exercise-header-actions .voice-status-text {
             display: none;
     }
@@ -7779,12 +7783,17 @@ input {
     }
 
     .value-display {
-            min-width: 100px;
-            max-width: 140px;
+        min-height: 12vw;
+        max-height: 60px;
+        padding: 2% 1%;
     }
 
     .value-display span:first-child {
-            font-size: var(--font-3xl);
+        font-size: clamp(1.8rem, 4vw, 3rem);
+    }
+
+    .exercise-header-modern h2 {
+        font-size: var(--font-2xl);
     }
 
     .adjust-btn {
