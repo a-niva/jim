@@ -4442,12 +4442,13 @@ span {
 
 .muscle-tabs {
     display: flex;
-    justify-content: space-around;
+    justify-content: center;
     align-items: center;
     gap: var(--spacing-xs);
     padding: var(--spacing-sm) 0;
     margin: 0;
     width: 100%;
+    flex-wrap: wrap;
 }
 
 .muscle-tab {
@@ -7370,10 +7371,8 @@ input:checked+:before {
     }
 
     .muscle-tabs {
-            gap: var(--spacing-sm);
-            padding-bottom: var(--spacing-lg);
-            scroll-snap-type: x mandatory;
-            scroll-padding: var(--spacing-md);
+        gap: var(--spacing-sm);
+        padding-bottom: var(--spacing-lg);
     }
 
     .muscle-tab {
