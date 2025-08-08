@@ -734,7 +734,12 @@ function handleEndCommand() {
     
     console.log(`[Voice] Confiance finale calculée: ${(finalConfidence * 100).toFixed(1)}%`);
     
-    // DÉCISION : Validation UI si confiance < 70% OU gaps présents
+    // TOUJOURS préparer les données vocales pour executeSet
+    voiceState = 'CONFIRMED';
+    window.voiceData = voiceData;
+    window.voiceState = voiceState;
+    
+    // DÉCISION : Afficher validation UI si confiance faible
     if (finalConfidence < 0.7 || voiceData.gaps.length > 0) {
         console.log('[Voice] Confiance faible ou gaps détectés - Affichage validation UI');
         
@@ -742,23 +747,22 @@ function handleEndCommand() {
         voiceState = 'VALIDATING';
         showValidationUI(voiceData.count, finalConfidence);
         
-        // Timer de validation avec executeSet automatique après 4s
+        // Timer de validation SANS executeSet automatique
         timers.set('validation', setTimeout(() => {
-            console.log('[Voice] Timeout validation - Confirmation automatique');
+            console.log('[Voice] Timeout validation - Données prêtes');
             confirmFinalCount(voiceData.count);
-            executeSet();
+            // Utilisateur doit cliquer le bouton executeSet
         }, 4000));
         
     } else {
-        // Confiance suffisante - validation automatique immédiate
-        console.log('[Voice] Confiance suffisante - Validation automatique');
-        voiceState = 'CONFIRMED';
-        window.voiceData = voiceData;
-        window.voiceState = voiceState;
+        // Confiance suffisante - afficher bouton executeSet
+        console.log('[Voice] Confiance suffisante - Affichage bouton validation');
         
-        // Déclencher executeSet immédiatement
-        if (typeof window.executeSet === 'function') {
-            window.executeSet();
+        const executeBtn = document.getElementById('executeSetBtn');
+        if (executeBtn) {
+            executeBtn.style.display = 'block';
+            executeBtn.textContent = '✅ Valider la série';
+            executeBtn.classList.add('btn-success');
         }
     }
     

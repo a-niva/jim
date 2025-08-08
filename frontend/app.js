@@ -9944,7 +9944,17 @@ async function executeSet() {
         console.log('[ExecuteSet] Déjà en cours, abandon');
         return;
     }
+
     setExecutionInProgress = true;
+    if (!workoutState.pendingSetData) {
+        workoutState.pendingSetData = {
+            duration_seconds: 0,
+            reps: 0,
+            weight: null,
+            voice_data: null
+        };
+        console.log('[ExecuteSet] pendingSetData initialisé');
+    }
     
     try {
         console.log('=== EXECUTE SET APPELÉ ===');
@@ -10141,7 +10151,11 @@ async function executeSet() {
             };
             
             // Utiliser count vocal comme reps si validé
-            workoutState.pendingSetData.reps = window.voiceData.count;
+            if (workoutState.pendingSetData) {
+                workoutState.pendingSetData.reps = window.voiceData.count;
+            } else {
+                console.warn('[ExecuteSet] pendingSetData non initialisé, skip assignation reps');
+            }
             
             console.log('[Voice] Données validées préparées pour ML:', voiceDataToSend);
         }
