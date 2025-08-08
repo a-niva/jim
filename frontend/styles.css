@@ -6517,18 +6517,17 @@ span {
 }
 
 /* Container des boutons (correction du HTML double) */
+/* Container des boutons */
 .floating-workout-actions-content {
     position: relative;
     height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 80px;
     pointer-events: auto;
 }
 
 /* Base commune pour tous les boutons */
 .floating-btn {
+    position: absolute;
+    top: 50%;
     width: 60px;
     height: 60px;
     border-radius: 50%;
@@ -6542,7 +6541,23 @@ span {
     transition: all 0.2s ease;
     pointer-events: auto;
     opacity: 0;
-    transform: scale(0);
+    transform: translateY(-50%) scale(0);
+}
+
+/* Positions spécifiques */
+.floating-btn-pause {
+    left: 20%;
+    transform: translateX(-50%) translateY(-50%) scale(0);
+}
+
+.floating-btn-execute {
+    left: 50%;
+    transform: translateX(-50%) translateY(-50%) scale(0);
+}
+
+.floating-btn-end {
+    left: 80%;
+    transform: translateX(-50%) translateY(-50%) scale(0);
 }
 
 /* Animation des boutons */
@@ -6582,13 +6597,13 @@ span {
 
 /* États hover */
 .floating-btn:hover {
-    transform: translateY(-2px);
+    transform: translateX(-50%) translateY(-52px);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
     border-color: rgba(0, 0, 0, 0.2);
 }
 
 .floating-btn:active {
-    transform: translateY(0);
+    transform: translateX(-50%) translateY(-50%);
     transition: all 0.1s;
 }
 
@@ -6857,18 +6872,18 @@ span {
 @keyframes buttonPop {
     0% {
         opacity: 0;
-        transform: scale(0);
+        transform: translateX(-50%) translateY(-50%) scale(0);
     }
     50% {
         opacity: 1;
-        transform: scale(1.1);
+        transform: translateX(-50%) translateY(-50%) scale(1.1);
     }
     75% {
-        transform: scale(0.95);
+        transform: translateX(-50%) translateY(-50%) scale(0.95);
     }
     100% {
         opacity: 1;
-        transform: scale(1);
+        transform: translateX(-50%) translateY(-50%) scale(1);
     }
 }
 
