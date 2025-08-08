@@ -804,11 +804,12 @@ function parseNumber(text) {
 function calculateConfidence() {
     let score = 1.0;
     
-    // PHASE 4 - Pénalité gaps proportionnelle
-    if (voiceData.gaps.length > 0) {
-        const gapPenalty = Math.min(voiceData.gaps.length * 0.15, 0.4); // Pénalité plus sévère
+    // Pénalité gaps basée sur ratio - RÉALISTE
+    if (voiceData.gaps.length > 0 && voiceData.count > 0) {
+        const gapRatio = voiceData.gaps.length / voiceData.count;
+        const gapPenalty = Math.min(gapRatio * 1.2, 0.9); // Facteur sévère
         score -= gapPenalty;
-        console.log(`[Confidence] Pénalité gaps: -${(gapPenalty * 100).toFixed(1)}%`);
+        console.log(`[Confidence] Gaps: ${voiceData.gaps.length}/${voiceData.count} (${(gapRatio*100).toFixed(1)}%) - Pénalité: -${(gapPenalty * 100).toFixed(1)}%`);
     }
     
     // Pénalité sauts suspects
@@ -1305,36 +1306,6 @@ function updateVoiceDisplayImmediate(count) {
 function handleNumberDetected(number) {
     console.log(`[Voice] Nombre détecté: ${number}`);
     
-    // === COMMENTER TEMPORAIREMENT - PHASE 4 ===
-    /*
-    if (validationMode === VALIDATION_LEVELS.STRICT) {
-        const validation = validateWithStrictMode(number, voiceData.lastNumber);
-        
-        if (!validation.valid) {
-            console.warn(`[Voice] Nombre rejeté: ${validation.reason}`);
-            
-            if (window.applyVoiceErrorState) {
-                let errorType = 'generic';
-                if (validation.reason.includes('saut')) {
-                    errorType = 'jump';
-                } else if (validation.reason.includes('répétition')) {
-                    errorType = 'repeat';
-                } else if (validation.reason.includes('séquence')) {
-                    errorType = 'invalid';
-                }
-                
-                window.applyVoiceErrorState(errorType, 1000);
-            }
-            
-            if (navigator.vibrate) {
-                navigator.vibrate([50, 50, 50]);
-            }
-            
-            return;
-        }
-    }
-    */
-    
     // Validation de base existante
     const expectedNext = voiceData.lastNumber + 1;
     const jump = number - voiceData.lastNumber;
@@ -1382,6 +1353,16 @@ function handleNumberDetected(number) {
             }
         }
         voiceData.needsValidation = true;
+        // Déclencher validation immédiate si gaps détectés
+        if (voiceData.needsValidation && voiceData.gaps.length > 0) {
+            console.log(`[Voice] ${voiceData.gaps.length} gaps détectés, déclenchement validation forcée`);
+            scheduleAutoValidation();  // Calcule confiance et décide validation
+            
+            // Notification utilisateur immédiate
+            if (window.showToast) {
+                window.showToast(`Répétitions ${voiceData.gaps.join(',')} manquées`, 'warning');
+            }
+        }
     }
     
     // Mise à jour normale
@@ -1584,8 +1565,8 @@ function confirmFinalCount(finalCount) {
             // Reset état après exécution
             setTimeout(() => {
                 resetVoiceState();
-            }, 500);
-        }, 100);
+            }, 200);
+        }, 50);
     }
     
     console.log(`[Voice] Count final confirmé: ${finalCount} - État: ${voiceState}`);

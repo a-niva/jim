@@ -4257,7 +4257,16 @@ function toggleVoiceRecognition() {
         // ARRÊT
         console.log('[Voice] Arrêt demandé');
         window.stopVoiceRecognition();
-        window.updateMicrophoneVisualState('inactive'); // Ajouter cette ligne
+        // Forcer validation si arrêt manuel avec données
+        const voiceData = window.voiceData || window.getVoiceData?.();
+        if (voiceData && voiceData.count > 0) {
+            const confidence = window.calculateConfidence?.() || 1.0;
+            if (confidence < 0.8) {
+                console.log('[Voice] Arrêt manuel avec confiance faible, validation forcée');
+                window.scheduleStandardValidation?.();
+            }
+        }
+        window.updateMicrophoneVisualState('inactive');
         
     } else {
         // DÉMARRAGE - Vérifier état séance
