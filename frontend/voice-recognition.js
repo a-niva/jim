@@ -744,14 +744,15 @@ function handleEndCommand() {
     if (finalConfidence >= 0.8 && voiceData.gaps.length <= acceptableGaps) {
         console.log('[Voice] Confiance suffisante (>= 0.8) et pas de gaps - Validation automatique');
         
-        // Validation automatique immédiate
-        voiceData.validated = true;
-        voiceState = 'CONFIRMED';
+        // NE PAS marquer comme confirmé ici - laisser confirmFinalCount() le faire
+        voiceData.validated = false; // Sera mis à true par confirmFinalCount
+        voiceState = 'AUTO_VALIDATING'; // État temporaire
         window.voiceData = voiceData;
         window.voiceState = voiceState;
-        
+
+        // Confirmer et déclencher executeSet automatiquement
         confirmFinalCount(voiceData.count);
-        
+                
     } else {
         console.log('[Voice] Validation manuelle requise - Confiance:', finalConfidence.toFixed(2), 'Gaps:', voiceData.gaps.length);
         
