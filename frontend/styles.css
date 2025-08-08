@@ -6547,7 +6547,7 @@ span {
 }
 
 /* Animation des boutons */
-.floating-workout-actions.show .floating-btn-execute {
+.floating-workout-actions.show #executeSetBtn {
     animation: buttonPop 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.5s forwards;
 }
 
