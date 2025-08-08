@@ -1368,7 +1368,7 @@ async function loadMLProgressionAnalysis(userId) {
         
         // Trier les exercices par impact ML (décroissant)
         const sortedExercises = data.exercises
-            .filter(ex => ex.ml_sets > 5 && ex.normal_sets > 5) // Minimum 5 séries chaque
+            .filter(ex => ex.ml_sets >= 1 && ex.normal_sets >= 1) // Minimum 1 série chaque
             .sort((a, b) => b.improvement_factor - a.improvement_factor);
         
         if (sortedExercises.length === 0) {

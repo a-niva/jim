@@ -2760,7 +2760,11 @@ span {
 }
 
 .ai-status-line[data-inactive] .fa-brain {
-    opacity: 0.4;
+    color: var(--text-muted) !important;
+}
+
+.ai-status-line .fa-brain {
+    color: var(--primary);
 }
 
 .ai-status-text {
@@ -2788,6 +2792,23 @@ span {
     padding: var(--spacing-md);
     margin-top: var(--spacing-sm);
     animation: slideDown .3s ease;
+}
+
+.ai-details-panel[data-ai-inactive] {
+    display: none !important;
+}
+
+.ai-details-panel[data-ai-inactive] {
+    display: none !important;
+}
+
+@keyframes brainBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+.fa-brain.blink-warning {
+    animation: brainBlink 0.4s ease-in-out 2;
 }
 
 .ai-detail-grid {
@@ -6752,10 +6773,6 @@ input {
 
     .tab-icon {
             font-size: var(--font-base);
-    }
-
-    .ai-detail-grid {
-            grid-template-columns: 1fr;
     }
 
     .ai-status-line {

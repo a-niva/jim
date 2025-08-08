@@ -753,7 +753,7 @@ function handleEndCommand() {
     // Tolérer 1 gap si confiance >= 85%, sinon 0 gap
     const acceptableGaps = finalConfidence >= 0.85 ? 1 : 0;
     if (finalConfidence >= 0.8 && voiceData.gaps.length <= acceptableGaps) {
-        console.log('[Voice] Confiance suffisante (>= 0.8) et pas de gaps - Validation automatique');
+        console.log(`[Voice] Confiance suffisante (${(finalConfidence*100).toFixed(1)}%) et gaps acceptables (${voiceData.gaps.length}/${acceptableGaps}) - Validation automatique`);
         
         // NE PAS marquer comme confirmé ici - laisser confirmFinalCount() le faire
         voiceData.validated = false; // Sera mis à true par confirmFinalCount
@@ -976,77 +976,6 @@ async function showGapInterpolation(gapNumber, totalGaps, currentIndex) {
     
     // Attendre fin animation CSS
     await new Promise(resolve => setTimeout(resolve, 200));
-}
-
-/**
- * Validation robuste stricte pour Phase 4
- * @param {number} detectedNumber - Nombre détecté
- * @param {Object} context - Contexte détection
- * @returns {Object} Résultat validation
- */
-function validateDetectionRobust(detectedNumber, context = {}) {
-    const result = {
-        valid: true,
-        confidence: 1.0,
-        action: 'accept',
-        errorType: null,
-        details: {}
-    };
-    
-    // 1. Validation saut maximum strict
-    const jump = detectedNumber - (voiceData.lastDetected || voiceData.count);
-    
-    if (validationMode === VALIDATION_LEVELS.STRICT) {
-        // PHASE 4 : Saut maximum +3 strict
-        if (jump > 3) {
-            result.valid = false;
-            result.errorType = 'jump_too_large';
-            result.details = { jump, maxAllowed: 3 };
-            result.confidence = 0.1;
-            console.log(`[Validation] Saut trop grand: +${jump} > +3 autorisé`);
-            return result;
-        }
-    }
-    
-    // 2. Détection répétitions stricte
-    if (detectedNumber === voiceData.lastDetected) {
-        result.valid = false;
-        result.errorType = 'repetition';
-        result.details = { repeatedNumber: detectedNumber };
-        result.confidence = 0.2;
-        console.log(`[Validation] Répétition détectée: ${detectedNumber}`);
-        return result;
-    }
-    
-    // 3. Validation monotonie croissante
-    if (detectedNumber <= voiceData.count) {
-        result.valid = false;
-        result.errorType = 'backward_count';
-        result.details = { detected: detectedNumber, current: voiceData.count };
-        result.confidence = 0.1;
-        console.log(`[Validation] Compte arrière: ${detectedNumber} <= ${voiceData.count}`);
-        return result;
-    }
-    
-    // 4. Calcul confiance selon contexte
-    let confidence = 1.0;
-    
-    if (jump === 3) {
-        confidence = 0.7; // Saut suspect mais autorisé
-        result.action = 'confirm';
-    } else if (jump === 2) {
-        confidence = 0.85; // Léger gap normal
-    }
-    
-    // Pénalité si gaps déjà présents
-    if (voiceData.gaps.length > 0) {
-        confidence -= Math.min(voiceData.gaps.length * 0.05, 0.2);
-    }
-    
-    result.confidence = Math.max(0.3, confidence);
-    
-    console.log(`[Validation] Nombre ${detectedNumber} validé - Confiance: ${result.confidence.toFixed(2)}`);
-    return result;
 }
 
 /**

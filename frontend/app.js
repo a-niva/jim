@@ -4354,9 +4354,19 @@ function toggleMLAdjustment(exerciseId) {
     if (newState) {
         aiStatusLine.removeAttribute('data-inactive');
         aiStatusText.textContent = 'Actif';
+        // Permettre l'affichage du panel des détails IA si actif
+        const aiDetailsPanel = document.getElementById('aiDetailsPanel');
+        if (aiDetailsPanel) {
+            aiDetailsPanel.removeAttribute('data-ai-inactive');
+        }
     } else {
         aiStatusLine.setAttribute('data-inactive', 'true');
         aiStatusText.textContent = 'Inactif';
+        // Cacher le panel des détails IA si inactif
+        const aiDetailsPanel = document.getElementById('aiDetailsPanel');
+        if (aiDetailsPanel) {
+            aiDetailsPanel.setAttribute('data-ai-inactive', 'true');
+        }
     }
 
     // Mettre à jour l'interface sans appel API
@@ -6307,6 +6317,20 @@ function updateAIDetailsPanel(recommendations) {
 function toggleAIDetails() {
     const panel = document.getElementById('aiDetailsPanel');
     const button = document.querySelector('.ai-expand-btn svg');
+    const statusLine = document.querySelector('.ai-status-line');
+    
+    // Empêcher l'expansion si l'IA est inactive
+    if (statusLine && statusLine.hasAttribute('data-inactive')) {
+        // Animation du fa-brain
+        const brainIcon = document.querySelector('.fa-brain');
+        if (brainIcon) {
+            brainIcon.classList.add('blink-warning');
+            setTimeout(() => brainIcon.classList.remove('blink-warning'), 800);
+        }
+        
+        showToast('L\'IA doit être active pour voir les détails', 'warning');
+        return;
+    }
     
     if (panel.style.display === 'none') {
         panel.style.display = 'block';
