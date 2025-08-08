@@ -6452,8 +6452,6 @@ span {
 
 
 
-
-
 /* ================================================= */
 /* BARRE FLOTTANTE - SECTION COMPLÈTE */
 /* ================================================= */
@@ -6549,6 +6547,15 @@ span {
     transition: all 0.1s;
 }
 
+/* Hover spécifique pour le bouton central */
+.floating-btn-execute:hover {
+    transform: translateX(-50%) translateY(calc(-50% - 3px));
+}
+
+.floating-btn-execute:active {
+    transform: translateX(-50%) translateY(-50%);
+}
+
 /* ================================================= */
 /* TAILLES DES ICÔNES */
 /* ================================================= */
@@ -6601,6 +6608,15 @@ span {
     left: auto;
 }
 
+/* Fix hover pour le bouton central */
+.floating-btn-execute:hover {
+    transform: translateX(-50%) translateY(calc(-50% - 3px));
+}
+
+.floating-btn-execute:active {
+    transform: translateX(-50%) translateY(-50%);
+}
+
 /* ================================================= */
 /* ÉTATS SPÉCIAUX EXECUTESETBTN */
 /* ================================================= */
@@ -6618,11 +6634,13 @@ span {
         box-shadow: 0 1vw 3vw rgba(16, 185, 129, 0.3),
                     0 0.5vw 1vw rgba(16, 185, 129, 0.2);
         border-color: rgba(16, 185, 129, 0.4);
+        /* Pas de transform ici pour éviter les conflits */
     }
     50% { 
         box-shadow: 0 1.5vw 4vw rgba(16, 185, 129, 0.5),
                     0 0.75vw 1.5vw rgba(16, 185, 129, 0.3);
         border-color: rgba(16, 185, 129, 0.6);
+        /* Pas de transform ici pour éviter les conflits */
     }
 }
 
@@ -6876,7 +6894,6 @@ span {
 /* ================================================= */
 /* FIN SECTION BARRE FLOTTANTE */
 /* ================================================= */
-
 
 
 
