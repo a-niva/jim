@@ -424,7 +424,7 @@ function startAutoValidationTimer() {
     // Timer de 30 secondes
     autotimers.set('validation', setTimeout(() => {
         handleAutoValidation();
-    }, 30000);
+    }, 30000));
     
     console.log('[Voice] Timer auto-validation démarré (30s)');
 }
@@ -444,7 +444,7 @@ function resetAutoValidationTimer() {
     
     autotimers.set('validation', setTimeout(() => {
         handleAutoValidation();
-    }, 30000);
+    }, 30000));
     
     console.log('[Voice] Timer auto-validation remis à zéro');
 }
@@ -1152,7 +1152,7 @@ function startValidationTimer(count) {
     
     timers.set('validation', setTimeout(() => {
         confirmVoiceCount(count);
-    }, 4000); // 4s pour validation manuelle
+    }, 4000)); // 4s pour validation manuelle
 }
 
 /**
@@ -1168,7 +1168,7 @@ function resetValidationTimer(newCount) {
     // Nouveau timer avec le count ajusté
     timers.set('validation', setTimeout(() => {
         confirmVoiceCount(newCount);
-    }, 2000); // 2s après interaction
+    }, 2000)); // 2s après interaction
 }
 
 /**
@@ -1447,7 +1447,7 @@ function scheduleQuickValidation() {
     
     timers.set('validation', setTimeout(() => {
         confirmFinalCount(voiceData.count);
-    }, 1500); // 1.5s pour confiance haute
+    }, 1500)); // 1.5s pour confiance haute
     
     console.log(`[Voice] Auto-validation rapide programmée - Count: ${voiceData.count}, Confiance: ${voiceData.confidence.toFixed(2)}`);
 }
@@ -1468,7 +1468,7 @@ function scheduleStandardValidation() {
     
     timers.set('validation', setTimeout(() => {
         confirmFinalCount(voiceData.count);
-    }, 4000); // 4s pour confiance faible
+    }, 4000)); // 4s pour confiance faible
     
     console.log(`[Voice] Validation standard programmée - Count: ${voiceData.count}, Confiance: ${voiceData.confidence.toFixed(2)}`);
 }
