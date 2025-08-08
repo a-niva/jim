@@ -5540,8 +5540,8 @@ function transitionToReadyState() {
         voiceContainer.style.display = 'flex';
         
         // Mettre à jour état visuel si vocal pas encore actif
-        if (!window.voiceRecognitionActive || !window.voiceRecognitionActive()) {
-            updateMicrophoneVisualState('inactive');
+        if (window.voiceRecognitionActive || window.voiceRecognitionActive()) {
+            updateMicrophoneVisualState('listening');
         }
     }
     

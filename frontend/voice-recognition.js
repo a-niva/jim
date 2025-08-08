@@ -2227,42 +2227,6 @@ function getVoiceSystemHealth() {
     };
 }
 
-function forceVoiceSystemReset() {
-    console.log('[Voice] RESET FORCÉ du système vocal');
-    
-    // Arrêter tout
-    if (voiceRecognitionActive) {
-        try {
-            recognition.stop();
-        } catch (e) {}
-        voiceRecognitionActive = false;
-    }
-    
-    // Cleanup timers
-    clearAutoValidationTimer();
-    timers.clear('correction');
-    
-    // Reset état visuel
-    updateMicrophoneVisualState('inactive');
-    
-    // Re-initialiser si possible
-    if (currentUser?.voice_counting_enabled) {
-        setTimeout(() => {
-            checkMicrophonePermissions().then(hasPermission => {
-                if (hasPermission) {
-                    updateMicrophoneVisualState('inactive');
-                } else {
-                    updateMicrophoneVisualState('ready'); // Changé de 'error' à 'ready'
-                }
-            });
-        }, 1000);
-    }
-}
-
-// Exposer fonctions debug
-window.getVoiceSystemHealth = getVoiceSystemHealth;
-window.forceVoiceSystemReset = forceVoiceSystemReset;
-console.log('[Voice] ✅ Système vocal consolidé et exposé');
 
 /**
  * Valide la cohérence du système vocal
