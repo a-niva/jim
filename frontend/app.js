@@ -5200,7 +5200,18 @@ function initializeModernRepsDisplay(targetReps = 12, currentReps = 0) {
         // Vérifier permissions et initialiser état
         checkMicrophonePermissions().then(hasPermission => {
             if (hasPermission) {
-                window.updateMicrophoneVisualState?.('inactive');
+                // Si séance libre ET utilisateur a activé vocal, démarrer directement
+                if (currentWorkoutSession?.type === 'free' && currentUser?.voice_counting_enabled) {
+                    window.updateMicrophoneVisualState?.('ready');
+                    // Démarrer la reconnaissance après un petit délai
+                    setTimeout(() => {
+                        if (window.startVoiceRecognition && window.initVoiceRecognition()) {
+                            window.startVoiceRecognition();
+                        }
+                    }, 200);
+                } else {
+                    window.updateMicrophoneVisualState?.('inactive');
+                }
             } else {
                 window.updateMicrophoneVisualState?.('error');
             }
