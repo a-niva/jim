@@ -4801,13 +4801,26 @@ function updateSetNavigationButtons() {
 // ===== COUCHE 1 : FONCTIONS UTILITAIRES (DÉCLARÉES EN PREMIER) =====
 
 function getBarWeight(exercise) {
-    /**Récupère le poids de la barre selon l'exercice et la config utilisateur*/
+    /**Récupère le poids MINIMUM selon l'exercice et l'équipement*/
     if (!exercise || !currentUser?.equipment_config) return 20;
     
     const equipment = exercise.equipment_required || [];
     const config = currentUser.equipment_config;
     
-    // Détecter le type de barre selon l'exercice
+    // CAS DUMBBELLS : Poids minimum d'une paire
+    if (equipment.includes('dumbbells')) {
+        // Dumbbells fixes : poids minimum x2
+        if (config.dumbbells?.available && config.dumbbells?.weights?.length > 0) {
+            return Math.min(...config.dumbbells.weights) * 2;
+        }
+        // Barres courtes : poids des barres seules
+        if (config.barbell_short_pair?.available && config.barbell_short_pair?.count >= 2) {
+            return (config.barbell_short_pair.weight || 2.5) * 2;
+        }
+        return 0; // Pas d'équipement disponible
+    }
+    
+    // CAS BARBELLS (garder le code existant)
     if (equipment.includes('barbell_ez')) {
         return config.barbell_ez?.weight || 10;
     } else if (equipment.includes('barbell_short_pair')) {
@@ -4816,7 +4829,7 @@ function getBarWeight(exercise) {
         return config.barbell_athletic?.weight || 20;
     }
     
-    return 20; // Fallback
+    return 20;
 }
 
 function isEquipmentCompatibleWithChargeMode(exercise) {
