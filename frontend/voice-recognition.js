@@ -120,7 +120,8 @@ const VOICE_FEATURES = {
     validation_ui: true,        // ← Forcer à true (production)
     voice_correction: true,
     auto_validation: true,
-    ml_enrichment: true
+    ml_enrichment: true,
+    passive_mode: true
 };
 
 // NOUVEAU - Variables d'état pour la validation
@@ -810,13 +811,13 @@ function parseNumber(text) {
 function calculateConfidence() {
     let score = 1.0;
     
-    // Pénalité gaps basée sur ratio - RÉALISTE
+    // Pénalité gaps ratio-based (ligne ~818)
     if (voiceData.gaps.length > 0 && voiceData.count > 0) {
         const gapRatio = voiceData.gaps.length / voiceData.count;
-        const gapPenalty = Math.min(gapRatio * 1.5, 0.95); // Sévère et réaliste
+        const gapPenalty = Math.min(gapRatio * 1.5, 0.95);
         score -= gapPenalty;
         console.log(`[Confidence] Gaps: ${voiceData.gaps.length}/${voiceData.count} (${(gapRatio*100).toFixed(1)}%) - Pénalité: -${(gapPenalty * 100).toFixed(1)}%`);
-    }
+    } else {
     
     // Pénalité sauts suspects
     if (voiceData.suspiciousJumps > 0) {
@@ -1312,7 +1313,7 @@ function updateVoiceDisplayImmediate(count) {
 function handleNumberDetected(number) {
     console.log(`[Voice] Nombre détecté: ${number}`);
     
-    // Validation de base existante
+    // Validation de base existante - INCHANGÉE
     const expectedNext = voiceData.lastNumber + 1;
     const jump = number - voiceData.lastNumber;
     
@@ -1320,37 +1321,39 @@ function handleNumberDetected(number) {
         console.warn(`[Voice] Saut trop important ignoré: ${voiceData.lastNumber} -> ${number}`);
         voiceData.suspiciousJumps++;
         
-        // === NOUVEAU : Feedback erreur saut ===
-        if (window.applyVoiceErrorState) {
-            window.applyVoiceErrorState('jump', 1500);
+        // Feedback discret passif
+        if (window.showToast) {
+            window.showToast(`Saut important détecté (+${jump})`, 'warning');
         }
-        
+        if (navigator.vibrate) {
+            navigator.vibrate([100, 50, 100]);
+        }
         return;
     }
     
-    // Détection de répétition
+    // Détection répétition - INCHANGÉE avec feedback discret
     if (number === voiceData.lastNumber && voiceData.count > 0) {
         console.log('[Voice] Répétition détectée');
         voiceData.repetitions++;
         
         if (voiceData.repetitions > 2) {
-            console.warn('[Voice] Trop de répétitions - validation requise');
-            voiceData.needsValidation = true;
-            
-            // === NOUVEAU : Feedback erreur répétition ===
-            if (window.applyVoiceErrorState) {
-                window.applyVoiceErrorState('repeat', 800);
+            // Feedback discret
+            if (window.showToast) {
+                window.showToast(`Répétition du ${number}`, 'info');
+            }
+            if (navigator.vibrate) {
+                navigator.vibrate([50, 30, 50]);
             }
         }
         return;
     }
     
-    // Réinitialiser compteur répétitions si nombre différent
+    // Reset répétitions - INCHANGÉ
     if (number !== voiceData.lastNumber) {
         voiceData.repetitions = 0;
     }
     
-    // Gestion des gaps
+    // Gestion gaps - INCHANGÉE mais feedback discret
     if (jump > 1 && jump <= 10) {
         console.log(`[Voice] Gap détecté: ${expectedNext} à ${number-1}`);
         for (let i = expectedNext; i < number; i++) {
@@ -1359,32 +1362,28 @@ function handleNumberDetected(number) {
             }
         }
         voiceData.needsValidation = true;
+        
+        // Feedback discret seulement
+        const newGaps = number - expectedNext;
+        if (window.showToast) {
+            window.showToast(`${newGaps} répétition${newGaps > 1 ? 's' : ''} sautée${newGaps > 1 ? 's' : ''}`, 'warning');
+        }
+        if (navigator.vibrate) {
+            navigator.vibrate([80, 40, 80]);
+        }
     }
     
-    // Mise à jour normale
+    // Mise à jour normale - INCHANGÉE
     voiceData.count = number;
     voiceData.lastNumber = number;
     voiceData.timestamps.push(Date.now());
     voiceData.lastDetected = number;
     updateVoiceDisplay(number);
-    
-    // NOUVEAU - Mettre à jour la prédiction
     predictedNext = number + 1;
+
+    // Mode passif = pas de validation forcée
     
-    // PROTECTION : Déclencher validation UNE SEULE FOIS après accumulation gaps
-    if (voiceData.needsValidation && voiceState === 'LISTENING') {
-        console.log(`[Voice] ${voiceData.gaps.length} gaps détectés, déclenchement validation forcée`);
-        
-        // Notification utilisateur immédiate
-        if (window.showToast) {
-            window.showToast(`Répétitions ${voiceData.gaps.join(',')} manquées`, 'warning');
-        }
-        
-        // Déclencher validation avec protection état
-        scheduleAutoValidation();
-    }
-    
-    console.log(`[Voice] État: count=${voiceData.count}, gaps=[${voiceData.gaps}], confiance=${voiceData.confidence}`);
+    console.log(`[Voice] État passif: count=${voiceData.count}, gaps=[${voiceData.gaps}], confiance en cours de calcul...`);
 }
 
 /**
