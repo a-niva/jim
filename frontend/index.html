@@ -543,29 +543,6 @@
                 </div>
             </div>
 
-            <script>
-            // INITIALISATION PRIORITAIRE
-            document.addEventListener('DOMContentLoaded', () => {
-                if (typeof initFloatingActions === 'function') {
-                    initFloatingActions();
-                } else {
-                    // Fallback si fonction pas encore chargée
-                    setTimeout(() => {
-                        if (typeof calculateAdaptiveArc === 'function') {
-                            calculateAdaptiveArc();
-                        }
-                    }, 100);
-                }
-            });
-
-            // BACKUP pour chargement asynchrone
-            window.addEventListener('load', () => {
-                if (typeof calculateAdaptiveArc === 'function') {
-                    calculateAdaptiveArc();
-                }
-            });
-            </script>
-
             <!-- Modal de fin de séance -->
             <div class="workout-end-modal" id="workoutEndModal">
                 <div class="workout-end-backdrop"></div>

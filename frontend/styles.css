@@ -6448,158 +6448,127 @@ span {
 
 
 
-
-
 /* ================================================= */
 /* BARRE FLOTTANTE - SECTION COMPLÈTE */
 /* ================================================= */
 
-/* Container principal fixe */
+/* Container principal */
 .floating-workout-actions {
     position: fixed;
-    bottom: var(--bottom-nav-height);
+    bottom: var(--bottom-nav-height, 70px);
     left: 0;
     right: 0;
-    height: 20vw; /* Hauteur responsive */
-    max-height: 100px; /* Limite sur grands écrans */
-    z-index: calc(var(--z-nav) + 10);
+    height: 100px;
+    z-index: calc(var(--z-nav, 100) + 10);
     pointer-events: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
-/* Barre horizontale */
+/* Barre blanche horizontale */
 .floating-workout-bar {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
     left: 0;
     right: 0;
-    width: 100%;
-    height: 7vw; /* 50% du diamètre des boutons (14vw) */
-    max-height: 35px; /* 50% de 70px */
+    height: 40px;
     background: white;
-    border-top: 2px solid;
-    border-bottom: 2px solid;
-    border-image: linear-gradient(90deg, 
-        rgba(156, 156, 156, 0.3) 0%, 
-        rgba(212, 175, 55, 0.5) 50%, 
-        rgba(156, 156, 156, 0.3) 100%) 1;
+    border-top: 2px solid rgba(212, 175, 55, 0.6);
+    border-bottom: 2px solid rgba(212, 175, 55, 0.6);
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08), 
                 0 2px 8px rgba(0, 0, 0, 0.08);
-    pointer-events: none;
 }
 
-/* Container pour les boutons */
+/* Container des boutons (correction du HTML double) */
 .floating-workout-actions-content {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
+    position: relative;
     height: 100%;
-    pointer-events: none;
     display: flex;
-    align-items: center;
     justify-content: center;
+    align-items: center;
+    gap: 80px;
+    pointer-events: auto;
 }
 
-/* ================================================= */
-/* BOUTONS FLOTTANTS - BASE COMMUNE */
-/* ================================================= */
-
+/* Base commune pour tous les boutons */
 .floating-btn {
-    position: absolute;
-    width: 14vw; /* Taille responsive */
-    height: 14vw;
-    max-width: 70px; /* Limite sur grands écrans */
-    max-height: 70px;
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
     background: white;
-    border: 1vw solid rgba(0, 0, 0, 0.15);
-    max-border-width: 5px;
+    border: 3px solid rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 1vw 3vw rgba(0, 0, 0, 0.2),
-                0 0.5vw 1vw rgba(0, 0, 0, 0.1);
     transition: all 0.2s ease;
-    touch-action: manipulation;
     pointer-events: auto;
-    top: 50%;
-    transform: translateY(-50%);
 }
 
-/* États hover et active */
-.floating-btn:hover {
-    box-shadow: 0 1.5vw 4vw rgba(0, 0, 0, 0.25),
-                0 0.75vw 1.5vw rgba(0, 0, 0, 0.15);
-    border-color: rgba(0, 0, 0, 0.2);
+/* Bouton central plus grand */
+.floating-btn-execute {
+    width: 80px;
+    height: 80px;
 }
 
-.floating-btn-pause:hover,
-.floating-btn-end:hover {
-    transform: translateY(calc(-50% - 3px)) !important;
-}
-
-.floating-btn:active {
-    transition: all 0.1s;
-}
-
-.floating-btn-pause:active,
-.floating-btn-end:active {
-    transform: translateY(-50%) !important;
-}
-
-/* Hover spécifique pour le bouton central */
-.floating-btn-execute:hover {
-    transform: translateX(-50%) translateY(calc(-50% - 3px)) !important;
-}
-
-.floating-btn-execute:active {
-    transform: translateX(-50%) translateY(-50%) !important;
-}
-
-/* ================================================= */
-/* TAILLES DES ICÔNES */
-/* NOTE: Tous les boutons ont maintenant la MÊME taille */
-/* ================================================= */
-
-/* Tous les boutons ont exactement la même taille */
-.floating-btn-pause,
-.floating-btn-execute, 
-.floating-btn-end {
-    width: 14vw !important;
-    height: 14vw !important;
-    max-width: 70px !important;
-    max-height: 70px !important;
-}
-
-.floating-btn i {
-    font-size: 4vw;
-    max-font-size: 1.8rem;
-}
-
+/* Couleurs des icônes */
 .floating-btn-pause i {
     color: #3b82f6;
-}
-
-.floating-btn-execute {
-    font-size: 4vw; /* Pour l'emoji */
-    max-font-size: 1.8rem;
+    font-size: 1.4rem;
 }
 
 .floating-btn-execute i {
     color: #10b981;
+    font-size: 1.8rem;
 }
 
 .floating-btn-end i {
     color: #f87171;
+    font-size: 1.4rem;
 }
 
-/* Empêcher tout texte additionnel */
+/* États hover */
+.floating-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+    border-color: rgba(0, 0, 0, 0.2);
+}
+
+.floating-btn:active {
+    transform: translateY(0);
+    transition: all 0.1s;
+}
+
+/* Animation pour executeSetBtn */
+#executeSetBtn.ready {
+    animation: pulse-subtle 3s infinite;
+}
+
+@keyframes pulse-subtle {
+    0%, 100% { 
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        border-color: rgba(16, 185, 129, 0.4);
+    }
+    50% { 
+        box-shadow: 0 6px 16px rgba(16, 185, 129, 0.5);
+        border-color: rgba(16, 185, 129, 0.6);
+    }
+}
+
+/* Override des classes parasites */
+#executeSetBtn.btn-success,
+#executeSetBtn.btn-danger {
+    background: white !important;
+    color: inherit !important;
+    padding: 0 !important;
+    min-height: unset !important;
+}
+
+#executeSetBtn.btn-danger i {
+    color: #ef4444;
+}
+
+/* Masquer tout texte additionnel */
 .floating-btn span,
 .floating-btn:after,
 .floating-btn:before {
@@ -6607,152 +6576,7 @@ span {
 }
 
 /* ================================================= */
-/* POSITIONNEMENT DES BOUTONS */
-/* ================================================= */
-
-/* Espacement depuis les bords : 10% de la largeur */
-.floating-btn-pause {
-    left: 10vw;
-}
-
-.floating-btn-execute {
-    left: 50%;
-    /* Transform géré dans la section base commune */
-}
-
-.floating-btn-end {
-    right: 10vw;
-    left: auto;
-}
-
-/* ================================================= */
-/* ÉTATS SPÉCIAUX EXECUTESETBTN */
-/* ================================================= */
-
-/* Force l'alignement du bouton central */
-#executeSetBtn {
-    top: 50% !important;
-    transform: translateX(-50%) translateY(-50%) !important;
-}
-
-/* Override les styles de .btn-success pour executeSetBtn */
-#executeSetBtn.btn-success {
-    background: white !important; /* Force le fond blanc */
-    color: inherit !important; /* Empêche le texte blanc */
-    top: 50% !important; /* Force l'alignement vertical */
-    transform: translateX(-50%) translateY(-50%) !important; /* Maintient le centrage */
-    width: 14vw !important; /* Force la même taille */
-    height: 14vw !important;
-    max-width: 70px !important;
-    max-height: 70px !important;
-    padding: 0 !important; /* Retire tout padding hérité */
-    min-height: unset !important; /* Annule min-height hérité */
-}
-
-#executeSetBtn.ready {
-    animation: pulse-floating-subtle 3s infinite;
-    background: white !important; /* Force le fond blanc */
-}
-
-#executeSetBtn.btn-danger {
-    background: white !important; /* Force le fond blanc même en danger */
-}
-
-#executeSetBtn.btn-danger i {
-    color: #ef4444;
-}
-
-/* S'assurer que l'icône reste centrée */
-#executeSetBtn i {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    width: 100% !important;
-    height: 100% !important;
-}
-
-@keyframes pulse-floating-subtle {
-    0%, 100% { 
-        box-shadow: 0 1vw 3vw rgba(16, 185, 129, 0.3),
-                    0 0.5vw 1vw rgba(16, 185, 129, 0.2);
-        border-color: rgba(16, 185, 129, 0.4);
-        /* Pas de transform ici pour éviter les conflits */
-    }
-    50% { 
-        box-shadow: 0 1.5vw 4vw rgba(16, 185, 129, 0.5),
-                    0 0.75vw 1.5vw rgba(16, 185, 129, 0.3);
-        border-color: rgba(16, 185, 129, 0.6);
-        /* Pas de transform ici pour éviter les conflits */
-    }
-}
-
-/* ================================================= */
-/* LIMITES POUR GRANDS ÉCRANS */
-/* ================================================= */
-
-@media (min-width: 1200px) {
-    .floating-btn {
-        border-width: 4px;
-        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.2),
-                    0 6px 12px rgba(0, 0, 0, 0.1);
-    }
-    
-    .floating-btn:hover {
-        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.25),
-                    0 9px 18px rgba(0, 0, 0, 0.15);
-    }
-    
-    @keyframes pulse-floating-subtle {
-        0%, 100% { 
-            box-shadow: 0 12px 36px rgba(16, 185, 129, 0.3),
-                        0 6px 12px rgba(16, 185, 129, 0.2);
-        }
-        50% { 
-            box-shadow: 0 18px 48px rgba(16, 185, 129, 0.5),
-                        0 9px 18px rgba(16, 185, 129, 0.3);
-        }
-    }
-}
-
-/* ================================================= */
-/* PROTECTION CONTENU SCROLLABLE */
-/* ================================================= */
-
-.container {
-    padding-bottom: calc(var(--bottom-nav-height) + 50px);
-}
-
-.main-content {
-    padding-bottom: calc(var(--bottom-nav-height) + 20vw) !important;
-}
-
-@media (min-width: 1200px) {
-    .main-content {
-        padding-bottom: calc(var(--bottom-nav-height) + 100px) !important;
-    }
-}
-
-/* ================================================= */
-/* THÈME SOMBRE */
-/* ================================================= */
-
-@media (prefers-color-scheme: dark) {
-    .floating-workout-bar {
-        background: var(--bg-card);
-        border-image: linear-gradient(90deg, 
-            rgba(156, 156, 156, 0.4) 0%, 
-            rgba(212, 175, 55, 0.6) 50%, 
-            rgba(156, 156, 156, 0.4) 100%) 1;
-    }
-    
-    .floating-btn {
-        background: var(--bg-card);
-        border-color: rgba(255, 255, 255, 0.2);
-    }
-}
-
-/* ================================================= */
-/* MODAL DE FIN DE SÉANCE (conservé) */
+/* MODAL DE FIN DE SÉANCE */
 /* ================================================= */
 
 .workout-end-modal {
@@ -6761,7 +6585,7 @@ span {
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: var(--z-modal);
+    z-index: var(--z-modal, 1000);
     display: none;
 }
 
@@ -6771,6 +6595,7 @@ span {
     justify-content: center;
 }
 
+/* Fond avec blur */
 .workout-end-backdrop {
     position: absolute;
     top: 0;
@@ -6779,165 +6604,166 @@ span {
     bottom: 0;
     background: rgba(0, 0, 0, 0.8);
     backdrop-filter: blur(8px);
-    animation: fadeInBackdrop 0.3s ease;
+    animation: fadeIn 0.3s ease;
 }
 
+/* Contenu du modal */
 .workout-end-content {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: var(--bg-card);
-    border-radius: var(--radius);
-    padding: var(--spacing-xl);
+    position: relative;
+    background: var(--bg-card, #1e293b);
+    border-radius: 12px;
+    padding: 2rem;
     text-align: center;
-    animation: slideInModal 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid var(--border);
+    animation: slideIn 0.4s ease;
+    border: 1px solid var(--border, #334155);
     max-width: 90vw;
     width: 400px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
 }
 
 .workout-end-content h3 {
-    margin: 0 0 var(--spacing-lg) 0;
-    color: var(--text);
-    font-size: var(--font-xl);
+    margin: 0 0 1.5rem 0;
+    color: var(--text, #f8fafc);
+    font-size: 1.5rem;
 }
 
+/* Actions du modal */
 .workout-end-actions {
     display: flex;
-    gap: var(--spacing-md);
+    gap: 1rem;
     justify-content: center;
+    margin-bottom: 1rem;
 }
 
-.workout-end-actions button {
+/* Boutons du modal */
+.floating-btn-complete,
+.floating-btn-abandon {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--spacing-xs);
-    padding: var(--spacing-md);
-    border: 2px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--bg-secondary);
-    color: var(--text);
+    gap: 0.5rem;
+    padding: 1rem;
+    border: 2px solid;
+    border-radius: 12px;
     cursor: pointer;
     transition: all 0.2s ease;
     min-width: 120px;
 }
 
-.workout-end-actions button:hover {
-    border-color: var(--primary);
-    background: var(--bg-tertiary);
-    transform: translateY(-1px);
-}
-
-.workout-end-actions button i {
-    font-size: 1.5rem;
-}
-
-.workout-end-actions button:first-child {
-    border-color: var(--success);
-    color: var(--success);
-}
-
-.workout-end-actions button:first-child:hover {
-    border-color: var(--success);
-    background: rgba(34, 197, 94, 0.1);
-}
-
-.workout-end-actions button:last-child {
-    border-color: var(--danger);
-    color: var(--danger);
-}
-
-.workout-end-actions button:last-child:hover {
-    border-color: var(--danger);
-    background: rgba(239, 68, 68, 0.1);
-}
-
-/* Animations modal */
-@keyframes fadeInBackdrop {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@keyframes slideInModal {
-    from { 
-        opacity: 0; 
-        transform: translate(-50%, -50%) scale(0.9);
-    }
-    to { 
-        opacity: 1; 
-        transform: translate(-50%, -50%) scale(1);
-    }
-}
-
-/* ================================================= */
-/* BOUTONS MODAL COMPLÈTE/ABANDON */
-/* ================================================= */
-
-.floating-btn-complete i {
-    color: #10b981;
-}
-
-.floating-btn-abandon i {
-    color: #ef4444;
-}
-
-.floating-btn-complete span,
-.floating-btn-abandon span {
-    font-size: 0.65rem;
-    font-weight: 600;
-    color: var(--text-muted);
-}
-
 .floating-btn-complete {
     background: linear-gradient(135deg, #10b981, #059669);
+    border-color: #10b981;
+    color: white;
 }
 
 .floating-btn-abandon {
     background: linear-gradient(135deg, #ef4444, #dc2626);
+    border-color: #ef4444;
+    color: white;
 }
 
-/* ================================================= */
-/* BOUTON ANNULER MODAL */
-/* ================================================= */
+.floating-btn-complete:hover,
+.floating-btn-abandon:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
 
+.floating-btn-complete i,
+.floating-btn-abandon i {
+    font-size: 1.5rem;
+    color: white;
+}
+
+.floating-btn-complete span,
+.floating-btn-abandon span {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: white;
+}
+
+/* Bouton annuler */
 .modal-cancel {
     background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text-muted);
-    padding: var(--spacing-sm) var(--spacing-lg);
-    border-radius: var(--radius);
+    border: 1px solid var(--border, #334155);
+    color: var(--text-muted, #94a3b8);
+    padding: 0.5rem 1.5rem;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .modal-cancel:hover {
-    background: var(--bg-light);
-    color: var(--text);
+    background: var(--bg-light, #334155);
+    color: var(--text, #f8fafc);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideIn {
+    from { 
+        opacity: 0; 
+        transform: scale(0.9);
+    }
+    to { 
+        opacity: 1; 
+        transform: scale(1);
+    }
 }
 
 /* ================================================= */
-/* ANIMATION PULSE SUBTLE */
+/* RESPONSIVE */
 /* ================================================= */
 
-@keyframes pulse-subtle {
-    0%, 100% { 
-        opacity: 1; 
-        transform: scale(1); 
+@media (max-width: 768px) {
+    .floating-workout-actions-content {
+        gap: 60px;
     }
-    50% { 
-        opacity: 0.9; 
-        transform: scale(1.02); 
+    
+    .floating-btn {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .floating-btn-execute {
+        width: 70px;
+        height: 70px;
+    }
+    
+    .floating-btn i {
+        font-size: 1.2rem;
+    }
+    
+    .floating-btn-execute i {
+        font-size: 1.6rem;
+    }
+}
+
+/* Protection du contenu scrollable */
+.container,
+.main-content {
+    padding-bottom: calc(var(--bottom-nav-height, 70px) + 100px) !important;
+}
+
+/* Mode sombre */
+@media (prefers-color-scheme: dark) {
+    .floating-workout-bar {
+        background: var(--bg-card, #1e293b);
+        border-color: var(--border, #334155);
+    }
+    
+    .floating-btn {
+        background: var(--bg-card, #1e293b);
+        border-color: rgba(255, 255, 255, 0.2);
     }
 }
 
 /* ================================================= */
 /* FIN SECTION BARRE FLOTTANTE */
 /* ================================================= */
-
-
 
 
 

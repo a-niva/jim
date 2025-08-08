@@ -2368,7 +2368,7 @@ function updateExecuteButtonState(state = 'ready') {
     
     switch (state) {
         case 'ready':
-            executeBtn.classList.add('ready', 'btn-success');
+            executeBtn.classList.add('ready');
             executeBtn.innerHTML = '<i class="fas fa-check"></i>';
             executeBtn.onclick = executeSet;
             break;
