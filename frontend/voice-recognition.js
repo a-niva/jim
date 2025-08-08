@@ -728,41 +728,43 @@ function handleEndCommand() {
     // Arrêter reconnaissance vocale et calculer confiance finale
     stopVoiceRecognition();
     
-    // NOUVEAU : VALIDATION FINALE basée sur confiance
+    // VALIDATION FINALE basée sur confiance
     const finalConfidence = calculateConfidence();
     voiceData.confidence = finalConfidence;
     
     console.log(`[Voice] Confiance finale calculée: ${(finalConfidence * 100).toFixed(1)}%`);
     
     // TOUJOURS préparer les données vocales pour executeSet
-    voiceState = 'CONFIRMED';
     window.voiceData = voiceData;
     window.voiceState = voiceState;
     
-    // DÉCISION : Afficher validation UI si confiance faible
-    if (finalConfidence < 0.7 || voiceData.gaps.length > 0) {
-        console.log('[Voice] Confiance faible ou gaps détectés - Affichage validation UI');
+    // DÉCISION : Validation automatique si confiance >= 0.8 ET pas de gaps
+    if (finalConfidence >= 0.8 && voiceData.gaps.length === 0) {
+        console.log('[Voice] Confiance suffisante (>= 0.8) et pas de gaps - Validation automatique');
+        
+        // Marquer comme validé et confirmer automatiquement
+        voiceData.validated = true;
+        voiceState = 'CONFIRMED';
+        window.voiceData = voiceData;
+        window.voiceState = voiceState;
+        
+        // Confirmer et déclencher executeSet automatiquement
+        confirmFinalCount(voiceData.count);
+        
+    } else {
+        // Confiance faible OU gaps détectés - Validation manuelle requise
+        console.log('[Voice] Validation manuelle requise - Confiance:', finalConfidence.toFixed(2), 'Gaps:', voiceData.gaps.length);
         
         // Forcer affichage UI de validation
         voiceState = 'VALIDATING';
+        window.voiceState = voiceState;
         showValidationUI(voiceData.count, finalConfidence);
         
-        // Timer de validation SANS executeSet automatique
+        // Timer de validation (4s) puis confirmation sans executeSet automatique
         timers.set('validation', setTimeout(() => {
-            console.log('[Voice] Timeout validation - Données prêtes');
+            console.log('[Voice] Timeout validation - Confirmation count');
             confirmFinalCount(voiceData.count);
-            // Utilisateur doit cliquer le bouton executeSet
         }, 4000));
-        
-    } else {
-        // Confiance suffisante - afficher bouton executeSet
-        console.log('[Voice] Confiance suffisante - Affichage bouton validation');
-        
-        const executeBtn = document.getElementById('executeSetBtn');
-        if (executeBtn) {
-            executeBtn.style.display = 'block';
-            executeBtn.classList.add('btn-success');
-        }
     }
     
     // Reset mutex après délai sécurité
@@ -1554,11 +1556,17 @@ function showSubtleConfirmation(count) {
  * @param {number} finalCount - Count définitif validé
  */
 function confirmFinalCount(finalCount) {
+    // Empêcher double confirmation
+    if (voiceState === 'CONFIRMED' && voiceData.validated) {
+        console.log('[Voice] Déjà confirmé, ignore');
+        return;
+    }
+    
     // Enregistrer métriques de validation
-    const isAutoValidation = voiceState === 'AUTO_VALIDATING';
+    const isAutoValidation = voiceState === 'AUTO_VALIDATING' || voiceData.validated;
     const startTime = voiceData.startTime || Date.now();
     recordValidationMetrics(isAutoValidation, startTime);
-        
+    
     // Arrêter écoute passive si active
     if (VOICE_FEATURES.voice_correction) {
         stopPassiveListening();
@@ -1567,31 +1575,80 @@ function confirmFinalCount(finalCount) {
     // Finaliser les données
     voiceData.count = finalCount;
     voiceData.needsValidation = false;
+    voiceData.validated = true; // IMPORTANT: Marquer comme validé
     voiceState = 'CONFIRMED';
     
     // Nettoyer l'interface
     clearValidationUI();
     
+    // INTERPOLATION SILENCIEUSE si gaps présents
+    if (voiceData.gaps.length > 0) {
+        console.log(`[Voice] ${voiceData.gaps.length} gaps détectés - Calcul interpolation silencieux`);
+        
+        // Calculer tempo moyen des reps existantes
+        const avgTempo = calculateAvgTempo(voiceData.timestamps);
+        
+        // Créer timestamps interpolés pour analyse ML
+        const interpolatedTimestamps = [];
+        let lastTime = voiceData.timestamps[0] || voiceData.startTime;
+        
+        for (let i = 1; i <= voiceData.count; i++) {
+            if (voiceData.gaps.includes(i)) {
+                // Gap: ajouter timestamp interpolé
+                lastTime += avgTempo;
+                interpolatedTimestamps.push(lastTime);
+            } else {
+                // Rep réelle: utiliser timestamp existant
+                const realIndex = voiceData.timestamps.findIndex((t, idx) => {
+                    const prevGaps = voiceData.gaps.filter(g => g <= i).length;
+                    return idx === (i - prevGaps - 1);
+                });
+                if (realIndex >= 0) {
+                    lastTime = voiceData.timestamps[realIndex];
+                    interpolatedTimestamps.push(lastTime);
+                }
+            }
+        }
+        
+        // Stocker les données interpolées pour ML
+        voiceData.interpolated_timestamps = interpolatedTimestamps;
+        voiceData.tempo_avg_interpolated = calculateAvgTempo(interpolatedTimestamps);
+        
+        console.log('[Voice] Interpolation calculée - Tempo interpolé:', voiceData.tempo_avg_interpolated);
+    }
+    
     // Exposer globalement pour executeSet
     window.voiceData = voiceData;
     window.voiceState = voiceState;
-
-    // NOUVEAU - Déclencher executeSet automatiquement
-    if (VOICE_FEATURES.auto_validation && typeof window.executeSet === 'function') {
-        console.log('[Voice] Déclenchement automatique executeSet()');
+    
+    // UN SEUL appel à executeSet si validation automatique OU bouton cliqué
+    const executeBtn = document.getElementById('executeSetBtn');
+    const shouldAutoExecute = voiceData.validated && 
+                             voiceData.confidence >= 0.8 && 
+                             voiceData.gaps.length === 0;
+    
+    if (shouldAutoExecute || (executeBtn && executeBtn.style.display === 'block')) {
+        console.log('[Voice] Déclenchement executeSet()');
         
         // Micro-délai pour fluidité visuelle
         setTimeout(() => {
-            window.executeSet();
+            if (typeof window.executeSet === 'function') {
+                window.executeSet();
+            }
             
             // Reset état après exécution
             setTimeout(() => {
                 resetVoiceState();
             }, 200);
         }, 50);
+    } else {
+        // Afficher le bouton pour validation manuelle
+        if (executeBtn) {
+            executeBtn.style.display = 'block';
+        }
     }
     
-    console.log(`[Voice] Count final confirmé: ${finalCount} - État: ${voiceState}`);
+    console.log(`[Voice] Count final confirmé: ${finalCount} - État: ${voiceState}, Validé: ${voiceData.validated}`);
 }
 
 /**

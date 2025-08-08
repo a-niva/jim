@@ -9955,7 +9955,7 @@ async function executeSet() {
         };
         console.log('[ExecuteSet] pendingSetData initialisé');
     }
-    
+
     try {
         console.log('=== EXECUTE SET APPELÉ ===');
         // AJOUTER au tout début de executeSet() :
@@ -10116,7 +10116,41 @@ async function executeSet() {
                 voiceDataPrepared: !!voiceData
             });
         }
-        
+
+        // Vérification données vocales non validées AVANT de continuer
+        if (voiceData && !voiceData.validated) {
+            const needsValidation = (voiceData.confidence < 0.8) || (voiceData.gaps.length > 0);
+            
+            if (needsValidation) {
+                console.log('[Voice] Validation requise avant exécution');
+                console.log('- Confiance:', voiceData.confidence);
+                console.log('- Gaps:', voiceData.gaps.length);
+                
+                // Réinitialiser le flag d'exécution
+                setExecutionInProgress = false;
+                window.setExecutionInProgress = false;
+                
+                // Forcer l'état de validation
+                window.voiceState = 'VALIDATING';
+                
+                // Afficher UI validation avec les données actuelles
+                if (window.showValidationUI) {
+                    window.voiceData = {
+                        ...window.voiceData,
+                        count: voiceData.count,
+                        gaps: voiceData.gaps,
+                        confidence: voiceData.confidence,
+                        timestamps: window.voiceData?.timestamps || []
+                    };
+                    window.showValidationUI(voiceData.count, voiceData.confidence);
+                } else {
+                    console.error('[Voice] showValidationUI non disponible');
+                }
+                
+                return; // STOP - attendre validation utilisateur
+            }
+        }
+       
         // === SAUVEGARDER DONNÉES SÉRIE PAR TYPE D'EXERCICE (CONSERVÉ + ENRICHI) ===
         const isBodyweight = currentExercise.weight_type === 'bodyweight';
 
