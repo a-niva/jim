@@ -8817,16 +8817,16 @@ async function loadAvailableExercises() {
                             </button>
                         </div>
                         <div class="muscle-tabs-row">
-                        ${Object.entries(exercisesByMuscle)
-                            .filter(([muscle, exercises]) => muscle !== 'favoris' && exercises.length > 0)
-                            .map(([muscle, exercises]) => `
-                                <button class="muscle-tab" data-muscle="${muscle}" onclick="filterByMuscleGroup('${muscle}')" 
-                                        title="${muscle.charAt(0).toUpperCase() + muscle.slice(1)} (${exercises.length})">
-                                    <span class="tab-icon">${muscleIcons[muscle]}</span>
-                                </button>
-                            `).join('')}
+                            ${Object.entries(exercisesByMuscle)
+                                .filter(([muscle, exercises]) => muscle !== 'favoris' && exercises.length > 0)
+                                .map(([muscle, exercises]) => `
+                                    <button class="muscle-tab" data-muscle="${muscle}" onclick="filterByMuscleGroup('${muscle}')"
+                                            title="${muscle.charAt(0).toUpperCase() + muscle.slice(1)} (${exercises.length})">
+                                        <span class="tab-icon">${muscleIcons[muscle]}</span>
+                                    </button>
+                                `).join('')}
+                        </div>
                     </div>
-                </div>
 
                 <!-- AJOUTER : Filtres équipement -->
                 <div class="equipment-filters">
