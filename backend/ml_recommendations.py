@@ -505,12 +505,7 @@ class FitnessRecommendationEngine:
                 original_weight = weight_recommendation
                 weight_recommendation = int(round(weight_recommendation / 2)) * 2
                 reasoning += f" Ajusté de {original_weight:.1f}kg à {weight_recommendation}kg pour paire d'haltères."
-        
-        # Validation simple : respect du poids minimum équipement
-        if recommended_weight and available_weights and recommended_weight < min(available_weights):
-            recommended_weight = min(available_weights)
-            logger.info(f"Poids ajusté au minimum équipement: {recommended_weight}kg")
-                    
+                
         return {
             'weight': weight_recommendation,
             'reps': reps_recommendation,
@@ -987,12 +982,6 @@ class FitnessRecommendationEngine:
         if available_weights and recommended_weight is not None:
             closest = min(available_weights, key=lambda x: abs(x - recommended_weight))
             recommended_weight = closest
-
-        # Validation simple : respect du poids minimum équipement
-        if recommended_weight and available_weights and recommended_weight < min(available_weights):
-            recommended_weight = min(available_weights)
-            logger.info(f"Poids ajusté au minimum équipement: {recommended_weight}kg") 
-               
         return {
             'weight': recommended_weight,
             'reps': recommended_reps,

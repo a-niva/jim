@@ -4266,7 +4266,7 @@ function toggleVoiceRecognition() {
                 window.scheduleStandardValidation?.();
             }
         }
-        window.updateMicrophoneVisualState('inactive');
+        window.updateMicrophoneVisualState('inactive'); // Ajouter cette ligne
         
     } else {
         // DÉMARRAGE - Vérifier état séance
@@ -4925,9 +4925,9 @@ function applyWeightStrategy(mlRecommendation, sessionSets, currentUser, current
     // Validation critique : poids minimum = poids de la barre
     const barWeight = getBarWeight(currentExercise);
     const validatedWeight = Math.max(barWeight, appliedWeight || barWeight);
-
-    if (validatedWeight !== appliedWeight && appliedWeight > 0) {
-        console.log(`[Strategy] Poids ajusté: ${appliedWeight}kg → ${validatedWeight}kg (min: ${barWeight}kg)`);
+    
+    if (validatedWeight !== appliedWeight) {
+        console.warn(`[Strategy] Poids ajusté: ${appliedWeight}kg → ${validatedWeight}kg (min: ${barWeight}kg)`);
         appliedWeight = validatedWeight;
     }
     
@@ -6105,7 +6105,6 @@ async function configureWeighted(elements, exercise, weightRec) {
     
     // IMPORTANT : Initialiser currentExerciseRealWeight avec le poids TOTAL validé
     currentExerciseRealWeight = closestWeight || validatedRec;
-    currentExerciseRealWeight = Math.max(barWeight, currentExerciseRealWeight || barWeight);
     console.log('[ConfigureWeighted] Poids réel initialisé:', currentExerciseRealWeight);
     
     // Configurer les contrôles d'ajustement
@@ -10179,15 +10178,12 @@ async function executeSet() {
                 document.getElementById('setReps').textContent = repsValue;
             }
             
-            // IMPORTANT : Utiliser currentExerciseRealWeight (code existant)
-            finalWeight = currentExerciseRealWeight;
-            
-            // Validation de sécurité
+            // Validation simple
             const barWeight = getBarWeight(currentExercise);
-            if (finalWeight < barWeight) {
-                console.error(`[ExecuteSet] Poids final invalide: ${finalWeight}kg < ${barWeight}kg`);
-                showToast('Erreur: poids insuffisant', 'error');
-                return;
+            finalWeight = Math.max(barWeight, currentExerciseRealWeight);
+
+            if (finalWeight !== currentExerciseRealWeight) {
+                console.log(`[ExecuteSet] Poids corrigé: ${currentExerciseRealWeight}kg → ${finalWeight}kg`);
             }
             
             console.log('[ExecuteSet] Utilisation poids TOTAL de référence:', finalWeight);
