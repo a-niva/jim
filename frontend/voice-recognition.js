@@ -202,7 +202,6 @@ let currentMicState = 'inactive';
 let domCache = {
     voiceContainer: null,
     voiceIcon: null,
-    voiceText: null,
     voiceBtn: null,
     currentRepEl: null,
     targetRepEl: null
@@ -242,7 +241,6 @@ function initDOMCache() {
     domCache.voiceContainer = document.getElementById('voiceStatusContainer');
     if (domCache.voiceContainer) {
         domCache.voiceIcon = domCache.voiceContainer.querySelector('#voiceStatusIcon');
-        domCache.voiceText = domCache.voiceContainer.querySelector('#voiceStatusText');
         domCache.voiceBtn = domCache.voiceContainer.querySelector('#voiceStatusBtn');
     }
     domCache.currentRepEl = document.getElementById('currentRep');
@@ -294,7 +292,7 @@ function updateMicrophoneVisualState(state) {
     
     // Utiliser requestAnimationFrame pour regrouper les updates DOM
     requestAnimationFrame(() => {
-        const { voiceContainer, voiceIcon, voiceText, voiceBtn } = domCache;
+        const { voiceContainer, voiceIcon, voiceBtn } = domCache;
         // Reset classes en une seule opération :
         voiceBtn.className = 'voice-status-btn';
         voiceIcon.className = ''; // AJOUTER CETTE LIGNE pour reset complet
@@ -304,14 +302,12 @@ function updateMicrophoneVisualState(state) {
             case 'inactive':
                 voiceIcon.className = 'fas fa-microphone';
                 voiceIcon.style.color = '#6b7280';
-                voiceText.textContent = 'Micro prêt';
                 voiceBtn.classList.remove('pulse', 'shake', 'shake-error');
                 break;
                 
             case 'listening':
                 voiceIcon.className = 'fas fa-microphone';
                 voiceIcon.style.color = '#22c55e';
-                voiceText.textContent = 'Écoute en cours...';
                 voiceBtn.classList.add('pulse'); // Animation sur le bouton
                 break;
                 
@@ -319,14 +315,12 @@ function updateMicrophoneVisualState(state) {
                 voiceIcon.className = 'fas fa-microphone';
                 voiceIcon.style.color = '#3b82f6';
                 voiceIcon.style.opacity = '0.8';
-                voiceText.textContent = 'Cliquez pour activer';
                 voiceBtn.classList.add('shake');
                 break;
                 
             case 'error':
                 voiceIcon.className = 'fas fa-microphone-slash';
                 voiceIcon.style.color = '#ef4444';
-                voiceText.textContent = 'Erreur microphone';
                 voiceBtn.classList.add('shake-error');
                 break;
         }
@@ -2281,8 +2275,7 @@ function getVoiceSystemHealth() {
         
         // État DOM
         voiceContainer: !!document.getElementById('voiceStatusContainer'),
-        voiceIcon: !!document.querySelector('#voiceStatusIcon'),
-        voiceText: !!document.querySelector('#voiceStatusText'),
+        voiceIcon: !!document.querySelector('#voiceStatusIcon')
         
         // État données
         currentMicState: currentMicState,
