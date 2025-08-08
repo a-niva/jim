@@ -384,7 +384,11 @@ function updateRepDisplayModern(currentRep, targetRep, options = {}) {
     const nextRepPreviewEl = document.getElementById('nextRepPreview');
     const repsDisplayEl = document.getElementById('repsDisplay');
     const backwardCompatEl = document.getElementById('setReps');
-    
+    // Si pas de target fourni, lire depuis DOM
+    if (targetRep === null || targetRep === undefined) {
+        targetRep = parseInt(targetRepEl.textContent) || 12;
+    }
+
     if (!currentRepEl || !targetRepEl) {
         console.warn('[RepsDisplay] Éléments manquants, fallback mode simple');
         if (backwardCompatEl) backwardCompatEl.textContent = currentRep;
@@ -5338,73 +5342,6 @@ function waitForElement(selector, timeout = 1000) {
 }
 
 /**
- * Met à jour l'affichage moderne des reps avec animations
- * @param {number} currentRep - Répétition actuelle
- * @param {number} targetRep - Objectif (optionnel)
- * @param {Object} options - Options d'animation
- */
-function updateRepDisplayModern(currentRep, targetRep = null, options = {}) {
-    const repsDisplayEl = document.getElementById('repsDisplay');
-    if (!repsDisplayEl) {
-        console.warn('[UI] Interface N/R non trouvée');
-        return;
-    }
-    
-    const currentRepEl = document.getElementById('currentRep');
-    const targetRepEl = document.getElementById('targetRep');
-    const nextRepPreviewEl = document.getElementById('nextRepPreview');
-    
-    if (!currentRepEl || !targetRepEl) {
-        console.error('[UI] Éléments N/R manquants');
-        return;
-    }
-    
-    // Si pas de target fourni, lire depuis DOM
-    if (targetRep === null) {
-        targetRep = parseInt(targetRepEl.textContent) || 12;
-    }
-    
-    // Animation de transition pour current
-    if (currentRepEl.textContent !== currentRep.toString()) {
-        currentRepEl.classList.add('updating');
-        
-        setTimeout(() => {
-            currentRepEl.textContent = currentRep;
-            currentRepEl.classList.remove('updating');
-            
-            // État dépassement objectif
-            if (currentRep > targetRep) {
-                currentRepEl.classList.add('exceeded');
-                // Pulse effect
-                setTimeout(() => currentRepEl.classList.remove('exceeded'), 600);
-            }
-        }, 150);
-    }
-    
-    // Mise à jour target si changé
-    if (targetRepEl.textContent !== targetRep.toString()) {
-        targetRepEl.textContent = targetRep;
-    }
-    
-    // Preview N+1 intelligent
-    const nextRep = currentRep + 1;
-    if (currentRep > 0 && currentRep < targetRep) {
-        nextRepPreviewEl.textContent = nextRep;
-        nextRepPreviewEl.classList.add('visible');
-    } else {
-        nextRepPreviewEl.classList.remove('visible');
-        nextRepPreviewEl.textContent = ''; // Vider le contenu
-    }
-    
-    // Gestion des options (erreur vocale, etc.)
-    if (options.voiceError) {
-        applyVoiceErrorState(options.errorType || 'generic');
-    }
-    
-    console.log(`[UI] Reps mis à jour: ${currentRep}/${targetRep}`);
-}
-
-/**
  * Applique l'état d'erreur visuel pour feedback vocal
  * @param {string} errorType - Type d'erreur ('jump'|'repeat'|'invalid')
  * @param {number} duration - Durée en ms (défaut 1000)
@@ -5438,109 +5375,6 @@ function applyVoiceErrorState(errorType = 'generic', duration = 1000) {
     
     console.log(`[UI] État erreur appliqué: ${errorType}`);
 }
-
-// Met à jour l'interface N/R avec animation
-function updateRepDisplayModern(currentRep, targetRep, options = {}) {
-    const currentRepEl = document.getElementById('currentRep');
-    const targetRepEl = document.getElementById('targetRep');
-    const nextRepPreviewEl = document.getElementById('nextRepPreview');
-    const repsDisplayEl = document.getElementById('repsDisplay');
-    const backwardCompatEl = document.getElementById('setReps');
-    
-    if (!currentRepEl || !targetRepEl) {
-        console.warn('[RepsDisplay] Éléments manquants, fallback mode simple');
-        if (backwardCompatEl) backwardCompatEl.textContent = currentRep;
-        return;
-    }
-    
-    // Animation transition nombre actuel
-    if (currentRepEl.textContent !== currentRep.toString()) {
-        currentRepEl.classList.add('updating');
-        
-        setTimeout(() => {
-            currentRepEl.textContent = currentRep;
-            currentRepEl.classList.remove('updating');
-            
-            // État dépassement objectif
-            if (currentRep > targetRep) {
-                currentRepEl.classList.add('exceeded');
-                setTimeout(() => currentRepEl.classList.remove('exceeded'), 600);
-            }
-        }, 125);
-    }
-    
-    // Mise à jour target si changé
-    if (targetRepEl.textContent !== targetRep.toString()) {
-        targetRepEl.textContent = targetRep;
-    }
-    
-    // Preview N+1 intelligent
-    const nextRep = currentRep + 1;
-    if (currentRep > 0 && currentRep < targetRep) {
-        nextRepPreviewEl.textContent = nextRep;
-        nextRepPreviewEl.classList.add('visible');
-    } else {
-        nextRepPreviewEl.classList.remove('visible');
-        nextRepPreviewEl.textContent = ''; // Vider le contenu
-    }
-    
-    // PHASE 4 - Gestion indicateur progression interpolation
-    let existingProgressEl = repsDisplayEl.querySelector('.interpolation-progress');
-    
-    if (options.interpolating && options.interpolationProgress) {
-        if (!existingProgressEl) {
-            existingProgressEl = document.createElement('div');
-            existingProgressEl.className = 'interpolation-progress';
-            repsDisplayEl.appendChild(existingProgressEl);
-        }
-        existingProgressEl.textContent = options.interpolationProgress;
-    } else if (existingProgressEl) {
-        // Nettoyer indicateur si plus d'interpolation
-        existingProgressEl.remove();
-    }
-    
-    // PHASE 4 - États visuels système vocal améliorés
-    if (options.interpolating) {
-        repsDisplayEl.className = 'reps-display-modern interpolating';
-        console.log(`[RepsDisplay] Mode interpolation: ${options.interpolationProgress}`);
-        
-    } else if (options.voiceError) {
-        // PHASE 4 - États erreur spécifiques
-        const errorClass = options.errorType ? `voice-error ${options.errorType}` : 'voice-error';
-        repsDisplayEl.className = `reps-display-modern ${errorClass}`;
-        
-        // PHASE 4 - Message erreur optionnel
-        if (options.errorMessage) {
-            console.log(`[RepsDisplay] Erreur: ${options.errorMessage}`);
-        }
-        
-        setTimeout(() => {
-            repsDisplayEl.className = 'reps-display-modern voice-active';
-        }, 800);
-        
-    } else if (options.voiceValidating) {
-        repsDisplayEl.className = 'reps-display-modern voice-validating';
-        
-    } else if (options.voiceActive) {
-        repsDisplayEl.className = 'reps-display-modern voice-active';
-        
-    } else if (options.readyState) {
-        // PHASE 4 - État ready avec objectif affiché
-        repsDisplayEl.className = 'reps-display-modern ready-state';
-        currentRepEl.textContent = '0'; // Force l'affichage 0 en ready
-        
-    } else {
-        repsDisplayEl.className = 'reps-display-modern';
-    }
-    
-    // Backward compatibility critique
-    if (backwardCompatEl) {
-        backwardCompatEl.textContent = currentRep;
-    }
-    
-    console.log(`[RepsDisplay] Mis à jour: ${currentRep}/${targetRep}, État: ${repsDisplayEl.className}`);
-}
-
 
 // Transition vers état prêt avec objectif affiché
 function transitionToReadyState() {
