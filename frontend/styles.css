@@ -6549,9 +6549,11 @@ span {
 
 /* Bouton central plus grand */
 .floating-btn-execute {
+    left: 50%;
+    top: 50%;
+    transform: translateX(-50%) translateY(-50%) scale(0);
     width: 80px;
     height: 80px;
-    transform: translateX(-50%) translateY(-50%) scale(0); /* ← AJOUT de cette ligne */
 }
 
 .floating-btn-end {
@@ -6570,12 +6572,6 @@ span {
 
 .floating-workout-actions.show .floating-btn-end {
     animation: buttonPop 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.9s forwards;
-}
-
-/* Bouton central plus grand */
-.floating-btn-execute {
-    width: 80px;
-    height: 80px;
 }
 
 /* Couleurs des icônes */
