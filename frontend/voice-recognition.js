@@ -93,6 +93,14 @@ const FRENCH_NUMBERS = new Map([
     ['quarante-neuf', 49], ['49', 49],
     ['cinquante', 50], ['50', 50]
 ]);
+// Index inversé pour recherche rapide
+const NUMBERS_TO_TEXT = new Map();
+for (let [text, num] of FRENCH_NUMBERS) {
+    if (!NUMBERS_TO_TEXT.has(num)) {
+        NUMBERS_TO_TEXT.set(num, []);
+    }
+    NUMBERS_TO_TEXT.get(num).push(text);
+}
 
 const QUICK_PATTERNS = new Set(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']);
 
@@ -130,7 +138,40 @@ const CORRECTION_PATTERNS = [
     /rectifier\s+(\d+)/,            // "rectifier 15"
     /correction\s+(un|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|treize|quatorze|quinze|seize|dix-sept|dix-huit|dix-neuf|vingt|vingt-et-un|vingt-deux|vingt-trois|vingt-quatre|vingt-cinq|vingt-six|vingt-sept|vingt-huit|vingt-neuf|trente|trente-et-un|trente-deux|trente-trois|trente-quatre|trente-cinq|trente-six|trente-sept|trente-huit|trente-neuf|quarante|quarante-et-un|quarante-deux|quarante-trois|quarante-quatre|quarante-cinq|quarante-six|quarante-sept|quarante-huit|quarante-neuf|cinquante)/ // "correction trente-cinq"
 ];
+
+// Cache avec limite de taille
 const recognitionCache = new Map();
+const MAX_CACHE_SIZE = 100;
+
+function addToCache(key, value) {
+    // Limite la taille du cache
+    if (recognitionCache.size >= MAX_CACHE_SIZE) {
+        const firstKey = recognitionCache.keys().next().value;
+        recognitionCache.delete(firstKey);
+    }
+    recognitionCache.set(key, value);
+}
+
+// Debounce pour éviter updates DOM trop fréquentes
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Version debounced de updateRepDisplayModern
+const debouncedUpdateDisplay = debounce((count, target, options) => {
+    if (window.updateRepDisplayModern) {
+        window.updateRepDisplayModern(count, target, options);
+    }
+}, 150); // 150ms de délai
+
 
 // SYSTÈME DE PRÉDICTION
 let predictedNext = 1;
@@ -154,6 +195,51 @@ let validationMode = VALIDATION_LEVELS.STRICT; // Mode par défaut Phase 4
 
 // États visuels du micro
 let currentMicState = 'inactive';
+
+// Cache DOM pour éviter querySelector répétitifs
+let domCache = {
+    voiceContainer: null,
+    voiceIcon: null,
+    voiceText: null,
+    voiceBtn: null,
+    currentRepEl: null,
+    targetRepEl: null
+};
+
+// Gestionnaire centralisé des timers
+const timers = {
+    validation: null,
+    autoValidation: null,
+    correction: null,
+    
+    clear(timerName) {
+        if (this[timerName]) {
+            clearTimeout(this[timerName]);
+            this[timerName] = null;
+        }
+    },
+    
+    clearAll() {
+        Object.keys(this).forEach(key => {
+            if (typeof this[key] === 'number') {
+                clearTimeout(this[key]);
+                this[key] = null;
+            }
+        });
+    }
+};
+
+// Initialiser le cache une seule fois
+function initDOMCache() {
+    domCache.voiceContainer = document.getElementById('voiceStatusContainer');
+    if (domCache.voiceContainer) {
+        domCache.voiceIcon = domCache.voiceContainer.querySelector('#voiceStatusIcon');
+        domCache.voiceText = domCache.voiceContainer.querySelector('#voiceStatusText');
+        domCache.voiceBtn = domCache.voiceContainer.querySelector('#voiceStatusBtn');
+    }
+    domCache.currentRepEl = document.getElementById('currentRep');
+    domCache.targetRepEl = document.getElementById('targetRep');
+}
 
 // Vérifier les permissions au démarrage des séances
 async function checkMicrophonePermissions() {
@@ -188,72 +274,55 @@ function hideVoiceStatus() {
 window.hideVoiceStatus = hideVoiceStatus;
 
 // Met à jour l'état visuel du microphone - {'inactive'|'listening'|'processing'|'error'} state - État du micro
-/**
- * Mise à jour état visuel micro - SYSTÈME UNIFIÉ
- */
+// Version optimisée avec cache DOM et RAF
 function updateMicrophoneVisualState(state) {
-    console.log(`[Voice] Changement état micro: ${state}`);
-    
-    // SYSTÈME MODERNE - UNIQUE SOURCE DE VÉRITÉ
-    const voiceContainer = document.getElementById('voiceStatusContainer');
-    const voiceIcon = voiceContainer?.querySelector('#voiceStatusIcon');
-    const voiceText = voiceContainer?.querySelector('#voiceStatusText');
-    const voiceBtn = voiceContainer?.querySelector('#voiceStatusBtn');
-    
-    if (!voiceContainer || !voiceIcon || !voiceText || !voiceBtn) {
-        console.warn('[Voice] Éléments micro statiques non trouvés pour état:', state);
-        return;
+    if (!domCache.voiceContainer) {
+        initDOMCache();
+        if (!domCache.voiceContainer) return;
     }
     
-    // S'assurer que le container est visible si vocal activé
-    if (currentUser?.voice_counting_enabled && state !== 'inactive') {
-        voiceContainer.style.display = 'flex';
-    }
+    // Éviter updates inutiles
+    if (currentMicState === state) return;
     
-    // Animation transition
-    voiceContainer.classList.add('transitioning');
-    setTimeout(() => voiceContainer.classList.remove('transitioning'), 300);
-    
-    // Application état selon state
-    switch(state) {
-        case 'inactive':
-            voiceIcon.className = 'fas fa-microphone ready';
-            voiceText.textContent = 'Micro prêt';
-            voiceBtn.classList.remove('active');
-            break;
-            
-        case 'listening':
-            voiceIcon.className = 'fas fa-microphone active';
-            voiceText.textContent = 'Écoute en cours...';
-            voiceBtn.classList.add('active');
-            break;
-            
-        case 'processing':
-            voiceIcon.className = 'fas fa-microphone ready';
-            voiceText.textContent = 'Traitement...';
-            voiceBtn.classList.add('active');
-            break;
-            
-        case 'error':
-            voiceIcon.className = 'fas fa-microphone-slash unavailable';
-            voiceText.textContent = 'Erreur microphone';
-            voiceBtn.classList.remove('active');
-            // Auto-recovery après 3s
-            setTimeout(() => {
-                if (!voiceRecognitionActive) {
-                    updateMicrophoneVisualState('inactive');
-                }
-            }, 3000);
-            break;
-            
-        case 'validating':
-            voiceIcon.className = 'fas fa-microphone ready';
-            voiceText.textContent = 'Validation...';
-            voiceBtn.classList.add('active');
-            break;
-    }
-    
-    currentMicState = state;
+    // Utiliser requestAnimationFrame pour regrouper les updates DOM
+    requestAnimationFrame(() => {
+        const { voiceContainer, voiceIcon, voiceText, voiceBtn } = domCache;
+        
+        // Reset classes en une seule opération
+        voiceBtn.className = 'voice-status-btn';
+        
+        // Switch optimisé avec moins d'opérations DOM
+        switch(state) {
+            case 'inactive':
+                voiceIcon.className = 'fas fa-microphone-slash';
+                voiceIcon.style.color = '#6b7280';
+                voiceText.textContent = 'Micro désactivé';
+                break;
+                
+            case 'listening':
+                voiceIcon.className = 'fas fa-microphone';
+                voiceIcon.style.color = '#22c55e';
+                voiceText.textContent = 'Écoute en cours...';
+                voiceBtn.classList.add('active', 'pulse');
+                break;
+                
+            case 'ready':
+                voiceIcon.className = 'fa-regular fa-microphone'; // Changé en regular
+                voiceIcon.style.color = '#3b82f6';
+                voiceText.textContent = 'Cliquez pour activer';
+                voiceBtn.classList.add('shake');
+                break;
+                
+            case 'error':
+                voiceIcon.className = 'fas fa-microphone-slash';
+                voiceIcon.style.color = '#ef4444';
+                voiceText.textContent = 'Erreur microphone';
+                voiceBtn.classList.add('shake-error');
+                break;
+        }
+        
+        currentMicState = state;
+    });
 }
 
 // ===== FONCTIONS PRINCIPALES =====
@@ -353,7 +422,7 @@ function startAutoValidationTimer() {
     lastVoiceActivityTime = Date.now();
     
     // Timer de 30 secondes
-    autoValidationTimer = setTimeout(() => {
+    autotimers.set('validation', setTimeout(() => {
         handleAutoValidation();
     }, 30000);
     
@@ -373,7 +442,7 @@ function resetAutoValidationTimer() {
         clearTimeout(autoValidationTimer);
     }
     
-    autoValidationTimer = setTimeout(() => {
+    autotimers.set('validation', setTimeout(() => {
         handleAutoValidation();
     }, 30000);
     
@@ -431,10 +500,7 @@ function stopVoiceRecognition() {
         
         // Cleanup timers
         clearAutoValidationTimer();
-        if (correctionTimer) {
-            clearTimeout(correctionTimer);
-            correctionTimer = null;
-        }
+        timers.clear('correction');
         
         // Calcul confiance finale
         voiceData.confidence = calculateConfidence();
@@ -459,11 +525,8 @@ function stopVoiceRecognition() {
  * Nettoie le timer d'auto-validation
  */
 function clearAutoValidationTimer() {
-    if (autoValidationTimer) {
-        clearTimeout(autoValidationTimer);
-        autoValidationTimer = null;
-        console.log('[Voice] Timer auto-validation supprimé');
-    }
+    timers.clear('autoValidation');
+    console.log('[Voice] Timer auto-validation supprimé');
 }
 
 /**
@@ -485,10 +548,7 @@ function startVoiceRecognition() {
     // Cleanup modes conflictuels
     passiveListening = false;
     correctionMode = false;
-    if (correctionTimer) {
-        clearTimeout(correctionTimer);
-        correctionTimer = null;
-    }
+    timers.clear('correction');
     
     // Reset données
     voiceData = {
@@ -505,7 +565,9 @@ function startVoiceRecognition() {
     predictedNext = 1;
     displayedCount = 0;
     pendingValidation = null;
+    if (recognitionCache.size > MAX_CACHE_SIZE / 2) {
     recognitionCache.clear();
+}
     
     try {
         recognition.start();
@@ -1088,7 +1150,7 @@ function getConfidenceClass(confidence) {
 function startValidationTimer(count) {
     voiceState = 'VALIDATING';
     
-    validationTimer = setTimeout(() => {
+    timers.set('validation', setTimeout(() => {
         confirmVoiceCount(count);
     }, 4000); // 4s pour validation manuelle
 }
@@ -1104,7 +1166,7 @@ function resetValidationTimer(newCount) {
     }
     
     // Nouveau timer avec le count ajusté
-    validationTimer = setTimeout(() => {
+    timers.set('validation', setTimeout(() => {
         confirmVoiceCount(newCount);
     }, 2000); // 2s après interaction
 }
@@ -1158,10 +1220,7 @@ function clearValidationUI() {
     repsElement.removeAttribute('data-original');
     
     // Nettoyer timer
-    if (validationTimer) {
-        clearTimeout(validationTimer);
-        validationTimer = null;
-    }
+    timers.clear('validation');
     
     voiceState = 'LISTENING';
 
@@ -1386,7 +1445,7 @@ function scheduleQuickValidation() {
     // Indicateur discret
     showSubtleConfirmation(voiceData.count);
     
-    validationTimer = setTimeout(() => {
+    timers.set('validation', setTimeout(() => {
         confirmFinalCount(voiceData.count);
     }, 1500); // 1.5s pour confiance haute
     
@@ -1407,7 +1466,7 @@ function scheduleStandardValidation() {
         showSubtleConfirmation(voiceData.count);
     }
     
-    validationTimer = setTimeout(() => {
+    timers.set('validation', setTimeout(() => {
         confirmFinalCount(voiceData.count);
     }, 4000); // 4s pour confiance faible
     
@@ -1530,12 +1589,10 @@ function resetVoiceState() {
         repetitions: 0,
         needsValidation: false
     };
-    
+    timers.clearAll(); // Nettoyer tous les timers
     // Nettoyer les variables globales
     window.voiceData = null;
     window.voiceState = 'LISTENING';
-    
-    console.log('[Voice] État vocal réinitialisé');
 }
 
 /**
@@ -1550,10 +1607,7 @@ function cancelVoiceValidation() {
     console.log('[Voice] Annulation validation en cours');
     
     // Nettoyer timers
-    if (validationTimer) {
-        clearTimeout(validationTimer);
-        validationTimer = null;
-    }
+    timers.clear('validation');
     
     // Arrêter écoute passive
     if (VOICE_FEATURES.voice_correction) {
@@ -1740,10 +1794,7 @@ function stopPassiveListening() {
     passiveListening = false;
     correctionMode = false;
     
-    if (correctionTimer) {
-        clearTimeout(correctionTimer);
-        correctionTimer = null;
-    }
+    timers.clear('correction');
     
     try {
         if (recognition && voiceRecognitionActive) {
@@ -1930,7 +1981,7 @@ function handleKeywordDetected() {
     voiceData.count++;
     
     // Mise à jour UI
-    updateVoiceDisplayImmediate(voiceData.count);
+    debouncedUpdateDisplay(voiceData.count, voiceData.targetReps || 12, { voiceActive: true });
     
     // Feedback
     if (navigator.vibrate) {
@@ -2095,7 +2146,9 @@ function handleVoiceEnd() {
         }, 500); // 500ms au lieu de 100ms
     }
     if (recognitionCache && recognitionCache.size > 50) {
-        recognitionCache.clear();
+        if (recognitionCache.size > MAX_CACHE_SIZE / 2) {
+            recognitionCache.clear();
+        }
     }
 }
 
@@ -2181,10 +2234,7 @@ function forceVoiceSystemReset() {
     
     // Cleanup timers
     clearAutoValidationTimer();
-    if (correctionTimer) {
-        clearTimeout(correctionTimer);
-        correctionTimer = null;
-    }
+    timers.clear('correction');
     
     // Reset état visuel
     updateMicrophoneVisualState('inactive');
@@ -2196,7 +2246,7 @@ function forceVoiceSystemReset() {
                 if (hasPermission) {
                     updateMicrophoneVisualState('inactive');
                 } else {
-                    updateMicrophoneVisualState('error');
+                    updateMicrophoneVisualState('ready'); // Changé de 'error' à 'ready'
                 }
             });
         }, 1000);

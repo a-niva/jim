@@ -6254,6 +6254,7 @@ span {
     animation: errorPulse 0.3s ease;
 }
 
+/* Base container - inchangé */
 .voice-status-container {
     display: flex;
     align-items: center;
@@ -6266,6 +6267,7 @@ span {
     transition: all 0.3s ease;
 }
 
+/* Bouton optimisé avec GPU acceleration */
 .voice-status-btn {
     background: none;
     border: none;
@@ -6273,6 +6275,7 @@ span {
     cursor: pointer;
     font-size: 1.5rem;
     transition: transform 0.2s ease;
+    will-change: transform; /* GPU optimization */
 }
 
 .voice-status-btn:hover {
@@ -6281,34 +6284,6 @@ span {
 
 .voice-status-btn:active {
     transform: scale(0.95);
-}
-
-.voice-status-btn .fa-microphone-slash.unavailable {
-    color: #ef4444;
-}
-
-.voice-status-btn .fa-microphone-slash.denied {
-    color: #f59e0b;
-    animation: pulse 2s infinite;
-}
-
-.voice-status-btn .fa-microphone.active {
-    color: #22c55e;
-    animation: recording 1s ease-in-out infinite;
-}
-
-.voice-status-btn .fa-microphone.ready {
-    color: #3b82f6;
-}
-
-.voice-status-text {
-    font-size: var(--font-sm);
-    color: var(--text-muted);
-    min-width: 120px;
-}
-
-.voice-status-container.transitioning {
-    animation: statusChange 0.3s ease;
 }
 
 .input-icon {
@@ -7851,3 +7826,65 @@ input:checked+:before {
 
 }
 
+/* État 1 : Écoute active - pulse vert */
+.voice-status-btn.pulse {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+/* État 3 : Non autorisé - shake bleu */
+.voice-status-btn.shake {
+    animation: shake 2s ease-in-out infinite;
+}
+
+/* État 4 : Erreur - shake rapide rouge */
+.voice-status-btn.shake-error {
+    animation: shake 0.5s ease-in-out infinite;
+}
+
+/* Texte status */
+.voice-status-text {
+    font-size: var(--font-sm);
+    color: var(--text-muted);
+    min-width: 120px;
+}
+
+/* Animation de transition */
+.voice-status-container.transitioning {
+    animation: statusChange 0.3s ease;
+}
+
+/* Animations optimisées pour GPU */
+@keyframes pulse {
+    0%, 100% { 
+        opacity: 1;
+        transform: scale(1) translateZ(0);
+    }
+    50% { 
+        opacity: 0.8;
+        transform: scale(1.05) translateZ(0);
+    }
+}
+
+@keyframes shake {
+    0%, 100% { 
+        transform: translateX(0) translateZ(0); 
+    }
+    25% { 
+        transform: translateX(-4px) translateZ(0); 
+    }
+    75% { 
+        transform: translateX(4px) translateZ(0); 
+    }
+}
+
+@keyframes statusChange {
+    0% { 
+        transform: translateX(5px) translateZ(0); 
+    }
+    50% { 
+        transform: translateX(-5px) translateZ(0); 
+    }
+    100% { 
+        transform: translateX(0) translateZ(0); 
+    }
+}
