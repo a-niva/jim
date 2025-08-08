@@ -432,22 +432,22 @@
                                 <button class="stepper-modern" onclick="adjustWeightUp()">+</button>
                             </div>
                                                         
-                            <!-- Répétitions - NOUVELLE INTERFACE N/R -->
-                            <div class="input-row">
-                                <span class="input-icon">🔢</span>
-                                <button class="stepper-modern" onclick="adjustReps(-1)">−</button>
-                                <div class="value-display">
-                                    <!-- NOUVELLE ARCHITECTURE N/R -->
-                                    <div id="repsDisplay" class="reps-display-modern">
-                                        <div class="current-rep" id="currentRep">0</div>
-                                        <div class="rep-separator">/</div>
-                                        <div class="target-rep" id="targetRep">12</div>
-                                        <div class="next-rep-preview" id="nextRepPreview"></div>
-                                    </div>                                    
+                        <!-- Répétitions - NOUVELLE INTERFACE N/R -->
+                        <div class="input-row">
+                            <span class="input-icon">🔢</span>
+                            <button class="stepper-modern" onclick="adjustReps(-1)">−</button>
+                            <div class="value-display">
+                                <!-- NOUVELLE ARCHITECTURE N/R -->
+                                <div id="repsDisplay" class="reps-display-modern">
+                                    <div class="current-rep" id="currentRep">0</div>
+                                    <div class="rep-separator">/</div>
+                                    <div class="target-rep" id="targetRep">12</div>
+                                    <div class="next-rep-preview" id="nextRepPreview"></div>
                                 </div>
-                                <span class="unit">reps</span>
-                                <button class="stepper-modern" onclick="adjustReps(1)">+</button>
+                                <div class="reps-unit-label">reps</div>
                             </div>
+                            <button class="stepper-modern" onclick="adjustReps(1)">+</button>
+                        </div>
 
                             <!-- BACKWARD COMPATIBILITY : Element caché pour anciennes fonctions -->
                             <span id="setReps" style="display: none;">12</span>

@@ -10431,11 +10431,16 @@ function setupChargeInterface() {
         label.className = 'charge-mode-label';
         container.appendChild(label);
     }
-    label.textContent = currentWeightMode.toUpperCase();
+    label.textContent = currentWeightMode === 'charge' ? 'CHARGE' : 'TOTAL';
     label.style.display = 'block';
     
     // Configurer le swipe sur l'icône
     setupWeightModeSwipe(icon);
+    // Masquer tooltip sur mobile
+    const tooltip = document.getElementById('chargeTooltip');
+    if (tooltip && window.innerWidth <= 768) {
+        tooltip.style.display = 'none';
+    }
 }
 
 function hideChargeInterface() {
@@ -10852,8 +10857,15 @@ function updateWeightDisplay() {
     
     const weightElement = document.getElementById('setWeight');
     if (weightElement) {
-        // Affichage sans duplication du mode
-        weightElement.textContent = displayWeight;
+        // Séparer valeur et unité
+        const numericValue = displayWeight.replace(/\s*kg.*/, '');
+        weightElement.textContent = numericValue;
+
+        // S'assurer que l'unité kg est dans son propre élément
+        const unitElement = weightElement.parentElement.querySelector('.unit');
+        if (unitElement) {
+            unitElement.textContent = 'kg';
+        }
     }
     
     console.log('[Display] Mode:', currentWeightMode, 'Affiché:', displayWeight, 'Réel:', currentExerciseRealWeight);

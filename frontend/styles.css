@@ -6166,13 +6166,6 @@ span {
     font-style: italic;
 }
 
-.reps-display-modern.ready-state .current-rep::before {
-    content: "Obj: ";
-    font-size: var(--font-sm);
-    font-weight: 400;
-    font-style: normal;
-}
-
 .reps-display-modern.ready-state {
     align-items: center;
 }
