@@ -6453,15 +6453,13 @@ span {
 
 
 
-
-
-/* CHAPEAU ARC DE CERCLE PLEINE LARGEUR */
+/* CHAPEAU ARC DE CERCLE - VERSION CORRIGÉE */
 .floating-workout-actions {
     position: fixed;
     bottom: var(--bottom-nav-height);
     left: 0;
     right: 0;
-    height: 70px; /* Mobile - accommode le grand bouton central */
+    height: 50px; /* Unifié */
     z-index: calc(var(--z-nav) + 10);
     pointer-events: none;
     overflow: visible;
@@ -6502,7 +6500,7 @@ span {
     pointer-events: none;
 }
 
-/* BOUTONS - Base commune */
+/* BOUTONS - RÈGLES UNIFIÉES SEULEMENT */
 .floating-btn {
     position: absolute;
     border-radius: 50%;
@@ -6519,36 +6517,6 @@ span {
     transform: translateX(-50%);
 }
 
-/* BOUTONS LATÉRAUX - Taille normale */
-.floating-btn-pause,
-.floating-btn-end {
-    width: 30px;
-    height: 30px;
-}
-
-.floating-btn-pause i {
-    color: #3b82f6;
-    font-size: 0.85rem;
-}
-
-.floating-btn-end i {
-    color: #f87171;
-    font-size: 0.85rem;
-}
-
-/* BOUTON VALIDATION - Double taille */
-.floating-btn-execute {
-    width: 60px;
-    height: 60px;
-    font-size: 24px; /* 40% de 60px pour l'emoji */
-}
-
-.floating-btn-execute i {
-    color: #10b981;
-    font-size: 1.6rem; /* Pour les icônes FontAwesome */
-}
-
-/* États hover avec gestion transform */
 .floating-btn:hover {
     transform: translateX(-50%) translateY(-2px);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
@@ -6560,33 +6528,33 @@ span {
     transition: all 0.1s;
 }
 
-/* Animation spéciale pour executeSetBtn */
-#executeSetBtn.ready {
-    animation: pulse-floating-subtle 3s infinite;
-}
-
-@keyframes pulse-floating-subtle {
-    0%, 100% {
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-    }
-    50% {
-        box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
-    }
-}
-
-/* Couleur danger pour executeSetBtn */
-#executeSetBtn.btn-danger i {
-    color: #ef4444;
-}
-
-/* RESPONSIVE SPÉCIFIQUE */
+/* TAILLES FINALES - Mobile/Desktop */
 @media (max-width: 768px) {
     .floating-workout-actions {
-        height: 45px; /* Augmenté pour mobile */
+        height: 45px;
     }
     
     .floating-btn-execute {
-        width: 32px; /* Augmenté pour visibilité */
+        width: 28px;
+        height: 28px;
+        font-size: 0.9rem;
+    }
+    
+    .floating-btn-pause,
+    .floating-btn-end {
+        width: 26px;
+        height: 26px;
+        font-size: 0.8rem;
+    }
+}
+
+@media (min-width: 769px) {
+    .floating-workout-actions {
+        height: 50px;
+    }
+    
+    .floating-btn-execute {
+        width: 32px;
         height: 32px;
         font-size: 1rem;
     }
@@ -6595,33 +6563,32 @@ span {
     .floating-btn-end {
         width: 30px;
         height: 30px;
-        font-size: 0.8rem;
+        font-size: 0.9rem;
     }
 }
 
-/* Protection du contenu scrollable */
-.container,
-.main-content {
-    padding-bottom: calc(var(--bottom-nav-height) + 80px) !important;
+/* COULEURS */
+.floating-btn-pause i { color: #3b82f6; }
+.floating-btn-execute i { color: #10b981; }
+.floating-btn-end i { color: #f87171; }
+
+/* ÉTATS */
+#executeSetBtn.ready {
+    animation: pulse-floating-subtle 3s infinite;
 }
 
-@media (min-width: 769px) {
-    .container,
-    .main-content {
-        padding-bottom: calc(var(--bottom-nav-height) + 92px) !important;
-    }
+#executeSetBtn.btn-danger i {
+    color: #ef4444;
 }
 
-/* Assurer que l'arc est visible même sur fond sombre */
-@media (prefers-color-scheme: dark) {
-    .floating-workout-arc svg path {
-        fill: var(--bg-card);
-        stroke: var(--border);
+@keyframes pulse-floating-subtle {
+    0%, 100% { 
+        box-shadow: 0 2px 6px rgba(16,185,129,0.2);
+        border-color: rgba(16,185,129,0.3);
     }
-    
-    .floating-btn {
-        background: var(--bg-card);
-        border-color: var(--border);
+    50% { 
+        box-shadow: 0 3px 8px rgba(16,185,129,0.4);
+        border-color: rgba(16,185,129,0.5);
     }
 }
 

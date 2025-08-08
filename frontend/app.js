@@ -12982,83 +12982,50 @@ function showPlanningFromProgram() {
     }, 200);
 }
 
-// === GESTION MODAL FIN DE SÉANCE ===
-// === CALCUL ARC GÉOMÉTRIQUE RIGOUREUX ===
+
+// === CALCUL ARC GÉOMÉTRIQUE CORRIGÉ ===
 function calculateAdaptiveArc() {
-    console.log('=== DEBUT calculateAdaptiveArc RIGOUREUX ===');
+    console.log('=== DEBUT calculateAdaptiveArc CORRIGÉ ===');
     
     const container = document.querySelector('.floating-workout-actions');
     const svg = container?.querySelector('svg');
     const path = svg?.querySelector('path');
     
     if (!container || !path) {
-        console.log('❌ Éléments manquants');
         setTimeout(calculateAdaptiveArc, 100);
         return;
     }
     
-    // PROTECTION DIVISION PAR ZÉRO
     const containerWidth = container.offsetWidth;
     const containerHeight = container.offsetHeight;
     
     if (containerWidth === 0 || containerHeight === 0) {
-        console.log('❌ Container pas dimensionné, retry dans 200ms');
         setTimeout(calculateAdaptiveArc, 200);
         return;
     }
     
-    console.log('📏 Dimensions container:', { containerWidth, containerHeight });
+    console.log('📏 Dimensions:', { containerWidth, containerHeight });
     
-    // ÉTAPE 1: DÉTERMINER LA HAUTEUR MAXIMUM DE LA ZONE BLANCHE
     const isMobile = window.innerWidth <= 768;
-    const executeBtn = document.getElementById('executeSetBtn');
     
-    // Diamètre du bouton executeBtn
-    const executeBtnDiameter = isMobile ? 32 : 36; // Selon nos media queries
+    // PARAMÈTRES SIMPLIFIÉS
+    const arcHeightFromBottom = 25; // Hauteur de l'arc depuis le bas
+    const buttonSpacing = isMobile ? 60 : 80;
     
-    // Hauteur de bottom-nav (récupérée depuis CSS)
-    const bottomNavHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--bottom-nav-height')) || 60;
-    
-    // HAUTEUR MAXIMUM = hauteur bottom-nav + diamètre executeBtn
-    const maxArcHeight = bottomNavHeight + executeBtnDiameter;
-    
-    console.log('🔢 Calculs géométriques:', {
-        executeBtnDiameter,
-        bottomNavHeight,
-        maxArcHeight,
-        isMobile
-    });
-    
-    // ÉTAPE 2: DÉDUIRE LE RAYON DU CERCLE
-    // Formule: R = (L²/8h) + (h/2)
-    // où L = largeur écran (corde), h = hauteur maximum (flèche)
-    const screenWidth = window.innerWidth;
-    const radius = (screenWidth * screenWidth) / (8 * maxArcHeight) + (maxArcHeight / 2);
-    
-    console.log('⭕ Rayon calculé:', {
-        screenWidth,
-        radius: radius.toFixed(2),
-        formule: `(${screenWidth}²/8×${maxArcHeight}) + (${maxArcHeight}/2)`
-    });
-    
-    // ÉTAPE 3: CALCULER L'ARC SVG
-    // La hauteur visible de l'arc dans le container
-    const arcHeightInContainer = Math.min(maxArcHeight, containerHeight);
-    const arcHeightPercent = (arcHeightInContainer / containerHeight) * 100;
-    const arcTopY = 100 - arcHeightPercent;
-    
-    // Mise à jour du path SVG
+    // CALCUL ARC SVG
+    const arcHeightPercent = (arcHeightFromBottom / containerHeight) * 100;
+    const arcTopY = 100 - arcHeightPercent; // Position du sommet depuis le haut
     const pathData = `M 0,100 Q 50,${arcTopY} 100,100 L 100,100 L 0,100 Z`;
     path.setAttribute('d', pathData);
     
-    console.log('🎯 Arc SVG:', {
-        arcHeightInContainer: arcHeightInContainer.toFixed(1),
-        arcHeightPercent: arcHeightPercent.toFixed(1),
-        arcTopY: arcTopY.toFixed(1),
-        pathData
+    console.log('🎯 Arc:', { 
+        arcHeightFromBottom, 
+        arcTopY: arcTopY.toFixed(1), 
+        pathData 
     });
     
-    // ÉTAPE 4: POSITIONNER LES BOUTONS SELON LA GÉOMÉTRIE DU CERCLE
+    // RÉCUPÉRATION BOUTONS
+    const executeBtn = document.getElementById('executeSetBtn');
     const pauseBtn = document.querySelector('.floating-btn-pause');
     const endBtn = document.querySelector('.floating-btn-end');
     
@@ -13067,60 +13034,50 @@ function calculateAdaptiveArc() {
         return;
     }
     
-    // Espacement voulu entre boutons (en pixels)
-    const buttonSpacing = isMobile ? 70 : 100;
-    
-    // Fonction pour calculer la hauteur d'un point sur le cercle
-    function getHeightOnCircle(xPercent) {
-        // Pour un cercle centré avec radius, la hauteur au point x est calculée selon la géométrie
-        const t = xPercent / 100; // Position normalisée 0-1
-        // Formule courbe quadratique de Bézier: B(t) = (1-t)²P₀ + 2(1-t)tP₁ + t²P₂
-        const y = (1-t)*(1-t)*100 + 2*(1-t)*t*arcTopY + t*t*100;
-        return y;
-    }
-    
-    // BOUTON CENTRAL (executeBtn) - exactement au sommet
-    const centerXPercent = 50;
-    const centerYPercent = getHeightOnCircle(centerXPercent);
-    const centerBottomPx = containerHeight - (centerYPercent / 100 * containerHeight);
-    
-    executeBtn.style.left = '50%';
-    executeBtn.style.transform = 'translateX(-50%)';
-    executeBtn.style.bottom = `${centerBottomPx}px`;
-    
-    // BOUTONS LATÉRAUX selon l'espacement voulu
-    const centerX = screenWidth / 2;
+    // POSITIONNEMENT CORRIGÉ - PRÈS DU BAS POUR ÊTRE SUR L'ARC
+    const centerX = containerWidth / 2;
     const halfSpacing = buttonSpacing / 2;
     
-    // Bouton pause (gauche)
+    // FORMULE CORRECTE : Pour être sur l'arc de Bézier
+    function getBottomPositionOnArc(xPercent) {
+        // Pour une courbe de Bézier quadratique M 0,100 Q 50,arcTopY 100,100
+        const t = xPercent / 100;
+        const yPercent = (1-t)*(1-t)*100 + 2*(1-t)*t*arcTopY + t*t*100;
+        // Convertir en position bottom (inversée)
+        const bottomPx = containerHeight - (yPercent / 100 * containerHeight);
+        return Math.max(2, bottomPx); // Minimum 2px du bas
+    }
+    
+    // BOUTON CENTRAL (50% de largeur) - au sommet de l'arc
+    const centerBottomPx = getBottomPositionOnArc(50);
+    executeBtn.style.left = '50%';
+    executeBtn.style.bottom = `${centerBottomPx}px`;
+    
+    // BOUTON PAUSE (gauche)
     const pauseX = centerX - halfSpacing;
-    const pauseXPercent = (pauseX / screenWidth) * 100;
-    const pauseYPercent = getHeightOnCircle(pauseXPercent);
-    const pauseBottomPx = containerHeight - (pauseYPercent / 100 * containerHeight);
+    const pauseXPercent = (pauseX / containerWidth) * 100;
+    const pauseBottomPx = getBottomPositionOnArc(pauseXPercent);
     
     pauseBtn.style.left = `${pauseX}px`;
-    pauseBtn.style.transform = 'translateX(-50%)';
     pauseBtn.style.bottom = `${pauseBottomPx}px`;
     pauseBtn.style.right = 'auto';
     
-    // Bouton fin (droite)
+    // BOUTON FIN (droite)
     const endX = centerX + halfSpacing;
-    const endXPercent = (endX / screenWidth) * 100;
-    const endYPercent = getHeightOnCircle(endXPercent);
-    const endBottomPx = containerHeight - (endYPercent / 100 * containerHeight);
+    const endXPercent = (endX / containerWidth) * 100;
+    const endBottomPx = getBottomPositionOnArc(endXPercent);
     
     endBtn.style.left = `${endX}px`;
-    endBtn.style.transform = 'translateX(-50%)';
     endBtn.style.bottom = `${endBottomPx}px`;
     endBtn.style.right = 'auto';
     
-    console.log('✅ Positions finales (rigoureux):', {
-        center: `x:50%, bottom:${centerBottomPx.toFixed(1)}px`,
-        pause: `x:${pauseX.toFixed(1)}px, bottom:${pauseBottomPx.toFixed(1)}px`,
-        end: `x:${endX.toFixed(1)}px, bottom:${endBottomPx.toFixed(1)}px`
+    console.log('✅ Positions CORRIGÉES:', {
+        center: `bottom:${centerBottomPx.toFixed(1)}px`,
+        pause: `x:${pauseX.toFixed(1)}, bottom:${pauseBottomPx.toFixed(1)}px`,
+        end: `x:${endX.toFixed(1)}, bottom:${endBottomPx.toFixed(1)}px`
     });
     
-    console.log('=== FIN calculateAdaptiveArc RIGOUREUX ===');
+    console.log('=== FIN calculateAdaptiveArc CORRIGÉ ===');
 }
 
 function showEndWorkoutModal() {
