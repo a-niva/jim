@@ -2396,14 +2396,11 @@ async function loadMuscleReadiness() {
         
     try {
         const recoveryData = await apiGet(`/api/users/${currentUser.id}/stats/recovery-gantt`);
-        console.log('🔍 Recovery data reçue:', recoveryData); // DEBUG
         
         container.innerHTML = `
             <div class="muscle-readiness-bars-container">
                 ${muscleGroups.map(muscle => {
-                    const recovery = recoveryData[muscle.key];
-                    console.log(`🔍 ${muscle.key}:`, recovery); // DEBUG par muscle
-                    
+                    const recovery = recoveryData[muscle.key];                    
                     const capacity = recovery ? recovery.recoveryPercent : 90; // Changé de 85 à 90
                     const statusText = capacity <= 30 ? 'Fatigué' : capacity <= 70 ? 'Récupération' : 'Prêt';
 
@@ -7510,44 +7507,6 @@ async function loadStats() {
         console.error('Erreur chargement stats:', error);
     }
 }
-
-//async function loadStats() {
-//    if (!currentUser) return;
-//    
-//    try {
-//        const [stats, progress] = await Promise.all([
-//            apiGet(`/api/users/${currentUser.id}/stats`),
-//            apiGet(`/api/users/${currentUser.id}/progress`)
-//        ]);
-//        
-//        // Mettre à jour les résumés
-//        document.getElementById('totalWorkouts').textContent = stats.total_workouts;
-//        document.getElementById('totalVolume').textContent = `${stats.total_volume_kg}kg`;
-//        document.getElementById('lastWorkout').textContent = 
-//            stats.last_workout_date ? formatDate(new Date(stats.last_workout_date)) : 'Jamais';
-//        
-//        // Afficher les records
-//        const recordsList = document.getElementById('recordsList');
-//        if (progress.exercise_records && progress.exercise_records.length > 0) {
-//            recordsList.innerHTML = progress.exercise_records.map(record => `
-//                <div class="record-item">
-//                    <div class="record-exercise">${record.name}</div>
-//                    <div class="record-value">${record.max_weight}kg × ${record.max_reps} reps</div>
-//                </div>
-//            `).join('');
-//        } else {
-//            recordsList.innerHTML = '<p class="text-center">Aucun record pour le moment</p>';
-//        }
-//        
-//    } catch (error) {
-//        console.error('Erreur chargement stats:', error);
-//        // Ajouter ces lignes :
-//        document.getElementById('totalWorkouts').textContent = '0';
-//        document.getElementById('totalVolume').textContent = '0kg';
-//        document.getElementById('lastWorkout').textContent = 'Aucune';
-//        document.getElementById('recordsList').innerHTML = '<p class="text-center">Aucun record pour le moment</p>';
-//    }
-//}
 
 // ===== PROFIL =====
 async function loadProfile() {
