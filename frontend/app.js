@@ -4799,28 +4799,30 @@ function updateSetNavigationButtons() {
 // ===== COUCHE 1 : STRATEGY ENGINE (Business Logic) =====
 // Applique les préférences utilisateur sur les recommandations ML pures
 // ===== COUCHE 1 : FONCTIONS UTILITAIRES (DÉCLARÉES EN PREMIER) =====
-
 function getBarWeight(exercise) {
-    /**Récupère le poids MINIMUM selon l'exercice et l'équipement*/
+    /**Récupère le poids MINIMUM selon l'exercice et l'équipement avec équivalences*/
     if (!exercise || !currentUser?.equipment_config) return 20;
     
     const equipment = exercise.equipment_required || [];
     const config = currentUser.equipment_config;
     
-    // CAS DUMBBELLS : Poids minimum d'une paire
-    if (equipment.includes('dumbbells')) {
-        // Dumbbells fixes : poids minimum x2
+    // CAS DUMBBELLS : Détection directe + équivalence barres courtes
+    if (equipment.includes('dumbbells') || 
+        (config.barbell_short_pair?.available && config.barbell_short_pair?.count >= 2 && 
+         exercise.name?.toLowerCase().includes('haltère'))) {
+        
+        // Dumbbells fixes
         if (config.dumbbells?.available && config.dumbbells?.weights?.length > 0) {
             return Math.min(...config.dumbbells.weights) * 2;
         }
-        // Barres courtes : poids des barres seules
+        // Barres courtes (équivalence dumbbells)
         if (config.barbell_short_pair?.available && config.barbell_short_pair?.count >= 2) {
             return (config.barbell_short_pair.weight || 2.5) * 2;
         }
-        return 0; // Pas d'équipement disponible
+        return 0;
     }
     
-    // CAS BARBELLS (garder le code existant)
+    // CAS BARBELLS
     if (equipment.includes('barbell_ez')) {
         return config.barbell_ez?.weight || 10;
     } else if (equipment.includes('barbell_short_pair')) {
@@ -4834,7 +4836,7 @@ function getBarWeight(exercise) {
 
 function isEquipmentCompatibleWithChargeMode(exercise) {
     console.log('[DEBUG-COMPAT] Exercise:', exercise?.name);
-    console.log('[DEBUG-COMPAT] Equipment required:', exercise?.equipment);
+    console.log('[DEBUG-COMPAT] Equipment required:', exercise?.equipment_required);
     console.log('[DEBUG-COMPAT] User equipment:', currentUser?.equipment_config);
     
     /**Vérifie si l'exercice supporte le mode charge/total*/
