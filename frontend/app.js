@@ -241,33 +241,6 @@ function closeModal() {
 
 
 
-
-
-
-// INITIALISATION IMMÉDIATE ET ROBUSTE
-function initFloatingActions() {
-    // Appel immédiat
-    calculateAdaptiveArc();
-    
-    // Backup au cas où
-    setTimeout(calculateAdaptiveArc, 0);
-    setTimeout(calculateAdaptiveArc, 100);
-    setTimeout(calculateAdaptiveArc, 500);
-}
-
-// EVENT LISTENERS
-window.addEventListener('resize', calculateAdaptiveArc);
-window.addEventListener('orientationchange', () => {
-    setTimeout(calculateAdaptiveArc, 100);
-});
-
-// EXPOSER GLOBALEMENT
-window.calculateAdaptiveArc = calculateAdaptiveArc;
-window.initFloatingActions = initFloatingActions;
-
-
-
-
 // Stocke les données de scoring pour utilisation ultérieure
 function storeCurrentScoringData(scoringData) {
     currentScoringData = scoringData;
