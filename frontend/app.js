@@ -4160,17 +4160,6 @@ async function selectExercise(exercise, skipValidation = false) {
     
     // Démarrer le timer de la première série
     startSetTimer();
-
-    // Vérification finale après un court délai pour debug
-    if (console.log) {
-        setTimeout(() => {
-            console.log('[VOICE DEBUG] Vérification finale des contrôles:', {
-                voiceContainer: !!document.querySelector('.voice-control'),
-                mlContainer: !!document.querySelector('.ml-control'),
-                controlsContainer: !!document.querySelector('.exercise-controls-container')
-            });
-        }, 100);
-    }
 }
 
 /**
