@@ -166,11 +166,12 @@ function debounce(func, wait) {
 }
 
 // Version debounced de updateRepDisplayModern
-const debouncedUpdateDisplay = debounce((count, target, options) => {
+// Utiliser la version globale si disponible, sinon créer une version locale
+const debouncedVoiceDisplay = window.debouncedUpdateDisplay || debounce((count, target, options) => {
     if (window.updateRepDisplayModern) {
         window.updateRepDisplayModern(count, target, options);
     }
-}, 150); // 150ms de délai
+}, 150); // 150ms si pas de version globale
 
 
 // SYSTÈME DE PRÉDICTION
@@ -1036,7 +1037,7 @@ function rollbackInterpolation() {
         // Restaurer interface
         const targetRepEl = document.getElementById('targetRep');
         const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) : 12;
-        debouncedUpdateDisplay(voiceData.count, targetReps);
+        debouncedVoiceDisplay(voiceData.count, targetReps);
         
         console.log(`[Gaps] Rollback effectué: count restauré à ${voiceData.count}`);
     }
@@ -1981,7 +1982,7 @@ function handleKeywordDetected() {
     voiceData.count++;
     
     // Mise à jour UI
-    debouncedUpdateDisplay(voiceData.count, voiceData.targetReps || 12, { voiceActive: true });
+    debouncedVoiceDisplay(voiceData.count, voiceData.targetReps || 12, { voiceActive: true });
     
     // Feedback
     if (navigator.vibrate) {
@@ -2026,7 +2027,7 @@ function updateVoiceDisplay(count) {
         const targetReps = targetEl ? parseInt(targetEl.textContent) || 12 : 12;
         
         // Utiliser la fonction moderne
-        debouncedUpdateDisplay(count, targetReps, { voiceActive: true });
+        debouncedVoiceDisplay(count, targetReps, { voiceActive: true });
         
         // Mettre à jour voiceData
         voiceData.count = count;
