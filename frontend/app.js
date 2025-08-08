@@ -401,6 +401,14 @@ function updateRepDisplayModern(currentRep, targetRep, options = {}) {
         
         setTimeout(() => {
             currentRepEl.textContent = currentRep;
+            // Notification audio à l'atteinte de l'objectif
+            if (currentRep === targetRep && currentRep > 0) {
+                // Jouer le son d'accomplissement existant
+                if (window.workoutAudio && window.workoutAudio.isEnabled) {
+                    window.workoutAudio.playSound('achievement');
+                }
+                console.log(`[Audio] Objectif atteint: ${currentRep}/${targetRep} reps 🎉`);
+            }
             currentRepEl.classList.remove('updating');
             
             // État dépassement objectif
