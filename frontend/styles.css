@@ -6513,34 +6513,98 @@ span {
     font-size: 1rem;
 }
 
+/* BOUTON VALIDATION - Ajustement pour emoji */
 .floating-btn-execute {
-    width: 20px;
-    height: 20px;
-    font-size: 0.7rem;
+    width: 32px;
+    height: 32px;
+    font-size: 1.1rem; /* Plus grand pour l'emoji */
 }
 
-/* COULEURS */
-.floating-btn-pause i { color: #3b82f6; }
-.floating-btn-execute i { color: #10b981; }
-.floating-btn-end i { color: #f87171; }
-
-/* ÉTATS EXECUTESETBTN */
-#executeSetBtn.ready {
-    animation: pulse-floating-subtle 3s infinite;
+.floating-btn-execute i {
+    color: #10b981;
+    font-size: 1rem; /* Taille spécifique pour l'icône */
 }
 
-#executeSetBtn.btn-danger i {
-    color: #ef4444;
+/* BOUTONS LATÉRAUX */
+.floating-btn-pause,
+.floating-btn-end {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
 }
 
-@keyframes pulse-floating-subtle {
-    0%, 100% { 
-        box-shadow: 0 2px 6px rgba(16,185,129,0.2);
-        border-color: rgba(16,185,129,0.3);
+/* SUPPRIME TOUTES LES POSITIONS FIXES */
+.floating-btn {
+    position: absolute;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid rgba(0,0,0,0.12);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+    touch-action: manipulation;
+    /* AUCUNE POSITION DÉFINIE - tout calculé par JS */
+}
+
+.floating-btn:hover {
+    transform: translateX(-50%) translateY(-1px) !important;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+    border-color: rgba(0,0,0,0.2);
+}
+
+.floating-btn:active {
+    transform: translateX(-50%) translateY(0) !important;
+    transition: all 0.1s;
+}
+
+/* CORRECTION HOVER POUR EXECUTESETBTN */
+#executeSetBtn:hover {
+    transform: translateX(-50%) translateY(-1px) !important;
+}
+
+#executeSetBtn:active {
+    transform: translateX(-50%) translateY(0) !important;
+}
+
+/* RESPONSIVE SPÉCIFIQUE */
+@media (max-width: 768px) {
+    .floating-workout-actions {
+        height: 40px;
     }
-    50% { 
-        box-shadow: 0 3px 8px rgba(16,185,129,0.4);
-        border-color: rgba(16,185,129,0.5);
+    
+    .floating-btn-execute {
+        width: 28px;
+        height: 28px;
+        font-size: 0.9rem;
+    }
+    
+    .floating-btn-pause,
+    .floating-btn-end {
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
+    }
+}
+
+@media (min-width: 769px) {
+    .floating-workout-actions {
+        height: 50px;
+    }
+    
+    .floating-btn-execute {
+        width: 36px;
+        height: 36px;
+        font-size: 1.2rem;
+    }
+    
+    .floating-btn-pause,
+    .floating-btn-end {
+        width: 40px;
+        height: 40px;
+        font-size: 1.1rem;
     }
 }
 
