@@ -4925,9 +4925,9 @@ function applyWeightStrategy(mlRecommendation, sessionSets, currentUser, current
     // Validation critique : poids minimum = poids de la barre
     const barWeight = getBarWeight(currentExercise);
     const validatedWeight = Math.max(barWeight, appliedWeight || barWeight);
-    
-    if (validatedWeight !== appliedWeight) {
-        console.warn(`[Strategy] Poids ajusté: ${appliedWeight}kg → ${validatedWeight}kg (min: ${barWeight}kg)`);
+
+    if (validatedWeight !== appliedWeight && appliedWeight > 0) {
+        console.log(`[Strategy] Poids ajusté: ${appliedWeight}kg → ${validatedWeight}kg (min: ${barWeight}kg)`);
         appliedWeight = validatedWeight;
     }
     
@@ -6105,6 +6105,7 @@ async function configureWeighted(elements, exercise, weightRec) {
     
     // IMPORTANT : Initialiser currentExerciseRealWeight avec le poids TOTAL validé
     currentExerciseRealWeight = closestWeight || validatedRec;
+    currentExerciseRealWeight = Math.max(barWeight, currentExerciseRealWeight || barWeight);
     console.log('[ConfigureWeighted] Poids réel initialisé:', currentExerciseRealWeight);
     
     // Configurer les contrôles d'ajustement
