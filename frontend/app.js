@@ -4237,6 +4237,7 @@ function toggleVoiceRecognition() {
         // ARRÊT
         console.log('[Voice] Arrêt demandé');
         window.stopVoiceRecognition();
+        window.updateMicrophoneVisualState('inactive'); // Ajouter cette ligne
         
     } else {
         // DÉMARRAGE - Vérifier état séance
@@ -4252,7 +4253,9 @@ function toggleVoiceRecognition() {
         if (!success) {
             console.error('[Voice] Échec démarrage reconnaissance');
             showToast('Impossible de démarrer la reconnaissance vocale', 'error');
+            window.updateMicrophoneVisualState('error');
         }
+        // Si success est true, l'état visuel est déjà mis à jour dans startVoiceRecognition
     }
 }
 

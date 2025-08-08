@@ -295,7 +295,7 @@ function updateMicrophoneVisualState(state) {
         // Switch optimisé avec moins d'opérations DOM
         switch(state) {
             case 'inactive':
-                voiceIcon.className = 'fas fa-microphone-slash';
+                voiceIcon.className = 'fas fa-microphone';
                 voiceIcon.style.color = '#6b7280';
                 voiceText.textContent = 'Micro désactivé';
                 break;
@@ -323,6 +323,7 @@ function updateMicrophoneVisualState(state) {
         }
         
         currentMicState = state;
+        console.log(`[Voice] État visuel micro: ${state}`);
     });
 }
 
@@ -335,6 +336,8 @@ function updateMicrophoneVisualState(state) {
  * @returns {boolean} true si l'initialisation réussit, false sinon
  */
 function initVoiceRecognition() {
+    // Initialiser le cache DOM dès le début
+    initDOMCache();
     // Vérifier le support de la reconnaissance vocale
     if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
         console.warn('[Voice] Speech Recognition non supportée par ce navigateur');
@@ -567,14 +570,14 @@ function startVoiceRecognition() {
     displayedCount = 0;
     pendingValidation = null;
     if (recognitionCache.size > MAX_CACHE_SIZE / 2) {
-    recognitionCache.clear();
-}
+        recognitionCache.clear();
+    }
     
     try {
         recognition.start();
         voiceRecognitionActive = true;
         
-        // ÉTAT VISUEL - SOURCE UNIQUE
+        // ÉTAT VISUEL - ICI À LA FIN
         updateMicrophoneVisualState('listening');
         
         // Exposer globalement
@@ -590,6 +593,7 @@ function startVoiceRecognition() {
         return false;
     }
 }
+
 /**
  * Gestionnaire principal des résultats de reconnaissance
  * Parse les transcripts et identifie les nombres/commandes
