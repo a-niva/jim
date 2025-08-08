@@ -10133,7 +10133,7 @@ async function executeSet() {
                 window.voiceState = 'VALIDATING';
                 
                 // Afficher UI validation avec les données actuelles
-                if (window.showValidationUI) {
+                if (window.showValidationModal) {
                     window.voiceData = {
                         ...window.voiceData,
                         count: voiceData.count,
@@ -10141,9 +10141,9 @@ async function executeSet() {
                         confidence: voiceData.confidence,
                         timestamps: window.voiceData?.timestamps || []
                     };
-                    window.showValidationUI(voiceData.count, voiceData.confidence);
+                    window.showValidationModal(voiceData.count, voiceData.confidence);
                 } else {
-                    console.error('[Voice] showValidationUI non disponible');
+                    console.error('[Voice] showValidationModal non disponible');
                 }
                 
                 return; // STOP - attendre validation utilisateur
