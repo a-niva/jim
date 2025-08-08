@@ -6462,7 +6462,7 @@ span {
     bottom: var(--bottom-nav-height);
     left: 0;
     right: 0;
-    height: 45px; /* Mobile par défaut */
+    height: 65px; /* Augmenté pour accommoder les boutons de 52px */
     z-index: calc(var(--z-nav) + 10);
     pointer-events: none;
     overflow: visible;
@@ -6544,21 +6544,21 @@ span {
 /* TAILLES ET COULEURS SPÉCIFIQUES */
 /* ================================================= */
 
-/* Bouton pause */
+/* Bouton pause - DOUBLE TAILLE */
 .floating-btn-pause {
-    width: 26px;
-    height: 26px;
-    font-size: 0.8rem;
+    width: 52px;
+    height: 52px;
+    font-size: 1.4rem;
 }
 
 .floating-btn-pause i {
     color: #3b82f6;
 }
 
-/* Bouton validation - DOUBLE TAILLE */
+/* Bouton validation - MÊME TAILLE */
 .floating-btn-execute {
-    width: 52px; /* Double de 26px */
-    height: 52px; /* Double de 26px */
+    width: 52px;
+    height: 52px;
     font-size: 1.4rem; /* Adapté pour l'emoji */
 }
 
@@ -6566,15 +6566,22 @@ span {
     color: #10b981;
 }
 
-/* Bouton fin */
+/* Bouton fin - DOUBLE TAILLE */
 .floating-btn-end {
-    width: 26px;
-    height: 26px;
-    font-size: 0.8rem;
+    width: 52px;
+    height: 52px;
+    font-size: 1.4rem;
 }
 
 .floating-btn-end i {
     color: #f87171;
+}
+
+/* Empêcher tout texte additionnel dans les boutons */
+.floating-btn span,
+.floating-btn:after,
+.floating-btn:before {
+    display: none !important;
 }
 
 /* ================================================= */
@@ -6607,25 +6614,25 @@ span {
 /* Desktop */
 @media (min-width: 769px) {
     .floating-workout-actions {
-        height: 55px; /* Augmenté pour accommoder le grand bouton */
+        height: 75px; /* Augmenté pour accommoder les grands boutons */
     }
     
     .floating-btn-pause {
-        width: 30px;
-        height: 30px;
-        font-size: 0.9rem;
+        width: 60px;
+        height: 60px;
+        font-size: 1.6rem;
     }
     
     .floating-btn-execute {
-        width: 60px; /* Double de 30px */
-        height: 60px; /* Double de 30px */
+        width: 60px;
+        height: 60px;
         font-size: 1.6rem;
     }
     
     .floating-btn-end {
-        width: 30px;
-        height: 30px;
-        font-size: 0.9rem;
+        width: 60px;
+        height: 60px;
+        font-size: 1.6rem;
     }
 }
 
@@ -6635,13 +6642,13 @@ span {
 
 .container,
 .main-content {
-    padding-bottom: calc(var(--bottom-nav-height) + 60px) !important;
+    padding-bottom: calc(var(--bottom-nav-height) + 75px) !important;
 }
 
 @media (min-width: 769px) {
     .container,
     .main-content {
-        padding-bottom: calc(var(--bottom-nav-height) + 70px) !important;
+        padding-bottom: calc(var(--bottom-nav-height) + 85px) !important;
     }
 }
 
@@ -6693,7 +6700,10 @@ span {
 }
 
 .workout-end-content {
-    position: relative;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     background: var(--bg-card);
     border-radius: var(--radius);
     padding: var(--spacing-xl);
@@ -6702,6 +6712,7 @@ span {
     border: 1px solid var(--border);
     max-width: 90vw;
     width: 400px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
 }
 
 .workout-end-content h3 {
@@ -6770,11 +6781,11 @@ span {
 @keyframes slideInModal {
     from { 
         opacity: 0; 
-        transform: translate(-50%, -50%) scale(0.9) translateY(20px);
+        transform: translate(-50%, -50%) scale(0.9);
     }
     to { 
         opacity: 1; 
-        transform: translate(-50%, -50%) scale(1) translateY(0);
+        transform: translate(-50%, -50%) scale(1);
     }
 }
 

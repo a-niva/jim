@@ -12091,7 +12091,6 @@ function pauseWorkout() {
         sessionStorage.setItem('pauseTimestamp', Date.now());
                 
         // Changer le bouton
-        pauseBtn.textContent = '▶️ Reprendre';
         pauseBtn.classList.remove('btn-warning');
         pauseBtn.classList.add('btn-success');
         
@@ -12140,7 +12139,6 @@ function pauseWorkout() {
         }
         
         // Changer le bouton
-        pauseBtn.textContent = '⏸️ Pause';
         pauseBtn.classList.remove('btn-success');
         pauseBtn.classList.add('btn-warning');
         
@@ -12998,24 +12996,23 @@ function calculateAdaptiveArc() {
     
     if (!pauseBtn || !executeBtn || !endBtn || !svgPath) return;
     
-    // Dimensions selon le mode
-    const buttonSizeLateral = isMobile ? 26 : 30;
-    const buttonSizeValidation = isMobile ? 52 : 60; // Double
+    // Tous les boutons ont maintenant la même taille
+    const buttonSize = isMobile ? 52 : 60;
     const containerHeight = container.offsetHeight;
     
-    // L'arc doit contenir le grand bouton central + marge
-    // Pour un bouton de 52px, l'arc doit monter à ~55px minimum
-    const requiredArcHeight = buttonSizeValidation + 10;
+    // L'arc doit monter exactement à la hauteur du bouton + petite marge
+    const arcHeight = buttonSize + 5; // 57px mobile, 65px desktop
     
-    // Calcul du point de contrôle de l'arc en coordonnées SVG
-    // Plus arcTopY est petit, plus l'arc monte haut
-    const arcTopY = Math.max(10, 100 - (requiredArcHeight / containerHeight) * 150);
+    // Calcul du point de contrôle pour que l'arc englobe parfaitement les boutons
+    // arcTopY = position du sommet de l'arc en coordonnées SVG (0=haut, 100=bas)
+    const arcHeightPercent = (arcHeight / containerHeight) * 100;
+    const arcTopY = 100 - arcHeightPercent;
     
-    // Mise à jour du path SVG avec un arc qui englobe les boutons
+    // Mise à jour du path SVG
     svgPath.setAttribute('d', `M 0,100 Q 50,${arcTopY} 100,100 L 100,100 L 0,100 Z`);
     
-    // Espacement horizontal adapté au grand bouton central
-    const buttonSpacing = isMobile ? 90 : 110;
+    // Espacement horizontal
+    const buttonSpacing = isMobile ? 100 : 120;
     
     // Positionnement horizontal
     pauseBtn.style.left = `calc(50% - ${buttonSpacing/2}px)`;
@@ -13023,22 +13020,41 @@ function calculateAdaptiveArc() {
     endBtn.style.left = `calc(50% + ${buttonSpacing/2}px)`;
     
     // Positionnement vertical
-    // Les petits boutons touchent le bas
+    // Les boutons latéraux sont légèrement au-dessus du bas
     pauseBtn.style.bottom = '8px';
     endBtn.style.bottom = '8px';
     
-    // Le grand bouton de validation est centré verticalement dans l'arc
-    // Il doit être plus bas que le sommet de l'arc mais dans la zone blanche
-    const validateBottomPosition = (containerHeight - buttonSizeValidation) / 2;
-    executeBtn.style.bottom = `${Math.max(5, validateBottomPosition)}px`;
+    // Le bouton central doit toucher le haut de l'arc
+    // Position = hauteur de l'arc - taille du bouton - bordure (2px)
+    const centralButtonBottom = arcHeight - buttonSize - 2;
+    executeBtn.style.bottom = `${centralButtonBottom}px`;
 }
 
-// Appels d'initialisation
-document.addEventListener('DOMContentLoaded', calculateAdaptiveArc);
+// Initialisation
+document.addEventListener('DOMContentLoaded', () => {
+    calculateAdaptiveArc();
+    
+    // S'assurer que les boutons n'ont que des icônes
+    const floatingBtns = document.querySelectorAll('.floating-btn');
+    floatingBtns.forEach(btn => {
+        const icon = btn.querySelector('i');
+        if (icon) {
+            btn.innerHTML = '';
+            btn.appendChild(icon);
+        }
+    });
+});
+
 window.addEventListener('resize', calculateAdaptiveArc);
 window.addEventListener('orientationchange', () => {
     setTimeout(calculateAdaptiveArc, 100);
 });
+
+
+
+
+
+
 
 
 
