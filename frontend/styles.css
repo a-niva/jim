@@ -6453,7 +6453,7 @@ span {
 
 
 /* ================================================= */
-/* CHAPEAU ARC DE CERCLE - SECTION COMPLÈTE */
+/* BARRE FLOTTANTE - SECTION COMPLÈTE */
 /* ================================================= */
 
 /* Container principal fixe */
@@ -6462,38 +6462,38 @@ span {
     bottom: var(--bottom-nav-height);
     left: 0;
     right: 0;
-    height: 65px; /* Augmenté pour accommoder les boutons de 52px */
+    height: 65px; /* Mobile par défaut */
     z-index: calc(var(--z-nav) + 10);
     pointer-events: none;
-    overflow: visible;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-/* Arc SVG container */
+/* Remplacer l'arc par une barre horizontale */
 .floating-workout-arc {
     position: absolute;
-    bottom: 0;
+    bottom: 50%;
+    transform: translateY(50%);
     left: 0;
     right: 0;
     width: 100%;
-    height: 100%;
+    height: 26px; /* 50% du diamètre des petits boutons (52px) */
+    background: white;
+    border-top: 2px solid;
+    border-bottom: 2px solid;
+    border-image: linear-gradient(90deg, 
+        rgba(156, 156, 156, 0.3) 0%, 
+        rgba(212, 175, 55, 0.5) 50%, 
+        rgba(156, 156, 156, 0.3) 100%) 1;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08), 
+                0 2px 8px rgba(0, 0, 0, 0.08);
     pointer-events: none;
 }
 
-/* SVG de l'arc */
+/* Masquer le SVG non utilisé */
 .floating-workout-arc svg {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-}
-
-/* Path de l'arc */
-.floating-workout-arc svg path {
-    fill: white;
-    stroke: rgba(0, 0, 0, 0.12);
-    stroke-width: 0.5;
-    filter: drop-shadow(0 -2px 8px rgba(0, 0, 0, 0.08));
+    display: none;
 }
 
 /* Container pour les boutons */
@@ -6505,6 +6505,9 @@ span {
     width: 100%;
     height: 100%;
     pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* ================================================= */
@@ -6515,12 +6518,13 @@ span {
     position: absolute;
     border-radius: 50%;
     background: white;
-    border: 2px solid rgba(0, 0, 0, 0.12);
+    border: 4px solid rgba(0, 0, 0, 0.15); /* Bordure plus épaisse */
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), /* Ombre plus prononcée */
+                0 2px 4px rgba(0, 0, 0, 0.1);
     transition: all 0.2s ease;
     touch-action: manipulation;
     pointer-events: auto;
@@ -6529,8 +6533,9 @@ span {
 
 /* États hover et active */
 .floating-btn:hover {
-    transform: translateX(-50%) translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    transform: translateX(-50%) translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25),
+                0 3px 6px rgba(0, 0, 0, 0.15);
     border-color: rgba(0, 0, 0, 0.2);
 }
 
@@ -6540,47 +6545,63 @@ span {
 }
 
 /* ================================================= */
-/* TAILLES ET COULEURS SPÉCIFIQUES */
+/* TAILLES ET COULEURS SPÉCIFIQUES - MOBILE */
 /* ================================================= */
 
-/* Bouton pause - DOUBLE TAILLE */
-.floating-btn-pause {
+/* Tous les boutons de même taille */
+.floating-btn-pause,
+.floating-btn-execute,
+.floating-btn-end {
     width: 52px;
     height: 52px;
-    font-size: 1.4rem;
 }
 
 .floating-btn-pause i {
     color: #3b82f6;
+    font-size: 1.4rem;
 }
 
-/* Bouton validation - MÊME TAILLE */
 .floating-btn-execute {
-    width: 52px;
-    height: 52px;
-    font-size: 1.4rem; /* Adapté pour l'emoji */
+    font-size: 1.4rem; /* Pour l'emoji */
 }
 
 .floating-btn-execute i {
     color: #10b981;
 }
 
-/* Bouton fin - DOUBLE TAILLE */
-.floating-btn-end {
-    width: 52px;
-    height: 52px;
+.floating-btn-end i {
+    color: #f87171;
     font-size: 1.4rem;
 }
 
-.floating-btn-end i {
-    color: #f87171;
-}
-
-/* Empêcher tout texte additionnel dans les boutons */
+/* Empêcher tout texte additionnel */
 .floating-btn span,
 .floating-btn:after,
 .floating-btn:before {
     display: none !important;
+}
+
+/* ================================================= */
+/* POSITIONNEMENT DES BOUTONS - MOBILE */
+/* ================================================= */
+
+/* Position par défaut mobile */
+.floating-btn-pause {
+    left: 20%;
+    bottom: 50%;
+    transform: translateX(-50%) translateY(50%);
+}
+
+.floating-btn-execute {
+    left: 50%;
+    bottom: 60%; /* Légèrement surélevé */
+    transform: translateX(-50%) translateY(50%);
+}
+
+.floating-btn-end {
+    left: 80%;
+    bottom: 50%;
+    transform: translateX(-50%) translateY(50%);
 }
 
 /* ================================================= */
@@ -6597,41 +6618,60 @@ span {
 
 @keyframes pulse-floating-subtle {
     0%, 100% { 
-        box-shadow: 0 2px 6px rgba(16,185,129,0.2);
-        border-color: rgba(16,185,129,0.3);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3),
+                    0 2px 4px rgba(16, 185, 129, 0.2);
+        border-color: rgba(16, 185, 129, 0.4);
     }
     50% { 
-        box-shadow: 0 3px 8px rgba(16,185,129,0.4);
-        border-color: rgba(16,185,129,0.5);
+        box-shadow: 0 6px 16px rgba(16, 185, 129, 0.5),
+                    0 3px 6px rgba(16, 185, 129, 0.3);
+        border-color: rgba(16, 185, 129, 0.6);
     }
 }
 
 /* ================================================= */
-/* RESPONSIVE DESIGN */
+/* RESPONSIVE DESIGN - DESKTOP */
 /* ================================================= */
 
-/* Desktop */
 @media (min-width: 769px) {
     .floating-workout-actions {
-        height: 75px; /* Augmenté pour accommoder les grands boutons */
+        height: 75px;
     }
     
-    .floating-btn-pause {
+    /* Barre légèrement plus épaisse sur desktop */
+    .floating-workout-arc {
+        height: 30px; /* 50% de 60px */
+    }
+    
+    /* Boutons plus grands sur desktop */
+    .floating-btn-pause,
+    .floating-btn-execute,
+    .floating-btn-end {
         width: 60px;
         height: 60px;
+    }
+    
+    .floating-btn-pause i,
+    .floating-btn-end i {
         font-size: 1.6rem;
     }
     
     .floating-btn-execute {
-        width: 60px;
-        height: 60px;
         font-size: 1.6rem;
     }
     
+    /* Espacement plus large sur desktop */
+    .floating-btn-pause {
+        left: calc(50% - 140px);
+    }
+    
+    .floating-btn-execute {
+        left: 50%;
+        bottom: 65%; /* Plus surélevé sur desktop */
+    }
+    
     .floating-btn-end {
-        width: 60px;
-        height: 60px;
-        font-size: 1.6rem;
+        left: calc(50% + 140px);
     }
 }
 
@@ -6656,140 +6696,22 @@ span {
 /* ================================================= */
 
 @media (prefers-color-scheme: dark) {
-    .floating-workout-arc svg path {
-        fill: var(--bg-card);
-        stroke: var(--border);
+    .floating-workout-arc {
+        background: var(--bg-card);
+        border-image: linear-gradient(90deg, 
+            rgba(156, 156, 156, 0.4) 0%, 
+            rgba(212, 175, 55, 0.6) 50%, 
+            rgba(156, 156, 156, 0.4) 100%) 1;
     }
     
     .floating-btn {
         background: var(--bg-card);
-        border-color: var(--border);
+        border-color: rgba(255, 255, 255, 0.2);
     }
 }
 
 /* ================================================= */
-/* MODAL DE FIN DE SÉANCE */
-/* ================================================= */
-
-.workout-end-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: var(--z-modal);
-    display: none;
-}
-
-.workout-end-modal.active {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.workout-end-backdrop {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(8px);
-    animation: fadeInBackdrop 0.3s ease;
-}
-
-.workout-end-content {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: var(--bg-card);
-    border-radius: var(--radius);
-    padding: var(--spacing-xl);
-    text-align: center;
-    animation: slideInModal 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid var(--border);
-    max-width: 90vw;
-    width: 400px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-}
-
-.workout-end-content h3 {
-    margin: 0 0 var(--spacing-lg) 0;
-    color: var(--text);
-    font-size: var(--font-xl);
-}
-
-.workout-end-actions {
-    display: flex;
-    gap: var(--spacing-md);
-    justify-content: center;
-}
-
-.workout-end-actions button {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--spacing-xs);
-    padding: var(--spacing-md);
-    border: 2px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--bg-secondary);
-    color: var(--text);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    min-width: 120px;
-}
-
-.workout-end-actions button:hover {
-    border-color: var(--primary);
-    background: var(--bg-tertiary);
-    transform: translateY(-1px);
-}
-
-.workout-end-actions button i {
-    font-size: 1.5rem;
-}
-
-.workout-end-actions button:first-child {
-    border-color: var(--success);
-    color: var(--success);
-}
-
-.workout-end-actions button:first-child:hover {
-    border-color: var(--success);
-    background: rgba(34, 197, 94, 0.1);
-}
-
-.workout-end-actions button:last-child {
-    border-color: var(--danger);
-    color: var(--danger);
-}
-
-.workout-end-actions button:last-child:hover {
-    border-color: var(--danger);
-    background: rgba(239, 68, 68, 0.1);
-}
-
-/* Animations modal */
-@keyframes fadeInBackdrop {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@keyframes slideInModal {
-    from { 
-        opacity: 0; 
-        transform: translate(-50%, -50%) scale(0.9);
-    }
-    to { 
-        opacity: 1; 
-        transform: translate(-50%, -50%) scale(1);
-    }
-}
-
-/* ================================================= */
-/* FIN SECTION BOUTONS FLOTTANTS */
+/* FIN SECTION BARRE FLOTTANTE */
 /* ================================================= */
 
 
