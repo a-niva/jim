@@ -12983,9 +12983,9 @@ function showPlanningFromProgram() {
 }
 
 
-// === CALCUL ARC GÉOMÉTRIQUE CORRIGÉ ===
+// === CALCUL ARC EN POURCENTAGES PURS ===
 function calculateAdaptiveArc() {
-    console.log('=== DEBUT calculateAdaptiveArc CORRIGÉ ===');
+    console.log('=== DEBUT calculateAdaptiveArc POURCENTAGES ===');
     
     const container = document.querySelector('.floating-workout-actions');
     const svg = container?.querySelector('svg');
@@ -13007,20 +13007,19 @@ function calculateAdaptiveArc() {
     console.log('📏 Dimensions:', { containerWidth, containerHeight });
     
     const isMobile = window.innerWidth <= 768;
-    
-    // PARAMÈTRES SIMPLIFIÉS
-    const arcHeightFromBottom = 25; // Hauteur de l'arc depuis le bas
     const buttonSpacing = isMobile ? 60 : 80;
     
+    // PARAMÈTRES EN POURCENTAGES PURS
+    const arcHeightPercent = 55; // L'arc monte à 55% depuis le bas (45% depuis le haut)
+    const arcTopY = 100 - arcHeightPercent; // 45% depuis le haut en coordonnées SVG
+    
     // CALCUL ARC SVG
-    const arcHeightPercent = (arcHeightFromBottom / containerHeight) * 100;
-    const arcTopY = 100 - arcHeightPercent; // Position du sommet depuis le haut
     const pathData = `M 0,100 Q 50,${arcTopY} 100,100 L 100,100 L 0,100 Z`;
     path.setAttribute('d', pathData);
     
     console.log('🎯 Arc:', { 
-        arcHeightFromBottom, 
-        arcTopY: arcTopY.toFixed(1), 
+        arcHeightPercent, 
+        arcTopY, 
         pathData 
     });
     
@@ -13034,50 +13033,54 @@ function calculateAdaptiveArc() {
         return;
     }
     
-    // POSITIONNEMENT CORRIGÉ - PRÈS DU BAS POUR ÊTRE SUR L'ARC
+    // FONCTION POUR CALCULER LA POSITION SUR LA COURBE DE BÉZIER
+    function getYPercentOnCurve(xPercent) {
+        // Courbe quadratique Bézier: P₀(0,100), P₁(50,arcTopY), P₂(100,100)
+        const t = xPercent / 100;
+        const yPercent = (1-t)*(1-t)*100 + 2*(1-t)*t*arcTopY + t*t*100;
+        return yPercent;
+    }
+    
+    // POSITIONNEMENT EN POURCENTAGES PURS
     const centerX = containerWidth / 2;
     const halfSpacing = buttonSpacing / 2;
     
-    // FORMULE CORRECTE : Pour être sur l'arc de Bézier
-    function getBottomPositionOnArc(xPercent) {
-        // Pour une courbe de Bézier quadratique M 0,100 Q 50,arcTopY 100,100
-        const t = xPercent / 100;
-        const yPercent = (1-t)*(1-t)*100 + 2*(1-t)*t*arcTopY + t*t*100;
-        // Convertir en position bottom (inversée)
-        const bottomPx = containerHeight - (yPercent / 100 * containerHeight);
-        return Math.max(2, bottomPx); // Minimum 2px du bas
-    }
+    // BOUTON CENTRAL (50% de largeur)
+    const centerXPercent = 50;
+    const centerYPercent = getYPercentOnCurve(centerXPercent);
+    const centerBottomPercent = 100 - centerYPercent; // Conversion en bottom
     
-    // BOUTON CENTRAL (50% de largeur) - au sommet de l'arc
-    const centerBottomPx = getBottomPositionOnArc(50);
     executeBtn.style.left = '50%';
-    executeBtn.style.bottom = `${centerBottomPx}px`;
+    executeBtn.style.bottom = `${centerBottomPercent}%`;
     
     // BOUTON PAUSE (gauche)
     const pauseX = centerX - halfSpacing;
     const pauseXPercent = (pauseX / containerWidth) * 100;
-    const pauseBottomPx = getBottomPositionOnArc(pauseXPercent);
+    const pauseYPercent = getYPercentOnCurve(pauseXPercent);
+    const pauseBottomPercent = 100 - pauseYPercent;
     
-    pauseBtn.style.left = `${pauseX}px`;
-    pauseBtn.style.bottom = `${pauseBottomPx}px`;
+    pauseBtn.style.left = `${pauseXPercent}%`;
+    pauseBtn.style.bottom = `${pauseBottomPercent}%`;
     pauseBtn.style.right = 'auto';
     
     // BOUTON FIN (droite)
     const endX = centerX + halfSpacing;
     const endXPercent = (endX / containerWidth) * 100;
-    const endBottomPx = getBottomPositionOnArc(endXPercent);
+    const endYPercent = getYPercentOnCurve(endXPercent);
+    const endBottomPercent = 100 - endYPercent;
     
-    endBtn.style.left = `${endX}px`;
-    endBtn.style.bottom = `${endBottomPx}px`;
+    endBtn.style.left = `${endXPercent}%`;
+    endBtn.style.bottom = `${endBottomPercent}%`;
     endBtn.style.right = 'auto';
     
-    console.log('✅ Positions CORRIGÉES:', {
-        center: `bottom:${centerBottomPx.toFixed(1)}px`,
-        pause: `x:${pauseX.toFixed(1)}, bottom:${pauseBottomPx.toFixed(1)}px`,
-        end: `x:${endX.toFixed(1)}, bottom:${endBottomPx.toFixed(1)}px`
+    console.log('✅ Positions POURCENTAGES:', {
+        arc: `centre à ${centerYPercent.toFixed(1)}% depuis le haut`,
+        center: `x:50%, bottom:${centerBottomPercent.toFixed(1)}%`,
+        pause: `x:${pauseXPercent.toFixed(1)}%, bottom:${pauseBottomPercent.toFixed(1)}%`,
+        end: `x:${endXPercent.toFixed(1)}%, bottom:${endBottomPercent.toFixed(1)}%`
     });
     
-    console.log('=== FIN calculateAdaptiveArc CORRIGÉ ===');
+    console.log('=== FIN calculateAdaptiveArc POURCENTAGES ===');
 }
 
 function showEndWorkoutModal() {

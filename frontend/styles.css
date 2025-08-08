@@ -6452,28 +6452,34 @@ span {
 
 
 
+/* ================================================= */
+/* CHAPEAU ARC DE CERCLE - SECTION COMPLÈTE */
+/* ================================================= */
 
-/* CHAPEAU ARC DE CERCLE - VERSION CORRIGÉE */
+/* Container principal fixe */
 .floating-workout-actions {
     position: fixed;
     bottom: var(--bottom-nav-height);
     left: 0;
     right: 0;
-    height: 50px; /* Unifié */
+    height: 45px; /* Mobile par défaut */
     z-index: calc(var(--z-nav) + 10);
     pointer-events: none;
     overflow: visible;
 }
 
+/* Arc SVG container */
 .floating-workout-arc {
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
+    width: 100%;
     height: 100%;
     pointer-events: none;
 }
 
+/* SVG de l'arc */
 .floating-workout-arc svg {
     position: absolute;
     bottom: 0;
@@ -6483,6 +6489,7 @@ span {
     overflow: visible;
 }
 
+/* Path de l'arc */
 .floating-workout-arc svg path {
     fill: white;
     stroke: rgba(0, 0, 0, 0.12);
@@ -6490,6 +6497,7 @@ span {
     filter: drop-shadow(0 -2px 8px rgba(0, 0, 0, 0.08));
 }
 
+/* Container pour les boutons */
 .floating-workout-actions-content {
     position: absolute;
     bottom: 0;
@@ -6500,7 +6508,10 @@ span {
     pointer-events: none;
 }
 
-/* BOUTONS - RÈGLES UNIFIÉES SEULEMENT */
+/* ================================================= */
+/* BOUTONS FLOTTANTS - BASE COMMUNE */
+/* ================================================= */
+
 .floating-btn {
     position: absolute;
     border-radius: 50%;
@@ -6517,6 +6528,7 @@ span {
     transform: translateX(-50%);
 }
 
+/* États hover et active */
 .floating-btn:hover {
     transform: translateX(-50%) translateY(-2px);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
@@ -6528,51 +6540,47 @@ span {
     transition: all 0.1s;
 }
 
-/* TAILLES FINALES - Mobile/Desktop */
-@media (max-width: 768px) {
-    .floating-workout-actions {
-        height: 45px;
-    }
-    
-    .floating-btn-execute {
-        width: 28px;
-        height: 28px;
-        font-size: 0.9rem;
-    }
-    
-    .floating-btn-pause,
-    .floating-btn-end {
-        width: 26px;
-        height: 26px;
-        font-size: 0.8rem;
-    }
+/* ================================================= */
+/* TAILLES ET COULEURS SPÉCIFIQUES */
+/* ================================================= */
+
+/* Bouton pause */
+.floating-btn-pause {
+    width: 26px;
+    height: 26px;
+    font-size: 0.8rem;
 }
 
-@media (min-width: 769px) {
-    .floating-workout-actions {
-        height: 50px;
-    }
-    
-    .floating-btn-execute {
-        width: 32px;
-        height: 32px;
-        font-size: 1rem;
-    }
-    
-    .floating-btn-pause,
-    .floating-btn-end {
-        width: 30px;
-        height: 30px;
-        font-size: 0.9rem;
-    }
+.floating-btn-pause i {
+    color: #3b82f6;
 }
 
-/* COULEURS */
-.floating-btn-pause i { color: #3b82f6; }
-.floating-btn-execute i { color: #10b981; }
-.floating-btn-end i { color: #f87171; }
+/* Bouton validation */
+.floating-btn-execute {
+    width: 28px;
+    height: 28px;
+    font-size: 0.9rem;
+}
 
-/* ÉTATS */
+.floating-btn-execute i {
+    color: #10b981;
+}
+
+/* Bouton fin */
+.floating-btn-end {
+    width: 26px;
+    height: 26px;
+    font-size: 0.8rem;
+}
+
+.floating-btn-end i {
+    color: #f87171;
+}
+
+/* ================================================= */
+/* ÉTATS SPÉCIAUX EXECUTESETBTN */
+/* ================================================= */
+
 #executeSetBtn.ready {
     animation: pulse-floating-subtle 3s infinite;
 }
@@ -6591,6 +6599,188 @@ span {
         border-color: rgba(16,185,129,0.5);
     }
 }
+
+/* ================================================= */
+/* RESPONSIVE DESIGN */
+/* ================================================= */
+
+/* Desktop */
+@media (min-width: 769px) {
+    .floating-workout-actions {
+        height: 50px;
+    }
+    
+    .floating-btn-pause {
+        width: 30px;
+        height: 30px;
+        font-size: 0.9rem;
+    }
+    
+    .floating-btn-execute {
+        width: 32px;
+        height: 32px;
+        font-size: 1rem;
+    }
+    
+    .floating-btn-end {
+        width: 30px;
+        height: 30px;
+        font-size: 0.9rem;
+    }
+}
+
+/* ================================================= */
+/* PROTECTION CONTENU SCROLLABLE */
+/* ================================================= */
+
+.container,
+.main-content {
+    padding-bottom: calc(var(--bottom-nav-height) + 60px) !important;
+}
+
+@media (min-width: 769px) {
+    .container,
+    .main-content {
+        padding-bottom: calc(var(--bottom-nav-height) + 70px) !important;
+    }
+}
+
+/* ================================================= */
+/* THÈME SOMBRE */
+/* ================================================= */
+
+@media (prefers-color-scheme: dark) {
+    .floating-workout-arc svg path {
+        fill: var(--bg-card);
+        stroke: var(--border);
+    }
+    
+    .floating-btn {
+        background: var(--bg-card);
+        border-color: var(--border);
+    }
+}
+
+/* ================================================= */
+/* MODAL DE FIN DE SÉANCE */
+/* ================================================= */
+
+.workout-end-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--z-modal);
+    display: none;
+}
+
+.workout-end-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.workout-end-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    animation: fadeInBackdrop 0.3s ease;
+}
+
+.workout-end-content {
+    position: relative;
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: var(--spacing-xl);
+    text-align: center;
+    animation: slideInModal 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid var(--border);
+    max-width: 90vw;
+    width: 400px;
+}
+
+.workout-end-content h3 {
+    margin: 0 0 var(--spacing-lg) 0;
+    color: var(--text);
+    font-size: var(--font-xl);
+}
+
+.workout-end-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: center;
+}
+
+.workout-end-actions button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-md);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-secondary);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 120px;
+}
+
+.workout-end-actions button:hover {
+    border-color: var(--primary);
+    background: var(--bg-tertiary);
+    transform: translateY(-1px);
+}
+
+.workout-end-actions button i {
+    font-size: 1.5rem;
+}
+
+.workout-end-actions button:first-child {
+    border-color: var(--success);
+    color: var(--success);
+}
+
+.workout-end-actions button:first-child:hover {
+    border-color: var(--success);
+    background: rgba(34, 197, 94, 0.1);
+}
+
+.workout-end-actions button:last-child {
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+.workout-end-actions button:last-child:hover {
+    border-color: var(--danger);
+    background: rgba(239, 68, 68, 0.1);
+}
+
+/* Animations modal */
+@keyframes fadeInBackdrop {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideInModal {
+    from { 
+        opacity: 0; 
+        transform: translate(-50%, -50%) scale(0.9) translateY(20px);
+    }
+    to { 
+        opacity: 1; 
+        transform: translate(-50%, -50%) scale(1) translateY(0);
+    }
+}
+
+/* ================================================= */
+/* FIN SECTION BOUTONS FLOTTANTS */
+/* ================================================= */
 
 
 
