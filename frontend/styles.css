@@ -1454,7 +1454,7 @@ span {
 
 .active-workout-interface-container {
     background: var(--bg-card);
-    padding: var(--spacing-xl) var(--spacing-lg);
+    padding: var(--spacing-2xl) var(--spacing-lg);
     position: relative;
     transition: border-color .3s ease;
     will-change: transform, box-shadow;
@@ -2141,12 +2141,12 @@ span {
 }
 
 .input-section {
-    margin-bottom: var(--spacing-xl);
+    margin-bottom: var(--spacing-2xl);
     display: flex;
     flex-direction: column;
-    gap: 4%;
+    gap: var(--spacing-lg);
     max-width: 500px;
-    margin: 0 auto var(--spacing-xl);
+    margin: 0 auto var(--spacing-2xl);
 }
 
 .input-row {
@@ -2154,14 +2154,13 @@ span {
     grid-template-columns: 60px 60px 1fr 60px;
     align-items: center;
     gap: var(--spacing-md);
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
     position: relative;
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
     overflow: hidden;
-    min-height: 60px;
-    max-height: 60px;
+    min-height: 80px;
     justify-content: center;
 }
 
@@ -2400,11 +2399,11 @@ span {
     align-items: center;
     gap: var(--spacing-sm);
     flex-direction: column;
-    padding: var(--spacing-md);
+    padding: var(--spacing-lg);
     background: #f1f5f9;
     border-radius: 8px;
     width: 100%;
-    min-height: 70px;
+    min-height: 80px;
 }
 
 .stepper-modern:hover {
@@ -6794,6 +6793,7 @@ span {
     .floating-btn-execute {
         width: 70px;
         height: 70px;
+        transform: translateX(-50%) translateY(-50%) scale(0); /* ← AJOUT OBLIGATOIRE */
     }
     
     .floating-btn i {
@@ -7535,6 +7535,7 @@ input {
         max-width: 100%;
         margin: 0;
         padding: 3% 2%;
+        min-height: auto;
     }
 
     .charge-weight-value {
@@ -7547,11 +7548,13 @@ input {
     }
 
     .input-row {
-            grid-template-columns: 44px 44px 1fr 44px !important;
-            gap: var(--spacing-sm) !important;
-            padding: 0 var(--spacing-xs);
-            margin-bottom: var(--spacing-md);
-            max-width: 100%;
+        grid-template-columns: 44px 44px 1fr 44px !important;
+        gap: var(--spacing-sm) !important;
+        padding: 0 var(--spacing-xs);
+        margin-bottom: var(--spacing-md);
+        max-width: 100%;
+        min-height: 12vw;
+        max-height: 60px;
     }
 
     .stepper-modern {
