@@ -6452,6 +6452,8 @@ span {
 
 
 
+
+
 /* ================================================= */
 /* BARRE FLOTTANTE - SECTION COMPLÈTE */
 /* ================================================= */
@@ -6462,7 +6464,8 @@ span {
     bottom: var(--bottom-nav-height);
     left: 0;
     right: 0;
-    height: 65px; /* Mobile par défaut */
+    height: 20vw; /* Hauteur responsive */
+    max-height: 100px; /* Limite sur grands écrans */
     z-index: calc(var(--z-nav) + 10);
     pointer-events: none;
     display: flex;
@@ -6470,15 +6473,16 @@ span {
     justify-content: center;
 }
 
-/* Remplacer l'arc par une barre horizontale */
-.floating-workout-arc {
+/* Barre horizontale */
+.floating-workout-bar {
     position: absolute;
-    bottom: 50%;
-    transform: translateY(50%);
+    top: 50%;
+    transform: translateY(-50%);
     left: 0;
     right: 0;
     width: 100%;
-    height: 26px; /* 50% du diamètre des petits boutons (52px) */
+    height: 7vw; /* 50% du diamètre des boutons (14vw) */
+    max-height: 35px;
     background: white;
     border-top: 2px solid;
     border-bottom: 2px solid;
@@ -6491,15 +6495,10 @@ span {
     pointer-events: none;
 }
 
-/* Masquer le SVG non utilisé */
-.floating-workout-arc svg {
-    display: none;
-}
-
 /* Container pour les boutons */
 .floating-workout-actions-content {
     position: absolute;
-    bottom: 0;
+    top: 0;
     left: 0;
     right: 0;
     width: 100%;
@@ -6516,53 +6515,56 @@ span {
 
 .floating-btn {
     position: absolute;
+    width: 14vw; /* Taille responsive */
+    height: 14vw;
+    max-width: 70px; /* Limite sur grands écrans */
+    max-height: 70px;
     border-radius: 50%;
     background: white;
-    border: 4px solid rgba(0, 0, 0, 0.15); /* Bordure plus épaisse */
+    border: 1vw solid rgba(0, 0, 0, 0.15);
+    max-border-width: 5px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), /* Ombre plus prononcée */
-                0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1vw 3vw rgba(0, 0, 0, 0.2),
+                0 0.5vw 1vw rgba(0, 0, 0, 0.1);
     transition: all 0.2s ease;
     touch-action: manipulation;
     pointer-events: auto;
-    transform: translateX(-50%);
+    top: 50%;
+    transform: translateY(-50%);
 }
 
 /* États hover et active */
 .floating-btn:hover {
-    transform: translateX(-50%) translateY(-3px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25),
-                0 3px 6px rgba(0, 0, 0, 0.15);
+    transform: translateY(calc(-50% - 3px));
+    box-shadow: 0 1.5vw 4vw rgba(0, 0, 0, 0.25),
+                0 0.75vw 1.5vw rgba(0, 0, 0, 0.15);
     border-color: rgba(0, 0, 0, 0.2);
 }
 
 .floating-btn:active {
-    transform: translateX(-50%) translateY(0);
+    transform: translateY(-50%);
     transition: all 0.1s;
 }
 
 /* ================================================= */
-/* TAILLES ET COULEURS SPÉCIFIQUES - MOBILE */
+/* TAILLES DES ICÔNES */
 /* ================================================= */
 
-/* Tous les boutons de même taille */
-.floating-btn-pause,
-.floating-btn-execute,
-.floating-btn-end {
-    width: 52px;
-    height: 52px;
+.floating-btn i {
+    font-size: 4vw;
+    max-font-size: 1.8rem;
 }
 
 .floating-btn-pause i {
     color: #3b82f6;
-    font-size: 1.4rem;
 }
 
 .floating-btn-execute {
-    font-size: 1.4rem; /* Pour l'emoji */
+    font-size: 4vw; /* Pour l'emoji */
+    max-font-size: 1.8rem;
 }
 
 .floating-btn-execute i {
@@ -6571,7 +6573,6 @@ span {
 
 .floating-btn-end i {
     color: #f87171;
-    font-size: 1.4rem;
 }
 
 /* Empêcher tout texte additionnel */
@@ -6582,26 +6583,22 @@ span {
 }
 
 /* ================================================= */
-/* POSITIONNEMENT DES BOUTONS - MOBILE */
+/* POSITIONNEMENT DES BOUTONS */
 /* ================================================= */
 
-/* Position par défaut mobile */
+/* Espacement depuis les bords : 10% de la largeur */
 .floating-btn-pause {
-    left: 20%;
-    bottom: 50%;
-    transform: translateX(-50%) translateY(50%);
+    left: 10vw;
 }
 
 .floating-btn-execute {
     left: 50%;
-    bottom: 60%; /* Légèrement surélevé */
-    transform: translateX(-50%) translateY(50%);
+    transform: translateX(-50%) translateY(-50%);
 }
 
 .floating-btn-end {
-    left: 80%;
-    bottom: 50%;
-    transform: translateX(-50%) translateY(50%);
+    right: 10vw;
+    left: auto;
 }
 
 /* ================================================= */
@@ -6618,60 +6615,42 @@ span {
 
 @keyframes pulse-floating-subtle {
     0%, 100% { 
-        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3),
-                    0 2px 4px rgba(16, 185, 129, 0.2);
+        box-shadow: 0 1vw 3vw rgba(16, 185, 129, 0.3),
+                    0 0.5vw 1vw rgba(16, 185, 129, 0.2);
         border-color: rgba(16, 185, 129, 0.4);
     }
     50% { 
-        box-shadow: 0 6px 16px rgba(16, 185, 129, 0.5),
-                    0 3px 6px rgba(16, 185, 129, 0.3);
+        box-shadow: 0 1.5vw 4vw rgba(16, 185, 129, 0.5),
+                    0 0.75vw 1.5vw rgba(16, 185, 129, 0.3);
         border-color: rgba(16, 185, 129, 0.6);
     }
 }
 
 /* ================================================= */
-/* RESPONSIVE DESIGN - DESKTOP */
+/* LIMITES POUR GRANDS ÉCRANS */
 /* ================================================= */
 
-@media (min-width: 769px) {
-    .floating-workout-actions {
-        height: 75px;
+@media (min-width: 1200px) {
+    .floating-btn {
+        border-width: 5px;
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.2),
+                    0 6px 12px rgba(0, 0, 0, 0.1);
     }
     
-    /* Barre légèrement plus épaisse sur desktop */
-    .floating-workout-arc {
-        height: 30px; /* 50% de 60px */
+    .floating-btn:hover {
+        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.25),
+                    0 9px 18px rgba(0, 0, 0, 0.15);
     }
     
-    /* Boutons plus grands sur desktop */
-    .floating-btn-pause,
-    .floating-btn-execute,
-    .floating-btn-end {
-        width: 60px;
-        height: 60px;
-    }
-    
-    .floating-btn-pause i,
-    .floating-btn-end i {
-        font-size: 1.6rem;
-    }
-    
-    .floating-btn-execute {
-        font-size: 1.6rem;
-    }
-    
-    /* Espacement plus large sur desktop */
-    .floating-btn-pause {
-        left: calc(50% - 140px);
-    }
-    
-    .floating-btn-execute {
-        left: 50%;
-        bottom: 65%; /* Plus surélevé sur desktop */
-    }
-    
-    .floating-btn-end {
-        left: calc(50% + 140px);
+    @keyframes pulse-floating-subtle {
+        0%, 100% { 
+            box-shadow: 0 12px 36px rgba(16, 185, 129, 0.3),
+                        0 6px 12px rgba(16, 185, 129, 0.2);
+        }
+        50% { 
+            box-shadow: 0 18px 48px rgba(16, 185, 129, 0.5),
+                        0 9px 18px rgba(16, 185, 129, 0.3);
+        }
     }
 }
 
@@ -6679,15 +6658,17 @@ span {
 /* PROTECTION CONTENU SCROLLABLE */
 /* ================================================= */
 
-.container,
-.main-content {
-    padding-bottom: calc(var(--bottom-nav-height) + 75px) !important;
+.container {
+    padding-bottom: calc(var(--bottom-nav-height) + 50px);
 }
 
-@media (min-width: 769px) {
-    .container,
+.main-content {
+    padding-bottom: calc(var(--bottom-nav-height) + 20vw) !important;
+}
+
+@media (min-width: 1200px) {
     .main-content {
-        padding-bottom: calc(var(--bottom-nav-height) + 85px) !important;
+        padding-bottom: calc(var(--bottom-nav-height) + 100px) !important;
     }
 }
 
@@ -6696,7 +6677,7 @@ span {
 /* ================================================= */
 
 @media (prefers-color-scheme: dark) {
-    .floating-workout-arc {
+    .floating-workout-bar {
         background: var(--bg-card);
         border-image: linear-gradient(90deg, 
             rgba(156, 156, 156, 0.4) 0%, 
@@ -6711,19 +6692,9 @@ span {
 }
 
 /* ================================================= */
-/* FIN SECTION BARRE FLOTTANTE */
+/* MODAL DE FIN DE SÉANCE (conservé) */
 /* ================================================= */
 
-
-
-
-
-
-
-
-
-
-/* MODAL DE FIN DE SÉANCE */
 .workout-end-modal {
     position: fixed;
     top: 0;
@@ -6731,6 +6702,13 @@ span {
     right: 0;
     bottom: 0;
     z-index: var(--z-modal);
+    display: none;
+}
+
+.workout-end-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .workout-end-backdrop {
@@ -6755,32 +6733,88 @@ span {
     text-align: center;
     animation: slideInModal 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     border: 1px solid var(--border);
-    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    max-width: 90vw;
+    width: 400px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
 }
 
 .workout-end-content h3 {
+    margin: 0 0 var(--spacing-lg) 0;
     color: var(--text);
-    margin-bottom: var(--spacing-xl);
-    font-size: var(--font-2xl);
+    font-size: var(--font-xl);
 }
 
 .workout-end-actions {
     display: flex;
-    gap: var(--spacing-xl);
+    gap: var(--spacing-md);
     justify-content: center;
-    margin-bottom: var(--spacing-lg);
 }
 
-.floating-btn-complete,
-.floating-btn-abandon {
-    width: 60px;
-    height: 60px;
+.workout-end-actions button {
+    display: flex;
     flex-direction: column;
-    gap: 4px;
-    font-size: 1rem;
-    background: white;
-    border: 2px solid rgba(0,0,0,0.12);
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-md);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-secondary);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 120px;
 }
+
+.workout-end-actions button:hover {
+    border-color: var(--primary);
+    background: var(--bg-tertiary);
+    transform: translateY(-1px);
+}
+
+.workout-end-actions button i {
+    font-size: 1.5rem;
+}
+
+.workout-end-actions button:first-child {
+    border-color: var(--success);
+    color: var(--success);
+}
+
+.workout-end-actions button:first-child:hover {
+    border-color: var(--success);
+    background: rgba(34, 197, 94, 0.1);
+}
+
+.workout-end-actions button:last-child {
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+.workout-end-actions button:last-child:hover {
+    border-color: var(--danger);
+    background: rgba(239, 68, 68, 0.1);
+}
+
+/* Animations modal */
+@keyframes fadeInBackdrop {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideInModal {
+    from { 
+        opacity: 0; 
+        transform: translate(-50%, -50%) scale(0.9);
+    }
+    to { 
+        opacity: 1; 
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+/* ================================================= */
+/* BOUTONS MODAL COMPLÈTE/ABANDON */
+/* ================================================= */
 
 .floating-btn-complete i {
     color: #10b981;
@@ -6789,7 +6823,6 @@ span {
 .floating-btn-abandon i {
     color: #ef4444;
 }
-
 
 .floating-btn-complete span,
 .floating-btn-abandon span {
@@ -6806,6 +6839,10 @@ span {
     background: linear-gradient(135deg, #ef4444, #dc2626);
 }
 
+/* ================================================= */
+/* BOUTON ANNULER MODAL */
+/* ================================================= */
+
 .modal-cancel {
     background: transparent;
     border: 1px solid var(--border);
@@ -6821,31 +6858,43 @@ span {
     color: var(--text);
 }
 
-@keyframes fadeInBackdrop {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@keyframes slideInModal {
-    from { 
-        opacity: 0; 
-        transform: translate(-50%, -60%) scale(0.9);
-    }
-    to { 
-        opacity: 1; 
-        transform: translate(-50%, -50%) scale(1);
-    }
-}
-
-/* PROTECTION SCROLL CONTENU */
-.container {
-    padding-bottom: calc(var(--bottom-nav-height) + 50px);
-}
+/* ================================================= */
+/* ANIMATION PULSE SUBTLE */
+/* ================================================= */
 
 @keyframes pulse-subtle {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.9; transform: scale(1.02); }
+    0%, 100% { 
+        opacity: 1; 
+        transform: scale(1); 
+    }
+    50% { 
+        opacity: 0.9; 
+        transform: scale(1.02); 
+    }
 }
+
+/* ================================================= */
+/* FIN SECTION BARRE FLOTTANTE */
+/* ================================================= */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #timer-display {
     font-size: 2.4rem;

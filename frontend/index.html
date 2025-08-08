@@ -526,22 +526,18 @@
 
             <!-- NOUVEAUX BOUTONS FLOTTANTS -->
             <div class="floating-workout-actions" id="floatingWorkoutActions">
-                <div class="floating-workout-arc">
-                    <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-                        <path d="M 0,100 Q 50,20 100,100 L 100,100 L 0,100 Z" 
-                            fill="white" 
-                            stroke="rgba(0,0,0,0.1)" 
-                            stroke-width="0.2"/>
-                    </svg>
-                </div>
+                <!-- Barre horizontale -->
+                <div class="floating-workout-bar"></div>
+                
+                <!-- Boutons positionnés -->
                 <div class="floating-workout-actions-content">
-                    <button class="floating-btn floating-btn-pause" onclick="pauseWorkout()" title="Pause">
+                    <button class="floating-btn floating-btn-pause" onclick="pauseWorkout()">
                         <i class="fas fa-pause"></i>
                     </button>
-                    <button class="floating-btn floating-btn-execute" id="executeSetBtn" onclick="executeSet()" title="Valider série">
+                    <button class="floating-btn floating-btn-execute" id="executeSetBtn" onclick="executeSet()">
                         <i class="fas fa-check"></i>
                     </button>
-                    <button class="floating-btn floating-btn-end" onclick="showEndWorkoutModal()" title="Terminer séance">
+                    <button class="floating-btn floating-btn-end" onclick="showEndWorkoutModal()">
                         <i class="fas fa-arrow-right-from-bracket"></i>
                     </button>
                 </div>
