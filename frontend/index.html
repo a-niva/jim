@@ -566,22 +566,24 @@
             });
             </script>
 
-            <!-- MODAL DE CONFIRMATION FIN -->
-            <div class="workout-end-modal" id="workoutEndModal" style="display: none;">
+            <!-- Modal de fin de séance -->
+            <div class="workout-end-modal" id="workoutEndModal">
                 <div class="workout-end-backdrop"></div>
                 <div class="workout-end-content">
                     <h3>Terminer la séance ?</h3>
                     <div class="workout-end-actions">
-                        <button class="floating-btn floating-btn-complete" onclick="endWorkout()" title="Terminer">
+                        <button class="floating-btn-complete" onclick="endWorkout()">
                             <i class="fas fa-stopwatch"></i>
                             <span>Terminer</span>
                         </button>
-                        <button class="floating-btn floating-btn-abandon" onclick="abandonWorkout()" title="Abandonner">
+                        <button class="floating-btn-abandon" onclick="abandonWorkout()">
                             <i class="fas fa-person-skiing"></i>
                             <span>Abandonner</span>
                         </button>
                     </div>
-                    <button class="modal-cancel" onclick="hideEndWorkoutModal()">Annuler</button>
+                    <button class="modal-cancel" onclick="hideEndWorkoutModal()">
+                        Annuler
+                    </button>
                 </div>
             </div>
         </div>
