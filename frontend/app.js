@@ -241,36 +241,99 @@ function closeModal() {
 
 
 // === CALCUL ARC SIMPLIFIÉ ET PRÉCIS ===
+// === CALCUL ARC AVEC POSITIONNEMENT GÉOMÉTRIQUE CORRECT ===
 function calculateAdaptiveArc() {
     const container = document.querySelector('.floating-workout-actions');
+    const svg = container?.querySelector('svg');
+    const path = svg?.querySelector('path');
+    
+    if (!container || !path) {
+        setTimeout(calculateAdaptiveArc, 50);
+        return;
+    }
+    
     const isMobile = window.innerWidth <= 768;
-    
-    // Dimensions adaptatives
-    const buttonSizeLateral = isMobile ? 30 : 36;
-    const buttonSizeValidation = buttonSizeLateral * 2;
-    const arcHeight = buttonSizeValidation + 10;
-    
-    // Calcul arc SVG
+    const containerWidth = container.offsetWidth;
     const containerHeight = container.offsetHeight;
+    
+    // PARAMÈTRES SELON L'ÉCRAN
+    let arcHeight, buttonSpacing;
+    if (isMobile) {
+        arcHeight = 30;
+        buttonSpacing = 80;
+    } else {
+        arcHeight = 35;
+        buttonSpacing = 120;
+    }
+    
+    // CALCUL ARC SVG
     const arcHeightPercent = (arcHeight / containerHeight) * 100;
     const arcTopY = 100 - arcHeightPercent;
+    const pathData = `M 0,100 Q 50,${arcTopY} 100,100 L 100,100 L 0,100 Z`;
+    path.setAttribute('d', pathData);
     
-    // Mise à jour du path SVG
-    const path = container.querySelector('svg path');
-    path.setAttribute('d', `M 0,100 Q 50,${arcTopY} 100,100 L 100,100 L 0,100 Z`);
+    // POINTS DE CONTRÔLE DE L'ARC
+    // P₀ = (0, 100)     - Point de départ (bas gauche)
+    // P₁ = (50, arcTopY) - Point de contrôle (sommet centre)  
+    // P₂ = (100, 100)   - Point d'arrivée (bas droite)
+
+    // FORMULE POUR HAUTEUR SUR LA COURBE
+    function getHeightOnCurve(xPercent) {
+        const t = xPercent / 100;
+        return 100 + (arcTopY - 100) * 4 * t * (1 - t);
+    }
     
-    // Positionnement des boutons
-    const buttonSpacing = isMobile ? 90 : 110;
-    const pauseBtn = container.querySelector('.floating-btn-pause');
-    const executeBtn = container.querySelector('.floating-btn-execute');
-    const endBtn = container.querySelector('.floating-btn-end');
+    // CALCUL POSITIONS DES BOUTONS SUR LA COURBE
+    const executeBtn = document.getElementById('executeSetBtn');
+    const pauseBtn = document.querySelector('.floating-btn-pause');
+    const endBtn = document.querySelector('.floating-btn-end');
     
-    pauseBtn.style.left = `calc(50% - ${buttonSpacing/2}px)`;
-    executeBtn.style.left = '50%';
-    endBtn.style.left = `calc(50% + ${buttonSpacing/2}px)`;
+    if (executeBtn && pauseBtn && endBtn) {
+        // BOUTON CENTRAL (50% de largeur) - Au sommet de la courbe
+        const centerXPercent = 50;
+        const centerHeightPercent = getHeightOnCurve(centerXPercent);
+        const centerHeightPx = (centerHeightPercent / 100) * containerHeight;
+        
+        executeBtn.style.left = '50%';
+        executeBtn.style.transform = 'translateX(-50%)';
+        executeBtn.style.bottom = `${containerHeight - centerHeightPx + 5}px`; // +5px pour être légèrement dans l'arc
+        
+        // CALCUL POSITIONS LATÉRALES SELON L'ESPACEMENT VOULU
+        const halfSpacing = buttonSpacing / 2;
+        const centerXPx = containerWidth / 2;
+        
+        // Position pause (à gauche)
+        const pauseXPx = centerXPx - halfSpacing;
+        const pauseXPercent = (pauseXPx / containerWidth) * 100;
+        const pauseHeightPercent = getHeightOnCurve(pauseXPercent);
+        const pauseHeightPx = (pauseHeightPercent / 100) * containerHeight;
+        
+        pauseBtn.style.left = `${pauseXPx}px`;
+        pauseBtn.style.transform = 'translateX(-50%)';
+        pauseBtn.style.bottom = `${containerHeight - pauseHeightPx + 8}px`; // +8px pour être dans l'arc
+        
+        // Position fin (à droite)
+        const endXPx = centerXPx + halfSpacing;
+        const endXPercent = (endXPx / containerWidth) * 100;
+        const endHeightPercent = getHeightOnCurve(endXPercent);
+        const endHeightPx = (endHeightPercent / 100) * containerHeight;
+        
+        endBtn.style.left = `${endXPx}px`;
+        endBtn.style.transform = 'translateX(-50%)';
+        endBtn.style.bottom = `${containerHeight - endHeightPx + 8}px`; // +8px pour être dans l'arc
+        
+        // Supprime les propriétés right qui peuvent interférer
+        endBtn.style.right = 'auto';
+        pauseBtn.style.right = 'auto';
+    }
     
-    // Position verticale du bouton de validation
-    executeBtn.style.bottom = `${arcHeight - buttonSizeValidation/2 - 5}px`;
+    console.log('Arc mathématique calculé:', {
+        mode: isMobile ? 'mobile' : 'desktop',
+        containerWidth,
+        arcHeight,
+        buttonSpacing,
+        arcTopY: arcTopY.toFixed(1)
+    });
 }
 
 // INITIALISATION IMMÉDIATE ET ROBUSTE
