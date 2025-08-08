@@ -961,3 +961,161 @@
 .metric-weight {
     color: #3b82f6;
 }
+
+
+/* ===== SANKEY LEADERBOARD STYLES ===== */
+.sankey-leaderboard {
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+    padding: var(--spacing-lg);
+    margin-top: var(--spacing-md);
+}
+
+.sankey-header {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+}
+
+.sankey-header h4 {
+    margin: 0 0 var(--spacing-sm) 0;
+    color: var(--text-primary);
+    font-size: var(--font-lg);
+}
+
+.sankey-header p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--font-sm);
+}
+
+.sankey-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.sankey-exercise-card {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: var(--spacing-md);
+    align-items: center;
+    background: var(--bg-primary);
+    padding: var(--spacing-md);
+    border-radius: calc(var(--radius) / 2);
+    border-left: 4px solid transparent;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sankey-exercise-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.sankey-exercise-card.positive {
+    border-left-color: var(--success);
+}
+
+.sankey-exercise-card.negative {
+    border-left-color: var(--danger);
+}
+
+.sankey-rank {
+    font-size: var(--font-xl);
+    font-weight: 700;
+    color: var(--text-muted);
+    min-width: 3rem;
+    text-align: center;
+}
+
+.sankey-exercise-info {
+    flex: 1;
+}
+
+.sankey-exercise-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.sankey-exercise-stats {
+    font-size: var(--font-sm);
+    color: var(--text-muted);
+}
+
+.sankey-impact {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--spacing-xs);
+    min-width: 120px;
+}
+
+.sankey-progress-container {
+    width: 100px;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.sankey-progress-bar {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.sankey-progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.8s ease;
+}
+
+.sankey-progress-fill.positive {
+    background: linear-gradient(90deg, var(--success) 0%, #22c55e 100%);
+}
+
+.sankey-progress-fill.negative {
+    background: linear-gradient(90deg, var(--danger) 0%, #ef4444 100%);
+}
+
+.sankey-impact-value {
+    font-size: var(--font-lg);
+    font-weight: 700;
+}
+
+.sankey-impact-value.positive {
+    color: var(--success);
+}
+
+.sankey-impact-value.negative {
+    color: var(--danger);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+    .sankey-exercise-card {
+        grid-template-columns: auto 1fr;
+        gap: var(--spacing-sm);
+    }
+    
+    .sankey-impact {
+        grid-column: 1 / -1;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: var(--spacing-sm);
+        min-width: auto;
+    }
+    
+    .sankey-progress-container {
+        flex: 1;
+        margin-right: var(--spacing-md);
+    }
+    
+    .sankey-rank {
+        min-width: 2.5rem;
+        font-size: var(--font-lg);
+    }
+}

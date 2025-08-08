@@ -1345,7 +1345,6 @@ async function loadMLAccuracyChart(userId) {
 // ===== ANALYSE DE PROGRESSION ML vs TRADITIONNEL =====
 
 async function loadMLProgressionAnalysis(userId) {
-    // ✅ DÉCLARATION EXPLICITE du container en premier
     const container = document.getElementById('mlSankeyDiagram');
     
     if (!container) {
@@ -1360,95 +1359,91 @@ async function loadMLProgressionAnalysis(userId) {
             container.innerHTML = `
                 <div class="chart-placeholder">
                     <div class="placeholder-icon">📊</div>
-                    <h4>Analyse de progression</h4>
-                    <p>Effectuez plus de séances avec et sans ML pour voir l'analyse comparative.</p>
+                    <h4>Classement des exercices</h4>
+                    <p>Effectuez plus de séances avec et sans ML pour voir le classement d'efficacité.</p>
                 </div>
             `;
             return;
         }
         
-        // Créer le tableau de comparaison
-        let progressionHTML = `
-            <div class="progression-analysis">
-                <div class="progression-summary">
-                    <h4>📈 Impact du ML sur vos performances</h4>
-                    <div class="summary-stats">
-                        <div class="summary-stat">
-                            <span class="stat-value ${data.summary.avg_improvement > 1.1 ? 'positive' : data.summary.avg_improvement < 0.9 ? 'negative' : 'neutral'}">
-                                ${data.summary.avg_improvement > 1 ? '+' : ''}${Math.round((data.summary.avg_improvement - 1) * 100)}%
-                            </span>
-                            <span class="stat-label">Amélioration moyenne</span>
-                        </div>
-                        <div class="summary-stat">
-                            <span class="stat-value">${data.summary.total_analyzed}</span>
-                            <span class="stat-label">Exercices analysés</span>
-                        </div>
-                    </div>
+        // Trier les exercices par impact ML (décroissant)
+        const sortedExercises = data.exercises
+            .filter(ex => ex.ml_sets > 5 && ex.normal_sets > 5) // Minimum 5 séries chaque
+            .sort((a, b) => b.improvement_factor - a.improvement_factor);
+        
+        if (sortedExercises.length === 0) {
+            container.innerHTML = `
+                <div class="chart-placeholder">
+                    <div class="placeholder-icon">📊</div>
+                    <h4>Pas assez de données</h4>
+                    <p>Effectuez plus de séries avec et sans ML pour voir le classement.</p>
                 </div>
-                
-                <div class="progression-table">
-                    <div class="table-header">
-                        <div class="col-exercise">Exercice</div>
-                        <div class="col-sessions">Séances</div>
-                        <div class="col-volume">Volume moyen</div>
-                        <div class="col-improvement">Impact ML</div>
-                    </div>
+            `;
+            return;
+        }
+        
+        // Générer le leaderboard
+        let leaderboardHTML = `
+            <div class="sankey-leaderboard">
+                <div class="sankey-header">
+                    <h4>🏆 Efficacité du ML par exercice</h4>
+                    <p>Exercices classés par amélioration des performances</p>
+                </div>
+                <div class="sankey-list">
         `;
         
-        data.exercises.forEach(exercise => {
-            const improvementClass = exercise.improvement_ratio > 1.1 ? 'positive' : 
-                                   exercise.improvement_ratio < 0.9 ? 'negative' : 'neutral';
-            const improvementText = exercise.improvement_ratio > 1 ? 
-                `+${Math.round((exercise.improvement_ratio - 1) * 100)}%` : 
-                `${Math.round((exercise.improvement_ratio - 1) * 100)}%`;
+        sortedExercises.forEach((exercise, index) => {
+            const improvementPercent = Math.round((exercise.improvement_factor - 1) * 100);
+            const isPositive = improvementPercent > 0;
+            const progressWidth = Math.min(Math.abs(improvementPercent), 100);
             
-            progressionHTML += `
-                <div class="table-row">
-                    <div class="col-exercise">
-                        <strong>${exercise.exercise_name}</strong>
-                    </div>
-                    <div class="col-sessions">
-                        <span class="session-split">
-                            <span class="ml-sessions">${exercise.ml_sessions} ML</span>
-                            <span class="traditional-sessions">${exercise.traditional_sessions} normal</span>
-                        </span>
-                    </div>
-                    <div class="col-volume">
-                        <div class="volume-comparison">
-                            <div class="volume-bar">
-                                <div class="volume-ml" style="width: ${Math.min(100, (exercise.ml_avg_volume / Math.max(exercise.ml_avg_volume, exercise.traditional_avg_volume)) * 100)}%">
-                                    ${Math.round(exercise.ml_avg_volume)}
-                                </div>
-                            </div>
-                            <div class="volume-bar">
-                                <div class="volume-traditional" style="width: ${Math.min(100, (exercise.traditional_avg_volume / Math.max(exercise.ml_avg_volume, exercise.traditional_avg_volume)) * 100)}%">
-                                    ${Math.round(exercise.traditional_avg_volume)}
-                                </div>
-                            </div>
+            leaderboardHTML += `
+                <div class="sankey-exercise-card ${isPositive ? 'positive' : 'negative'}">
+                    <div class="sankey-rank">#${index + 1}</div>
+                    <div class="sankey-exercise-info">
+                        <div class="sankey-exercise-name">${exercise.name}</div>
+                        <div class="sankey-exercise-stats">
+                            ML: ${exercise.ml_sets} séries • Normal: ${exercise.normal_sets} séries
                         </div>
                     </div>
-                    <div class="col-improvement">
-                        <span class="improvement-badge ${improvementClass}">
-                            ${improvementText}
-                        </span>
+                    <div class="sankey-impact">
+                        <div class="sankey-progress-container">
+                            <div class="sankey-progress-bar">
+                                <div class="sankey-progress-fill ${isPositive ? 'positive' : 'negative'}" 
+                                     style="width: ${progressWidth}%"></div>
+                            </div>
+                        </div>
+                        <div class="sankey-impact-value ${isPositive ? 'positive' : 'negative'}">
+                            ${isPositive ? '+' : ''}${improvementPercent}%
+                        </div>
                     </div>
                 </div>
             `;
         });
         
-        progressionHTML += `
+        leaderboardHTML += `
                 </div>
             </div>
         `;
         
-        container.innerHTML = progressionHTML;
+        container.innerHTML = leaderboardHTML;
+        
+        // Animation progressive des barres
+        setTimeout(() => {
+            document.querySelectorAll('.sankey-progress-fill').forEach((bar, index) => {
+                setTimeout(() => {
+                    bar.style.transform = 'scaleX(1)';
+                }, index * 100);
+            });
+        }, 100);
         
     } catch (error) {
-        console.error('Erreur chargement progression ML:', error);
+        console.error('Erreur chargement classement ML:', error);
         container.innerHTML = `
-            <div class="error-state">
-                <span class="error-icon">⚠️</span>
-                <span>Erreur de chargement de l'analyse de progression</span>
+            <div class="chart-placeholder">
+                <div class="placeholder-icon">❌</div>
+                <h4>Erreur de chargement</h4>
+                <p>Impossible de charger le classement des exercices.</p>
             </div>
         `;
     }
