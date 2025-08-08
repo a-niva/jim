@@ -549,9 +549,25 @@
             </div>
 
             <script>
-            // Initialiser l'arc adaptatif dès que possible
+            // INITIALISATION PRIORITAIRE
             document.addEventListener('DOMContentLoaded', () => {
-                setTimeout(calculateAdaptiveArc, 100);
+                if (typeof initFloatingActions === 'function') {
+                    initFloatingActions();
+                } else {
+                    // Fallback si fonction pas encore chargée
+                    setTimeout(() => {
+                        if (typeof calculateAdaptiveArc === 'function') {
+                            calculateAdaptiveArc();
+                        }
+                    }, 100);
+                }
+            });
+
+            // BACKUP pour chargement asynchrone
+            window.addEventListener('load', () => {
+                if (typeof calculateAdaptiveArc === 'function') {
+                    calculateAdaptiveArc();
+                }
             });
             </script>
 

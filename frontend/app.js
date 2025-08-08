@@ -239,38 +239,66 @@ function closeModal() {
     OverlayManager.hide('modal');
 }
 
-// === CALCUL ARC ADAPTATIF ===
+// === CALCUL ARC ADAPTATIF CORRIGÉ ===
 function calculateAdaptiveArc() {
     const container = document.querySelector('.floating-workout-actions');
-    if (!container) return;
-    
-    const width = container.offsetWidth;
-    const height = container.offsetHeight;
-    
-    // Calcul du rayon pour que l'arc contienne les boutons
-    // Formule: R = (W²/8H) + (H/2)
-    const arcHeight = Math.min(height * 0.8, width * 0.15);
-    const radius = (width * width) / (8 * arcHeight) + (arcHeight / 2);
-    
-    // Mise à jour du SVG path
-    const svg = container.querySelector('svg');
+    const svg = container?.querySelector('svg');
     const path = svg?.querySelector('path');
     
-    if (path) {
-        // Calcul des points de l'arc basé sur le rayon
-        const centerX = 50;
-        const startY = 100;
-        const arcTopY = Math.max(0, 100 - (arcHeight / height) * 100);
-        
-        const pathData = `M 0,${startY} Q ${centerX},${arcTopY} 100,${startY} L 100,100 L 0,100 Z`;
-        path.setAttribute('d', pathData);
+    if (!container || !path) {
+        // Retry si éléments pas encore chargés
+        setTimeout(calculateAdaptiveArc, 50);
+        return;
     }
+    
+    const width = window.innerWidth; // LARGEUR TOTALE ÉCRAN
+    const containerHeight = container.offsetHeight;
+    
+    // CALCUL HAUTEUR ARC POUR ENGLOBER BOUTON VALIDATION
+    // Bouton validation: 20px haut + 20px bottom = 40px minimum
+    // + marge sécurité = 45px
+    const requiredArcHeight = 25; // Hauteur visible de l'arc
+    
+    // FORMULE ARC PARFAIT
+    // Pour un arc de largeur W et hauteur H, rayon = (W²/8H) + (H/2)
+    const radius = (width * width) / (8 * requiredArcHeight) + (requiredArcHeight / 2);
+    
+    // CALCUL COORDONNÉES SVG
+    const arcHeightPercent = (requiredArcHeight / containerHeight) * 100;
+    const arcTopY = 100 - arcHeightPercent; // Position du sommet de l'arc
+    
+    // PATH SVG PLEINE LARGEUR
+    const pathData = `M 0,100 Q 50,${arcTopY} 100,100 L 100,100 L 0,100 Z`;
+    
+    path.setAttribute('d', pathData);
+    
+    console.log('Arc recalculé:', { 
+        screenWidth: width, 
+        arcHeight: requiredArcHeight,
+        arcTopY: arcTopY 
+    });
 }
 
-// Initialiser au chargement et redimensionnement
+// INITIALISATION IMMÉDIATE ET ROBUSTE
+function initFloatingActions() {
+    // Appel immédiat
+    calculateAdaptiveArc();
+    
+    // Backup au cas où
+    setTimeout(calculateAdaptiveArc, 0);
+    setTimeout(calculateAdaptiveArc, 100);
+    setTimeout(calculateAdaptiveArc, 500);
+}
+
+// EVENT LISTENERS
 window.addEventListener('resize', calculateAdaptiveArc);
-window.addEventListener('load', calculateAdaptiveArc);
+window.addEventListener('orientationchange', () => {
+    setTimeout(calculateAdaptiveArc, 100);
+});
+
+// EXPOSER GLOBALEMENT
 window.calculateAdaptiveArc = calculateAdaptiveArc;
+window.initFloatingActions = initFloatingActions;
 
 
 

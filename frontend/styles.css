@@ -6442,13 +6442,13 @@ span {
     transform: scale(1.2);
 }
 
-/* CHAPEAU ARC DE CERCLE CALCULATOIRE */
+/* CHAPEAU ARC DE CERCLE PLEINE LARGEUR */
 .floating-workout-actions {
     position: fixed;
     bottom: var(--bottom-nav-height);
     left: 0;
     right: 0;
-    height: 60px;
+    height: 45px; /* Assez haut pour contenir bouton validation */
     z-index: calc(var(--z-nav) + 10);
     pointer-events: none;
 }
@@ -6476,6 +6476,9 @@ span {
     height: 100%;
     pointer-events: auto;
 }
+
+/* SUPPRIME LES MEDIA QUERIES QUI LIMITENT LA LARGEUR */
+/* Pas de max-width ni de centrage sur desktop */
 
 /* BOUTONS AVEC TAILLES DIFFÉRENCIÉES */
 .floating-btn {
@@ -6509,7 +6512,7 @@ span {
     height: 36px;
     font-size: 1rem;
     left: 20px;
-    bottom: 8px;
+    bottom: 4px; /* Plus bas pour être dans l'arc */
 }
 
 .floating-btn-pause i {
@@ -6523,7 +6526,7 @@ span {
     font-size: 0.7rem;
     left: 50%;
     transform: translateX(-50%);
-    bottom: 16px;
+    bottom: 20px; /* Position calculée pour être dans l'arc */
 }
 
 .floating-btn-execute i {
@@ -6536,7 +6539,7 @@ span {
     height: 36px;
     font-size: 1rem;
     right: 20px;
-    bottom: 8px;
+    bottom: 4px; /* Plus bas pour être dans l'arc */
 }
 
 .floating-btn-end i {
@@ -6560,48 +6563,6 @@ span {
     50% { 
         box-shadow: 0 3px 8px rgba(16,185,129,0.4);
         border-color: rgba(16,185,129,0.5);
-    }
-}
-
-/* RESPONSIVE ADAPTATIF */
-@media (max-width: 768px) {
-    .floating-workout-actions {
-        height: 50px;
-    }
-    
-    .floating-workout-actions-content {
-        width: 160px;
-    }
-    
-    .floating-btn-pause,
-    .floating-btn-end {
-        left: 15px;
-    }
-    
-    .floating-btn-end {
-        right: 15px;
-        left: auto;
-    }
-}
-
-@media (min-width: 1024px) {
-    .floating-workout-actions {
-        height: 70px;
-        max-width: 600px;
-        left: 50%;
-        transform: translateX(-50%);
-    }
-    
-    .floating-workout-actions-content {
-        width: 200px;
-    }
-    
-    .floating-btn-pause {
-        left: 25px;
-    }
-    
-    .floating-btn-end {
-        right: 25px;
     }
 }
 
