@@ -2741,6 +2741,14 @@ span {
     cursor: pointer;
 }
 
+.ai-toggle-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-right: var(--spacing-sm);
+}
+
 .ai-status-line:hover {
     background-color: rgba(255, 255, 255, 0.05);
     opacity: 0.8;
@@ -2749,6 +2757,10 @@ span {
 .ai-status-line:active {
     background-color: rgba(255, 255, 255, 0.08);
     opacity: 0.6;
+}
+
+.ai-status-line[data-inactive] .ai-expand-btn {
+    display: none;
 }
 
 .ai-status-line[data-inactive] #aiStatus {
@@ -2779,6 +2791,7 @@ span {
     cursor: pointer;
     padding: var(--spacing-xs);
     transition: all .2s ease;
+    flex-shrink: 0;
 }
 
 .ai-expand-btn:hover {
@@ -2791,7 +2804,10 @@ span {
     border-radius: var(--radius);
     padding: var(--spacing-md);
     margin-top: var(--spacing-sm);
+    margin-bottom: calc(var(--nav-height) + var(--spacing-lg));
     animation: slideDown .3s ease;
+    max-height: calc(100vh - var(--nav-height) * 3);
+    overflow-y: auto;
 }
 
 .ai-details-panel[data-ai-inactive] {
