@@ -240,120 +240,6 @@ function closeModal() {
 }
 
 
-// === CALCUL ARC AVEC LOGIQUE INVERSÉE ===
-function calculateAdaptiveArc() {
-    console.log('=== DEBUT calculateAdaptiveArc ===');
-    
-    const container = document.querySelector('.floating-workout-actions');
-    const svg = container?.querySelector('svg');
-    const path = svg?.querySelector('path');
-    
-    if (!container || !path) {
-        console.log('❌ Éléments manquants');
-        setTimeout(calculateAdaptiveArc, 100);
-        return;
-    }
-    
-    const isMobile = window.innerWidth <= 768;
-    const containerWidth = container.offsetWidth;
-    const containerHeight = container.offsetHeight;
-    
-    // PROTECTION DIVISION PAR ZÉRO
-    if (containerWidth === 0 || containerHeight === 0) {
-        console.log('❌ Container pas dimensionné, retry dans 200ms');
-        setTimeout(calculateAdaptiveArc, 200);
-        return;
-    }
-    
-    console.log('📱 Info écran:', { 
-        isMobile, 
-        containerWidth, 
-        containerHeight,
-        screenWidth: window.innerWidth 
-    });
-    
-    // PARAMÈTRES CORRIGÉS
-    let arcHeight, buttonSpacing;
-    if (isMobile) {
-        arcHeight = 20; // Réduit pour laisser place aux boutons
-        buttonSpacing = 70;
-    } else {
-        arcHeight = 25;
-        buttonSpacing = 100;
-    }
-    
-    // CALCUL ARC SVG
-    const arcHeightPercent = (arcHeight / containerHeight) * 100;
-    const arcTopY = 100 - arcHeightPercent;
-    const pathData = `M 0,100 Q 50,${arcTopY} 100,100 L 100,100 L 0,100 Z`;
-    path.setAttribute('d', pathData);
-    
-    console.log('🎯 Arc calculé:', { 
-        arcHeight, 
-        arcHeightPercent: arcHeightPercent.toFixed(1), 
-        arcTopY: arcTopY.toFixed(1)
-    });
-    
-    // RÉCUPÉRATION BOUTONS
-    const executeBtn = document.getElementById('executeSetBtn');
-    const pauseBtn = document.querySelector('.floating-btn-pause');
-    const endBtn = document.querySelector('.floating-btn-end');
-    
-    if (!executeBtn || !pauseBtn || !endBtn) {
-        console.log('❌ Boutons manquants');
-        return;
-    }
-    
-    // FORMULE MATHÉMATIQUE CORRIGÉE
-    function getYOnCurve(xPercent) {
-        const t = xPercent / 100;
-        const y = (1-t)*(1-t)*100 + 2*(1-t)*t*arcTopY + t*t*100;
-        return y;
-    }
-    
-    // POSITIONS DES BOUTONS - LOGIQUE CORRIGÉE
-    const centerX = containerWidth / 2;
-    const halfSpacing = buttonSpacing / 2;
-    
-    // BOUTON CENTRAL - Au sommet de l'arc  
-    const centerXPercent = 50;
-    const centerYPercent = getYOnCurve(centerXPercent);
-    const centerBottomPx = containerHeight - (centerYPercent / 100 * containerHeight) - 2;
-    
-    executeBtn.style.left = '50%';
-    executeBtn.style.transform = 'translateX(-50%)';
-    executeBtn.style.bottom = `${centerBottomPx}px`;
-    
-    // BOUTON PAUSE (gauche)
-    const pauseX = centerX - halfSpacing;
-    const pauseXPercent = (pauseX / containerWidth) * 100;
-    const pauseYPercent = getYOnCurve(pauseXPercent);
-    const pauseBottomPx = containerHeight - (pauseYPercent / 100 * containerHeight) - 2;
-    
-    pauseBtn.style.left = `${pauseX}px`;
-    pauseBtn.style.transform = 'translateX(-50%)';
-    pauseBtn.style.bottom = `${pauseBottomPx}px`;
-    pauseBtn.style.right = 'auto';
-    
-    // BOUTON FIN (droite)
-    const endX = centerX + halfSpacing;
-    const endXPercent = (endX / containerWidth) * 100;
-    const endYPercent = getYOnCurve(endXPercent);
-    const endBottomPx = containerHeight - (endYPercent / 100 * containerHeight) - 2;
-    
-    endBtn.style.left = `${endX}px`;
-    endBtn.style.transform = 'translateX(-50%)';
-    endBtn.style.bottom = `${endBottomPx}px`;
-    endBtn.style.right = 'auto';
-    
-    console.log('✅ Positions finales:', {
-        center: `bottom: ${centerBottomPx.toFixed(1)}px`,
-        pause: `bottom: ${pauseBottomPx.toFixed(1)}px`, 
-        end: `bottom: ${endBottomPx.toFixed(1)}px`
-    });
-    
-    console.log('=== FIN calculateAdaptiveArc ===');
-}
 
 
 
@@ -2510,19 +2396,19 @@ function updateExecuteButtonState(state = 'ready') {
     switch (state) {
         case 'ready':
             executeBtn.classList.add('ready', 'btn-success');
-            executeBtn.innerHTML = '✅';
+            executeBtn.innerHTML = '<i class="fas fa-check"></i>';
             executeBtn.onclick = executeSet;
             break;
             
         case 'isometric-start':
             executeBtn.classList.add('btn-success');
-            executeBtn.innerHTML = '✅';
+            executeBtn.innerHTML = '<i class="fas fa-check"></i>';
             executeBtn.onclick = () => handleIsometricAction();
             break;
             
         case 'isometric-stop':
             executeBtn.classList.add('btn-danger');
-            executeBtn.innerHTML = '⏹️';
+            executeBtn.innerHTML = '<i class="fas fa-stop"></i>';
             executeBtn.onclick = () => handleIsometricAction();
             break;
             
@@ -6771,8 +6657,8 @@ function handleIsometricAction() {
             window.currentIsometricTimer.start();
         }
         
-        // Changer l'emoji en STOP
-        executeBtn.innerHTML = '<span class="go-emoji">⏹️</span>';
+        // Changer l'icône en STOP
+        executeBtn.innerHTML = '<i class="fas fa-stop"></i>';
         executeBtn.setAttribute('data-isometric-mode', 'stop');
         executeBtn.classList.remove('btn-success');
         executeBtn.classList.add('btn-danger');
@@ -6784,7 +6670,7 @@ function handleIsometricAction() {
             window.currentIsometricTimer.stop();
         }
         
-        // Masquer l'emoji et passer au feedback
+        // Masquer le bouton et passer au feedback
         executeBtn.style.display = 'none';
         document.getElementById('isometric-timer').style.display = 'none';
         document.getElementById('setFeedback').style.display = 'block';
@@ -6804,11 +6690,11 @@ function cleanupIsometricTimer() {
     const timer = document.getElementById('isometric-timer');
     if (timer) timer.remove();
     
-    // RESTAURER l'emoji vert CLASSIQUE (pas isométrique)
+    // RESTAURER l'icône FontAwesome classique
     const executeBtn = document.getElementById('executeSetBtn');
     if (executeBtn) {
         executeBtn.style.display = 'block';
-        executeBtn.innerHTML = '<span class="go-emoji">✅</span>';
+        executeBtn.innerHTML = '<i class="fas fa-check"></i>';
         
         // IMPORTANT: Supprimer tous les attributs isométriques
         executeBtn.removeAttribute('data-isometric-mode');
@@ -6818,7 +6704,7 @@ function cleanupIsometricTimer() {
         executeBtn.classList.remove('btn-danger');
         executeBtn.classList.add('btn-success');
         
-        // RESTAURER la fonction normale executeSet (PAS handleIsometricAction)
+        // RESTAURER la fonction normale executeSet
         executeBtn.onclick = executeSet;
     }
     
@@ -13097,6 +12983,146 @@ function showPlanningFromProgram() {
 }
 
 // === GESTION MODAL FIN DE SÉANCE ===
+// === CALCUL ARC GÉOMÉTRIQUE RIGOUREUX ===
+function calculateAdaptiveArc() {
+    console.log('=== DEBUT calculateAdaptiveArc RIGOUREUX ===');
+    
+    const container = document.querySelector('.floating-workout-actions');
+    const svg = container?.querySelector('svg');
+    const path = svg?.querySelector('path');
+    
+    if (!container || !path) {
+        console.log('❌ Éléments manquants');
+        setTimeout(calculateAdaptiveArc, 100);
+        return;
+    }
+    
+    // PROTECTION DIVISION PAR ZÉRO
+    const containerWidth = container.offsetWidth;
+    const containerHeight = container.offsetHeight;
+    
+    if (containerWidth === 0 || containerHeight === 0) {
+        console.log('❌ Container pas dimensionné, retry dans 200ms');
+        setTimeout(calculateAdaptiveArc, 200);
+        return;
+    }
+    
+    console.log('📏 Dimensions container:', { containerWidth, containerHeight });
+    
+    // ÉTAPE 1: DÉTERMINER LA HAUTEUR MAXIMUM DE LA ZONE BLANCHE
+    const isMobile = window.innerWidth <= 768;
+    const executeBtn = document.getElementById('executeSetBtn');
+    
+    // Diamètre du bouton executeBtn
+    const executeBtnDiameter = isMobile ? 32 : 36; // Selon nos media queries
+    
+    // Hauteur de bottom-nav (récupérée depuis CSS)
+    const bottomNavHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--bottom-nav-height')) || 60;
+    
+    // HAUTEUR MAXIMUM = hauteur bottom-nav + diamètre executeBtn
+    const maxArcHeight = bottomNavHeight + executeBtnDiameter;
+    
+    console.log('🔢 Calculs géométriques:', {
+        executeBtnDiameter,
+        bottomNavHeight,
+        maxArcHeight,
+        isMobile
+    });
+    
+    // ÉTAPE 2: DÉDUIRE LE RAYON DU CERCLE
+    // Formule: R = (L²/8h) + (h/2)
+    // où L = largeur écran (corde), h = hauteur maximum (flèche)
+    const screenWidth = window.innerWidth;
+    const radius = (screenWidth * screenWidth) / (8 * maxArcHeight) + (maxArcHeight / 2);
+    
+    console.log('⭕ Rayon calculé:', {
+        screenWidth,
+        radius: radius.toFixed(2),
+        formule: `(${screenWidth}²/8×${maxArcHeight}) + (${maxArcHeight}/2)`
+    });
+    
+    // ÉTAPE 3: CALCULER L'ARC SVG
+    // La hauteur visible de l'arc dans le container
+    const arcHeightInContainer = Math.min(maxArcHeight, containerHeight);
+    const arcHeightPercent = (arcHeightInContainer / containerHeight) * 100;
+    const arcTopY = 100 - arcHeightPercent;
+    
+    // Mise à jour du path SVG
+    const pathData = `M 0,100 Q 50,${arcTopY} 100,100 L 100,100 L 0,100 Z`;
+    path.setAttribute('d', pathData);
+    
+    console.log('🎯 Arc SVG:', {
+        arcHeightInContainer: arcHeightInContainer.toFixed(1),
+        arcHeightPercent: arcHeightPercent.toFixed(1),
+        arcTopY: arcTopY.toFixed(1),
+        pathData
+    });
+    
+    // ÉTAPE 4: POSITIONNER LES BOUTONS SELON LA GÉOMÉTRIE DU CERCLE
+    const pauseBtn = document.querySelector('.floating-btn-pause');
+    const endBtn = document.querySelector('.floating-btn-end');
+    
+    if (!executeBtn || !pauseBtn || !endBtn) {
+        console.log('❌ Boutons manquants');
+        return;
+    }
+    
+    // Espacement voulu entre boutons (en pixels)
+    const buttonSpacing = isMobile ? 70 : 100;
+    
+    // Fonction pour calculer la hauteur d'un point sur le cercle
+    function getHeightOnCircle(xPercent) {
+        // Pour un cercle centré avec radius, la hauteur au point x est calculée selon la géométrie
+        const t = xPercent / 100; // Position normalisée 0-1
+        // Formule courbe quadratique de Bézier: B(t) = (1-t)²P₀ + 2(1-t)tP₁ + t²P₂
+        const y = (1-t)*(1-t)*100 + 2*(1-t)*t*arcTopY + t*t*100;
+        return y;
+    }
+    
+    // BOUTON CENTRAL (executeBtn) - exactement au sommet
+    const centerXPercent = 50;
+    const centerYPercent = getHeightOnCircle(centerXPercent);
+    const centerBottomPx = containerHeight - (centerYPercent / 100 * containerHeight);
+    
+    executeBtn.style.left = '50%';
+    executeBtn.style.transform = 'translateX(-50%)';
+    executeBtn.style.bottom = `${centerBottomPx}px`;
+    
+    // BOUTONS LATÉRAUX selon l'espacement voulu
+    const centerX = screenWidth / 2;
+    const halfSpacing = buttonSpacing / 2;
+    
+    // Bouton pause (gauche)
+    const pauseX = centerX - halfSpacing;
+    const pauseXPercent = (pauseX / screenWidth) * 100;
+    const pauseYPercent = getHeightOnCircle(pauseXPercent);
+    const pauseBottomPx = containerHeight - (pauseYPercent / 100 * containerHeight);
+    
+    pauseBtn.style.left = `${pauseX}px`;
+    pauseBtn.style.transform = 'translateX(-50%)';
+    pauseBtn.style.bottom = `${pauseBottomPx}px`;
+    pauseBtn.style.right = 'auto';
+    
+    // Bouton fin (droite)
+    const endX = centerX + halfSpacing;
+    const endXPercent = (endX / screenWidth) * 100;
+    const endYPercent = getHeightOnCircle(endXPercent);
+    const endBottomPx = containerHeight - (endYPercent / 100 * containerHeight);
+    
+    endBtn.style.left = `${endX}px`;
+    endBtn.style.transform = 'translateX(-50%)';
+    endBtn.style.bottom = `${endBottomPx}px`;
+    endBtn.style.right = 'auto';
+    
+    console.log('✅ Positions finales (rigoureux):', {
+        center: `x:50%, bottom:${centerBottomPx.toFixed(1)}px`,
+        pause: `x:${pauseX.toFixed(1)}px, bottom:${pauseBottomPx.toFixed(1)}px`,
+        end: `x:${endX.toFixed(1)}px, bottom:${endBottomPx.toFixed(1)}px`
+    });
+    
+    console.log('=== FIN calculateAdaptiveArc RIGOUREUX ===');
+}
+
 function showEndWorkoutModal() {
     const modal = document.getElementById('workoutEndModal');
     if (modal) {
