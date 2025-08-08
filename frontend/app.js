@@ -314,27 +314,45 @@ function transitionTo(state) {
     // 4. Mettre à jour l'état
     workoutState.current = state;
     // 4.5 Contrôle de l'affichage des boutons flottants
+    // Contrôle de l'affichage des boutons flottants avec animation
     const floatingActions = document.getElementById('floatingWorkoutActions');
-    if (floatingActions) {
-        switch(state) {
-            case WorkoutStates.IDLE:
-                // Masquer pendant la sélection d'exercice
-                floatingActions.style.display = 'none';
-                break;
-                
-            case WorkoutStates.READY:
-            case WorkoutStates.EXECUTING:
-            case WorkoutStates.FEEDBACK:
-            case WorkoutStates.RESTING:
-                // Afficher pendant l'exercice
+
+    switch(newState) {
+        case WorkoutStates.IDLE:
+            // Masquer les boutons en sélection d'exercice
+            if (floatingActions) {
+                floatingActions.classList.remove('show');
+                // Retirer complètement après l'animation
+                setTimeout(() => {
+                    if (workoutState.current === WorkoutStates.IDLE) {
+                        floatingActions.style.display = 'none';
+                    }
+                }, 1000);
+            }
+            break;
+            
+        case WorkoutStates.READY:
+        case WorkoutStates.EXECUTING:
+        case WorkoutStates.FEEDBACK:
+        case WorkoutStates.RESTING:
+            // Afficher les boutons avec animation
+            if (floatingActions && !floatingActions.classList.contains('show')) {
                 floatingActions.style.display = 'block';
-                break;
-                
-            case WorkoutStates.COMPLETED:
-                // Masquer après la fin
-                floatingActions.style.display = 'none';
-                break;
-        }
+                // Force reflow pour garantir l'animation
+                void floatingActions.offsetWidth;
+                floatingActions.classList.add('show');
+            }
+            break;
+            
+        case WorkoutStates.COMPLETED:
+            // Masquer après la fin
+            if (floatingActions) {
+                floatingActions.classList.remove('show');
+                setTimeout(() => {
+                    floatingActions.style.display = 'none';
+                }, 1000);
+            }
+            break;
     }
     // 5. AFFICHER exclusivement l'interface pour le nouvel état
     switch(state) {

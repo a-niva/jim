@@ -6456,6 +6456,10 @@ span {
 
 
 
+
+
+
+
 /* ================================================= */
 /* BARRE FLOTTANTE - SECTION COMPLÈTE */
 /* ================================================= */
@@ -6469,7 +6473,13 @@ span {
     height: 100px;
     z-index: calc(var(--z-nav, 100) + 10);
     pointer-events: none;
-    display: none; /* AJOUT : Masqué par défaut */
+    display: none; /* Masqué par défaut */
+}
+
+/* Animation d'apparition du container */
+.floating-workout-actions.show {
+    display: block;
+    animation: containerFadeIn 0.3s ease-out;
 }
 
 /* Barre blanche horizontale */
@@ -6481,10 +6491,30 @@ span {
     right: 0;
     height: 40px;
     background: white;
-    border-top: 2px solid rgba(212, 175, 55, 0.6);
-    border-bottom: 2px solid rgba(212, 175, 55, 0.6);
+    border-top: 2px solid rgba(212, 175, 55, 0);
+    border-bottom: 2px solid rgba(212, 175, 55, 0);
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08), 
                 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+/* Animation de la barre */
+.floating-workout-actions.show .floating-workout-bar {
+    animation: barExpand 0.4s ease-out forwards;
+}
+
+/* Animation des bordures dorées */
+.floating-workout-actions.show .floating-workout-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-top: 2px solid rgba(212, 175, 55, 0.6);
+    border-bottom: 2px solid rgba(212, 175, 55, 0.6);
+    animation: borderFadeIn 0.3s ease-out 0.3s forwards;
+    opacity: 0;
 }
 
 /* Container des boutons (correction du HTML double) */
@@ -6512,6 +6542,21 @@ span {
     justify-content: center;
     transition: all 0.2s ease;
     pointer-events: auto;
+    opacity: 0;
+    transform: scale(0);
+}
+
+/* Animation des boutons */
+.floating-workout-actions.show .floating-btn-execute {
+    animation: buttonPop 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.5s forwards;
+}
+
+.floating-workout-actions.show .floating-btn-pause {
+    animation: buttonPop 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.7s forwards;
+}
+
+.floating-workout-actions.show .floating-btn-end {
+    animation: buttonPop 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.9s forwards;
 }
 
 /* Bouton central plus grand */
@@ -6771,9 +6816,66 @@ span {
 }
 
 /* ================================================= */
-/* FIN SECTION BARRE FLOTTANTE */
+/* KEYFRAMES ANIMATIONS */
 /* ================================================= */
 
+/* Animation du container */
+@keyframes containerFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Animation d'expansion de la barre */
+@keyframes barExpand {
+    0% {
+        transform: translateY(-50%) scaleX(0);
+        opacity: 0;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-50%) scaleX(1);
+        opacity: 1;
+    }
+}
+
+/* Animation des bordures dorées */
+@keyframes borderFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Animation de pop avec rebond pour les boutons */
+@keyframes buttonPop {
+    0% {
+        opacity: 0;
+        transform: scale(0);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+    75% {
+        transform: scale(0.95);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* ================================================= */
+/* FIN SECTION BARRE FLOTTANTE */
+/* ================================================= */
 
 
 
