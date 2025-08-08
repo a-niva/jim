@@ -313,7 +313,29 @@ function transitionTo(state) {
     
     // 4. Mettre à jour l'état
     workoutState.current = state;
-    
+    // 4.5 Contrôle de l'affichage des boutons flottants
+    const floatingActions = document.getElementById('floatingWorkoutActions');
+    if (floatingActions) {
+        switch(state) {
+            case WorkoutStates.IDLE:
+                // Masquer pendant la sélection d'exercice
+                floatingActions.style.display = 'none';
+                break;
+                
+            case WorkoutStates.READY:
+            case WorkoutStates.EXECUTING:
+            case WorkoutStates.FEEDBACK:
+            case WorkoutStates.RESTING:
+                // Afficher pendant l'exercice
+                floatingActions.style.display = 'block';
+                break;
+                
+            case WorkoutStates.COMPLETED:
+                // Masquer après la fin
+                floatingActions.style.display = 'none';
+                break;
+        }
+    }
     // 5. AFFICHER exclusivement l'interface pour le nouvel état
     switch(state) {
         case WorkoutStates.READY:
@@ -3115,7 +3137,6 @@ currentWorkoutSession.pendingSwap = null;
     }
     
     enableHorizontalScroll();
-    startWorkoutTimer();
 }
 
 function showSessionPreview(sessionData, program) {
@@ -3864,7 +3885,6 @@ function setupFreeWorkout() {
 
     loadAvailableExercises();
     enableHorizontalScroll();
-    startWorkoutTimer();
 }
 
 async function setupProgramWorkout(program) {
@@ -3983,7 +4003,6 @@ async function setupProgramWorkout(program) {
         await selectProgramExercise(firstExercise.exercise_id, true);
     }
     
-    startWorkoutTimer();
     // Note: loadProgramExercisesList() est appelé deux fois dans l'original, je conserve ce comportement
     loadProgramExercisesList();
 }
@@ -4093,7 +4112,12 @@ async function selectExercise(exercise, skipValidation = false) {
     currentWorkoutSession.currentSetNumber = 1;
     currentWorkoutSession.totalSets = currentExercise.default_sets || 3;
     currentWorkoutSession.maxSets = 6;
-   
+    // Démarrer le timer de séance au PREMIER exercice seulement
+    if (!workoutTimer) {
+        startWorkoutTimer();
+        console.log('[Timer] Démarrage du timer de séance au premier exercice');
+    }
+    
     // Enregistrer le début de l'exercice
     workoutState.exerciseStartTime = new Date();
    
@@ -7333,6 +7357,11 @@ async function endWorkout() {
         sessionStorage.removeItem('pausedExerciseName');
         sessionStorage.removeItem('pausedCurrentSet');
         sessionStorage.removeItem('pauseTimestamp');
+        // Masquer les boutons flottants
+        const floatingActions = document.getElementById('floatingWorkoutActions');
+        if (floatingActions) {
+            floatingActions.style.display = 'none';
+        }
         // Retour au dashboard
         showView('dashboard');
         loadDashboard();
@@ -9345,7 +9374,11 @@ function clearWorkoutState() {
         clearTimeout(notificationTimeout);
         notificationTimeout = null;
     }
-    
+    // Masquer les boutons flottants lors du reset
+    const floatingActions = document.getElementById('floatingWorkoutActions');
+    if (floatingActions) {
+        floatingActions.style.display = 'none';
+    }
     // Nettoyer systématiquement le système audio
     if (window.workoutAudio) {
         window.workoutAudio.clearScheduledSounds();
@@ -12159,7 +12192,11 @@ function abandonWorkout() {
             console.warn('API /complete échouée, mais séance nettoyée localement:', error);
         });
     }
-    
+    // Masquer les boutons flottants
+    const floatingActions = document.getElementById('floatingWorkoutActions');
+    if (floatingActions) {
+        floatingActions.style.display = 'none';
+    }
     showView('dashboard');
     showToast('Séance abandonnée', 'info');
     

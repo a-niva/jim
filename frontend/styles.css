@@ -6469,6 +6469,7 @@ span {
     height: 100px;
     z-index: calc(var(--z-nav, 100) + 10);
     pointer-events: none;
+    display: none; /* AJOUT : Masqué par défaut */
 }
 
 /* Barre blanche horizontale */
@@ -7045,7 +7046,7 @@ input {
             display: block;
             text-align: left;
         }
-        
+
     .workout-timer {
         margin-bottom: var(--spacing-sm);
         grid-row: unset;
