@@ -1968,8 +1968,11 @@ span {
 
 .exercise-header-actions {
     display: flex;
+    gap: var(--spacing-md);
     align-items: center;
-    gap: var(--spacing-sm);
+    justify-content: space-between;
+    width: 100%;
+    margin-top: var(--spacing-sm);
 }
 
 .exercise-header-actions .voice-status-container {
@@ -1978,6 +1981,25 @@ span {
     border-radius: var(--radius);
     padding: var(--spacing-xs) var(--spacing-sm);
     margin-right: var(--spacing-sm);
+    order: 1;
+    flex-shrink: 0;
+}
+
+
+.exercise-header-actions .series-dots {
+    order: 2;
+    flex: 1;
+    justify-content: center;
+}
+
+.exercise-header-actions .voice-status-container {
+    order: 1;
+    flex-shrink: 0;
+}
+
+.exercise-header-actions .btn-change-exercise {
+    order: 3;
+    flex-shrink: 0;
 }
 
 .exercise-instructions {
@@ -2007,7 +2029,7 @@ span {
 .exercise-actions {
     display: flex;
     gap: var(--spacing-sm);
-    align-items: flex-start;
+    align-items: center;
 }
 
 .btn-change-exercise:hover {
