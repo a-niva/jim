@@ -2658,7 +2658,6 @@ span {
 
 .set-feedback-modern {
     border-radius: var(--radius);
-    margin-top: var(--spacing-lg);
 }
 
 .feedback-section-modern {
@@ -6573,7 +6572,7 @@ span {
 
 .floating-btn-execute i {
     color: #10b981;
-    font-size: 1.8rem;
+    font-size: 2.5rem;
 }
 
 .floating-btn-end i {
@@ -6871,6 +6870,11 @@ span {
         opacity: 1;
         transform: scale(1);
     }
+}
+
+/* Masquer boutons flottants quand modal actif */
+body.modal-active .floating-workout-actions {
+    display: none !important;
 }
 
 /* ================================================= */
