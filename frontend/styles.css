@@ -6485,8 +6485,7 @@ span {
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 150%; /* AUGMENTÉ pour que l'arc monte plus haut */
-    overflow: visible;
+    height: 100%;
 }
 
 /* Path de l'arc */

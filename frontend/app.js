@@ -12052,7 +12052,7 @@ let isPaused = false;
 let pausedTime = null;
 
 function pauseWorkout() {
-    // NOUVEAU: Fermer tous les modals de swap avant pause
+    // Fermer tous les modals de swap avant pause
     if (document.querySelector('.modal.active')) {
         closeModal();
     }
@@ -12981,74 +12981,80 @@ function showPlanningFromProgram() {
 }
 
 
-// === CALCUL ARC EN POURCENTAGES PURS ===
+
+
+
+
+
 function calculateAdaptiveArc() {
+    // 1. RÉCUPÉRATION DES ÉLÉMENTS
     const container = document.querySelector('.floating-workout-actions');
-    if (!container) return;
+    const svg = container?.querySelector('.floating-workout-arc svg');
+    const path = svg?.querySelector('path');
     
+    if (!container || !svg || !path) {
+        console.error('Éléments manquants pour l\'arc');
+        return;
+    }
+    
+    // 2. DIMENSIONS DE BASE
     const isMobile = window.innerWidth <= 768;
+    const buttonSize = 52; // Taille fixe pour tous les boutons
+    const containerHeight = isMobile ? 65 : 75; // Hauteur du container
     
-    // Récupérer les éléments
+    // 3. CONFIGURATION SVG SIMPLE
+    // ViewBox standard 0 0 100 100 pour simplifier les calculs
+    svg.setAttribute('viewBox', '0 0 100 100');
+    svg.setAttribute('preserveAspectRatio', 'none');
+    
+    // 4. CALCUL DE L'ARC
+    // L'arc doit monter à ~80% de la hauteur pour contenir le bouton
+    const arcTopY = 20; // 20% depuis le haut = 80% de hauteur
+    
+    // 5. DÉFINITION DU PATH
+    // M = Move to point de départ (coin bas gauche)
+    // Q = Courbe quadratique (point de contrôle au centre-haut)
+    // L = Lignes pour fermer la forme
+    const pathData = `M 0,100 Q 50,${arcTopY} 100,100 L 100,100 L 0,100 Z`;
+    path.setAttribute('d', pathData);
+    
+    // 6. POSITIONNEMENT DES BOUTONS
     const pauseBtn = container.querySelector('.floating-btn-pause');
     const executeBtn = container.querySelector('.floating-btn-execute');
     const endBtn = container.querySelector('.floating-btn-end');
-    const svgPath = container.querySelector('svg path');
     
-    if (!pauseBtn || !executeBtn || !endBtn || !svgPath) return;
+    if (pauseBtn && executeBtn && endBtn) {
+        // Espacement horizontal
+        const spacing = isMobile ? 90 : 110;
+        
+        // Position horizontale
+        pauseBtn.style.left = `calc(50% - ${spacing/2}px)`;
+        executeBtn.style.left = '50%';
+        endBtn.style.left = `calc(50% + ${spacing/2}px)`;
+        
+        // Position verticale
+        // Boutons latéraux près du bas
+        pauseBtn.style.bottom = '8px';
+        endBtn.style.bottom = '8px';
+        
+        // Bouton central plus haut pour toucher l'arc
+        // 80% de 65px = 52px, donc le bouton doit être à ~4px du bas
+        executeBtn.style.bottom = `${containerHeight * 0.8 - buttonSize}px`;
+    }
     
-    // Tous les boutons ont maintenant la même taille
-    const buttonSize = isMobile ? 52 : 60;
-    const containerHeight = container.offsetHeight;
-    
-    // L'arc doit monter exactement à la hauteur du bouton + petite marge
-    const arcHeight = buttonSize + 5; // 57px mobile, 65px desktop
-    
-    // Calcul du point de contrôle pour que l'arc englobe parfaitement les boutons
-    // arcTopY = position du sommet de l'arc en coordonnées SVG (0=haut, 100=bas)
-    const arcHeightPercent = (arcHeight / containerHeight) * 100;
-    const arcTopY = 100 - arcHeightPercent;
-    
-    // Mise à jour du path SVG
-    svgPath.setAttribute('d', `M 0,100 Q 50,${arcTopY} 100,100 L 100,100 L 0,100 Z`);
-    
-    // Espacement horizontal
-    const buttonSpacing = isMobile ? 100 : 120;
-    
-    // Positionnement horizontal
-    pauseBtn.style.left = `calc(50% - ${buttonSpacing/2}px)`;
-    executeBtn.style.left = '50%';
-    endBtn.style.left = `calc(50% + ${buttonSpacing/2}px)`;
-    
-    // Positionnement vertical
-    // Les boutons latéraux sont légèrement au-dessus du bas
-    pauseBtn.style.bottom = '8px';
-    endBtn.style.bottom = '8px';
-    
-    // Le bouton central doit toucher le haut de l'arc
-    // Position = hauteur de l'arc - taille du bouton - bordure (2px)
-    const centralButtonBottom = arcHeight - buttonSize - 2;
-    executeBtn.style.bottom = `${centralButtonBottom}px`;
+    // 7. ASSURER LA VISIBILITÉ
+    path.style.fill = 'white';
+    path.style.stroke = 'rgba(0, 0, 0, 0.12)';
+    path.style.strokeWidth = '0.5';
 }
 
-// Initialisation
+// INITIALISATION SIMPLE
 document.addEventListener('DOMContentLoaded', () => {
-    calculateAdaptiveArc();
-    
-    // S'assurer que les boutons n'ont que des icônes
-    const floatingBtns = document.querySelectorAll('.floating-btn');
-    floatingBtns.forEach(btn => {
-        const icon = btn.querySelector('i');
-        if (icon) {
-            btn.innerHTML = '';
-            btn.appendChild(icon);
-        }
-    });
+    // Attendre que le DOM soit prêt
+    setTimeout(calculateAdaptiveArc, 100);
 });
 
 window.addEventListener('resize', calculateAdaptiveArc);
-window.addEventListener('orientationchange', () => {
-    setTimeout(calculateAdaptiveArc, 100);
-});
 
 
 
