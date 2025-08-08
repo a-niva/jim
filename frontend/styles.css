@@ -6441,28 +6441,30 @@ span {
     background: #3b82f6;
     transform: scale(1.2);
 }
-/* CHAPEAU ARC DE CERCLE */
+
+/* CHAPEAU ARC DE CERCLE VÉRITABLE */
 .floating-workout-actions {
     position: fixed;
     bottom: var(--bottom-nav-height);
-    left: 50%;
-    transform: translateX(-50%);
+    left: 0;
+    right: 0;
+    height: 40px;
     background: white;
     border: 1px solid rgba(0,0,0,0.1);
     border-bottom: none;
-    border-radius: 24px 24px 0 0;
-    padding: 12px 24px 8px;
+    border-radius: 100px 100px 0 0;
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: center;
-    gap: 32px;
+    gap: 24px;
     z-index: calc(var(--z-nav) + 10);
     box-shadow: 0 -2px 12px rgba(0,0,0,0.08);
+    padding-bottom: 8px;
 }
 
 .floating-btn {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     background: white;
     border: 2px solid rgba(0,0,0,0.12);
@@ -6470,15 +6472,15 @@ span {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.9rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    font-size: 0.8rem;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     transition: all 0.2s ease;
     touch-action: manipulation;
 }
 
 .floating-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
     border-color: rgba(0,0,0,0.2);
 }
 
@@ -6510,11 +6512,11 @@ span {
 
 @keyframes pulse-floating-subtle {
     0%, 100% { 
-        box-shadow: 0 2px 8px rgba(16,185,129,0.2);
+        box-shadow: 0 2px 6px rgba(16,185,129,0.2);
         border-color: rgba(16,185,129,0.3);
     }
     50% { 
-        box-shadow: 0 4px 12px rgba(16,185,129,0.4);
+        box-shadow: 0 3px 8px rgba(16,185,129,0.4);
         border-color: rgba(16,185,129,0.5);
     }
 }
@@ -6635,7 +6637,7 @@ span {
 
 /* PROTECTION SCROLL CONTENU */
 .container {
-    padding-bottom: calc(var(--bottom-nav-height) + 60px);
+    padding-bottom: calc(var(--bottom-nav-height) + 50px);
 }
 
 @keyframes pulse-subtle {
