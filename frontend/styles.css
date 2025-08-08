@@ -7712,10 +7712,6 @@ input {
             font-size: calc(var(--font-3xl)*.8);
     }
 
-    .btn-change-exercise span {
-            display: none;
-    }
-
     .btn-change-exercise {
             padding: var(--spacing-sm);
     }

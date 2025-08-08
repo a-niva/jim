@@ -2275,7 +2275,7 @@ function getVoiceSystemHealth() {
         
         // État DOM
         voiceContainer: !!document.getElementById('voiceStatusContainer'),
-        voiceIcon: !!document.querySelector('#voiceStatusIcon')
+        voiceIcon: !!document.querySelector('#voiceStatusIcon'),
         
         // État données
         currentMicState: currentMicState,
