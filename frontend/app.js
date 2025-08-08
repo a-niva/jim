@@ -239,43 +239,84 @@ function closeModal() {
     OverlayManager.hide('modal');
 }
 
-// === CALCUL ARC ADAPTATIF CORRIGÉ ===
+// === CALCUL ARC AVEC POSITIONNEMENT GÉOMÉTRIQUE ===
 function calculateAdaptiveArc() {
     const container = document.querySelector('.floating-workout-actions');
     const svg = container?.querySelector('svg');
     const path = svg?.querySelector('path');
+    const content = container?.querySelector('.floating-workout-actions-content');
     
-    if (!container || !path) {
-        // Retry si éléments pas encore chargés
+    if (!container || !path || !content) {
         setTimeout(calculateAdaptiveArc, 50);
         return;
     }
     
-    const width = window.innerWidth; // LARGEUR TOTALE ÉCRAN
+    const screenWidth = window.innerWidth;
     const containerHeight = container.offsetHeight;
     
-    // CALCUL HAUTEUR ARC POUR ENGLOBER BOUTON VALIDATION
-    // Bouton validation: 20px haut + 20px bottom = 40px minimum
-    // + marge sécurité = 45px
-    const requiredArcHeight = 25; // Hauteur visible de l'arc
+    // PARAMÈTRES GÉOMÉTRIQUES
+    const buttonSpacing = 70; // Distance entre boutons (ajustable)
+    const centerButtonHeight = 25; // Hauteur du bouton central dans l'arc
+    const sideButtonHeight = 8;   // Hauteur des boutons latéraux dans l'arc
     
-    // FORMULE ARC PARFAIT
-    // Pour un arc de largeur W et hauteur H, rayon = (W²/8H) + (H/2)
-    const radius = (width * width) / (8 * requiredArcHeight) + (requiredArcHeight / 2);
+    // CALCUL RAYON ET ARC
+    // Pour que l'arc contienne les boutons aux bonnes hauteurs
+    const arcWidth = Math.min(screenWidth, buttonSpacing * 3); // Largeur effective de l'arc
+    const maxArcHeight = centerButtonHeight;
     
-    // CALCUL COORDONNÉES SVG
-    const arcHeightPercent = (requiredArcHeight / containerHeight) * 100;
-    const arcTopY = 100 - arcHeightPercent; // Position du sommet de l'arc
+    // Formule du rayon pour arc donné
+    const radius = (arcWidth * arcWidth) / (8 * maxArcHeight) + (maxArcHeight / 2);
     
-    // PATH SVG PLEINE LARGEUR
+    // COORDONNÉES SVG (0-100 viewBox)
+    const arcHeightPercent = (maxArcHeight / containerHeight) * 100;
+    const arcTopY = 100 - arcHeightPercent;
+    
+    // Mise à jour du path SVG
     const pathData = `M 0,100 Q 50,${arcTopY} 100,100 L 100,100 L 0,100 Z`;
-    
     path.setAttribute('d', pathData);
     
-    console.log('Arc recalculé:', { 
-        screenWidth: width, 
-        arcHeight: requiredArcHeight,
-        arcTopY: arcTopY 
+    // POSITIONNEMENT DES BOUTONS SELON LA COURBE
+    const centerX = screenWidth / 2;
+    
+    // Bouton central (validation) - au sommet de l'arc
+    const executeBtn = document.getElementById('executeSetBtn');
+    if (executeBtn) {
+        executeBtn.style.left = '50%';
+        executeBtn.style.transform = 'translateX(-50%)';
+        executeBtn.style.bottom = `${centerButtonHeight}px`;
+    }
+    
+    // Boutons latéraux - calculés selon la courbe de l'arc
+    const pauseBtn = document.querySelector('.floating-btn-pause');
+    const endBtn = document.querySelector('.floating-btn-end');
+    
+    if (pauseBtn && endBtn) {
+        // Distance horizontale depuis le centre
+        const sideDistance = buttonSpacing;
+        
+        // Calcul de la hauteur selon la courbe de l'arc
+        // Formule: h = maxHeight * (1 - (distance/halfWidth)²)
+        const halfArcWidth = arcWidth / 2;
+        const heightRatio = Math.max(0, 1 - Math.pow(sideDistance / halfArcWidth, 2));
+        const sideButtonHeightCalculated = maxArcHeight * heightRatio;
+        
+        // Position bouton pause (gauche)
+        pauseBtn.style.left = `${centerX - sideDistance}px`;
+        pauseBtn.style.transform = 'none';
+        pauseBtn.style.bottom = `${Math.max(sideButtonHeight, sideButtonHeightCalculated)}px`;
+        
+        // Position bouton fin (droite)  
+        endBtn.style.right = `${centerX - sideDistance}px`;
+        endBtn.style.left = 'auto';
+        endBtn.style.transform = 'none';
+        endBtn.style.bottom = `${Math.max(sideButtonHeight, sideButtonHeightCalculated)}px`;
+    }
+    
+    console.log('Arc calculé:', {
+        screenWidth,
+        radius: radius.toFixed(1),
+        centerHeight: centerButtonHeight,
+        sideHeight: sideButtonHeightCalculated?.toFixed(1)
     });
 }
 

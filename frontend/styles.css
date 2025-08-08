@@ -6470,17 +6470,15 @@ span {
 .floating-workout-actions-content {
     position: absolute;
     bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 180px;
+    left: 0;
+    right: 0;
+    width: 100%;
     height: 100%;
     pointer-events: auto;
+    /* Supprime les contraintes de largeur et centrage */
 }
 
-/* SUPPRIME LES MEDIA QUERIES QUI LIMITENT LA LARGEUR */
-/* Pas de max-width ni de centrage sur desktop */
-
-/* BOUTONS AVEC TAILLES DIFFÉRENCIÉES */
+/* BOUTONS - Supprime les positions fixes, sera calculé par JS */
 .floating-btn {
     position: absolute;
     border-radius: 50%;
@@ -6493,6 +6491,7 @@ span {
     box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     transition: all 0.2s ease;
     touch-action: manipulation;
+    /* POSITIONS SUPPRIMÉES - calculées par JS */
 }
 
 .floating-btn:hover {
@@ -6506,47 +6505,26 @@ span {
     transition: all 0.1s;
 }
 
-/* BOUTON PAUSE - 30% plus grand, positionné plus bas */
-.floating-btn-pause {
-    width: 36px;
-    height: 36px;
-    font-size: 1rem;
-    left: 20px;
-    bottom: 4px; /* Plus bas pour être dans l'arc */
-}
-
-.floating-btn-pause i {
-    color: #3b82f6;
-}
-
-/* BOUTON VALIDATION - 30% plus petit, positionné plus haut */
-.floating-btn-execute {
-    width: 20px;
-    height: 20px;
-    font-size: 0.7rem;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: 20px; /* Position calculée pour être dans l'arc */
-}
-
-.floating-btn-execute i {
-    color: #10b981;
-}
-
-/* BOUTON FIN - 30% plus grand, positionné plus bas */
+/* TAILLES DIFFÉRENCIÉES */
+.floating-btn-pause,
 .floating-btn-end {
     width: 36px;
     height: 36px;
     font-size: 1rem;
-    right: 20px;
-    bottom: 4px; /* Plus bas pour être dans l'arc */
 }
 
-.floating-btn-end i {
-    color: #f87171;
+.floating-btn-execute {
+    width: 20px;
+    height: 20px;
+    font-size: 0.7rem;
 }
 
-/* ÉTATS EXECUTESETBTN COMPATIBLES */
+/* COULEURS */
+.floating-btn-pause i { color: #3b82f6; }
+.floating-btn-execute i { color: #10b981; }
+.floating-btn-end i { color: #f87171; }
+
+/* ÉTATS EXECUTESETBTN */
 #executeSetBtn.ready {
     animation: pulse-floating-subtle 3s infinite;
 }
