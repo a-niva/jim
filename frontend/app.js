@@ -4808,6 +4808,10 @@ function getBarWeight(exercise) {
 }
 
 function isEquipmentCompatibleWithChargeMode(exercise) {
+    console.log('[DEBUG-COMPAT] Exercise:', exercise?.name);
+    console.log('[DEBUG-COMPAT] Equipment required:', exercise?.equipment);
+    console.log('[DEBUG-COMPAT] User equipment:', currentUser?.equipment_config);
+    
     /**Vérifie si l'exercice supporte le mode charge/total*/
     if (!exercise?.equipment_required) return false;
     
@@ -10857,15 +10861,7 @@ function updateWeightDisplay() {
     
     const weightElement = document.getElementById('setWeight');
     if (weightElement) {
-        // Séparer valeur et unité
-        const numericValue = displayWeight.replace(/\s*kg.*/, '');
-        weightElement.textContent = numericValue;
-
-        // S'assurer que l'unité kg est dans son propre élément
-        const unitElement = weightElement.parentElement.querySelector('.unit');
-        if (unitElement) {
-            unitElement.textContent = 'kg';
-        }
+        weightElement.textContent = displayWeight;
     }
     
     console.log('[Display] Mode:', currentWeightMode, 'Affiché:', displayWeight, 'Réel:', currentExerciseRealWeight);
@@ -10888,7 +10884,9 @@ function switchWeightMode(newMode = null) {
         showToast('Mode charge non compatible avec cet équipement', 'warning');
         return;
     }
-    
+    console.log('[DEBUG-CHARGE] currentExerciseRealWeight:', currentExerciseRealWeight);
+    console.log('[DEBUG-CHARGE] barWeight pour', currentExercise?.name, ':', getBarWeight(currentExercise));
+    console.log('[DEBUG-CHARGE] Compatible?', isEquipmentCompatibleWithChargeMode(currentExercise));
     // Vérifier si le mode charge est possible avant de switcher
     // Vérifier si le mode charge est possible avant de switcher
     const barWeight = getBarWeight(currentExercise);
