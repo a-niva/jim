@@ -357,7 +357,7 @@ function transitionTo(state) {
     // 5. AFFICHER exclusivement l'interface pour le nouvel état
     switch(state) {
         case WorkoutStates.READY:
-            document.getElementById('executeSetBtn').style.display = 'block';
+            document.getElementById('executeSetBtn').classList.add('show');
             document.querySelector('.input-section').style.display = 'block';
             
             // Vocal si activé ET pas déjà en cours
@@ -11385,7 +11385,7 @@ function handleExtraSet() {
     
     // 5. Réinitialisations d'interface (preservation ancienne version)
     document.getElementById('setFeedback').style.display = 'none';
-    document.getElementById('executeSetBtn').style.display = 'block';
+    document.getElementById('executeSetBtn').classList.add('show');
     
     // 6. Reset émojis avec gestion des deux sélecteurs (compatibilité)
     document.querySelectorAll('.emoji-btn').forEach(btn => {
@@ -11429,7 +11429,7 @@ function previousSet() {
     
     // Masquer le feedback et réafficher le bouton GO
     document.getElementById('setFeedback').style.display = 'none';
-    document.getElementById('executeSetBtn').style.display = 'block';
+    document.getElementById('executeSetBtn').classList.add('show');
     // Redémarrer le timer pour cette série
     startSetTimer();
 }
