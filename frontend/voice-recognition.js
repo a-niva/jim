@@ -2359,16 +2359,16 @@ console.log('[Voice] ✅ Toutes les expositions globales configurées');
 
 // Initialiser l'état micro au chargement des séances
 document.addEventListener('DOMContentLoaded', () => {
-    // Attendre que l'interface soit construite
     setTimeout(() => {
         const container = document.getElementById('voiceStatusContainer');
         if (container) {
             checkMicrophonePermissions().then(hasPermission => {
-                if (hasPermission) {
-                    updateMicrophoneVisualState('inactive');
-                } else {
+                if (!hasPermission) {
                     updateMicrophoneVisualState('error');
+                    return;
                 }
+                // Seulement afficher que les permissions sont OK
+                console.log('[Voice] Permissions micro accordées');
             });
         }
     }, 600);
