@@ -539,9 +539,21 @@ function clearAutoValidationTimer() {
  * Démarre la reconnaissance avec système de prédiction initialisé
  */
 function startVoiceRecognition() {
-    if (!recognition || voiceRecognitionActive) {
-        console.log('[Voice] Reconnaissance non disponible ou déjà active');
-        return false;
+    // PROTECTION RENFORCÉE
+    if (voiceRecognitionActive) {
+        console.log('[Voice] Reconnaissance déjà active - état synchronisé');
+        updateMicrophoneVisualState('listening'); // Synchroniser visuel
+        return true; // ← CRUCIAL : retourner true, pas false
+    }
+    
+    if (!recognition) {
+        console.log('[Voice] Instance manquante, initialisation...');
+        const initSuccess = initVoiceRecognition();
+        if (!initSuccess || !recognition) {
+            console.error('[Voice] Impossible de créer instance recognition');
+            updateMicrophoneVisualState('error');
+            return false;
+        }
     }
     
     // Vérification utilisateur autorise vocal
@@ -2090,9 +2102,16 @@ function updateMicroIndicator(count) {
  * Gère les erreurs de permissions, réseau, etc.
 */
 function handleVoiceError(event) {
-    console.log('[Voice] Erreur de reconnaissance:', event.error);
+    // Gestion spéciale "aborted"
+    if (event.error === 'aborted') {
+        console.log('[Voice] Reconnaissance aborted - transition propre');
+        voiceRecognitionActive = false;
+        // NE PAS changer l'état visuel pour 'aborted' - éviter confusion
+        return;
+    }
     
-    // === NOUVEAU : État visuel erreur ===
+    // Pour toutes les autres erreurs réelles
+    voiceRecognitionActive = false;
     updateMicrophoneVisualState('error');
     
     switch(event.error) {
@@ -2360,16 +2379,21 @@ console.log('[Voice] ✅ Toutes les expositions globales configurées');
 
 // Initialiser l'état micro au chargement des séances
 document.addEventListener('DOMContentLoaded', () => {
+    // CRITIQUE : Initialiser l'instance immédiatement
+    console.log('[Voice] Initialisation automatique au chargement...');
+    const initSuccess = initVoiceRecognition();
+    console.log(`[Voice] Init au démarrage: ${initSuccess ? 'SUCCESS' : 'FAILED'}`);
+    
     setTimeout(() => {
         const container = document.getElementById('voiceStatusContainer');
         if (container) {
             checkMicrophonePermissions().then(hasPermission => {
-                if (!hasPermission) {
+                if (hasPermission) {
+                    updateMicrophoneVisualState('inactive'); // État par défaut
+                    console.log('[Voice] Permissions accordées, état initial configuré');
+                } else {
                     updateMicrophoneVisualState('error');
-                    return;
                 }
-                // Seulement afficher que les permissions sont OK
-                console.log('[Voice] Permissions micro accordées');
             });
         }
     }, 600);

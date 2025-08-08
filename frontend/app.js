@@ -5194,25 +5194,13 @@ function initializeModernRepsDisplay(targetReps = 12, currentReps = 0) {
     if (voiceContainer && currentUser?.voice_counting_enabled) {
         voiceContainer.style.display = 'flex';
         
-        // Vérifier permissions et initialiser état
+        // NE PLUS démarrer automatiquement - laisser transitionTo() gérer
+        // Seulement synchroniser l'état visuel avec l'état fonctionnel
         checkMicrophonePermissions().then(hasPermission => {
             if (hasPermission) {
-                // Si séance libre ET utilisateur a activé vocal, démarrer directement
-                if (currentWorkoutSession?.type === 'free' && currentUser?.voice_counting_enabled) {
-                    // Démarrer IMMÉDIATEMENT sans passer par 'ready'
-                    if (window.startVoiceRecognition && window.initVoiceRecognition()) {
-                        if (window.startVoiceRecognition()) {
-                            // État directement à 'listening' si démarrage réussi
-                            window.updateMicrophoneVisualState?.('listening');
-                        } else {
-                            // État 'inactive' si échec démarrage
-                            window.updateMicrophoneVisualState?.('inactive');
-                        }
-                    } else {
-                        window.updateMicrophoneVisualState?.('inactive');
-                    }
-                } else {
-                    window.updateMicrophoneVisualState?.('inactive');
+                const isCurrentlyActive = window.voiceRecognitionActive?.() || false;
+                if (isCurrentlyActive) {
+                    window.updateMicrophoneVisualState?.('listening');
                 }
             } else {
                 window.updateMicrophoneVisualState?.('error');
@@ -7813,7 +7801,6 @@ async function toggleVoiceCounting() {
 }
 
 function activateVoiceForWorkout() {
-    // S'assurer que le vocal est prêt quand on démarre une série
     const voiceContainer = document.getElementById('voiceStatusContainer');
     
     if (!voiceContainer || !currentUser?.voice_counting_enabled) {
@@ -7823,15 +7810,21 @@ function activateVoiceForWorkout() {
     // Afficher le container
     voiceContainer.style.display = 'flex';
     
-    // Vérifier permissions et état
     checkMicrophonePermissions().then(hasPermission => {
         if (hasPermission) {
-            // Ne pas écraser l'état si la reconnaissance est déjà active
+            // CORRECTION CRITIQUE : Ne JAMAIS écraser l'état actuel
+            // Si reconnaissance déjà active, maintenir l'état visuel
             const isCurrentlyActive = window.voiceRecognitionActive?.() || false;
-            window.updateMicrophoneVisualState?.(isCurrentlyActive ? 'listening' : 'inactive');
+            
+            if (isCurrentlyActive) {
+                // Synchroniser visuel avec état réel si déjà actif
+                window.updateMicrophoneVisualState?.('listening');
+                console.log('[Voice] Reconnaissance déjà active, état synchronisé');
+            }
+            // Si pas actif, ne RIEN changer - laisser autres fonctions gérer
+            
         } else {
             window.updateMicrophoneVisualState?.('error');
-            showToast('Permission microphone requise pour le comptage vocal', 'warning');
         }
     });
 }
