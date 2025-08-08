@@ -213,6 +213,12 @@ const timers = {
     autoValidation: null,
     correction: null,
     
+    set(name, timer) {
+        this.clear(name);  // Clear ancien timer
+        this[name] = timer;
+        console.log(`[Timers] ${name} défini`);
+    },
+    
     clear(timerName) {
         if (this[timerName]) {
             clearTimeout(this[timerName]);
@@ -807,7 +813,7 @@ function calculateConfidence() {
     // Pénalité gaps basée sur ratio - RÉALISTE
     if (voiceData.gaps.length > 0 && voiceData.count > 0) {
         const gapRatio = voiceData.gaps.length / voiceData.count;
-        const gapPenalty = Math.min(gapRatio * 1.2, 0.9); // Facteur sévère
+        const gapPenalty = Math.min(gapRatio * 1.5, 0.95); // Sévère et réaliste
         score -= gapPenalty;
         console.log(`[Confidence] Gaps: ${voiceData.gaps.length}/${voiceData.count} (${(gapRatio*100).toFixed(1)}%) - Pénalité: -${(gapPenalty * 100).toFixed(1)}%`);
     }
@@ -1353,16 +1359,6 @@ function handleNumberDetected(number) {
             }
         }
         voiceData.needsValidation = true;
-        // Déclencher validation immédiate si gaps détectés
-        if (voiceData.needsValidation && voiceData.gaps.length > 0) {
-            console.log(`[Voice] ${voiceData.gaps.length} gaps détectés, déclenchement validation forcée`);
-            scheduleAutoValidation();  // Calcule confiance et décide validation
-            
-            // Notification utilisateur immédiate
-            if (window.showToast) {
-                window.showToast(`Répétitions ${voiceData.gaps.join(',')} manquées`, 'warning');
-            }
-        }
     }
     
     // Mise à jour normale
@@ -1374,6 +1370,19 @@ function handleNumberDetected(number) {
     
     // NOUVEAU - Mettre à jour la prédiction
     predictedNext = number + 1;
+    
+    // PROTECTION : Déclencher validation UNE SEULE FOIS après accumulation gaps
+    if (voiceData.needsValidation && voiceState === 'LISTENING') {
+        console.log(`[Voice] ${voiceData.gaps.length} gaps détectés, déclenchement validation forcée`);
+        
+        // Notification utilisateur immédiate
+        if (window.showToast) {
+            window.showToast(`Répétitions ${voiceData.gaps.join(',')} manquées`, 'warning');
+        }
+        
+        // Déclencher validation avec protection état
+        scheduleAutoValidation();
+    }
     
     console.log(`[Voice] État: count=${voiceData.count}, gaps=[${voiceData.gaps}], confiance=${voiceData.confidence}`);
 }
