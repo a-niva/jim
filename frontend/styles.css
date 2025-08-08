@@ -2174,6 +2174,22 @@ span {
     transition: all 0.3s ease;
 }
 
+.charge-weight-container.mode-switching {
+    /* Animation simple du container pendant le switch */
+    transition: all 0.2s ease;
+}
+
+/* Animation du label pendant le switch */
+.mode-switching .charge-mode-label {
+    animation: fade-text 0.2s ease;
+}
+
+@keyframes fade-text {
+    0% { opacity: 1; }
+    50% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
 .charge-mode-icon {
     font-size: 4vw;
     cursor: pointer;
@@ -2182,7 +2198,6 @@ span {
     padding: 0.5rem;
     border-radius: 8px;
     position: relative;
-    touch-action: pan-y;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2192,8 +2207,9 @@ span {
     text-align: center;
 }
 
-.charge-mode-icon.charge-animating {
-    transform: scale(1.1);
+.charge-mode-icon.charge-switching {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
 }
 
 .charge-mode-total .charge-mode-icon::before {
@@ -2243,6 +2259,11 @@ span {
     pointer-events: none;
 }
 
+.charge-mode-icon:hover {
+    transform: scale(1.08);
+    filter: brightness(1.15);
+}
+
 .charge-mode-icon:hover::after {
     animation-duration: 2s;
     background: linear-gradient(
@@ -2251,6 +2272,21 @@ span {
         rgba(255, 255, 255, 0.25),
         transparent
     );
+}
+
+.charge-mode-icon:active {
+    transform: scale(0.95);
+}
+
+/* Animation de switch */
+.charge-mode-icon.switching {
+    animation: icon-pulse 0.2s ease;
+}
+
+@keyframes icon-pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(0.85); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
 }
 
 .charge-weight-display {
@@ -2281,39 +2317,6 @@ span {
     text-align: center;
     max-font-size: 0.8rem;
     font-weight: 500;
-}
-
-.charge-tooltip {
-    position: absolute;
-    top: -3rem;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    padding: 0.5rem 0.8rem;
-    border-radius: 6px;
-    font-size: 0.8rem;
-    white-space: nowrap;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    opacity: 0;
-    pointer-events: none;
-    transition: all 0.3s ease;
-    z-index: 1000;
-}
-
-.charge-tooltip.charge-visible {
-    opacity: 1;
-    transform: translateX(-50%) translateY(-0.5rem);
-}
-
-.charge-tooltip::after {
-    content: "";
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border: 5px solid transparent;
-    border-top-color: var(--bg-primary);
 }
 
 .value-display span:first-child {

@@ -10438,12 +10438,13 @@ function setupChargeInterface() {
     label.textContent = currentWeightMode === 'charge' ? 'CHARGE' : 'TOTAL';
     label.style.display = 'block';
     
-    // Configurer le swipe sur l'icône
+    // Configurer le click sur l'icône (protection contre doublons incluse)
     setupWeightModeSwipe(icon);
-    // Masquer tooltip sur mobile
+    
+    // SUPPRESSION: Plus de tooltip
     const tooltip = document.getElementById('chargeTooltip');
-    if (tooltip && window.innerWidth <= 768) {
-        tooltip.style.display = 'none';
+    if (tooltip) {
+        tooltip.remove(); // Suppression complète du DOM
     }
 }
 
@@ -10455,47 +10456,36 @@ function hideChargeInterface() {
     }
 }
 
+let chargeIconConfigured = false;  // Flag global pour éviter multiple setup
+
 function setupWeightModeSwipe(iconElement) {
-    /**Configure les événements de swipe pour changer de mode*/
-    let startY = 0;
-    let isDragging = false;
-    const threshold = 30;
+    /**
+     * RENOMMÉE mais garde le même nom pour compatibilité
+     * Simple click handler sans logique swipe
+     */
     
-    // Touch events
-    iconElement.addEventListener('touchstart', (e) => {
-        startY = e.touches[0].clientY;
-        isDragging = true;
-        iconElement.classList.add('charge-animating');
-    }, { passive: true });
+    // CRITICAL: Protection contre accumulation de listeners
+    if (iconElement.dataset.clickListenerAdded === 'true') {
+        return;
+    }
     
-    iconElement.addEventListener('touchmove', (e) => {
-        if (!isDragging) return;
+    // Un seul event listener click
+    iconElement.addEventListener('click', (e) => {
         e.preventDefault();
-    }, { passive: false });
-    
-    iconElement.addEventListener('touchend', (e) => {
-        if (!isDragging) return;
+        e.stopPropagation();
         
-        const endY = e.changedTouches[0].clientY;
-        const deltaY = startY - endY;
+        // Animation visuelle au clic
+        iconElement.classList.add('switching');
+        setTimeout(() => {
+            iconElement.classList.remove('switching');
+        }, 200);
         
-        iconElement.classList.remove('charge-animating');
-        
-        if (Math.abs(deltaY) > threshold) {
-            if (deltaY > 0) {
-                switchWeightMode('charge');
-            } else {
-                switchWeightMode('total');
-            }
-        }
-        
-        isDragging = false;
-    }, { passive: true });
-    
-    // Mouse events (pour desktop)
-    iconElement.addEventListener('click', () => {
+        // Toggle le mode
         switchWeightMode();
     });
+    
+    // Marquer comme configuré pour éviter les doublons
+    iconElement.dataset.clickListenerAdded = 'true';
 }
 
 // ===== TIMER DE REPOS =====
