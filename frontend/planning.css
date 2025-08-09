@@ -469,6 +469,10 @@
     z-index: 1;
 }
 
+.planning-exercise-option input:checked ~ .planning-exercise-option-content .exercise-check-mark {
+    display: flex;
+}
+
 .planning-exercise-option.selected .planning-exercise-option-content {
     background: rgba(59, 130, 246, 0.1) !important;
     border-color: var(--primary) !important;
