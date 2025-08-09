@@ -2463,9 +2463,6 @@ class PlanningManager {
                                 <span class="exercise-count-badge">${sortedExercises.length}</span>
                                 <i class="fas fa-chevron-down toggle-chevron"></i>
                             </div>
-                            <div class="planning-selection-info">
-                                <a id="selectedCount">3</a> sélectionné(s)
-                            </div>
                         </div>
                         
                         <!-- Barre de recherche discrète -->
@@ -2743,7 +2740,7 @@ class PlanningManager {
     initializeSessionCreation(sessionIdToEdit = null) {
         const checkboxes = document.querySelectorAll('.planning-exercise-option input[type="checkbox"]');
         const createBtn = document.getElementById('createSessionBtn');
-        const selectedCounter = document.getElementById('selectedCount');
+        const selectedCounter = document.getElementById('exerciseCountMetric');
         
         // Configuration
         const maxExercises = 8;
@@ -2752,7 +2749,7 @@ class PlanningManager {
         // Fonction de mise à jour de l'aperçu
         const updatePreview = () => {
             const selected = Array.from(checkboxes).filter(cb => cb.checked);
-            if (selectedCounter) {  // Vérifier l'existence
+            if (selectedCounter) {
                 selectedCounter.textContent = selected.length;
             }
             
@@ -2881,6 +2878,21 @@ class PlanningManager {
         if (isCollapsed && this.toggleExercisesList) {
             this.toggleExercisesList();
         }
+
+        this.setupExerciseSelection();
+    }
+
+    setupExerciseSelection() {
+        const checkboxes = document.querySelectorAll('.planning-exercise-option input[type="checkbox"]');
+        
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', (e) => {
+                const checkMark = e.target.closest('.planning-exercise-option').querySelector('.exercise-check-mark');
+                if (checkMark) {
+                    checkMark.style.display = e.target.checked ? 'flex' : 'none';
+                }
+            });
+        });
     }
         
     // Utiliser toggleExercisesList existante ou l'adapter pour la nouvelle structure
@@ -3008,6 +3020,30 @@ class PlanningManager {
             
             exercise.style.display = visible ? 'block' : 'none';
         });
+    }
+
+    toggleMuscleGroup(muscle) {
+        const section = document.querySelector(`.muscle-group-section[data-muscle="${muscle}"]`);
+        if (!section) return;
+        
+        const exerciseGrid = section.querySelector('.exercise-grid');
+        const chevron = section.querySelector('.toggle-chevron');
+        
+        if (!exerciseGrid || !chevron) return;
+        
+        const isCurrentlyExpanded = !exerciseGrid.classList.contains('collapsed');
+        
+        if (isCurrentlyExpanded) {
+            exerciseGrid.classList.add('collapsed');
+            exerciseGrid.style.maxHeight = '0';
+            exerciseGrid.style.opacity = '0';
+            chevron.classList.add('closed');
+        } else {
+            exerciseGrid.classList.remove('collapsed');
+            exerciseGrid.style.maxHeight = '400px';
+            exerciseGrid.style.opacity = '1';
+            chevron.classList.remove('closed');
+        }
     }
 
     // Fonction helper pour calcul de score fallback
@@ -4002,29 +4038,31 @@ class PlanningManager {
                     window.MuscleColors.getMuscleColor(muscle) : '#6b7280';
                 
                 return `
-                    <div class="exercise-group">
-                        <h5 class="muscle-group-header" style="border-left: 4px solid ${color};">
+                    <div class="exercise-group muscle-group-section" data-muscle="${muscle}">
+                        <h5 class="muscle-group-header clickable" 
+                            style="border-left: 4px solid ${color};" 
+                            onclick="window.planningManager.toggleMuscleGroup('${muscle}')">
                             ${muscle.charAt(0).toUpperCase() + muscle.slice(1)} (${exercises.length})
+                            <i class="fas fa-chevron-down toggle-chevron"></i>
                         </h5>
-                        <div class="exercise-grid">
-                            ${exercises.map(ex => `
-                                <label class="planning-exercise-option">
-                                    <input type="radio" name="newExercise" value="${ex.id}" 
-                                        data-exercise='${JSON.stringify({
-                                            exercise_id: ex.id,
-                                            exercise_name: ex.name,
-                                            muscle_groups: ex.muscle_groups || [muscle],
-                                            sets: 3,
-                                            reps_min: 8,
-                                            reps_max: 12,
-                                            rest_seconds: 90
-                                        }).replace(/'/g, '&apos;')}'>
-                                    <div class="planning-exercise-option-card">
-                                        <div class="planning-exercise-name">${ex.name}</div>
-                                        <div class="exercise-details">3×8-12</div>
-                                    </div>
-                                </label>
-                            `).join('')}
+                        <div class="muscle-group-section" data-muscle="${muscle}">
+                            <div class="exercise-grid">
+                                ${exercises.map(ex => `
+                                    <label class="planning-exercise-option" data-muscle="${muscle}">
+                                        <input type="checkbox" 
+                                            value="${ex.id}"
+                                            data-exercise="${exerciseData}"
+                                            ${isDisabled ? 'disabled' : ''}>
+                                        <div class="planning-exercise-option-content">
+                                            <div class="planning-exercise-name">${truncatedName}</div>
+                                            <div class="planning-exercise-params">
+                                                ${ex.default_sets || 3} × ${ex.default_reps_min || 8}-${ex.default_reps_max || 12}
+                                            </div>
+                                            <div class="exercise-check-mark" style="background-color: ${color};">✓</div>
+                                        </div>
+                                    </label>
+                                `).join('')}
+                            </div>
                         </div>
                     </div>
                 `;
@@ -4496,9 +4534,14 @@ function getMuscleColor(muscle) {
     return colors[muscle.toLowerCase()] || '#6b7280';
 }
 
-
-
-console.log('✅ Planning.js chargé avec logique Programme');
-
 // Exposer la fonction globalement pour app.js
 window.showUpcomingSessionsModal = showUpcomingSessionsModal;
+// Exposition globale pour les event handlers HTML
+window.planningManager = null;
+document.addEventListener('DOMContentLoaded', () => {
+    if (!window.planningManager) {
+        window.planningManager = new PlanningManager();
+    }
+});
+
+console.log('✅ Planning.js chargé avec logique Programme');
