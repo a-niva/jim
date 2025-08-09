@@ -4525,14 +4525,6 @@ span {
     padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) calc(var(--spacing-md)*3) !important;
 }
 
-@media (max-width: 768px) {
-    .free-workout-search {
-        font-size: var(--font-base) !important;
-        min-height: 44px !important;
-        padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) calc(var(--spacing-sm)*2.5) !important;
-    }
-}
-
 /* Classe spécifique pour recherche exercices séance libre */
 .free-exercise-search {
     background: var(--bg-card) !important;
@@ -6680,7 +6672,9 @@ span {
     border: 1px solid var(--border, #334155);
     max-width: 90vw;
     width: 400px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* AJOUTER */
 }
 
 .workout-end-content h3 {
@@ -6695,8 +6689,8 @@ span {
     gap: 1rem;
     justify-content: center;
     margin-bottom: 1rem;
+    width: 100%; /* AJOUTER */
 }
-
 /* Boutons du modal */
 .floating-btn-complete,
 .floating-btn-abandon {
@@ -6752,6 +6746,7 @@ span {
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
+    align-self: center; /* AJOUTER */
 }
 
 .modal-cancel:hover {
@@ -8101,6 +8096,18 @@ input {
 
     .voice-toggle-btn i {
             font-size: 0.9rem;
+    }
+
+    .workout-end-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .floating-btn-complete,
+    .floating-btn-abandon {
+        width: 100%;
+        max-width: 250px;
+        margin: 0 auto;
     }
 
 }
