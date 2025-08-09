@@ -1,21 +1,92 @@
-/* =====================================================
-   PLANNING CSS COMPLET - DESIGN UNIFIÉ
-   Inclut : planning général, navigation, sessions, modals
-   Structure verticale, mobile-first, ~2000 lignes
-   ===================================================== */
+/* ================================================== */
+/* CSS COMPILÉ AVEC PARSEUR ROBUSTE */
+/* ================================================== */
 
-/* ===== SECTION 1 : VARIABLES ET RESET ===== */
+/* ===== AT-RULES PRÉSERVÉES ===== */
+@keyframes pulseToday {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
+    }
+}
+@keyframes slideInWeek {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+@keyframes magical-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    }
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+@keyframes score-update {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+@keyframes number-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); background: var(--success); }
+}
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+@keyframes pulseLeft {
+    0%, 100% { transform: translateY(-50%) translateX(0); opacity: 0.8; }
+    50% { transform: translateY(-50%) translateX(-5px); opacity: 1; }
+}
+@keyframes pulseRight {
+    0%, 100% { transform: translateY(-50%) translateX(0); opacity: 0.8; }
+    50% { transform: translateY(-50%) translateX(5px); opacity: 1; }
+}
 
+/* ===== VARIABLES CSS ===== */
 :root {
-    /* Variables planning */
     --planning-bg: var(--bg-secondary);
     --planning-border: var(--border-color);
     --planning-radius: 12px;
     --planning-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     --planning-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.15);
     --planning-transition: all 0.3s ease;
-    
-    /* Couleurs des groupes musculaires */
     --muscle-chest: #e74c3c;
     --muscle-back: #3498db;
     --muscle-shoulders: #f39c12;
@@ -25,8 +96,6 @@
     --muscle-core: #8e44ad;
     --muscle-cardio: #16a085;
     --muscle-autres: #7f8c8d;
-    
-    /* Espacements */
     --spacing-xs: 0.25rem;
     --spacing-sm: 0.5rem;
     --spacing-md: 1rem;
@@ -34,12 +103,10 @@
     --spacing-xl: 2rem;
 }
 
-/* Reset pour planning */
+/* ===== RÈGLES PRINCIPALES ===== */
 .planning-container * {
     box-sizing: border-box;
 }
-
-/* ===== SECTION 2 : STRUCTURE PRINCIPALE PLANNING ===== */
 
 .planning-container {
     max-width: 1400px;
@@ -47,7 +114,6 @@
     padding: var(--spacing-lg);
 }
 
-/* Header du planning */
 .planning-header {
     display: flex;
     justify-content: space-between;
@@ -84,8 +150,6 @@
     padding: 0.5rem 1rem;
     font-size: 0.9rem;
 }
-
-/* ===== SECTION 3 : NAVIGATION SEMAINES ===== */
 
 .week-navigation {
     display: flex;
@@ -148,7 +212,6 @@
     margin-left: var(--spacing-sm);
 }
 
-/* Bouton Aujourd'hui */
 .today-btn {
     background: var(--primary);
     color: white;
@@ -170,17 +233,6 @@
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
-
-@keyframes pulseToday {
-    0%, 100% {
-        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
-    }
-    50% {
-        box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
-    }
-}
-
-/* ===== SECTION 4 : GRILLE DES JOURS ===== */
 
 .weeks-container {
     position: relative;
@@ -208,18 +260,6 @@
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2), var(--planning-shadow);
 }
 
-@keyframes slideInWeek {
-    from {
-        opacity: 0;
-        transform: translateX(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-/* Header de semaine */
 .week-header {
     display: flex;
     justify-content: space-between;
@@ -235,7 +275,6 @@
     margin: 0;
 }
 
-/* Score de semaine */
 .week-score {
     display: flex;
     align-items: center;
@@ -256,39 +295,28 @@
     transition: width 0.6s ease;
 }
 
-/* Grille des jours - TOUJOURS 7 JOURS VISIBLES */
-/* Grille des jours - LAYOUT VERTICAL POUR DESKTOP */
 .days-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: var(--spacing-xl); /* Augmenté de --spacing-md à --spacing-xl */
+    gap: var(--spacing-xl);
     padding: var(--spacing-lg);
 }
 
-/* Version horizontale optionnelle pour très grands écrans */
-@media (min-width: 1600px) {
-    .days-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-/* Carte de jour */
 .day-card {
     background: #27344b;
     border-radius: var(--planning-radius);
-    padding: var(--spacing-lg); /* Augmenté de --spacing-md à --spacing-lg */
+    padding: var(--spacing-lg);
     border: 2px solid var(--planning-border);
     transition: var(--planning-transition);
     position: relative;
-    min-height: 140px; /* Augmenté de 120px à 140px */
+    min-height: 140px;
     display: flex;
     flex-direction: column;
     width: 100%;
     max-width: 800px;
-    margin: 0 auto var(--spacing-md) auto; /* Ajout margin-bottom */
+    margin: 0 auto var(--spacing-md) auto;
 }
 
-/* Jour avec session active/détaillée */
 .day-card.has-active-session {
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, #27344b 100%);
     border-color: var(--primary);
@@ -300,7 +328,6 @@
     box-shadow: var(--planning-shadow-hover);
 }
 
-/* Jour vide mais cliquable */
 .day-card.empty-day {
     cursor: pointer;
     border-style: dashed;
@@ -322,7 +349,7 @@
 }
 
 .day-card.today::before {
-    content: 'Aujourd\'hui';
+    content: "Aujourd'hui";
     position: absolute;
     top: 0;
     right: 0;
@@ -334,7 +361,6 @@
     font-weight: 600;
 }
 
-/* Header du jour */
 .day-header {
     display: flex;
     justify-content: space-between;
@@ -343,11 +369,11 @@
 }
 
 .day-name {
-    font-size: 1.1rem; /* Augmenté de 0.9rem à 1.1rem */
-    font-weight: 700; /* Augmenté de 600 à 700 */
+    font-size: 1.1rem;
+    font-weight: 700;
     text-transform: capitalize;
     color: var(--text);
-    letter-spacing: 0.5px; /* Ajout pour plus de lisibilité */
+    letter-spacing: 0.5px;
 }
 
 .day-number {
@@ -356,15 +382,12 @@
     color: var(--primary);
 }
 
-/* Container des sessions */
 .day-sessions {
     flex: 1;
     display: flex;
     flex-direction: column;
     gap: var(--spacing-xs);
 }
-
-/* ===== SECTION 5 : CARTES DE SESSION ===== */
 
 .session-card {
     background: var(--bg);
@@ -388,7 +411,7 @@
 }
 
 .session-card.completed::after {
-    content: '✓';
+    content: "✓";
     position: absolute;
     top: var(--spacing-xs);
     right: var(--spacing-xs);
@@ -397,7 +420,6 @@
     font-weight: bold;
 }
 
-/* Header de session */
 .session-header {
     display: flex;
     justify-content: space-between;
@@ -424,22 +446,18 @@
     border-radius: 50%;
 }
 
-/* Info exercices */
 .exercise-count {
     color: var(--text-muted);
     font-size: 0.75rem;
     margin-bottom: var(--spacing-xs);
 }
 
-/* Tags muscles */
 .session-muscles {
     display: flex;
     flex-wrap: wrap;
     gap: 0.2rem;
     margin-top: var(--spacing-xs);
 }
-
-/* ===== AMÉLIORATION DESIGN CARTES SESSION - ÉLÉMENTS CENTRÉS ===== */
 
 .session-header-centered {
     display: flex;
@@ -509,9 +527,8 @@
     font-weight: 500;
 }
 
-/* Actions de session */
 .session-actions {
-    display: none; /* Masquer les boutons d'édition */
+    display: none;
 }
 
 .session-card:hover .session-actions {
@@ -519,7 +536,7 @@
 }
 
 .session-time {
-    display: none; /* Masquer complètement l'heure */
+    display: none;
 }
 
 .action-btn {
@@ -548,10 +565,8 @@
 }
 
 .btn-edit-compact {
-    display: none; /* Masquer spécifiquement le bouton édition */
+    display: none;
 }
-
-/* ===== SECTION 6 : ZONES D'AJOUT DE SÉANCE ===== */
 
 .add-session-zone {
     border: 2px dashed var(--planning-border);
@@ -584,15 +599,11 @@
     font-weight: 500;
 }
 
-/* ===== SECTION 7 : MODAL CRÉATION/ÉDITION - STRUCTURE VERTICALE ===== */
-
-/* Override pour avoir un modal plus large mais pas trop */
 .modal-content:has(.planning-modal-vertical) {
     max-width: 600px !important;
     width: 90vw !important;
 }
 
-/* Titre modal avec date en sous-titre */
 .modal-title-with-date {
     display: flex;
     flex-direction: column;
@@ -618,7 +629,6 @@
     font-size: 0.8rem;
 }
 
-/* Container principal vertical */
 .planning-modal-vertical {
     display: flex;
     flex-direction: column;
@@ -628,14 +638,12 @@
     overflow-y: auto;
 }
 
-/* Section exercices disponibles */
 .exercises-selection-section {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-md);
 }
 
-/* Header de section cliquable */
 .section-header {
     background: var(--bg-secondary);
     padding: var(--spacing-md);
@@ -694,17 +702,12 @@
     margin-top: var(--spacing-xs);
 }
 
-#selectedCount {
-    font-weight: 600;
-    color: var(--primary);
-}
-
-/* Barre de recherche discrète */
 .search-bar-container {
     position: relative;
     display: flex;
     align-items: center;
     margin: 0 var(--spacing-xs);
+    transition: all 0.3s ease;
 }
 
 .search-icon {
@@ -738,7 +741,6 @@
     font-size: 0.85rem;
 }
 
-/* Container des exercices shrinkable */
 .exercises-list-container {
     max-height: 400px;
     overflow-y: auto;
@@ -750,20 +752,6 @@
     opacity: 0;
 }
 
-/* Fix mobile : toujours visible */
-@media (max-width: 768px) {
-    .exercises-list-container.collapsed {
-        max-height: none;
-        opacity: 1;
-    }
-}
-
-/* Cacher aussi la search bar quand collapsed */
-.search-bar-container {
-    transition: all 0.3s ease;
-}
-
-/* Grille des exercices sur 2 colonnes */
 .exercises-grid {
     max-height: 300px;
     overflow-y: auto;
@@ -771,7 +759,7 @@
 }
 
 .muscle-group-section {
-     margin-bottom: 16px;
+    margin-bottom: 16px;
 }
 
 .muscle-group-header {
@@ -802,33 +790,12 @@
     color: var(--text-muted);
 }
 
-/* Grille 2 colonnes pour les exercices */
 .muscle-exercises-panel {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
     padding: 12px;
     min-height: 60px;
-}
-
-
-@media (max-width: 480px) {
-    .muscle-exercises-panel {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* Touch targets mobiles conformes (44px minimum) */
-@media (hover: none) and (pointer: coarse) {
-    .muscle-exercises-panel {
-        gap: 16px;
-        padding: 16px;
-    }
-    
-    .muscle-exercises-panel .planning-exercise-option {
-        min-height: 44px;
-        padding: 12px;
-    }
 }
 
 .planning-exercise-option {
@@ -855,15 +822,22 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
-    padding-left: 24px;
     flex: 1;
     min-height: 32px;
     justify-content: center;
+    position: relative;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    transition: all 0.2s ease;
 }
 
 .planning-exercise-option:hover .planning-exercise-option-content {
     background: var(--bg-tertiary);
-    transform: translateX(2px);
+    transform: translateY(-1px);
+    border-color: var(--primary);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .planning-exercise-option input:checked + .planning-exercise-option-content {
@@ -891,8 +865,6 @@
     z-index: 1;
 }
 
-
-.planning-exercise-option-content,
 .planning-exercise-option-card {
     position: relative;
     background: var(--bg);
@@ -906,7 +878,6 @@
     justify-content: center;
 }
 
-.planning-exercise-option:hover .planning-exercise-option-content,
 .planning-exercise-option:hover .planning-exercise-option-card {
     border-color: var(--primary);
     transform: translateY(-1px);
@@ -933,12 +904,8 @@
 }
 
 .planning-exercise-option .planning-exercise-params {
-    font-size: 0.75rem;
     color: var(--text-muted);
 }
-
-
-/* ===== SECTION 8 : APERÇU DE SÉANCE ===== */
 
 .session-preview-section {
     display: flex;
@@ -946,7 +913,6 @@
     gap: var(--spacing-md);
 }
 
-/* Header aperçu avec baguette magique */
 .planning-preview-header {
     display: flex;
     align-items: center;
@@ -968,7 +934,6 @@
     font-weight: 600;
 }
 
-/* Bouton baguette magique */
 .magic-wand-btn {
     width: 36px;
     height: 36px;
@@ -993,18 +958,6 @@
     font-size: 1rem;
 }
 
-@keyframes magical-pulse {
-    0% {
-        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
-    }
-    70% {
-        box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
-    }
-    100% {
-        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
-    }
-}
-
 .magic-wand-btn:not(:disabled) {
     animation: magical-pulse 2s infinite;
 }
@@ -1013,12 +966,6 @@
     animation: spin 0.6s ease;
 }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-/* Métriques en ligne */
 .session-metrics-row {
     display: flex;
     justify-content: space-around;
@@ -1056,23 +1003,18 @@
     letter-spacing: 0.5px;
 }
 
-.quality-metric .metric-value,
-.quality-metric i {
+.quality-metric .metric-value {
     transition: color 0.3s ease;
 }
 
-/* Animation mise à jour score */
-@keyframes score-update {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
+.quality-metric i {
+    transition: color 0.3s ease;
 }
 
 .metric-value.score-updating {
     animation: score-update 0.6s ease;
 }
 
-/* Liste des exercices sélectionnés */
 .selected-exercises-list {
     background: var(--bg-secondary);
     border-radius: var(--radius);
@@ -1083,7 +1025,6 @@
     overflow-y: auto;
 }
 
-/* État vide */
 .empty-preview {
     display: flex;
     flex-direction: column;
@@ -1104,7 +1045,6 @@
     font-size: 0.85rem;
 }
 
-/* Item d'exercice sélectionné */
 .selected-exercise-item {
     display: flex;
     align-items: center;
@@ -1126,7 +1066,6 @@
     background: var(--bg-tertiary);
 }
 
-/* Handle de drag */
 .drag-handle {
     display: flex;
     align-items: center;
@@ -1145,7 +1084,6 @@
     font-size: 0.9rem;
 }
 
-/* Contenu exercice */
 .exercise-content {
     flex: 1;
     display: flex;
@@ -1172,11 +1110,6 @@
     animation: number-pulse 0.3s ease;
 }
 
-@keyframes number-pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); background: var(--success); }
-}
-
 .exercise-details {
     font-weight: 600;
     font-size: 0.85rem;
@@ -1190,23 +1123,6 @@
     color: var(--text-muted);
 }
 
-@media (max-width: 768px) {
-    .exercise-name {
-        white-space: normal !important;
-        line-height: 1.3;
-        font-size: 0.85rem;
-    }
-    
-    .exercise-details {
-        flex: 1;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-xs);
-    }
-}
-
-/* Bouton supprimer avec croix rouge au hover */
 .planning-remove-btn {
     width: 28px;
     height: 28px;
@@ -1237,8 +1153,6 @@
     font-size: 0.8rem;
 }
 
-/* ===== SECTION 9 : TAGS MUSCLES COLORÉS ===== */
-
 .muscle-groups-tags {
     display: flex;
     flex-wrap: wrap;
@@ -1246,23 +1160,6 @@
     padding: var(--spacing-sm);
     background: var(--bg-secondary);
     border-radius: var(--radius);
-}
-
-/* Mobile: repositionner avant la liste d'exercices */
-@media (max-width: 768px) {
-    .muscle-groups-tags {
-        order: -1 !important;
-        margin-bottom: var(--spacing-sm);
-        padding: var(--spacing-xs) var(--spacing-sm);
-        align-self: center;
-        position:relative;
-    }
-    
-    .muscle-tag {
-        padding: 2px var(--spacing-xs);
-        font-size: 0.65rem;
-        border-radius: 12px;
-    }
 }
 
 .muscle-tag {
@@ -1276,8 +1173,6 @@
 .muscle-tag:hover {
     transform: scale(1.05);
 }
-
-/* ===== SECTION 10 : ACTIONS DU MODAL ===== */
 
 .modal-actions-bottom {
     display: flex;
@@ -1295,8 +1190,6 @@
     gap: var(--spacing-xs);
     padding: var(--spacing-md);
 }
-
-/* ===== SECTION 11 : ÉTATS DRAG & DROP ===== */
 
 .sortable-ghost {
     opacity: 0.4;
@@ -1316,323 +1209,66 @@
     animation: slideIn 0.3s ease;
 }
 
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+.exercises-grid::-webkit-scrollbar {
+    width: 6px;
 }
 
-/* ===== SECTION 12 : RESPONSIVE MOBILE ===== */
-
-@media (max-width: 768px) {
-    /* Planning général */
-    .planning-container {
-        padding: var(--spacing-sm);
-    }
-    
-    .planning-header {
-        flex-direction: column;
-        gap: var(--spacing-md);
-        padding: var(--spacing-md);
-    }
-    
-    .planning-header h2 {
-        font-size: 1.5rem;
-    }
-    
-    .planning-actions {
-        width: 100%;
-        justify-content: space-between;
-    }
-    
-    /* Navigation */
-    .week-navigation {
-        padding: var(--spacing-sm) var(--spacing-md);
-    }
-    
-    .week-indicator {
-        min-width: auto;
-        font-size: 0.9rem;
-    }
-    
-    /* Modal mobile optimisé pour 800px */
-    .modal-content:has(.planning-modal-vertical) {
-        max-width: 100% !important;
-        width: 100% !important;
-        border-radius: 0;
-        height: 100vh !important;
-        max-height: 100vh !important;
-        overflow: hidden;
-    }
-
-    .planning-modal-vertical {
-        gap: var(--spacing-sm); /* RÉDUIT encore plus */
-        padding: var(--spacing-sm); /* RÉDUIT encore plus */
-    }
-
-    .planning-selection-info {
-        font-size: 0.75rem; /* RÉDUIT de 0.85rem */
-        line-height: 1.2; /* AJOUTÉ pour éviter 2 lignes */
-        margin-top: 2px; /* RÉDUIT de var(--spacing-xs) */
-    }
-
-    .selected-exercise-item {
-        padding: var(--spacing-xs) var(--spacing-sm); /* RÉDUIT */
-        margin-bottom: var(--spacing-xs); /* RÉDUIT */
-    }
-    
-    /* Exercise details compact */
-    .exercise-details {
-        flex: 1;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 2px; /* RÉDUIT de var(--spacing-xs) */
-    }
-    
-    /* Muscle tags compact */
-    .muscle-groups-tags {
-        order: -1 !important;
-        margin-bottom: var(--spacing-xs); /* RÉDUIT */
-        padding: 4px var(--spacing-xs); /* RÉDUIT */
-        align-self: center;
-    }
-    
-    .muscle-tag {
-        padding: 1px var(--spacing-xs); /* RÉDUIT */
-        font-size: 0.6rem; /* RÉDUIT de 0.65rem */
-        border-radius: 8px; /* RÉDUIT de 12px */
-    }
-    
-    /* Section headers compact */
-    .section-header {
-        padding: var(--spacing-sm); /* RÉDUIT de var(--spacing-md) */
-        margin-bottom: var(--spacing-xs); /* RÉDUIT */
-    }
-
-    /* Métriques plus compactes */
-    .session-metrics-row {
-        padding: var(--spacing-xs) 6px !important;
-        margin: 0 2px var(--spacing-sm) 2px !important;
-    }
-
-    /* Actions du modal plus compactes */
-    .modal-actions-bottom {
-        position: sticky !important;
-        bottom: 0;
-        background: var(--bg-card);
-        border-top: 2px solid var(--border-color);
-        padding: var(--spacing-xs) var(--spacing-sm); /* RÉDUIT */
-        margin-top: var(--spacing-sm); /* RÉDUIT */
-        z-index: 10;
-    }
-    
-    
-    .modal-actions-bottom .btn {
-        padding: var(--spacing-sm); /* RÉDUIT */
-        font-size: 0.85rem; /* RÉDUIT */
-    }
-    
-    /* Session metrics compact */
-    .session-metrics-row {
-        grid-template-columns: repeat(4, 1fr);
-        gap: var(--spacing-xs); /* RÉDUIT */
-        margin-bottom: var(--spacing-sm); /* RÉDUIT */
-        padding: var(--spacing-xs); /* RÉDUIT */
-    }
-
-
-    .planning-exercise-name {
-        font-size: 0.8rem !important; /* RÉDUIT de 0.85rem */
-        line-height: 1.2;
-        margin-bottom: 1px; /* RÉDUIT de 2px */
-        white-space: normal !important; /* PERMET retour ligne */
-    }
-
-    .planning-exercise-params {
-        font-size: 0.7rem; /* RÉDUIT de 0.75rem */
-        line-height: 1.1;
-    }
-
-    .planning-preview-header {
-        margin-bottom: var(--spacing-xs); /* RÉDUIT drastiquement */
-        padding-bottom: 4px; /* RÉDUIT de var(--spacing-sm) */
-    }
-    
-    .planning-preview-header .header-content h4 {
-        font-size: 1rem; /* RÉDUIT de 1.1rem */
-        margin: 0;
-    }
-
-    .planning-remove-btn {
-        opacity: 0.7 !important; /* TOUJOURS visible sur mobile */
-        width: 24px; /* RÉDUIT de 28px */
-        height: 24px; /* RÉDUIT de 28px */
-    }
-    
-    .planning-remove-btn:hover {
-        opacity: 1 !important;
-    }
-
-    .session-metrics-row {
-        grid-template-columns: repeat(4, 1fr);
-        gap: var(--spacing-xs);
-        margin-bottom: var(--spacing-sm);
-    }
-
-    .metric {
-        padding: var(--spacing-xs); /* RÉDUIT */
-    }
-    
-    .metric-value {
-        font-size: 1.1rem; /* RÉDUIT de 1.2rem */
-    }
-    
-    .metric-label {
-        font-size: 0.65rem; /* RÉDUIT de 0.7rem */
-    }
-
-    .modal-actions-bottom {
-        position: sticky !important;
-        bottom: 0;
-        background: var(--bg-card);
-        border-top: 2px solid var(--border-color);
-        padding: var(--spacing-sm);
-        z-index: 10;
-    }
-
-    .modal-actions-bottom .btn {
-        padding: var(--spacing-sm) var(--spacing-md);
-        font-size: 0.85rem;
-    }
-}
-
-/* Optimisation pour écrans 800px et moins */
-@media (max-width: 768px) and (max-height: 800px) {
-    .selected-exercises-list {
-        max-height: 200px; /* AJOUTÉ limite */
-        overflow-y: auto;
-        padding: var(--spacing-xs); /* AJOUTÉ padding interne */
-    }
-    
-    .exercises-list-container {
-        max-height: 150px !important;
-    }
-    
-    .exercises-grid {
-        max-height: 180px !important; /* AUGMENTÉ significativement */
-        min-height: 120px; /* AJOUTÉ pour garantir taille minimum */
-        overflow-y: auto;
-        padding: var(--spacing-xs); /* RÉDUIT de var(--spacing-sm) */
-    }
-    
-    .section-header {
-        padding: var(--spacing-sm); /* RÉDUIT de var(--spacing-md) */
-        margin-bottom: var(--spacing-xs); /* RÉDUIT */
-    }
-    
-    .header-content {
-        gap: var(--spacing-xs); /* RÉDUIT de var(--spacing-sm) */
-    }
-    
-    .header-content h4 {
-        font-size: 1rem; /* RÉDUIT de 1.1rem */
-    }
-    
-    .exercise-count-badge {
-        padding: 0.1rem 0.4rem; /* RÉDUIT de 0.2rem 0.6rem */
-        font-size: 0.7rem; /* RÉDUIT de 0.8rem */
-    }
-
-    .planning-exercise-option {
-        padding: 6px; /* RÉDUIT de 8px */
-        min-height: 44px; /* RÉDUIT de 50px */
-        margin-bottom: 2px; /* AJOUTÉ un peu d'espace */
-    }
-
-    .planning-exercise-option-content {
-        gap: 2px; /* RÉDUIT de 4px */
-        padding-left: 20px; /* RÉDUIT de 24px */
-        min-height: 28px; /* RÉDUIT de 32px */
-    }
-}
-
-/* Touch targets pour mobile */
-@media (hover: none) and (pointer: coarse) {
-    .planning-remove-btn,
-    .planning-exercise-option {
-        min-height: 44px; /* Touch target minimum */
-        min-width: 44px;
-    }
-    
-    .planning-remove-btn {
-        opacity: 0.8 !important; /* Toujours visible sur touch */
-    }
-}
-
-/* ===== SECTION 13 : SCROLLBARS PERSONNALISÉES ===== */
-
-.exercises-grid::-webkit-scrollbar,
 .selected-exercises-list::-webkit-scrollbar {
     width: 6px;
 }
 
-.exercises-grid::-webkit-scrollbar-track,
+.exercises-grid::-webkit-scrollbar-track {
+    background: var(--bg-tertiary);
+    border-radius: 3px;
+}
+
 .selected-exercises-list::-webkit-scrollbar-track {
     background: var(--bg-tertiary);
     border-radius: 3px;
 }
 
-.exercises-grid::-webkit-scrollbar-thumb,
+.exercises-grid::-webkit-scrollbar-thumb {
+    background: var(--text-muted);
+    border-radius: 3px;
+}
+
 .selected-exercises-list::-webkit-scrollbar-thumb {
     background: var(--text-muted);
     border-radius: 3px;
 }
 
-.exercises-grid::-webkit-scrollbar-thumb:hover,
-.selected-exercises-list::-webkit-scrollbar-thumb:hover {
+.exercises-grid::-webkit-scrollbar-thumb:hover {
     background: var(--primary);
 }
 
-/* ===== SECTION 14 : ANIMATIONS ET FEEDBACK ===== */
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
+.selected-exercises-list::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
 }
 
 .error-shake {
     animation: shake 0.3s ease;
 }
 
-/* ===== SECTION 15 : ÉTATS FOCUS ET ACCESSIBILITÉ ===== */
+.btn:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
 
-.btn:focus-visible,
-.magic-wand-btn:focus-visible,
-.exercise-search-input:focus-visible,
+.magic-wand-btn:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.exercise-search-input:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
 .action-btn:focus-visible {
     outline: 2px solid var(--primary);
     outline-offset: 2px;
 }
 
-/* Skip links pour screen readers */
 .sr-only {
     position: absolute;
     width: 1px;
@@ -1645,20 +1281,13 @@
     border: 0;
 }
 
-/* ===== SECTION 15 BIS : BOUTON DÉMARRER COHÉRENT ===== */
-
-/* Reset spécifique pour boutons de session */
-.planning-container button[onclick*="startSession"],
-.day-sessions button[onclick*="startSession"],
-.session-detail-popup button[onclick*="startSession"] {
+.planning-container button[onclick*="startSession"] {
     all: unset !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
     gap: 0.5rem !important;
     padding: 0.75rem 1.25rem !important;
-    
-    /* Style cohérent avec l'app */
     background: var(--primary) !important;
     color: white !important;
     border-radius: 8px !important;
@@ -1668,31 +1297,80 @@
     transition: all 0.2s ease !important;
     box-sizing: border-box !important;
     white-space: nowrap !important;
-    
-    /* Ombre subtile */
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
 }
 
-/* Hover cohérent */
-.planning-container button[onclick*="startSession"]:hover,
-.day-sessions button[onclick*="startSession"]:hover,
+.day-sessions button[onclick*="startSession"] {
+    all: unset !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.5rem !important;
+    padding: 0.75rem 1.25rem !important;
+    background: var(--primary) !important;
+    color: white !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    font-size: 0.9rem !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    box-sizing: border-box !important;
+    white-space: nowrap !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+}
+
+.session-detail-popup button[onclick*="startSession"] {
+    all: unset !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.5rem !important;
+    padding: 0.75rem 1.25rem !important;
+    background: var(--primary) !important;
+    color: white !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    font-size: 0.9rem !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    box-sizing: border-box !important;
+    white-space: nowrap !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+}
+
+.planning-container button[onclick*="startSession"]:hover {
+    background: var(--primary-dark) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2) !important;
+}
+
+.day-sessions button[onclick*="startSession"]:hover {
+    background: var(--primary-dark) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2) !important;
+}
+
 .session-detail-popup button[onclick*="startSession"]:hover {
     background: var(--primary-dark) !important;
     transform: translateY(-1px) !important;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2) !important;
 }
 
-/* Active state */
-.planning-container button[onclick*="startSession"]:active,
-.day-sessions button[onclick*="startSession"]:active,
+.planning-container button[onclick*="startSession"]:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15) !important;
+}
+
+.day-sessions button[onclick*="startSession"]:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15) !important;
+}
+
 .session-detail-popup button[onclick*="startSession"]:active {
     transform: translateY(0) !important;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15) !important;
 }
 
-/* ===== SECTION 16 : UTILITAIRES ===== */
-
-/* Boutons */
 .btn {
     display: inline-flex;
     align-items: center;
@@ -1736,58 +1414,6 @@
     font-size: 0.8rem;
 }
 
-/* ===== SECTION 17 : DARK MODE SPÉCIFIQUE ===== */
-
-@media (prefers-color-scheme: dark) {
-    .planning-container {
-        background: #0a0a0a;
-    }
-    
-    .day-card {
-        background: #1a1a1a;
-        border-color: #2a2a2a;
-    }
-    
-    .session-card {
-        background: #0f0f0f;
-        border-color: #2a2a2a;
-    }
-    
-    .selected-exercise-item {
-        background: #0f0f0f;
-        border-color: #2a2a2a;
-    }
-}
-
-/* ===== SECTION 18 : IMPRESSION ===== */
-
-@media print {
-    .planning-header,
-    .week-navigation,
-    .session-actions,
-    .add-session-zone,
-    .modal-actions-bottom,
-    .planning-remove-btn,
-    .drag-handle {
-        display: none !important;
-    }
-    
-    .week-section {
-        display: block !important;
-        page-break-inside: avoid;
-    }
-    
-    .day-card {
-        break-inside: avoid;
-    }
-}
-
-/* ===== FIN DU FICHIER CSS (Total: ~2000 lignes) ===== */
-
-
-/* ===== AMÉLIORATION COHÉRENCE SESSIONS ===== */
-
-/* Session card plus cohérente */
 .day-sessions .session-card {
     background: var(--bg-card) !important;
     border: 1px solid var(--border-color) !important;
@@ -1801,7 +1427,6 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
 }
 
-/* Infos session avec style cohérent */
 .session-card .session-quality {
     background: var(--bg-tertiary) !important;
     color: var(--text) !important;
@@ -1810,13 +1435,11 @@
     font-size: 0.8rem !important;
 }
 
-/* Score coloré selon valeur */
 .session-card .session-quality[data-score] {
     background: var(--success) !important;
     color: white !important;
 }
 
-/* Métriques discrètes */
 .session-card .session-duration {
     color: var(--text-muted) !important;
     font-size: 0.85rem !important;
@@ -1825,7 +1448,6 @@
     gap: 0.25rem !important;
 }
 
-/* Numérotation exercices cohérente */
 .exercise-number-badge {
     width: 24px !important;
     height: 24px !important;
@@ -1839,7 +1461,6 @@
     font-size: 0.75rem !important;
 }
 
-/* Liste exercices cohérente */
 .session-exercises-list .exercise-item {
     background: var(--bg-secondary) !important;
     border: 1px solid var(--border-color) !important;
@@ -1854,12 +1475,10 @@
     background: var(--bg-tertiary) !important;
 }
 
-
-/* Réduire l'écart entre numéros et noms d'exercices */
 .session-exercises .exercise-item {
     display: flex;
     align-items: center;
-    gap: 0.3rem; /* Réduit de 0.5rem à 0.3rem */
+    gap: 0.3rem;
     padding: 0.2rem 0;
 }
 
@@ -1867,36 +1486,33 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 18px; /* Réduit de 24px à 18px */
-    height: 18px; /* Réduit de 24px à 18px */
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
     background: var(--primary);
     color: white;
-    font-size: 0.7rem; /* Réduit de 0.8rem à 0.7rem */
+    font-size: 0.7rem;
     font-weight: 600;
     flex-shrink: 0;
-    margin-right: 0.2rem; /* Réduit de 0.5rem à 0.2rem */
+    margin-right: 0.2rem;
 }
 
 .session-exercises .planning-exercise-name {
-  font-size: 0.8rem;
-  color: var(--primary);
-  line-height: 1.2;
-  font-weight: bold;
+    font-size: 0.8rem;
+    color: var(--primary);
+    line-height: 1.2;
+    font-weight: bold;
 }
 
-/* Centrer et améliorer le bouton Démarrer */
-.session-card .start-session-btn,
-.session-card button[onclick*="startSession"] {
+.session-card .start-session-btn {
     all: unset !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     gap: 0.4rem !important;
     padding: 0.6rem 1rem !important;
-    width: 100% !important; /* Prendre toute la largeur */
+    width: 100% !important;
     margin-top: var(--spacing-sm) !important;
-    
     background: var(--primary) !important;
     color: white !important;
     border-radius: 6px !important;
@@ -1906,58 +1522,50 @@
     transition: all 0.2s ease !important;
     box-sizing: border-box !important;
     text-align: center !important;
-    
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
 }
 
-.session-card .start-session-btn:hover,
+.session-card button[onclick*="startSession"] {
+    all: unset !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.4rem !important;
+    padding: 0.6rem 1rem !important;
+    width: 100% !important;
+    margin-top: var(--spacing-sm) !important;
+    background: var(--primary) !important;
+    color: white !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    box-sizing: border-box !important;
+    text-align: center !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.session-card .start-session-btn:hover {
+    background: var(--primary-dark) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
 .session-card button[onclick*="startSession"]:hover {
     background: var(--primary-dark) !important;
     transform: translateY(-1px) !important;
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15) !important;
 }
 
-@media (max-width: 768px) {
-    .days-grid {
-        gap: var(--spacing-lg); /* Espacement réduit sur mobile */
-        padding: var(--spacing-md);
-    }
-    
-    .day-card {
-        padding: var(--spacing-md);
-        min-height: 120px;
-        margin-bottom: var(--spacing-sm);
-    }
-    
-    .day-name {
-        font-size: 1rem; /* Légèrement réduit sur mobile */
-    }
-    
-    .day-number {
-        font-size: 1.1rem; /* Légèrement réduit sur mobile */
-    }
-    
-    .session-exercises .exercise-item {
-        gap: 0.2rem; /* Encore plus compact sur mobile */
-    }
-    
-    .session-exercises .exercise-number {
-        width: 16px;
-        height: 16px;
-        font-size: 0.65rem;
-        margin-right: 0.15rem;
-    }
-}
-
-/* ===== ARC DE DEMI-CERCLE STYLE SPEEDOMETER ===== */
 .session-quality-arc {
     position: relative;
     width: 40px;
-    height: 25px; /* Hauteur réduite car c'est un demi-cercle */
+    height: 25px;
     display: flex;
     align-items: center;
     justify-content: center;
-    left:50%;
+    left: 50%;
     transform: translateX(-50%);
 }
 
@@ -1967,7 +1575,7 @@
     height: 40px;
     border: 3px solid var(--bg-tertiary);
     border-radius: 50%;
-    border-bottom: none; /* Masquer la partie basse pour avoir un arc */
+    border-bottom: none;
     border-left: none;
     border-right: none;
 }
@@ -1982,26 +1590,18 @@
     border-left: none;
     border-right: none;
     transition: clip-path 0.8s ease;
-    clip-path: polygon(0% 0%, 0% 0%, 0% 100%, 0% 100%); /* Démarre vide */
+    clip-path: polygon(0% 0%, 0% 0%, 0% 100%, 0% 100%);
 }
 
 .arc-score {
     position: absolute;
-    top: 8px; /* Positionné dans l'arc */
+    top: 8px;
     left: 50%;
     transform: translateX(-50%);
     font-size: 0.7rem;
     font-weight: 700;
     z-index: 2;
 }
-
-@media (max-width: 768px) {
-    .session-quality-arc { width: 35px; height: 22px; }
-    .arc-track, .arc-fill { width: 35px; height: 35px; }
-    .arc-score { font-size: 0.65rem; top: 6px; }
-}
-
-/* ===== INDICATEURS SWIPE (MOBILE UNIQUEMENT) ===== */
 
 .swipe-indicator {
     position: absolute;
@@ -2011,7 +1611,7 @@
     height: 50px;
     background: rgba(0, 0, 0, 0.6);
     border-radius: 50%;
-    display: none; /* MASQUÉ PAR DÉFAUT SUR DESKTOP */
+    display: none;
     align-items: center;
     justify-content: center;
     color: white;
@@ -2030,45 +1630,6 @@
     right: 10px;
 }
 
-/* Afficher les indicateurs seulement sur tactile/mobile */
-@media (hover: none) and (pointer: coarse), (max-width: 768px) {
-    .swipe-indicator {
-        display: flex; /* Afficher sur tactile */
-    }
-    
-    /* Animer lors du swipe */
-    .weeks-container.swiping .swipe-indicator {
-        opacity: 0.8;
-    }
-    
-    .weeks-container.swiping .swipe-indicator.left {
-        animation: pulseLeft 0.6s ease-in-out;
-    }
-    
-    .weeks-container.swiping .swipe-indicator.right {
-        animation: pulseRight 0.6s ease-in-out;
-    }
-}
-
-@keyframes pulseLeft {
-    0%, 100% { transform: translateY(-50%) translateX(0); opacity: 0.8; }
-    50% { transform: translateY(-50%) translateX(-5px); opacity: 1; }
-}
-
-@keyframes pulseRight {
-    0%, 100% { transform: translateY(-50%) translateX(0); opacity: 0.8; }
-    50% { transform: translateY(-50%) translateX(5px); opacity: 1; }
-}
-
-/* Sur desktop : Complètement masqués */
-/* Détection cohérente desktop/mobile */
-@media (hover: hover) and (pointer: fine) {
-    .swipe-indicator {
-        display: none !important;
-    }
-}
-
-/* ===== CHIPS MUSCLES PLANNING (CLASSE UNIQUE) ===== */
 .session-muscle-chip {
     display: inline-block;
     padding: 0.15rem 0.4rem;
@@ -2080,25 +1641,424 @@
     transition: all 0.2s ease;
 }
 
-/* Hover desktop uniquement */
-@media (hover: hover) {
-    .session-muscle-chip:hover {
-        transform: scale(1.05);
-        filter: brightness(1.1);
-    }
-}
-
-/* Alternative mobile */
-@media (hover: none) {
-    .session-muscle-chip:active {
-        transform: scale(0.95);
-        opacity: 0.8;
-    }
-}
-
 .muscle-more {
     font-size: 0.7rem;
     color: var(--text-muted);
     font-style: italic;
     margin-left: 0.2rem;
 }
+
+#selectedCount {
+    font-weight: 600;
+    color: var(--primary);
+}
+
+/* ===== MEDIA QUERIES ===== */
+
+/* --- DESKTOP --- */
+@media (min-width:1600px) {
+    .days-grid {
+            grid-template-columns: repeat(2, 1fr);
+    }
+
+}
+
+/* --- MOBILE --- */
+@media (max-width:768px) {
+    .selected-exercises-list {
+            max-height: 220px;
+            overflow-y: auto;
+            padding: var(--spacing-xs);
+    }
+
+    .exercises-list-container {
+            max-height: 300px !important;
+    }
+
+    .exercises-grid {
+            max-height: 240px !important;
+            min-height: 180px;
+            overflow-y: auto;
+            padding: var(--spacing-xs);
+    }
+
+    .section-header {
+            padding: var(--spacing-sm);
+            margin-bottom: var(--spacing-xs);
+    }
+
+    .header-content {
+            gap: var(--spacing-xs);
+    }
+
+    .header-content h4 {
+            font-size: 1rem;
+    }
+
+    .exercise-count-badge {
+            padding: 0.1rem 0.4rem;
+            font-size: 0.7rem;
+    }
+
+    .planning-exercise-option {
+            padding: 6px;
+            min-height: 44px;
+            margin-bottom: 2px;
+    }
+
+    .planning-exercise-option-content {
+            gap: 2px;
+            padding-left: 20px;
+            min-height: 28px;
+    }
+
+    .exercises-list-container.collapsed {
+            max-height: 300px !important;
+            opacity: 1;
+    }
+
+    .exercise-name {
+            white-space: normal !important;
+            line-height: 1.3;
+            font-size: 0.85rem;
+    }
+
+    .exercise-details {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+    }
+
+    .muscle-groups-tags {
+            order: -1 !important;
+            margin-bottom: var(--spacing-xs);
+            padding: 4px ar(--spacing-xs);
+            align-self: center;
+            position: relative;
+    }
+
+    .muscle-tag {
+            padding: 1px var(--spacing-xs);
+            font-size: 0.6rem;
+            border-radius: 8px;
+    }
+
+    .planning-container {
+            padding: var(--spacing-sm);
+    }
+
+    .planning-header {
+            flex-direction: column;
+            gap: var(--spacing-md);
+            padding: var(--spacing-md);
+    }
+
+    .planning-header h2 {
+            font-size: 1.5rem;
+    }
+
+    .planning-actions {
+            width: 100%;
+            justify-content: space-between;
+    }
+
+    .week-navigation {
+            padding: var(--spacing-sm) var(--spacing-md);
+    }
+
+    .week-indicator {
+            min-width: auto;
+            font-size: 0.9rem;
+    }
+
+    .modal-content:has(.planning-modal-vertical) {
+            max-width: 100% !important;
+            width: 100% !important;
+            border-radius: 0;
+            height: 100vh !important;
+            max-height: 100vh !important;
+            overflow: hidden;
+    }
+
+    .planning-modal-vertical {
+            gap: var(--spacing-sm);
+            padding: var(--spacing-sm);
+    }
+
+    .planning-selection-info {
+            font-size: 0.75rem;
+            line-height: 1.2;
+            margin-top: 2px;
+    }
+
+    .selected-exercise-item {
+            padding: var(--spacing-xs) var(--spacing-sm);
+            margin-bottom: var(--spacing-xs);
+    }
+
+    .section-header {
+            padding: var(--spacing-sm);
+            margin-bottom: var(--spacing-xs);
+    }
+
+    .session-metrics-row {
+            padding: var(--spacing-xs);
+            margin: 0 2px var(--spacing-sm) 2px !important;
+            grid-template-columns: repeat(4, 1fr);
+            gap: var(--spacing-xs);
+            margin-bottom: var(--spacing-sm);
+    }
+
+    .modal-actions-bottom {
+            position: sticky !important;
+            bottom: 0;
+            background: var(--bg-card);
+            border-top: 2px solid var(--border-color);
+            padding: var(--spacing-sm);
+            margin-top: var(--spacing-sm);
+            z-index: 10;
+    }
+
+    .modal-actions-bottom .btn {
+            padding: var(--spacing-sm) var(--spacing-md);
+            font-size: 0.85rem;
+    }
+
+    .planning-exercise-name {
+            font-size: 0.8rem !important;
+            line-height: 1.2;
+            margin-bottom: 1px;
+            white-space: normal !important;
+    }
+
+    .planning-exercise-params {
+            font-size: 0.7rem;
+            line-height: 1.1;
+    }
+
+    .planning-preview-header {
+            margin-bottom: var(--spacing-xs);
+            padding-bottom: 4px;
+    }
+
+    .planning-preview-header .header-content h4 {
+            font-size: 1rem;
+            margin: 0;
+    }
+
+    .planning-remove-btn {
+            opacity: 0.7 !important;
+            width: 24px;
+            height: 24px;
+    }
+
+    .planning-remove-btn:hover {
+            opacity: 1 !important;
+    }
+
+    .metric {
+            padding: var(--spacing-xs);
+    }
+
+    .metric-value {
+            font-size: 1.1rem;
+    }
+
+    .metric-label {
+            font-size: 0.65rem;
+    }
+
+    .days-grid {
+            gap: var(--spacing-lg);
+            padding: var(--spacing-md);
+    }
+
+    .day-card {
+            padding: var(--spacing-md);
+            min-height: 120px;
+            margin-bottom: var(--spacing-sm);
+    }
+
+    .day-name {
+            font-size: 1rem;
+    }
+
+    .day-number {
+            font-size: 1.1rem;
+    }
+
+    .session-exercises .exercise-item {
+            gap: 0.2rem;
+    }
+
+    .session-exercises .exercise-number {
+            width: 16px;
+            height: 16px;
+            font-size: 0.65rem;
+            margin-right: 0.15rem;
+    }
+
+    .session-quality-arc {
+            width: 35px;
+            height: 22px;
+    }
+
+    .arc-track {
+            width: 35px;
+            height: 35px;
+    }
+
+    .arc-fill {
+            width: 35px;
+            height: 35px;
+    }
+
+    .arc-score {
+            font-size: 0.65rem;
+            top: 6px;
+    }
+
+}
+
+
+
+@media (hover:none)and(pointer:coarse),(max-width:768px) {
+    .swipe-indicator {
+            display: flex;
+    }
+
+    .weeks-container.swiping .swipe-indicator {
+            opacity: 0.8;
+    }
+
+    .weeks-container.swiping .swipe-indicator.left {
+            animation: pulseLeft 0.6s ease-in-out;
+    }
+
+    .weeks-container.swiping .swipe-indicator.right {
+            animation: pulseRight 0.6s ease-in-out;
+    }
+
+}
+
+@media (max-width:480px) {
+    .muscle-exercises-panel {
+            grid-template-columns: 1fr;
+    }
+
+}
+
+/* --- AUTRES --- */
+@media (hover:none)and(pointer:coarse) {
+    .muscle-exercises-panel {
+            gap: 16px;
+            padding: 16px;
+    }
+
+    .muscle-exercises-panel .planning-exercise-option {
+            min-height: 44px;
+            padding: 12px;
+    }
+
+    .planning-remove-btn {
+            min-height: 44px;
+            min-width: 44px;
+            opacity: 0.8 !important;
+    }
+
+    .planning-exercise-option {
+            min-height: 44px;
+            min-width: 44px;
+    }
+
+}
+
+@media (hover:hover)and(pointer:fine) {
+    .swipe-indicator {
+            display: none !important;
+    }
+
+}
+
+@media (hover:hover) {
+    .session-muscle-chip:hover {
+            transform: scale(1.05);
+            filter: brightness(1.1);
+    }
+
+}
+
+@media (hover:none) {
+    .session-muscle-chip:active {
+            transform: scale(0.95);
+            opacity: 0.8;
+    }
+
+}
+
+/* --- PRÉFÉRENCES UTILISATEUR --- */
+@media (prefers-color-scheme:dark) {
+    .planning-container {
+            background: #0a0a0a;
+    }
+
+    .day-card {
+            background: #1a1a1a;
+            border-color: #2a2a2a;
+    }
+
+    .session-card {
+            background: #0f0f0f;
+            border-color: #2a2a2a;
+    }
+
+    .selected-exercise-item {
+            background: #0f0f0f;
+            border-color: #2a2a2a;
+    }
+
+}
+
+/* --- PRINT --- */
+@media print {
+    .planning-header {
+            display: none !important;
+    }
+
+    .week-navigation {
+            display: none !important;
+    }
+
+    .session-actions {
+            display: none !important;
+    }
+
+    .add-session-zone {
+            display: none !important;
+    }
+
+    .modal-actions-bottom {
+            display: none !important;
+    }
+
+    .planning-remove-btn {
+            display: none !important;
+    }
+
+    .drag-handle {
+            display: none !important;
+    }
+
+    .week-section {
+            display: block !important;
+            page-break-inside: avoid;
+    }
+
+    .day-card {
+            break-inside: avoid;
+    }
+
+}
+
