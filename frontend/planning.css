@@ -793,8 +793,6 @@
 .muscle-exercises-panel {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    padding: 12px;
     min-height: 60px;
 }
 
@@ -1719,7 +1717,6 @@
     .planning-exercise-option {
             padding: 6px;
             min-height: 44px;
-            margin-bottom: 2px;
     }
 
     .planning-exercise-option-content {
@@ -1858,11 +1855,13 @@
         white-space: normal !important;
         overflow: visible;
         text-overflow: unset;
+        margin-top:1px;
     }
 
     .planning-exercise-params {
-            font-size: 0.7rem;
-            line-height: 1.1;
+        font-size: 0.7rem;
+        line-height: 1.1;
+        margin-bottom:1px;
     }
 
     .planning-preview-header {
@@ -1942,7 +1941,7 @@
         font-size: 0.7rem;
         margin-right: var(--spacing-xs);
     }
-    
+
     .session-quality-arc {
             width: 35px;
             height: 22px;

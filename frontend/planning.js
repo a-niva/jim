@@ -2464,7 +2464,7 @@ class PlanningManager {
                                 <i class="fas fa-chevron-down toggle-chevron"></i>
                             </div>
                             <div class="planning-selection-info">
-                                <span id="selectedCount">3</span> sélectionné(s)
+                                <a id="selectedCount">3</a> sélectionné(s)
                             </div>
                         </div>
                         

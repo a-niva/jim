@@ -3911,7 +3911,7 @@ input:checked + .toggle-slider:before {
 }
 
 .modal-body {
-    padding: var(--spacing-lg);
+    padding: var(--spacing-sm);
 }
 
 .modal-header-section {
