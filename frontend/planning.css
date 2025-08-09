@@ -899,7 +899,8 @@
 }
 
 .planning-exercise-params {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
+    line-height: 1.1;
     color: var(--text-muted);
 }
 
@@ -1666,25 +1667,28 @@
 /* --- MOBILE --- */
 @media (max-width:768px) {
     .selected-exercises-list {
-            max-height: 220px;
-            overflow-y: auto;
-            padding: var(--spacing-xs);
+        max-height: 300px;
+        min-height: 200px;
+        overflow-y: auto;
+        padding: var(--spacing-xs);
+        flex: 1;
     }
 
     .exercises-list-container {
-            max-height: 300px !important;
+        max-height: 350px !important;
+        min-height: 350px;
     }
 
     .exercises-grid {
-            max-height: 240px !important;
-            min-height: 180px;
-            overflow-y: auto;
-            padding: var(--spacing-xs);
+        max-height: 320px !important;
+        min-height: 280px;
+        overflow-y: auto;
+        padding: var(--spacing-xs);
     }
 
     .section-header {
-            padding: var(--spacing-sm);
-            margin-bottom: var(--spacing-xs);
+        padding: var(--spacing-sm);
+        margin-bottom: var(--spacing-xs);
     }
 
     .header-content {
@@ -1696,8 +1700,20 @@
     }
 
     .exercise-count-badge {
-            padding: 0.1rem 0.4rem;
-            font-size: 0.7rem;
+        padding: 2px var(--spacing-xs);
+        font-size: 0.7rem;
+        min-width: 18px;
+        height: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .magic-wand-btn {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        border-radius: 6px;
     }
 
     .planning-exercise-option {
@@ -1707,42 +1723,41 @@
     }
 
     .planning-exercise-option-content {
-            gap: 2px;
-            padding-left: 20px;
-            min-height: 28px;
+        gap: 3px;
+        padding: var(--spacing-xs);
+        min-height: 36px;
+        border-radius: 6px;
     }
 
     .exercises-list-container.collapsed {
-            max-height: 300px !important;
-            opacity: 1;
+        max-height: 300px !important;
+        opacity: 1;
     }
 
     .exercise-name {
-            white-space: normal !important;
-            line-height: 1.3;
-            font-size: 0.85rem;
+        white-space: normal !important;
+        line-height: 1.3;
+        font-size: 0.85rem;
     }
 
     .exercise-details {
-            flex: 1;
-            min-width: 0;
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
     }
 
     .muscle-groups-tags {
-            order: -1 !important;
-            margin-bottom: var(--spacing-xs);
-            padding: 4px ar(--spacing-xs);
-            align-self: center;
-            position: relative;
+        padding: var(--spacing-xs) var(--spacing-sm);
+        margin-bottom: var(--spacing-sm);
+        gap: var(--spacing-xs);
     }
 
     .muscle-tag {
-            padding: 1px var(--spacing-xs);
-            font-size: 0.6rem;
-            border-radius: 8px;
+        padding: 2px var(--spacing-xs);
+        font-size: 0.65rem;
+        border-radius: 12px;
     }
 
     .planning-container {
@@ -1774,28 +1789,37 @@
     }
 
     .modal-content:has(.planning-modal-vertical) {
-            max-width: 100% !important;
-            width: 100% !important;
-            border-radius: 0;
-            height: 100vh !important;
-            max-height: 100vh !important;
-            overflow: hidden;
+        max-width: 100% !important;
+        width: 100% !important;
+        height: 100vh !important;
+        max-height: 100vh !important;
+        border-radius: 0;
+        overflow: hidden;
+        margin: 0;
     }
 
     .planning-modal-vertical {
-            gap: var(--spacing-sm);
-            padding: var(--spacing-sm);
+        gap: var(--spacing-sm);
+        padding: var(--spacing-sm);
+        max-height: calc(100vh - 60px);
+        overflow-y: auto;
     }
 
     .planning-selection-info {
-            font-size: 0.75rem;
-            line-height: 1.2;
-            margin-top: 2px;
+        font-size: 0.8rem;
+        line-height: 1.2;
+        margin: var(--spacing-xs) 0;
+        padding: var(--spacing-xs) var(--spacing-sm);
+        background: var(--bg-secondary);
+        border-radius: var(--radius);
+        text-align: center;
     }
 
     .selected-exercise-item {
-            padding: var(--spacing-xs) var(--spacing-sm);
-            margin-bottom: var(--spacing-xs);
+        padding: var(--spacing-xs) var(--spacing-sm);
+        margin-bottom: var(--spacing-xs);
+        border-radius: var(--radius);
+        background: var(--bg-secondary);
     }
 
     .section-header {
@@ -1804,33 +1828,36 @@
     }
 
     .session-metrics-row {
-            padding: var(--spacing-xs);
-            margin: 0 2px var(--spacing-sm) 2px !important;
-            grid-template-columns: repeat(4, 1fr);
-            gap: var(--spacing-xs);
-            margin-bottom: var(--spacing-sm);
+        padding: var(--spacing-xs);
+        margin: 0 0 var(--spacing-sm) 0 !important;
+        gap: var(--spacing-xs);
+        grid-template-columns: repeat(4, 1fr);
     }
 
     .modal-actions-bottom {
-            position: sticky !important;
-            bottom: 0;
-            background: var(--bg-card);
-            border-top: 2px solid var(--border-color);
-            padding: var(--spacing-sm);
-            margin-top: var(--spacing-sm);
-            z-index: 10;
+        position: sticky !important;
+        bottom: 0;
+        background: var(--bg-card);
+        border-top: 2px solid var(--border-color);
+        padding: var(--spacing-sm);
+        margin-top: auto;
+        z-index: 10;
+        box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
     }
 
     .modal-actions-bottom .btn {
-            padding: var(--spacing-sm) var(--spacing-md);
-            font-size: 0.85rem;
+        padding: var(--spacing-sm) var(--spacing-md);
+        font-size: 0.9rem;
+        min-height: 44px;
     }
 
     .planning-exercise-name {
-            font-size: 0.8rem !important;
-            line-height: 1.2;
-            margin-bottom: 1px;
-            white-space: normal !important;
+        font-size: 0.85rem !important;
+        line-height: 1.2;
+        margin-bottom: 2px;
+        white-space: normal !important;
+        overflow: visible;
+        text-overflow: unset;
     }
 
     .planning-exercise-params {
@@ -1839,35 +1866,44 @@
     }
 
     .planning-preview-header {
-            margin-bottom: var(--spacing-xs);
-            padding-bottom: 4px;
+        margin-bottom: var(--spacing-xs);
+        padding-bottom: var(--spacing-xs);
+        border-bottom: 1px solid var(--border-color);
     }
 
     .planning-preview-header .header-content h4 {
-            font-size: 1rem;
-            margin: 0;
+        font-size: 0.95rem;
+        margin: 0;
+        font-weight: 600;
     }
 
     .planning-remove-btn {
-            opacity: 0.7 !important;
-            width: 24px;
-            height: 24px;
+        opacity: 0.9 !important;
+        width: 28px;
+        height: 28px;
+        background: rgba(239, 68, 68, 0.1);
+        border-color: rgba(239, 68, 68, 0.3);
     }
 
     .planning-remove-btn:hover {
-            opacity: 1 !important;
+        opacity: 1 !important;
+        background: var(--danger);
+        transform: scale(1.05);
     }
 
     .metric {
-            padding: var(--spacing-xs);
+        padding: var(--spacing-xs);
+        text-align: center;
     }
 
     .metric-value {
-            font-size: 1.1rem;
+        font-size: 1.2rem;
+        font-weight: 700;
     }
 
     .metric-label {
-            font-size: 0.65rem;
+        font-size: 0.65rem;
+        text-transform: uppercase;
     }
 
     .days-grid {
@@ -1900,6 +1936,13 @@
             margin-right: 0.15rem;
     }
 
+    .exercise-number {
+        width: 20px;
+        height: 20px;
+        font-size: 0.7rem;
+        margin-right: var(--spacing-xs);
+    }
+    
     .session-quality-arc {
             width: 35px;
             height: 22px;
@@ -1969,8 +2012,9 @@
     }
 
     .planning-exercise-option {
-            min-height: 44px;
-            min-width: 44px;
+        padding: 8px;
+        min-height: 48px;
+        margin-bottom: 3px;
     }
 
 }
@@ -2048,7 +2092,9 @@
     }
 
     .drag-handle {
-            display: none !important;
+        width: 20px;
+        height: 20px;
+        margin-right: var(--spacing-xs);
     }
 
     .week-section {
