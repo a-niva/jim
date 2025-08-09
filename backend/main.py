@@ -4214,7 +4214,7 @@ def get_recovery_gantt(user_id: int, db: Session = Depends(get_db)):
             muscle_recovery[muscle_group] = {
                 "lastWorkout": last_workout.isoformat(),
                 "hoursSince": round(hours_since, 1),
-                "recoveryPercent": round(recovery_percent, 1),
+                "recoveryPercent": round(recovery_percent, 0),
                 "optimalRest": 72,  # heures
                 "status": "recovered" if recovery_percent >= 90 else "recovering" if recovery_percent >= 50 else "fatigued"
             }

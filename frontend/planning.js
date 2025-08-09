@@ -2665,7 +2665,6 @@ class PlanningManager {
         return text.length > maxLength ? text.substring(0, maxLength - 3) + '...' : text;
     }
 
-    // NOUVELLE méthode pour toggle exercices
     toggleExercisesList() {
         const container = document.querySelector('.exercises-list-container');
         const searchContainer = document.querySelector('.search-bar-container');
@@ -2676,12 +2675,22 @@ class PlanningManager {
         const isCollapsed = container.classList.contains('collapsed');
         
         if (isCollapsed) {
+            // Expand
             container.classList.remove('collapsed');
-            if (searchContainer) searchContainer.style.display = 'flex';
+            container.style.maxHeight = '400px';
+            container.style.opacity = '1';
+            if (searchContainer) {
+                searchContainer.style.display = 'flex';
+            }
             chevron.classList.remove('closed');
         } else {
+            // Collapse
             container.classList.add('collapsed');
-            if (searchContainer) searchContainer.style.display = 'none';
+            container.style.maxHeight = '0';
+            container.style.opacity = '0';
+            if (searchContainer) {
+                searchContainer.style.display = 'none';
+            }
             chevron.classList.add('closed');
         }
         
@@ -2973,36 +2982,29 @@ class PlanningManager {
     }
         
     toggleSearchAndExpand() {
-        // D'abord s'assurer que la section est expanded
+        // D'abord s'assurer que la section est visible
         const container = document.querySelector('.exercises-list-container');
+        const searchContainer = document.querySelector('.search-bar-container');
+        const searchInput = document.querySelector('.exercise-search-input');
         const chevron = document.querySelector('.toggle-chevron');
         
-        if (container && chevron) {
-            if (container.classList.contains('collapsed')) {
-                // Si c'est collapsed, on expand d'abord
-                this.toggleExercisesList();
-                
-                // Petit délai pour l'animation puis focus sur search
-                setTimeout(() => {
-                    const searchInput = document.querySelector('.exercise-search-input');
-                    if (searchInput) {
-                        searchInput.focus();
-                        // Sur mobile, scroll vers le search input
-                        if (window.innerWidth <= 768) {
-                            searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }
-                    }
-                }, 300);
-            } else {
-                // Si déjà expanded, juste focus sur search
-                const searchInput = document.querySelector('.exercise-search-input');
-                if (searchInput) {
-                    searchInput.focus();
-                    if (window.innerWidth <= 768) {
-                        searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                }
-            }
+        // Si collapsed, expand d'abord
+        if (container && container.classList.contains('collapsed')) {
+            container.classList.remove('collapsed');
+            container.style.maxHeight = '400px';
+            container.style.opacity = '1';
+            if (chevron) chevron.classList.remove('closed');
+        }
+        
+        // Afficher la barre de recherche si cachée
+        if (searchContainer) {
+            searchContainer.style.display = 'flex';
+        }
+        
+        // Focus sur l'input de recherche
+        if (searchInput) {
+            searchInput.focus();
+            searchInput.select(); // Sélectionner le texte existant
         }
     }
 

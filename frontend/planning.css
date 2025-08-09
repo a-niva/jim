@@ -857,6 +857,7 @@
     min-height: 50px;
     height: auto;
     margin-bottom: 1px;
+    overflow: hidden;
 }
 
 .planning-exercise-option input[type="checkbox"] {
@@ -866,6 +867,7 @@
 }
 
 .planning-exercise-option-content {
+    transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -877,12 +879,11 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 10px;
-    transition: all 0.2s ease;
 }
 
 .planning-exercise-option:hover .planning-exercise-option-content {
     background: var(--bg-tertiary);
-    transform: translateY(-1px);
+    /* Pas de transform */
     border-color: var(--primary);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
@@ -891,7 +892,6 @@
     background: rgba(59, 130, 246, 0.15) !important;
     border: 2px solid var(--primary) !important;
     box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2) !important;
-    margin: -1px;
 }
 
 .planning-exercise-option:not(:has(input:checked)):hover .planning-exercise-option-content {
@@ -1760,7 +1760,6 @@
     .modal-content:has(.planning-modal-vertical) {
         max-width: 100% !important;
         width: 100% !important;
-        height: 100vh !important;
         max-height: 100vh !important;
         border-radius: 0;
         overflow: hidden;
