@@ -1788,6 +1788,11 @@ span {
     text-align: center;
 }
 
+.workout-info-compact {
+    grid-column: 1 / -1;
+    display: contents;
+}
+
 .exercise-info h3 {
     margin-bottom: var(--spacing-sm);
     color: var(--primary);
@@ -4741,28 +4746,17 @@ span {
     max-height: 2000px;
 }
 
-.workout-info-compact {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--spacing-sm);
-    text-align: center;
-}
-
 .workout-timers-compact {
-    display: flex;
-    align-items: stretch;
-    gap: var(--spacing-md);
-    margin-bottom: var(--spacing-xs);
+    grid-column: 1 / -1;
+    grid-row: 1;
+    display: contents;
 }
 
 .timer-compact {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
     gap: var(--spacing-xs);
-    min-height: 50px;
 }
 
 .timer-compact {
@@ -4775,14 +4769,13 @@ span {
 .timer-label {
     font-size: var(--font-xs);
     color: var(--text-muted);
+    font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .timer-separator {
-    color: var(--text-muted);
-    font-size: var(--font-lg);
-    font-weight: 300;
+    display: none;
 }
 
 .progress-separator {
@@ -4792,9 +4785,9 @@ span {
 }
 
 .workout-progress-compact {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
+    grid-column: 1 / -1;
+    grid-row: 3;
+    text-align: center;
     font-size: var(--font-sm);
     color: var(--text-muted);
 }
@@ -7125,8 +7118,35 @@ input {
             grid-template-columns: repeat(2,1fr);
     }
 
+    .workout-info-compact {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--spacing-sm);
+        width: 100%;
+    }
+
     .workout-timers-compact {
-            gap: var(--spacing-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing-md);
+        width: 100%;
+    }
+
+    .timer-compact {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--spacing-xs);
+    }
+
+    .timer-label {
+        font-size: var(--font-xs);
+        color: var(--text-muted);
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
     .timer-compact .workout-timer {
@@ -7138,12 +7158,16 @@ input {
     }
 
     .workout-progress-compact {
-            font-size: var(--font-xs);
-            gap: var(--spacing-xs);
+        text-align: center;
+        font-size: var(--font-sm);
+        color: var(--text-muted);
     }
 
     .timer-separator {
-            font-size: var(--font-base);
+        display: block;
+        color: var(--text-muted);
+        font-size: var(--font-lg);
+        margin: 0 var(--spacing-xs);
     }
 
     .progress-separator {
@@ -7156,22 +7180,42 @@ input {
     }
 
     .workout-header {
-            padding: var(--spacing-sm);
-            margin-bottom: var(--spacing-sm);
-            display: block;
-            text-align: left;
-        }
+        padding: var(--spacing-sm);
+        margin-bottom: var(--spacing-sm);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: var(--spacing-sm);
+    }
+
+    .workout-labels-row {
+        display: flex;
+        gap: var(--spacing-lg);
+        justify-content: center;
+        align-items: center;
+    }
+
+    .workout-timers-row {
+        display: flex;
+        gap: var(--spacing-lg);
+        justify-content: center;
+        align-items: center;
+    }
 
     .workout-timer {
-        margin-bottom: var(--spacing-sm);
-        grid-row: unset;
-        grid-column: unset;
+        margin-bottom: 0;
+        font-size: var(--font-xl);
     }
     
     .set-timer {
-        grid-row: unset;
-        grid-column: unset;
+        font-size: var(--font-xl);
     }
+
+    .workout-label {
+        font-size: var(--font-xs);
+    }
+
     .workout-actions-header .btn {
             font-size: var(--font-xs);
             padding: var(--spacing-xs) var(--spacing-sm);
