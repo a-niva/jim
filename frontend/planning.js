@@ -1008,29 +1008,36 @@ class PlanningManager {
             const scoreColor = window.getScoreColor ? window.getScoreColor(currentScore) : '#10b981';
             
             // Générer la liste des exercices
-            const exercisesHtml = exercises.map((ex, index) => `
-                <div class="selected-exercise-item" 
-                    data-exercise-id="${ex.exercise_id || ex.id}"
-                    data-exercise='${JSON.stringify(ex).replace(/'/g, '&apos;')}'>
-                    <div class="drag-handle">
-                        <i class="fas fa-grip-vertical"></i>
-                    </div>
-                    <div class="exercise-content">
-                        <span class="exercise-number">${index + 1}</span>
-                        <div class="exercise-details">
-                            <div class="planning-exercise-name">${ex.exercise_name || ex.name}</div>
-                            <div class="planning-exercise-params">
-                                ${ex.sets || 3} × ${ex.reps_min || 8}-${ex.reps_max || 12}
+            const exercisesHtml = exercises.map((ex, index) => {
+                // Obtenir la couleur du groupe musculaire principal
+                const muscleGroup = ex.muscle_groups?.[0] || ex.body_part || 'autres';
+                const color = window.MuscleColors?.getMuscleColor ? 
+                    window.MuscleColors.getMuscleColor(muscleGroup) : '#6b7280';
+                
+                return `
+                    <div class="selected-exercise-item" 
+                        data-exercise-id="${ex.exercise_id || ex.id}"
+                        data-exercise='${JSON.stringify(ex).replace(/'/g, '&apos;')}'>
+                        <div class="drag-handle">
+                            <i class="fas fa-grip-vertical"></i>
+                        </div>
+                        <div class="exercise-content">
+                            <span class="exercise-number" style="background-color: ${color};">${index + 1}</span>
+                            <div class="exercise-details">
+                                <div class="planning-exercise-name">${ex.exercise_name || ex.name}</div>
+                                <div class="planning-exercise-params">
+                                    ${ex.sets || 3} × ${ex.reps_min || 8}-${ex.reps_max || 12}
+                                </div>
                             </div>
                         </div>
+                        <button class="planning-remove-btn" 
+                                onclick="planningManager.removeExerciseFromSession('${session.id}', '${ex.exercise_id || ex.id}')"
+                                title="Retirer">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
-                    <button class="planning-remove-btn" 
-                            onclick="planningManager.removeExerciseFromSession('${session.id}', '${ex.exercise_id || ex.id}')"
-                            title="Retirer">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            `).join('');
+                `;
+            }).join('');
             
             // Générer les tags de muscles
             const muscleTags = muscles.map(muscle => {
@@ -3501,8 +3508,8 @@ class PlanningManager {
             };
             
             console.log('📝 Nouvelle session créée:', newSession);
-            
             console.log('📤 Envoi ajout au planning...');
+            await this.ensureActiveProgram();
 
             // Préparer les données pour l'endpoint schedule
             const scheduleData = {
