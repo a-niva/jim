@@ -357,8 +357,16 @@ function transitionTo(state) {
     // 5. AFFICHER exclusivement l'interface pour le nouvel état
     switch(state) {
         case WorkoutStates.READY:
-            document.getElementById('executeSetBtn').style.display = 'block';
+            // D'abord afficher l'input section
             document.querySelector('.input-section').style.display = 'block';
+            
+            // Forcer l'affichage du bouton APRÈS que le container soit visible
+            setTimeout(() => {
+                const btn = document.getElementById('executeSetBtn');
+                if (btn) {
+                    btn.style.removeProperty('display'); // Enlever complètement le style inline
+                }
+            }, 100);
             
             // Vocal si activé ET pas déjà en cours
             if (currentUser?.voice_counting_enabled && 
