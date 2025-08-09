@@ -3507,23 +3507,24 @@ class PlanningManager {
                 focus: this.extractPrimaryMuscles(exercises)[0] || 'général'
             };
             
-            console.log('📝 Nouvelle session créée:', newSession);
-            console.log('📤 Envoi ajout au planning...');
-            await this.ensureActiveProgram();
+        console.log('📝 Nouvelle session créée:', newSession);
+        console.log('📤 Envoi ajout au planning...');
 
-            // Préparer les données pour l'endpoint schedule
-            const scheduleData = {
-                date: normalizedDate,
-                exercises: newSession.exercise_pool,
-                estimated_duration: newSession.estimated_duration,
-                primary_muscles: newSession.primary_muscles,
-                quality_score: newSession.quality_score,
-                status: 'planned',
-                session_type: 'custom'
-            };
+        // Préparer les données pour l'endpoint schedule
+        const scheduleData = {
+            date: normalizedDate,
+            exercises: newSession.exercise_pool,
+            estimated_duration: newSession.estimated_duration,
+            primary_muscles: newSession.primary_muscles,
+            quality_score: newSession.quality_score,
+            status: 'planned',
+            session_type: 'custom'
+        };
 
-            try {
-                const response = await window.apiPost(`/api/programs/${this.activeProgram.id}/schedule`, scheduleData);
+        try {
+            await this.ensureActiveProgram();  // <-- Déplacé ICI, dans le try
+            const response = await window.apiPost(`/api/programs/${this.activeProgram.id}/schedule`, scheduleData);
+            
                 console.log('✅ Séance ajoutée au planning avec succès');
                 
                 window.closeModal();
