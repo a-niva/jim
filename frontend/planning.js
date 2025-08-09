@@ -2442,6 +2442,7 @@ class PlanningManager {
                                             <div class="planning-exercise-params">
                                                 ${ex.default_sets || 3} × ${ex.default_reps_min || 8}-${ex.default_reps_max || 12}
                                             </div>
+                                            <div class="exercise-check-mark" style="background-color: ${muscleColor};">✓</div>
                                         </div>
                                     </label>
                                 `;
@@ -2888,6 +2889,47 @@ class PlanningManager {
         }
 
         this.setupExerciseSelection();
+        // Attacher tous les event handlers après un court délai pour s'assurer que le DOM est prêt
+        setTimeout(() => {
+            // 1. Handler pour la recherche
+            const searchToggle = document.querySelector('.search-toggle-icon');
+            if (searchToggle) {
+                searchToggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleSearchAndExpand();
+                });
+            }
+            
+            // 2. Handler pour le chevron toggle
+            const toggleChevron = document.querySelector('.toggle-chevron.clickable');
+            if (toggleChevron) {
+                toggleChevron.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleExercisesList();
+                });
+            }
+            
+            // 3. Headers musculaires cliquables pour collapse/expand
+            document.querySelectorAll('.muscle-group-header').forEach(header => {
+                header.style.cursor = 'pointer';
+                header.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const panel = header.nextElementSibling;
+                    if (panel) {
+                        const isHidden = panel.style.display === 'none' || panel.classList.contains('collapsed');
+                        panel.style.display = isHidden ? 'grid' : 'none';
+                        panel.classList.toggle('collapsed');
+                        
+                        // Rotation de l'icône si présente
+                        const icon = header.querySelector('.muscle-icon');
+                        if (icon) {
+                            icon.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(-90deg)';
+                            icon.style.transition = 'transform 0.3s ease';
+                        }
+                    }
+                });
+            });
+        }, 100);
     }
 
     setupExerciseSelection() {
