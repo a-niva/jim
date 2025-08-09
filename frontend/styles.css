@@ -2152,6 +2152,7 @@ span {
     gap: var(--spacing-lg);
     max-width: 500px;
     margin: 0 auto var(--spacing-2xl);
+    align-items: stretch;
 }
 
 .input-row {
@@ -2167,6 +2168,7 @@ span {
     overflow: hidden;
     min-height: 80px;
     justify-content: center;
+    justify-items: center;
 }
 
 .stepper-modern {
@@ -2181,6 +2183,7 @@ span {
     font-size: var(--font-lg);
     cursor: pointer;
     transition: all .3s ease;
+    font-weight: 600;
 }
 
 .input-row .value-display {
@@ -2218,6 +2221,19 @@ span {
     display: none !important;
 }
 
+.input-row .input-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 1.5rem;
+    border-radius: 8px;
+    background: var(--bg-light);
+    border: 1px solid var(--border);
+    margin: 0;
+}
 .charge-weight-container {
     position: relative;
     transition: all 0.3s ease;
@@ -2409,6 +2425,7 @@ span {
     border-radius: 8px;
     width: 100%;
     min-height: 80px;
+    justify-self: stretch;
 }
 
 .stepper-modern:hover {
@@ -7598,8 +7615,14 @@ input {
         max-width: 100%;
         min-height: 12vw;
         max-height: 60px;
+        justify-items: stretch;
     }
 
+    .input-row .input-icon {
+        width: 44px;
+        height: 44px;
+    }
+    
     .stepper-modern {
             width: 44px;
             height: 44px;
