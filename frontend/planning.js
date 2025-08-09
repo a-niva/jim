@@ -2677,19 +2677,17 @@ class PlanningManager {
         if (isCollapsed) {
             // Expand
             container.classList.remove('collapsed');
-            container.style.maxHeight = '400px';
-            container.style.opacity = '1';
+            container.style.cssText = 'max-height: 400px; height: auto; opacity: 1; overflow: auto; margin-bottom: var(--spacing-md);';
             if (searchContainer) {
-                searchContainer.style.display = 'flex';
+                searchContainer.style.cssText = 'display: flex; max-height: 60px; opacity: 1;';
             }
             chevron.classList.remove('closed');
         } else {
-            // Collapse
+            // Collapse - IMPORTANT: forcer height à 0
             container.classList.add('collapsed');
-            container.style.maxHeight = '0';
-            container.style.opacity = '0';
+            container.style.cssText = 'max-height: 0 !important; height: 0 !important; opacity: 0; overflow: hidden; margin: 0; padding: 0;';
             if (searchContainer) {
-                searchContainer.style.display = 'none';
+                searchContainer.style.cssText = 'display: none; max-height: 0; opacity: 0;';
             }
             chevron.classList.add('closed');
         }
@@ -2982,7 +2980,6 @@ class PlanningManager {
     }
         
     toggleSearchAndExpand() {
-        // D'abord s'assurer que la section est visible
         const container = document.querySelector('.exercises-list-container');
         const searchContainer = document.querySelector('.search-bar-container');
         const searchInput = document.querySelector('.exercise-search-input');
@@ -2991,20 +2988,19 @@ class PlanningManager {
         // Si collapsed, expand d'abord
         if (container && container.classList.contains('collapsed')) {
             container.classList.remove('collapsed');
-            container.style.maxHeight = '400px';
-            container.style.opacity = '1';
+            container.style.cssText = 'max-height: 400px; height: auto; opacity: 1; overflow: auto; margin-bottom: var(--spacing-md);';
             if (chevron) chevron.classList.remove('closed');
         }
         
-        // Afficher la barre de recherche si cachée
+        // Afficher la barre de recherche
         if (searchContainer) {
-            searchContainer.style.display = 'flex';
+            searchContainer.style.cssText = 'display: flex; max-height: 60px; opacity: 1;';
         }
         
-        // Focus sur l'input de recherche
+        // Focus sur l'input
         if (searchInput) {
             searchInput.focus();
-            searchInput.select(); // Sélectionner le texte existant
+            searchInput.select();
         }
     }
 

@@ -686,6 +686,9 @@
     display: flex;
     flex-direction: column;
     gap: var(--spacing-md);
+    min-height: 0; /* Important pour le collapse */
+    flex: 1;
+    overflow: hidden;
 }
 
 .section-header {
@@ -751,6 +754,7 @@
     align-items: center;
     margin: 0 var(--spacing-xs);
     transition: all 0.3s ease;
+    overflow: hidden; /* Ajout pour animation smooth */
 }
 
 .search-icon {
@@ -794,11 +798,17 @@
     max-height: 400px;
     overflow-y: auto;
     transition: all 0.3s ease;
+    margin-bottom: var(--spacing-md);
 }
 
 .exercises-list-container.collapsed {
-    max-height: 0;
-    opacity: 0;
+    max-height: 0 !important;
+    height: 0 !important;
+    opacity: 0 !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
 }
 
 .exercises-grid {
@@ -867,7 +877,6 @@
 }
 
 .planning-exercise-option-content {
-    transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -879,11 +888,11 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 10px;
+    transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease; /* Sans transform */
 }
 
 .planning-exercise-option:hover .planning-exercise-option-content {
     background: var(--bg-tertiary);
-    /* Pas de transform */
     border-color: var(--primary);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
@@ -892,6 +901,7 @@
     background: rgba(59, 130, 246, 0.15) !important;
     border: 2px solid var(--primary) !important;
     box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2) !important;
+    margin: -1px; /* Compense le border de 2px */
 }
 
 .planning-exercise-option:not(:has(input:checked)):hover .planning-exercise-option-content {
@@ -1641,8 +1651,7 @@
     }
 
     .exercises-list-container {
-        max-height: 350px !important;
-        min-height: 350px;
+        max-height: 350px; /* Légèrement plus petit sur mobile */
     }
 
     .exercises-grid {
@@ -1650,6 +1659,15 @@
         min-height: 280px;
         overflow-y: auto;
         padding: var(--spacing-xs);
+    }
+
+    .search-bar-container {
+        margin: 0 var(--spacing-xs);
+        padding: 0 var(--spacing-xs);
+    }
+
+    .exercises-selection-section {
+        gap: var(--spacing-sm);
     }
 
     .section-header {
@@ -1683,15 +1701,14 @@
     }
 
     .planning-exercise-option {
-            padding: 6px;
-            min-height: 44px;
+        padding: 12px 8px;
+        min-height: 48px; /* Touch-friendly */
+        margin-bottom: 3px;
     }
 
     .planning-exercise-option-content {
-        gap: 3px;
-        padding: var(--spacing-xs);
-        min-height: 36px;
-        border-radius: 6px;
+        padding: 12px;
+        min-height: 40px;
     }
 
     .exercises-list-container.collapsed {
@@ -1986,9 +2003,13 @@
     }
 
     .planning-exercise-option {
-        padding: 8px;
-        min-height: 48px;
-        margin-bottom: 3px;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+    }
+
+    .planning-exercise-option:active .planning-exercise-option-content {
+        background: var(--bg-tertiary);
+        border-color: var(--primary);
     }
 
 }
@@ -2123,3 +2144,18 @@
     background: rgba(59, 130, 246, 0.1);
 }
 
+/* OPTIMISATIONS POUR PETITS ÉCRANS */
+@media (max-width: 480px) {
+    .exercises-list-container {
+        max-height: 300px;
+    }
+    
+    .planning-exercise-option {
+        padding: 10px 6px;
+    }
+    
+    .planning-exercise-option-content {
+        padding: 10px 8px;
+        font-size: 0.9rem;
+    }
+}
