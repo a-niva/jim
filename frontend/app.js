@@ -7258,7 +7258,9 @@ function testWorkoutSounds() {
 
 // ===== FIN DE SÉANCE =====
 async function endWorkout() {
-    if (!confirm('Êtes-vous sûr de vouloir terminer cette séance ?')) return;
+    if (!confirm('Êtes-vous sûr de vouloir terminer cette séance ?')) return;    
+    // Fermer le modal IMMÉDIATEMENT
+    hideEndWorkoutModal();
     
     try {
         // Arrêter tous les timers
@@ -12196,6 +12198,8 @@ function pauseWorkout() {
 
 function abandonWorkout() {
     if (!confirm('Êtes-vous sûr de vouloir abandonner cette séance ?')) return;
+    
+    hideEndWorkoutModal();
     
     // Nettoyer IMMÉDIATEMENT le système audio
     if (window.workoutAudio) {
