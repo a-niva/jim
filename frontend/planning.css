@@ -622,8 +622,8 @@
 .planning-modal-vertical {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-lg);
-    padding: var(--spacing-lg);
+    gap: var(--spacing-md); /* RÉDUIT de var(--spacing-lg) */
+    padding: var(--spacing-md); /* RÉDUIT de var(--spacing-lg) */
     max-height: 80vh;
     overflow-y: auto;
 }
@@ -688,7 +688,7 @@
     transform: rotate(-90deg);
 }
 
-.selection-info {
+.planning-selection-info {
     font-size: 0.85rem;
     color: var(--text-muted);
     margin-top: var(--spacing-xs);
@@ -825,60 +825,55 @@
         padding: 16px;
     }
     
-    .muscle-exercises-panel .exercise-option {
+    .muscle-exercises-panel .planning-exercise-option {
         min-height: 44px;
         padding: 12px;
     }
 }
 
-
-/* Option d'exercice compacte */
-.exercise-option {
-    display: flex;
-    align-items: center;
-    /*! padding: 1px; */  /* AUGMENTÉ de 8px à 12px */
+.planning-exercise-option {
+    display: block;
+    padding: 8px;
     background: var(--bg-secondary);
-    /*! border: 1px solid var(--border); */
+    border: 1px solid var(--border-color);
     border-radius: var(--radius);
     cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
-    min-height: 50px;  /* AJOUTÉ - garantit la hauteur */
-    height: auto;      /* CHANGÉ de height fixe à auto */
-    margin-bottom: 1px; /* AJOUTÉ - espace entre exercices */
+    min-height: 50px;
+    height: auto;
+    margin-bottom: 1px;
 }
 
-.exercise-option input[type="checkbox"] {
+.planning-exercise-option input[type="checkbox"] {
     position: absolute;
     opacity: 0;
     pointer-events: none;
 }
 
-.exercise-option-content {
+.planning-exercise-option-content {
     display: flex;
     flex-direction: column;
-    gap: 4px;        /* AJOUTÉ - espace entre nom et params */
+    gap: 4px;
     padding-left: 24px;
     flex: 1;
-    min-height: 32px; /* AJOUTÉ - hauteur minimale */
-    justify-content: center; /* AJOUTÉ - centrage vertical */
+    min-height: 32px;
+    justify-content: center;
 }
 
-.exercise-option:hover .exercise-option-content {
+.planning-exercise-option:hover .planning-exercise-option-content {
     background: var(--bg-tertiary);
     transform: translateX(2px);
 }
 
-.exercise-option input:checked + .exercise-option-content,
-.exercise-option input:checked + .exercise-option-card {
+.planning-exercise-option input:checked + .planning-exercise-option-content {
     background: rgba(59, 130, 246, 0.15) !important;
     border: 2px solid var(--primary) !important;
     box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2) !important;
     transform: translateY(-1px);
 }
 
-.exercise-option input:checked + .exercise-option-content::after,
-.exercise-option input:checked + .exercise-option-card::after {
+.planning-exercise-option input:checked + .planning-exercise-option-content::after {
     content: "✓";
     position: absolute;
     top: 8px;
@@ -896,8 +891,9 @@
     z-index: 1;
 }
 
-.exercise-option-content,
-.exercise-option-card {
+
+.planning-exercise-option-content,
+.planning-exercise-option-card {
     position: relative;
     background: var(--bg);
     border: 1px solid var(--border);
@@ -910,19 +906,19 @@
     justify-content: center;
 }
 
-.exercise-option:hover .exercise-option-content,
-.exercise-option:hover .exercise-option-card {
+.planning-exercise-option:hover .planning-exercise-option-content,
+.planning-exercise-option:hover .planning-exercise-option-card {
     border-color: var(--primary);
     transform: translateY(-1px);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
-.exercise-option.disabled {
+.planning-exercise-option.disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
 
-.exercise-option .exercise-name {
+.planning-exercise-name {
     font-weight: 600;
     font-size: 0.85rem;
     margin-bottom: 2px;
@@ -931,10 +927,16 @@
     text-overflow: ellipsis;
 }
 
-.exercise-option .exercise-params {
+.planning-exercise-params {
     font-size: 0.75rem;
     color: var(--text-muted);
 }
+
+.planning-exercise-option .planning-exercise-params {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
 
 /* ===== SECTION 8 : APERÇU DE SÉANCE ===== */
 
@@ -945,23 +947,22 @@
 }
 
 /* Header aperçu avec baguette magique */
-.preview-header {
+.planning-preview-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding-left: var(--spacing-md);
-    padding-right: var(--spacing-md);
-    background: var(--bg-secondary);
-    border-radius: var(--radius);
+    justify-content: space-between;
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--border-color);
 }
 
-.preview-header .header-content {
+.planning-preview-header .header-content {
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
 }
 
-.preview-header h4 {
+.planning-preview-header h4 {
     margin: 0;
     font-size: 1rem;
     font-weight: 600;
@@ -1176,16 +1177,6 @@
     50% { transform: scale(1.1); background: var(--success); }
 }
 
-.exercise-name {
-    font-weight: 500;
-    color: #6366f1;
-    font-size: 0.9rem;
-    line-height: 1.4;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
 .exercise-details {
     font-weight: 600;
     font-size: 0.85rem;
@@ -1194,11 +1185,11 @@
     text-overflow: ellipsis;
 }
 
-.exercise-details .exercise-params {
+.exercise-details .planning-exercise-params {
     font-size: 0.75rem;
     color: var(--text-muted);
 }
-/* Mobile: permettre retour à la ligne pour exercise-name */
+
 @media (max-width: 768px) {
     .exercise-name {
         white-space: normal !important;
@@ -1216,7 +1207,7 @@
 }
 
 /* Bouton supprimer avec croix rouge au hover */
-.remove-btn {
+.planning-remove-btn {
     width: 28px;
     height: 28px;
     display: flex;
@@ -1231,18 +1222,18 @@
     opacity: 0;
 }
 
-.selected-exercise-item:hover .remove-btn {
+.selected-exercise-item:hover .planning-remove-btn {
     opacity: 1;
 }
 
-.remove-btn:hover {
+.planning-remove-btn:hover {
     background: var(--danger);
     border-color: var(--danger);
     color: white;
     transform: scale(1.1);
 }
 
-.remove-btn i {
+.planning-remove-btn i {
     font-size: 0.8rem;
 }
 
@@ -1380,34 +1371,48 @@
     }
 
     .planning-modal-vertical {
-        padding: 2px !important; /* Réduction drastique du padding modal */
-        max-height: calc(100vh - 80px);
-        overflow-y: auto;
-        gap: var(--spacing-sm);
+        gap: var(--spacing-sm); /* RÉDUIT encore plus */
+        padding: var(--spacing-sm); /* RÉDUIT encore plus */
     }
 
-    /* Optimisation espace horizontal selected-exercise-item */
+    .planning-selection-info {
+        font-size: 0.75rem; /* RÉDUIT de 0.85rem */
+        line-height: 1.2; /* AJOUTÉ pour éviter 2 lignes */
+        margin-top: 2px; /* RÉDUIT de var(--spacing-xs) */
+    }
+
     .selected-exercise-item {
-        padding: var(--spacing-xs) 6px !important; /* Réduction padding horizontal */
-        margin-bottom: var(--spacing-xs);
-        grid-template-columns: 32px 1fr 32px !important; /* Colonnes optimisées */
+        padding: var(--spacing-xs) var(--spacing-sm); /* RÉDUIT */
+        margin-bottom: var(--spacing-xs); /* RÉDUIT */
     }
-
+    
+    /* Exercise details compact */
     .exercise-details {
-        padding-left: var(--spacing-xs) !important;
-        padding-right: var(--spacing-xs) !important;
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px; /* RÉDUIT de var(--spacing-xs) */
     }
-
-    /* Tags muscles plus compacts */
+    
+    /* Muscle tags compact */
     .muscle-groups-tags {
-        margin: 2px 6px var(--spacing-xs) 6px !important;
-        padding: 4px 8px !important;
+        order: -1 !important;
+        margin-bottom: var(--spacing-xs); /* RÉDUIT */
+        padding: 4px var(--spacing-xs); /* RÉDUIT */
+        align-self: center;
     }
-
-    /* Section headers plus compacts */
+    
+    .muscle-tag {
+        padding: 1px var(--spacing-xs); /* RÉDUIT */
+        font-size: 0.6rem; /* RÉDUIT de 0.65rem */
+        border-radius: 8px; /* RÉDUIT de 12px */
+    }
+    
+    /* Section headers compact */
     .section-header {
-        padding: var(--spacing-xs) 6px !important;
-        margin: 0 2px var(--spacing-xs) 2px !important;
+        padding: var(--spacing-sm); /* RÉDUIT de var(--spacing-md) */
+        margin-bottom: var(--spacing-xs); /* RÉDUIT */
     }
 
     /* Métriques plus compactes */
@@ -1418,23 +1423,61 @@
 
     /* Actions du modal plus compactes */
     .modal-actions-bottom {
-        padding: var(--spacing-xs) 6px !important;
-        margin-top: var(--spacing-sm);
+        position: sticky !important;
+        bottom: 0;
+        background: var(--bg-card);
+        border-top: 2px solid var(--border-color);
+        padding: var(--spacing-xs) var(--spacing-sm); /* RÉDUIT */
+        margin-top: var(--spacing-sm); /* RÉDUIT */
+        z-index: 10;
+    }
+    
+    
+    .modal-actions-bottom .btn {
+        padding: var(--spacing-sm); /* RÉDUIT */
+        font-size: 0.85rem; /* RÉDUIT */
+    }
+    
+    /* Session metrics compact */
+    .session-metrics-row {
+        grid-template-columns: repeat(4, 1fr);
+        gap: var(--spacing-xs); /* RÉDUIT */
+        margin-bottom: var(--spacing-sm); /* RÉDUIT */
+        padding: var(--spacing-xs); /* RÉDUIT */
     }
 
-    /* Optimisation taille font exercise-name pour utiliser l'espace gagné */
-    .exercise-name {
-        font-size: 0.9rem !important; /* Augmentation de 0.85rem à 0.9rem */
-        line-height: 1.2 !important;
-        font-weight: 600 !important;
+
+    .planning-exercise-name {
+        font-size: 0.8rem !important; /* RÉDUIT de 0.85rem */
+        line-height: 1.2;
+        margin-bottom: 1px; /* RÉDUIT de 2px */
+        white-space: normal !important; /* PERMET retour ligne */
     }
 
-    .exercise-params {
-        font-size: 0.75rem !important;
-        margin-top: 2px;
+    .planning-exercise-params {
+        font-size: 0.7rem; /* RÉDUIT de 0.75rem */
+        line-height: 1.1;
     }
 
+    .planning-preview-header {
+        margin-bottom: var(--spacing-xs); /* RÉDUIT drastiquement */
+        padding-bottom: 4px; /* RÉDUIT de var(--spacing-sm) */
+    }
+    
+    .planning-preview-header .header-content h4 {
+        font-size: 1rem; /* RÉDUIT de 1.1rem */
+        margin: 0;
+    }
 
+    .planning-remove-btn {
+        opacity: 0.7 !important; /* TOUJOURS visible sur mobile */
+        width: 24px; /* RÉDUIT de 28px */
+        height: 24px; /* RÉDUIT de 28px */
+    }
+    
+    .planning-remove-btn:hover {
+        opacity: 1 !important;
+    }
 
     .session-metrics-row {
         grid-template-columns: repeat(4, 1fr);
@@ -1443,15 +1486,15 @@
     }
 
     .metric {
-        padding: var(--spacing-xs);
+        padding: var(--spacing-xs); /* RÉDUIT */
     }
-
+    
     .metric-value {
-        font-size: 1.2rem;
+        font-size: 1.1rem; /* RÉDUIT de 1.2rem */
     }
-
+    
     .metric-label {
-        font-size: 0.7rem;
+        font-size: 0.65rem; /* RÉDUIT de 0.7rem */
     }
 
     .modal-actions-bottom {
@@ -1472,8 +1515,9 @@
 /* Optimisation pour écrans 800px et moins */
 @media (max-width: 768px) and (max-height: 800px) {
     .selected-exercises-list {
-        max-height: 300px !important;
+        max-height: 200px; /* AJOUTÉ limite */
         overflow-y: auto;
+        padding: var(--spacing-xs); /* AJOUTÉ padding interne */
     }
     
     .exercises-list-container {
@@ -1481,24 +1525,53 @@
     }
     
     .exercises-grid {
-        max-height: 120px !important;
-        padding: var(--spacing-xs);
+        max-height: 180px !important; /* AUGMENTÉ significativement */
+        min-height: 120px; /* AJOUTÉ pour garantir taille minimum */
+        overflow-y: auto;
+        padding: var(--spacing-xs); /* RÉDUIT de var(--spacing-sm) */
     }
     
     .section-header {
-        padding: var(--spacing-sm);
-        margin-bottom: var(--spacing-xs);
+        padding: var(--spacing-sm); /* RÉDUIT de var(--spacing-md) */
+        margin-bottom: var(--spacing-xs); /* RÉDUIT */
+    }
+    
+    .header-content {
+        gap: var(--spacing-xs); /* RÉDUIT de var(--spacing-sm) */
+    }
+    
+    .header-content h4 {
+        font-size: 1rem; /* RÉDUIT de 1.1rem */
+    }
+    
+    .exercise-count-badge {
+        padding: 0.1rem 0.4rem; /* RÉDUIT de 0.2rem 0.6rem */
+        font-size: 0.7rem; /* RÉDUIT de 0.8rem */
+    }
+
+    .planning-exercise-option {
+        padding: 6px; /* RÉDUIT de 8px */
+        min-height: 44px; /* RÉDUIT de 50px */
+        margin-bottom: 2px; /* AJOUTÉ un peu d'espace */
+    }
+
+    .planning-exercise-option-content {
+        gap: 2px; /* RÉDUIT de 4px */
+        padding-left: 20px; /* RÉDUIT de 24px */
+        min-height: 28px; /* RÉDUIT de 32px */
     }
 }
 
 /* Touch targets pour mobile */
 @media (hover: none) and (pointer: coarse) {
-    .drag-handle,
-    .remove-btn,
-    .action-btn,
-    .magic-wand-btn {
+    .planning-remove-btn,
+    .planning-exercise-option {
+        min-height: 44px; /* Touch target minimum */
         min-width: 44px;
-        min-height: 44px;
+    }
+    
+    .planning-remove-btn {
+        opacity: 0.8 !important; /* Toujours visible sur touch */
     }
 }
 
@@ -1694,7 +1767,7 @@
     .session-actions,
     .add-session-zone,
     .modal-actions-bottom,
-    .remove-btn,
+    .planning-remove-btn,
     .drag-handle {
         display: none !important;
     }
@@ -1805,7 +1878,7 @@
     margin-right: 0.2rem; /* Réduit de 0.5rem à 0.2rem */
 }
 
-.session-exercises .exercise-name {
+.session-exercises .planning-exercise-name {
   font-size: 0.8rem;
   color: var(--primary);
   line-height: 1.2;
