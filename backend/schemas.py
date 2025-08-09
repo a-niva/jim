@@ -40,7 +40,7 @@ class UserResponse(BaseModel):
         from_attributes = True
 
 class UserPreferenceUpdate(BaseModel):
-    prefer_weight_changes_between_sets: bool
+    prefer_weight_changes_between_sets: Optional[bool] = None
     sound_notifications_enabled: Optional[bool] = None
 
 # ===== SCHEMAS EXERCICES =====

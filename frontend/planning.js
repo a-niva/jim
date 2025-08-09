@@ -642,8 +642,8 @@ class PlanningManager {
                             <div class="exercise-preview-item" data-exercise-id="${ex.exercise_id || ex.id}">
                                 <span class="exercise-number">${index + 1}</span>
                                 <div class="exercise-info">
-                                    <div class="exercise-name">${ex.name || ex.exercise_name || 'Exercice'}</div>
-                                    <div class="exercise-params">${ex.sets || ex.default_sets || 3} × ${ex.reps || ex.default_reps_min || 8}-${ex.reps_max || ex.default_reps_max || 12}</div>
+                                    <div class="planning-exercise-name">${ex.name || ex.exercise_name || 'Exercice'}</div>
+                                    <div class="planning-exercise-params">${ex.sets || ex.default_sets || 3} × ${ex.reps || ex.default_reps_min || 8}-${ex.reps_max || ex.default_reps_max || 12}</div>
                                 </div>
                             </div>
                         `).join('') : `
@@ -657,7 +657,7 @@ class PlanningManager {
                             <div class="exercise-preview-item exercise-more">
                                 <span class="exercise-number">+</span>
                                 <div class="exercise-info">
-                                    <div class="exercise-name">${exercises.length - 3} autres exercices...</div>
+                                    <div class="planning-exercise-name">${exercises.length - 3} autres exercices...</div>
                                 </div>
                             </div>
                         ` : ''}
@@ -1018,13 +1018,13 @@ class PlanningManager {
                     <div class="exercise-content">
                         <span class="exercise-number">${index + 1}</span>
                         <div class="exercise-details">
-                            <div class="exercise-name">${ex.exercise_name || ex.name}</div>
-                            <div class="exercise-params">
+                            <div class="planning-exercise-name">${ex.exercise_name || ex.name}</div>
+                            <div class="planning-exercise-params">
                                 ${ex.sets || 3} × ${ex.reps_min || 8}-${ex.reps_max || 12}
                             </div>
                         </div>
                     </div>
-                    <button class="remove-btn" 
+                    <button class="planning-remove-btn" 
                             onclick="planningManager.removeExerciseFromSession('${session.id}', '${ex.exercise_id || ex.id}')"
                             title="Retirer">
                         <i class="fas fa-times"></i>
@@ -1184,8 +1184,8 @@ class PlanningManager {
                 </div>
                 
                 <div class="exercise-details">
-                    <div class="exercise-name">${exerciseName}</div>
-                    <div class="exercise-params">
+                    <div class="planning-exercise-name">${exerciseName}</div>
+                    <div class="planning-exercise-params">
                         <span class="sets-reps">${sets} × ${repsMin}-${repsMax}</span>
                         <span class="rest-time"><i class="fas fa-stopwatch"></i> ${restSeconds}s</span>
                         <span class="duration"><i class="fas fa-clock"></i> ${duration}min</span>
@@ -1937,7 +1937,7 @@ class PlanningManager {
             const exerciseItems = document.querySelectorAll('#sessionExercisesList .exercise-item');
             const exercises = Array.from(exerciseItems).map(item => ({
                 exercise_id: parseInt(item.dataset.exerciseId),
-                exercise_name: item.querySelector('.exercise-name')?.textContent || 'Exercise',
+                exercise_name: item.querySelector('.planning-exercise-name')?.textContent || 'Exercise',
                 sets: 3, reps_min: 8, reps_max: 12, rest_seconds: 90
             }));
             changes = { exercises };
@@ -2207,8 +2207,8 @@ class PlanningManager {
                         </span>
                         <span class="exercise-number">${index + 1}</span>
                         <div class="exercise-info">
-                            <div class="exercise-name">${ex.name || ex.exercise_name || 'Exercice sans nom'}</div>
-                            <div class="exercise-params">
+                            <div class="planning-exercise-name">${ex.name || ex.exercise_name || 'Exercice sans nom'}</div>
+                            <div class="planning-exercise-params">
                                 ${ex.default_sets || ex.sets || 3} séries × 
                                 ${ex.default_reps_min || ex.reps || 8}-${ex.default_reps_max || ex.reps || 12} reps
                             </div>
@@ -2432,14 +2432,14 @@ class PlanningManager {
                                 const truncatedName = ex.name.length > 25 ? ex.name.substring(0, 22) + '...' : ex.name;
                                 
                                 return `
-                                    <label class="exercise-option ${isDisabled ? 'disabled' : ''}" title="${ex.name}">
+                                    <label class="planning-exercise-option ${isDisabled ? 'disabled' : ''}" title="${ex.name}">
                                         <input type="checkbox" 
                                             value="${ex.id}"
                                             data-exercise="${exerciseData}"
                                             ${isDisabled ? 'disabled' : ''}>
-                                        <div class="exercise-option-content">
-                                            <div class="exercise-name">${truncatedName}</div>
-                                            <div class="exercise-params">
+                                        <div class="planning-exercise-option-content">
+                                            <div class="planning-exercise-name">${truncatedName}</div>
+                                            <div class="planning-exercise-params">
                                                 ${ex.default_sets || 3} × ${ex.default_reps_min || 8}-${ex.default_reps_max || 12}
                                             </div>
                                         </div>
@@ -2463,8 +2463,8 @@ class PlanningManager {
                                 <span class="exercise-count-badge">${sortedExercises.length}</span>
                                 <i class="fas fa-chevron-down toggle-chevron"></i>
                             </div>
-                            <div class="selection-info">
-                                <span id="selectedCount">0</span> sélectionné(s)
+                            <div class="planning-selection-info">
+                                <span id="selectedCount">3</span> sélectionné(s)
                             </div>
                         </div>
                         
@@ -2487,16 +2487,15 @@ class PlanningManager {
                     
                     <!-- Section aperçu de la séance -->
                     <div class="session-preview-section">
-                        <div class="preview-header">
+                        <div class="planning-preview-header">
                             <div class="header-content">
-                                <i class="fas fa-eye"></i>
-                                <h4>Aperçu de la séance</h4>
+                                <i class="fas fa-dumbbell"></i>
+                                <h4>Exercices de la séance</h4>
                             </div>
                             <button class="magic-wand-btn" 
-                                    id="optimizeBtn"
-                                    style="display: none;"
                                     onclick="planningManager.optimizeExerciseOrder()"
-                                    title="Optimiser l'ordre">
+                                    title="Optimiser l'ordre"
+                                    ${exercises.length < 2 ? 'style="display: none;"' : ''}>
                                 <i class="fas fa-magic"></i>
                             </button>
                         </div>
@@ -2742,7 +2741,7 @@ class PlanningManager {
 
     // méthode pour initialiser la création de séance
     initializeSessionCreation(sessionIdToEdit = null) {
-        const checkboxes = document.querySelectorAll('.exercise-option input[type="checkbox"]');
+        const checkboxes = document.querySelectorAll('.planning-exercise-option input[type="checkbox"]');
         const createBtn = document.getElementById('createSessionBtn');
         const selectedCounter = document.getElementById('selectedCount');
         
@@ -2820,13 +2819,13 @@ class PlanningManager {
                         <div class="exercise-content">
                             <span class="exercise-number">${index + 1}</span>
                             <div class="exercise-details">
-                                <div class="exercise-name">${ex.exercise_name}</div>
-                                <div class="exercise-params">
+                                <div class="planning-exercise-name">${ex.exercise_name}</div>
+                                <div class="planning-exercise-params">
                                     ${ex.sets} × ${ex.reps_min}-${ex.reps_max}
                                 </div>
                             </div>
                         </div>
-                        <button class="remove-btn" 
+                        <button class="planning-remove-btn" 
                                 onclick="planningManager.removeExerciseFromPreview('${ex.exercise_id}')"
                                 title="Retirer">
                             <i class="fas fa-times"></i>
@@ -2972,8 +2971,8 @@ class PlanningManager {
             muscleGroups.forEach(group => {
                 let hasVisibleExercise = false;
                 
-                group.querySelectorAll('.exercise-option').forEach(option => {
-                    const exerciseName = option.querySelector('.exercise-name').textContent.toLowerCase();
+                group.querySelectorAll('.planning-exercise-option').forEach(option => {
+                    const exerciseName = option.querySelector('.planning-exercise-name').textContent.toLowerCase();
                     const muscleName = group.dataset.muscle.toLowerCase();
                     
                     if (!term || exerciseName.includes(term) || muscleName.includes(term)) {
@@ -3094,8 +3093,8 @@ class PlanningManager {
                         </span>
                         <span class="exercise-number">${index + 1}</span>
                         <div class="exercise-info">
-                            <div class="exercise-name">${ex.exercise_name}</div>
-                            <div class="exercise-params">${ex.sets || 3} × ${ex.reps_min || 8}-${ex.reps_max || 12}</div>
+                            <div class="planning-exercise-name">${ex.exercise_name}</div>
+                            <div class="planning-exercise-params">${ex.sets || 3} × ${ex.reps_min || 8}-${ex.reps_max || 12}</div>
                         </div>
                         <button class="btn btn-sm btn-outline btn-danger exercise-remove" 
                                 onclick="planningManager.removeExerciseFromPreview('${ex.exercise_id}')"
@@ -3511,13 +3510,13 @@ class PlanningManager {
                         <div class="exercise-content">
                             <span class="exercise-number">${index + 1}</span>
                             <div class="exercise-details">
-                                <div class="exercise-name">${ex.exercise_name}</div>
-                                <div class="exercise-params">
+                                <div class="planning-exercise-name">${ex.exercise_name}</div>
+                                <div class="planning-exercise-params">
                                     ${ex.sets} × ${ex.reps_min}-${ex.reps_max}
                                 </div>
                             </div>
                         </div>
-                        <button class="remove-btn" 
+                        <button class="planning-remove-btn" 
                                 onclick="planningManager.removeExerciseFromPreview('${ex.exercise_id}')"
                                 title="Retirer">
                             <i class="fas fa-times"></i>
@@ -4009,7 +4008,7 @@ class PlanningManager {
                         </h5>
                         <div class="exercise-grid">
                             ${exercises.map(ex => `
-                                <label class="exercise-option">
+                                <label class="planning-exercise-option">
                                     <input type="radio" name="newExercise" value="${ex.id}" 
                                         data-exercise='${JSON.stringify({
                                             exercise_id: ex.id,
@@ -4020,8 +4019,8 @@ class PlanningManager {
                                             reps_max: 12,
                                             rest_seconds: 90
                                         }).replace(/'/g, '&apos;')}'>
-                                    <div class="exercise-option-card">
-                                        <div class="exercise-name">${ex.name}</div>
+                                    <div class="planning-exercise-option-card">
+                                        <div class="planning-exercise-name">${ex.name}</div>
                                         <div class="exercise-details">3×8-12</div>
                                     </div>
                                 </label>
