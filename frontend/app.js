@@ -357,16 +357,8 @@ function transitionTo(state) {
     // 5. AFFICHER exclusivement l'interface pour le nouvel état
     switch(state) {
         case WorkoutStates.READY:
-            // D'abord afficher l'input section
+            document.getElementById('executeSetBtn').style.display = 'block';
             document.querySelector('.input-section').style.display = 'block';
-            
-            // Forcer l'affichage du bouton APRÈS que le container soit visible
-            setTimeout(() => {
-                const btn = document.getElementById('executeSetBtn');
-                if (btn) {
-                    btn.style.removeProperty('display'); // Enlever complètement le style inline
-                }
-            }, 100);
             
             // Vocal si activé ET pas déjà en cours
             if (currentUser?.voice_counting_enabled && 
@@ -391,6 +383,19 @@ function transitionTo(state) {
         case WorkoutStates.COMPLETED:
             // Géré par les fonctions spécifiques
             break;
+    }
+    
+    // Forcer la visibilité du bouton execute après toutes les animations
+    if (state === WorkoutStates.READY) {
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                const btn = document.getElementById('executeSetBtn');
+                if (btn && btn.style.display === 'none') {
+                    console.warn('ExecuteSetBtn était caché, forçage affichage');
+                    btn.style.display = 'block';
+                }
+            });
+        });
     }
 }
 
