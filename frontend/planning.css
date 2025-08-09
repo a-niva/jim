@@ -1701,14 +1701,9 @@
     }
 
     .planning-exercise-option {
-        padding: 12px 8px;
+        padding: 5px 5px;
         min-height: 48px; /* Touch-friendly */
         margin-bottom: 3px;
-    }
-
-    .planning-exercise-option-content {
-        padding: 12px;
-        min-height: 40px;
     }
 
     .exercises-list-container.collapsed {
@@ -2142,20 +2137,4 @@
 .toggle-chevron.clickable:hover {
     color: var(--primary);
     background: rgba(59, 130, 246, 0.1);
-}
-
-/* OPTIMISATIONS POUR PETITS ÉCRANS */
-@media (max-width: 480px) {
-    .exercises-list-container {
-        max-height: 300px;
-    }
-    
-    .planning-exercise-option {
-        padding: 10px 6px;
-    }
-    
-    .planning-exercise-option-content {
-        padding: 10px 8px;
-        font-size: 0.9rem;
-    }
 }
