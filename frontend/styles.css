@@ -6662,18 +6662,12 @@ span {
 /* ================================================= */
 
 .workout-end-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: var(--z-modal, 1000);
     display: none;
 }
 
 /* Contenu du modal */
 .workout-end-modal.active {
-    display: flex;
+    display: flex !important;
     align-items: center;
     justify-content: center;
 }
