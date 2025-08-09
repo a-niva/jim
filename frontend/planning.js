@@ -1066,7 +1066,7 @@ class PlanningManager {
                     
                     <!-- Liste des exercices -->
                     <div class="exercises-edit-section">
-                        <div class="preview-header">
+                        <div class="planning-preview-header">
                             <div class="header-content">
                                 <i class="fas fa-dumbbell"></i>
                                 <h4>Exercices de la séance</h4>
