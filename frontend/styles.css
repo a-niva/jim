@@ -6793,7 +6793,7 @@ span {
     .floating-btn-execute {
         width: 70px;
         height: 70px;
-        transform: translateX(-50%) translateY(-100%) scale(1) !important;
+        transform: translateX(-50%) translateY(-80%) scale(1) !important;
     }
     
     .floating-btn i {
