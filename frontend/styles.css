@@ -6662,12 +6662,17 @@ span {
 /* ================================================= */
 
 .workout-end-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--z-modal, 1000);
     display: none;
 }
 
-/* Contenu du modal */
 .workout-end-modal.active {
-    display: flex !important;
+    display: flex;
     align-items: center;
     justify-content: center;
 }
@@ -6684,8 +6689,9 @@ span {
     animation: fadeIn 0.3s ease;
 }
 
+/* Contenu du modal */
 .workout-end-content {
-    position: relative;
+    position: relative;  /* ✅ CHANGEMENT : relative au lieu de fixed */
     background: var(--bg-card, #1e293b);
     border-radius: 12px;
     padding: 2rem;
@@ -6697,6 +6703,7 @@ span {
     display: flex;
     flex-direction: column;
     align-items: center;
+    z-index: 1001;
 }
 
 .workout-end-content h3 {
