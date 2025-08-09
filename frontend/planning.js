@@ -2456,18 +2456,25 @@ class PlanningManager {
                 <div class="planning-modal-vertical">
                     <!-- Section exercices disponibles -->
                     <div class="exercises-selection-section">
-                        <div class="section-header clickable" onclick="planningManager.toggleExercisesList()">
+                        <div class="section-header">
                             <div class="header-content">
-                                <i class="fas fa-dumbbell"></i>
+                                <i class="fas fa-dumbbell header-main-icon"></i>
                                 <h4>Exercices disponibles</h4>
                                 <span class="exercise-count-badge">${sortedExercises.length}</span>
-                                <i class="fas fa-chevron-down toggle-chevron"></i>
+                                <div class="header-actions">
+                                    <i class="fas fa-search search-toggle-icon" 
+                                    onclick="planningManager.toggleSearchAndExpand()" 
+                                    title="Rechercher des exercices"></i>
+                                    <i class="fas fa-chevron-down toggle-chevron clickable" 
+                                    onclick="planningManager.toggleExercisesList()" 
+                                    title="Réduire/Développer"></i>
+                                </div>
                             </div>
                         </div>
                         
                         <!-- Barre de recherche discrète -->
                         <div class="search-bar-container">
-                            <i class="fas fa-search search-icon"></i>
+                            <i class="fas fa-search search-icon" onclick="this.nextElementSibling.focus();"></i>
                             <input type="text" 
                                 class="exercise-search-input" 
                                 placeholder="Rechercher..."
@@ -2723,9 +2730,10 @@ class PlanningManager {
         const muscleGroupsSummary = document.getElementById('muscleGroupsSummary');
         if (muscleGroupsSummary) {
             if (muscles.length > 0) {
-                const muscleTags = muscles.map(muscle => {
-                    const color = this.getMuscleGroupColor?.(muscle) || '#6b7280';
-                    return `<span class="muscle-tag" style="background-color: ${color}20; color: ${color}; border: 1px solid ${color}40">${muscle}</span>`;
+                const muscleTags = Array.from(muscles).map(muscle => {
+                    const color = window.MuscleColors?.getMuscleColor ? 
+                        window.MuscleColors.getMuscleColor(muscle) : '#6b7280';
+                    return `<span class="muscle-tag" style="background-color: ${color}20; color: ${color}; border: 1px solid ${color}40;">${muscle.charAt(0).toUpperCase() + muscle.slice(1)}</span>`;
                 }).join('');
                 
                 muscleGroupsSummary.innerHTML = muscleTags;
@@ -2887,37 +2895,54 @@ class PlanningManager {
         
         checkboxes.forEach(checkbox => {
             checkbox.addEventListener('change', (e) => {
-                const checkMark = e.target.closest('.planning-exercise-option').querySelector('.exercise-check-mark');
+                const option = e.target.closest('.planning-exercise-option');
+                const checkMark = option.querySelector('.exercise-check-mark');
+                
                 if (checkMark) {
-                    checkMark.style.display = e.target.checked ? 'flex' : 'none';
+                    if (e.target.checked) {
+                        checkMark.style.display = 'flex';
+                        option.classList.add('selected');
+                    } else {
+                        checkMark.style.display = 'none';
+                        option.classList.remove('selected');
+                    }
                 }
             });
         });
     }
         
-    // Utiliser toggleExercisesList existante ou l'adapter pour la nouvelle structure
-    toggleExercisesList() {
-        // Adapter pour la structure verticale
+    toggleSearchAndExpand() {
+        // D'abord s'assurer que la section est expanded
         const container = document.querySelector('.exercises-list-container');
-        const searchContainer = document.querySelector('.search-bar-container');
         const chevron = document.querySelector('.toggle-chevron');
         
-        if (!container || !chevron) return;
-        
-        const isCollapsed = container.classList.contains('collapsed');
-        
-        if (isCollapsed) {
-            container.classList.remove('collapsed');
-            if (searchContainer) searchContainer.style.display = 'flex';
-            chevron.classList.remove('closed');
-        } else {
-            container.classList.add('collapsed');
-            if (searchContainer) searchContainer.style.display = 'none';
-            chevron.classList.add('closed');
+        if (container && chevron) {
+            if (container.classList.contains('collapsed')) {
+                // Si c'est collapsed, on expand d'abord
+                this.toggleExercisesList();
+                
+                // Petit délai pour l'animation puis focus sur search
+                setTimeout(() => {
+                    const searchInput = document.querySelector('.exercise-search-input');
+                    if (searchInput) {
+                        searchInput.focus();
+                        // Sur mobile, scroll vers le search input
+                        if (window.innerWidth <= 768) {
+                            searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }
+                }, 300);
+            } else {
+                // Si déjà expanded, juste focus sur search
+                const searchInput = document.querySelector('.exercise-search-input');
+                if (searchInput) {
+                    searchInput.focus();
+                    if (window.innerWidth <= 768) {
+                        searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            }
         }
-        
-        // Sauvegarder préférence
-        localStorage.setItem('exercisesSectionCollapsed', !isCollapsed);
     }
 
     // GARDER cette méthode existante
@@ -3037,11 +3062,13 @@ class PlanningManager {
             exerciseGrid.classList.add('collapsed');
             exerciseGrid.style.maxHeight = '0';
             exerciseGrid.style.opacity = '0';
+            exerciseGrid.style.overflow = 'hidden';
             chevron.classList.add('closed');
         } else {
             exerciseGrid.classList.remove('collapsed');
             exerciseGrid.style.maxHeight = '400px';
             exerciseGrid.style.opacity = '1';
+            exerciseGrid.style.overflow = 'visible';
             chevron.classList.remove('closed');
         }
     }
@@ -4038,14 +4065,13 @@ class PlanningManager {
                     window.MuscleColors.getMuscleColor(muscle) : '#6b7280';
                 
                 return `
-                    <div class="exercise-group muscle-group-section" data-muscle="${muscle}">
-                        <h5 class="muscle-group-header clickable" 
-                            style="border-left: 4px solid ${color};" 
-                            onclick="window.planningManager.toggleMuscleGroup('${muscle}')">
-                            ${muscle.charAt(0).toUpperCase() + muscle.slice(1)} (${exercises.length})
-                            <i class="fas fa-chevron-down toggle-chevron"></i>
-                        </h5>
-                        <div class="muscle-group-section" data-muscle="${muscle}">
+                        <div class="exercise-group muscle-group-section" data-muscle="${muscle}">
+                            <h5 class="muscle-group-header clickable" 
+                                style="border-left: 4px solid ${color};" 
+                                onclick="window.planningManager.toggleMuscleGroup('${muscle}')">
+                                ${muscle.charAt(0).toUpperCase() + muscle.slice(1)} (${exercises.length})
+                                <i class="fas fa-chevron-down toggle-chevron"></i>
+                            </h5>
                             <div class="exercise-grid">
                                 ${exercises.map(ex => `
                                     <label class="planning-exercise-option" data-muscle="${muscle}">
@@ -4064,7 +4090,6 @@ class PlanningManager {
                                 `).join('')}
                             </div>
                         </div>
-                    </div>
                 `;
             }).join('');
             
