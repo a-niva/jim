@@ -2464,11 +2464,11 @@ class PlanningManager {
                                 <span class="exercise-count-badge">${sortedExercises.length}</span>
                                 <div class="header-actions">
                                     <i class="fas fa-search search-toggle-icon" 
-                                    onclick="planningManager.toggleSearchAndExpand()" 
-                                    title="Rechercher des exercices"></i>
+                                        id="searchToggleIcon"
+                                        title="Rechercher des exercices"></i>
                                     <i class="fas fa-chevron-down toggle-chevron clickable" 
-                                    onclick="planningManager.toggleExercisesList()" 
-                                    title="Réduire/Développer"></i>
+                                        id="toggleChevronIcon"
+                                        title="Réduire/Développer"></i>
                                 </div>
                             </div>
                         </div>
@@ -2574,6 +2574,25 @@ class PlanningManager {
             
             // Initialiser les fonctionnalités
             this.initializeSessionCreation(sessionIdToEdit);
+            // Handler pour la recherche
+            const searchToggle = document.getElementById('searchToggleIcon');
+            if (searchToggle) {
+                searchToggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    this.toggleSearchAndExpand();
+                });
+            }
+
+            // Handler pour le chevron toggle
+            const toggleChevron = document.getElementById('toggleChevronIcon');
+            if (toggleChevron) {
+                toggleChevron.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    this.toggleExercisesList();
+                });
+            }
             
         } catch (error) {
             console.error('❌ Erreur ouverture modal:', error);
