@@ -2495,7 +2495,7 @@ class PlanningManager {
                             <button class="magic-wand-btn" 
                                     onclick="planningManager.optimizeExerciseOrder()"
                                     title="Optimiser l'ordre"
-                                    ${exercises.length < 2 ? 'style="display: none;"' : ''}>
+                                    ${sortedExercises.length < 2 ? 'style="display: none;"' : ''}>
                                 <i class="fas fa-magic"></i>
                             </button>
                         </div>
