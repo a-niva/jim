@@ -11,24 +11,6 @@
 
 // ===== VARIABLES GLOBALES =====
 
-// Système de logs conditionnels
-const VOICE_DEBUG_LEVEL = {
-    NONE: 0,      // Aucun log
-    CRITICAL: 1,  // Erreurs seulement  
-    NORMAL: 2,    // Opérations importantes
-    VERBOSE: 3    // Tout (debug)
-};
-
-// En production : NORMAL, en debug : VERBOSE
-let currentDebugLevel = window.location.hostname === 'localhost' ? 
-    VOICE_DEBUG_LEVEL.VERBOSE : VOICE_DEBUG_LEVEL.NORMAL;
-
-function voiceLog(level, ...args) {
-    if (level <= currentDebugLevel) {
-        console.log(...args);
-    }
-}
-// Après la définition de voiceLog(), ajouter :
 function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
@@ -2236,7 +2218,9 @@ function updateVoiceDisplay(count) {
         const targetReps = targetEl ? parseInt(targetEl.textContent) || 12 : 12;
         
         // Utiliser la fonction moderne
-        debouncedVoiceDisplay(count, targetReps, { voiceActive: true });
+        if (window.updateRepDisplayModern) {
+            window.updateRepDisplayModern(count, targetReps, { voiceActive: true });
+        }
         
         // Mettre à jour voiceData
         voiceData.count = count;
@@ -2576,7 +2560,19 @@ function calculateAvgTempo(timestamps) {
     const intervals = [];
     for (let i = 1; i < timestamps.length; i++) {
         const interval = timestamps[i] - timestamps[i-1];
+        
+        // VALIDATION : Rejeter intervalles impossibles
+        if (interval < 100 || interval > 10000) {
+            console.warn(`[Voice] Intervalle suspect ignoré: ${interval}ms`);
+            continue;
+        }
+        
         intervals.push(interval);
+    }
+    
+    if (intervals.length === 0) {
+        console.warn('[Voice] Aucun intervalle valide pour calcul tempo');
+        return null;
     }
     
     const avgTempo = Math.round(
