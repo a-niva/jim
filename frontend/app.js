@@ -11299,8 +11299,9 @@ function completeRest() {
         updateSeriesDots();
         updateHeaderProgress();
         updateSetRecommendations();
-        transitionToReadyState();  // Garantit reset interface N/R
         // Transition vers READY (interface exclusive)
+        // Reset l'interface N/R
+        transitionToReadyState();
         transitionTo(WorkoutStates.READY);
     }
 }
