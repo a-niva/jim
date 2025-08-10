@@ -369,7 +369,31 @@ function initVoiceRecognition() {
         // Créer l'instance de reconnaissance vocale
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         recognition = new SpeechRecognition();
-        
+                
+        recognition.onstart = () => {
+            console.log('[ANDROID DEBUG] Recognition STARTED', {
+                timestamp: new Date().toISOString(),
+                continuous: recognition.continuous,
+                lang: recognition.lang
+            });
+        };
+
+        recognition.onspeechstart = () => {
+            console.log('[ANDROID DEBUG] Speech START detected');
+        };
+
+        recognition.onspeechend = () => {
+            console.log('[ANDROID DEBUG] Speech END detected');
+        };
+
+        recognition.onaudiostart = () => {
+            console.log('[ANDROID DEBUG] Audio START');
+        };
+
+        recognition.onaudioend = () => {
+            console.log('[ANDROID DEBUG] Audio END');
+        };
+
         // Configuration de base
         recognition.lang = 'fr-FR';
         recognition.continuous = true;
@@ -558,6 +582,12 @@ function clearAutoValidationTimer() {
  * Démarre la reconnaissance avec système de prédiction initialisé
  */
 function startVoiceRecognition() {
+    
+    console.log('[ANDROID DEBUG] Platform check:', {
+        isAndroid: PLATFORM_CONFIG?.isAndroid,
+        userAgent: navigator.userAgent,
+        platformConfigExists: typeof PLATFORM_CONFIG !== 'undefined'
+    });
     // PROTECTION RENFORCÉE
     if (voiceRecognitionActive) {
         console.log('[Voice] Reconnaissance déjà active - état synchronisé');
@@ -2230,33 +2260,70 @@ function handleVoiceError(event) {
  * Redémarre automatiquement si nécessaire
  */
 function handleVoiceEnd() {
-    console.log('[Voice] Reconnaissance terminée');
+    console.log('[ANDROID DEBUG] ============ handleVoiceEnd START ============');
+    console.log('[ANDROID DEBUG] État actuel:', {
+        timestamp: new Date().toISOString(),
+        voiceActive: voiceRecognitionActive,
+        workoutState: window.workoutState?.current,
+        isAndroid: PLATFORM_CONFIG?.isAndroid,
+        shouldRestart: false // sera calculé
+    });
     
     // Comportement spécifique Android
-    if (PLATFORM_CONFIG.isAndroid && shouldRestartAndroid()) {
-        handleAndroidRestart();
-        return;
+    if (PLATFORM_CONFIG?.isAndroid) {
+        console.log('[ANDROID DEBUG] Android détecté, vérification restart...');
+        
+        const shouldRestart = shouldRestartAndroid();
+        console.log('[ANDROID DEBUG] shouldRestartAndroid() =', shouldRestart);
+        
+        if (shouldRestart) {
+            console.log('[ANDROID DEBUG] Conditions OK, appel handleAndroidRestart()');
+            handleAndroidRestart();
+            return;
+        } else {
+            console.log('[ANDROID DEBUG] Conditions restart NON remplies');
+        }
+    } else {
+        console.log('[ANDROID DEBUG] Pas Android ou PLATFORM_CONFIG manquant');
     }
     
     // Comportement desktop normal
+    console.log('[ANDROID DEBUG] Comportement normal (pas de restart)');
     voiceRecognitionActive = false;
     updateMicrophoneVisualState('inactive');
+    console.log('[ANDROID DEBUG] ============ handleVoiceEnd END ============');
 }
 
 /**
  * Vérifier si restart Android nécessaire
  */
 function shouldRestartAndroid() {
-    return voiceRecognitionActive && 
+    console.log('[ANDROID DEBUG] shouldRestartAndroid() check:', {
+        voiceRecognitionActive: voiceRecognitionActive,
+        workoutState: window.workoutState?.current,
+        visibility: document.visibilityState,
+        restartCount: androidRestartCount,
+        maxRestarts: PLATFORM_CONFIG?.android?.maxRestarts
+    });
+    
+    const result = voiceRecognitionActive && 
            window.workoutState?.current === 'ready' &&
            document.visibilityState === 'visible' &&
-           androidRestartCount < PLATFORM_CONFIG.android.maxRestarts;
+           androidRestartCount < (PLATFORM_CONFIG?.android?.maxRestarts || 30);
+           
+    console.log('[ANDROID DEBUG] shouldRestartAndroid() result:', result);
+    return result;
 }
 
 /**
  * Gestion du restart Android
  */
 function handleAndroidRestart() {
+    console.log('[ANDROID DEBUG] handleAndroidRestart() APPELÉ', {
+        restartCount: androidRestartCount,
+        sessionStartTime: androidSessionStartTime,
+        currentTime: Date.now()
+    });
     // Vérifications de sécurité
     if (androidRestartCount >= PLATFORM_CONFIG.android.maxRestarts) {
         console.log('[Android] Limite de restarts atteinte');
@@ -2505,6 +2572,26 @@ window.getAndroidVoiceStats = function() {
         }
     };
 };
+
+
+window.checkAndroidState = function() {
+    console.log('[ANDROID DEBUG] État complet:', {
+        platformConfig: PLATFORM_CONFIG,
+        androidRestartCount: typeof androidRestartCount !== 'undefined' ? androidRestartCount : 'UNDEFINED',
+        androidSessionStartTime: typeof androidSessionStartTime !== 'undefined' ? androidSessionStartTime : 'UNDEFINED',
+        androidRestartTimer: typeof androidRestartTimer !== 'undefined' ? androidRestartTimer : 'UNDEFINED',
+        androidLastTranscripts: typeof androidLastTranscripts !== 'undefined' ? androidLastTranscripts : 'UNDEFINED',
+        functionsExist: {
+            shouldRestartAndroid: typeof shouldRestartAndroid === 'function',
+            handleAndroidRestart: typeof handleAndroidRestart === 'function',
+            cleanupAndroidResources: typeof cleanupAndroidResources === 'function'
+        }
+    });
+};
+
+
+
+
 
 window.resetAndroidVoice = function() {
     cleanupAndroidResources();
