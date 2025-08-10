@@ -2599,6 +2599,59 @@ window.resetAndroidVoice = function() {
     console.log('[Android] Reset forcé effectué');
 };
 
+
+// ===== PATCH ANDROID MINIMAL =====
+console.log('[ANDROID PATCH] Chargement...');
+
+// Vérifier si Android
+const isAndroid = /Android/i.test(navigator.userAgent);
+console.log('[ANDROID PATCH] Android détecté:', isAndroid);
+
+if (isAndroid) {
+    // Override handleVoiceEnd
+    const originalHandleVoiceEnd = window.handleVoiceEnd;
+    
+    window.handleVoiceEnd = function() {
+        console.log('[ANDROID PATCH] handleVoiceEnd intercepté');
+        
+        if (voiceRecognitionActive && window.workoutState?.current === 'ready') {
+            console.log('[ANDROID PATCH] Tentative restart dans 300ms...');
+            
+            setTimeout(() => {
+                if (!voiceRecognitionActive) {
+                    try {
+                        recognition.start();
+                        voiceRecognitionActive = true;
+                        updateMicrophoneVisualState('listening');
+                        console.log('[ANDROID PATCH] Restart réussi');
+                    } catch (e) {
+                        console.error('[ANDROID PATCH] Erreur restart:', e);
+                    }
+                }
+            }, 300);
+            
+            return;
+        }
+        
+        // Comportement normal
+        voiceRecognitionActive = false;
+        updateMicrophoneVisualState('inactive');
+    };
+    
+    console.log('[ANDROID PATCH] handleVoiceEnd remplacé');
+}
+
+// Test function
+window.testAndroidPatch = function() {
+    console.log('Android patch actif:', isAndroid);
+    console.log('handleVoiceEnd modifié:', window.handleVoiceEnd !== handleVoiceEnd);
+};
+
+console.log('[ANDROID PATCH] Prêt - testez avec window.testAndroidPatch()');
+
+
+
+
 // Exposition pour debug
 window.getVoiceSystemHealth = getVoiceSystemHealth;
 window.validateVoiceSystemCoherence = validateVoiceSystemCoherence;
