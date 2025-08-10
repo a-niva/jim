@@ -453,6 +453,8 @@ function updateRepDisplayModern(currentRep, targetRep, options = {}) {
     // Animation transition nombre actuel
     if (currentRepEl.textContent !== currentRep.toString()) {
         currentRepEl.classList.add('updating');
+        // Réduction légère du délai en mode vocal pour fluidité
+        const animationDelay = options.voiceActive ? 60 : 125;
         
         setTimeout(() => {
             currentRepEl.textContent = currentRep;
@@ -471,7 +473,7 @@ function updateRepDisplayModern(currentRep, targetRep, options = {}) {
                 currentRepEl.classList.add('exceeded');
                 setTimeout(() => currentRepEl.classList.remove('exceeded'), 600);
             }
-        }, 125);
+        }, animationDelay);
     }
     
     // Mise à jour target si changé

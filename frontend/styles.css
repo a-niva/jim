@@ -8675,3 +8675,14 @@ input {
     font-size: 0.85rem;
     margin-top: 1rem;
 }
+
+/* Optimisation légère pour mode vocal */
+.reps-display-modern.voice-active .updating {
+    transition-duration: 0.075s; /* 75ms au lieu de 125ms */
+}
+
+/* Force accélération GPU pour animations critiques */
+.updating {
+    will-change: transform;
+    transform: translateZ(0);
+}
