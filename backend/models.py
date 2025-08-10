@@ -24,6 +24,7 @@ class User(Base):
     preferred_weight_display_mode = Column(String(20), default='total')  # 'total' ou 'charge' 
     voice_counting_enabled = Column(Boolean, default=False)
     voice_counting_mode = Column(String(20), default='numbers')
+    motion_detection_enabled = Column(Boolean, default=False)
 
     # Relations
     workouts = relationship("Workout", back_populates="user", cascade="all, delete-orphan")

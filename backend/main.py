@@ -373,6 +373,9 @@ def update_user_preferences(
     
     if preferences.sound_notifications_enabled is not None:
         user.sound_notifications_enabled = preferences.sound_notifications_enabled
+
+    if preferences.motion_detection_enabled is not None:
+        user.motion_detection_enabled = preferences.motion_detection_enabled
     
     db.commit()
     db.refresh(user)

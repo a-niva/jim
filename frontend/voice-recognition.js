@@ -579,6 +579,17 @@ function stopVoiceRecognition() {
         
         // Calcul confiance finale
         voiceData.confidence = calculateConfidence();
+
+        // Enrichir avec données motion si applicable
+        if (voiceData.startMethod === 'motion') {
+            voiceData.motionSessionDuration = Date.now() - (voiceData.motionSessionStart || Date.now());
+            
+            // Bonus confiance légère si session motion complète
+            if (voiceData.motionSessionDuration > 10000) { // Plus de 10s
+                voiceData.confidence = Math.min(1.0, voiceData.confidence + 0.05);
+                console.log('[Voice] Bonus confiance motion: +0.05');
+            }
+        }
         
         // Exposition pour executeSet
         window.voiceData = voiceData;
@@ -652,6 +663,12 @@ function startVoiceRecognition() {
         startTime: Date.now(),
         confidence: 1.0
     };
+
+    // Tracker si démarré par motion
+    if (window.motionDetector?.state === 'stationary') {
+        voiceData.startMethod = 'motion';
+        voiceData.motionSessionStart = Date.now();
+    }
     
     // Reset flags
     executionInProgress = false;
@@ -1506,6 +1523,25 @@ function handleNumberDetected(number) {
     voiceData.count = number;
     voiceData.lastNumber = number;
     voiceData.timestamps.push(Date.now());
+    // Calcul tempo amélioré pour motion
+    if (voiceData.startMethod === 'motion' && voiceData.timestamps.length > 1) {
+        const lastIdx = voiceData.timestamps.length - 1;
+        const tempo = voiceData.timestamps[lastIdx] - voiceData.timestamps[lastIdx - 1];
+        
+        // Moyenne glissante simple
+        if (!voiceData.tempoSamples) voiceData.tempoSamples = [];
+        voiceData.tempoSamples.push(tempo);
+        
+        // Garder 5 derniers échantillons
+        if (voiceData.tempoSamples.length > 5) {
+            voiceData.tempoSamples.shift();
+        }
+        
+        // Calculer moyenne
+        voiceData.tempo_avg = Math.round(
+            voiceData.tempoSamples.reduce((a, b) => a + b, 0) / voiceData.tempoSamples.length
+        );
+    }
     voiceData.lastDetected = number;
     
     // OPT-A : Utiliser version debouncée pour éviter reflow DOM excessifs
@@ -2334,6 +2370,15 @@ function handleVoiceError(event) {
  * Redémarre automatiquement si nécessaire
  */
 function handleVoiceEnd() {
+    console.log('[Voice] Fin recognition détectée');
+
+    // Si motion active et stationnaire, ignorer la fin (Android restart)
+    if (window.motionDetector?.monitoring && 
+        window.motionDetector?.state === 'stationary' &&
+        voiceRecognitionActive) {
+        console.log('[Voice] Motion active, ignore end event');
+        return;
+    }
     console.log('[ANDROID DEBUG] ============ handleVoiceEnd START ============');
     console.log('[ANDROID DEBUG] État actuel:', {
         timestamp: new Date().toISOString(),

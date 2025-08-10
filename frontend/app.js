@@ -47,6 +47,9 @@ const WorkoutStates = {
     COMPLETED: 'completed'    // Exercice/séance terminé
 };
 
+let motionDetectionEnabled = false;
+let motionDetector = null;
+
 let workoutState = {
     current: WorkoutStates.IDLE,
     exerciseStartTime: null,
@@ -249,7 +252,6 @@ function storeCurrentScoringData(scoringData) {
 
 function transitionTo(state) {
     console.log(`[State] Transition: ${workoutState.current} → ${state}`);
-    
     // LIGNE MANQUANTE - AJOUTER ICI :
     workoutState.current = state;
     
@@ -257,6 +259,17 @@ function transitionTo(state) {
     // Ne nettoyer que si on SORT d'un état qui utilise des timers
     const oldState = workoutState.current;
     const newState = state;
+
+        // Nettoyer motion si changement d'état majeur
+    if ((newState === WorkoutStates.RESTING || 
+         newState === WorkoutStates.COMPLETED || 
+         newState === WorkoutStates.IDLE) && 
+        motionDetector?.monitoring) {
+        
+        console.log('[Motion] Stop (changement état)');
+        motionDetector.stopMonitoring();
+        hideMotionInstructions();
+    }
     
     // Nettoyer les timers vocaux SEULEMENT si on quitte un état vocal
     if ((oldState === WorkoutStates.EXECUTING || oldState === WorkoutStates.FEEDBACK) && 
@@ -4224,6 +4237,63 @@ async function selectExercise(exercise, skipValidation = false) {
    
     // Transition vers l'état READY
     transitionTo(WorkoutStates.READY);
+    
+    // Motion detection si activée ET vocal activé
+    if (currentUser?.motion_detection_enabled && currentUser?.voice_counting_enabled) {
+        await initMotionDetectionIfNeeded();
+        
+        if (motionDetectionEnabled && motionDetector) {
+            // Afficher instructions simples
+            showMotionInstructions();
+            
+            // Démarrer monitoring avec callbacks
+            motionDetector.startMonitoring({
+                onStationary: () => {
+                    // Vérifications avant auto-start
+                    if (workoutState.current === WorkoutStates.READY && 
+                        !window.voiceRecognitionActive?.()) {
+                        
+                        hideMotionInstructions();
+                        
+                        // Utiliser la fonction EXISTANTE
+                        console.log('[Motion] Auto-start vocal');
+                        window.startVoiceRecognition();
+                        
+                        // Petit feedback
+                        if (navigator.vibrate) {
+                            navigator.vibrate(100);
+                        }
+                    }
+                },
+                
+                onPickup: (wasStationary) => {
+                    // Si vocal actif, l'arrêter
+                    if (window.voiceRecognitionActive?.()) {
+                        console.log('[Motion] Auto-stop vocal');
+                        window.stopVoiceRecognition();
+                        
+                        // Si des données, déclencher validation
+                        const voiceData = window.voiceData;
+                        if (voiceData?.count > 0) {
+                            // Petite pause avant executeSet
+                            setTimeout(() => {
+                                if (workoutState.current === WorkoutStates.READY || 
+                                    workoutState.current === WorkoutStates.EXECUTING) {
+                                    executeSet();
+                                }
+                            }, 500);
+                        }
+                    }
+                    
+                    // Arrêter monitoring après pickup
+                    motionDetector.stopMonitoring();
+                }
+            });
+        }
+    } else {
+        // Comportement normal sans motion
+        activateVoiceForWorkout();
+    }
     activateVoiceForWorkout();
     
     // Démarrer le timer de la première série
@@ -7574,6 +7644,31 @@ async function loadProfile() {
                 </div>
             </div>
         `;
+
+        // === AJOUTER ICI LE TOGGLE MOTION DETECTION ===
+        // Afficher seulement si vocal activé
+        if (currentUser.voice_counting_enabled) {
+            profileHTML += `
+                <div class="profile-field motionsensor-field">
+                    <span class="field-label">
+                        Détection de mouvement 
+                        <span class="motionsensor-beta">BETA</span>
+                    </span>
+                    <small class="field-description">Pose/reprise automatique du téléphone</small>
+                    <div class="toggle-container">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="motionDetectionToggle"
+                                ${currentUser.motion_detection_enabled ? 'checked' : ''}
+                                onchange="toggleMotionDetection()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span id="motionDetectionLabel">
+                            ${currentUser.motion_detection_enabled ? 'Activée' : 'Désactivée'}
+                        </span>
+                    </div>
+                </div>
+            `;
+        }
     }
 
     // Ajouter le toggle pour le mode d'affichage du poids
@@ -7746,6 +7841,12 @@ async function toggleVoiceCounting() {
     if (!success) {
         // Rollback en cas d'erreur
         toggle.checked = !newState;
+    } else {
+        // === Recharger le profil pour afficher/masquer motion ===
+        if (document.getElementById('profile').style.display !== 'none') {
+            // Si on est sur la vue profil, recharger pour montrer/cacher motion
+            loadProfile();
+        }
     }
 }
 
@@ -11305,9 +11406,93 @@ function completeRest() {
         // Reset l'interface N/R
         transitionToReadyState();
         transitionTo(WorkoutStates.READY);
+        
+        // Réactiver motion pour nouvelle série si conditions réunies
+        if (motionDetectionEnabled && 
+            currentUser?.motion_detection_enabled && 
+            currentUser?.voice_counting_enabled) {
+            
+            setTimeout(() => {
+                if (motionDetector && workoutState.current === WorkoutStates.READY) {
+                    showMotionInstructions();
+                    motionDetector.startMonitoring({
+                        onStationary: () => {
+                            if (!window.voiceRecognitionActive?.()) {
+                                hideMotionInstructions();
+                                window.startVoiceRecognition();
+                            }
+                        },
+                        onPickup: () => {
+                            if (window.voiceRecognitionActive?.()) {
+                                window.stopVoiceRecognition();
+                                if (window.voiceData?.count > 0) {
+                                    setTimeout(() => executeSet(), 500);
+                                }
+                            }
+                            motionDetector.stopMonitoring();
+                        }
+                    });
+                }
+            }, 500);
+        }
     }
 }
 
+// === MOTION SENSOR : FONCTIONS UI SIMPLES ===
+function showMotionInstructions() {
+    // Éviter doublons
+    if (document.getElementById('motionInstructions')) return;
+    
+    const html = `
+        <div id="motionInstructions" class="motionsensor-instructions">
+            <i class="fas fa-mobile-alt motionsensor-icon"></i>
+            <p class="motionsensor-text">Posez votre téléphone pour démarrer</p>
+        </div>
+    `;
+    
+    const container = document.querySelector('.exercise-interface');
+    if (container) {
+        container.insertAdjacentHTML('afterbegin', html);
+    }
+}
+
+function hideMotionInstructions() {
+    const el = document.getElementById('motionInstructions');
+    if (el) {
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 300);
+    }
+}
+
+// === MOTION SENSOR : TOGGLE PRÉFÉRENCES (à ajouter avec autres toggles ~1500) ===
+async function toggleMotionDetection() {
+    const toggle = document.getElementById('motionDetectionToggle');
+    const newState = toggle.checked;
+
+    try {
+        await apiPut(`/api/users/${currentUser.id}/preferences`, {
+            motion_detection_enabled: newState
+        });
+
+        currentUser.motion_detection_enabled = newState;
+        
+        document.getElementById('motionDetectionLabel').textContent = 
+            newState ? 'Activée' : 'Désactivée';
+
+        // Si désactivé, nettoyer
+        if (!newState && motionDetector) {
+            motionDetector.stopMonitoring();
+            motionDetectionEnabled = false;
+            motionDetector = null;
+        }
+
+        showToast('Préférence mise à jour', 'success');
+
+    } catch (error) {
+        toggle.checked = !newState;
+        showToast('Erreur lors de la sauvegarde', 'error');
+    }
+}
 // ===== MISE À JOUR DURÉE DE REPOS =====
 async function updateLastSetRestDuration(actualRestTime) {
     try {
@@ -13044,6 +13229,29 @@ function hideEndWorkoutModal() {
     if (modal) {
         modal.classList.remove('active'); 
         document.body.style.overflow = '';
+    }
+}
+
+// === FONCTION SIMPLE D'INIT (à ajouter ligne ~100) ===
+async function initMotionDetectionIfNeeded() {
+    if (!currentUser?.motion_detection_enabled || motionDetectionEnabled) {
+        return;
+    }
+
+    if (!window.MotionDetector) {
+        console.log('[Motion] Module non chargé');
+        return;
+    }
+
+    try {
+        motionDetector = new MotionDetector();
+        const success = await motionDetector.init();
+        if (success) {
+            motionDetectionEnabled = true;
+            console.log('[Motion] Système prêt');
+        }
+    } catch (error) {
+        console.error('[Motion] Erreur init:', error);
     }
 }
 
