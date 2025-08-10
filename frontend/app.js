@@ -250,6 +250,9 @@ function storeCurrentScoringData(scoringData) {
 function transitionTo(state) {
     console.log(`[State] Transition: ${workoutState.current} → ${state}`);
     
+    // LIGNE MANQUANTE - AJOUTER ICI :
+    workoutState.current = state;
+    
     // === NETTOYAGE CIBLÉ SELON LA TRANSITION ===
     // Ne nettoyer que si on SORT d'un état qui utilise des timers
     const oldState = workoutState.current;
