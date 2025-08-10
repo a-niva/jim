@@ -236,6 +236,24 @@ const timers = {
     }
 };
 
+// ===== VARIABLES ANDROID =====
+const PLATFORM_CONFIG = {
+    isAndroid: /Android/i.test(navigator.userAgent),
+    android: {
+        maxRestarts: 30,
+        restartDelay: 300,
+        duplicateWindow: 2000,
+        sessionTimeout: 180000,
+        cleanupDelay: 500
+    }
+};
+
+let androidRestartCount = 0;
+let androidSessionStartTime = 0;
+let androidRestartTimer = null;
+let androidLastTranscripts = [];
+
+
 // Initialiser le cache une seule fois
 function initDOMCache() {
     domCache.voiceContainer = document.getElementById('voiceStatusContainer');
@@ -591,7 +609,20 @@ function startVoiceRecognition() {
     try {
         recognition.start();
         voiceRecognitionActive = true;
-        
+        // Configuration Android
+        if (PLATFORM_CONFIG.isAndroid) {
+            androidRestartCount = 0;
+            androidSessionStartTime = Date.now();
+            androidLastTranscripts = [];
+            
+            // Informer l'utilisateur
+            showToast('Mode Android : redémarrage automatique du micro', 'info');
+            
+            // Cleanup listeners
+            window.addEventListener('beforeunload', cleanupAndroidResources);
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+        }
+                
         // ÉTAT VISUEL - ICI À LA FIN
         updateMicrophoneVisualState('listening');
         
@@ -655,6 +686,11 @@ function handleInterimResult(transcript) {
  * Traite les résultats finaux pour validation définitive
  */
 function handleFinalResult(transcript) {
+    // Détection de doublons Android
+    if (PLATFORM_CONFIG.isAndroid && isAndroidDuplicate(transcript)) {
+        console.log('[Android] Doublon détecté, ignoré:', transcript);
+        return;
+    }
     console.log('[Voice] Final:', transcript);
     
     // 1. Vérifier cache (existant)
@@ -2142,6 +2178,13 @@ function updateMicroIndicator(count) {
  * Gère les erreurs de permissions, réseau, etc.
 */
 function handleVoiceError(event) {
+    // Erreurs ignorables sur Android
+    if (PLATFORM_CONFIG.isAndroid) {
+        if (event.error === 'no-speech' || event.error === 'aborted') {
+            console.log('[Android] Erreur normale, restart automatique');
+            return;
+        }
+    }
     // Gestion spéciale "aborted"
     if (event.error === 'aborted') {
         console.log('[Voice] Reconnaissance aborted - transition propre');
@@ -2185,38 +2228,166 @@ function handleVoiceError(event) {
 /**
  * Gestionnaire de fin de reconnaissance vocale
  * Redémarre automatiquement si nécessaire
- * 
- * @returns {void}
  */
 function handleVoiceEnd() {
     console.log('[Voice] Reconnaissance terminée');
     
-    // Redémarrer SEULEMENT si on est toujours en état READY et actif
-    if (voiceRecognitionActive && 
-        window.workoutState && 
-        window.workoutState.current === 'ready') {
-        
-        // Délai plus long pour éviter l'effet stroboscopique
-        setTimeout(() => {
-            if (voiceRecognitionActive && recognition) {
-                try {
-                    recognition.start();
-                    console.log('[Voice] Redémarrage silencieux');
-                } catch (e) {
-                    // Ignorer l'erreur si déjà démarré
-                    if (e.name !== 'InvalidStateError') {
-                        console.error('[Voice] Erreur redémarrage:', e);
-                    }
+    // Comportement spécifique Android
+    if (PLATFORM_CONFIG.isAndroid && shouldRestartAndroid()) {
+        handleAndroidRestart();
+        return;
+    }
+    
+    // Comportement desktop normal
+    voiceRecognitionActive = false;
+    updateMicrophoneVisualState('inactive');
+}
+
+/**
+ * Vérifier si restart Android nécessaire
+ */
+function shouldRestartAndroid() {
+    return voiceRecognitionActive && 
+           window.workoutState?.current === 'ready' &&
+           document.visibilityState === 'visible' &&
+           androidRestartCount < PLATFORM_CONFIG.android.maxRestarts;
+}
+
+/**
+ * Gestion du restart Android
+ */
+function handleAndroidRestart() {
+    // Vérifications de sécurité
+    if (androidRestartCount >= PLATFORM_CONFIG.android.maxRestarts) {
+        console.log('[Android] Limite de restarts atteinte');
+        stopVoiceRecognitionWithReason('Limite de redémarrages atteinte');
+        return;
+    }
+    
+    const sessionDuration = Date.now() - androidSessionStartTime;
+    if (sessionDuration > PLATFORM_CONFIG.android.sessionTimeout) {
+        console.log('[Android] Timeout session atteint');
+        stopVoiceRecognitionWithReason('Session expirée');
+        return;
+    }
+    
+    // Préserver l'état
+    const preservedState = {
+        count: voiceData.count,
+        timestamps: [...voiceData.timestamps],
+        gaps: [...voiceData.gaps],
+        lastNumber: voiceData.lastNumber,
+        confidence: voiceData.confidence,
+        suspiciousJumps: voiceData.suspiciousJumps,
+        repetitions: voiceData.repetitions
+    };
+    
+    androidRestartCount++;
+    console.log(`[Android] Restart #${androidRestartCount}`);
+    
+    // Programmer le restart
+    androidRestartTimer = setTimeout(() => {
+        if (!voiceRecognitionActive && 
+            window.workoutState?.current === 'ready' &&
+            document.visibilityState === 'visible') {
+            
+            try {
+                // Restaurer l'état
+                Object.assign(voiceData, preservedState);
+                window.voiceData = voiceData;
+                
+                // Redémarrer
+                recognition.start();
+                voiceRecognitionActive = true;
+                updateMicrophoneVisualState('listening');
+                
+                console.log('[Android] Restart réussi');
+                
+            } catch (error) {
+                console.error('[Android] Erreur restart:', error);
+                if (error.name !== 'InvalidStateError') {
+                    stopVoiceRecognitionWithReason('Erreur technique');
                 }
             }
-        }, 500); // 500ms au lieu de 100ms
+        }
+    }, PLATFORM_CONFIG.android.restartDelay);
+}
+
+/**
+ * Arrêt avec raison
+ */
+function stopVoiceRecognitionWithReason(reason) {
+    console.log('[Voice] Arrêt:', reason);
+    
+    if (window.showToast) {
+        window.showToast(`Micro arrêté : ${reason}`, 'warning');
     }
-    if (recognitionCache && recognitionCache.size > 50) {
-        if (recognitionCache.size > MAX_CACHE_SIZE / 2) {
-            recognitionCache.clear();
+    
+    cleanupAndroidResources();
+    stopVoiceRecognition();
+}
+
+/**
+ * Cleanup ressources Android
+ */
+function cleanupAndroidResources() {
+    if (androidRestartTimer) {
+        clearTimeout(androidRestartTimer);
+        androidRestartTimer = null;
+    }
+    
+    androidRestartCount = 0;
+    androidLastTranscripts = [];
+    
+    console.log('[Android] Ressources nettoyées');
+}
+
+/**
+ * Gestion visibilité page
+ */
+function handleVisibilityChange() {
+    if (document.visibilityState === 'hidden' && PLATFORM_CONFIG.isAndroid) {
+        if (androidRestartTimer) {
+            clearTimeout(androidRestartTimer);
+            androidRestartTimer = null;
+            console.log('[Android] Page cachée, restarts suspendus');
         }
     }
 }
+
+/**
+ * Détection de doublons Android
+ */
+function isAndroidDuplicate(transcript) {
+    const now = Date.now();
+    
+    // Normaliser le transcript
+    const normalizedTranscript = transcript.toLowerCase().trim();
+    
+    // Vérifier les doublons
+    const isDuplicate = androidLastTranscripts.some(entry => 
+        entry.transcript === normalizedTranscript && 
+        (now - entry.timestamp) < PLATFORM_CONFIG.android.duplicateWindow
+    );
+    
+    // Ajouter au cache
+    androidLastTranscripts.push({ 
+        transcript: normalizedTranscript, 
+        timestamp: now 
+    });
+    
+    // Nettoyer le cache
+    androidLastTranscripts = androidLastTranscripts.filter(entry => 
+        (now - entry.timestamp) < PLATFORM_CONFIG.android.duplicateWindow * 2
+    );
+    
+    if (androidLastTranscripts.length > 10) {
+        androidLastTranscripts = androidLastTranscripts.slice(-10);
+    }
+    
+    return isDuplicate;
+}
+
 
 // ===== FONCTIONS UTILITAIRES =====
 
@@ -2309,6 +2480,37 @@ function validateVoiceSystemCoherence() {
     
     return { healthy: issues.length === 0, issues };
 }
+
+
+// ===== DEBUG ANDROID =====
+window.getAndroidVoiceStats = function() {
+    if (!PLATFORM_CONFIG.isAndroid) {
+        return { platform: 'desktop', message: 'Pas de stats Android' };
+    }
+    
+    const sessionDuration = Date.now() - androidSessionStartTime;
+    
+    return {
+        platform: 'Android',
+        restartCount: androidRestartCount,
+        maxRestarts: PLATFORM_CONFIG.android.maxRestarts,
+        sessionDuration: Math.round(sessionDuration / 1000) + 's',
+        duplicatesInCache: androidLastTranscripts.length,
+        currentState: voiceRecognitionActive ? 'active' : 'inactive',
+        workoutState: window.workoutState?.current,
+        voiceData: {
+            count: voiceData?.count || 0,
+            gaps: voiceData?.gaps || [],
+            confidence: voiceData?.confidence || 0
+        }
+    };
+};
+
+window.resetAndroidVoice = function() {
+    cleanupAndroidResources();
+    androidSessionStartTime = Date.now();
+    console.log('[Android] Reset forcé effectué');
+};
 
 // Exposition pour debug
 window.getVoiceSystemHealth = getVoiceSystemHealth;
