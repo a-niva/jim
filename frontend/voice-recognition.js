@@ -179,12 +179,20 @@ function debounce(func, wait) {
 }
 
 // Version debounced de updateRepDisplayModern
-// Utiliser la version globale si disponible, sinon créer une version locale
-const debouncedVoiceDisplay = window.debouncedUpdateDisplay || debounce((count, target, options) => {
-    if (window.updateRepDisplayModern) {
-        window.updateRepDisplayModern(count, target, options);
-    }
-}, 150); // 150ms si pas de version globale
+// APRÈS - Déterminer fonction UNE SEULE FOIS
+let voiceDisplayFunction;
+if (window.debouncedUpdateDisplay) {
+    // Utiliser version app.js si existe
+    voiceDisplayFunction = window.debouncedUpdateDisplay;
+} else if (window.updateRepDisplayModern) {
+    // Créer version debouncée locale avec délai réduit
+    voiceDisplayFunction = debounce(window.updateRepDisplayModern, 100);
+} else {
+    // Fallback
+    voiceDisplayFunction = (count, target, options) => {
+        console.warn('[Voice] Aucune fonction d\'affichage disponible');
+    };
+}
 
 
 // SYSTÈME DE PRÉDICTION
@@ -265,6 +273,10 @@ let androidSessionStartTime = 0;
 let androidRestartTimer = null;
 let androidLastTranscripts = [];
 
+// Cache tempo pour éviter recalculs
+let cachedTempo = null;
+let tempoInvalidated = true;
+let lastTimestampCount = 0;
 
 // Créer la version debouncée
 const debouncedUpdate = debounce(updateVoiceDisplay, 100);
@@ -1407,13 +1419,7 @@ function updateVoiceDisplayImmediate(count) {
     }
 }
 
-/**
- * Gère la détection d'un nombre dans la reconnaissance vocale
- * 
- * @param {number} number - Nombre détecté
- * @returns {void}
- */
-/**
+/*
  * Gère la détection d'un nombre dans la reconnaissance vocale
  * VERSION OPTIMISÉE avec gestion gaps intelligente + debouncing + cache confidence
  * 
@@ -1423,9 +1429,10 @@ function updateVoiceDisplayImmediate(count) {
 function handleNumberDetected(number) {
     console.log(`[Voice] Nombre détecté: ${number}`);
     
-    // Invalider cache seulement si réel changement
+    // Invalider cache tempo seulement si nouveau nombre
     if (number !== voiceData.count) {
-        confidenceInvalidated = true; // Seulement si nouveau nombre
+        confidenceInvalidated = true;
+        tempoInvalidated = true; // AJOUTER cette ligne
     }
     
     // Validation de base existante - INCHANGÉE
@@ -2218,9 +2225,7 @@ function updateVoiceDisplay(count) {
         const targetReps = targetEl ? parseInt(targetEl.textContent) || 12 : 12;
         
         // Utiliser la fonction moderne
-        if (window.updateRepDisplayModern) {
-            window.updateRepDisplayModern(count, targetReps, { voiceActive: true });
-        }
+        voiceDisplayFunction(count, targetReps, { voiceActive: true });
         
         // Mettre à jour voiceData
         voiceData.count = count;
@@ -2552,6 +2557,14 @@ function isAndroidDuplicate(transcript) {
  * @returns {number|null} - Tempo moyen en millisecondes ou null si insuffisant
  */
 function calculateAvgTempo(timestamps) {
+    // Cache hit si données inchangées
+    if (!tempoInvalidated && 
+        cachedTempo !== null && 
+        timestamps && 
+        timestamps.length === lastTimestampCount) {
+        return cachedTempo;
+    }
+    
     if (!timestamps || timestamps.length < 2) {
         console.log('[Voice] Pas assez de timestamps pour calculer le tempo');
         return null;
@@ -2561,7 +2574,7 @@ function calculateAvgTempo(timestamps) {
     for (let i = 1; i < timestamps.length; i++) {
         const interval = timestamps[i] - timestamps[i-1];
         
-        // VALIDATION : Rejeter intervalles impossibles
+        // NOUVEAU : Validation intervalles pour éviter bugs tempo
         if (interval < 100 || interval > 10000) {
             console.warn(`[Voice] Intervalle suspect ignoré: ${interval}ms`);
             continue;
@@ -2578,6 +2591,11 @@ function calculateAvgTempo(timestamps) {
     const avgTempo = Math.round(
         intervals.reduce((sum, interval) => sum + interval, 0) / intervals.length
     );
+    
+    // Mettre en cache
+    cachedTempo = avgTempo;
+    tempoInvalidated = false;
+    lastTimestampCount = timestamps.length;
     
     console.log('[Voice] Tempo moyen calculé:', avgTempo, 'ms entre reps');
     return avgTempo;
