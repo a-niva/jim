@@ -2339,75 +2339,52 @@ function handleAndroidRestart() {
         return;
     }
     
-    // Préserver l'état AVANT d'arrêter
+    // Préserver l'état
     const preservedState = {
-        count: voiceData.count,
-        timestamps: [...voiceData.timestamps],
-        gaps: [...voiceData.gaps],
-        lastNumber: voiceData.lastNumber,
-        confidence: voiceData.confidence,
-        suspiciousJumps: voiceData.suspiciousJumps,
-        repetitions: voiceData.repetitions
+        count: voiceData.count || 0,
+        timestamps: voiceData.timestamps ? [...voiceData.timestamps] : [],
+        gaps: voiceData.gaps ? [...voiceData.gaps] : [],
+        lastNumber: voiceData.lastNumber || 0,
+        confidence: voiceData.confidence || 1
     };
     
     androidRestartCount++;
     console.log(`[Android] Restart #${androidRestartCount}`);
+    console.log('[Android] État préservé:', preservedState);
     
-    // ARRÊTER le micro d'abord pour permettre le restart
+    // NE PAS toucher à voiceRecognitionActive ici !
+    // Le micro est encore techniquement actif du point de vue de l'API
+    
+    // Restart immédiat sans délai
     try {
+        // D'abord restaurer l'état
+        Object.assign(voiceData, preservedState);
+        window.voiceData = voiceData;
+        
+        // Puis restart direct
         recognition.stop();
-        voiceRecognitionActive = false;
-        console.log('[Android] Micro arrêté pour restart');
-    } catch (e) {
-        console.log('[Android] Erreur lors de l\'arrêt:', e);
-    }
-    
-    // Programmer le restart APRÈS l'arrêt
-    androidRestartTimer = setTimeout(() => {
-        // Vérifier uniquement l'état workout et la visibilité
-        if (window.workoutState?.current === 'ready' &&
-            document.visibilityState === 'visible') {
-            
+        
+        // Petit délai pour laisser l'API respirer
+        setTimeout(() => {
             try {
-                // Restaurer l'état préservé
-                Object.assign(voiceData, preservedState);
-                window.voiceData = voiceData;
-                
-                // Redémarrer la reconnaissance
                 recognition.start();
-                voiceRecognitionActive = true;
+                console.log('[Android] Restart réussi, état restauré');
+                
+                // Garder l'interface synchronisée
                 updateMicrophoneVisualState('listening');
                 
-                console.log('[Android] Restart réussi avec état restauré:', preservedState);
-                
-            } catch (error) {
-                console.error('[Android] Erreur restart:', error);
-                
-                // Si InvalidStateError, la reconnaissance est peut-être encore active
-                if (error.name === 'InvalidStateError') {
-                    console.log('[Android] Recognition encore active, retry...');
-                    // Forcer l'arrêt et réessayer
-                    try {
-                        recognition.stop();
-                        setTimeout(() => {
-                            recognition.start();
-                            voiceRecognitionActive = true;
-                            updateMicrophoneVisualState('listening');
-                        }, 100);
-                    } catch (e) {
-                        stopVoiceRecognitionWithReason('Erreur technique');
-                    }
-                } else {
-                    stopVoiceRecognitionWithReason('Erreur technique');
-                }
+            } catch (e) {
+                console.error('[Android] Erreur au restart:', e);
+                voiceRecognitionActive = false;
+                updateMicrophoneVisualState('inactive');
             }
-        } else {
-            console.log('[Android] Conditions de restart non remplies');
-            // Restaurer l'état du micro si on ne redémarre pas
-            voiceRecognitionActive = false;
-            updateMicrophoneVisualState('inactive');
-        }
-    }, PLATFORM_CONFIG.android.restartDelay || 300);
+        }, 100);
+        
+    } catch (error) {
+        console.error('[Android] Erreur:', error);
+        voiceRecognitionActive = false;
+        updateMicrophoneVisualState('inactive');
+    }
 }
 
 /**
@@ -2638,37 +2615,37 @@ window.resetAndroidVoice = function() {
 
 
 
-
-// ===== PATCH ANDROID CORRIGÉ =====
+// ===== PATCH ANDROID SIMPLIFIÉ =====
 console.log('[ANDROID PATCH] Chargement...');
 
 if (PLATFORM_CONFIG?.isAndroid) {
     console.log('[ANDROID PATCH] Android détecté:', true);
     
-    // Sauvegarder l'ancienne fonction AVANT de l'écraser
+    // Sauvegarder l'ancienne fonction
     const originalHandleVoiceEnd = window.handleVoiceEnd;
     
-    // Remplacer avec logique de restart
+    // Remplacer par une version qui NE fait PAS le comportement normal
     window.handleVoiceEnd = function() {
         console.log('[ANDROID PATCH] handleVoiceEnd intercepté');
         
-        // Appeler la fonction originale d'abord pour le comportement normal
-        if (typeof originalHandleVoiceEnd === 'function') {
-            originalHandleVoiceEnd();
+        // Si on doit redémarrer, NE PAS appeler l'original
+        if (shouldRestartAndroid()) {
+            console.log('[ANDROID PATCH] Restart Android détecté - bypass comportement normal');
+            handleAndroidRestart();
+            // RETURN ICI - ne pas exécuter le reste
+            return;
         }
         
-        // PUIS vérifier si on doit redémarrer
-        if (shouldRestartAndroid()) {
-            console.log('[ANDROID PATCH] Restart nécessaire');
-            handleAndroidRestart();
+        // Sinon, comportement normal
+        console.log('[ANDROID PATCH] Pas de restart - comportement normal');
+        if (typeof originalHandleVoiceEnd === 'function') {
+            originalHandleVoiceEnd();
         }
     };
     
     console.log('[ANDROID PATCH] handleVoiceEnd remplacé avec logique restart');
     window.testAndroidPatch = () => console.log('[ANDROID PATCH] Test OK');
 }
-console.log('[ANDROID PATCH] Prêt - testez avec window.testAndroidPatch()');
-
 
 
 
