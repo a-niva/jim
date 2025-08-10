@@ -376,7 +376,7 @@ function updateMicrophoneVisualState(state) {
         }
         
         currentMicState = state;
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, `[Voice] État visuel micro: ${state}`);
+        console.log(`[Voice] État visuel micro: ${state}`);
     });
 }
 
@@ -403,7 +403,7 @@ function initVoiceRecognition() {
         recognition = new SpeechRecognition();
                 
         recognition.onstart = () => {
-            voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[ANDROID DEBUG] Recognition STARTED', {
+            console.log('[ANDROID DEBUG] Recognition STARTED', {
                 timestamp: new Date().toISOString(),
                 continuous: recognition.continuous,
                 lang: recognition.lang
@@ -411,19 +411,19 @@ function initVoiceRecognition() {
         };
 
         recognition.onspeechstart = () => {
-            voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[ANDROID DEBUG] Speech START detected');
+            console.log('[ANDROID DEBUG] Speech START detected');
         };
 
         recognition.onspeechend = () => {
-            voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[ANDROID DEBUG] Speech END detected');
+            console.log('[ANDROID DEBUG] Speech END detected');
         };
 
         recognition.onaudiostart = () => {
-            voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[ANDROID DEBUG] Audio START');
+            console.log('[ANDROID DEBUG] Audio START');
         };
 
         recognition.onaudioend = () => {
-            voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[ANDROID DEBUG] Audio END');
+            console.log('[ANDROID DEBUG] Audio END');
         };
 
         // Configuration de base
@@ -437,12 +437,12 @@ function initVoiceRecognition() {
         recognition.onerror = handleVoiceError;
         recognition.onend = handleVoiceEnd;
         recognition.onstart = () => {
-            voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Reconnaissance démarrée');
+            console.log('[Voice] Reconnaissance démarrée');
         };
         
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Module initialisé avec succès');
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Langue configurée:', recognition.lang);
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Mode continu:', recognition.continuous);
+        console.log('[Voice] Module initialisé avec succès');
+        console.log('[Voice] Langue configurée:', recognition.lang);
+        console.log('[Voice] Mode continu:', recognition.continuous);
         
         return true;
         
@@ -507,7 +507,7 @@ function startAutoValidationTimer() {
         handleAutoValidation();
     }, 30000));
     
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Timer auto-validation démarré (30s)');
+    console.log('[Voice] Timer auto-validation démarré (30s)');
 }
 
 /**
@@ -527,7 +527,7 @@ function resetAutoValidationTimer() {
         handleAutoValidation();
     }, 30000));
     
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Timer auto-validation remis à zéro');
+    console.log('[Voice] Timer auto-validation remis à zéro');
 }
 
 /**
@@ -538,7 +538,7 @@ function handleAutoValidation() {
         return;
     }
     
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Timeout atteint - auto-validation');
+    console.log('[Voice] Timeout atteint - auto-validation');
     
     // Marquer l'exécution en cours
     executionInProgress = true;
@@ -548,7 +548,7 @@ function handleAutoValidation() {
     
     // Valider avec le compte actuel
     if (voiceData.count > 0) {
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, `[Voice] Auto-validation avec ${voiceData.count} répétitions`);
+        console.log(`[Voice] Auto-validation avec ${voiceData.count} répétitions`);
         
         // Déclencher executeSet() si disponible
         if (typeof window.executeSet === 'function') {
@@ -568,7 +568,7 @@ function handleAutoValidation() {
  */
 function stopVoiceRecognition() {
     if (!voiceRecognitionActive) {
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Reconnaissance déjà inactive');
+        console.log('[Voice] Reconnaissance déjà inactive');
         return;
     }
     
@@ -589,8 +589,8 @@ function stopVoiceRecognition() {
         // Exposition pour executeSet
         window.voiceData = voiceData;
         
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Reconnaissance arrêtée');
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Données finales:', {
+        console.log('[Voice] Reconnaissance arrêtée');
+        console.log('[Voice] Données finales:', {
             count: voiceData.count,
             confidence: voiceData.confidence.toFixed(2)
         });
@@ -607,7 +607,7 @@ function stopVoiceRecognition() {
  */
 function clearAutoValidationTimer() {
     timers.clear('autoValidation');
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Timer auto-validation supprimé');
+    console.log('[Voice] Timer auto-validation supprimé');
 }
 
 /**
@@ -615,20 +615,20 @@ function clearAutoValidationTimer() {
  */
 function startVoiceRecognition() {
     
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[ANDROID DEBUG] Platform check:', {
+    console.log('[ANDROID DEBUG] Platform check:', {
         isAndroid: PLATFORM_CONFIG?.isAndroid,
         userAgent: navigator.userAgent,
         platformConfigExists: typeof PLATFORM_CONFIG !== 'undefined'
     });
     // PROTECTION RENFORCÉE
     if (voiceRecognitionActive) {
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Reconnaissance déjà active - état synchronisé');
+        console.log('[Voice] Reconnaissance déjà active - état synchronisé');
         updateMicrophoneVisualState('listening'); // Synchroniser visuel
         return true; // ← CRUCIAL : retourner true, pas false
     }
     
     if (!recognition) {
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Instance manquante, initialisation...');
+        console.log('[Voice] Instance manquante, initialisation...');
         const initSuccess = initVoiceRecognition();
         if (!initSuccess || !recognition) {
             console.error('[Voice] Impossible de créer instance recognition');
@@ -639,7 +639,7 @@ function startVoiceRecognition() {
     
     // Vérification utilisateur autorise vocal
     if (!currentUser?.voice_counting_enabled) {
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Comptage vocal désactivé pour cet utilisateur');
+        console.log('[Voice] Comptage vocal désactivé pour cet utilisateur');
         showToast('Comptage vocal désactivé', 'info');
         return false;
     }
@@ -691,7 +691,7 @@ function startVoiceRecognition() {
         // Exposer globalement
         window.voiceData = voiceData;
         
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Reconnaissance démarrée avec succès');
+        console.log('[Voice] Reconnaissance démarrée avec succès');
         return true;
         
     } catch (error) {
@@ -750,10 +750,10 @@ function handleInterimResult(transcript) {
 function handleFinalResult(transcript) {
     // Détection de doublons Android
     if (PLATFORM_CONFIG.isAndroid && isAndroidDuplicate(transcript)) {
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Android] Doublon détecté, ignoré:', transcript);
+        console.log('[Android] Doublon détecté, ignoré:', transcript);
         return;
     }
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Final:', transcript);
+    console.log('[Voice] Final:', transcript);
     
     // 1. Vérifier cache (existant)
     if (recognitionCache.has(transcript)) {
@@ -788,7 +788,7 @@ function handleFinalResult(transcript) {
     
     // 4. Si commande de fin détectée, la traiter APRÈS les nombres
     if (hasEndCommand) {
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Commande fin détectée après traitement nombres');
+        console.log('[Voice] Commande fin détectée après traitement nombres');
         // Petit délai pour s'assurer que l'UI est à jour
         setTimeout(() => {
             handleEndCommand();
@@ -798,7 +798,7 @@ function handleFinalResult(transcript) {
     
     // 5. Autres détections (inchangé)
     if (pendingValidation && transcript.includes(pendingValidation.toString())) {
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Validation confirmée:', pendingValidation);
+        console.log('[Voice] Validation confirmée:', pendingValidation);
         pendingValidation = null;
         return;
     }
@@ -821,12 +821,12 @@ let executionInProgress = false; // Flag pour éviter double exécution
  */
 function handleEndCommand() {
     if (executionInProgress) {
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Fin déjà en cours, ignorer');
+        console.log('[Voice] Fin déjà en cours, ignorer');
         return;
     }
     
     executionInProgress = true;
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Commande de fin détectée');
+    console.log('[Voice] Commande de fin détectée');
     
     // Arrêter reconnaissance vocale et calculer confiance finale
     stopVoiceRecognition();
@@ -834,7 +834,7 @@ function handleEndCommand() {
     const finalConfidence = calculateConfidence();
     voiceData.confidence = finalConfidence;
     
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, `[Voice] Confiance finale calculée: ${(finalConfidence * 100).toFixed(1)}%`);
+    console.log(`[Voice] Confiance finale calculée: ${(finalConfidence * 100).toFixed(1)}%`);
     
     // Préparer les données
     voiceData.validated = false; // Important : pas encore validé
@@ -845,7 +845,7 @@ function handleEndCommand() {
     // Tolérer 1 gap si confiance >= 85%, sinon 0 gap
     const acceptableGaps = finalConfidence >= 0.85 ? 1 : 0;
     if (finalConfidence >= 0.8 && voiceData.gaps.length <= acceptableGaps) {
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, `[Voice] Confiance suffisante (${(finalConfidence*100).toFixed(1)}%) et gaps acceptables (${voiceData.gaps.length}/${acceptableGaps}) - Validation automatique`);
+        console.log(`[Voice] Confiance suffisante (${(finalConfidence*100).toFixed(1)}%) et gaps acceptables (${voiceData.gaps.length}/${acceptableGaps}) - Validation automatique`);
         
         // NE PAS marquer comme confirmé ici - laisser confirmFinalCount() le faire
         voiceData.validated = false; // Sera mis à true par confirmFinalCount
@@ -857,7 +857,7 @@ function handleEndCommand() {
         confirmFinalCount(voiceData.count);
                 
     } else {
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Validation manuelle requise - Confiance:', finalConfidence.toFixed(2), 'Gaps:', voiceData.gaps.length);
+        console.log('[Voice] Validation manuelle requise - Confiance:', finalConfidence.toFixed(2), 'Gaps:', voiceData.gaps.length);
         
         // Afficher modal de validation - PAS DE TIMEOUT !
         voiceState = 'VALIDATING';
@@ -1010,7 +1010,7 @@ async function interpolateGapsWithAnimation() {
         return true; // Pas de gaps ou déjà en cours
     }
     
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, `[Gaps] Début interpolation: ${voiceData.gaps.length} gaps à combler`);
+    console.log(`[Gaps] Début interpolation: ${voiceData.gaps.length} gaps à combler`);
     
     interpolationInProgress = true;
     originalGapsArray = [...voiceData.gaps]; // Sauvegarde pour rollback
@@ -1024,7 +1024,7 @@ async function interpolateGapsWithAnimation() {
             interpolationIndex = i;
             const gap = sortedGaps[i];
             
-            voiceLog(VOICE_DEBUG_LEVEL.NORMAL, `[Gaps] Animation gap ${gap} (${i + 1}/${sortedGaps.length})`);
+            console.log(`[Gaps] Animation gap ${gap} (${i + 1}/${sortedGaps.length})`);
             
             // Animation visuelle gap comblé
             await showGapInterpolation(gap, sortedGaps.length, i);
@@ -1044,7 +1044,7 @@ async function interpolateGapsWithAnimation() {
             return false;
         }
         
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, `[Gaps] Interpolation confirmée: ${voiceData.count} reps finales`);
+        console.log(`[Gaps] Interpolation confirmée: ${voiceData.count} reps finales`);
         return true;
         
     } catch (error) {
@@ -1081,7 +1081,7 @@ async function showGapInterpolation(gapNumber, totalGaps, currentIndex) {
     }
     
     // Log pour debug
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, `[Gaps] Gap ${gapNumber} interpolé visuellement`);
+    console.log(`[Gaps] Gap ${gapNumber} interpolé visuellement`);
     
     // Attendre fin animation CSS
     await new Promise(resolve => setTimeout(resolve, 200));
@@ -1133,7 +1133,7 @@ function enhancedErrorFeedback(errorType, details = {}) {
             if (navigator.vibrate) navigator.vibrate(100);
     }
    
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, `[Feedback] Erreur ${errorType} signalée visuellement`);
+    console.log(`[Feedback] Erreur ${errorType} signalée visuellement`);
 }
 
 // Rollback interpolation en cas d'annulation
@@ -1147,7 +1147,7 @@ function rollbackInterpolation() {
         const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) : 12;
         debouncedVoiceDisplay(voiceData.count, targetReps);
         
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, `[Gaps] Rollback effectué: count restauré à ${voiceData.count}`);
+        console.log(`[Gaps] Rollback effectué: count restauré à ${voiceData.count}`);
     }
 }
 
@@ -1194,7 +1194,7 @@ function showValidationModal(count, confidence) {
         overlay.classList.add('visible');
     });
     
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, `[Voice] Modal validation affiché - Count: ${count}, Confiance: ${confidence.toFixed(2)}`);
+    console.log(`[Voice] Modal validation affiché - Count: ${count}, Confiance: ${confidence.toFixed(2)}`);
 }
 
 // Fonction pour ajuster le count dans le modal
@@ -1270,7 +1270,7 @@ function adjustVoiceCount(delta) {
         navigator.vibrate(20);
     }
     
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, `[Voice] Count ajusté: ${currentCount} → ${newCount}`);
+    console.log(`[Voice] Count ajusté: ${currentCount} → ${newCount}`);
 }
 
 /**
@@ -1326,7 +1326,7 @@ function resetValidationTimer(newCount) {
 function confirmVoiceCount(finalCount) {
     // NOUVEAU - Empêcher double confirmation
     if (voiceState === 'CONFIRMED') {
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Déjà confirmé, ignore');
+        console.log('[Voice] Déjà confirmé, ignore');
         return;
     }
     
@@ -1345,7 +1345,7 @@ function confirmVoiceCount(finalCount) {
     window.voiceData = voiceData;
     window.voiceState = voiceState;  // AJOUTER cette ligne
     
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, `[Voice] Count confirmé: ${finalCount} - État: ${voiceState}`);
+    console.log(`[Voice] Count confirmé: ${finalCount} - État: ${voiceState}`);
     
     // Auto-trigger executeSet si activé dans étapes futures
     if (VOICE_FEATURES.auto_validation && typeof window.executeSet === 'function') {
@@ -1375,9 +1375,9 @@ function clearValidationUI() {
     
     // REMETTRE CACHÉ
     repsElement.style.display = 'none';
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Élément setReps remis en mode caché');
+    console.log('[Voice] Élément setReps remis en mode caché');
     
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Interface validation nettoyée');
+    console.log('[Voice] Interface validation nettoyée');
 }
 
 /**
@@ -1441,7 +1441,7 @@ function updateVoiceDisplayImmediate(count) {
  * @returns {void}
  */
 function handleNumberDetected(number) {
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, `[Voice] Nombre détecté: ${number}`);
+    console.log(`[Voice] Nombre détecté: ${number}`);
     
     // OPT-B : Invalider le cache de confiance
     confidenceInvalidated = true;
@@ -1466,7 +1466,7 @@ function handleNumberDetected(number) {
     
     // Détection répétition - INCHANGÉE avec feedback discret
     if (number === voiceData.lastNumber && voiceData.count > 0) {
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Répétition détectée');
+        console.log('[Voice] Répétition détectée');
         voiceData.repetitions++;
         
         if (voiceData.repetitions > 2) {
@@ -1491,10 +1491,10 @@ function handleNumberDetected(number) {
         // NOUVEAU : Vérifier tempo avant de marquer comme gap
         const tempo = calculateAvgTempo(voiceData.timestamps);
         if (jump <= 2 && tempo && tempo > 500 && tempo < 2000) {
-            voiceLog(VOICE_DEBUG_LEVEL.NORMAL, `[Voice] Gap ignoré (tempo régulier ${tempo}ms): ${expectedNext} à ${number-1}`);
+            console.log(`[Voice] Gap ignoré (tempo régulier ${tempo}ms): ${expectedNext} à ${number-1}`);
             // Ne pas ajouter aux gaps - comptage régulier détecté
         } else {
-            voiceLog(VOICE_DEBUG_LEVEL.NORMAL, `[Voice] Gap détecté: ${expectedNext} à ${number-1}`);
+            console.log(`[Voice] Gap détecté: ${expectedNext} à ${number-1}`);
             for (let i = expectedNext; i < number; i++) {
                 if (!voiceData.gaps.includes(i)) {
                     voiceData.gaps.push(i);
@@ -1525,7 +1525,7 @@ function handleNumberDetected(number) {
     predictedNext = number + 1;
 
     // Mode passif = pas de validation forcée
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, `[Voice] État passif: count=${voiceData.count}, gaps=[${voiceData.gaps}], confiance en cours de calcul...`);
+    console.log(`[Voice] État passif: count=${voiceData.count}, gaps=[${voiceData.gaps}], confiance en cours de calcul...`);
 }
 
 function predictMissingNumbers(detectedNumber) {
@@ -1616,7 +1616,7 @@ function scheduleQuickValidation() {
         confirmFinalCount(voiceData.count);
     }, 1500)); // 1.5s pour confiance haute
     
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, `[Voice] Auto-validation rapide programmée - Count: ${voiceData.count}, Confiance: ${voiceData.confidence.toFixed(2)}`);
+    console.log(`[Voice] Auto-validation rapide programmée - Count: ${voiceData.count}, Confiance: ${voiceData.confidence.toFixed(2)}`);
 }
 
 /**
@@ -1637,7 +1637,7 @@ function scheduleStandardValidation() {
         confirmFinalCount(voiceData.count);
     }, 4000)); // 4s pour confiance faible
     
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, `[Voice] Validation standard programmée - Count: ${voiceData.count}, Confiance: ${voiceData.confidence.toFixed(2)}`);
+    console.log(`[Voice] Validation standard programmée - Count: ${voiceData.count}, Confiance: ${voiceData.confidence.toFixed(2)}`);
 }
 
 /**
@@ -1672,7 +1672,7 @@ function showSubtleConfirmation(count) {
 function confirmFinalCount(finalCount) {
     // Empêcher double confirmation
     if (voiceState === 'CONFIRMED' && voiceData.validated) {
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Déjà confirmé, ignore');
+        console.log('[Voice] Déjà confirmé, ignore');
         return;
     }
     
@@ -1705,7 +1705,7 @@ function confirmFinalCount(finalCount) {
     
     // INTERPOLATION SILENCIEUSE si gaps présents
     if (voiceData.gaps.length > 0) {
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, `[Voice] ${voiceData.gaps.length} gaps détectés - Calcul interpolation silencieux`);
+        console.log(`[Voice] ${voiceData.gaps.length} gaps détectés - Calcul interpolation silencieux`);
         
         // Calculer tempo moyen des reps existantes
         const avgTempo = calculateAvgTempo(voiceData.timestamps);
@@ -1735,7 +1735,7 @@ function confirmFinalCount(finalCount) {
         voiceData.interpolated_timestamps = interpolatedTimestamps;
         voiceData.tempo_avg_interpolated = calculateAvgTempo(interpolatedTimestamps);
         
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Interpolation calculée - Tempo interpolé:', voiceData.tempo_avg_interpolated);
+        console.log('[Voice] Interpolation calculée - Tempo interpolé:', voiceData.tempo_avg_interpolated);
     }
     
     // Exposer globalement pour executeSet
@@ -1749,7 +1749,7 @@ function confirmFinalCount(finalCount) {
                              voiceData.gaps.length === 0;
     
     if (wasAutoValidation) {
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Validation automatique confirmée - Déclenchement executeSet()');
+        console.log('[Voice] Validation automatique confirmée - Déclenchement executeSet()');
         
         // Micro-délai pour fluidité visuelle
         setTimeout(() => {
@@ -1764,7 +1764,7 @@ function confirmFinalCount(finalCount) {
         }, 50);
         
     } else {
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Validation manuelle - Affichage bouton executeSet');
+        console.log('[Voice] Validation manuelle - Affichage bouton executeSet');
         
         // Pour validation manuelle, juste afficher le bouton
         const executeBtn = document.getElementById('executeSetBtn');
@@ -1779,7 +1779,7 @@ function confirmFinalCount(finalCount) {
         }
     }
     
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, `[Voice] Count final confirmé: ${finalCount} - État: ${voiceState}, Validé: ${voiceData.validated}`);
+    console.log(`[Voice] Count final confirmé: ${finalCount} - État: ${voiceState}, Validé: ${voiceData.validated}`);
 }
 
 /**
@@ -1814,7 +1814,7 @@ function cancelVoiceValidation() {
         return; // Rien à annuler
     }
     
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Annulation validation en cours');
+    console.log('[Voice] Annulation validation en cours');
     
     // Nettoyer timers
     timers.clear('validation');
@@ -1830,7 +1830,7 @@ function cancelVoiceValidation() {
     // Reset état
     voiceState = 'LISTENING';
     
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Validation annulée, retour en mode écoute');
+    console.log('[Voice] Validation annulée, retour en mode écoute');
 }
 
 /**
@@ -1858,7 +1858,7 @@ const voiceMetrics = {
         const totalTime = this.averageValidationTime * (this.validationsTotal - 1) + validationTime;
         this.averageValidationTime = totalTime / this.validationsTotal;
         
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Métriques:', this.getStats());
+        console.log('[Voice] Métriques:', this.getStats());
     },
     
     getStats: function() {
@@ -1904,7 +1904,7 @@ function startPassiveListening() {
     
     // Vérifier l'état avant de démarrer
     if (voiceRecognitionActive) {
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Reconnaissance déjà active, pas de mode passif');
+        console.log('[Voice] Reconnaissance déjà active, pas de mode passif');
         return;
     }
     
@@ -1928,7 +1928,7 @@ function startPassiveListening() {
             stopPassiveListening();
         }, 10000); // 10s max d'écoute passive
         
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Écoute passive démarrée pour corrections');
+        console.log('[Voice] Écoute passive démarrée pour corrections');
         
     } catch (error) {
         console.warn('[Voice] Impossible de démarrer écoute passive:', error.message);
@@ -2024,7 +2024,7 @@ function stopPassiveListening() {
         recognition.onend = handleVoiceEnd;
     }
     
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Écoute passive arrêtée');
+    console.log('[Voice] Écoute passive arrêtée');
 }
 
 /**
@@ -2135,7 +2135,7 @@ function applyCorrectionCount(newCount) {
     }
     
     // Log de correction
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, `[Voice] Correction appliquée: ${previousCount} → ${newCount}`);
+    console.log(`[Voice] Correction appliquée: ${previousCount} → ${newCount}`);
     
     // Arrêter écoute passive et confirmer
     stopPassiveListening();
@@ -2203,7 +2203,7 @@ function handleKeywordDetected() {
         resetAutoValidationTimer();
     }
     
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, `[Voice] Keyword → ${voiceData.count}`);
+    console.log(`[Voice] Keyword → ${voiceData.count}`);
 }
 
 /**
@@ -2242,7 +2242,7 @@ function updateVoiceDisplay(count) {
         voiceData.count = count;
         displayedCount = count;
         
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, `[Voice] Affichage moderne mis à jour: ${count}/${targetReps}`);
+        console.log(`[Voice] Affichage moderne mis à jour: ${count}/${targetReps}`);
         return;
     }
     
@@ -2258,7 +2258,7 @@ function updateVoiceDisplay(count) {
     voiceData.count = count;
     displayedCount = count;
     
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, `[Voice] Affichage legacy mis à jour: ${count}`);
+    console.log(`[Voice] Affichage legacy mis à jour: ${count}`);
 }
 
 /**
@@ -2296,13 +2296,13 @@ function handleVoiceError(event) {
     // Erreurs ignorables sur Android
     if (PLATFORM_CONFIG.isAndroid) {
         if (event.error === 'no-speech' || event.error === 'aborted') {
-            voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Android] Erreur normale, restart automatique');
+            console.log('[Android] Erreur normale, restart automatique');
             return;
         }
     }
     // Gestion spéciale "aborted"
     if (event.error === 'aborted') {
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Reconnaissance aborted - transition propre');
+        console.log('[Voice] Reconnaissance aborted - transition propre');
         voiceRecognitionActive = false;
         // NE PAS changer l'état visuel pour 'aborted' - éviter confusion
         return;
@@ -2314,7 +2314,7 @@ function handleVoiceError(event) {
     
     switch(event.error) {
         case 'no-speech':
-            voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Aucune parole détectée - normal');
+            console.log('[Voice] Aucune parole détectée - normal');
             // Ne PAS afficher d'erreur pour no-speech mais reset l'état
             setTimeout(() => {
                 if (voiceRecognitionActive) {
@@ -2345,8 +2345,8 @@ function handleVoiceError(event) {
  * Redémarre automatiquement si nécessaire
  */
 function handleVoiceEnd() {
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[ANDROID DEBUG] ============ handleVoiceEnd START ============');
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[ANDROID DEBUG] État actuel:', {
+    console.log('[ANDROID DEBUG] ============ handleVoiceEnd START ============');
+    console.log('[ANDROID DEBUG] État actuel:', {
         timestamp: new Date().toISOString(),
         voiceActive: voiceRecognitionActive,
         workoutState: window.workoutState?.current,
@@ -2356,34 +2356,34 @@ function handleVoiceEnd() {
     
     // Comportement spécifique Android
     if (PLATFORM_CONFIG?.isAndroid) {
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[ANDROID DEBUG] Android détecté, vérification restart...');
+        console.log('[ANDROID DEBUG] Android détecté, vérification restart...');
         
         const shouldRestart = shouldRestartAndroid();
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[ANDROID DEBUG] shouldRestartAndroid() =', shouldRestart);
+        console.log('[ANDROID DEBUG] shouldRestartAndroid() =', shouldRestart);
         
         if (shouldRestart) {
-            voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[ANDROID DEBUG] Conditions OK, appel handleAndroidRestart()');
+            console.log('[ANDROID DEBUG] Conditions OK, appel handleAndroidRestart()');
             handleAndroidRestart();
             return;
         } else {
-            voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[ANDROID DEBUG] Conditions restart NON remplies');
+            console.log('[ANDROID DEBUG] Conditions restart NON remplies');
         }
     } else {
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[ANDROID DEBUG] Pas Android ou PLATFORM_CONFIG manquant');
+        console.log('[ANDROID DEBUG] Pas Android ou PLATFORM_CONFIG manquant');
     }
     
     // Comportement desktop normal
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[ANDROID DEBUG] Comportement normal (pas de restart)');
+    console.log('[ANDROID DEBUG] Comportement normal (pas de restart)');
     voiceRecognitionActive = false;
     updateMicrophoneVisualState('inactive');
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[ANDROID DEBUG] ============ handleVoiceEnd END ============');
+    console.log('[ANDROID DEBUG] ============ handleVoiceEnd END ============');
 }
 
 /**
  * Vérifier si restart Android nécessaire
  */
 function shouldRestartAndroid() {
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[ANDROID DEBUG] shouldRestartAndroid() check:', {
+    console.log('[ANDROID DEBUG] shouldRestartAndroid() check:', {
         voiceRecognitionActive: voiceRecognitionActive,
         workoutState: window.workoutState?.current,
         visibility: document.visibilityState,
@@ -2396,7 +2396,7 @@ function shouldRestartAndroid() {
            document.visibilityState === 'visible' &&
            androidRestartCount < (PLATFORM_CONFIG?.android?.maxRestarts || 30);
            
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[ANDROID DEBUG] shouldRestartAndroid() result:', result);
+    console.log('[ANDROID DEBUG] shouldRestartAndroid() result:', result);
     return result;
 }
 
@@ -2404,7 +2404,7 @@ function shouldRestartAndroid() {
  * Gestion du restart Android
  */
 function handleAndroidRestart() {
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[ANDROID DEBUG] handleAndroidRestart() APPELÉ', {
+    console.log('[ANDROID DEBUG] handleAndroidRestart() APPELÉ', {
         restartCount: androidRestartCount,
         sessionStartTime: androidSessionStartTime,
         currentTime: Date.now()
@@ -2412,14 +2412,14 @@ function handleAndroidRestart() {
     
     // Vérifications de sécurité
     if (androidRestartCount >= PLATFORM_CONFIG.android.maxRestarts) {
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Android] Limite de restarts atteinte');
+        console.log('[Android] Limite de restarts atteinte');
         stopVoiceRecognitionWithReason('Limite de redémarrages atteinte');
         return;
     }
     
     const sessionDuration = Date.now() - androidSessionStartTime;
     if (sessionDuration > PLATFORM_CONFIG.android.sessionTimeout) {
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Android] Timeout session atteint');
+        console.log('[Android] Timeout session atteint');
         stopVoiceRecognitionWithReason('Session expirée');
         return;
     }
@@ -2434,8 +2434,8 @@ function handleAndroidRestart() {
     };
     
     androidRestartCount++;
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, `[Android] Restart #${androidRestartCount}`);
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Android] État préservé:', preservedState);
+    console.log(`[Android] Restart #${androidRestartCount}`);
+    console.log('[Android] État préservé:', preservedState);
     
     // NE PAS toucher à voiceRecognitionActive ici !
     // Le micro est encore techniquement actif du point de vue de l'API
@@ -2453,7 +2453,7 @@ function handleAndroidRestart() {
         setTimeout(() => {
             try {
                 recognition.start();
-                voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Android] Restart réussi, état restauré');
+                console.log('[Android] Restart réussi, état restauré');
                 
                 // Garder l'interface synchronisée
                 updateMicrophoneVisualState('listening');
@@ -2476,7 +2476,7 @@ function handleAndroidRestart() {
  * Arrêt avec raison
  */
 function stopVoiceRecognitionWithReason(reason) {
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Arrêt:', reason);
+    console.log('[Voice] Arrêt:', reason);
     
     if (window.showToast) {
         window.showToast(`Micro arrêté : ${reason}`, 'warning');
@@ -2518,7 +2518,7 @@ function cleanupAndroidResources() {
     cachedConfidence = null;
     confidenceInvalidated = true;
     
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Android] Cleanup complet effectué');
+    console.log('[Android] Cleanup complet effectué');
 }
 
 /**
@@ -2529,7 +2529,7 @@ function handleVisibilityChange() {
         if (androidRestartTimer) {
             clearTimeout(androidRestartTimer);
             androidRestartTimer = null;
-            voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Android] Page cachée, restarts suspendus');
+            console.log('[Android] Page cachée, restarts suspendus');
         }
     }
 }
@@ -2569,7 +2569,7 @@ function isAndroidDuplicate(transcript) {
  */
 function calculateAvgTempo(timestamps) {
     if (!timestamps || timestamps.length < 2) {
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Pas assez de timestamps pour calculer le tempo');
+        console.log('[Voice] Pas assez de timestamps pour calculer le tempo');
         return null;
     }
     
@@ -2583,7 +2583,7 @@ function calculateAvgTempo(timestamps) {
         intervals.reduce((sum, interval) => sum + interval, 0) / intervals.length
     );
     
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Tempo moyen calculé:', avgTempo, 'ms entre reps');
+    console.log('[Voice] Tempo moyen calculé:', avgTempo, 'ms entre reps');
     return avgTempo;
 }
 
@@ -2600,7 +2600,7 @@ function validateVoiceData(data) {
     // TODO: Vérifier plausibilité des gaps
     // TODO: Calculer score de confiance
     
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Validation données (placeholder):', data);
+    console.log('[Voice] Validation données (placeholder):', data);
     return false;
 }
 
@@ -2679,7 +2679,7 @@ window.getAndroidVoiceStats = function() {
 
 
 window.checkAndroidState = function() {
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[ANDROID DEBUG] État complet:', {
+    console.log('[ANDROID DEBUG] État complet:', {
         platformConfig: PLATFORM_CONFIG,
         androidRestartCount: typeof androidRestartCount !== 'undefined' ? androidRestartCount : 'UNDEFINED',
         androidSessionStartTime: typeof androidSessionStartTime !== 'undefined' ? androidSessionStartTime : 'UNDEFINED',
@@ -2700,7 +2700,7 @@ window.checkAndroidState = function() {
 window.resetAndroidVoice = function() {
     cleanupAndroidResources();
     androidSessionStartTime = Date.now();
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Android] Reset forcé effectué');
+    console.log('[Android] Reset forcé effectué');
 };
 
 
@@ -2713,35 +2713,35 @@ window.resetAndroidVoice = function() {
 
 
 // ===== PATCH ANDROID SIMPLIFIÉ =====
-voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[ANDROID PATCH] Chargement...');
+console.log('[ANDROID PATCH] Chargement...');
 
 if (PLATFORM_CONFIG?.isAndroid) {
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[ANDROID PATCH] Android détecté:', true);
+    console.log('[ANDROID PATCH] Android détecté:', true);
     
     // Sauvegarder l'ancienne fonction
     const originalHandleVoiceEnd = window.handleVoiceEnd;
     
     // Remplacer par une version qui NE fait PAS le comportement normal
     window.handleVoiceEnd = function() {
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[ANDROID PATCH] handleVoiceEnd intercepté');
+        console.log('[ANDROID PATCH] handleVoiceEnd intercepté');
         
         // Si on doit redémarrer, NE PAS appeler l'original
         if (shouldRestartAndroid()) {
-            voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[ANDROID PATCH] Restart Android détecté - bypass comportement normal');
+            console.log('[ANDROID PATCH] Restart Android détecté - bypass comportement normal');
             handleAndroidRestart();
             // RETURN ICI - ne pas exécuter le reste
             return;
         }
         
         // Sinon, comportement normal
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[ANDROID PATCH] Pas de restart - comportement normal');
+        console.log('[ANDROID PATCH] Pas de restart - comportement normal');
         if (typeof originalHandleVoiceEnd === 'function') {
             originalHandleVoiceEnd();
         }
     };
     
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[ANDROID PATCH] handleVoiceEnd remplacé avec logique restart');
-    window.testAndroidPatch = () => voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[ANDROID PATCH] Test OK');
+    console.log('[ANDROID PATCH] handleVoiceEnd remplacé avec logique restart');
+    window.testAndroidPatch = () => console.log('[ANDROID PATCH] Test OK');
 }
 
 
@@ -2776,7 +2776,7 @@ window.confirmVoiceCount = confirmVoiceCount;
 window.clearValidationUI = clearValidationUI;
 window.toggleValidationUI = () => {
     VOICE_FEATURES.validation_ui = !VOICE_FEATURES.validation_ui;
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Validation UI:', VOICE_FEATURES.validation_ui ? 'ACTIVÉE' : 'DÉSACTIVÉE');
+    console.log('[Voice] Validation UI:', VOICE_FEATURES.validation_ui ? 'ACTIVÉE' : 'DÉSACTIVÉE');
 };
 
 // Exposer variables globales pour debug et monitoring
@@ -2800,7 +2800,7 @@ window.toggleCorrectionMode = () => {
     } else {
         startPassiveListening();
     }
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Mode correction:', passiveListening ? 'ACTIF' : 'INACTIF');
+    console.log('[Voice] Mode correction:', passiveListening ? 'ACTIF' : 'INACTIF');
 };
 // NOUVEAU - Exposer les fonctions d'auto-validation
 window.scheduleAutoValidation = scheduleAutoValidation;
@@ -2862,14 +2862,14 @@ if (typeof scheduleStandardValidation !== 'undefined') {
 // === EXPOSITION FONCTIONS PHASE 1 ===
 window.updateMicrophoneVisualState = updateMicrophoneVisualState;
 
-voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] ✅ Toutes les expositions globales configurées');
+console.log('[Voice] ✅ Toutes les expositions globales configurées');
 
 // Initialiser l'état micro au chargement des séances
 document.addEventListener('DOMContentLoaded', () => {
     // CRITIQUE : Initialiser l'instance immédiatement
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Initialisation automatique au chargement...');
+    console.log('[Voice] Initialisation automatique au chargement...');
     const initSuccess = initVoiceRecognition();
-    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, `[Voice] Init au démarrage: ${initSuccess ? 'SUCCESS' : 'FAILED'}`);
+    console.log(`[Voice] Init au démarrage: ${initSuccess ? 'SUCCESS' : 'FAILED'}`);
     
     setTimeout(() => {
         const container = document.getElementById('voiceStatusContainer');
@@ -2877,7 +2877,7 @@ document.addEventListener('DOMContentLoaded', () => {
             checkMicrophonePermissions().then(hasPermission => {
                 if (hasPermission) {
                     updateMicrophoneVisualState('inactive'); // État par défaut
-                    voiceLog(VOICE_DEBUG_LEVEL.NORMAL, '[Voice] Permissions accordées, état initial configuré');
+                    console.log('[Voice] Permissions accordées, état initial configuré');
                 } else {
                     updateMicrophoneVisualState('error');
                 }
