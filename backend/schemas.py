@@ -42,6 +42,7 @@ class UserResponse(BaseModel):
 class UserPreferenceUpdate(BaseModel):
     prefer_weight_changes_between_sets: Optional[bool] = None
     sound_notifications_enabled: Optional[bool] = None
+    motion_detection_enabled: Optional[bool] = None  # NOUVEAU
 
 # ===== SCHEMAS EXERCICES =====
 
