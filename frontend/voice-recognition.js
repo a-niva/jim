@@ -178,20 +178,20 @@ function debounce(func, wait) {
     };
 }
 
-// Version debounced de updateRepDisplayModern
-// APRÈS - Déterminer fonction UNE SEULE FOIS
-let voiceDisplayFunction;
-if (window.debouncedUpdateDisplay) {
-    // Utiliser version app.js si existe
-    voiceDisplayFunction = window.debouncedUpdateDisplay;
-} else if (window.updateRepDisplayModern) {
-    // Créer version debouncée locale avec délai réduit
-    voiceDisplayFunction = debounce(window.updateRepDisplayModern, 100);
-} else {
-    // Fallback
-    voiceDisplayFunction = (count, target, options) => {
+// Fonction dynamique pour résoudre le timing d'initialisation
+function getVoiceDisplayFunction() {
+    if (window.debouncedUpdateDisplay) {
+        return window.debouncedUpdateDisplay;
+    } else if (window.updateRepDisplayModern) {
+        // Créer version debouncée uniquement si pas de cache
+        if (!getVoiceDisplayFunction._cachedDebounced) {
+            getVoiceDisplayFunction._cachedDebounced = debounce(window.updateRepDisplayModern, 100);
+        }
+        return getVoiceDisplayFunction._cachedDebounced;
+    } else {
         console.warn('[Voice] Aucune fonction d\'affichage disponible');
-    };
+        return () => {}; // Fonction vide
+    }
 }
 
 
@@ -2225,7 +2225,7 @@ function updateVoiceDisplay(count) {
         const targetReps = targetEl ? parseInt(targetEl.textContent) || 12 : 12;
         
         // Utiliser la fonction moderne
-        voiceDisplayFunction(count, targetReps, { voiceActive: true });
+        getVoiceDisplayFunction()(count, targetReps, { voiceActive: true });
         
         // Mettre à jour voiceData
         voiceData.count = count;
