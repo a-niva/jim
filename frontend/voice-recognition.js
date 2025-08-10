@@ -2606,151 +2606,170 @@ window.resetAndroidVoice = function() {
 
 
 
-// ===== PATCH ANDROID MINIMAL =====
-console.log('[ANDROID PATCH] Chargement...');
+// ===== GESTIONNAIRE ANDROID ISOLÉ =====
+console.log('[ANDROID MANAGER] Initialisation...');
 
-const isAndroid = /Android/i.test(navigator.userAgent);
-console.log('[ANDROID PATCH] Android détecté:', isAndroid);
-
-if (isAndroid) {
-    let androidRestartCount = 0;
-    const MAX_RESTARTS = 100; // Augmenté pour les longues séries
-    let isRestartScheduled = false;
+const AndroidVoiceManager = {
+    isAndroid: /Android/i.test(navigator.userAgent),
+    isActive: false,
+    restartCount: 0,
+    maxRestarts: 100,
+    capturedData: null,
+    restartTimer: null,
     
-    // Override complet de handleVoiceEnd
-    const originalHandleVoiceEnd = window.handleVoiceEnd || (() => {});
-    
-    window.handleVoiceEnd = function() {
-        console.log('[ANDROID PATCH] handleVoiceEnd intercepté');
+    init() {
+        if (!this.isAndroid) return;
         
-        // Si un restart est déjà programmé, on ignore
-        if (isRestartScheduled) {
-            console.log('[ANDROID PATCH] Restart déjà programmé, ignore');
-            return;
-        }
+        console.log('[ANDROID MANAGER] Android détecté, installation du gestionnaire');
         
-        const hasVoiceData = (window.voiceData?.count || 0) > 0;
+        // Intercepter UNIQUEMENT onend, pas handleVoiceEnd
+        const originalOnEnd = recognition.onend;
         
-        console.log('[ANDROID PATCH] État:', {
-            voiceActive: voiceRecognitionActive,
-            voiceCount: window.voiceData?.count || 0,
-            restartCount: androidRestartCount,
-            hasVoiceData: hasVoiceData
-        });
-        
-        // Si on a des données vocales ET qu'on n'a pas atteint la limite
-        if (hasVoiceData && androidRestartCount < MAX_RESTARTS) {
-            androidRestartCount++;
-            isRestartScheduled = true;
+        recognition.onend = () => {
+            console.log('[ANDROID MANAGER] onend intercepté');
             
-            console.log(`[ANDROID PATCH] Restart programmé #${androidRestartCount}`);
+            // Capturer l'état IMMÉDIATEMENT
+            this.capturedData = {
+                count: window.voiceData?.count || 0,
+                timestamps: window.voiceData?.timestamps ? [...window.voiceData.timestamps] : [],
+                gaps: window.voiceData?.gaps ? [...window.voiceData.gaps] : [],
+                lastNumber: window.voiceData?.lastNumber || 0,
+                confidence: window.voiceData?.confidence || 1.0
+            };
             
-            // IMPORTANT : NE PAS toucher à voiceRecognitionActive ici !
-            // On laisse juste l'état visuel en "ready"
-            updateMicrophoneVisualState('ready');
+            console.log('[ANDROID MANAGER] État capturé:', this.capturedData);
             
-            setTimeout(() => {
-                isRestartScheduled = false;
-                
-                // On vérifie qu'on a toujours des données
-                if ((window.voiceData?.count || 0) > 0) {
-                    try {
-                        // On force le flag AVANT de démarrer
-                        voiceRecognitionActive = true;
-                        recognition.start();
-                        updateMicrophoneVisualState('listening');
-                        console.log('[ANDROID PATCH] Restart réussi');
-                    } catch (e) {
-                        if (e.name === 'InvalidStateError') {
-                            // La reconnaissance est peut-être encore active
-                            console.log('[ANDROID PATCH] Recognition encore active, réessai...');
-                            try {
-                                recognition.stop();
-                                setTimeout(() => {
-                                    voiceRecognitionActive = true;
-                                    recognition.start();
-                                    updateMicrophoneVisualState('listening');
-                                }, 50);
-                            } catch (e2) {
-                                console.error('[ANDROID PATCH] Échec restart:', e2);
-                                voiceRecognitionActive = false;
-                                updateMicrophoneVisualState('inactive');
-                            }
-                        } else {
-                            console.error('[ANDROID PATCH] Erreur restart:', e);
-                            voiceRecognitionActive = false;
-                            updateMicrophoneVisualState('inactive');
-                        }
-                    }
-                } else {
-                    // Plus de données vocales, arrêt normal
-                    voiceRecognitionActive = false;
-                    updateMicrophoneVisualState('inactive');
+            // Décider si on doit redémarrer
+            if (this.shouldRestart()) {
+                this.scheduleRestart();
+            } else {
+                // Appeler la fonction originale seulement si pas de restart
+                if (typeof originalOnEnd === 'function') {
+                    originalOnEnd();
                 }
-            }, 100); // Plus rapide
-            
-        } else {
-            // Pas de données ou limite atteinte : arrêt normal
-            console.log('[ANDROID PATCH] Arrêt définitif');
-            voiceRecognitionActive = false;
-            updateMicrophoneVisualState('inactive');
-            
-            // Appeler la fonction originale pour le cleanup
-            originalHandleVoiceEnd();
-            
-            if (androidRestartCount >= MAX_RESTARTS) {
-                showToast('Limite de redémarrages atteinte', 'info');
+                // Appeler handleVoiceEnd seulement si pas de restart
+                if (typeof handleVoiceEnd === 'function') {
+                    handleVoiceEnd();
+                }
             }
-        }
-    };
-    
-    // Reset au démarrage
-    const originalStart = window.startVoiceRecognition;
-    window.startVoiceRecognition = function() {
-        androidRestartCount = 0;
-        isRestartScheduled = false;
-        console.log('[ANDROID PATCH] Reset compteur');
-        return originalStart.apply(this, arguments);
-    };
-    
-    // Reset quand on execute une série
-    const originalExecuteSet = window.executeSet;
-    if (originalExecuteSet) {
-        window.executeSet = function() {
-            androidRestartCount = 0;
-            isRestartScheduled = false;
-            return originalExecuteSet.apply(this, arguments);
         };
-    }
+    },
     
-    console.log('[ANDROID PATCH] Installé avec gestion d\'état améliorée');
-}
+    shouldRestart() {
+        // Conditions pour restart
+        return this.isActive && 
+               this.capturedData.count > 0 && 
+               this.restartCount < this.maxRestarts;
+    },
+    
+    scheduleRestart() {
+        if (this.restartTimer) {
+            clearTimeout(this.restartTimer);
+        }
+        
+        this.restartCount++;
+        console.log(`[ANDROID MANAGER] Restart #${this.restartCount} programmé`);
+        
+        // État visuel
+        updateMicrophoneVisualState('ready');
+        
+        this.restartTimer = setTimeout(() => {
+            this.executeRestart();
+        }, 50); // Plus rapide
+    },
+    
+    executeRestart() {
+        console.log('[ANDROID MANAGER] Exécution restart avec données capturées');
+        
+        // Restaurer les données capturées AVANT de redémarrer
+        if (this.capturedData && this.capturedData.count > 0) {
+            window.voiceData = this.capturedData;
+            console.log('[ANDROID MANAGER] Données restaurées:', window.voiceData);
+        }
+        
+        try {
+            voiceRecognitionActive = true;
+            recognition.start();
+            updateMicrophoneVisualState('listening');
+            console.log('[ANDROID MANAGER] Restart réussi');
+        } catch (e) {
+            console.error('[ANDROID MANAGER] Erreur restart:', e);
+            this.handleRestartError(e);
+        }
+    },
+    
+    handleRestartError(error) {
+        if (error.name === 'InvalidStateError') {
+            // Recognition encore active, forcer l'arrêt
+            try {
+                recognition.stop();
+                setTimeout(() => this.executeRestart(), 50);
+            } catch (e) {
+                console.error('[ANDROID MANAGER] Échec complet:', e);
+                this.stop();
+            }
+        } else {
+            this.stop();
+        }
+    },
+    
+    start() {
+        this.isActive = true;
+        this.restartCount = 0;
+        console.log('[ANDROID MANAGER] Activé');
+    },
+    
+    stop() {
+        this.isActive = false;
+        voiceRecognitionActive = false;
+        updateMicrophoneVisualState('inactive');
+        
+        if (this.restartTimer) {
+            clearTimeout(this.restartTimer);
+            this.restartTimer = null;
+        }
+        
+        console.log('[ANDROID MANAGER] Arrêté');
+    },
+    
+    reset() {
+        this.restartCount = 0;
+        this.capturedData = null;
+    }
+};
+
+// Initialiser le manager
+AndroidVoiceManager.init();
+
+// Modifier startVoiceRecognition pour activer le manager
+const originalStartVoice = window.startVoiceRecognition;
+window.startVoiceRecognition = function() {
+    AndroidVoiceManager.start();
+    AndroidVoiceManager.reset();
+    return originalStartVoice.apply(this, arguments);
+};
+
+// Modifier stopVoiceRecognition pour désactiver le manager
+const originalStopVoice = window.stopVoiceRecognition;
+window.stopVoiceRecognition = function() {
+    AndroidVoiceManager.stop();
+    return originalStopVoice.apply(this, arguments);
+};
 
 // Debug
-window.getAndroidPatchStatus = function() {
-    return {
-        android: isAndroid,
-        restartCount: typeof androidRestartCount !== 'undefined' ? androidRestartCount : 0,
-        isRestartScheduled: typeof isRestartScheduled !== 'undefined' ? isRestartScheduled : false,
-        voiceActive: voiceRecognitionActive,
-        voiceData: window.voiceData
-    };
-};
+window.AndroidVoiceManager = AndroidVoiceManager;
+window.getAndroidStatus = () => ({
+    isActive: AndroidVoiceManager.isActive,
+    restartCount: AndroidVoiceManager.restartCount,
+    capturedData: AndroidVoiceManager.capturedData,
+    hasTimer: !!AndroidVoiceManager.restartTimer
+});
+
+console.log('[ANDROID MANAGER] Prêt');
 
 
 
 
-
-
-
-
-// Test function
-window.testAndroidPatch = function() {
-    console.log('Android patch actif:', isAndroid);
-    console.log('handleVoiceEnd modifié:', window.handleVoiceEnd !== handleVoiceEnd);
-};
-
-console.log('[ANDROID PATCH] Prêt - testez avec window.testAndroidPatch()');
 
 
 
