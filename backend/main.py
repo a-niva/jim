@@ -380,12 +380,13 @@ def update_user_preferences(
     db.commit()
     db.refresh(user)
     
-    logger.info(f"Préférences mises à jour pour user {user_id}: poids variables = {user.prefer_weight_changes_between_sets}, sons = {user.sound_notifications_enabled}")
+    logger.info(f"Préférences mises à jour pour user {user_id}: poids variables = {user.prefer_weight_changes_between_sets}, sons = {user.sound_notifications_enabled}, motion = {user.motion_detection_enabled}")
     
     return {
         "message": "Préférences mises à jour avec succès",
         "prefer_weight_changes_between_sets": user.prefer_weight_changes_between_sets,
-        "sound_notifications_enabled": user.sound_notifications_enabled
+        "sound_notifications_enabled": user.sound_notifications_enabled,
+        "motion_detection_enabled": user.motion_detection_enabled  # AJOUTER CETTE LIGNE
     }
 
 @app.put("/api/users/{user_id}/voice-counting")
