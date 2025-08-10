@@ -35,6 +35,7 @@ class UserResponse(BaseModel):
     sound_notifications_enabled: bool
     voice_counting_enabled: bool
     voice_counting_mode: str
+    motion_detection_enabled: bool
 
     class Config:
         from_attributes = True
@@ -42,7 +43,7 @@ class UserResponse(BaseModel):
 class UserPreferenceUpdate(BaseModel):
     prefer_weight_changes_between_sets: Optional[bool] = None
     sound_notifications_enabled: Optional[bool] = None
-    motion_detection_enabled: Optional[bool] = None  # NOUVEAU
+    motion_detection_enabled: Optional[bool] = None
 
 # ===== SCHEMAS EXERCICES =====
 
