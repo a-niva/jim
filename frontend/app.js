@@ -9431,13 +9431,14 @@ function clearWorkoutState() {
     currentExercise = null;
     currentSet = 1;
     
-    workoutState = {
-        current: WorkoutStates.IDLE,
-        exerciseStartTime: null,
-        setStartTime: null,
-        restStartTime: null,
-        pendingSetData: null
-    };
+    // modifie seulement les propriétés
+    workoutState.current = WorkoutStates.IDLE;
+    workoutState.exerciseStartTime = null;
+    workoutState.setStartTime = null;
+    workoutState.restStartTime = null;
+    workoutState.pendingSetData = null;
+    workoutState.plannedRestDuration = null;
+    workoutState.currentRecommendation = null;
     
     // Réinitialiser complètement currentWorkoutSession
     currentWorkoutSession = {

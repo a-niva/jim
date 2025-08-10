@@ -2600,6 +2600,7 @@ window.resetAndroidVoice = function() {
 };
 
 // ===== PATCH ANDROID MINIMAL =====
+// ===== PATCH ANDROID MINIMAL =====
 console.log('[ANDROID PATCH] Chargement...');
 
 const isAndroid = /Android/i.test(navigator.userAgent);
@@ -2607,32 +2608,48 @@ console.log('[ANDROID PATCH] Android détecté:', isAndroid);
 
 if (isAndroid) {
     let androidRestartCount = 0;
-    const MAX_RESTARTS = 50; // Plus de marge pour les longues séries
+    const MAX_RESTARTS = 50;
+    
+    // Variable pour tracker si on a déjà loggé l'erreur
+    let errorLogged = false;
     
     window.handleVoiceEnd = function() {
         console.log('[ANDROID PATCH] handleVoiceEnd intercepté');
         
-        // Log état complet pour debug
+        // Vérifier d'abord que workoutState existe
+        if (!window.workoutState) {
+            if (!errorLogged) {
+                console.error('[ANDROID PATCH] ERREUR: workoutState n\'existe pas!');
+                errorLogged = true;
+            }
+            voiceRecognitionActive = false;
+            updateMicrophoneVisualState('inactive');
+            return;
+        }
+        
+        // Log état complet
+        const currentState = window.workoutState.current;
+        const hasVoiceData = (window.voiceData?.count || 0) > 0;
+        
         console.log('[ANDROID PATCH] État:', {
             voiceActive: voiceRecognitionActive,
-            workoutState: window.workoutState?.current,
+            workoutState: currentState,
+            workoutStateObj: window.workoutState, // Log l'objet complet
             voiceCount: window.voiceData?.count || 0,
             restartCount: androidRestartCount
         });
         
-        // Condition simplifiée : on continue si on a des données vocales
-        const hasVoiceData = (window.voiceData?.count || 0) > 0;
-        const inWorkoutState = window.workoutState?.current === 'ready' || 
-                              window.workoutState?.current === 'executing';
+        // Conditions pour restart
+        const shouldRestart = hasVoiceData && 
+                            (currentState === 'ready' || currentState === 'executing') &&
+                            androidRestartCount < MAX_RESTARTS;
         
-        if (hasVoiceData && inWorkoutState && androidRestartCount < MAX_RESTARTS) {
+        if (shouldRestart) {
             androidRestartCount++;
             console.log(`[ANDROID PATCH] Restart programmé #${androidRestartCount}`);
             
-            // État visuel temporaire
             updateMicrophoneVisualState('ready');
             
-            // Restart rapide
             setTimeout(() => {
                 if (!voiceRecognitionActive) {
                     try {
@@ -2646,14 +2663,17 @@ if (isAndroid) {
                         updateMicrophoneVisualState('inactive');
                     }
                 }
-            }, 200); // Plus rapide pour minimiser la perte
+            }, 200);
         } else {
-            // Arrêt normal
+            console.log('[ANDROID PATCH] Pas de restart:', {
+                hasVoiceData,
+                currentState,
+                restartCount: androidRestartCount
+            });
             voiceRecognitionActive = false;
             updateMicrophoneVisualState('inactive');
             
             if (androidRestartCount >= MAX_RESTARTS) {
-                console.log('[ANDROID PATCH] Limite atteinte');
                 showToast('Limite de redémarrages atteinte', 'warning');
             }
         }
@@ -2670,17 +2690,24 @@ if (isAndroid) {
     console.log('[ANDROID PATCH] Installé avec succès');
 }
 
-// Fonction de debug
+// Debug function
 window.getAndroidPatchStatus = function() {
     return {
         android: isAndroid,
         restartCount: androidRestartCount || 0,
-        lastWorkoutState: lastWorkoutState || 'none',
-        currentWorkoutState: window.workoutState?.current,
+        workoutState: window.workoutState,
         voiceActive: voiceRecognitionActive,
         voiceCount: window.voiceData?.count || 0
     };
 };
+
+
+
+
+
+
+
+
 
 // Test function
 window.testAndroidPatch = function() {
