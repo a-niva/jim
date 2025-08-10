@@ -11,6 +11,36 @@
 
 // ===== VARIABLES GLOBALES =====
 
+// Système de logs conditionnels
+const VOICE_DEBUG_LEVEL = {
+    NONE: 0,      // Aucun log
+    CRITICAL: 1,  // Erreurs seulement  
+    NORMAL: 2,    // Opérations importantes
+    VERBOSE: 3    // Tout (debug)
+};
+
+// En production : NORMAL, en debug : VERBOSE
+let currentDebugLevel = window.location.hostname === 'localhost' ? 
+    VOICE_DEBUG_LEVEL.VERBOSE : VOICE_DEBUG_LEVEL.NORMAL;
+
+function voiceLog(level, ...args) {
+    if (level <= currentDebugLevel) {
+        console.log(...args);
+    }
+}
+// Après la définition de voiceLog(), ajouter :
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
 /**
  * Instance de reconnaissance vocale du navigateur
  * @type {SpeechRecognition|null}
@@ -216,7 +246,7 @@ const timers = {
     set(name, timer) {
         this.clear(name);  // Clear ancien timer
         this[name] = timer;
-        voiceLog(VOICE_DEBUG_LEVEL.NORMAL, `[Timers] ${name} défini`);
+        console.log(`[Timers] ${name} défini`);
     },
     
     clear(timerName) {
@@ -253,24 +283,9 @@ let androidSessionStartTime = 0;
 let androidRestartTimer = null;
 let androidLastTranscripts = [];
 
-// Système de logs conditionnels
-const VOICE_DEBUG_LEVEL = {
-    NONE: 0,      // Aucun log
-    CRITICAL: 1,  // Erreurs seulement  
-    NORMAL: 2,    // Opérations importantes
-    VERBOSE: 3    // Tout (debug)
-};
 
-// En production : NORMAL, en debug : VERBOSE
-let currentDebugLevel = window.location.hostname === 'localhost' ? 
-    VOICE_DEBUG_LEVEL.VERBOSE : VOICE_DEBUG_LEVEL.NORMAL;
-
-function voiceLog(level, ...args) {
-    if (level <= currentDebugLevel) {
-        console.log(...args);
-    }
-}
-
+// Créer la version debouncée
+const debouncedUpdate = debounce(updateVoiceDisplay, 100);
 // Initialiser le cache une seule fois
 function initDOMCache() {
     domCache.voiceContainer = document.getElementById('voiceStatusContainer');
@@ -2448,7 +2463,7 @@ function handleAndroidRestart() {
                 voiceRecognitionActive = false;
                 updateMicrophoneVisualState('inactive');
             }
-        }, 20);
+        }, 50);
         
     } catch (error) {
         console.error('[Android] Erreur:', error);
