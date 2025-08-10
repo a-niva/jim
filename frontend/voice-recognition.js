@@ -2599,7 +2599,6 @@ window.resetAndroidVoice = function() {
     console.log('[Android] Reset forcé effectué');
 };
 
-
 // ===== PATCH ANDROID MINIMAL =====
 console.log('[ANDROID PATCH] Chargement...');
 
@@ -2609,32 +2608,58 @@ console.log('[ANDROID PATCH] Android détecté:', isAndroid);
 if (isAndroid) {
     let androidRestartCount = 0;
     const MAX_RESTARTS = 30;
+    let lastWorkoutState = null; // Tracker l'état précédent
     
     window.handleVoiceEnd = function() {
         console.log('[ANDROID PATCH] handleVoiceEnd intercepté');
-        console.log('[ANDROID PATCH] État actuel:', {
-            voiceActive: voiceRecognitionActive,
-            workoutState: window.workoutState?.current,
+        
+        // Capturer l'état actuel AVANT toute modification
+        const currentState = window.workoutState?.current;
+        const wasVoiceActive = voiceRecognitionActive;
+        
+        console.log('[ANDROID PATCH] État capturé:', {
+            voiceActive: wasVoiceActive,
+            workoutState: currentState,
+            lastWorkoutState: lastWorkoutState,
             restartCount: androidRestartCount
         });
         
-        // IMPORTANT: Vérifier l'état AVANT de le modifier
-        const shouldRestart = window.workoutState?.current === 'ready' && 
-                            androidRestartCount < MAX_RESTARTS;
+        // LOGIQUE CORRIGÉE : Vérifier si on ÉTAIT en état ready/executing
+        // OU si on avait des données vocales (preuve qu'on comptait)
+        const voiceData = window.voiceData || {};
+        const hasVoiceData = voiceData.count > 0;
+        
+        const shouldRestart = (
+            wasVoiceActive && // La voix était active
+            hasVoiceData && // On a compté des reps
+            androidRestartCount < MAX_RESTARTS &&
+            (currentState === 'ready' || 
+             currentState === 'executing' || 
+             lastWorkoutState === 'ready' ||
+             lastWorkoutState === 'executing')
+        );
         
         if (shouldRestart) {
             androidRestartCount++;
             console.log(`[ANDROID PATCH] Restart programmé #${androidRestartCount}`);
             
-            // Ne PAS désactiver voiceRecognitionActive ici
-            updateMicrophoneVisualState('ready'); // État visuel temporaire
+            // NE PAS modifier voiceRecognitionActive ici
+            updateMicrophoneVisualState('ready');
             
             setTimeout(() => {
                 try {
-                    recognition.start();
-                    voiceRecognitionActive = true;
-                    updateMicrophoneVisualState('listening');
-                    console.log('[ANDROID PATCH] Restart réussi');
+                    // Vérifier à nouveau l'état avant de redémarrer
+                    const checkState = window.workoutState?.current;
+                    const stillHasData = (window.voiceData?.count || 0) > 0;
+                    
+                    if (stillHasData && !voiceRecognitionActive) {
+                        recognition.start();
+                        voiceRecognitionActive = true;
+                        updateMicrophoneVisualState('listening');
+                        console.log('[ANDROID PATCH] Restart réussi');
+                    } else {
+                        console.log('[ANDROID PATCH] Conditions changées, pas de restart');
+                    }
                 } catch (e) {
                     console.error('[ANDROID PATCH] Erreur restart:', e);
                     voiceRecognitionActive = false;
@@ -2642,27 +2667,57 @@ if (isAndroid) {
                 }
             }, 300);
         } else {
-            // Comportement normal uniquement si on ne redémarre pas
+            // Arrêt normal
             console.log('[ANDROID PATCH] Pas de restart - arrêt normal');
             voiceRecognitionActive = false;
             updateMicrophoneVisualState('inactive');
             
-            if (androidRestartCount >= MAX_RESTARTS) {
-                console.log('[ANDROID PATCH] Limite de restarts atteinte');
+            // Reset si pas de données ou limite atteinte
+            if (!hasVoiceData || androidRestartCount >= MAX_RESTARTS) {
+                androidRestartCount = 0;
+                if (androidRestartCount >= MAX_RESTARTS) {
+                    console.log('[ANDROID PATCH] Limite de restarts atteinte');
+                }
             }
         }
+        
+        // Sauvegarder l'état pour la prochaine fois
+        lastWorkoutState = currentState;
     };
     
-    // Reset counter quand on démarre une nouvelle série
+    // Intercepter les changements d'état pour tracker
+    const originalTransitionTo = window.transitionTo;
+    if (originalTransitionTo) {
+        window.transitionTo = function(newState) {
+            lastWorkoutState = window.workoutState?.current;
+            console.log('[ANDROID PATCH] Transition détectée:', lastWorkoutState, '→', newState);
+            return originalTransitionTo.apply(this, arguments);
+        };
+    }
+    
+    // Reset counter au démarrage d'une nouvelle série
     const originalStart = window.startVoiceRecognition;
     window.startVoiceRecognition = function() {
         androidRestartCount = 0;
-        console.log('[ANDROID PATCH] Compteur restarts réinitialisé');
+        lastWorkoutState = window.workoutState?.current;
+        console.log('[ANDROID PATCH] Démarrage vocal, état:', lastWorkoutState);
         return originalStart.apply(this, arguments);
     };
     
-    console.log('[ANDROID PATCH] Patch installé avec succès');
+    console.log('[ANDROID PATCH] Patch installé avec tracking d\'état');
 }
+
+// Fonction de debug
+window.getAndroidPatchStatus = function() {
+    return {
+        android: isAndroid,
+        restartCount: androidRestartCount || 0,
+        lastWorkoutState: lastWorkoutState || 'none',
+        currentWorkoutState: window.workoutState?.current,
+        voiceActive: voiceRecognitionActive,
+        voiceCount: window.voiceData?.count || 0
+    };
+};
 
 // Test function
 window.testAndroidPatch = function() {
