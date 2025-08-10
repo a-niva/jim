@@ -772,13 +772,11 @@ function handleFinalResult(transcript) {
     
     // 3. Extraire et traiter les nombres
     const numbers = extractNumbersFromTranscript(transcript);
-    
     if (numbers.length > 0) {
-        // Traiter tous les nombres
-        for (const number of numbers) {
-            if (number !== pendingValidation) {
-                processValidatedNumber(number);
-            }
+        // Prendre SEULEMENT le nombre le plus élevé
+        const latestNumber = Math.max(...numbers);
+        if (latestNumber > voiceData.count) {
+            processValidatedNumber(latestNumber);
         }
         
         // Mettre en cache le dernier nombre
@@ -1443,8 +1441,10 @@ function updateVoiceDisplayImmediate(count) {
 function handleNumberDetected(number) {
     console.log(`[Voice] Nombre détecté: ${number}`);
     
-    // OPT-B : Invalider le cache de confiance
-    confidenceInvalidated = true;
+    // Invalider cache seulement si réel changement
+    if (number !== voiceData.count) {
+        confidenceInvalidated = true; // Seulement si nouveau nombre
+    }
     
     // Validation de base existante - INCHANGÉE
     const expectedNext = voiceData.lastNumber + 1;
