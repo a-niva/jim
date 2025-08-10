@@ -8685,14 +8685,12 @@ function cleanupCurrentState() {
     document.getElementById('setFeedback').style.display = 'none';
     document.getElementById('restPeriod').style.display = 'none';
     
-    // Réinitialiser l'état
-    workoutState = {
-        current: WorkoutStates.IDLE,
-        exerciseStartTime: null,
-        setStartTime: null,
-        restStartTime: null,
-        pendingSetData: null
-    };
+    workoutState.exerciseStartTime = null;
+    workoutState.setStartTime = null;
+    workoutState.restStartTime = null;
+    workoutState.pendingSetData = null;
+    workoutState.plannedRestDuration = null;
+    workoutState.currentRecommendation = null;
 }
 
 async function restartExercise(exerciseId) {
