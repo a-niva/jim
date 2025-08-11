@@ -10792,7 +10792,7 @@ function startRestPeriod(duration = null, isMLSuggested = false) {
         }
     }
     
-    // Préparations (conserver logique existante) 
+    // Préparations (conserver logique existante)
     workoutState.restStartTime = Date.now();
     currentWorkoutSession.restAdjustments = [];
     
@@ -10822,6 +10822,7 @@ function startRestPeriod(duration = null, isMLSuggested = false) {
                 endRest();
             }
         }, 1000);
+        
         // Activer preview série suivante
         preloadNextSeriesRecommendations()
             .then(previewData => {
@@ -10834,6 +10835,13 @@ function startRestPeriod(duration = null, isMLSuggested = false) {
     
     // Transition état SANS affichage automatique du modal (déjà géré dans cette fonction)
     workoutState.current = WorkoutStates.RESTING;  // Changement direct sans transitionTo()
+    
+    // NOUVEAU : Désactiver motion pendant repos
+    if (window.motionDetector?.monitoring) {
+        window.motionDetector.stopMonitoring();
+        updateMotionIndicator(false);
+        console.log('[Motion] Désactivé pendant repos');
+    }
 }
 
 // ===== DEMANDE DE PERMISSIONS =====
