@@ -15,6 +15,11 @@ class MotionDetector {
             }
         };
 
+        // Calibration data
+        this.calibrationMode = false;
+        this.calibrationSamples = [];
+        this.baselineNoise = 0;
+
         this.state = 'unknown';
         this.monitoring = false;
         this.callbacks = {};
@@ -93,8 +98,18 @@ class MotionDetector {
     handleMotion(event) {
         if (!this.monitoring || !event.acceleration) return;
         
-        // Calcul simple magnitude
         const acc = event.acceleration;
+        const magnitude = Math.sqrt(acc.x**2 + acc.y**2 + acc.z**2);
+        
+        // Mode calibration
+        if (this.calibrationMode) {
+            this.calibrationSamples.push(magnitude);
+            return;
+        }
+        
+        if (!this.monitoring || !event.acceleration) return;
+        
+        // Calcul simple magnitude
         this.lastAcceleration = Math.sqrt(
             (acc.x || 0) ** 2 + 
             (acc.y || 0) ** 2 + 
@@ -154,6 +169,76 @@ class MotionDetector {
             acceleration: this.lastAcceleration.toFixed(2),
             monitoring: this.monitoring
         };
+    }
+
+    async calibrate(duration = 5000) {
+        console.log('[Motion] Début calibration');
+        this.calibrationMode = true;
+        this.calibrationSamples = [];
+        
+        // Instructions UI
+        showCalibrationUI();
+        
+        // Collecter samples
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                this.calibrationMode = false;
+                this.processCalibration();
+                hideCalibrationUI();
+                resolve(this.baselineNoise);
+            }, duration);
+        });
+    }
+
+    processCalibration() {
+        if (this.calibrationSamples.length === 0) {
+            this.baselineNoise = 0.5; // Défaut
+            return;
+        }
+        
+        // Calculer moyenne et écart-type
+        const avg = this.calibrationSamples.reduce((a, b) => a + b, 0) / this.calibrationSamples.length;
+        const variance = this.calibrationSamples.reduce((sum, val) => sum + Math.pow(val - avg, 2), 0) / this.calibrationSamples.length;
+        const stdDev = Math.sqrt(variance);
+        
+        // Ajuster seuils basés sur le bruit ambiant
+        this.baselineNoise = avg + (2 * stdDev); // 2 écarts-types
+        
+        // Adapter thresholds
+        this.THRESHOLDS.STATIONARY.acceleration = Math.max(1.0, this.baselineNoise + 0.5);
+        this.THRESHOLDS.PICKUP.acceleration = Math.max(3.0, this.baselineNoise + 2.5);
+        
+        console.log('[Motion] Calibration terminée:', {
+            baseline: this.baselineNoise,
+            stationary: this.THRESHOLDS.STATIONARY.acceleration,
+            pickup: this.THRESHOLDS.PICKUP.acceleration
+        });
+        
+        // Sauvegarder en localStorage
+        localStorage.setItem('motionCalibration', JSON.stringify({
+            baseline: this.baselineNoise,
+            thresholds: this.THRESHOLDS,
+            timestamp: Date.now()
+        }));
+    }
+
+    loadCalibration() {
+        try {
+            const saved = localStorage.getItem('motionCalibration');
+            if (saved) {
+                const data = JSON.parse(saved);
+                // Utiliser si moins de 30 jours
+                if (Date.now() - data.timestamp < 30 * 24 * 60 * 60 * 1000) {
+                    this.baselineNoise = data.baseline;
+                    this.THRESHOLDS = data.thresholds;
+                    console.log('[Motion] Calibration chargée');
+                    return true;
+                }
+            }
+        } catch (error) {
+            console.error('[Motion] Erreur chargement calibration:', error);
+        }
+        return false;
     }
 }
 

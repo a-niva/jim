@@ -39,20 +39,74 @@ let currentWorkoutSession = {
 // ===== MACHINE D'ÉTAT SÉANCE =====
 const WorkoutStates = {
     IDLE: 'idle',
-    READY: 'ready',          // Prêt pour une série
-    EXECUTING: 'executing',   // Série en cours
-    FEEDBACK: 'feedback',     // En attente du feedback
-    RESTING: 'resting',       // Période de repos
+    READY: 'ready',
+    READY_COUNTDOWN: 'ready.countdown',    // Sous-état de READY
+    READY_PAUSED: 'ready.paused',          // Sous-état pour pause
+    EXECUTING: 'executing',
+    FEEDBACK: 'feedback',
+    RESTING: 'resting',
     TRANSITIONING: 'transitioning',
-    COMPLETED: 'completed'    // Exercice/séance terminé
+    COMPLETED: 'completed'
 };
 
-// Motion Detection - Singleton System (Corrigé)
+// Motion Detection - Architecture V2
 let motionDetectionEnabled = false;
 let motionDetector = null;
 let motionSystemInitialized = false;
-let isSetTimerRunning = false; // Protection double timer
-let lastInitializedUserId = null; // Protection changement profil
+let lastInitializedUserId = null;
+
+// Timer Management Unifié
+let setTimerState = {
+    startTime: null,
+    pausedAt: null,
+    totalPausedTime: 0,
+    isRunning: false,
+    
+    start() {
+        this.startTime = Date.now();
+        this.pausedAt = null;
+        this.totalPausedTime = 0;
+        this.isRunning = true;
+    },
+    
+    pause() {
+        if (this.isRunning && !this.pausedAt) {
+            this.pausedAt = Date.now();
+            this.isRunning = false;
+        }
+    },
+    
+    resume() {
+        if (this.pausedAt) {
+            this.totalPausedTime += Date.now() - this.pausedAt;
+            this.pausedAt = null;
+            this.isRunning = true;
+        }
+    },
+    
+    getElapsed() {
+        if (!this.startTime) return 0;
+        
+        const now = Date.now();
+        const totalTime = now - this.startTime;
+        const currentPause = this.pausedAt ? (now - this.pausedAt) : 0;
+        
+        return Math.floor((totalTime - this.totalPausedTime - currentPause) / 1000);
+    },
+    
+    reset() {
+        this.startTime = null;
+        this.pausedAt = null;
+        this.totalPausedTime = 0;
+        this.isRunning = false;
+    }
+};
+
+// États Motion & Countdown
+let countdownTimer = null;
+let countdownBeeps = 0;
+let motionCalibrationData = null;
+let voiceConfirmationTimeout = null;
 
 let workoutState = {
     current: WorkoutStates.IDLE,
@@ -63,10 +117,369 @@ let workoutState = {
     plannedRestDuration: null
 };
 
-// === VARIABLES PHASE 3.1 - SCORING ===
+
+// === VARIABLES - SCORING ===
 let currentScoringData = null;
 let draggedElement = null;
 let lastKnownScore = null;
+
+
+// ===== AUDIO SYSTEM V2 AVEC FALLBACKS =====
+const AudioSystem = {
+    context: null,
+    hasPermission: false,
+    volumeLevel: 0,
+    
+    async init() {
+        try {
+            // Vérifier volume système
+            this.volumeLevel = await this.checkSystemVolume();
+            
+            if (!this.context) {
+                this.context = new (window.AudioContext || window.webkitAudioContext)();
+                this.hasPermission = true;
+            }
+            
+            // Test silencieux pour permissions
+            const testOsc = this.context.createOscillator();
+            testOsc.connect(this.context.createGain());
+            testOsc.start();
+            testOsc.stop();
+            
+            return true;
+        } catch (error) {
+            console.warn('[Audio] Permissions refusées:', error);
+            this.hasPermission = false;
+            return false;
+        }
+    },
+    
+    async checkSystemVolume() {
+        // Tentative de détection volume (API limitée)
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            stream.getTracks().forEach(track => track.stop());
+            return 1; // Si permission accordée, assume volume OK
+        } catch {
+            return 0; // Assume muet si pas de permission
+        }
+    },
+    
+    playBeep(frequency = 800, duration = 200, useVibration = true) {
+        const success = this.playAudioBeep(frequency, duration);
+        
+        // Fallback vibration si audio échoue ou volume 0
+        if ((!success || this.volumeLevel === 0) && useVibration && navigator.vibrate) {
+            navigator.vibrate(duration);
+        }
+        
+        // Fallback visuel toujours actif
+        this.showVisualBeep();
+        
+        return success;
+    },
+    
+    playAudioBeep(frequency, duration) {
+        if (!this.hasPermission || !this.context) {
+            return false;
+        }
+        
+        try {
+            const oscillator = this.context.createOscillator();
+            const gainNode = this.context.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(this.context.destination);
+            
+            oscillator.frequency.value = frequency;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, this.context.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + duration / 1000);
+            
+            oscillator.start(this.context.currentTime);
+            oscillator.stop(this.context.currentTime + duration / 1000);
+            
+            return true;
+        } catch {
+            return false;
+        }
+    },
+    
+    showVisualBeep() {
+        // Flash visuel de l'écran
+        const flash = document.createElement('div');
+        flash.className = 'audio-visual-flash';
+        flash.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(33, 150, 243, 0.3);
+            pointer-events: none;
+            z-index: 9999;
+            animation: flash 0.2s ease-out;
+        `;
+        
+        document.body.appendChild(flash);
+        setTimeout(() => flash.remove(), 200);
+    },
+    
+    async playTripleBeep(callback) {
+        // Initialiser si nécessaire
+        if (!this.hasPermission) {
+            await this.init();
+        }
+        
+        const beeps = [
+            { freq: 600, delay: 0, count: 3 },
+            { freq: 700, delay: 1000, count: 2 },
+            { freq: 800, delay: 2000, count: 1 }
+        ];
+        
+        let completed = true;
+        
+        beeps.forEach(({ freq, delay, count }) => {
+            setTimeout(() => {
+                // Vérifier que toujours stationnaire
+                if (window.motionDetector?.state !== 'stationary') {
+                    completed = false;
+                    return;
+                }
+                
+                this.playBeep(freq, 200);
+                countdownBeeps++;
+                updateCountdownDisplay(count);
+            }, delay);
+        });
+        
+        // Callback après le dernier bip
+        setTimeout(() => {
+            countdownBeeps = 0;
+            callback(completed);
+        }, 3000);
+    }
+};
+
+// Style pour flash visuel
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes flash {
+        from { opacity: 1; }
+        to { opacity: 0; }
+    }
+`;
+document.head.appendChild(style);
+
+// ===== CONFIRMATION VOCALE SYSTEM =====
+const VoiceConfirmation = {
+    recognition: null,
+    isListening: false,
+    callback: null,
+    timeout: null,
+    
+    init() {
+        if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+            console.warn('[VoiceConfirm] API non disponible');
+            return false;
+        }
+        
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        this.recognition = new SpeechRecognition();
+        this.recognition.lang = 'fr-FR';
+        this.recognition.continuous = true;
+        this.recognition.interimResults = true;
+        
+        this.recognition.onresult = (event) => {
+            const result = event.results[event.results.length - 1];
+            const transcript = result[0].transcript.toLowerCase();
+            
+            console.log('[VoiceConfirm] Entendu:', transcript);
+            
+            // Détection mots-clés
+            if (transcript.includes('continuer') || transcript.includes('continue')) {
+                this.handleCommand('continue');
+            } else if (transcript.includes('terminer') || transcript.includes('fini') || 
+                      transcript.includes('stop') || transcript.includes('fin')) {
+                this.handleCommand('finish');
+            }
+        };
+        
+        this.recognition.onerror = (event) => {
+            console.error('[VoiceConfirm] Erreur:', event.error);
+            this.stop();
+        };
+        
+        return true;
+    },
+    
+    start(callback, timeoutMs = 10000) {
+        if (!this.recognition) {
+            if (!this.init()) {
+                callback('manual'); // Fallback manuel
+                return;
+            }
+        }
+        
+        this.callback = callback;
+        this.isListening = true;
+        
+        try {
+            this.recognition.start();
+            
+            // Timeout pour fallback manuel
+            this.timeout = setTimeout(() => {
+                this.stop();
+                callback('manual');
+            }, timeoutMs);
+            
+        } catch (error) {
+            console.error('[VoiceConfirm] Erreur démarrage:', error);
+            callback('manual');
+        }
+    },
+    
+    stop() {
+        if (this.isListening && this.recognition) {
+            this.recognition.stop();
+            this.isListening = false;
+        }
+        
+        if (this.timeout) {
+            clearTimeout(this.timeout);
+            this.timeout = null;
+        }
+    },
+    
+    handleCommand(command) {
+        this.stop();
+        if (this.callback) {
+            this.callback(command);
+            this.callback = null;
+        }
+    }
+};
+
+// ===== CALLBACKS MOTION V2 AVEC VOCAL =====
+function createMotionCallbacksV2() {
+    return {
+        onStationary: () => {
+            console.log('[Motion] Stationnaire détecté');
+            
+            // Vérifier conditions
+            if (workoutState.current !== WorkoutStates.READY) {
+                console.log('[Motion] Ignoré - pas en READY');
+                return;
+            }
+            
+            if (setTimerState.isRunning) {
+                console.log('[Motion] Timer déjà actif');
+                return;
+            }
+            
+            // Sous-état countdown
+            transitionTo(WorkoutStates.READY_COUNTDOWN);
+            
+            // UI feedback
+            showCountdownInterface();
+            
+            // Triple bip avec vérification
+            AudioSystem.playTripleBeep((completed) => {
+                if (completed && window.motionDetector?.state === 'stationary') {
+                    startSeriesAfterCountdown();
+                } else {
+                    cancelCountdown();
+                }
+            });
+        },
+        
+        onPickup: () => {
+            console.log('[Motion] Reprise détectée');
+            
+            // Gérer selon l'état
+            switch (workoutState.current) {
+                case WorkoutStates.READY_COUNTDOWN:
+                    cancelCountdown();
+                    break;
+                    
+                case WorkoutStates.EXECUTING:
+                    handlePickupWithVoice();
+                    break;
+                    
+                default:
+                    console.log('[Motion] Pickup ignoré - état:', workoutState.current);
+            }
+        }
+    };
+}
+
+function startSeriesAfterCountdown() {
+    console.log('[Motion] Démarrage série post-countdown');
+    
+    // Transition état
+    transitionTo(WorkoutStates.EXECUTING);
+    
+    // Démarrer timer unifié
+    setTimerState.start();
+    window.currentSetStartTime = Date.now();
+    startSetTimer();
+    
+    // Vocal si activé
+    if (currentUser?.voice_counting_enabled) {
+        window.startVoiceRecognition();
+    }
+    
+    // UI
+    hideCountdownInterface();
+    updateMotionIndicator(true);
+    showToast('🚀 Série démarrée!', 'success');
+}
+
+function cancelCountdown() {
+    console.log('[Motion] Countdown annulé');
+    
+    // Retour état READY
+    transitionTo(WorkoutStates.READY);
+    hideCountdownInterface();
+    showToast('Reposez le téléphone pour démarrer', 'info');
+}
+
+function handlePickupWithVoice() {
+    console.log('[Motion] Gestion pickup avec confirmation vocale');
+    
+    // Pause timer
+    setTimerState.pause();
+    const elapsedTime = setTimerState.getElapsed();
+    
+    // Arrêt vocal si actif
+    if (window.voiceRecognitionActive?.()) {
+        window.stopVoiceRecognition();
+    }
+    
+    const hasVoiceData = window.voiceData?.count > 0;
+    
+    // UI confirmation vocale
+    showVoiceConfirmationUI(elapsedTime, hasVoiceData);
+    
+    // Démarrer écoute vocale
+    VoiceConfirmation.start((command) => {
+        switch (command) {
+            case 'continue':
+                continueSetVocal();
+                break;
+            case 'finish':
+                finishSetVocal();
+                break;
+            case 'manual':
+                // Fallback boutons après timeout
+                showManualConfirmationUI();
+                break;
+        }
+    });
+}
+
+
 
 /**
  * Fonction debounce simple pour optimiser les updates fréquents
@@ -397,11 +810,19 @@ function transitionTo(state) {
                 window.startVoiceRecognition();
             }
             break;
+        case WorkoutStates.READY_COUNTDOWN:
+            // Masquer bouton execute pendant countdown
+            document.getElementById('executeSetBtn').style.display = 'none';
+            showCountdownInterface();
+            break;
             
+        case WorkoutStates.READY_PAUSED:
+            // État spécial pour timer pausé
+            document.getElementById('executeSetBtn').style.display = 'block';
+            break;
         case WorkoutStates.FEEDBACK:
             document.getElementById('setFeedback').style.display = 'block';
             break;
-            
         case WorkoutStates.RESTING:
             // ===== EXCLUSIVITÉ STRICTE : QUE LE REPOS =====
             const restPeriod = document.getElementById('restPeriod');
@@ -469,28 +890,29 @@ async function initializeMotionSystemOnce() {
     }
 }
 
+// ===== BATTERY OPTIMIZATION =====
+let batteryCleanupTimer = null;
+
+function setupBatteryCleanup() {
+    // Cleanup après 15 minutes d'inactivité
+    batteryCleanupTimer = setTimeout(() => {
+        if (window.motionDetector?.monitoring && 
+            workoutState.current === WorkoutStates.READY) {
+            console.log('[Battery] Cleanup inactivité');
+            window.motionDetector.stopMonitoring();
+            showToast('Motion mis en pause (inactivité)', 'info');
+        }
+    }, 15 * 60 * 1000);
+}
+
+function resetBatteryCleanup() {
+    if (batteryCleanupTimer) {
+        clearTimeout(batteryCleanupTimer);
+        batteryCleanupTimer = null;
+    }
+}
+
 // ===== HELPERS CONDITIONS MOTION (Version Corrigée) =====
-function shouldEnableMotionAfterRest() {
-    return (
-        window.motionDetectionEnabled &&
-        currentUser?.motion_detection_enabled &&
-        currentUser?.voice_counting_enabled &&
-        window.motionDetector &&
-        !window.motionDetector.monitoring &&
-        currentExercise?.exercise_type !== 'isometric' && // NOUVEAU : Pas d'isométrique
-        workoutState.current === WorkoutStates.READY // NOUVEAU : Vérification état
-    );
-}
-
-function shouldEnableMotionOnSelect() {
-    return (
-        window.motionDetectionEnabled &&
-        currentUser?.motion_detection_enabled &&
-        window.motionDetector &&
-        currentExercise?.exercise_type !== 'isometric' // NOUVEAU : Pas d'isométrique
-    );
-}
-
 function cleanupMotionSystem() {
     if (window.motionDetector) {
         window.motionDetector.cleanup?.();
@@ -509,90 +931,6 @@ window.addEventListener('beforeunload', () => {
 });
 
 // ===== CALLBACKS MOTION CENTRALISÉS =====
-function createMotionCallbacks() {
-    return {
-        onStationary: () => {
-            console.log('[Motion] Stationnaire détecté');
-            
-            // Vérifications d'état strictes
-            if (workoutState.current !== WorkoutStates.READY) {
-                console.log('[Motion] Ignoré - état:', workoutState.current);
-                return;
-            }
-            
-            if (isSetTimerRunning || setTimer) {
-                console.log('[Motion] Timer déjà actif, ignoré');
-                return;
-            }
-            
-            // CRITIQUE : Transition d'état AVANT actions
-            transitionTo(WorkoutStates.EXECUTING);
-            
-            // Démarrage timer sécurisé
-            window.currentSetStartTime = Date.now();
-            isSetTimerRunning = true;
-            startSetTimer();
-            
-            // UI
-            hideMotionInstructions();
-            updateMotionIndicator(true);
-            
-            // Vocal si activé
-            if (currentUser?.voice_counting_enabled) {
-                window.startVoiceRecognition();
-            }
-            
-            // Feedback utilisateur
-            if (navigator.vibrate) {
-                navigator.vibrate([50, 100, 50]);
-            }
-            showToast('📱 Série démarrée', 'success');
-        },
-        
-        onPickup: () => {
-            console.log('[Motion] Reprise détectée');
-            
-            // Vérifier qu'on est en EXECUTING
-            if (workoutState.current !== WorkoutStates.EXECUTING) {
-                console.log('[Motion] Ignoré - pas en EXECUTING');
-                return;
-            }
-            
-            // Arrêt vocal propre
-            if (window.voiceRecognitionActive?.()) {
-                window.stopVoiceRecognition();
-            }
-            
-            // Gestion intelligente SANS confirmation
-            handleSetCompletionIntelligent();
-            
-            // Cleanup motion
-            window.motionDetector.stopMonitoring();
-            updateMotionIndicator(false);
-            hideMotionInstructions();
-        }
-    };
-}
-
-function handleSetCompletionIntelligent() {
-    const hasVoiceData = window.voiceData?.count > 0;
-    
-    if (hasVoiceData) {
-        showToast(`✓ ${window.voiceData.count} reps détectées`, 'success');
-    } else {
-        // Pré-remplir avec recommandation au lieu de demander confirmation
-        const recommendedReps = currentExercise?.default_reps_min || 10;
-        const repsInput = document.getElementById('setReps');
-        if (repsInput) {
-            repsInput.textContent = recommendedReps;
-        }
-        showToast('Reps pré-remplies - Ajustez si nécessaire', 'info');
-    }
-    
-    // Toujours continuer (user corrigera dans l'UI si besoin)
-    executeSet();
-}
-
 // ===== UI MOTION INDICATOR =====
 function updateMotionIndicator(active) {
     let indicator = document.getElementById('motionIndicator');
@@ -4450,35 +4788,47 @@ async function selectExercise(exercise, skipValidation = false) {
     // Transition vers l'état READY
     transitionTo(WorkoutStates.READY);
 
-    // ========== LOGIQUE MOTION CORRIGÉE ==========
-    if (shouldEnableMotionOnSelect()) {
-        console.log('[Motion] Feature principale activée');
+    // ========== NOUVELLE LOGIQUE MOTION V2 ==========
+    if (currentUser?.motion_detection_enabled && 
+        window.motionDetectionEnabled && 
+        window.motionDetector &&
+        currentExercise?.exercise_type !== 'isometric') {
         
-        // Mode motion hands-free
+        console.log('[Motion] Mode motion activé');
+        
+        // Charger calibration si existe
+        if (!motionCalibrationData) {
+            window.motionDetector.loadCalibration();
+        }
+        
+        // Instructions
         showMotionInstructions();
-        updateMotionIndicator(false); // Pas encore actif
+        updateMotionIndicator(false);
         
-        // Démarrer monitoring avec callbacks centralisés
-        window.motionDetector.startMonitoring(createMotionCallbacks());
+        // Monitoring V2
+        window.motionDetector.startMonitoring(createMotionCallbacksV2());
         
-        console.log('[Motion] Monitoring actif - Timer démarrera lors stationary');
-        return; // CRITIQUE : pas de startSetTimer ici !
+        // PAS de timer ici - il démarrera après countdown
+        return; // IMPORTANT : sortir de la fonction ici
     }
 
-    // ========== FALLBACK MODE MANUEL ==========
-    console.log('[Motion] Mode manuel activé');
-    startSetTimer(); // Timer immédiat en mode manuel
+    // ========== MODE MANUEL (sans motion) ==========
+    console.log('[Timer] Mode manuel');
 
-    // Fallback : Si motion désactivé mais vocal activé
-    if (currentUser?.voice_counting_enabled) {
-        console.log('[Vocal] Activation mode legacy (sans motion)');
+    // NOUVEAU : Initialiser timer state pour mode manuel
+    setTimerState.start();
+    window.currentSetStartTime = Date.now();
+
+    // Démarrer l'affichage du timer
+    startSetTimer(); // GARDER UN SEUL APPEL
+
+    // Vocal legacy si activé sans motion
+    if (currentUser?.voice_counting_enabled && !currentUser?.motion_detection_enabled) {
+        console.log('[Vocal] Mode legacy');
         activateVoiceForWorkout();
     }
-    
-    // Si ni motion ni vocal : mode manuel pur
-    
-    // Démarrer le timer de la première série
-    startSetTimer();
+
+    // SUPPRIMER le doublon startSetTimer() qui était ici
 
     // Vérification finale après un court délai pour debug
     if (console.log) {
@@ -7471,35 +7821,269 @@ function startWorkoutTimer() {
     }, 1000);
 }
 
+// ===== TIMER MANAGEMENT V2 =====
 function startSetTimer() {
-    // Protection double timer (CORRIGÉ)
+    // Protection double timer
     if (setTimer) {
-        console.warn('[Timer] Tentative double démarrage bloquée');
+        console.warn('[Timer] Display déjà actif');
         return;
     }
     
-    if (isSetTimerRunning) {
-        console.warn('[Timer] Timer déjà en cours');
-        return;
+    // NOUVEAU : Vérifier que le timer state est démarré
+    if (!setTimerState.isRunning && !setTimerState.startTime) {
+        // Si appelé en mode manuel, démarrer le timer state
+        setTimerState.start();
+        window.currentSetStartTime = Date.now();
     }
     
-    // Stocker le timestamp de début
-    window.currentSetStartTime = Date.now();
+    // Réinitialiser affichage
+    const timerDisplay = document.getElementById('setTimer');
+    if (timerDisplay) {
+        timerDisplay.textContent = '00:00';
+    }
     
-    // Réinitialiser l'affichage à 00:00
-    document.getElementById('setTimer').textContent = '00:00';
-    
-    const startTime = new Date();
+    // Interval pour affichage uniquement
     setTimer = setInterval(() => {
-        const elapsed = new Date() - startTime;
-        const minutes = Math.floor(elapsed / 60000);
-        const seconds = Math.floor((elapsed % 60000) / 1000);
-        document.getElementById('setTimer').textContent = 
-            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    }, 1000);
+        const elapsed = setTimerState.getElapsed();
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = elapsed % 60;
+        
+        if (timerDisplay) {
+            timerDisplay.textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+    }, 100);
+}
+
+function stopSetTimerDisplay() {
+    if (setTimer) {
+        clearInterval(setTimer);
+        setTimer = null;
+    }
+}
+
+function continueSetVocal() {
+    console.log('[Timer] Reprise après confirmation vocale');
     
-    // Flag protection
-    isSetTimerRunning = true;
+    // Reprendre timer
+    setTimerState.resume();
+    
+    // Fermer UI
+    hideVoiceConfirmationUI();
+    
+    // Reprendre vocal si était actif
+    if (currentUser?.voice_counting_enabled) {
+        window.startVoiceRecognition();
+    }
+    
+    // Reprendre monitoring
+    window.motionDetector?.startMonitoring(createMotionCallbacksV2());
+    
+    showToast('Série reprise', 'info');
+}
+
+function finishSetVocal() {
+    console.log('[Timer] Fin série après confirmation vocale');
+    
+    // Temps final = temps au moment du pickup
+    const finalTime = setTimerState.getElapsed();
+    
+    // Stocker pour executeSet
+    window.currentSetDuration = finalTime;
+    
+    // Cleanup
+    stopSetTimerDisplay();
+    setTimerState.reset();
+    hideVoiceConfirmationUI();
+    
+    // Exécuter
+    executeSet();
+}
+
+// ===== UI CONFIRMATION VOCALE =====
+function showVoiceConfirmationUI(elapsedTime, hasVoiceData) {
+    const html = `
+        <div id="voiceConfirmation" class="voice-confirmation-overlay">
+            <div class="voice-content">
+                <h2>Série en pause</h2>
+                
+                <div class="voice-listening-indicator">
+                    <div class="pulse-ring"></div>
+                    <i class="fas fa-microphone"></i>
+                </div>
+                
+                <p class="voice-instruction">
+                    Dites <strong>"CONTINUER"</strong> ou <strong>"TERMINER"</strong>
+                </p>
+                
+                <div class="timer-info">
+                    <span class="timer-label">Temps écoulé</span>
+                    <span class="timer-value">${formatTime(elapsedTime)}</span>
+                </div>
+                
+                ${hasVoiceData ? `
+                    <div class="voice-data-info">
+                        <i class="fas fa-check-circle"></i>
+                        ${window.voiceData.count} reps détectées
+                    </div>
+                ` : ''}
+                
+                <div class="voice-timeout-bar">
+                    <div class="timeout-progress"></div>
+                </div>
+                
+                <p class="fallback-info">
+                    Boutons manuels dans <span id="timeoutCountdown">10</span>s
+                </p>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', html);
+    
+    // Animation timeout
+    const progressBar = document.querySelector('.timeout-progress');
+    if (progressBar) {
+        progressBar.style.animation = 'timeout-countdown 10s linear';
+    }
+    
+    // Countdown texte
+    let countdown = 10;
+    const countdownInterval = setInterval(() => {
+        countdown--;
+        const countdownEl = document.getElementById('timeoutCountdown');
+        if (countdownEl) {
+            countdownEl.textContent = countdown;
+        }
+        if (countdown <= 0) {
+            clearInterval(countdownInterval);
+        }
+    }, 1000);
+}
+
+function hideVoiceConfirmationUI() {
+    document.getElementById('voiceConfirmation')?.remove();
+}
+
+function showManualConfirmationUI() {
+    // Transformer l'UI vocale en UI manuelle
+    const voiceUI = document.getElementById('voiceConfirmation');
+    if (!voiceUI) return;
+    
+    const content = voiceUI.querySelector('.voice-content');
+    content.innerHTML = `
+        <h2>Série en pause</h2>
+        
+        <div class="timer-info">
+            <span class="timer-label">Temps écoulé</span>
+            <span class="timer-value">${formatTime(setTimerState.getElapsed())}</span>
+        </div>
+        
+        ${window.voiceData?.count > 0 ? `
+            <div class="voice-data-info">
+                <i class="fas fa-check-circle"></i>
+                ${window.voiceData.count} reps détectées
+            </div>
+        ` : ''}
+        
+        <div class="manual-buttons">
+            <button class="btn-large btn-continue" onclick="continueSetVocal()">
+                <i class="fas fa-play"></i>
+                Continuer la série
+            </button>
+            <button class="btn-large btn-finish" onclick="finishSetVocal()">
+                <i class="fas fa-check"></i>
+                Terminer la série
+            </button>
+        </div>
+    `;
+}
+
+function formatTime(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+// ===== UI COUNTDOWN & CALIBRATION =====
+function showCountdownInterface() {
+    hideMotionInstructions();
+    
+    const html = `
+        <div id="countdownInterface" class="countdown-overlay">
+            <div class="countdown-content">
+                <div class="countdown-visual">
+                    <svg class="countdown-ring" viewBox="0 0 120 120">
+                        <circle cx="60" cy="60" r="54" fill="none" stroke="#e0e0e0" stroke-width="8"/>
+                        <circle cx="60" cy="60" r="54" fill="none" stroke="#2196F3" stroke-width="8"
+                                stroke-dasharray="339.292" stroke-dashoffset="339.292"
+                                class="countdown-ring-progress"/>
+                    </svg>
+                    <span id="countdownDisplay" class="countdown-number">3</span>
+                </div>
+                <p class="countdown-text">Restez immobile...</p>
+            </div>
+        </div>
+    `;
+    
+    const container = document.querySelector('.exercise-content') || document.body;
+    container.insertAdjacentHTML('beforeend', html);
+}
+
+function updateCountdownDisplay(remaining) {
+    const display = document.getElementById('countdownDisplay');
+    const ring = document.querySelector('.countdown-ring-progress');
+    
+    if (display) {
+        display.textContent = remaining > 0 ? remaining : 'GO!';
+    }
+    
+    if (ring) {
+        const offset = 339.292 - (339.292 * (3 - remaining) / 3);
+        ring.style.strokeDashoffset = offset;
+    }
+    
+    if (remaining === 0) {
+        setTimeout(() => hideCountdownInterface(), 500);
+    }
+}
+
+function hideCountdownInterface() {
+    document.getElementById('countdownInterface')?.remove();
+}
+
+function showCalibrationUI() {
+    const html = `
+        <div id="calibrationUI" class="calibration-overlay">
+            <div class="calibration-content">
+                <h2>Calibration en cours</h2>
+                <p>Posez votre téléphone sur votre surface d'entraînement habituelle</p>
+                
+                <div class="calibration-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                </div>
+                
+                <p class="calibration-info">
+                    Mesure des vibrations ambiantes...
+                </p>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', html);
+    
+    // Animation progress
+    const progressFill = document.querySelector('.calibration-progress .progress-fill');
+    if (progressFill) {
+        progressFill.style.animation = 'calibration-progress 5s linear';
+    }
+}
+
+function hideCalibrationUI() {
+    document.getElementById('calibrationUI')?.remove();
+    showToast('Calibration terminée', 'success');
 }
 
 // ===== CONTRÔLES AUDIO =====
@@ -7822,13 +8406,15 @@ async function loadProfile() {
     // Ajouter les toggles Motion et Vocal - UNIQUEMENT sur mobile
     const isMobile = /Android|iPhone/i.test(navigator.userAgent);
     if (isMobile) {
-        // MOTION DETECTION EN PREMIER (feature principale)
+        // MOTION DETECTION AVEC OPTIONS
         profileHTML += `
             <div class="profile-field">
                 <span class="field-label">
-                    Motion sensor
+                    <i class="fas fa-mobile-alt"></i> Motion Detection
                 </span>
-                <small class="field-description">Pose/reprise du téléphone déclenche le début/fin de série</small>
+                <small class="field-description">
+                    Démarrage/arrêt automatique des séries
+                </small>
                 <div class="toggle-container">
                     <label class="toggle-switch">
                         <input type="checkbox" id="motionDetectionToggle"
@@ -7837,30 +8423,36 @@ async function loadProfile() {
                         <span class="toggle-slider"></span>
                     </label>
                     <span id="motionDetectionLabel">
-                        ${currentUser.motion_detection_enabled ? 'Activée' : 'Désactivée'}
+                        ${currentUser.motion_detection_enabled ? 'Activé' : 'Désactivé'}
                     </span>
                 </div>
-            </div>
-        `;
-
-        // COMPTAGE VOCAL EN SECOND (feature beta)
-        profileHTML += `
-            <div class="profile-field">
-                <span class="field-label">
-                    Comptage vocal
-                    <span class="motionsensor-beta">BETA</span>
-                </span>
-                <small class="field-description">Reconnaissance vocale des répétitions</small>
-                <div class="toggle-container">
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="voiceCountingToggle"
+                
+                <!-- Options Motion -->
+                <div class="motion-options ${currentUser.motion_detection_enabled ? '' : 'disabled'}" 
+                    id="motionOptions">
+                    
+                    <!-- Sous-option vocal -->
+                    <label class="checkbox-option">
+                        <input type="checkbox" id="voiceWithMotionToggle"
                             ${currentUser.voice_counting_enabled ? 'checked' : ''}
-                            onchange="toggleVoiceCounting()">
-                        <span class="toggle-slider"></span>
+                            ${currentUser.motion_detection_enabled ? '' : 'disabled'}
+                            onchange="toggleVoiceWithMotion()">
+                        <span class="checkbox-label">
+                            <i class="fas fa-microphone"></i> Comptage vocal des reps
+                        </span>
                     </label>
-                    <span id="voiceCountingLabel">
-                        ${currentUser.voice_counting_enabled ? 'Activé' : 'Désactivé'}
-                    </span>
+                    
+                    <!-- Calibration -->
+                    <button class="btn-text" onclick="calibrateMotion()"
+                            ${currentUser.motion_detection_enabled ? '' : 'disabled'}>
+                        <i class="fas fa-cog"></i> Calibrer la sensibilité
+                    </button>
+                    
+                    <small class="option-info">
+                        ${motionCalibrationData ? 
+                            `Calibré le ${new Date(motionCalibrationData.timestamp).toLocaleDateString()}` : 
+                            'Non calibré'}
+                    </small>
                 </div>
             </div>
         `;
@@ -10381,15 +10973,24 @@ async function executeSet() {
         const feedback = selectedEmoji ? selectedEmoji.dataset.feedback : 3;
         
         // === NOUVELLE GESTION ÉTATS VOCAUX ===
-        // NOUVEAU : Cleanup motion dans executeSet
+        // Cleanup motion et timers V2
         if (window.motionDetector?.monitoring) {
             window.motionDetector.stopMonitoring();
             updateMotionIndicator(false);
-            console.log('[Motion] Arrêt monitoring dans executeSet');
         }
 
-        // Reset timer flag
-        isSetTimerRunning = false;
+        // Arrêter display timer
+        stopSetTimerDisplay();
+
+        // Reset état timer
+        setTimerState.reset();
+
+        // Cleanup confirmations vocales
+        VoiceConfirmation.stop();
+        hideVoiceConfirmationUI();
+
+        // Reset états
+        window.currentSetStartTime = null;
         // 1. Vérifier si validation vocale en cours
         if (window.voiceState === 'VALIDATING' || window.voiceState === 'AUTO_VALIDATING') {
             console.log('[Voice] Série en attente de validation vocal, executeSet() suspendu');
@@ -11618,16 +12219,16 @@ function completeRest() {
         transitionToReadyState();
         transitionTo(WorkoutStates.READY);
         // NOUVEAU : Réactiver motion APRÈS transition (Fix race condition)
-        if (shouldEnableMotionAfterRest()) {
-            setTimeout(() => {
-                // Double vérification de l'état après délai
-                if (workoutState.current === WorkoutStates.READY) {
-                    console.log('[Motion] Réactivation après repos');
-                    showMotionInstructions();
-                    updateMotionIndicator(false);
-                    window.motionDetector.startMonitoring(createMotionCallbacks());
-                }
-            }, 100); // Délai pour garantir la transition
+        // Réactiver motion V2 après repos
+        if (currentUser?.motion_detection_enabled && 
+            window.motionDetectionEnabled && 
+            window.motionDetector &&
+            currentExercise?.exercise_type !== 'isometric') {
+            
+            console.log('[Motion] Réactivation après repos');
+            showMotionInstructions();
+            updateMotionIndicator(false);
+            window.motionDetector.startMonitoring(createMotionCallbacksV2());
         }
                
         // Sinon, vocal normal
@@ -11701,32 +12302,80 @@ function hideMotionInstructions() {
 }
 
 // === MOTION SENSOR : TOGGLE PRÉFÉRENCES (à ajouter avec autres toggles ~1500) ===
+// ===== TOGGLES PROFIL V2 =====
 async function toggleMotionDetection() {
     const toggle = document.getElementById('motionDetectionToggle');
     const newState = toggle.checked;
-
+    
     try {
         await apiPut(`/api/users/${currentUser.id}/preferences`, {
             motion_detection_enabled: newState
         });
-
+        
         currentUser.motion_detection_enabled = newState;
         
+        // UI
         document.getElementById('motionDetectionLabel').textContent = 
-            newState ? 'Activée' : 'Désactivée';
-
-        // Si désactivé, nettoyer
-        if (!newState && motionDetector) {
-            motionDetector.stopMonitoring();
-            motionDetectionEnabled = false;
-            motionDetector = null;
+            newState ? 'Activé' : 'Désactivé';
+        
+        const options = document.getElementById('motionOptions');
+        const voiceToggle = document.getElementById('voiceWithMotionToggle');
+        
+        if (newState) {
+            options.classList.remove('disabled');
+            voiceToggle.disabled = false;
+            
+            // Proposer calibration au premier usage
+            if (!localStorage.getItem('motionCalibrated')) {
+                setTimeout(() => {
+                    if (confirm('Souhaitez-vous calibrer le motion sensor pour votre environnement ?')) {
+                        calibrateMotion();
+                    }
+                }, 500);
+            }
+            
+            await initializeMotionSystemOnce();
+        } else {
+            options.classList.add('disabled');
+            voiceToggle.disabled = true;
+            
+            // Désactiver vocal si motion désactivé
+            if (currentUser.voice_counting_enabled) {
+                await toggleVoiceWithMotion(false);
+            }
+            
+            cleanupMotionSystem();
         }
-
-        showToast('Préférence mise à jour', 'success');
-
+        
+        showToast('Préférences mises à jour', 'success');
+        
     } catch (error) {
         toggle.checked = !newState;
-        showToast('Erreur lors de la sauvegarde', 'error');
+        showToast('Erreur de sauvegarde', 'error');
+    }
+}
+
+async function calibrateMotion() {
+    if (!window.motionDetector) {
+        await initializeMotionSystemOnce();
+    }
+    
+    if (window.motionDetector) {
+        const baseline = await window.motionDetector.calibrate();
+        
+        // Sauvegarder globalement
+        motionCalibrationData = {
+            baseline: baseline,
+            timestamp: Date.now()
+        };
+        
+        localStorage.setItem('motionCalibrated', 'true');
+        
+        // Mettre à jour UI
+        const infoEl = document.querySelector('.option-info');
+        if (infoEl) {
+            infoEl.textContent = `Calibré le ${new Date().toLocaleDateString()}`;
+        }
     }
 }
 // ===== MISE À JOUR DURÉE DE REPOS =====
