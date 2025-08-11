@@ -4238,67 +4238,66 @@ async function selectExercise(exercise, skipValidation = false) {
     // Transition vers l'état READY
     transitionTo(WorkoutStates.READY);
     
-    // Motion detection si activée ET vocal activé
-    if (currentUser?.motion_detection_enabled && currentUser?.voice_counting_enabled) {
-        console.log('[Motion] Conditions remplies pour activation');
+
+    // NOUVELLE LOGIQUE : Motion est la feature principale
+    if (currentUser?.motion_detection_enabled) {
+        console.log('[Motion] Feature principale activée');
         
         await initMotionDetectionIfNeeded();
         
         if (window.motionDetectionEnabled && window.motionDetector) {
-            console.log('[Motion] Système prêt, configuration callbacks');
-            
-            // IMPORTANT : NE PAS démarrer le vocal maintenant !
-            // On va juste afficher les instructions
+            // Afficher les instructions immédiatement
             setTimeout(() => {
                 showMotionInstructions();
             }, 100);
             
-            // Configurer les callbacks AVANT de démarrer le monitoring
+            // Configurer les callbacks
             const callbacks = {
                 onStationary: () => {
-                    console.log('[Motion] Callback onStationary déclenché');
+                    console.log('[Motion] Device posé - Activation automatique');
+                    hideMotionInstructions();
                     
-                    // Vérifier qu'on est dans le bon état et que vocal n'est pas déjà actif
-                    if (workoutState.current === WorkoutStates.READY && 
+                    // Si vocal activé (beta), le démarrer
+                    if (currentUser?.voice_counting_enabled && 
+                        workoutState.current === WorkoutStates.READY && 
                         !window.voiceRecognitionActive?.()) {
                         
-                        console.log('[Motion] Conditions OK, démarrage vocal');
-                        hideMotionInstructions();
-                        
-                        // Démarrer vocal
+                        console.log('[Motion] Activation vocal beta');
                         window.startVoiceRecognition();
-                        
-                        // Feedback
-                        if (navigator.vibrate) {
-                            navigator.vibrate(100);
-                        }
-                        
-                        showToast('Téléphone posé - Comptage vocal activé', 'info');
+                        showToast('📱 Mode hands-free activé', 'success');
                     } else {
-                        console.log('[Motion] Vocal déjà actif ou mauvais état');
+                        // Sinon, juste feedback que c'est prêt
+                        showToast('📱 Téléphone posé - Commencez votre série', 'info');
+                    }
+                    
+                    if (navigator.vibrate) {
+                        navigator.vibrate([50, 100, 50]); // Pattern distinctif
                     }
                 },
                 
                 onPickup: (wasStationary) => {
-                    console.log('[Motion] Callback onPickup déclenché');
+                    console.log('[Motion] Device repris - Fin automatique');
                     
-                    // Si vocal actif, l'arrêter
+                    // Arrêter vocal si actif
                     if (window.voiceRecognitionActive?.()) {
-                        console.log('[Motion] Arrêt vocal suite à reprise device');
                         window.stopVoiceRecognition();
-                        
-                        // Si des données, déclencher validation
-                        const voiceData = window.voiceData;
-                        if (voiceData?.count > 0) {
-                            showToast('Téléphone repris - Validation série', 'success');
-                            setTimeout(() => {
-                                if (workoutState.current === WorkoutStates.READY || 
-                                    workoutState.current === WorkoutStates.EXECUTING) {
-                                    executeSet();
-                                }
-                            }, 500);
-                        }
                     }
+                    
+                    // Validation automatique si données
+                    const hasVoiceData = window.voiceData?.count > 0;
+                    const message = hasVoiceData ? 
+                        `Serie terminée (${window.voiceData.count} reps détectées)` : 
+                        'Serie terminée - Entrez vos reps';
+                    
+                    showToast(message, 'success');
+                    
+                    // Toujours valider la série (avec ou sans données vocales)
+                    setTimeout(() => {
+                        if (workoutState.current === WorkoutStates.READY || 
+                            workoutState.current === WorkoutStates.EXECUTING) {
+                            executeSet();
+                        }
+                    }, 500);
                     
                     // Arrêter monitoring
                     window.motionDetector.stopMonitoring();
@@ -4306,20 +4305,20 @@ async function selectExercise(exercise, skipValidation = false) {
                 }
             };
             
-            // Démarrer le monitoring AVEC les callbacks
+            // Démarrer le monitoring
             window.motionDetector.startMonitoring(callbacks);
-            console.log('[Motion] Monitoring démarré avec callbacks');
-            
-            // RETURN ICI pour ne PAS exécuter le code vocal normal
-            return;
-        } else {
-            console.log('[Motion] Système non disponible, fallback vocal normal');
+            console.log('[Motion] Système principal actif');
+            return; // Ne pas activer vocal par défaut
         }
     }
     
-    // Si on arrive ici, c'est que motion n'est pas activée
-    // Donc on active le vocal normalement
-    activateVoiceForWorkout();
+    // Fallback : Si motion désactivé mais vocal activé
+    if (currentUser?.voice_counting_enabled) {
+        console.log('[Vocal] Activation mode legacy (sans motion)');
+        activateVoiceForWorkout();
+    }
+    
+    // Si ni motion ni vocal : mode manuel pur
     
     // Démarrer le timer de la première série
     startSetTimer();
@@ -7649,13 +7648,38 @@ async function loadProfile() {
         </div>
     `;
 
-    // Ajouter le toggle pour le comptage vocal - UNIQUEMENT sur mobile
+    // Ajouter les toggles Motion et Vocal - UNIQUEMENT sur mobile
     const isMobile = /Android|iPhone/i.test(navigator.userAgent);
     if (isMobile) {
+        // MOTION DETECTION EN PREMIER (feature principale)
         profileHTML += `
             <div class="profile-field">
-                <span class="field-label">Comptage vocal</span>
-                <small class="field-description">Comptez vos reps à voix haute</small>
+                <span class="field-label">
+                    Détection automatique de série
+                </span>
+                <small class="field-description">Pose/reprise du téléphone déclenche début/fin</small>
+                <div class="toggle-container">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="motionDetectionToggle"
+                            ${currentUser.motion_detection_enabled ? 'checked' : ''}
+                            onchange="toggleMotionDetection()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span id="motionDetectionLabel">
+                        ${currentUser.motion_detection_enabled ? 'Activée' : 'Désactivée'}
+                    </span>
+                </div>
+            </div>
+        `;
+
+        // COMPTAGE VOCAL EN SECOND (feature beta)
+        profileHTML += `
+            <div class="profile-field">
+                <span class="field-label">
+                    Comptage vocal
+                    <span class="motionsensor-beta">BETA</span>
+                </span>
+                <small class="field-description">Reconnaissance vocale expérimentale des répétitions</small>
                 <div class="toggle-container">
                     <label class="toggle-switch">
                         <input type="checkbox" id="voiceCountingToggle"
@@ -7669,31 +7693,6 @@ async function loadProfile() {
                 </div>
             </div>
         `;
-
-        // === AJOUTER ICI LE TOGGLE MOTION DETECTION ===
-        // Afficher seulement si vocal activé
-        if (currentUser.voice_counting_enabled) {
-            profileHTML += `
-                <div class="profile-field motionsensor-field">
-                    <span class="field-label">
-                        Détection de mouvement 
-                        <span class="motionsensor-beta">BETA</span>
-                    </span>
-                    <small class="field-description">Pose/reprise automatique du téléphone</small>
-                    <div class="toggle-container">
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="motionDetectionToggle"
-                                ${currentUser.motion_detection_enabled ? 'checked' : ''}
-                                onchange="toggleMotionDetection()">
-                            <span class="toggle-slider"></span>
-                        </label>
-                        <span id="motionDetectionLabel">
-                            ${currentUser.motion_detection_enabled ? 'Activée' : 'Désactivée'}
-                        </span>
-                    </div>
-                </div>
-            `;
-        }
     }
 
     // Ajouter le toggle pour le mode d'affichage du poids
@@ -11480,30 +11479,56 @@ function completeRest() {
 }
 
 // === MOTION SENSOR : FONCTIONS UI SIMPLES ===
+
 function showMotionInstructions() {
-    // Éviter doublons
     if (document.getElementById('motionInstructions')) return;
     
     const html = `
-        <div id="motionInstructions" class="motionsensor-instructions">
+        <div id="motionInstructions" class="motionsensor-instructions" style="
+            background: #2196F3 !important;
+            color: white !important;
+            padding: 1rem !important;
+            text-align: center !important;
+            margin: 1rem !important;
+            border-radius: 8px !important;
+            display: block !important;
+            position: relative !important;
+            z-index: 1000 !important;
+        ">
             <i class="fas fa-mobile-alt motionsensor-icon"></i>
             <p class="motionsensor-text">Posez votre téléphone pour démarrer</p>
         </div>
     `;
     
-    // Utiliser le sélecteur qui EXISTE : .exercise-header-modern
+    // Essayer plusieurs méthodes d'insertion
+    let inserted = false;
+    
+    // Méthode 1 : Après header
     const header = document.querySelector('.exercise-header-modern');
     if (header) {
         header.insertAdjacentHTML('afterend', html);
-        console.log('[Motion] Instructions affichées après header');
-    } else {
-        // Fallback sur .input-section
+        inserted = true;
+    }
+    
+    // Méthode 2 : Avant input-section
+    if (!inserted) {
         const inputSection = document.querySelector('.input-section');
         if (inputSection) {
             inputSection.insertAdjacentHTML('beforebegin', html);
-            console.log('[Motion] Instructions affichées avant input-section');
+            inserted = true;
         }
     }
+    
+    // Méthode 3 : Dans le parent du bouton execute
+    if (!inserted) {
+        const executeBtn = document.getElementById('executeSetBtn');
+        if (executeBtn && executeBtn.parentElement) {
+            executeBtn.parentElement.insertAdjacentHTML('afterbegin', html);
+            inserted = true;
+        }
+    }
+    
+    console.log('[Motion] Instructions insérées:', inserted);
 }
 
 function hideMotionInstructions() {
