@@ -4098,6 +4098,10 @@ function resetAnimationState() {
 }
 
 async function selectExercise(exercise, skipValidation = false) {
+    console.log('[DEBUG SMARTPHONE] UA:', navigator.userAgent);
+    console.log('[DEBUG SMARTPHONE] Motion enabled:', currentUser?.motion_detection_enabled);
+    console.log('[DEBUG SMARTPHONE] Voice enabled:', currentUser?.voice_counting_enabled);
+    console.log('[DEBUG SMARTPHONE] Motion detector exists:', !!window.MotionDetector);
     console.log('[VOICE DEBUG] selectExercise - Conditions:', {
         currentUser: currentUser,
         voice_enabled: currentUser?.voice_counting_enabled,
@@ -4237,13 +4241,19 @@ async function selectExercise(exercise, skipValidation = false) {
    
     // Transition vers l'état READY
     transitionTo(WorkoutStates.READY);
-    
 
-    // NOUVELLE LOGIQUE : Motion est la feature principale
+    // Motion est la feature principale
     if (currentUser?.motion_detection_enabled) {
         console.log('[Motion] Feature principale activée');
         
-        await initMotionDetectionIfNeeded();
+        // FORCER l'init synchrone si pas déjà fait (FIX RACE CONDITION)
+        if (!window.motionDetector) {
+            console.log('[Motion] Création instance...');
+            window.motionDetector = new MotionDetector();
+            const success = await window.motionDetector.init();
+            window.motionDetectionEnabled = success;
+            console.log('[Motion] Init result:', success);
+        }
         
         if (window.motionDetectionEnabled && window.motionDetector) {
             // Afficher les instructions immédiatement
@@ -4258,8 +4268,8 @@ async function selectExercise(exercise, skipValidation = false) {
                     hideMotionInstructions();
                     
                     // Si vocal activé (beta), le démarrer
-                    if (currentUser?.voice_counting_enabled && 
-                        workoutState.current === WorkoutStates.READY && 
+                    if (currentUser?.voice_counting_enabled &&
+                        workoutState.current === WorkoutStates.READY &&
                         !window.voiceRecognitionActive?.()) {
                         
                         console.log('[Motion] Activation vocal beta');
@@ -4285,15 +4295,15 @@ async function selectExercise(exercise, skipValidation = false) {
                     
                     // Validation automatique si données
                     const hasVoiceData = window.voiceData?.count > 0;
-                    const message = hasVoiceData ? 
-                        `Serie terminée (${window.voiceData.count} reps détectées)` : 
+                    const message = hasVoiceData ?
+                        `Serie terminée (${window.voiceData.count} reps détectées)` :
                         'Serie terminée - Entrez vos reps';
                     
                     showToast(message, 'success');
                     
                     // Toujours valider la série (avec ou sans données vocales)
                     setTimeout(() => {
-                        if (workoutState.current === WorkoutStates.READY || 
+                        if (workoutState.current === WorkoutStates.READY ||
                             workoutState.current === WorkoutStates.EXECUTING) {
                             executeSet();
                         }
@@ -4309,9 +4319,11 @@ async function selectExercise(exercise, skipValidation = false) {
             window.motionDetector.startMonitoring(callbacks);
             console.log('[Motion] Système principal actif');
             return; // Ne pas activer vocal par défaut
+        } else {
+            console.log('[Motion] Échec initialisation - fallback vocal');
         }
     }
-    
+
     // Fallback : Si motion désactivé mais vocal activé
     if (currentUser?.voice_counting_enabled) {
         console.log('[Vocal] Activation mode legacy (sans motion)');
