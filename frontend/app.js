@@ -166,17 +166,15 @@ const AudioSystem = {
     },
     
     playBeep(frequency = 800, duration = 200, useVibration = true) {
-        const success = this.playAudioBeep(frequency, duration);
+        // Déclencher TOUT simultanément
+        const audioPromise = this.playAudioBeep(frequency, duration);
+        const visualPromise = this.showVisualBeep();
+        const vibrationPromise = useVibration && navigator.vibrate ? 
+            Promise.resolve(navigator.vibrate(duration)) : 
+            Promise.resolve();
         
-        // Fallback vibration si audio échoue ou volume 0
-        if ((!success || this.volumeLevel === 0) && useVibration && navigator.vibrate) {
-            navigator.vibrate(duration);
-        }
-        
-        // Fallback visuel toujours actif
-        this.showVisualBeep();
-        
-        return success;
+        // Attendre que tout soit lancé
+        return Promise.all([audioPromise, visualPromise, vibrationPromise]);
     },
     
     playAudioBeep(frequency, duration) {
@@ -420,7 +418,10 @@ function startSeriesAfterCountdown() {
     // Transition état
     transitionTo(WorkoutStates.EXECUTING);
     
-    // Démarrer timer unifié
+    // AJOUTER : Cacher countdown IMMÉDIATEMENT
+    hideCountdownInterface();
+    
+    // Démarrer timer
     setTimerState.start();
     window.currentSetStartTime = Date.now();
     startSetTimer();
@@ -4828,8 +4829,6 @@ async function selectExercise(exercise, skipValidation = false) {
         activateVoiceForWorkout();
     }
 
-    // SUPPRIMER le doublon startSetTimer() qui était ici
-
     // Vérification finale après un court délai pour debug
     if (console.log) {
         setTimeout(() => {
@@ -8010,24 +8009,19 @@ function showCountdownInterface() {
     hideMotionInstructions();
     
     const html = `
-        <div id="countdownInterface" class="countdown-overlay">
+        <div id="countdownInterface" class="countdown-bottomsheet">
             <div class="countdown-content">
-                <div class="countdown-visual">
-                    <svg class="countdown-ring" viewBox="0 0 120 120">
-                        <circle cx="60" cy="60" r="54" fill="none" stroke="#e0e0e0" stroke-width="8"/>
-                        <circle cx="60" cy="60" r="54" fill="none" stroke="#2196F3" stroke-width="8"
-                                stroke-dasharray="339.292" stroke-dashoffset="339.292"
-                                class="countdown-ring-progress"/>
-                    </svg>
+                <div class="countdown-compact">
                     <span id="countdownDisplay" class="countdown-number">3</span>
+                    <span class="countdown-label">Préparez-vous...</span>
                 </div>
-                <p class="countdown-text">Restez immobile...</p>
             </div>
         </div>
     `;
     
-    const container = document.querySelector('.exercise-content') || document.body;
-    container.insertAdjacentHTML('beforeend', html);
+    const container = document.querySelector('.exercise-header-modern') || 
+                      document.querySelector('.exercise-content');
+    container?.insertAdjacentHTML('afterend', html);
 }
 
 function updateCountdownDisplay(remaining) {
@@ -12377,7 +12371,22 @@ async function calibrateMotion() {
             infoEl.textContent = `Calibré le ${new Date().toLocaleDateString()}`;
         }
     }
+    // Sauvegarder en DB
+    try {
+        await apiPut(`/api/users/${currentUser.id}/preferences`, {
+            motion_calibration_data: {
+                baseline: baseline,
+                thresholds: window.motionDetector.THRESHOLDS,
+                surface_type: 'default' // Pourrait être étendu
+            }
+        });
+        
+        console.log('[Motion] Calibration sauvegardée en DB');
+    } catch (error) {
+        console.error('[Motion] Erreur sauvegarde calibration:', error);
+    }
 }
+
 // ===== MISE À JOUR DURÉE DE REPOS =====
 async function updateLastSetRestDuration(actualRestTime) {
     try {

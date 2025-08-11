@@ -8811,16 +8811,6 @@ input {
     transition: stroke-dashoffset 1s linear;
 }
 
-.countdown-number {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 4rem;
-    font-weight: bold;
-    color: #2196F3;
-}
-
 /* Voice Confirmation */
 .voice-confirmation-overlay {
     position: fixed;
@@ -8967,4 +8957,66 @@ input {
     margin-top: 0.5rem;
     font-size: 0.75rem;
     color: var(--text-secondary);
+}
+
+.countdown-bottomsheet {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.95);
+    padding: 2rem;
+    border-radius: 24px 24px 0 0;
+    animation: slideUp 0.3s ease;
+    z-index: 100; /* Pas 9999 */
+}
+
+.countdown-compact {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.countdown-number {
+    font-size: 3rem;
+    font-weight: bold;
+    color: #2196F3;
+}
+
+.countdown-label {
+    font-size: 1.25rem;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+.manual-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+    max-width: 300px;
+    margin: 2rem auto 0;
+}
+
+.btn-large {
+    width: 100%;
+    padding: 1.25rem;
+    font-size: 1.125rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.voice-confirmation-overlay .voice-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
 }

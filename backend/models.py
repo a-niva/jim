@@ -25,6 +25,8 @@ class User(Base):
     voice_counting_enabled = Column(Boolean, default=False)
     voice_counting_mode = Column(String(20), default='numbers')
     motion_detection_enabled = Column(Boolean, default=False)
+    motion_calibration_data = Column(JSON, nullable=True)
+    motion_calibration_date = Column(DateTime, nullable=True)
 
     # Relations
     workouts = relationship("Workout", back_populates="user", cascade="all, delete-orphan")
