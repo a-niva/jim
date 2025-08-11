@@ -4240,28 +4240,29 @@ async function selectExercise(exercise, skipValidation = false) {
     
     // Motion detection si activée ET vocal activé
     if (currentUser?.motion_detection_enabled && currentUser?.voice_counting_enabled) {
+        console.log('[Motion] Conditions remplies pour activation');
+        
         await initMotionDetectionIfNeeded();
         
         if (window.motionDetectionEnabled && window.motionDetector) {
-            console.log('[Motion] Activation pour cet exercice');
+            console.log('[Motion] Système prêt, configuration callbacks');
             
-            // Afficher instructions IMMÉDIATEMENT
+            // IMPORTANT : NE PAS démarrer le vocal maintenant !
+            // On va juste afficher les instructions
             setTimeout(() => {
                 showMotionInstructions();
-            }, 100); // Petit délai pour laisser le DOM se construire
+            }, 100);
             
-            // NE PAS démarrer le vocal tout de suite !
-            // On attend que motion détecte stationnaire
-            
-            // Démarrer monitoring avec callbacks
-            window.motionDetector.startMonitoring({
+            // Configurer les callbacks AVANT de démarrer le monitoring
+            const callbacks = {
                 onStationary: () => {
-                    console.log('[Motion] Device posé - démarrage vocal');
+                    console.log('[Motion] Callback onStationary déclenché');
                     
-                    // Vérifications avant auto-start
+                    // Vérifier qu'on est dans le bon état et que vocal n'est pas déjà actif
                     if (workoutState.current === WorkoutStates.READY && 
                         !window.voiceRecognitionActive?.()) {
                         
+                        console.log('[Motion] Conditions OK, démarrage vocal');
                         hideMotionInstructions();
                         
                         // Démarrer vocal
@@ -4272,20 +4273,24 @@ async function selectExercise(exercise, skipValidation = false) {
                             navigator.vibrate(100);
                         }
                         
-                        showToast('Comptage vocal démarré', 'info');
+                        showToast('Téléphone posé - Comptage vocal activé', 'info');
+                    } else {
+                        console.log('[Motion] Vocal déjà actif ou mauvais état');
                     }
                 },
                 
                 onPickup: (wasStationary) => {
-                    console.log('[Motion] Device repris');
+                    console.log('[Motion] Callback onPickup déclenché');
                     
                     // Si vocal actif, l'arrêter
                     if (window.voiceRecognitionActive?.()) {
+                        console.log('[Motion] Arrêt vocal suite à reprise device');
                         window.stopVoiceRecognition();
                         
                         // Si des données, déclencher validation
                         const voiceData = window.voiceData;
                         if (voiceData?.count > 0) {
+                            showToast('Téléphone repris - Validation série', 'success');
                             setTimeout(() => {
                                 if (workoutState.current === WorkoutStates.READY || 
                                     workoutState.current === WorkoutStates.EXECUTING) {
@@ -4295,19 +4300,26 @@ async function selectExercise(exercise, skipValidation = false) {
                         }
                     }
                     
-                    // Arrêter monitoring après pickup
+                    // Arrêter monitoring
                     window.motionDetector.stopMonitoring();
+                    hideMotionInstructions();
                 }
-            });
+            };
+            
+            // Démarrer le monitoring AVEC les callbacks
+            window.motionDetector.startMonitoring(callbacks);
+            console.log('[Motion] Monitoring démarré avec callbacks');
+            
+            // RETURN ICI pour ne PAS exécuter le code vocal normal
+            return;
         } else {
-            // Fallback : vocal normal si motion pas dispo
-            console.log('[Motion] Non disponible, activation vocal normale');
-            activateVoiceForWorkout();
+            console.log('[Motion] Système non disponible, fallback vocal normal');
         }
-    } else {
-        // Comportement normal sans motion
-        activateVoiceForWorkout();
     }
+    
+    // Si on arrive ici, c'est que motion n'est pas activée
+    // Donc on active le vocal normalement
+    activateVoiceForWorkout();
     
     // Démarrer le timer de la première série
     startSetTimer();
@@ -11421,18 +11433,25 @@ function completeRest() {
         transitionTo(WorkoutStates.READY);
         
         // Réactiver motion pour nouvelle série si conditions réunies
-        if (motionDetectionEnabled && 
+        if (window.motionDetectionEnabled && 
             currentUser?.motion_detection_enabled && 
-            currentUser?.voice_counting_enabled) {
+            currentUser?.voice_counting_enabled &&
+            window.motionDetector) {
+            
+            console.log('[Motion] Réactivation après repos');
             
             setTimeout(() => {
-                if (motionDetector && workoutState.current === WorkoutStates.READY) {
+                if (workoutState.current === WorkoutStates.READY) {
                     showMotionInstructions();
-                    motionDetector.startMonitoring({
+                    
+                    // Mêmes callbacks que dans selectExercise
+                    const callbacks = {
                         onStationary: () => {
                             if (!window.voiceRecognitionActive?.()) {
                                 hideMotionInstructions();
                                 window.startVoiceRecognition();
+                                if (navigator.vibrate) navigator.vibrate(100);
+                                showToast('Comptage vocal réactivé', 'info');
                             }
                         },
                         onPickup: () => {
@@ -11442,12 +11461,21 @@ function completeRest() {
                                     setTimeout(() => executeSet(), 500);
                                 }
                             }
-                            motionDetector.stopMonitoring();
+                            window.motionDetector.stopMonitoring();
+                            hideMotionInstructions();
                         }
-                    });
+                    };
+                    
+                    window.motionDetector.startMonitoring(callbacks);
                 }
             }, 500);
+            
+            // RETURN pour ne pas activer le vocal normalement
+            return;
         }
+        
+        // Sinon, vocal normal
+        activateVoiceForWorkout();
     }
 }
 
@@ -11463,29 +11491,30 @@ function showMotionInstructions() {
         </div>
     `;
     
-    // CORRECTION : Chercher le bon container
-    // Essayer plusieurs sélecteurs possibles
-    let container = document.querySelector('.exercise-interface');
-    if (!container) {
-        container = document.querySelector('.exercise-content');
-    }
-    if (!container) {
-        container = document.querySelector('.main-content');
-    }
-    if (!container) {
-        // Dernier recours : après le header exercice
-        container = document.querySelector('.exercise-header-modern');
-        if (container) {
-            container.insertAdjacentHTML('afterend', html);
-            return;
+    // Utiliser le sélecteur qui EXISTE : .exercise-header-modern
+    const header = document.querySelector('.exercise-header-modern');
+    if (header) {
+        header.insertAdjacentHTML('afterend', html);
+        console.log('[Motion] Instructions affichées après header');
+    } else {
+        // Fallback sur .input-section
+        const inputSection = document.querySelector('.input-section');
+        if (inputSection) {
+            inputSection.insertAdjacentHTML('beforebegin', html);
+            console.log('[Motion] Instructions affichées avant input-section');
         }
     }
-    
-    if (container) {
-        container.insertAdjacentHTML('afterbegin', html);
-        console.log('[Motion] Instructions affichées');
-    } else {
-        console.error('[Motion] Aucun container trouvé pour les instructions');
+}
+
+function hideMotionInstructions() {
+    const el = document.getElementById('motionInstructions');
+    if (el) {
+        el.style.opacity = '0';
+        el.style.transition = 'opacity 0.3s';
+        setTimeout(() => {
+            el.remove();
+            console.log('[Motion] Instructions masquées');
+        }, 300);
     }
 }
 
