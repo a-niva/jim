@@ -880,11 +880,17 @@ async function initializeMotionSystemOnce() {
         
         window.motionDetector = new MotionDetector();
         
-        // CHARGER LA CALIBRATION DEPUIS USER
-        if (currentUser.motion_calibration_data) {
+        // CHARGER CALIBRATION ICI
+        if (currentUser?.motion_calibration_data) {
             window.motionDetector.baselineNoise = currentUser.motion_calibration_data.baseline;
             window.motionDetector.THRESHOLDS = currentUser.motion_calibration_data.thresholds;
             console.log('[Motion] Calibration chargée depuis profil');
+            
+            // AUSSI : Mettre à jour la variable globale pour l'UI
+            motionCalibrationData = {
+                baseline: currentUser.motion_calibration_data.baseline,
+                timestamp: currentUser.motion_calibration_data.timestamp || Date.now()
+            };
         }
         
         window.motionDetectionEnabled = await window.motionDetector.init();
