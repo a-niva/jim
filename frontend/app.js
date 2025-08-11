@@ -7655,9 +7655,9 @@ async function loadProfile() {
         profileHTML += `
             <div class="profile-field">
                 <span class="field-label">
-                    Détection automatique de série
+                    Motion sensor
                 </span>
-                <small class="field-description">Pose/reprise du téléphone déclenche début/fin</small>
+                <small class="field-description">Pose/reprise du téléphone déclenche le début/fin de série</small>
                 <div class="toggle-container">
                     <label class="toggle-switch">
                         <input type="checkbox" id="motionDetectionToggle"
@@ -7679,7 +7679,7 @@ async function loadProfile() {
                     Comptage vocal
                     <span class="motionsensor-beta">BETA</span>
                 </span>
-                <small class="field-description">Reconnaissance vocale expérimentale des répétitions</small>
+                <small class="field-description">Reconnaissance vocale des répétitions</small>
                 <div class="toggle-container">
                     <label class="toggle-switch">
                         <input type="checkbox" id="voiceCountingToggle"
