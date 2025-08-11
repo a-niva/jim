@@ -879,9 +879,17 @@ async function initializeMotionSystemOnce() {
         }
         
         window.motionDetector = new MotionDetector();
+        
+        // CHARGER LA CALIBRATION DEPUIS USER
+        if (currentUser.motion_calibration_data) {
+            window.motionDetector.baselineNoise = currentUser.motion_calibration_data.baseline;
+            window.motionDetector.THRESHOLDS = currentUser.motion_calibration_data.thresholds;
+            console.log('[Motion] Calibration chargée depuis profil');
+        }
+        
         window.motionDetectionEnabled = await window.motionDetector.init();
         motionSystemInitialized = true;
-        lastInitializedUserId = currentUser.id; // NOUVEAU
+        lastInitializedUserId = currentUser.id;
         
         console.log('[Motion] Système initialisé pour user', currentUser.id, ':', window.motionDetectionEnabled);
         
