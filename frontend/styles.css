@@ -8740,3 +8740,43 @@ input {
     margin: 0;
     font-size: 0.95rem;
 }
+
+/* Motion Detection Indicator */
+.motion-indicator {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.05);
+    color: #666;
+    transition: all 0.3s ease;
+    margin: 0 8px;
+}
+
+.motion-indicator.active {
+    background: #2196F3;
+    color: white;
+    animation: motion-pulse 2s infinite;
+}
+
+@keyframes motion-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+.motion-instructions {
+    background: linear-gradient(135deg, #2196F3, #1976D2);
+    color: white;
+    padding: 1rem;
+    margin: 1rem;
+    border-radius: 12px;
+    text-align: center;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
