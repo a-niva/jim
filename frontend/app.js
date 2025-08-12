@@ -671,15 +671,15 @@ function storeCurrentScoringData(scoringData) {
 function transitionTo(state) {
     console.log(`[State] Transition: ${workoutState.current} → ${state}`);
     
+    // 1. CAPTURER L'ANCIEN ÉTAT AVANT TOUTE MODIFICATION
     const oldState = workoutState.current;
     const newState = state;
     
-    console.log('[DEBUG] oldState:', oldState, 'newState:', newState);  // Ajouter
+    // 2. LOGS DE DEBUG
+    console.log('[DEBUG] oldState:', oldState, 'newState:', newState);
     
-    workoutState.current = state;
+    // 3. NETTOYAGE BASÉ SUR LA TRANSITION (oldState → newState)
     
-    console.log('[DEBUG] État après update:', workoutState.current);  // Ajouter
-
     // Nettoyer motion si changement d'état majeur
     if ((newState === WorkoutStates.RESTING || 
         newState === WorkoutStates.COMPLETED || 
@@ -688,7 +688,7 @@ function transitionTo(state) {
         
         console.log('[Motion] Stop (changement état)');
         motionDetector.stopMonitoring();
-        updateMotionIndicator(false); // NOUVEAU : Éteindre l'icône
+        updateMotionIndicator(false);
         hideMotionInstructions();
     }
     
@@ -707,43 +707,40 @@ function transitionTo(state) {
         }
     }
     
-    // === RESTE DU CODE INCHANGÉ ===
-    // 1. Fermer TOUS les overlays avant transition
+    // 4. FERMER LES OVERLAYS
     if (window.OverlayManager) {
         window.OverlayManager.hideAll();
     }
     
-    // 2. Nettoyer timers spécifiques selon état sortant
-    switch(workoutState.current) {
-        case WorkoutStates.RESTING:
-            // ===== EXCLUSIVITÉ STRICTE MAIS CONDITIONNELLE =====
-            // N'afficher le modal QUE si c'est une transition normale (pas une restauration)
-            if (arguments[1] !== 'restore') {  // Paramètre optionnel pour distinguer
-                const restPeriod = document.getElementById('restPeriod');
-                if (restPeriod && window.OverlayManager) {
-                    window.OverlayManager.show('rest', restPeriod);
-                }
-            }
-            break;
+    // 5. NETTOYER LES TIMERS SPÉCIFIQUES À L'ÉTAT SORTANT
+    switch(oldState) {
         case WorkoutStates.EXECUTING:
             if (setTimer) {
                 clearInterval(setTimer);
                 setTimer = null;
-                isSetTimerRunning = false; // NOUVEAU
+                isSetTimerRunning = false;
             }
             break;
     }
     
-    // 3. MASQUER toutes les interfaces SAUF si on va les réafficher immédiatement
+    // 6. MISE À JOUR DE L'ÉTAT (UNE SEULE FOIS !)
+    workoutState.current = state;
+    
+    // 7. MASQUER LES INTERFACES SEULEMENT SI NÉCESSAIRE
     const allInterfaces = [
         '#executeSetBtn',
         '#setFeedback', 
         '#restPeriod',
         '.input-section'
     ];
-
-    // Ne masquer que si on ne va pas immédiatement réafficher
-    const statesNeedingUI = [WorkoutStates.READY, WorkoutStates.EXECUTING, WorkoutStates.READY_COUNTDOWN];
+    
+    // États qui ont besoin de l'UI visible
+    const statesNeedingUI = [
+        WorkoutStates.READY, 
+        WorkoutStates.EXECUTING, 
+        WorkoutStates.READY_COUNTDOWN
+    ];
+    
     if (!statesNeedingUI.includes(newState)) {
         allInterfaces.forEach(selector => {
             const element = document.querySelector(selector);
@@ -752,102 +749,73 @@ function transitionTo(state) {
             }
         });
     }
-
-    // Reset COMPLET sur états terminaux (NOUVEAU)
-    if (state === WorkoutStates.IDLE || state === WorkoutStates.COMPLETED) {
-        isSetTimerRunning = false;
-        window.currentSetStartTime = null;
-        console.log('[Motion] Reset complet des flags');
-    }
     
-    // 4. Mettre à jour l'état
-    workoutState.current = state;
-    // 4.5 Contrôle de l'affichage des boutons flottants
-    // Contrôle de l'affichage des boutons flottants avec animation
+    // 8. GESTION DES BOUTONS FLOTTANTS
     const floatingActions = document.getElementById('floatingWorkoutActions');
-
-    switch(state) {
-        case WorkoutStates.IDLE:
-            // Masquer les boutons en sélection d'exercice
-            if (floatingActions) {
+    if (floatingActions) {
+        switch(newState) {
+            case WorkoutStates.IDLE:
+            case WorkoutStates.COMPLETED:
                 floatingActions.classList.remove('show');
-                // Retirer complètement après l'animation
                 setTimeout(() => {
-                    if (workoutState.current === WorkoutStates.IDLE) {
+                    if (workoutState.current === newState) {
                         floatingActions.style.display = 'none';
                     }
                 }, 1000);
-            }
-            break;
-            
-        case WorkoutStates.READY:
-        case WorkoutStates.EXECUTING:
-            // Afficher l'interface des steppers pendant l'exécution
-            document.getElementById('executeSetBtn').style.display = 'block';
-            document.querySelector('.input-section').style.display = 'block';
-            break;
-        case WorkoutStates.FEEDBACK:
-        case WorkoutStates.RESTING:
-            // Afficher les boutons avec animation
-            if (floatingActions && !floatingActions.classList.contains('show')) {
+                break;
+                
+            case WorkoutStates.FEEDBACK:
+            case WorkoutStates.RESTING:
                 floatingActions.style.display = 'block';
-                // Force reflow pour garantir l'animation
                 void floatingActions.offsetWidth;
                 floatingActions.classList.add('show');
-            }
-            break;
-            
-        case WorkoutStates.COMPLETED:
-            // Masquer après la fin
-            if (floatingActions) {
-                floatingActions.classList.remove('show');
-                setTimeout(() => {
-                    floatingActions.style.display = 'none';
-                }, 1000);
-            }
-            break;
+                break;
+        }
     }
-    // 5. AFFICHER exclusivement l'interface pour le nouvel état
-    switch(state) {
+    
+    // 9. AFFICHER L'INTERFACE POUR LE NOUVEL ÉTAT
+    switch(newState) {
         case WorkoutStates.READY:
+            console.log('[DEBUG] Case READY atteint');
             document.getElementById('executeSetBtn').style.display = 'block';
             document.querySelector('.input-section').style.display = 'block';
             
-            // Vocal si activé ET pas déjà en cours
+            // Vocal si activé
             if (currentUser?.voice_counting_enabled && 
                 window.startVoiceRecognition && 
-                !window.voiceRecognitionActive?.()) {  // AJOUTER CETTE CONDITION
+                !window.voiceRecognitionActive?.()) {
                 window.startVoiceRecognition();
             }
             break;
+            
         case WorkoutStates.READY_COUNTDOWN:
-            console.log('[DEBUG] Case READY_COUNTDOWN atteint');  // Ajouter
-            document.getElementById('executeSetBtn').style.display = 'none';
-            showCountdownInterface();
+            console.log('[DEBUG] Case READY_COUNTDOWN atteint');
+            // NE PAS masquer les steppers !
+            document.getElementById('executeSetBtn').style.display = 'block';
+            document.querySelector('.input-section').style.display = 'block';
+            // Note : showCountdownInterface() est appelée depuis le callback motion
             break;
             
-        case WorkoutStates.READY_PAUSED:
-            // État spécial pour timer pausé
+        case WorkoutStates.EXECUTING:
+            console.log('[DEBUG] Case EXECUTING atteint');
             document.getElementById('executeSetBtn').style.display = 'block';
+            document.querySelector('.input-section').style.display = 'block';
             break;
+            
         case WorkoutStates.FEEDBACK:
             document.getElementById('setFeedback').style.display = 'block';
             break;
+            
         case WorkoutStates.RESTING:
-            // ===== EXCLUSIVITÉ STRICTE : QUE LE REPOS =====
             const restPeriod = document.getElementById('restPeriod');
             if (restPeriod && window.OverlayManager) {
                 window.OverlayManager.show('rest', restPeriod);
             }
             break;
-            
-        case WorkoutStates.COMPLETED:
-            // Géré par les fonctions spécifiques
-            break;
     }
     
-    // Forcer la visibilité du bouton execute après toutes les animations
-    if (state === WorkoutStates.READY) {
+    // 10. FORCER LA VISIBILITÉ DU BOUTON EXECUTE SI NÉCESSAIRE
+    if (newState === WorkoutStates.READY) {
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
                 const btn = document.getElementById('executeSetBtn');
@@ -857,6 +825,13 @@ function transitionTo(state) {
                 }
             });
         });
+    }
+    
+    // 11. RESET FLAGS SI ÉTATS TERMINAUX
+    if (newState === WorkoutStates.IDLE || newState === WorkoutStates.COMPLETED) {
+        isSetTimerRunning = false;
+        window.currentSetStartTime = null;
+        console.log('[Motion] Reset complet des flags');
     }
 }
 
@@ -8612,34 +8587,27 @@ async function toggleVoiceWithMotion() {
     const newState = toggle.checked;
     
     try {
-        // Mettre à jour la préférence
         await apiPut(`/api/users/${currentUser.id}/preferences`, {
             voice_counting_enabled: newState
         });
         
         currentUser.voice_counting_enabled = newState;
-        
-        // Feedback visuel
         showToast(`Comptage vocal ${newState ? 'activé' : 'désactivé'}`, 'success');
         
-        // Si on active le vocal, vérifier les permissions micro
         if (newState && typeof checkMicrophonePermissions === 'function') {
             const hasPermission = await checkMicrophonePermissions();
             if (!hasPermission) {
                 showToast('Permission microphone requise', 'warning');
-                // Rollback si pas de permission
                 toggle.checked = false;
                 currentUser.voice_counting_enabled = false;
                 return;
             }
         }
         
-        // Si on est déjà en séance, activer/désactiver immédiatement
         if (currentExercise && workoutState.current === WorkoutStates.READY) {
             if (newState) {
                 activateVoiceForWorkout();
             } else {
-                // Masquer l'interface vocal
                 const voiceContainer = document.getElementById('voiceStatusContainer');
                 if (voiceContainer) {
                     voiceContainer.style.display = 'none';
@@ -12463,6 +12431,7 @@ async function calibrateMotion() {
     }
     
     if (window.motionDetector) {
+        showToast('Calibration en cours...', 'info');
         const baseline = await window.motionDetector.calibrate();
         
         // Sauvegarder globalement
@@ -12471,34 +12440,37 @@ async function calibrateMotion() {
             timestamp: Date.now()
         };
         
-        localStorage.setItem('motionCalibrated', 'true');
-        
-        // Mettre à jour UI
-        const infoEl = document.querySelector('.option-info');
-        if (infoEl) {
-            infoEl.textContent = `Calibré le ${new Date().toLocaleDateString()}`;
-        }
-    }
-    // Sauvegarder en DB
-    try {
-        await apiPut(`/api/users/${currentUser.id}/preferences`, {
-            motion_calibration_data: {
+        // Sauvegarder en DB avec les bonnes données
+        try {
+            await apiPut(`/api/users/${currentUser.id}/preferences`, {
+                motion_calibration_data: {
+                    baseline: baseline,
+                    thresholds: window.motionDetector.THRESHOLDS,
+                    timestamp: Date.now()
+                }
+            });
+            
+            // IMPORTANT : Mettre à jour currentUser localement
+            currentUser.motion_calibration_data = {
                 baseline: baseline,
                 thresholds: window.motionDetector.THRESHOLDS,
                 timestamp: Date.now()
+            };
+            
+            console.log('[Motion] Calibration sauvegardée en DB');
+            
+            // Mettre à jour UI immédiatement
+            const infoEl = document.querySelector('.motion-options .option-info');
+            if (infoEl) {
+                infoEl.textContent = `Calibré le ${new Date().toLocaleDateString()}`;
             }
-        });
-        
-        // IMPORTANT : Mettre à jour currentUser localement
-        currentUser.motion_calibration_data = {
-            baseline: baseline,
-            thresholds: window.motionDetector.THRESHOLDS,
-            timestamp: Date.now()
-        };
-        
-        console.log('[Motion] Calibration sauvegardée en DB');
-    } catch (error) {
-        console.error('[Motion] Erreur sauvegarde calibration:', error);
+            
+            showToast('Calibration terminée', 'success');
+            
+        } catch (error) {
+            console.error('[Motion] Erreur sauvegarde calibration:', error);
+            showToast('Erreur de sauvegarde', 'error');
+        }
     }
 }
 
@@ -12930,20 +12902,17 @@ async function updateCurrentExerciseUI(newExercise) {
 function updateDifficultyIndicators(difficulty) {
     console.log('[UI] Mise à jour indicateurs difficulté:', difficulty);
     
-    // Nettoyer les classes existantes
     const exerciseHeader = document.querySelector('.exercise-header-modern');
     if (exerciseHeader) {
         exerciseHeader.classList.remove('difficulty-beginner', 'difficulty-intermediate', 'difficulty-advanced');
         exerciseHeader.classList.add(`difficulty-${difficulty}`);
     }
     
-    // Mettre à jour les badges de difficulté s'ils existent
     const difficultyBadges = document.querySelectorAll('.difficulty-badge');
     difficultyBadges.forEach(badge => {
         badge.classList.remove('beginner', 'intermediate', 'advanced');
         badge.classList.add(difficulty);
         
-        // Mettre à jour le texte
         const textMap = {
             'beginner': 'Débutant',
             'intermediate': 'Intermédiaire',
@@ -12952,20 +12921,17 @@ function updateDifficultyIndicators(difficulty) {
         badge.textContent = textMap[difficulty] || difficulty;
     });
     
-    // Mettre à jour les couleurs des éléments UI selon la difficulté
     const colorMap = {
-        'beginner': '#10b981',     // Vert
-        'intermediate': '#f59e0b',  // Orange
-        'advanced': '#ef4444'       // Rouge
+        'beginner': '#10b981',
+        'intermediate': '#f59e0b',
+        'advanced': '#ef4444'
     };
     
-    // Appliquer la couleur aux éléments pertinents
     const accentElements = document.querySelectorAll('.exercise-accent-color');
     accentElements.forEach(el => {
         el.style.color = colorMap[difficulty] || colorMap['beginner'];
     });
     
-    // Émettre un événement pour que d'autres modules puissent réagir
     window.dispatchEvent(new CustomEvent('difficultyChanged', { 
         detail: { difficulty } 
     }));
