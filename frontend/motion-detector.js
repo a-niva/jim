@@ -4,16 +4,16 @@
 class MotionDetector {
     constructor() {
         // Configuration simple et pragmatique
-        this.THRESHOLDS = {
-            STATIONARY: {
-                acceleration: 1.0,      // Plus tolérant (vibrations sol/table gym)
-                duration: 2000          // 2s stable = posé
-            },
-            PICKUP: {
-                acceleration: 3.0,      // Seuil élevé (éviter faux positifs)
-                duration: 300          // 300ms mouvement = reprise intentionnelle
-            }
-        };
+    this.THRESHOLDS = {
+        STATIONARY: {
+            acceleration: 0.8,      // Plus sensible pour détecter immobilité
+            duration: 800          // Plus rapide (0.8s au lieu de 2s)
+        },
+        PICKUP: {
+            acceleration: 1.5,      // BEAUCOUP plus sensible
+            duration: 200          // Plus rapide (200ms au lieu de 300ms)
+        }
+    };
 
         // Calibration data
         this.calibrationMode = false;
