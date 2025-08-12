@@ -36,6 +36,7 @@ class UserResponse(BaseModel):
     voice_counting_enabled: bool
     voice_counting_mode: str
     motion_detection_enabled: bool
+    motion_calibration_data: Optional[Dict[str, Any]] = None
 
     class Config:
         from_attributes = True
