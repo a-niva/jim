@@ -8347,6 +8347,10 @@ async function loadProfile() {
         currentUser = freshUser;
         window.currentUser = freshUser;
         console.log('✅ currentUser rechargé avec les dernières préférences');
+        // DEBUG TEMPORAIRE : Vérifier contenu exact de currentUser
+        console.log('[DEBUG] currentUser.motion_detection_enabled:', currentUser.motion_detection_enabled);
+        console.log('[DEBUG] currentUser.motion_calibration_data:', currentUser.motion_calibration_data);
+        console.log('[DEBUG] currentUser keys:', Object.keys(currentUser));
     } catch (error) {
         console.warn('⚠️ Impossible de recharger currentUser, utilisation du cache:', error);
     }
