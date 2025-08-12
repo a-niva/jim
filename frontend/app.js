@@ -12482,33 +12482,6 @@ async function calibrateMotion() {
             showToast('Erreur de sauvegarde', 'error');
         }
 
-        // PERSISTANCE CALIBRATION DANS L'UI
-        try {
-            await apiPut(`/api/users/${currentUser.id}/preferences`, {
-                motion_calibration_data: {
-                    baseline: baseline,
-                    thresholds: window.motionDetector.THRESHOLDS,
-                    timestamp: Date.now()
-                }
-            });
-            
-            // IMPORTANT : Mettre à jour currentUser localement
-            currentUser.motion_calibration_data = {
-                baseline: baseline,
-                thresholds: window.motionDetector.THRESHOLDS,
-                timestamp: Date.now()
-            };
-            
-            // NOUVEAU : Mettre à jour l'UI immédiatement
-            const infoEl = document.querySelector('.option-info');
-            if (infoEl) {
-                infoEl.textContent = `Calibré le ${new Date().toLocaleDateString()}`;
-            }
-            
-            console.log('[Motion] Calibration sauvegardée et UI mise à jour');
-        } catch (error) {
-            console.error('[Motion] Erreur sauvegarde calibration:', error);
-        }
     }
 }
 
@@ -13443,7 +13416,7 @@ function pauseWorkout() {
     }
 }
 
-function abandonWorkout() {
+async function abandonWorkout() {
     if (!confirm('Êtes-vous sûr de vouloir abandonner cette séance ?')) return;
     
     hideEndWorkoutModal();
@@ -13465,14 +13438,17 @@ function abandonWorkout() {
     const banner = document.querySelector('.workout-resume-notification-banner');
     if (banner) banner.remove();
     
-    // Tenter l'API en arrière-plan sans bloquer
+    // S'assurer que l'API est appelée de manière synchrone
     if (workoutId) {
-        apiPut(`/api/workouts/${workoutId}/complete`, {
-            total_duration: 0,
-            total_rest_time: 0
-        }).catch(error => {
+        try {
+            await apiPut(`/api/workouts/${workoutId}/complete`, {
+                total_duration: 0,
+                total_rest_time: 0
+            });
+            console.log('Séance marquée comme completed côté API');
+        } catch (error) {
             console.warn('API /complete échouée, mais séance nettoyée localement:', error);
-        });
+        }
     }
     // Masquer les boutons flottants
     const floatingActions = document.getElementById('floatingWorkoutActions');

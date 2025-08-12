@@ -175,9 +175,17 @@ class MotionDetector {
         console.log('[Motion] Début calibration');
         this.calibrationMode = true;
         this.calibrationSamples = [];
+        // Debug: vérifier que les events se déclenchent
+        let eventCount = 0;
+        const originalSamplesLength = this.calibrationSamples.length;
+
+        // Handler temporaire pour compter les events
+        const debugHandler = () => eventCount++;
+        window.addEventListener('devicemotion', debugHandler);
         
         // CRITIQUE : Démarrer le monitoring pour collecter les données !
-        if (!this.monitoring) {
+        const wasMonitoring = this.monitoring;
+        if (!wasMonitoring) {
             this.startMonitoring();
         }
         
@@ -193,7 +201,7 @@ class MotionDetector {
                 this.processCalibration();
                 
                 // Arrêter monitoring si on l'a démarré
-                if (this.monitoring) {
+                if (!wasMonitoring) {
                     this.stopMonitoring();
                 }
                 
@@ -203,6 +211,11 @@ class MotionDetector {
                 }
                 
                 console.log('[Motion] Calibration finie, baseline:', this.baselineNoise);
+                // Debug: vérifier collecte des données
+                window.removeEventListener('devicemotion', debugHandler);
+                console.log('[Motion] Events reçus:', eventCount);
+                console.log('[Motion] Samples collectés:', this.calibrationSamples.length);
+                console.log('[Motion] Premier sample:', this.calibrationSamples[0]);
                 resolve(this.baselineNoise);
             }, duration);
         });
