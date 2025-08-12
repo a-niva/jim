@@ -45,6 +45,7 @@ class UserPreferenceUpdate(BaseModel):
     prefer_weight_changes_between_sets: Optional[bool] = None
     sound_notifications_enabled: Optional[bool] = None
     motion_detection_enabled: Optional[bool] = None
+    motion_calibration_data: Optional[Dict[str, Any]] = None
 
 # ===== SCHEMAS EXERCICES =====
 
