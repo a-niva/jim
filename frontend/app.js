@@ -260,6 +260,14 @@ const AudioSystem = {
     }
 };
 
+// Variables Motion Detection
+let motionListeners = { devicemotion: null, stillnessCheck: null };
+let lastMotionTime = 0;
+const MOTION_THRESHOLD = 2.5; // m/s²
+const STILLNESS_REQUIRED = 2500; // ms
+let isMotionListening = false;
+
+
 // Style pour flash visuel
 const style = document.createElement('style');
 style.textContent = `
@@ -6090,6 +6098,150 @@ function transitionToReadyState() {
     }
     
     console.log(`[RepsDisplay] Transition ready: Objectif ${targetReps} reps`);
+    if (currentUser && currentUser.motion_detection_enabled) {
+        showMotionInstructions();
+        startMotionListening();
+    } else {
+        // Interface standard reste inchangée
+        console.log('[Motion] Mode standard - pas de motion detection');
+    }
+}
+
+function showMotionInstructions() {
+    // Identifier le container d'instructions (selon votre structure DOM)
+    const instructionsContainer = document.querySelector('.workout-instructions') || 
+                                 document.querySelector('.ready-instructions') ||
+                                 document.getElementById('workoutInstructions');
+    
+    if (!instructionsContainer) {
+        console.warn('[Motion] Container instructions non trouvé');
+        return;
+    }
+    
+    // Remplacer contenu par instructions motion (utilise CSS existant)
+    instructionsContainer.innerHTML = `
+        <div class="motionsensor-instructions">
+            <i class="fas fa-mobile-alt motionsensor-icon"></i>
+            <p class="motionsensor-text">Posez votre téléphone pour démarrer</p>
+            <p class="motionsensor-text" style="font-size: 0.9rem; opacity: 0.8;">Le countdown démarrera automatiquement</p>
+        </div>
+    `;
+    
+    // Masquer bouton démarrage manuel s'il existe
+    const startButton = document.querySelector('.btn-start-workout');
+    if (startButton) {
+        startButton.style.display = 'none';
+    }
+    
+    console.log('[Motion] Instructions motion affichées');
+}
+
+function startMotionListening() {
+    // Cleanup listeners précédents si existants
+    cleanupMotionListeners();
+    
+    // Vérifier support API
+    if (!window.DeviceMotionEvent) {
+        console.warn('[Motion] DeviceMotion API non supporté');
+        return;
+    }
+    
+    try {
+        // Initialiser état
+        lastMotionTime = Date.now();
+        isMotionListening = true;
+        
+        // Ajouter listener devicemotion
+        motionListeners.devicemotion = analyzeDeviceMotion;
+        window.addEventListener('devicemotion', motionListeners.devicemotion);
+        
+        // Vérifier immobilité toutes les 500ms
+        motionListeners.stillnessCheck = setInterval(() => {
+            if (!isMotionListening) return;
+            
+            const stillnessDuration = Date.now() - lastMotionTime;
+            if (stillnessDuration > STILLNESS_REQUIRED) {
+                onStillnessDetected();
+            }
+        }, 500);
+        
+        console.log('[Motion] Écoute motion démarrée');
+        
+    } catch (error) {
+        console.error('[Motion] Erreur démarrage motion detection:', error);
+        // Fallback vers interface standard
+        isMotionListening = false;
+    }
+}
+
+function analyzeDeviceMotion(event) {
+    if (!isMotionListening || !event.accelerationIncludingGravity) {
+        return;
+    }
+    
+    const acceleration = event.accelerationIncludingGravity;
+    
+    // Calculer magnitude de l'accélération
+    const magnitude = Math.sqrt(
+        (acceleration.x || 0) ** 2 + 
+        (acceleration.y || 0) ** 2 + 
+        (acceleration.z || 0) ** 2
+    );
+    
+    // Filtrage bruit (ignorer variations très faibles)
+    if (magnitude < 0.5) return;
+    
+    // Si mouvement détecté (au-dessus du seuil)
+    if (magnitude > MOTION_THRESHOLD) {
+        lastMotionTime = Date.now();
+        // Log optionnel pour debug
+        // console.log('[Motion] Mouvement détecté:', magnitude.toFixed(2), 'm/s²');
+    }
+}
+
+function onStillnessDetected() {
+    console.log('[Motion] Immobilité détectée, prêt pour countdown');
+    
+    // Cleanup listeners motion
+    cleanupMotionListeners();
+    
+    // Feature 1 : Juste log pour validation
+    // Feature 2 étendra cette fonction pour démarrer countdown
+    
+    // Optionnel : Feedback visuel temporaire
+    const instructionsContainer = document.querySelector('.motionsensor-instructions');
+    if (instructionsContainer) {
+        const feedbackEl = document.createElement('div');
+        feedbackEl.style.cssText = `
+            color: #4CAF50;
+            font-weight: bold;
+            margin-top: 1rem;
+            animation: fadeIn 0.3s ease;
+        `;
+        feedbackEl.textContent = '✓ Immobilité détectée';
+        instructionsContainer.appendChild(feedbackEl);
+        
+        // Retirer feedback après 2s
+        setTimeout(() => feedbackEl.remove(), 2000);
+    }
+}
+
+function cleanupMotionListeners() {
+    isMotionListening = false;
+    
+    // Nettoyer devicemotion listener
+    if (motionListeners.devicemotion) {
+        window.removeEventListener('devicemotion', motionListeners.devicemotion);
+        motionListeners.devicemotion = null;
+    }
+    
+    // Nettoyer interval stillness check
+    if (motionListeners.stillnessCheck) {
+        clearInterval(motionListeners.stillnessCheck);
+        motionListeners.stillnessCheck = null;
+    }
+    
+    console.log('[Motion] Listeners nettoyés');
 }
 
 /**
@@ -8430,6 +8582,20 @@ async function loadProfile() {
             </div>
         </div>
     `;
+    profileHTML += `
+        <div class="profile-field">
+            <span class="field-label">Détection de mouvement</span>
+            <div class="toggle-container">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="motionDetectionToggle"
+                        ${currentUser.motion_detection_enabled ? 'checked' : ''}
+                        onchange="toggleMotionDetection()">
+                    <span class="toggle-slider"></span>
+                </label>
+                <span id="motionDetectionLabel">${currentUser.motion_detection_enabled ? 'Activé' : 'Désactivé'}</span>
+            </div>
+        </div>
+    `;
     // Ajouter le toggle pour l'aide au montage
     profileHTML += `
         <div class="profile-field">
@@ -8700,6 +8866,27 @@ async function togglePlateHelper() {
         // Revenir à l'état précédent en cas d'erreur
         toggle.checked = !toggle.checked;
         showToast('Erreur lors de la sauvegarde', 'error');
+    }
+}
+
+async function toggleMotionDetection() {
+    const toggle = document.getElementById('motionDetectionToggle');
+    const newState = toggle.checked;
+    
+    try {
+        await apiPut(`/api/users/${currentUser.id}/preferences`, {
+            motion_detection_enabled: newState
+        });
+        
+        currentUser.motion_detection_enabled = newState;
+        document.getElementById('motionDetectionLabel').textContent = 
+            newState ? 'Activé' : 'Désactivé';
+        
+        showToast(`Motion detection ${newState ? 'activé' : 'désactivé'}`, 'success');
+        
+    } catch (error) {
+        toggle.checked = !newState; // Rollback on error
+        showToast('Erreur lors de la mise à jour', 'error');
     }
 }
 
@@ -14318,7 +14505,7 @@ window.closeModal = closeModal;
 window.toggleModalEquipment = toggleModalEquipment;
 window.saveEquipmentChanges = saveEquipmentChanges;
 window.resumeWorkout = resumeWorkout;
-
+window.toggleMotionDetection = toggleMotionDetection;
 window.toggleVoiceWithMotion = toggleVoiceWithMotion;
 window.updateDifficultyIndicators = updateDifficultyIndicators;
 window.showCalibrationUI = showCalibrationUI;
