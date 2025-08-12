@@ -9144,3 +9144,28 @@ input {
     background-color: #ef4444;
     color: white;
 }
+
+/* Countdown intégré dans instructions motion */
+.motionsensor-instructions.countdown-mode {
+    background: linear-gradient(135deg, #FF9800, #F57C00) !important;
+    border: 2px solid #FF9800;
+    animation: countdown-pulse 1s ease-in-out infinite alternate;
+}
+
+/* Overrides pour countdown intégré (plus petit) */
+.motionsensor-instructions .countdown-ring-container {
+    width: 80px !important;
+    height: 80px !important;
+    margin: 0 auto 1rem !important;
+}
+
+.motionsensor-instructions .countdown-number {
+    font-size: 2.5rem !important;
+    color: white !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3) !important;
+}
+
+@keyframes countdown-pulse {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.02); }
+}

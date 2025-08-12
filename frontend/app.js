@@ -456,7 +456,7 @@ function startSeriesAfterCountdown() {
     // Transition état
     transitionTo(WorkoutStates.EXECUTING);
     
-    // AJOUTER : Cacher countdown IMMÉDIATEMENT
+    // Cacher countdown
     hideCountdownInterface();
     
     // Démarrer timer
@@ -469,8 +469,13 @@ function startSeriesAfterCountdown() {
         window.startVoiceRecognition();
     }
     
+    // NOUVEAU : Arrêter motion monitoring pendant série
+    if (window.motionDetector) {
+        window.motionDetector.stopMonitoring();
+        console.log('[Motion] Monitoring arrêté pendant série');
+    }
+    
     // UI
-    hideCountdownInterface();
     updateMotionIndicator(true);
     showToast('🚀 Série démarrée!', 'success');
 }
@@ -8071,76 +8076,72 @@ function formatTime(seconds) {
 
 // ===== UI COUNTDOWN & CALIBRATION =====
 function showCountdownInterface() {
-    hideMotionInstructions();
+    // ÉTAPE 1 : Identifier la zone instructions existante
+    const instructionsContainer = document.getElementById('motionInstructions');
+    if (!instructionsContainer) {
+        console.error('[Countdown] Zone instructions motion non trouvée');
+        return;
+    }
     
-    const html = `
-        <div id="countdownInterface" class="countdown-modal-center">
-            <div class="countdown-content">
-                <div class="countdown-visual">
-                    <div class="countdown-ring-container">
-                        <svg class="countdown-ring" viewBox="0 0 120 120">
-                            <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="8"/>
-                            <circle cx="60" cy="60" r="54" fill="none" stroke="#2196F3" stroke-width="8"
-                                    stroke-dasharray="339.292" stroke-dashoffset="339.292"
-                                    class="countdown-ring-progress"/>
-                        </svg>
-                        <span id="countdownDisplay" class="countdown-number">3</span>
-                    </div>
-                </div>
-                <p class="countdown-text">Préparez-vous...</p>
-                <p class="countdown-subtext">La série démarre automatiquement</p>
+    // ÉTAPE 2 : Remplacer contenu instructions par countdown (réutilise CSS existant)
+    instructionsContainer.innerHTML = `
+        <div class="countdown-content">
+            <div class="countdown-ring-container">
+                <svg class="countdown-ring" viewBox="0 0 80 80">
+                    <circle cx="40" cy="40" r="36" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="4"/>
+                    <circle cx="40" cy="40" r="36" fill="none" stroke="white" stroke-width="4"
+                            stroke-dasharray="226" stroke-dashoffset="226"
+                            class="countdown-ring-progress"/>
+                </svg>
+                <span id="countdownDisplay" class="countdown-number">3</span>
             </div>
+            <p class="countdown-text">Préparez-vous...</p>
+            <p class="countdown-subtext">Série dans <span id="countdownSeconds">3</span>s</p>
         </div>
     `;
     
-    document.body.insertAdjacentHTML('beforeend', html);
-    
-    // Animation d'entrée
-    setTimeout(() => {
-        document.getElementById('countdownInterface')?.classList.add('active');
-    }, 10);
+    // ÉTAPE 3 : Activer classe countdown-mode (utilise CSS existant + override)
+    instructionsContainer.classList.add('countdown-mode');
 }
 
 function updateCountdownDisplay(remaining) {
     const display = document.getElementById('countdownDisplay');
+    const seconds = document.getElementById('countdownSeconds');
     const ring = document.querySelector('.countdown-ring-progress');
-    const text = document.querySelector('.countdown-text');
     
     if (display) {
         if (remaining > 0) {
             display.textContent = remaining;
-            display.style.color = '#2196F3';
         } else {
             display.textContent = 'GO!';
             display.style.color = '#4CAF50';
         }
     }
     
-    if (text) {
-        if (remaining === 0) {
-            text.textContent = 'C\'est parti !';
-        }
+    if (seconds) {
+        seconds.textContent = remaining > 0 ? remaining : 0;
     }
     
     if (ring) {
-        const offset = 339.292 - (339.292 * (3 - remaining) / 3);
+        // Utilise stroke-dasharray correct pour cercle radius 36
+        const offset = 226 - (226 * (3 - remaining) / 3);
         ring.style.strokeDashoffset = offset;
-    }
-    
-    // Cacher après "GO!"
-    if (remaining === 0) {
-        setTimeout(() => {
-            const modal = document.getElementById('countdownInterface');
-            if (modal) {
-                modal.classList.remove('active');
-                setTimeout(() => modal.remove(), 300);
-            }
-        }, 800); // Laisser "GO!" visible un peu
     }
 }
 
 function hideCountdownInterface() {
-    document.getElementById('countdownInterface')?.remove();
+    // ÉTAPE 1 : Nettoyer modal existant (fallback)
+    const modal = document.getElementById('countdownInterface');
+    if (modal) {
+        modal.remove();
+    }
+    
+    // ÉTAPE 2 : Nettoyer zone instructions motion intégrée
+    const instructionsContainer = document.getElementById('motionInstructions');
+    if (instructionsContainer) {
+        instructionsContainer.classList.remove('countdown-mode');
+        // Le contenu sera remis par showMotionInstructions() lors prochaine transition
+    }
 }
 
 function showCalibrationUI() {
@@ -12354,21 +12355,57 @@ function completeRest() {
         transitionToReadyState();
         transitionTo(WorkoutStates.READY);
         // NOUVEAU : Réactiver motion APRÈS transition (Fix race condition)
-        // Réactiver motion V2 après repos
+        // Réactiver motion detection pour série suivante
         if (currentUser?.motion_detection_enabled && 
             window.motionDetectionEnabled && 
             window.motionDetector &&
             currentExercise?.exercise_type !== 'isometric') {
             
-            console.log('[Motion] Réactivation après repos');
+            console.log('[Motion] Réactivation motion detector');
+            
+            // Reset state interne motion detector
+            window.motionDetector.state = 'unknown';
+            window.motionDetector.stationaryStartTime = null;
+            window.motionDetector.pickupStartTime = null;
+            
+            // Réafficher instructions
             showMotionInstructions();
             updateMotionIndicator(false);
+            
+            // Redémarrer monitoring
             window.motionDetector.startMonitoring(createMotionCallbacksV2());
+            
+            console.log('[Motion] Prêt pour série suivante');
         }
                
         // Sinon, vocal normal
         activateVoiceForWorkout();
     }
+}
+
+function resetMotionDetectorForNewSeries() {
+    if (!window.motionDetector) return;
+    
+    // Arrêter monitoring actuel
+    window.motionDetector.stopMonitoring();
+    
+    // Reset état interne
+    window.motionDetector.state = 'unknown';
+    window.motionDetector.stationaryStartTime = null;
+    window.motionDetector.pickupStartTime = null;
+    window.motionDetector.lastAcceleration = 0;
+    
+    // Redémarrer si conditions OK
+    if (currentUser?.motion_detection_enabled && 
+        window.motionDetectionEnabled &&
+        currentExercise?.exercise_type !== 'isometric') {
+        
+        showMotionInstructions();
+        updateMotionIndicator(false);
+        window.motionDetector.startMonitoring(createMotionCallbacksV2());
+    }
+    
+    console.log('[Motion] Detector reset pour nouvelle série');
 }
 
 // === MOTION SENSOR : FONCTIONS UI SIMPLES ===
