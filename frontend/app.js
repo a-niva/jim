@@ -8607,6 +8607,53 @@ async function toggleWeightPreference() {
     }
 }
 
+async function toggleVoiceWithMotion() {
+    const toggle = document.getElementById('voiceWithMotionToggle');
+    const newState = toggle.checked;
+    
+    try {
+        // Mettre à jour la préférence
+        await apiPut(`/api/users/${currentUser.id}/preferences`, {
+            voice_counting_enabled: newState
+        });
+        
+        currentUser.voice_counting_enabled = newState;
+        
+        // Feedback visuel
+        showToast(`Comptage vocal ${newState ? 'activé' : 'désactivé'}`, 'success');
+        
+        // Si on active le vocal, vérifier les permissions micro
+        if (newState && typeof checkMicrophonePermissions === 'function') {
+            const hasPermission = await checkMicrophonePermissions();
+            if (!hasPermission) {
+                showToast('Permission microphone requise', 'warning');
+                // Rollback si pas de permission
+                toggle.checked = false;
+                currentUser.voice_counting_enabled = false;
+                return;
+            }
+        }
+        
+        // Si on est déjà en séance, activer/désactiver immédiatement
+        if (currentExercise && workoutState.current === WorkoutStates.READY) {
+            if (newState) {
+                activateVoiceForWorkout();
+            } else {
+                // Masquer l'interface vocal
+                const voiceContainer = document.getElementById('voiceStatusContainer');
+                if (voiceContainer) {
+                    voiceContainer.style.display = 'none';
+                }
+            }
+        }
+        
+    } catch (error) {
+        console.error('Erreur toggle voice:', error);
+        toggle.checked = !newState;
+        showToast('Erreur de sauvegarde', 'error');
+    }
+}
+
 async function toggleSoundNotifications() {
     const toggle = document.getElementById('soundNotificationsToggle');
     const newPreference = toggle.checked;
@@ -12880,6 +12927,50 @@ async function updateCurrentExerciseUI(newExercise) {
     }
 }
 
+function updateDifficultyIndicators(difficulty) {
+    console.log('[UI] Mise à jour indicateurs difficulté:', difficulty);
+    
+    // Nettoyer les classes existantes
+    const exerciseHeader = document.querySelector('.exercise-header-modern');
+    if (exerciseHeader) {
+        exerciseHeader.classList.remove('difficulty-beginner', 'difficulty-intermediate', 'difficulty-advanced');
+        exerciseHeader.classList.add(`difficulty-${difficulty}`);
+    }
+    
+    // Mettre à jour les badges de difficulté s'ils existent
+    const difficultyBadges = document.querySelectorAll('.difficulty-badge');
+    difficultyBadges.forEach(badge => {
+        badge.classList.remove('beginner', 'intermediate', 'advanced');
+        badge.classList.add(difficulty);
+        
+        // Mettre à jour le texte
+        const textMap = {
+            'beginner': 'Débutant',
+            'intermediate': 'Intermédiaire',
+            'advanced': 'Avancé'
+        };
+        badge.textContent = textMap[difficulty] || difficulty;
+    });
+    
+    // Mettre à jour les couleurs des éléments UI selon la difficulté
+    const colorMap = {
+        'beginner': '#10b981',     // Vert
+        'intermediate': '#f59e0b',  // Orange
+        'advanced': '#ef4444'       // Rouge
+    };
+    
+    // Appliquer la couleur aux éléments pertinents
+    const accentElements = document.querySelectorAll('.exercise-accent-color');
+    accentElements.forEach(el => {
+        el.style.color = colorMap[difficulty] || colorMap['beginner'];
+    });
+    
+    // Émettre un événement pour que d'autres modules puissent réagir
+    window.dispatchEvent(new CustomEvent('difficultyChanged', { 
+        detail: { difficulty } 
+    }));
+}
+
 // ===== MODULE 2 : FONCTIONS MODAL SWAP MANQUANTES =====
 
 function showSwapReasonModal(exerciseId) {
@@ -14243,6 +14334,9 @@ window.closeModal = closeModal;
 window.toggleModalEquipment = toggleModalEquipment;
 window.saveEquipmentChanges = saveEquipmentChanges;
 window.resumeWorkout = resumeWorkout;
+
+window.toggleVoiceWithMotion = toggleVoiceWithMotion;
+window.updateDifficultyIndicators = updateDifficultyIndicators;
 
 // Nouvelles fonctions pour l'interface de séance détaillée
 window.setSessionFatigue = setSessionFatigue;
