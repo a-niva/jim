@@ -777,6 +777,10 @@ function transitionTo(state) {
             
         case WorkoutStates.READY:
         case WorkoutStates.EXECUTING:
+            // Afficher l'interface des steppers pendant l'exécution
+            document.getElementById('executeSetBtn').style.display = 'block';
+            document.querySelector('.input-section').style.display = 'block';
+            break;
         case WorkoutStates.FEEDBACK:
         case WorkoutStates.RESTING:
             // Afficher les boutons avec animation
@@ -8023,27 +8027,52 @@ function showCountdownInterface() {
     hideMotionInstructions();
     
     const html = `
-        <div id="countdownInterface" class="countdown-bottomsheet">
+        <div id="countdownInterface" class="countdown-modal-center">
             <div class="countdown-content">
-                <div class="countdown-compact">
-                    <span id="countdownDisplay" class="countdown-number">3</span>
-                    <span class="countdown-label">Préparez-vous...</span>
+                <div class="countdown-visual">
+                    <div class="countdown-ring-container">
+                        <svg class="countdown-ring" viewBox="0 0 120 120">
+                            <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="8"/>
+                            <circle cx="60" cy="60" r="54" fill="none" stroke="#2196F3" stroke-width="8"
+                                    stroke-dasharray="339.292" stroke-dashoffset="339.292"
+                                    class="countdown-ring-progress"/>
+                        </svg>
+                        <span id="countdownDisplay" class="countdown-number">3</span>
+                    </div>
                 </div>
+                <p class="countdown-text">Préparez-vous...</p>
+                <p class="countdown-subtext">La série démarre automatiquement</p>
             </div>
         </div>
     `;
     
-    const container = document.querySelector('.exercise-header-modern') || 
-                      document.querySelector('.exercise-content');
-    container?.insertAdjacentHTML('afterend', html);
+    document.body.insertAdjacentHTML('beforeend', html);
+    
+    // Animation d'entrée
+    setTimeout(() => {
+        document.getElementById('countdownInterface')?.classList.add('active');
+    }, 10);
 }
 
 function updateCountdownDisplay(remaining) {
     const display = document.getElementById('countdownDisplay');
     const ring = document.querySelector('.countdown-ring-progress');
+    const text = document.querySelector('.countdown-text');
     
     if (display) {
-        display.textContent = remaining > 0 ? remaining : 'GO!';
+        if (remaining > 0) {
+            display.textContent = remaining;
+            display.style.color = '#2196F3';
+        } else {
+            display.textContent = 'GO!';
+            display.style.color = '#4CAF50';
+        }
+    }
+    
+    if (text) {
+        if (remaining === 0) {
+            text.textContent = 'C\'est parti !';
+        }
     }
     
     if (ring) {
@@ -8051,8 +8080,15 @@ function updateCountdownDisplay(remaining) {
         ring.style.strokeDashoffset = offset;
     }
     
+    // Cacher après "GO!"
     if (remaining === 0) {
-        setTimeout(() => hideCountdownInterface(), 500);
+        setTimeout(() => {
+            const modal = document.getElementById('countdownInterface');
+            if (modal) {
+                modal.classList.remove('active');
+                setTimeout(() => modal.remove(), 300);
+            }
+        }, 800); // Laisser "GO!" visible un peu
     }
 }
 
