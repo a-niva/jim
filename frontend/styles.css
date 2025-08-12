@@ -9108,3 +9108,39 @@ input {
 .countdown-number {
     animation: countdown-pulse 1s ease-in-out infinite;
 }
+
+/* Indicateurs de difficulté */
+.exercise-header-modern.difficulty-beginner {
+    border-left: 4px solid #10b981;
+}
+
+.exercise-header-modern.difficulty-intermediate {
+    border-left: 4px solid #f59e0b;
+}
+
+.exercise-header-modern.difficulty-advanced {
+    border-left: 4px solid #ef4444;
+}
+
+.difficulty-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.difficulty-badge.beginner {
+    background-color: #10b981;
+    color: white;
+}
+
+.difficulty-badge.intermediate {
+    background-color: #f59e0b;
+    color: white;
+}
+
+.difficulty-badge.advanced {
+    background-color: #ef4444;
+    color: white;
+}

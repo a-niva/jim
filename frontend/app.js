@@ -670,13 +670,15 @@ function storeCurrentScoringData(scoringData) {
 
 function transitionTo(state) {
     console.log(`[State] Transition: ${workoutState.current} → ${state}`);
-    // LIGNE MANQUANTE - AJOUTER ICI :
-    workoutState.current = state;
     
-    // === NETTOYAGE CIBLÉ SELON LA TRANSITION ===
-    // Ne nettoyer que si on SORT d'un état qui utilise des timers
     const oldState = workoutState.current;
     const newState = state;
+    
+    console.log('[DEBUG] oldState:', oldState, 'newState:', newState);  // Ajouter
+    
+    workoutState.current = state;
+    
+    console.log('[DEBUG] État après update:', workoutState.current);  // Ajouter
 
     // Nettoyer motion si changement d'état majeur
     if ((newState === WorkoutStates.RESTING || 
@@ -732,21 +734,24 @@ function transitionTo(state) {
             break;
     }
     
-    // 3. MASQUER toutes les interfaces (état neutre)
+    // 3. MASQUER toutes les interfaces SAUF si on va les réafficher immédiatement
     const allInterfaces = [
         '#executeSetBtn',
         '#setFeedback', 
         '#restPeriod',
         '.input-section'
     ];
-    
-    // 3. MASQUER toutes les interfaces (état neutre)
-    allInterfaces.forEach(selector => {
-        const element = document.querySelector(selector);
-        if (element) {
-            element.style.display = 'none';
-        }
-    });
+
+    // Ne masquer que si on ne va pas immédiatement réafficher
+    const statesNeedingUI = [WorkoutStates.READY, WorkoutStates.EXECUTING, WorkoutStates.READY_COUNTDOWN];
+    if (!statesNeedingUI.includes(newState)) {
+        allInterfaces.forEach(selector => {
+            const element = document.querySelector(selector);
+            if (element) {
+                element.style.display = 'none';
+            }
+        });
+    }
 
     // Reset COMPLET sur états terminaux (NOUVEAU)
     if (state === WorkoutStates.IDLE || state === WorkoutStates.COMPLETED) {
@@ -816,7 +821,7 @@ function transitionTo(state) {
             }
             break;
         case WorkoutStates.READY_COUNTDOWN:
-            // Masquer bouton execute pendant countdown
+            console.log('[DEBUG] Case READY_COUNTDOWN atteint');  // Ajouter
             document.getElementById('executeSetBtn').style.display = 'none';
             showCountdownInterface();
             break;
@@ -896,7 +901,13 @@ async function initializeMotionSystemOnce() {
                 timestamp: currentUser.motion_calibration_data.timestamp || Date.now()
             };
         }
-        
+        // NOUVEAU : Mettre à jour l'UI profil si elle existe
+        const calibrationInfo = document.querySelector('.motion-options .option-info');
+        if (calibrationInfo && motionCalibrationData?.timestamp) {
+            const date = new Date(motionCalibrationData.timestamp);
+            calibrationInfo.textContent = `Calibré le ${date.toLocaleDateString()}`;
+        }
+                
         window.motionDetectionEnabled = await window.motionDetector.init();
         motionSystemInitialized = true;
         lastInitializedUserId = currentUser.id;
@@ -12427,9 +12438,16 @@ async function calibrateMotion() {
             motion_calibration_data: {
                 baseline: baseline,
                 thresholds: window.motionDetector.THRESHOLDS,
-                surface_type: 'default' // Pourrait être étendu
+                timestamp: Date.now()
             }
         });
+        
+        // IMPORTANT : Mettre à jour currentUser localement
+        currentUser.motion_calibration_data = {
+            baseline: baseline,
+            thresholds: window.motionDetector.THRESHOLDS,
+            timestamp: Date.now()
+        };
         
         console.log('[Motion] Calibration sauvegardée en DB');
     } catch (error) {
