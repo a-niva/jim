@@ -363,51 +363,32 @@ const VoiceConfirmation = {
 function createMotionCallbacksV2() {
     return {
         onStationary: () => {
-            console.log('[Motion] Stationnaire détecté');
+            console.log('[Motion] STATIONNAIRE détecté - Feature 1 active');
             
-            // Vérifier conditions
+            // Vérifier qu'on est bien en READY
             if (workoutState.current !== WorkoutStates.READY) {
-                console.log('[Motion] Ignoré - pas en READY');
+                console.log('[Motion] Ignoré - pas en état READY');
                 return;
             }
             
-            if (setTimerState.isRunning) {
-                console.log('[Motion] Timer déjà actif');
-                return;
-            }
+            // Pour Feature 1 : juste log + feedback visuel
+            hideMotionInstructions();
+            showToast('Immobilité détectée ! Prêt pour démarrage', 'success');
             
-            // Sous-état countdown
-            transitionTo(WorkoutStates.READY_COUNTDOWN);
-            
-            // UI feedback
-            showCountdownInterface();
-            
-            // Triple bip avec vérification
-            AudioSystem.playTripleBeep((completed) => {
-                if (completed && window.motionDetector?.state === 'stationary') {
-                    startSeriesAfterCountdown();
-                } else {
-                    cancelCountdown();
-                }
-            });
+            // TODO Feature 2 : ici on appelera startCountdown(3)
         },
         
-        onPickup: () => {
-            console.log('[Motion] Reprise détectée');
+        onPickup: (wasStationary) => {
+            console.log('[Motion] MOUVEMENT détecté');
             
-            // Gérer selon l'état
-            switch (workoutState.current) {
-                case WorkoutStates.READY_COUNTDOWN:
-                    cancelCountdown();
-                    break;
-                    
-                case WorkoutStates.EXECUTING:
-                    handlePickupWithVoice();
-                    break;
-                    
-                default:
-                    console.log('[Motion] Pickup ignoré - état:', workoutState.current);
+            // Pour Feature 1 : remettre instructions si on était stationnaire
+            if (wasStationary && workoutState.current === WorkoutStates.READY) {
+                hideMotionInstructions();
+                setTimeout(() => showMotionInstructions(), 500);
+                showToast('Mouvement détecté - reposez le téléphone', 'info');
             }
+            
+            // TODO Feature 3 : gestion pause pendant série
         }
     };
 }
@@ -6072,6 +6053,19 @@ function applyVoiceErrorState(errorType = 'generic', duration = 1000) {
 
 // Transition vers état prêt avec objectif affiché
 function transitionToReadyState() {
+    // === MOTION DETECTION CHECK EN PREMIER ===
+    if (currentUser?.motion_detection_enabled && 
+        window.motionDetectionEnabled && 
+        window.motionDetector &&
+        currentExercise?.exercise_type !== 'isometric') {
+        
+        console.log('[Motion] Activation mode motion');
+        showMotionInstructions();
+        updateMotionIndicator(false);
+        window.motionDetector.startMonitoring(createMotionCallbacksV2());
+        return; // SORTIR IMMÉDIATEMENT - pas de setup timer/vocal
+    }
+    
     const targetRepEl = document.getElementById('targetRep');
     const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) : 12;
     
@@ -12374,17 +12368,16 @@ function showMotionInstructions() {
 }
 
 function hideMotionInstructions() {
-    const el = document.getElementById('motionInstructions');
-    if (el) {
-        el.style.opacity = '0';
-        el.style.transition = 'opacity 0.3s';
+    const instructions = document.getElementById('motionInstructions');
+    if (instructions) {
+        instructions.style.opacity = '0';
+        instructions.style.transition = 'opacity 0.3s ease';
         setTimeout(() => {
-            el.remove();
+            instructions.remove();
             console.log('[Motion] Instructions masquées');
         }, 300);
     }
 }
-
 // === MOTION SENSOR : TOGGLE PRÉFÉRENCES (à ajouter avec autres toggles ~1500) ===
 // ===== TOGGLES PROFIL V2 =====
 async function toggleMotionDetection() {
