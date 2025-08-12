@@ -6100,11 +6100,64 @@ function transitionToReadyState() {
     console.log(`[RepsDisplay] Transition ready: Objectif ${targetReps} reps`);
     if (currentUser && currentUser.motion_detection_enabled) {
         showMotionInstructions();
-        startMotionListening();
+        // Utiliser le système existant au lieu du simple
+        initializeMotionForReady();
     } else {
         // Interface standard reste inchangée
         console.log('[Motion] Mode standard - pas de motion detection');
     }
+}
+
+async function initializeMotionForReady() {
+    try {
+        // Initialiser le système motion existant si pas déjà fait
+        if (!window.motionDetector) {
+            console.log('[Motion] Initialisation motion detector...');
+            await initializeMotionSystemOnce();
+        }
+        
+        if (window.motionDetector) {
+            console.log('[Motion] Démarrage monitoring pour READY state');
+            
+            // Callbacks spécifiques pour état READY
+            const readyCallbacks = {
+                onStationary: () => {
+                    console.log('[Motion] Immobilité détectée en READY');
+                    // Démarrer le timer série et transition vers EXECUTING
+                    startWorkoutFromMotion();
+                }
+            };
+            
+            window.motionDetector.startMonitoring(readyCallbacks);
+        } else {
+            console.warn('[Motion] Impossible d\'initialiser motion detector');
+        }
+    } catch (error) {
+        console.error('[Motion] Erreur initialisation:', error);
+    }
+}
+
+function startWorkoutFromMotion() {
+    console.log('[Motion] Démarrage série automatique');
+    
+    // Masquer instructions motion
+    const motionInstructions = document.getElementById('motionInstructions');
+    if (motionInstructions) {
+        motionInstructions.remove();
+    }
+    
+    // Démarrer timer série (code existant)
+    startSetTimer();
+    
+    // Activer vocal si enabled
+    if (currentUser?.voice_counting_enabled) {
+        activateVoiceForWorkout();
+    }
+    
+    // Transition vers EXECUTING
+    transitionTo(WorkoutStates.EXECUTING);
+    
+    console.log('[Motion] Série démarrée avec succès');
 }
 
 function showMotionInstructions() {
@@ -14623,6 +14676,8 @@ window.toggleFavorite = toggleFavorite;
 window.updatePlateHelper = updatePlateHelper;
 window.togglePlateHelper = togglePlateHelper;
 window.toggleVoiceCounting = toggleVoiceCounting;
+window.initializeMotionForReady = initializeMotionForReady;
+window.startWorkoutFromMotion = startWorkoutFromMotion;
 
 window.skipExercise = skipExercise;
 window.showSkipModal = showSkipModal;
