@@ -375,13 +375,23 @@ function createMotionCallbacksV2() {
             hideMotionInstructions();
             showToast('Immobilité détectée ! Prêt pour démarrage', 'success');
             
-            // TODO Feature 2 : ici on appelera startCountdown(3)
+            startCountdown(3);
         },
         
         onPickup: (wasStationary) => {
             console.log('[Motion] MOUVEMENT détecté');
             
-            // Pour Feature 1 : remettre instructions si on était stationnaire
+            // NOUVEAU : Interruption countdown si en cours
+            if (workoutState.current === WorkoutStates.READY_COUNTDOWN) {
+                if (window.currentCountdownTimer) {
+                    clearInterval(window.currentCountdownTimer);
+                    window.currentCountdownTimer = null;
+                }
+                cancelCountdown();
+                return; // Sortir de la fonction
+            }
+            
+            // Code existant pour autres états...
             if (wasStationary && workoutState.current === WorkoutStates.READY) {
                 hideMotionInstructions();
                 setTimeout(() => showMotionInstructions(), 500);
@@ -391,6 +401,53 @@ function createMotionCallbacksV2() {
             // TODO Feature 3 : gestion pause pendant série
         }
     };
+}
+
+function startCountdown(seconds) {
+    console.log('[Motion] Démarrage countdown', seconds);
+    
+    // Transition vers état countdown
+    transitionTo(WorkoutStates.READY_COUNTDOWN);
+    
+    let remaining = seconds;
+    updateCountdownDisplay(remaining);
+    
+    // Timer countdown
+    const countdownTimer = setInterval(() => {
+        remaining--;
+        
+        if (remaining > 0) {
+            updateCountdownDisplay(remaining);
+            playCountdownBeep(remaining);
+        } else {
+            clearInterval(countdownTimer);
+            updateCountdownDisplay(0); // Afficher "GO!"
+            playGoSound();
+            
+            // Démarrer série après 500ms
+            setTimeout(() => {
+                startSeriesAfterCountdown();
+            }, 500);
+        }
+    }, 1000);
+    
+    // Stocker timer pour pouvoir l'interrompre
+    window.currentCountdownTimer = countdownTimer;
+}
+
+function playCountdownBeep(number) {
+    if (window.workoutAudio) {
+        // Utiliser sons existants ou créer beep simple
+        window.workoutAudio.playSound('beep');
+    }
+    console.log('[Audio] Beep', number);
+}
+
+function playGoSound() {
+    if (window.workoutAudio) {
+        window.workoutAudio.playSound('go');
+    }
+    console.log('[Audio] GO!');
 }
 
 function startSeriesAfterCountdown() {
