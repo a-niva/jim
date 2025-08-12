@@ -6253,30 +6253,27 @@ function analyzeDeviceMotion(event) {
 }
 
 function onStillnessDetected() {
-    console.log('[Motion] Immobilité détectée, prêt pour countdown');
+    console.log('[Motion] Immobilité détectée, démarrage série automatique');
     
     // Cleanup listeners motion
     cleanupMotionListeners();
     
-    // Feature 1 : Juste log pour validation
-    // Feature 2 étendra cette fonction pour démarrer countdown
-    
-    // Optionnel : Feedback visuel temporaire
-    const instructionsContainer = document.querySelector('.motionsensor-instructions');
-    if (instructionsContainer) {
-        const feedbackEl = document.createElement('div');
-        feedbackEl.style.cssText = `
-            color: #4CAF50;
-            font-weight: bold;
-            margin-top: 1rem;
-            animation: fadeIn 0.3s ease;
-        `;
-        feedbackEl.textContent = '✓ Immobilité détectée';
-        instructionsContainer.appendChild(feedbackEl);
-        
-        // Retirer feedback après 2s
-        setTimeout(() => feedbackEl.remove(), 2000);
+    // Masquer instructions motion
+    const motionInstructions = document.getElementById('motionInstructions');
+    if (motionInstructions) {
+        motionInstructions.remove();
     }
+    
+    // DÉMARRER LA SÉRIE (ce qui manquait !)
+    startSetTimer();
+    
+    // Activer vocal si enabled
+    if (currentUser?.voice_counting_enabled) {
+        activateVoiceForWorkout();
+    }
+    
+    // Transition vers EXECUTING
+    transitionTo(WorkoutStates.EXECUTING);
 }
 
 function cleanupMotionListeners() {
