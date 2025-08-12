@@ -376,7 +376,11 @@ def update_user_preferences(
 
     if preferences.motion_detection_enabled is not None:
         user.motion_detection_enabled = preferences.motion_detection_enabled
-    
+
+    if preferences.motion_calibration_data is not None:
+        user.motion_calibration_data = preferences.motion_calibration_data
+        logger.info(f"Motion calibration data mise à jour pour user {user_id}: {preferences.motion_calibration_data}")
+        
     db.commit()
     db.refresh(user)
     
