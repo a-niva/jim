@@ -790,16 +790,26 @@ function transitionTo(state) {
             
         case WorkoutStates.READY_COUNTDOWN:
             console.log('[DEBUG] Case READY_COUNTDOWN atteint');
-            // NE PAS masquer les steppers !
-            document.getElementById('executeSetBtn').style.display = 'block';
-            document.querySelector('.input-section').style.display = 'block';
-            // Note : showCountdownInterface() est appelée depuis le callback motion
+            // Masquer bouton execute pendant countdown
+            document.getElementById('executeSetBtn').style.display = 'none';
+            document.querySelector('.input-section').style.display = 'none';
+            // CRITIQUE : Appeler showCountdownInterface
+            showCountdownInterface();
             break;
-            
+                    
         case WorkoutStates.EXECUTING:
-            console.log('[DEBUG] Case EXECUTING atteint');
+            // CRITIQUE : Réafficher l'interface des steppers
             document.getElementById('executeSetBtn').style.display = 'block';
             document.querySelector('.input-section').style.display = 'block';
+            
+            // S'assurer que les steppers sont visibles
+            const stepperContainer = document.querySelector('.stepper-container');
+            if (stepperContainer) {
+                stepperContainer.style.display = 'flex';
+            }
+            
+            // Masquer le countdown s'il est encore là
+            hideCountdownInterface();
             break;
             
         case WorkoutStates.FEEDBACK:
@@ -12471,6 +12481,34 @@ async function calibrateMotion() {
             console.error('[Motion] Erreur sauvegarde calibration:', error);
             showToast('Erreur de sauvegarde', 'error');
         }
+
+        // PERSISTANCE CALIBRATION DANS L'UI
+        try {
+            await apiPut(`/api/users/${currentUser.id}/preferences`, {
+                motion_calibration_data: {
+                    baseline: baseline,
+                    thresholds: window.motionDetector.THRESHOLDS,
+                    timestamp: Date.now()
+                }
+            });
+            
+            // IMPORTANT : Mettre à jour currentUser localement
+            currentUser.motion_calibration_data = {
+                baseline: baseline,
+                thresholds: window.motionDetector.THRESHOLDS,
+                timestamp: Date.now()
+            };
+            
+            // NOUVEAU : Mettre à jour l'UI immédiatement
+            const infoEl = document.querySelector('.option-info');
+            if (infoEl) {
+                infoEl.textContent = `Calibré le ${new Date().toLocaleDateString()}`;
+            }
+            
+            console.log('[Motion] Calibration sauvegardée et UI mise à jour');
+        } catch (error) {
+            console.error('[Motion] Erreur sauvegarde calibration:', error);
+        }
     }
 }
 
@@ -14303,6 +14341,8 @@ window.resumeWorkout = resumeWorkout;
 
 window.toggleVoiceWithMotion = toggleVoiceWithMotion;
 window.updateDifficultyIndicators = updateDifficultyIndicators;
+window.showCalibrationUI = showCalibrationUI;
+window.hideCalibrationUI = hideCalibrationUI;
 
 // Nouvelles fonctions pour l'interface de séance détaillée
 window.setSessionFatigue = setSessionFatigue;

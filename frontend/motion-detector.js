@@ -176,15 +176,33 @@ class MotionDetector {
         this.calibrationMode = true;
         this.calibrationSamples = [];
         
-        // Instructions UI
-        showCalibrationUI();
+        // CRITIQUE : Démarrer le monitoring pour collecter les données !
+        if (!this.monitoring) {
+            this.startMonitoring();
+        }
         
-        // Collecter samples
+        // Instructions UI (avec vérification)
+        if (typeof showCalibrationUI === 'function') {
+            showCalibrationUI();
+        }
+        
+        // Collecter samples pendant duration
         return new Promise((resolve) => {
             setTimeout(() => {
                 this.calibrationMode = false;
                 this.processCalibration();
-                hideCalibrationUI();
+                
+                // Arrêter monitoring si on l'a démarré
+                if (this.monitoring) {
+                    this.stopMonitoring();
+                }
+                
+                // UI (avec vérification)
+                if (typeof hideCalibrationUI === 'function') {
+                    hideCalibrationUI();
+                }
+                
+                console.log('[Motion] Calibration finie, baseline:', this.baselineNoise);
                 resolve(this.baselineNoise);
             }, duration);
         });
@@ -213,13 +231,6 @@ class MotionDetector {
             stationary: this.THRESHOLDS.STATIONARY.acceleration,
             pickup: this.THRESHOLDS.PICKUP.acceleration
         });
-        
-        // Sauvegarder en localStorage
-        localStorage.setItem('motionCalibration', JSON.stringify({
-            baseline: this.baselineNoise,
-            thresholds: this.THRESHOLDS,
-            timestamp: Date.now()
-        }));
     }
 
     loadCalibration() {
