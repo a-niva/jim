@@ -7,7 +7,7 @@ class MotionDetector {
     this.THRESHOLDS = {
         STATIONARY: {
             acceleration: 0.8,      // Plus sensible pour détecter immobilité
-            duration: 800          // Plus rapide (0.8s au lieu de 2s)
+            duration: 1500          // Plus rapide (0.8s au lieu de 2s)
         },
         PICKUP: {
             acceleration: 1.5,      // BEAUCOUP plus sensible

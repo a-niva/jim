@@ -409,30 +409,35 @@ function startCountdown(seconds) {
     // Transition vers état countdown
     transitionTo(WorkoutStates.READY_COUNTDOWN);
     
+    // NOUVEAU : Délai 1.5s avant masquer instructions
+    setTimeout(() => {
+        hideMotionInstructions();
+    }, 1500);
+    
     let remaining = seconds;
     updateCountdownDisplay(remaining);
     
-    // Timer countdown
-    const countdownTimer = setInterval(() => {
-        remaining--;
-        
-        if (remaining > 0) {
-            updateCountdownDisplay(remaining);
-            playCountdownBeep(remaining);
-        } else {
-            clearInterval(countdownTimer);
-            updateCountdownDisplay(0); // Afficher "GO!"
-            playGoSound();
+    // NOUVEAU : Délai 1s avant démarrer décompte
+    setTimeout(() => {
+        const countdownTimer = setInterval(() => {
+            remaining--;
             
-            // Démarrer série après 500ms
-            setTimeout(() => {
-                startSeriesAfterCountdown();
-            }, 500);
-        }
+            if (remaining > 0) {
+                updateCountdownDisplay(remaining);
+                playCountdownBeep(remaining);
+            } else {
+                clearInterval(countdownTimer);
+                updateCountdownDisplay(0);
+                playGoSound();
+                
+                setTimeout(() => {
+                    startSeriesAfterCountdown();
+                }, 500);
+            }
+        }, 1000);
+        
+        window.currentCountdownTimer = countdownTimer;
     }, 1000);
-    
-    // Stocker timer pour pouvoir l'interrompre
-    window.currentCountdownTimer = countdownTimer;
 }
 
 function playCountdownBeep(number) {
@@ -8105,6 +8110,8 @@ function showCountdownInterface() {
 }
 
 function updateCountdownDisplay(remaining) {
+    console.log('[Countdown] Affichage:', remaining);
+    
     const display = document.getElementById('countdownDisplay');
     const seconds = document.getElementById('countdownSeconds');
     const ring = document.querySelector('.countdown-ring-progress');
@@ -8112,9 +8119,11 @@ function updateCountdownDisplay(remaining) {
     if (display) {
         if (remaining > 0) {
             display.textContent = remaining;
+            console.log('[Countdown] Chiffre affiché:', remaining);
         } else {
             display.textContent = 'GO!';
             display.style.color = '#4CAF50';
+            console.log('[Countdown] GO affiché');
         }
     }
     
