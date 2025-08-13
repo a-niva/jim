@@ -376,23 +376,22 @@ function createMotionCallbacksV2() {
             
             startCountdown(3);
         },
-        
+
         onPickup: (wasStationary) => {
             console.log('[Motion] MOUVEMENT détecté');
             
             // AJOUTER - Gestion pendant série
             if (workoutState.current === WorkoutStates.EXECUTING) {
-                console.log('[Motion] Pickup pendant série - Pause ?');
+                console.log('[Motion] Déclenchement pause série');
                 
-                // Option 1 : Pause automatique
-                if (typeof pauseWorkout === 'function') {
-                    pauseWorkout();
+                // Late binding : résolution au moment de l'exécution
+                const pauseFn = window.pauseWorkout || pauseWorkout;
+                if (typeof pauseFn === 'function') {
+                    pauseFn();
                     showToast('Série en pause - Reposez le téléphone', 'info');
+                } else {
+                    console.error('[Motion] pauseWorkout non accessible');
                 }
-                
-                // Option 2 : Demander confirmation
-                // showPauseConfirmation();
-                
                 return;
             }
             
@@ -878,14 +877,21 @@ function transitionTo(state) {
             document.getElementById('executeSetBtn').style.display = 'block';
             document.querySelector('.input-section').style.display = 'block';
             
-            // Vocal si activé
+            // CRUCIAL : Garantir l'interface N/R avant vocal
+            const currentRepEl = document.getElementById('currentRep');
+            if (currentRepEl && currentRepEl.textContent !== '0') {
+                currentRepEl.textContent = '0';
+                console.log('[Fix] Interface N/R préservée avant démarrage vocal');
+            }
+            
+            // Vocal si activé (après garantie interface)
             if (currentUser?.voice_counting_enabled && 
                 window.startVoiceRecognition && 
                 !window.voiceRecognitionActive?.()) {
                 window.startVoiceRecognition();
             }
             break;
-            
+                    
         case WorkoutStates.READY_COUNTDOWN:
             console.log('[DEBUG] Case READY_COUNTDOWN atteint');
             // Masquer bouton execute pendant countdown
@@ -8192,7 +8198,7 @@ function showCountdownInterface() {
     `;
     
     // Ajouter classe pour style countdown
-    instructionsContainer.classList.add('countdown-mode');
+    instructionsContainer.className = 'countdown-mode';
     
     // NOUVEAU : Forcer un reflow pour garantir l'affichage
     void instructionsContainer.offsetHeight;
@@ -11608,11 +11614,10 @@ function setupWeightModeSwipe(iconElement) {
 }
 
 // ===== TIMER DE REPOS =====
-function startRestPeriod(duration = null, isMLSuggested = false) {
+function startRestPeriod(duration, isMLSuggested = false) {
     console.log('[Rest] Démarrage période repos');
     
     // === NETTOYAGE PRÉALABLE STRICT ===
-    // Fermer TOUT autre overlay/interface
     if (window.OverlayManager) {
         window.OverlayManager.hideAll();
     }
@@ -11626,14 +11631,13 @@ function startRestPeriod(duration = null, isMLSuggested = false) {
         }
     }
     
-    // Préparations (conserver logique existante)
+    // Préparations
     workoutState.restStartTime = Date.now();
     currentWorkoutSession.restAdjustments = [];
     
     // === AFFICHAGE EXCLUSIF DU MODAL REPOS ===
     const restPeriod = document.getElementById('restPeriod');
     if (restPeriod && window.OverlayManager) {
-        // Utiliser le gestionnaire unifié
         window.OverlayManager.show('rest', restPeriod);
         
         const timerDisplay = document.getElementById('restTimer');
@@ -11641,10 +11645,9 @@ function startRestPeriod(duration = null, isMLSuggested = false) {
             timerDisplay.textContent = formatTime(restDuration);
         }
 
-        // Stocker durée planifiée pour calcul progression
         workoutState.plannedRestDuration = restDuration;
 
-        // Démarrer timer avec fonction existante updateRestTimer
+        // === SETUP TIMER ===
         let timeLeft = restDuration;
         restTimer = setInterval(() => {
             timeLeft--;
@@ -11657,26 +11660,30 @@ function startRestPeriod(duration = null, isMLSuggested = false) {
             }
         }, 1000);
         
-        // Activer preview série suivante
-        preloadNextSeriesRecommendations()
-            .then(previewData => {
-                renderNextSeriesPreview(previewData);
-            })
-            .catch(error => {
-                console.log('[Preview] Erreur preload, skip preview');
-            });
+        // NOUVEAU : Activation preview série suivante
+        if (currentWorkoutSession.id && currentExercise?.id) {
+            preloadNextSeriesRecommendations()
+                .then(previewData => {
+                    renderNextSeriesPreview(previewData);
+                    console.log('[Preview] Preview affiché avec succès');
+                })
+                .catch(error => {
+                    console.log('[Preview] Erreur preload, skip preview');
+                });
+        }
     }
     
-    // Transition état SANS affichage automatique du modal (déjà géré dans cette fonction)
-    workoutState.current = WorkoutStates.RESTING;  // Changement direct sans transitionTo()
+    // Transition état
+    workoutState.current = WorkoutStates.RESTING;
     
-    // NOUVEAU : Désactiver motion pendant repos
+    // Désactiver motion pendant repos
     if (window.motionDetector?.monitoring) {
         window.motionDetector.stopMonitoring();
         updateMotionIndicator(false);
         console.log('[Motion] Désactivé pendant repos');
     }
 }
+
 
 // ===== DEMANDE DE PERMISSIONS =====
 async function requestNotificationPermission() {

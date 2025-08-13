@@ -9169,3 +9169,27 @@ input {
     0% { transform: scale(1); }
     100% { transform: scale(1.02); }
 }
+
+/* Countdown style avec priorité absolue */
+.countdown-mode {
+    /* Reset forcé de tous héritages possibles */
+    all: initial !important;
+    
+    /* Styles countdown explicites */
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 40px !important;
+    text-align: center !important;
+    background: linear-gradient(135deg, #FF9800, #F57C00) !important;
+    border: 2px solid #FF9800 !important;
+    border-radius: 12px !important;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3) !important;
+}
+
+.countdown-mode .countdown-content {
+    width: 100% !important;
+    max-width: none !important;
+}
