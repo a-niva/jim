@@ -554,14 +554,15 @@ if (!window.motionPickupDebounce) {
 function createMotionCallbacksV2() {
     return {
         onStationary: () => {
-            console.log('[Motion] STATIONNAIRE détecté - Feature active');
+            console.log('[Motion] STATIONNAIRE détecté - Feature 1 active');
             console.log('[Motion] workoutState.current:', workoutState.current);
-
+            console.log('[Motion] WorkoutStates.READY:', WorkoutStates.READY);
+            
             if (workoutState.current !== WorkoutStates.READY) {
                 console.log('[Motion] Ignoré - pas en état READY, état actuel:', workoutState.current);
                 return;
             }
-
+            
             try {
                 console.log('[Motion] Affichage toast et démarrage countdown...');
                 showToast('Immobilité détectée ! Prêt pour démarrage', 'success');
@@ -571,7 +572,7 @@ function createMotionCallbacksV2() {
                 console.error('[Motion] Erreur dans onStationary:', error);
             }
         },
-
+        
         onPickup: (wasStationary) => {
             console.log('[Motion] MOUVEMENT détecté');
 
