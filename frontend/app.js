@@ -610,6 +610,12 @@ function startCountdown(seconds) {
     
     transitionTo(WorkoutStates.READY_COUNTDOWN);
     
+    // ✅ PROTECTION : S'assurer que les steppers restent visibles
+    const inputSection = document.querySelector('.input-section');
+    if (inputSection) {
+        inputSection.style.display = 'flex'; // Forcer affichage
+    }
+    
     let remaining = seconds;
     updateCountdownDisplay(remaining); // Afficher "3" immédiatement
     
@@ -1025,17 +1031,17 @@ function transitionTo(state) {
     const allInterfaces = [
         '#executeSetBtn',
         '#setFeedback', 
-        '#restPeriod',
-        '.input-section'
+        '#restPeriod'
+        // ✅ RETIRER '.input-section' pour éviter de masquer les steppers
     ];
-    
-    // États qui ont besoin de l'UI visible
+
+    // États qui ont besoin de l'UI visible - AJOUTER READY_COUNTDOWN
     const statesNeedingUI = [
         WorkoutStates.READY, 
         WorkoutStates.EXECUTING, 
-        WorkoutStates.READY_COUNTDOWN
+        WorkoutStates.READY_COUNTDOWN  // ✅ IMPORTANT : Garder steppers pendant countdown
     ];
-    
+
     if (!statesNeedingUI.includes(newState)) {
         allInterfaces.forEach(selector => {
             const element = document.querySelector(selector);
@@ -8485,27 +8491,39 @@ function showCountdownInterface() {
 }
 
 function updateCountdownDisplay(remaining) {
-    const display = document.getElementById('countdownDisplay');
-    const seconds = document.getElementById('countdownSeconds');
-    const ring = document.querySelector('.countdown-ring-progress');
+    console.log('[Countdown] Animation dot pour:', remaining);
     
-    if (display) {
-        if (remaining > 0) {
-            display.textContent = remaining;
-        } else {
-            display.textContent = 'GO!';
-            display.style.color = '#4CAF50';
-        }
-    }
+    const dotsContainer = document.querySelector('.series-dots');
+    if (!dotsContainer) return;
     
-    if (seconds) {
-        seconds.textContent = remaining > 0 ? remaining : 0;
-    }
+    const dots = dotsContainer.querySelectorAll('.dot');
     
-    if (ring) {
-        // Utilise stroke-dasharray correct pour cercle radius 36
-        const offset = 226 - (226 * (3 - remaining) / 3);
-        ring.style.strokeDashoffset = offset;
+    if (remaining === 3) {
+        // "3" : 1er dot devient blanc
+        dots[0]?.classList.add('countdown-active');
+        playCountdownBeep(3);
+    } else if (remaining === 2) {
+        // "2" : 2ème dot devient blanc
+        dots[1]?.classList.add('countdown-active');
+        playCountdownBeep(2);
+    } else if (remaining === 1) {
+        // "1" : 3ème dot devient blanc
+        dots[2]?.classList.add('countdown-active');
+        playCountdownBeep(1);
+    } else if (remaining === 0) {
+        // "GO" : tous clignotent gris (style completed)
+        dots.forEach(dot => {
+            dot.classList.remove('countdown-active');
+            dot.classList.add('countdown-go');
+        });
+        playGoSound();
+        
+        // Nettoyer après l'animation GO
+        setTimeout(() => {
+            dots.forEach(dot => {
+                dot.classList.remove('countdown-go');
+            });
+        }, 1000);
     }
 }
 
@@ -12879,6 +12897,12 @@ function showMotionTextUnderDots() {
     const dotsContainer = document.querySelector('.series-dots');
     if (!dotsContainer) return;
     
+    // Ajouter classe au parent pour layout vertical
+    const headerActions = document.querySelector('.exercise-header-actions');
+    if (headerActions) {
+        headerActions.classList.add('motion-active');
+    }
+    
     // Vérifier si le texte existe déjà
     let motionText = document.getElementById('motionTextUnderDots');
     if (motionText) return; // Déjà affiché
@@ -12907,6 +12931,12 @@ function showMotionTextUnderDots() {
 function hideMotionTextUnderDots() {
     const motionText = document.getElementById('motionTextUnderDots');
     if (!motionText) return;
+    
+    // Retirer classe du parent
+    const headerActions = document.querySelector('.exercise-header-actions');
+    if (headerActions) {
+        headerActions.classList.remove('motion-active');
+    }
     
     // Animation de disparition
     motionText.style.opacity = '0';
