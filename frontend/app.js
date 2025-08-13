@@ -439,17 +439,17 @@ function startCountdown(seconds) {
     window.currentCountdownTimer = countdownTimer;
 }
 
+// ✅ CORRECTIF - Utiliser les vraies méthodes
 function playCountdownBeep(number) {
     if (window.workoutAudio) {
-        // Utiliser sons existants ou créer beep simple
-        window.workoutAudio.playSound('beep');
+        window.workoutAudio.playCountdown(number);  // ✅ Méthode existante
     }
     console.log('[Audio] Beep', number);
 }
 
 function playGoSound() {
     if (window.workoutAudio) {
-        window.workoutAudio.playSound('go');
+        window.workoutAudio.playRestEnd();  // ✅ Réutiliser son existant  
     }
     console.log('[Audio] GO!');
 }
@@ -5980,25 +5980,21 @@ function initializeRepsDisplay(targetReps, state = 'ready') {
  * Récupère la valeur actuelle des reps de manière abstraite
  * Compatible avec ancienne et nouvelle UI
  * @returns {number} Nombre de répétitions actuel
- */
+ * */
 function getCurrentRepsValue() {
-    // Priorité à la nouvelle interface
-    const modernRep = document.getElementById('currentRep');
-    if (modernRep) {
-        const value = parseInt(modernRep.textContent) || 0;
-        console.log('[UI] Lecture reps moderne:', value);
-        return value;
+    const currentRepEl = document.getElementById('currentRep');
+    
+    // ✅ PRIORITÉ ABSOLUE - Si interface moderne existe, l'utiliser
+    if (currentRepEl) {
+        return parseInt(currentRepEl.textContent) || 0;  // ✅ Même si "0"
     }
     
-    // Fallback sur ancienne interface
-    const legacyRep = document.getElementById('setReps');
-    if (legacyRep) {
-        const value = parseInt(legacyRep.textContent) || 0;
-        console.log('[UI] Lecture reps legacy:', value);
-        return value;
+    // Fallback legacy SEULEMENT si interface moderne absente
+    const backwardCompatEl = document.getElementById('setReps');
+    if (backwardCompatEl) {
+        return parseInt(backwardCompatEl.textContent) || 0;
     }
     
-    console.warn('[UI] Aucun élément reps trouvé');
     return 0;
 }
 
@@ -6238,25 +6234,6 @@ function transitionToReadyState() {
     }
     
     console.log(`[RepsDisplay] Transition ready: Objectif ${targetReps} reps`);
-}
-
-/**
- * Récupère la valeur actuelle des reps (compatible ancien/nouveau système)
- * @returns {number} Nombre de reps actuel
- */
-function getCurrentRepsValue() {
-    const currentRepEl = document.getElementById('currentRep');
-    const backwardCompatEl = document.getElementById('setReps');
-    
-    if (currentRepEl && currentRepEl.textContent !== '0') {
-        return parseInt(currentRepEl.textContent) || 0;
-    }
-    
-    if (backwardCompatEl) {
-        return parseInt(backwardCompatEl.textContent) || 0;
-    }
-    
-    return 0;
 }
 
 function applyReadyStateToRepsDisplay() {
@@ -13522,7 +13499,8 @@ function addRestTime(seconds) {
 let isPaused = false;
 let pausedTime = null;
 
-function pauseWorkout() {
+// ✅ CORRECTIF - Signature tolérante event optionnel
+function pauseWorkout(event = null) {
     // Fermer tous les modals de swap avant pause
     if (document.querySelector('.modal.active')) {
         closeModal();
@@ -13531,7 +13509,9 @@ function pauseWorkout() {
         delete currentWorkoutSession.pendingSwap;
         console.log('🔍 Pending swap annulé par pause');
     }
-    const pauseBtn = event.target;
+    
+    // ✅ ROBUSTE - Gestion event optionnel
+    const pauseBtn = event?.target || document.querySelector('.pause-workout-btn') || null;
     
     if (!isPaused) {
         // Mettre en pause
@@ -13561,9 +13541,11 @@ function pauseWorkout() {
         if (currentSet) sessionStorage.setItem('pausedCurrentSet', currentSet);
         sessionStorage.setItem('pauseTimestamp', Date.now());
                 
-        // Changer le bouton
-        pauseBtn.classList.remove('btn-warning');
-        pauseBtn.classList.add('btn-success');
+        // ✅ ROBUSTE - Ne modifier bouton que si trouvé
+        if (pauseBtn) {
+            pauseBtn.classList.remove('btn-warning');
+            pauseBtn.classList.add('btn-success');
+        }
         
         isPaused = true;
         saveWorkoutState();
@@ -13609,9 +13591,11 @@ function pauseWorkout() {
             }
         }
         
-        // Changer le bouton
-        pauseBtn.classList.remove('btn-success');
-        pauseBtn.classList.add('btn-warning');
+        // ✅ ROBUSTE - Ne modifier bouton que si trouvé
+        if (pauseBtn) {
+            pauseBtn.classList.remove('btn-success');
+            pauseBtn.classList.add('btn-warning');
+        }
         
         isPaused = false;
         showToast('Séance reprise', 'success');
@@ -13627,6 +13611,8 @@ function pauseWorkout() {
         }
     }
 }
+
+
 
 async function abandonWorkout() {
     if (!confirm('Êtes-vous sûr de vouloir abandonner cette séance ?')) return;
