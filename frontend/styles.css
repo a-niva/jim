@@ -1998,7 +1998,8 @@ span {
     width: 100%;
     margin-top: 0;
     position: relative;
-    min-height: 80px; /* Hauteur fixe pour éviter le jumping */
+    height: 120px; /* ✅ HAUTEUR FIXE CONSTANTE - jamais de changement */
+    overflow: visible; /* Permettre débordement si nécessaire */
 }
 
 /* Ligne principale des contrôles - TOUJOURS HORIZONTALE */
@@ -9461,9 +9462,33 @@ input {
     z-index: 10;
 }
 
-/* Quand motion text est visible, augmenter hauteur container */
-.exercise-header-actions.motion-active {
-    min-height: 120px; /* Plus de place pour le texte */
+/* ✅ NOUVEAU : Stabiliser position des steppers */
+.input-section {
+    margin-top: 0 !important; /* Pas de marge variable */
+    position: relative;
+    /* S'assurer que la position reste constante */
+}
+
+/* ✅ Zone motion toujours à la même place */
+.motion-text-under-dots {
+    position: absolute;
+    top: 48px; /* Position fixe sous la ligne principale */
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    text-align: center;
+    margin-top: 0.5rem;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    color: #2196F3;
+    font-weight: 500;
+    z-index: 10;
+    /* ✅ Hauteur réservée même quand invisible */
+    height: 60px;
 }
 
 /* Animation main motion */
