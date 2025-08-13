@@ -11166,9 +11166,11 @@ function showPlateHelper(layout, weightTOTAL) {
         container.id = 'plateHelper';
         container.className = 'plate-helper';
         
-        const weightRow = document.querySelector('.input-row:has(#setWeight)');
-        if (weightRow) {
-            weightRow.insertAdjacentElement('afterend', container);
+        // Placer sous la dernière row d'input (durée, reps ou poids)
+        const inputRows = document.querySelectorAll('.input-row:not([data-hidden])');
+        const lastInputRow = inputRows[inputRows.length - 1];
+        if (lastInputRow) {
+            lastInputRow.insertAdjacentElement('afterend', container);
         }
     }
     
@@ -11208,9 +11210,7 @@ function createPlateVisualization(layout, weightTOTAL) {
                         <span class="equipment-name">Haltères fixes</span>
                     </div>
                     <div class="weight-display">
-                        <span class="individual-weight">${perDumbbell}kg</span>
-                        <span class="multiplier">×2</span>
-                        <span class="total-weight">${weightTOTAL}kg</span>
+                        <span class="total-weight">${weightTOTAL}kg total</span>
                     </div>
                 </div>
             `;
@@ -11223,8 +11223,7 @@ function createPlateVisualization(layout, weightTOTAL) {
                         <span class="equipment-name">Haltères ajustables</span>
                     </div>
                     <div class="weight-display">
-                        <span class="individual-weight">${layout.weight_per_dumbbell}kg</span>
-                        <span class="multiplier">×2</span>
+                        <span class="total-weight">${weightTOTAL}kg total</span>
                         <span class="total-weight">${weightTOTAL}kg</span>
                     </div>
                     <div class="plate-breakdown">${layout.layout.slice(1).join(' + ')}</div>
@@ -11348,7 +11347,7 @@ function createBarbellCSSVisualization(layout, weightTOTAL, chargeWeight) {
                     <div class="bar-visualization">
                         <div class="bar-visual">${barWeight}kg</div>
                     </div>
-                    <div class="weight-per-dumbbell">${weightTOTAL}kg total</div>
+                    <div class="helper-total-display">${weightTOTAL}kg total</div>
                 </div>
             </div>
         `;
@@ -11408,7 +11407,7 @@ function createBarbellCSSVisualization(layout, weightTOTAL, chargeWeight) {
     return `
         <div class="plate-helper-minimal">
             <div class="helper-content-minimal">
-                <div class="visual-label">Barre + disques</div>
+                <div class="visual-label">Aide au montage :</div>
                 <div class="bar-visualization">
                     <div class="bar-assembly">
                         ${leftPlatesHTML}
@@ -11416,7 +11415,7 @@ function createBarbellCSSVisualization(layout, weightTOTAL, chargeWeight) {
                         ${rightPlatesHTML}
                     </div>
                 </div>
-                <div class="weight-per-dumbbell">
+                <div class="helper-total-display">
                     ${displayContext}
                 </div>
             </div>
