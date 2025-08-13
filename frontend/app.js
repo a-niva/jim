@@ -372,7 +372,6 @@ function createMotionCallbacksV2() {
             }
             
             // Pour Feature 1 : juste log + feedback visuel
-            hideMotionInstructions();
             showToast('Immobilité détectée ! Prêt pour démarrage', 'success');
             
             startCountdown(3);
@@ -381,14 +380,20 @@ function createMotionCallbacksV2() {
         onPickup: (wasStationary) => {
             console.log('[Motion] MOUVEMENT détecté');
             
-            // NOUVEAU : Interruption countdown si en cours
-            if (workoutState.current === WorkoutStates.READY_COUNTDOWN) {
-                if (window.currentCountdownTimer) {
-                    clearInterval(window.currentCountdownTimer);
-                    window.currentCountdownTimer = null;
+            // AJOUTER - Gestion pendant série
+            if (workoutState.current === WorkoutStates.EXECUTING) {
+                console.log('[Motion] Pickup pendant série - Pause ?');
+                
+                // Option 1 : Pause automatique
+                if (typeof pauseWorkout === 'function') {
+                    pauseWorkout();
+                    showToast('Série en pause - Reposez le téléphone', 'info');
                 }
-                cancelCountdown();
-                return; // Sortir de la fonction
+                
+                // Option 2 : Demander confirmation
+                // showPauseConfirmation();
+                
+                return;
             }
             
             // Code existant pour autres états...
@@ -455,7 +460,8 @@ function startSeriesAfterCountdown() {
     
     // Transition état
     transitionTo(WorkoutStates.EXECUTING);
-    
+    //Masquer countdown/instructions APRÈS le countdown
+    hideMotionInstructions();
     // Cacher countdown
     hideCountdownInterface();
     
@@ -511,9 +517,10 @@ function startSeriesAfterCountdown() {
     }
     
     // NOUVEAU : Arrêter motion monitoring pendant série
-    if (window.motionDetector) {
-        window.motionDetector.stopMonitoring();
-        console.log('[Motion] Monitoring arrêté pendant série');
+    if (window.motionDetector?.monitoring) {
+        console.log('[Motion] Monitoring maintenu pour détection pause');
+        // Optionnel : Changer les seuils pour la détection pendant série
+        window.motionDetector.THRESHOLDS.PICKUP.acceleration = 2.0; // Plus de mouvement requis
     }
     
     // UI
@@ -8155,23 +8162,18 @@ function formatTime(seconds) {
 
 // ===== UI COUNTDOWN & CALIBRATION =====
 function showCountdownInterface() {
-    // AJOUTER ces logs au tout début :
     console.log('[Countdown] === DÉBUT showCountdownInterface() ===');
     
     const instructionsContainer = document.getElementById('motionInstructions');
-    console.log('[Countdown] #motionInstructions existe:', !!instructionsContainer);
     
     if (!instructionsContainer) {
         console.error('[Countdown] #motionInstructions introuvable!');
-        console.log('[Countdown] État actuel:', workoutState.current);
-        console.log('[Countdown] DOM disponible:', {
-            workoutContainer: !!document.querySelector('.workout-container'),
-            inputSection: !!document.querySelector('.input-section'),
-            activeInterface: !!document.querySelector('.active-workout-interface-container')
-        });
-        return false; // AJOUTER ce return si manquant
+        return false;
     }
-    console.log('[Countdown] Container trouvé, mise à jour du contenu...');
+    
+    // IMPORTANT : Forcer l'affichage AVANT de modifier le contenu
+    instructionsContainer.style.display = 'block';
+    instructionsContainer.style.opacity = '1';
     // ÉTAPE 2 : Remplacer contenu instructions par countdown (réutilise CSS existant)
     instructionsContainer.innerHTML = `
         <div class="countdown-content">
@@ -8189,11 +8191,14 @@ function showCountdownInterface() {
         </div>
     `;
     
-    // ÉTAPE 3 : Activer classe countdown-mode (utilise CSS existant + override)
+    // Ajouter classe pour style countdown
     instructionsContainer.classList.add('countdown-mode');
-    // AJOUTER à la fin de la fonction :
-    console.log('[Countdown] === FIN showCountdownInterface() - SUCCÈS ===');
-    return true; // S'assurer qu'il y a un return true
+    
+    // NOUVEAU : Forcer un reflow pour garantir l'affichage
+    void instructionsContainer.offsetHeight;
+    
+    console.log('[Countdown] Interface affichée avec succès');
+    return true;
 }
 
 function updateCountdownDisplay(remaining) {
