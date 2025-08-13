@@ -550,11 +550,31 @@ if (!window.motionPickupDebounce) {
     };
 }
 
+
 function createMotionCallbacksV2() {
     return {
+        onStationary: () => {
+            console.log('[Motion] STATIONNAIRE détecté - Feature active');
+            console.log('[Motion] workoutState.current:', workoutState.current);
+
+            if (workoutState.current !== WorkoutStates.READY) {
+                console.log('[Motion] Ignoré - pas en état READY, état actuel:', workoutState.current);
+                return;
+            }
+
+            try {
+                console.log('[Motion] Affichage toast et démarrage countdown...');
+                showToast('Immobilité détectée ! Prêt pour démarrage', 'success');
+                startCountdown(3);
+                console.log('[Motion] startCountdown(3) appelé avec succès');
+            } catch (error) {
+                console.error('[Motion] Erreur dans onStationary:', error);
+            }
+        },
+
         onPickup: (wasStationary) => {
             console.log('[Motion] MOUVEMENT détecté');
-            
+
             // ✅ DEBOUNCING GLOBAL : Éviter appels multiples rapides
             const now = Date.now();
             if (now - window.motionPickupDebounce.lastPickupTime < window.motionPickupDebounce.PICKUP_DEBOUNCE) {
@@ -562,24 +582,24 @@ function createMotionCallbacksV2() {
                 return;
             }
             window.motionPickupDebounce.lastPickupTime = now;
-            
+
             // Gestion pause motion pendant série
             if (workoutState.current === WorkoutStates.EXECUTING) {
                 console.log('[Motion] Déclenchement pause série');
-                
+
                 // Vérifier qu'aucune interface pause n'existe déjà
                 const existingPause = document.getElementById('motionPauseConfirmation');
                 if (existingPause) {
                     console.log('[Motion] Interface pause déjà active, skip');
                     return;
                 }
-                
+
                 showPauseConfirmation();
                 showToast('Série en pause - Utilisez les boutons ci-dessous', 'info');
                 return;
             }
-            
-            // Code existant pour autres états...
+
+            // Code existant pour autres états
             if (wasStationary && workoutState.current === WorkoutStates.READY) {
                 hideMotionInstructions();
                 setTimeout(() => showMotionInstructions(), 500);
@@ -5113,6 +5133,9 @@ async function selectExercise(exercise, skipValidation = false) {
    
     // Transition vers l'état READY
     transitionTo(WorkoutStates.READY);
+
+    // ========== INITIALISATION MOTION SYSTEM ==========
+    await initializeMotionSystemOnce();
 
     console.log('[VOICE DEBUG] selectExercise - Avant config motion:', {
         voice_enabled: currentUser?.voice_counting_enabled,

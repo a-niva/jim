@@ -2280,7 +2280,7 @@ span {
 }
 
 .charge-mode-icon {
-    font-size: 4vw;
+    font-size: min(4vw, 1.4rem);
     cursor: pointer;
     user-select: none;
     transition: all 0.3s ease;
@@ -2292,7 +2292,6 @@ span {
     justify-content: center;
     width: 44px;
     height: 44px;
-    max-font-size: 1.4rem;
     text-align: center;
 }
 
@@ -2396,14 +2395,13 @@ span {
 }
 
 .charge-mode-label {
-    font-size: 2.5vw;
+    font-size: min(2.5vw, 0.8rem);
     color: #64748b;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     transition: all 0.3s ease;
     margin-top: 1%;
     text-align: center;
-    max-font-size: 0.8rem;
     font-weight: 500;
 }
 
@@ -6385,6 +6383,7 @@ input:checked + .toggle-slider:before {
 }
 
 .reps-display-modern {
+    font-size: min(4vw, 1.4rem);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -6397,8 +6396,6 @@ input:checked + .toggle-slider:before {
     border-radius: var(--radius);
     min-height: 1.2em;
     transition: all var(--duration-base) ease;
-    font-size: 4vw;
-    max-font-size: 1.4rem;
     font-weight: 700;
     color: #1e293b;
     line-height: 1.1;
@@ -6539,14 +6536,12 @@ input:checked + .toggle-slider:before {
 }
 
 .input-icon {
-    font-size: 4vw;
-    max-font-size: 1.4rem;
+    font-size: min(4vw, 1.4rem);
     text-align: center;
 }
 
 .reps-unit-label {
-    font-size: 2.5vw;
-    max-font-size: 0.8rem;
+    font-size: min(2.5vw, 0.8rem);
     color: #64748b;
     font-weight: 500;
     margin-top: 1%;
@@ -7629,8 +7624,7 @@ input {
     }
 
     .charge-weight-value {
-        font-size: 4vw;
-        max-font-size: 1.4rem;
+        font-size: min(4vw, 1.4rem);
     }
 
     .exercise-header-actions .voice-status-text {
