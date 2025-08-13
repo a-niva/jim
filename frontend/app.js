@@ -501,11 +501,11 @@ function continueMotionSeries() {
     // ✅ FIX PRINCIPAL : Plus de setTimeout automatique !
     setTimeout(() => {
         if (window.motionDetector && currentUser?.motion_detection_enabled) {
-            console.log('[Motion] Redémarrage monitoring après délai - nouvelle notification intégrée');
-            showMotionInstructions(); // ← Utilisera la nouvelle version intégrée
+            console.log('[Motion] Redémarrage monitoring après délai - mode pause detection');
+            // ✅ PAS de showMotionInstructions() en EXECUTING - juste le monitoring
             window.motionDetector.startMonitoring(createMotionCallbacksV2());
         }
-    }, 2000);    
+    }, 2000); 
     showToast('Série reprise - Reposez votre téléphone', 'success');
 }
 
@@ -969,6 +969,9 @@ function storeCurrentScoringData(scoringData) {
     lastKnownScore = scoringData.currentScore.total;
 }
 
+
+
+
 function transitionTo(state) {
     console.log(`[State] Transition: ${workoutState.current} → ${state}`);
     
@@ -1128,12 +1131,26 @@ function transitionTo(state) {
             
         case WorkoutStates.FEEDBACK:
             document.getElementById('setFeedback').style.display = 'block';
-            break;
             
+            // ✅ MASQUER steppers pour que fatigue/effort les remplacent
+            const inputSectionFeedback = document.querySelector('.input-section');
+            if (inputSectionFeedback) {
+                inputSectionFeedback.style.display = 'none';
+                console.log('[UI] Steppers masqués pour feedback fatigue/effort');
+            }
+            break;
+
         case WorkoutStates.RESTING:
             const restPeriod = document.getElementById('restPeriod');
             if (restPeriod && window.OverlayManager) {
                 window.OverlayManager.show('rest', restPeriod);
+            }
+            
+            // ✅ RESTAURER steppers après feedback (pour série suivante)
+            const inputSectionResting = document.querySelector('.input-section');
+            if (inputSectionResting) {
+                inputSectionResting.style.display = 'block';
+                console.log('[UI] Steppers restaurés après feedback');
             }
             break;
     }
@@ -8453,40 +8470,9 @@ async function checkMicrophonePermissions() {
 function showCountdownInterface() {
     console.log('[Countdown] === DÉBUT showCountdownInterface() ===');
     
-    const instructionsContainer = document.getElementById('motionInstructions');
-    
-    if (!instructionsContainer) {
-        console.error('[Countdown] #motionInstructions introuvable!');
-        return false;
-    }
-    
-    // IMPORTANT : Forcer l'affichage AVANT de modifier le contenu
-    instructionsContainer.style.display = 'block';
-    instructionsContainer.style.opacity = '1';
-    // ÉTAPE 2 : Remplacer contenu instructions par countdown (réutilise CSS existant)
-    instructionsContainer.innerHTML = `
-        <div class="countdown-content">
-            <div class="countdown-ring-container">
-                <svg class="countdown-ring" viewBox="0 0 80 80">
-                    <circle cx="40" cy="40" r="36" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="4"/>
-                    <circle cx="40" cy="40" r="36" fill="none" stroke="white" stroke-width="4"
-                            stroke-dasharray="226" stroke-dashoffset="226"
-                            class="countdown-ring-progress"/>
-                </svg>
-                <span id="countdownDisplay" class="countdown-number">3</span>
-            </div>
-            <p class="countdown-text">Préparez-vous...</p>
-            <p class="countdown-subtext">Série dans <span id="countdownSeconds">3</span>s</p>
-        </div>
-    `;
-    
-    // Ajouter classe pour style countdown
-    instructionsContainer.className = 'countdown-mode';
-    
-    // NOUVEAU : Forcer un reflow pour garantir l'affichage
-    void instructionsContainer.offsetHeight;
-    
-    console.log('[Countdown] Interface affichée avec succès');
+    // ✅ NOUVEAU : Plus besoin de chercher #motionInstructions
+    // Le countdown utilise maintenant les dots directement
+    console.log('[Countdown] Countdown intégré dans les dots - pas de container séparé');
     return true;
 }
 
@@ -8499,24 +8485,16 @@ function updateCountdownDisplay(remaining) {
     const dots = dotsContainer.querySelectorAll('.dot');
     
     if (remaining === 3) {
-        // "3" : 1er dot devient blanc
         dots[0]?.classList.add('countdown-active');
-        playCountdownBeep(3);
     } else if (remaining === 2) {
-        // "2" : 2ème dot devient blanc
         dots[1]?.classList.add('countdown-active');
-        playCountdownBeep(2);
     } else if (remaining === 1) {
-        // "1" : 3ème dot devient blanc
         dots[2]?.classList.add('countdown-active');
-        playCountdownBeep(1);
     } else if (remaining === 0) {
-        // "GO" : tous clignotent gris (style completed)
         dots.forEach(dot => {
             dot.classList.remove('countdown-active');
             dot.classList.add('countdown-go');
         });
-        playGoSound();
         
         // Nettoyer après l'animation GO
         setTimeout(() => {
@@ -13151,8 +13129,10 @@ function handleExtraSet() {
     
     // 4. Mettre à jour l'interface EXACTEMENT comme l'ancienne version
     updateSeriesDots();
-    document.getElementById('setProgress').textContent = `Série ${currentSet}`;
-    
+    // setProgress n'existe plus, utiliser updateSeriesDots() à la place
+    updateSeriesDots();
+    console.log(`[ExtraSet] Série ${currentSet}/${currentWorkoutSession.totalSets} - Dots mis à jour`);
+        
     // 5. Réinitialisations d'interface (preservation ancienne version)
     document.getElementById('setFeedback').style.display = 'none';
     document.getElementById('executeSetBtn').style.display = 'block';

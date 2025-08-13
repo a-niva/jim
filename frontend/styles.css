@@ -1993,6 +1993,7 @@ span {
 
 .exercise-header-actions {
     display: flex;
+    flex-direction: row !important; /* Forcer horizontal */
     gap: var(--spacing-md);
     align-items: center;
     justify-content: space-between;
@@ -2010,16 +2011,17 @@ span {
     flex-shrink: 0;
 }
 
+/* Ordre des éléments : micro | dots | bouton */
+.exercise-header-actions .voice-status-container {
+    order: 1;
+    flex-shrink: 0;
+    min-width: 44px; /* Réserver espace même si caché */
+}
 
 .exercise-header-actions .series-dots {
     order: 2;
     flex: 1;
     justify-content: center;
-}
-
-.exercise-header-actions .voice-status-container {
-    order: 1;
-    flex-shrink: 0;
 }
 
 .exercise-header-actions .btn-change-exercise {
@@ -8714,17 +8716,6 @@ input {
     animation: slideDown 0.3s ease-out;
 }
 
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
 .motionsensor-icon {
     font-size: 2rem;
     display: block;
@@ -9090,16 +9081,6 @@ input {
     color: rgba(255, 255, 255, 0.7);
 }
 
-/* Animation du ring */
-@keyframes countdown-pulse {
-    0%, 100% {
-        filter: brightness(1);
-    }
-    50% {
-        filter: brightness(1.2);
-    }
-}
-
 .countdown-number {
     animation: countdown-pulse 1s ease-in-out infinite;
 }
@@ -9438,28 +9419,22 @@ input {
     display: none !important;
 }
 
-/* Texte motion sous les dots */
+/* S'assurer que le texte motion prend toute la largeur */
 .motion-text-under-dots {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    width: 100%;
+    text-align: center;
     margin-top: 1rem;
     opacity: 0;
     transform: translateY(-10px);
     transition: all 0.3s ease;
     color: #2196F3;
     font-weight: 500;
-    width: 100%;
-    text-align: center;
-}
-
-/* S'assurer que le container parent est en colonne */
-.exercise-header-actions {
-    flex-direction: column !important;
 }
 
 .exercise-header-actions.motion-active {
+    flex-direction: column !important;
     align-items: center;
+    gap: var(--spacing-sm);
 }
 
 .motion-hand-icon {
