@@ -2964,6 +2964,7 @@ input:checked + .toggle-slider:before {
     animation: slideDown .3s ease;
     max-height: calc(100vh - var(--bottom-nav-height) * 3);
     overflow-y: auto;
+    display: none;
 }
 
 .ai-details-panel[data-ai-inactive] {
