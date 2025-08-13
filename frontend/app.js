@@ -486,7 +486,7 @@ function hidePauseConfirmation() {
 function continueMotionSeries() {
     console.log('[Motion] Continuation série après pause');
     
-    // ✅ NOUVEAU : Nettoyer TOUTE interface motion existante
+    // ✅ NOUVEAU : Nettoyer TOUTE interface motion existante d'abord
     hideMotionInstructions();
     
     // Masquer interface pause
@@ -498,15 +498,14 @@ function continueMotionSeries() {
     }
     startSetTimer();
     
-    // ✅ DÉLAI avant redémarrage motion pour éviter détection immédiate
-    setTimeout(() => {
-        if (window.motionDetector && currentUser?.motion_detection_enabled) {
-            console.log('[Motion] Redémarrage monitoring après délai - nouvelle notification');
-            // Cette fois showMotionInstructions() va créer une NOUVELLE notification propre
-            showMotionInstructions();
-            window.motionDetector.startMonitoring(createMotionCallbacksV2());
-        }
-    }, 2000); // 2s de délai pour que user repose téléphone
+    // ✅ FIX PRINCIPAL : Plus de setTimeout automatique !
+    // On redemarre le monitoring motion SANS notification automatique
+    if (window.motionDetector && currentUser?.motion_detection_enabled) {
+        console.log('[Motion] Redémarrage monitoring immédiat - SANS notification');
+        // Juste redémarrer le monitoring, la notification apparaîtra naturellement 
+        // quand l'état repassera à READY
+        window.motionDetector.startMonitoring(createMotionCallbacksV2());
+    }
     
     showToast('Série reprise - Reposez votre téléphone', 'success');
 }
@@ -5111,7 +5110,9 @@ async function selectExercise(exercise, skipValidation = false) {
             overflow: hidden;
             transition: all 0.3s ease;
             margin-top: 0;
+            padding-top: 0;
             opacity: 0;
+            height: 0;
             transform: translateY(-10px);
             ">
             <div style="padding-top: 0.5rem; line-height: 1.4;">
@@ -5240,20 +5241,23 @@ function toggleExerciseInstructions() {
     
     if (!content || !toggleIcon) return;
     
-    // ✅ Utiliser opacity + transform au lieu de max-height
     const isExpanded = content.style.opacity === '1';
     
     if (isExpanded) {
-        // Collapse
+        // Collapse - AUCUN espace occupé
         content.style.opacity = '0';
-        content.style.transform = 'translateY(-10px)';
+        content.style.height = '0';
+        content.style.paddingTop = '0';
         content.style.marginTop = '0';
+        content.style.transform = 'translateY(-10px)';
         toggleIcon.style.transform = 'rotate(0deg)';
     } else {
-        // Expand - AUCUNE limite de hauteur !
+        // Expand - Hauteur automatique
         content.style.opacity = '1';
-        content.style.transform = 'translateY(0)';
+        content.style.height = 'auto';
+        content.style.paddingTop = '0.5rem';
         content.style.marginTop = '0.5rem';
+        content.style.transform = 'translateY(0)';
         toggleIcon.style.transform = 'rotate(180deg)';
     }
 }
@@ -12806,6 +12810,12 @@ function showMotionInstructions() {
     console.log('[Motion] Exercise:', currentExercise?.name);
     console.log('[Motion] Motion enabled:', currentUser?.motion_detection_enabled);
 
+    // ✅ PROTECTION CRITIQUE : Ne JAMAIS afficher en état executing
+    if (workoutState.current === WorkoutStates.EXECUTING) {
+        console.warn('[Motion] PROTECTION: Instructions motion bloquées en état EXECUTING');
+        return;
+    }
+
     // ✅ NOUVEAU : Arrêter le timer série si il tourne (bug fix)
     if (setTimer) {
         clearInterval(setTimer);
@@ -12819,14 +12829,14 @@ function showMotionInstructions() {
         setTimerState.reset();
     }
 
-
-    // Vérifier si l'élément existe déjà
+    // ✅ FORCER suppression de tout container existant AVANT de créer
     const existingContainer = document.getElementById('motionInstructions');
     console.log('[Motion] Container existe déjà:', !!existingContainer);
 
     if (existingContainer) {
-        console.log('[Motion] Réutilisation du container existant');
-        return; // on sort si déjà présent
+        console.log('[Motion] SUPPRESSION FORCÉE du container existant');
+        existingContainer.remove();
+        // Continuer pour créer un nouveau container propre
     }
 
     console.log('[Motion] Création d\'un nouveau container');
@@ -12896,33 +12906,27 @@ function showMotionInstructions() {
 function hideMotionInstructions() {
     console.log('[Motion] hideMotionInstructions appelé');
     
-    // ✅ Nettoyer TOUTES les instructions motion possibles (au cas où il y en a plusieurs)
-    const instructionsContainers = document.querySelectorAll('#motionInstructions, .motionsensor-instructions');
+    // ✅ NOUVEAU : Nettoyage par sélecteur ET par ID (au cas où)
+    const instructionsContainers = document.querySelectorAll(
+        '#motionInstructions, .motionsensor-instructions, [id*="motionInstructions"]'
+    );
     
-    if (instructionsContainers.length === 0) {
+    // ✅ NOUVEAU : Nettoyage immédiat des containers orphelins
+    const orphanContainers = document.querySelectorAll('[style*="Posez votre téléphone"]');
+    
+    const allContainers = [...instructionsContainers, ...orphanContainers];
+    
+    if (allContainers.length === 0) {
         console.log('[Motion] Aucune instruction motion à masquer');
         return;
     }
     
-    instructionsContainers.forEach((instructions, index) => {
-        console.log(`[Motion] Suppression instruction motion ${index + 1}/${instructionsContainers.length}`);
-        
-        // Animation si pas déjà en cours de suppression
-        if (instructions.style.opacity !== '0') {
-            instructions.style.opacity = '0';
-            instructions.style.transition = 'opacity 0.3s ease';
-            
-            setTimeout(() => {
-                if (instructions.parentNode) {
-                    instructions.remove();
-                    console.log(`[Motion] Instruction ${index + 1} supprimée`);
-                }
-            }, 300);
-        } else {
-            // Suppression immédiate si déjà en train de disparaître
-            instructions.remove();
-        }
+    allContainers.forEach((container, index) => {
+        console.log(`[Motion] Suppression container ${index + 1}/${allContainers.length}`);
+        container.remove(); // Suppression immédiate, pas d'animation
     });
+    
+    console.log(`[Motion] ${allContainers.length} containers motion supprimés`);
 }
 
 // === MOTION SENSOR : TOGGLE PRÉFÉRENCES (à ajouter avec autres toggles ~1500) ===
