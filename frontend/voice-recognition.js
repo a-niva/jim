@@ -2426,7 +2426,7 @@ function shouldRestartAndroid() {
     });
     
     const result = voiceRecognitionActive && 
-           window.workoutState?.current === 'ready' &&
+           (window.workoutState?.current === 'ready' || window.workoutState?.current === 'executing') &&
            document.visibilityState === 'visible' &&
            androidRestartCount < (PLATFORM_CONFIG?.android?.maxRestarts || 30);
            
@@ -2774,33 +2774,61 @@ window.resetAndroidVoice = function() {
 // ===== PATCH ANDROID SIMPLIFIÉ =====
 console.log('[ANDROID PATCH] Chargement...');
 
-if (PLATFORM_CONFIG?.isAndroid) {
-    console.log('[ANDROID PATCH] Android détecté:', true);
+if (PLATFORM_CONFIG?.isAndroid || PLATFORM_CONFIG?.isIOS || PLATFORM_CONFIG?.isDesktop) {
+    console.log('[VOICE PATCH] Plateforme détectée:', {
+        isAndroid: PLATFORM_CONFIG?.isAndroid,
+        isIOS: PLATFORM_CONFIG?.isIOS,
+        isDesktop: PLATFORM_CONFIG?.isDesktop
+    });
     
-    // Sauvegarder l'ancienne fonction
     const originalHandleVoiceEnd = window.handleVoiceEnd;
-    
-    // Remplacer par une version qui NE fait PAS le comportement normal
+
     window.handleVoiceEnd = function() {
-        console.log('[ANDROID PATCH] handleVoiceEnd intercepté');
-        
-        // Si on doit redémarrer, NE PAS appeler l'original
-        if (shouldRestartAndroid()) {
-            console.log('[ANDROID PATCH] Restart Android détecté - bypass comportement normal');
-            handleAndroidRestart();
-            // RETURN ICI - ne pas exécuter le reste
-            return;
+        console.log('[VOICE PATCH] handleVoiceEnd intercepté');
+
+        if (PLATFORM_CONFIG?.isAndroid) {
+            console.log('[ANDROID DEBUG] Android détecté, vérification restart...');
+            const shouldRestart = shouldRestartAndroid();
+            console.log('[ANDROID DEBUG] shouldRestartAndroid() =', shouldRestart);
+
+            if (shouldRestart) {
+                console.log('[ANDROID DEBUG] Conditions OK, appel handleAndroidRestart()');
+                handleAndroidRestart();
+                return; // on sort
+            } else {
+                console.log('[ANDROID DEBUG] Conditions restart NON remplies');
+            }
+        } else {
+            // iOS / Desktop : restart simple si série en cours
+            if (voiceRecognitionActive &&
+                (window.workoutState?.current === 'ready' || window.workoutState?.current === 'executing') &&
+                document.visibilityState === 'visible') {
+                
+                console.log('[Voice] Desktop/iOS restart simple');
+                setTimeout(() => {
+                    if (voiceRecognitionActive) {
+                        try {
+                            recognition.start();
+                            console.log('[Voice] Desktop/iOS restart réussi');
+                        } catch (e) {
+                            console.warn('[Voice] Desktop/iOS restart échoué:', e.message);
+                            voiceRecognitionActive = false;
+                            updateMicrophoneVisualState('inactive');
+                        }
+                    }
+                }, 100);
+                return;
+            }
         }
-        
-        // Sinon, comportement normal
-        console.log('[ANDROID PATCH] Pas de restart - comportement normal');
+
+        // Sinon comportement normal
         if (typeof originalHandleVoiceEnd === 'function') {
             originalHandleVoiceEnd();
         }
     };
-    
-    console.log('[ANDROID PATCH] handleVoiceEnd remplacé avec logique restart');
-    window.testAndroidPatch = () => console.log('[ANDROID PATCH] Test OK');
+
+    console.log('[VOICE PATCH] handleVoiceEnd remplacé avec logique multi-OS');
+    window.testVoicePatch = () => console.log('[VOICE PATCH] Test OK');
 }
 
 

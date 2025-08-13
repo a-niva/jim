@@ -542,33 +542,26 @@ function finishMotionSeries() {
  * ===== MODIFICATION DE onPickup() EXISTANTE =====
  * Remplacer l'appel direct à pauseWorkout() par showPauseConfirmation()
  */
-function createMotionCallbacksV2() {
-    let lastPickupTime = 0;
-    const PICKUP_DEBOUNCE = 3000; // 3s minimum entre détections
-    
-    return {
-        onStationary: () => {
-            console.log('[Motion] STATIONNAIRE détecté - Feature 1 active');
-            
-            if (workoutState.current !== WorkoutStates.READY) {
-                console.log('[Motion] Ignoré - pas en état READY');
-                return;
-            }
-            
-            showToast('Immobilité détectée ! Prêt pour démarrage', 'success');
-            startCountdown(3);
-        },
+// Global debouncing pour motion (sortir de la closure)
+if (!window.motionPickupDebounce) {
+    window.motionPickupDebounce = {
+        lastPickupTime: 0,
+        PICKUP_DEBOUNCE: 3000
+    };
+}
 
+function createMotionCallbacksV2() {
+    return {
         onPickup: (wasStationary) => {
             console.log('[Motion] MOUVEMENT détecté');
             
-            // ✅ DEBOUNCING : Éviter appels multiples rapides
+            // ✅ DEBOUNCING GLOBAL : Éviter appels multiples rapides
             const now = Date.now();
-            if (now - lastPickupTime < PICKUP_DEBOUNCE) {
-                console.log('[Motion] Pickup trop récent, ignoré (debounce)');
+            if (now - window.motionPickupDebounce.lastPickupTime < window.motionPickupDebounce.PICKUP_DEBOUNCE) {
+                console.log('[Motion] Pickup bloqué par debouncing global');
                 return;
             }
-            lastPickupTime = now;
+            window.motionPickupDebounce.lastPickupTime = now;
             
             // Gestion pause motion pendant série
             if (workoutState.current === WorkoutStates.EXECUTING) {
