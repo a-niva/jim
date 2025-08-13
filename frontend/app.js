@@ -409,35 +409,30 @@ function startCountdown(seconds) {
     // Transition vers état countdown
     transitionTo(WorkoutStates.READY_COUNTDOWN);
     
-    // NOUVEAU : Délai 1.5s avant masquer instructions
-    setTimeout(() => {
-        hideMotionInstructions();
-    }, 1500);
-    
     let remaining = seconds;
     updateCountdownDisplay(remaining);
     
-    // NOUVEAU : Délai 1s avant démarrer décompte
-    setTimeout(() => {
-        const countdownTimer = setInterval(() => {
-            remaining--;
-            
-            if (remaining > 0) {
-                updateCountdownDisplay(remaining);
-                playCountdownBeep(remaining);
-            } else {
-                clearInterval(countdownTimer);
-                updateCountdownDisplay(0);
-                playGoSound();
-                
-                setTimeout(() => {
-                    startSeriesAfterCountdown();
-                }, 500);
-            }
-        }, 1000);
+    // Timer countdown
+    const countdownTimer = setInterval(() => {
+        remaining--;
         
-        window.currentCountdownTimer = countdownTimer;
+        if (remaining > 0) {
+            updateCountdownDisplay(remaining);
+            playCountdownBeep(remaining);
+        } else {
+            clearInterval(countdownTimer);
+            updateCountdownDisplay(0); // Afficher "GO!"
+            playGoSound();
+            
+            // Démarrer série après 500ms
+            setTimeout(() => {
+                startSeriesAfterCountdown();
+            }, 500);
+        }
     }, 1000);
+    
+    // Stocker timer pour pouvoir l'interrompre
+    window.currentCountdownTimer = countdownTimer;
 }
 
 function playCountdownBeep(number) {
@@ -469,9 +464,50 @@ function startSeriesAfterCountdown() {
     window.currentSetStartTime = Date.now();
     startSetTimer();
     
+    // NOUVEAU : Diagnostic vocal complet
+    console.log('[Series] Diagnostic vocal pré-démarrage:', {
+        currentUser: !!currentUser,
+        voice_enabled: currentUser?.voice_counting_enabled,
+        startVoiceRecognition: typeof window.startVoiceRecognition,
+        voiceRecognitionActive: window.voiceRecognitionActive?.() || false
+    });
+
     // Vocal si activé
     if (currentUser?.voice_counting_enabled) {
-        window.startVoiceRecognition();
+        console.log('[Series] Préparation démarrage vocal avec délai...');
+        
+        // IMPORTANT : Délai pour laisser l'UI se stabiliser après countdown
+        setTimeout(() => {
+            // Vérifier que le vocal n'est pas déjà actif
+            if (window.voiceRecognitionActive?.()) {
+                console.log('[Series] Vocal déjà actif, pas de redémarrage');
+                return;
+            }
+            
+            // Vérifier que la fonction existe
+            if (typeof window.startVoiceRecognition !== 'function') {
+                console.error('[Series] Fonction startVoiceRecognition non disponible!');
+                showToast('Module vocal non chargé', 'error');
+                return;
+            }
+            
+            // Tenter le démarrage
+            try {
+                console.log('[Series] Appel startVoiceRecognition()...');
+                const result = window.startVoiceRecognition();
+                console.log('[Series] Résultat démarrage vocal:', result);
+                
+                if (!result) {
+                    console.error('[Series] startVoiceRecognition a retourné false');
+                    showToast('Vocal indisponible - comptage manuel', 'warning');
+                }
+            } catch (error) {
+                console.error('[Series] Erreur démarrage vocal:', error);
+                showToast('Erreur démarrage vocal', 'error');
+            }
+        }, 1000); // 1 seconde de délai pour stabilité
+    } else {
+        console.log('[Series] Vocal désactivé dans le profil utilisateur');
     }
     
     // NOUVEAU : Arrêter motion monitoring pendant série
@@ -484,6 +520,7 @@ function startSeriesAfterCountdown() {
     updateMotionIndicator(true);
     showToast('🚀 Série démarrée!', 'success');
 }
+
 
 function cancelCountdown() {
     console.log('[Motion] Countdown annulé');
@@ -813,6 +850,12 @@ function transitionTo(state) {
                 break;
                 
             case WorkoutStates.FEEDBACK:
+            case WorkoutStates.EXECUTING:
+                console.log('[UI] Affichage boutons flottants pour EXECUTING');
+                floatingActions.style.display = 'block';
+                void floatingActions.offsetWidth; // Force reflow
+                floatingActions.classList.add('show');
+                break;
             case WorkoutStates.RESTING:
                 floatingActions.style.display = 'block';
                 void floatingActions.offsetWidth;
@@ -4719,6 +4762,31 @@ async function selectExercise(exercise, skipValidation = false) {
         user_agent: navigator.userAgent
     });
 
+    // Si récupération de currentUser depuis API
+    if (!currentUser) {
+        const response = await apiGet('/api/users/current');
+
+        console.log('[VOICE DEBUG] selectExercise - État initial:', {
+            currentUser: !!currentUser,
+            voice_enabled_before: currentUser?.voice_counting_enabled,
+            motion_enabled_before: currentUser?.motion_detection_enabled
+        });
+
+        currentUser = response.user;
+
+        // Vérification demandée
+        if (currentUser && currentUser.voice_counting_enabled === undefined) {
+            console.warn('[Voice] voice_counting_enabled undefined, défaut à true');
+            currentUser.voice_counting_enabled = true;
+        }
+
+        console.log('[VOICE DEBUG] selectExercise - Après récupération user:', {
+            voice_enabled_after: currentUser?.voice_counting_enabled,
+            motion_enabled_after: currentUser?.motion_detection_enabled,
+            user_id: currentUser?.id
+        });
+    }
+
     // Pour le setup initial, on peut skipper la validation
     if (!skipValidation && !validateSessionState(true)) return;
     
@@ -4850,6 +4918,12 @@ async function selectExercise(exercise, skipValidation = false) {
    
     // Transition vers l'état READY
     transitionTo(WorkoutStates.READY);
+
+    console.log('[VOICE DEBUG] selectExercise - Avant config motion:', {
+        voice_enabled: currentUser?.voice_counting_enabled,
+        motion_enabled: currentUser?.motion_detection_enabled,
+        motion_system_ready: !!window.motionDetectionEnabled
+    });
 
     // ========== NOUVELLE LOGIQUE MOTION V2 ==========
     if (currentUser?.motion_detection_enabled && 
@@ -8081,13 +8155,23 @@ function formatTime(seconds) {
 
 // ===== UI COUNTDOWN & CALIBRATION =====
 function showCountdownInterface() {
-    // ÉTAPE 1 : Identifier la zone instructions existante
-    const instructionsContainer = document.getElementById('motionInstructions');
-    if (!instructionsContainer) {
-        console.error('[Countdown] Zone instructions motion non trouvée');
-        return;
-    }
+    // AJOUTER ces logs au tout début :
+    console.log('[Countdown] === DÉBUT showCountdownInterface() ===');
     
+    const instructionsContainer = document.getElementById('motionInstructions');
+    console.log('[Countdown] #motionInstructions existe:', !!instructionsContainer);
+    
+    if (!instructionsContainer) {
+        console.error('[Countdown] #motionInstructions introuvable!');
+        console.log('[Countdown] État actuel:', workoutState.current);
+        console.log('[Countdown] DOM disponible:', {
+            workoutContainer: !!document.querySelector('.workout-container'),
+            inputSection: !!document.querySelector('.input-section'),
+            activeInterface: !!document.querySelector('.active-workout-interface-container')
+        });
+        return false; // AJOUTER ce return si manquant
+    }
+    console.log('[Countdown] Container trouvé, mise à jour du contenu...');
     // ÉTAPE 2 : Remplacer contenu instructions par countdown (réutilise CSS existant)
     instructionsContainer.innerHTML = `
         <div class="countdown-content">
@@ -8107,11 +8191,12 @@ function showCountdownInterface() {
     
     // ÉTAPE 3 : Activer classe countdown-mode (utilise CSS existant + override)
     instructionsContainer.classList.add('countdown-mode');
+    // AJOUTER à la fin de la fonction :
+    console.log('[Countdown] === FIN showCountdownInterface() - SUCCÈS ===');
+    return true; // S'assurer qu'il y a un return true
 }
 
 function updateCountdownDisplay(remaining) {
-    console.log('[Countdown] Affichage:', remaining);
-    
     const display = document.getElementById('countdownDisplay');
     const seconds = document.getElementById('countdownSeconds');
     const ring = document.querySelector('.countdown-ring-progress');
@@ -8119,11 +8204,9 @@ function updateCountdownDisplay(remaining) {
     if (display) {
         if (remaining > 0) {
             display.textContent = remaining;
-            console.log('[Countdown] Chiffre affiché:', remaining);
         } else {
             display.textContent = 'GO!';
             display.style.color = '#4CAF50';
-            console.log('[Countdown] GO affiché');
         }
     }
     
@@ -12420,8 +12503,23 @@ function resetMotionDetectorForNewSeries() {
 // === MOTION SENSOR : FONCTIONS UI SIMPLES ===
 
 function showMotionInstructions() {
-    if (document.getElementById('motionInstructions')) return;
-    
+    // === Logs de diagnostic au tout début ===
+    console.log('[Motion] === showMotionInstructions() appelée ===');
+    console.log('[Motion] État actuel:', workoutState.current);
+    console.log('[Motion] Exercise:', currentExercise?.name);
+    console.log('[Motion] Motion enabled:', currentUser?.motion_detection_enabled);
+
+    // Vérifier si l'élément existe déjà
+    const existingContainer = document.getElementById('motionInstructions');
+    console.log('[Motion] Container existe déjà:', !!existingContainer);
+
+    if (existingContainer) {
+        console.log('[Motion] Réutilisation du container existant');
+        return; // on sort si déjà présent
+    }
+
+    console.log('[Motion] Création d\'un nouveau container');
+
     const html = `
         <div id="motionInstructions" class="motionsensor-instructions" style="
             background: #2196F3 !important;
@@ -12438,17 +12536,17 @@ function showMotionInstructions() {
             <p class="motionsensor-text">Posez votre téléphone pour démarrer</p>
         </div>
     `;
-    
+
     // Essayer plusieurs méthodes d'insertion
     let inserted = false;
-    
+
     // Méthode 1 : Après header
     const header = document.querySelector('.exercise-header-modern');
     if (header) {
         header.insertAdjacentHTML('afterend', html);
         inserted = true;
     }
-    
+
     // Méthode 2 : Avant input-section
     if (!inserted) {
         const inputSection = document.querySelector('.input-section');
@@ -12457,7 +12555,7 @@ function showMotionInstructions() {
             inserted = true;
         }
     }
-    
+
     // Méthode 3 : Dans le parent du bouton execute
     if (!inserted) {
         const executeBtn = document.getElementById('executeSetBtn');
@@ -12466,7 +12564,7 @@ function showMotionInstructions() {
             inserted = true;
         }
     }
-    
+
     console.log('[Motion] Instructions insérées:', inserted);
 }
 

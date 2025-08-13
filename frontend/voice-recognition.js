@@ -2927,7 +2927,15 @@ console.log('[Voice] ✅ Toutes les expositions globales configurées');
 document.addEventListener('DOMContentLoaded', () => {
     // CRITIQUE : Initialiser l'instance immédiatement
     console.log('[Voice] Initialisation automatique au chargement...');
-    const initSuccess = initVoiceRecognition();
+
+    // NOUVEAU : Protection double init
+    if (window.voiceInitialized) {
+        console.log('[Voice] Double init bloquée - module déjà initialisé');
+    } else {
+        window.voiceInitialized = true;
+        const initSuccess = initVoiceRecognition();
+        console.log(`[Voice] Init au démarrage: ${initSuccess ? 'SUCCESS' : 'FAILED'}`);
+    }
     console.log(`[Voice] Init au démarrage: ${initSuccess ? 'SUCCESS' : 'FAILED'}`);
     
     setTimeout(() => {
