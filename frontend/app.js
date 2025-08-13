@@ -367,6 +367,19 @@ const VoiceConfirmation = {
 function showPauseConfirmation() {
     console.log('[Motion] === Affichage interface pause ===');
     
+    // ✅ VÉRIFICATION : Si interface existe déjà, ne pas dupliquer
+    const existingPause = document.getElementById('motionPauseConfirmation');
+    if (existingPause) {
+        console.log('[Motion] Interface pause déjà affichée, skip duplication');
+        return;
+    }
+    
+    // ✅ ARRÊTER motion detector pour éviter recalls multiples
+    if (window.motionDetector) {
+        window.motionDetector.stopMonitoring();
+        console.log('[Motion] Monitoring arrêté pendant pause');
+    }
+    
     // Pause timer série
     if (setTimer) {
         clearInterval(setTimer);
@@ -383,7 +396,7 @@ function showPauseConfirmation() {
         return;
     }
     
-    // Créer container pause
+    // Créer container pause UNIQUE
     const pauseContainer = document.createElement('div');
     pauseContainer.id = 'motionPauseConfirmation';
     pauseContainer.className = 'motion-pause-container';
@@ -418,7 +431,7 @@ function showPauseConfirmation() {
         </div>
         
         <div class="pause-instruction">
-            <small>💡 Reposez votre téléphone puis cliquez "Continuer"</small>
+            <small>💡 Cliquez "Continuer" puis reposez votre téléphone</small>
         </div>
     `;
     
@@ -437,10 +450,20 @@ function showPauseConfirmation() {
         });
     });
     
-    // Transition état
-    transitionTo(WorkoutStates.EXECUTING); // Garder EXECUTING mais avec pause UI
+    console.log('[Motion] Interface pause affichée (unique)');
+}
+
+function debugMotionPauseState() {
+    const existing = document.getElementById('motionPauseConfirmation');
+    const monitoring = window.motionDetector?.isMonitoring || false;
+    const state = workoutState.current;
     
-    console.log('[Motion] Interface pause affichée');
+    console.log('[Motion Debug]', {
+        pauseInterfaceExists: !!existing,
+        motionMonitoring: monitoring,
+        workoutState: state,
+        timestamp: new Date().toLocaleTimeString()
+    });
 }
 
 /**
@@ -448,7 +471,10 @@ function showPauseConfirmation() {
  */
 function hidePauseConfirmation() {
     const pauseContainer = document.getElementById('motionPauseConfirmation');
-    if (!pauseContainer) return;
+    if (!pauseContainer) {
+        console.log('[Motion] Aucune interface pause à masquer');
+        return;
+    }
     
     // Animation disparition
     pauseContainer.style.transition = 'all 0.2s ease-in';
@@ -457,7 +483,7 @@ function hidePauseConfirmation() {
     
     setTimeout(() => {
         pauseContainer.remove();
-        console.log('[Motion] Interface pause masquée');
+        console.log('[Motion] Interface pause masquée et supprimée');
     }, 200);
 }
 
@@ -476,13 +502,16 @@ function continueMotionSeries() {
     }
     startSetTimer();
     
-    // Redémarrer motion detection pour nouvelle pause potentielle
-    if (window.motionDetector && currentUser?.motion_detection_enabled) {
-        showMotionInstructions();
-        window.motionDetector.startMonitoring(createMotionCallbacksV2());
-    }
+    // ✅ DÉLAI avant redémarrage motion pour éviter détection immédiate
+    setTimeout(() => {
+        if (window.motionDetector && currentUser?.motion_detection_enabled) {
+            console.log('[Motion] Redémarrage monitoring après délai');
+            showMotionInstructions();
+            window.motionDetector.startMonitoring(createMotionCallbacksV2());
+        }
+    }, 2000); // 2s de délai pour que user repose téléphone
     
-    showToast('Série reprise', 'success');
+    showToast('Série reprise - Reposez votre téléphone', 'success');
 }
 
 /**
@@ -514,6 +543,9 @@ function finishMotionSeries() {
  * Remplacer l'appel direct à pauseWorkout() par showPauseConfirmation()
  */
 function createMotionCallbacksV2() {
+    let lastPickupTime = 0;
+    const PICKUP_DEBOUNCE = 3000; // 3s minimum entre détections
+    
     return {
         onStationary: () => {
             console.log('[Motion] STATIONNAIRE détecté - Feature 1 active');
@@ -530,11 +562,25 @@ function createMotionCallbacksV2() {
         onPickup: (wasStationary) => {
             console.log('[Motion] MOUVEMENT détecté');
             
-            // ✅ NOUVEAU : Gestion pause motion pendant série
+            // ✅ DEBOUNCING : Éviter appels multiples rapides
+            const now = Date.now();
+            if (now - lastPickupTime < PICKUP_DEBOUNCE) {
+                console.log('[Motion] Pickup trop récent, ignoré (debounce)');
+                return;
+            }
+            lastPickupTime = now;
+            
+            // Gestion pause motion pendant série
             if (workoutState.current === WorkoutStates.EXECUTING) {
                 console.log('[Motion] Déclenchement pause série');
                 
-                // ✅ UTILISER nouvelle interface au lieu de pauseWorkout()
+                // Vérifier qu'aucune interface pause n'existe déjà
+                const existingPause = document.getElementById('motionPauseConfirmation');
+                if (existingPause) {
+                    console.log('[Motion] Interface pause déjà active, skip');
+                    return;
+                }
+                
                 showPauseConfirmation();
                 showToast('Série en pause - Utilisez les boutons ci-dessous', 'info');
                 return;
@@ -14818,8 +14864,8 @@ window.getExerciseName = getExerciseName;
 window.showPauseConfirmation = showPauseConfirmation;
 window.hidePauseConfirmation = hidePauseConfirmation;
 window.continueMotionSeries = continueMotionSeries;
-window.finishMotionSeries = finishMotionSeries;
 window.createMotionCallbacksV2 = createMotionCallbacksV2;
+window.debugMotionPauseState = debugMotionPauseState;
 
 window.canSwapExercise = canSwapExercise;
 window.initiateSwap = initiateSwap;
