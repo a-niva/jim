@@ -579,6 +579,36 @@ function createMotionCallbacksV2() {
             }
             window.motionPickupDebounce.lastPickupTime = now;
 
+            // ✅ NOUVEAU : Gestion mouvement pendant countdown
+            if (workoutState.current === WorkoutStates.READY_COUNTDOWN) {
+                console.log('[Motion] MOUVEMENT pendant countdown - Arrêt immédiat');
+                
+                // Arrêter le countdown timer
+                if (window.currentCountdownTimer) {
+                    clearInterval(window.currentCountdownTimer);
+                    window.currentCountdownTimer = null;
+                    console.log('[Motion] Countdown timer arrêté');
+                }
+                
+                // Restaurer les dots en mode motion normal
+                const dotsContainer = document.querySelector('.series-dots');
+                if (dotsContainer) {
+                    const dots = dotsContainer.querySelectorAll('.dot');
+                    dots.forEach(dot => {
+                        dot.classList.remove('countdown-active', 'countdown-go');
+                        dot.className = 'dot motion-dot'; // Remet en mode motion bleu
+                    });
+                    console.log('[Motion] Dots restaurés en mode motion');
+                }
+                
+                // Revenir à l'état READY avec instructions motion
+                transitionTo(WorkoutStates.READY);
+                
+                // Les instructions motion sont déjà présentes, juste afficher le toast
+                showToast('Mouvement détecté - reposez le téléphone pour recommencer', 'warning');
+                return;
+            }
+
             // Gestion pause motion pendant série
             if (workoutState.current === WorkoutStates.EXECUTING) {
                 console.log('[Motion] Déclenchement pause série');
@@ -592,7 +622,7 @@ function createMotionCallbacksV2() {
 
                 showPauseConfirmation();
                 showToast('Série en pause - Utilisez les boutons ci-dessous', 'info');
-                return;
+               return;
             }
 
             // Code existant pour autres états
