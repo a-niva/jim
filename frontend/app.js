@@ -635,23 +635,29 @@ function startCountdown(seconds) {
     window.currentCountdownTimer = countdownTimer;
 }
 
-// ✅ CORRECTIF - Utiliser les vraies méthodes
 function playCountdownBeep(number) {
     if (window.workoutAudio) {
-        window.workoutAudio.playCountdown(number);  // ✅ Méthode existante
+        window.workoutAudio.playCountdown(number); 
     }
     console.log('[Audio] Beep', number);
 }
 
 function playGoSound() {
     if (window.workoutAudio) {
-        window.workoutAudio.playRestEnd();  // ✅ Réutiliser son existant  
+        window.workoutAudio.playRestEnd();
     }
     console.log('[Audio] GO!');
 }
 
 function startSeriesAfterCountdown() {
-    console.log('[Motion] Démarrage série post-countdown');
+    console.log('[Motion] === startSeriesAfterCountdown ===');
+    
+    // S'assurer qu'aucun timer série n'était déjà en cours
+    if (setTimer) {
+        console.warn('[Motion] Timer série déjà actif, nettoyage avant démarrage');
+        clearInterval(setTimer);
+        setTimer = null;
+    }
     
     // Transition état
     transitionTo(WorkoutStates.EXECUTING);
@@ -5071,40 +5077,40 @@ async function selectExercise(exercise, skipValidation = false) {
         }
     }
     
-    // Mise à jour du nom et des instructions avec collapse
-    document.getElementById('exerciseName').textContent = currentExercise.name;
-
-    const instructionsEl = document.getElementById('exerciseInstructions');
+    // Mise à jour du nom avec toggle icon et instructions collapsibles
+    const exerciseNameEl = document.getElementById('exerciseName');
     const instructions = currentExercise.instructions || 'Effectuez cet exercice avec une forme correcte';
 
-    // Créer l'interface collapsible
-    instructionsEl.innerHTML = `
-        <div class="instructions-toggle" onclick="toggleExerciseInstructions()" style="
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: var(--primary);
-            font-weight: 500;
+    exerciseNameEl.innerHTML = `
+        ${currentExercise.name}
+        <i class="fas fa-circle-info exercise-info-toggle" 
+        onclick="toggleExerciseInstructions()" 
+        style="
             font-size: 0.9rem;
-            margin-bottom: 0.5rem;
-        ">
-            <i class="fas fa-chevron-down" id="instructionsChevron" style="
-                transition: transform 0.3s ease;
-                font-size: 0.8rem;
-            "></i>
-            <span>Instructions de l'exercice</span>
-        </div>
-        <div class="instructions-content" id="instructionsContent" style="
+            color: var(--text-muted);
+            margin-left: 0.75rem;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: all 0.2s ease;
+        "
+        onmouseover="this.style.opacity='1'; this.style.color='var(--primary)'"
+        onmouseout="this.style.opacity='0.7'; this.style.color='var(--text-muted)'">
+        </i>
+    `;
+
+    // Instructions collapsibles (cachées par défaut)
+    const instructionsEl = document.getElementById('exerciseInstructions');
+    instructionsEl.innerHTML = `
+        <div class="exercise-instructions-content" 
+            id="exerciseInstructionsContent" 
+            style="
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.3s ease;
-            color: var(--text-muted);
-            line-height: 1.4;
-        ">
-            <div style="padding-bottom: 0.5rem;">
-                ${instructions}
-            </div>
+            margin-top: 0.5rem;
+            padding-top: 0;
+            ">
+            ${instructions}
         </div>
     `;
 
@@ -5221,26 +5227,27 @@ async function selectExercise(exercise, skipValidation = false) {
     }
 }
 
-// À ajouter dans app.js
+
 function toggleExerciseInstructions() {
-    const content = document.getElementById('instructionsContent');
-    const chevron = document.getElementById('instructionsChevron');
+    const content = document.getElementById('exerciseInstructionsContent');
+    const toggleIcon = document.querySelector('.exercise-info-toggle');
     
-    if (!content || !chevron) return;
+    if (!content || !toggleIcon) return;
     
     const isExpanded = content.style.maxHeight && content.style.maxHeight !== '0px';
     
     if (isExpanded) {
         // Collapse
         content.style.maxHeight = '0';
-        chevron.style.transform = 'rotate(0deg)';
+        content.style.paddingTop = '0';
+        toggleIcon.style.transform = 'rotate(0deg)';
     } else {
         // Expand
         content.style.maxHeight = content.scrollHeight + 'px';
-        chevron.style.transform = 'rotate(180deg)';
+        content.style.paddingTop = '0.5rem';
+        toggleIcon.style.transform = 'rotate(180deg)';
     }
 }
-
 
 window.toggleExerciseInstructions = toggleExerciseInstructions;
 
@@ -7380,7 +7387,6 @@ function toggleAIDetails() {
     const panel = document.getElementById('aiDetailsPanel');
     const button = document.querySelector('.ai-expand-btn svg');
     const statusLine = document.querySelector('.ai-status-line');
-    
     // Empêcher l'expansion si l'IA est inactive
     if (statusLine && statusLine.hasAttribute('data-inactive')) {
         // Animation du fa-brain
@@ -7393,8 +7399,10 @@ function toggleAIDetails() {
         showToast('L\'IA doit être active pour voir les détails', 'warning');
         return;
     }
-    
-    if (panel.style.display === 'none') {
+    // Utiliser getComputedStyle pour avoir la vraie valeur
+    const computedStyle = window.getComputedStyle(panel);
+    const isHidden = computedStyle.display === 'none';
+    if (isHidden) {
         panel.style.display = 'block';
         button.style.transform = 'rotate(180deg)';
     } else {
@@ -12784,11 +12792,24 @@ function resetMotionDetectorForNewSeries() {
 // === MOTION SENSOR : FONCTIONS UI SIMPLES ===
 
 function showMotionInstructions() {
-    // === Logs de diagnostic au tout début ===
     console.log('[Motion] === showMotionInstructions() appelée ===');
     console.log('[Motion] État actuel:', workoutState.current);
     console.log('[Motion] Exercise:', currentExercise?.name);
     console.log('[Motion] Motion enabled:', currentUser?.motion_detection_enabled);
+
+    // ✅ NOUVEAU : Arrêter le timer série si il tourne (bug fix)
+    if (setTimer) {
+        clearInterval(setTimer);
+        setTimer = null;
+        isSetTimerRunning = false;
+        console.log('[Motion] Timer série arrêté pour éviter conflit');
+    }
+    
+    // ✅ NOUVEAU : Reset état timer 
+    if (setTimerState && setTimerState.reset) {
+        setTimerState.reset();
+    }
+
 
     // Vérifier si l'élément existe déjà
     const existingContainer = document.getElementById('motionInstructions');
