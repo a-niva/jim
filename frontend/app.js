@@ -486,6 +486,9 @@ function hidePauseConfirmation() {
 function continueMotionSeries() {
     console.log('[Motion] Continuation série après pause');
     
+    // ✅ NOUVEAU : Nettoyer TOUTE interface motion existante
+    hideMotionInstructions();
+    
     // Masquer interface pause
     hidePauseConfirmation();
     
@@ -498,7 +501,8 @@ function continueMotionSeries() {
     // ✅ DÉLAI avant redémarrage motion pour éviter détection immédiate
     setTimeout(() => {
         if (window.motionDetector && currentUser?.motion_detection_enabled) {
-            console.log('[Motion] Redémarrage monitoring après délai');
+            console.log('[Motion] Redémarrage monitoring après délai - nouvelle notification');
+            // Cette fois showMotionInstructions() va créer une NOUVELLE notification propre
             showMotionInstructions();
             window.motionDetector.startMonitoring(createMotionCallbacksV2());
         }
@@ -5098,19 +5102,21 @@ async function selectExercise(exercise, skipValidation = false) {
         </i>
     `;
 
-    // Instructions collapsibles (cachées par défaut)
+    // Instructions collapsibles (cachées par défaut) - CSS robuste
     const instructionsEl = document.getElementById('exerciseInstructions');
     instructionsEl.innerHTML = `
         <div class="exercise-instructions-content" 
             id="exerciseInstructionsContent" 
             style="
-            max-height: 0;
             overflow: hidden;
-            transition: max-height 0.3s ease;
-            margin-top: 0.5rem;
-            padding-top: 0;
+            transition: all 0.3s ease;
+            margin-top: 0;
+            opacity: 0;
+            transform: translateY(-10px);
             ">
-            ${instructions}
+            <div style="padding-top: 0.5rem; line-height: 1.4;">
+                ${instructions}
+            </div>
         </div>
     `;
 
@@ -5234,17 +5240,20 @@ function toggleExerciseInstructions() {
     
     if (!content || !toggleIcon) return;
     
-    const isExpanded = content.style.maxHeight && content.style.maxHeight !== '0px';
+    // ✅ Utiliser opacity + transform au lieu de max-height
+    const isExpanded = content.style.opacity === '1';
     
     if (isExpanded) {
         // Collapse
-        content.style.maxHeight = '0';
-        content.style.paddingTop = '0';
+        content.style.opacity = '0';
+        content.style.transform = 'translateY(-10px)';
+        content.style.marginTop = '0';
         toggleIcon.style.transform = 'rotate(0deg)';
     } else {
-        // Expand
-        content.style.maxHeight = content.scrollHeight + 'px';
-        content.style.paddingTop = '0.5rem';
+        // Expand - AUCUNE limite de hauteur !
+        content.style.opacity = '1';
+        content.style.transform = 'translateY(0)';
+        content.style.marginTop = '0.5rem';
         toggleIcon.style.transform = 'rotate(180deg)';
     }
 }
@@ -12887,30 +12896,33 @@ function showMotionInstructions() {
 function hideMotionInstructions() {
     console.log('[Motion] hideMotionInstructions appelé');
     
-    // Nettoyer instructions motion
-    const instructions = document.getElementById('motionInstructions');
-    if (instructions) {
-        instructions.style.opacity = '0';
-        instructions.style.transition = 'opacity 0.3s ease';
-        setTimeout(() => {
+    // ✅ Nettoyer TOUTES les instructions motion possibles (au cas où il y en a plusieurs)
+    const instructionsContainers = document.querySelectorAll('#motionInstructions, .motionsensor-instructions');
+    
+    if (instructionsContainers.length === 0) {
+        console.log('[Motion] Aucune instruction motion à masquer');
+        return;
+    }
+    
+    instructionsContainers.forEach((instructions, index) => {
+        console.log(`[Motion] Suppression instruction motion ${index + 1}/${instructionsContainers.length}`);
+        
+        // Animation si pas déjà en cours de suppression
+        if (instructions.style.opacity !== '0') {
+            instructions.style.opacity = '0';
+            instructions.style.transition = 'opacity 0.3s ease';
+            
+            setTimeout(() => {
+                if (instructions.parentNode) {
+                    instructions.remove();
+                    console.log(`[Motion] Instruction ${index + 1} supprimée`);
+                }
+            }, 300);
+        } else {
+            // Suppression immédiate si déjà en train de disparaître
             instructions.remove();
-            console.log('[Motion] Instructions masquées');
-        }, 300);
-    }
-    
-    // ✅ AUSSI nettoyer encart pause si existe (même fonction)
-    const pauseContainer = document.getElementById('motionPauseConfirmation');
-    if (pauseContainer) {
-        pauseContainer.remove();
-        console.log('[Motion] Encart pause nettoyé aussi');
-    }
-    
-    // ✅ AUSSI nettoyer countdown si existe
-    const countdownContainer = document.getElementById('countdownInterface');
-    if (countdownContainer) {
-        countdownContainer.remove();
-        console.log('[Motion] Interface countdown nettoyée aussi');
-    }
+        }
+    });
 }
 
 // === MOTION SENSOR : TOGGLE PRÉFÉRENCES (à ajouter avec autres toggles ~1500) ===
