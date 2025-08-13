@@ -12905,7 +12905,7 @@ function showMotionTextUnderDots() {
     const dotsContainer = document.querySelector('.series-dots');
     if (!dotsContainer) return;
     
-    // Ajouter classe au parent pour layout vertical
+    // ✅ Ajouter classe au container parent pour layout
     const headerActions = document.querySelector('.exercise-header-actions');
     if (headerActions) {
         headerActions.classList.add('motion-active');
@@ -12924,8 +12924,8 @@ function showMotionTextUnderDots() {
         <span class="motion-instruction-text">Posez votre téléphone pour démarrer</span>
     `;
     
-    // Insérer après les dots
-    dotsContainer.parentNode.insertBefore(motionText, dotsContainer.nextSibling);
+    // ✅ Insérer dans le container header-actions directement
+    headerActions.appendChild(motionText);
     
     // Animation d'apparition
     requestAnimationFrame(() => {
@@ -12940,7 +12940,7 @@ function hideMotionTextUnderDots() {
     const motionText = document.getElementById('motionTextUnderDots');
     if (!motionText) return;
     
-    // Retirer classe du parent
+    // ✅ Retirer classe du parent
     const headerActions = document.querySelector('.exercise-header-actions');
     if (headerActions) {
         headerActions.classList.remove('motion-active');
@@ -13159,10 +13159,8 @@ function handleExtraSet() {
     
     // 4. Mettre à jour l'interface EXACTEMENT comme l'ancienne version
     updateSeriesDots();
-    // setProgress n'existe plus, utiliser updateSeriesDots() à la place
-    updateSeriesDots();
     console.log(`[ExtraSet] Série ${currentSet}/${currentWorkoutSession.totalSets} - Dots mis à jour`);
-        
+    
     // 5. Réinitialisations d'interface (preservation ancienne version)
     document.getElementById('setFeedback').style.display = 'none';
     document.getElementById('executeSetBtn').style.display = 'block';
@@ -13181,13 +13179,37 @@ function handleExtraSet() {
     // 8. Mettre à jour les recommandations ML
     updateSetRecommendations();
     
-    console.log(`🔄 Série supplémentaire ${currentSet}/${currentWorkoutSession.totalSets} - Démarrage repos`);
+    console.log(`🔄 Série supplémentaire ${currentSet}/${currentWorkoutSession.totalSets}`);
     
-    // 9. Transition directe vers READY pour exécuter la série
+    // ✅ 9. NOUVEAU : Reset interface et réactiver motion
+    transitionToReadyState();
     transitionTo(WorkoutStates.READY);
     
-    // Note: completeRest() détectera le flag isStartingExtraSet et ne fera PAS currentSet++
-    // Il préparera directement l'interface pour la série supplémentaire
+    // ✅ 10. NOUVEAU : Réactiver motion pour série supplémentaire
+    if (currentUser?.motion_detection_enabled && 
+        window.motionDetectionEnabled && 
+        window.motionDetector &&
+        currentExercise?.exercise_type !== 'isometric') {
+        
+        console.log('[Motion] Réactivation motion detector pour série supplémentaire');
+        
+        // Reset state interne motion detector
+        window.motionDetector.state = 'unknown';
+        window.motionDetector.stationaryStartTime = null;
+        window.motionDetector.pickupStartTime = null;
+        
+        // Réafficher instructions
+        showMotionInstructions();
+        updateMotionIndicator(false);
+        
+        // Redémarrer monitoring
+        window.motionDetector.startMonitoring(createMotionCallbacksV2());
+        
+        console.log('[Motion] Prêt pour série supplémentaire');
+    } else {
+        // ✅ Mode manuel : s'assurer que le timer peut démarrer
+        console.log('[ExtraSet] Mode manuel - prêt pour démarrage manuel');
+    }
 }
 
 function previousSet() {

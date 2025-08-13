@@ -1993,21 +1993,35 @@ span {
 
 .exercise-header-actions {
     display: flex;
-    flex-direction: row !important; /* Forcer horizontal */
-    gap: var(--spacing-md);
+    flex-direction: column;
     align-items: center;
-    justify-content: space-between;
     width: 100%;
     margin-top: 0;
+    position: relative;
+    min-height: 80px; /* Hauteur fixe pour éviter le jumping */
 }
 
+/* Ligne principale des contrôles - TOUJOURS HORIZONTALE */
+.exercise-header-actions-row {
+    display: flex;
+    flex-direction: row !important;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    height: 48px; /* Hauteur fixe */
+    margin-bottom: 0;
+}
+
+/* Voice container - POSITION VERROUILLÉE À GAUCHE */
 .exercise-header-actions .voice-status-container {
-    background: rgba(255,255,255,.03);
-    border: 1px solid rgba(255,255,255,.08);
-    border-radius: var(--radius);
-    padding: var(--spacing-xs) var(--spacing-sm);
-    margin-right: var(--spacing-sm);
-    order: 1;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 60px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
     flex-shrink: 0;
 }
 
@@ -2018,14 +2032,27 @@ span {
     min-width: 44px; /* Réserver espace même si caché */
 }
 
+/* Series dots - POSITION VERROUILLÉE AU CENTRE */
 .exercise-header-actions .series-dots {
-    order: 2;
-    flex: 1;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
     justify-content: center;
+    gap: 8px;
+    margin: 0;
 }
 
+/* Button changer exercice - POSITION VERROUILLÉE À DROITE */
 .exercise-header-actions .btn-change-exercise {
-    order: 3;
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-sm) var(--spacing-lg);
     flex-shrink: 0;
 }
 
@@ -2116,6 +2143,7 @@ span {
     margin-bottom: 0;
 }
 
+/* Styles dots normaux */
 .dot {
     width: 12px;
     height: 12px;
@@ -9419,29 +9447,38 @@ input {
     display: none !important;
 }
 
-/* S'assurer que le texte motion prend toute la largeur */
+/* Zone motion text - SOUS LA LIGNE PRINCIPALE */
 .motion-text-under-dots {
+    position: absolute;
+    top: 48px; /* Juste sous la ligne principale */
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     width: 100%;
     text-align: center;
-    margin-top: 1rem;
+    margin-top: 0.5rem;
     opacity: 0;
     transform: translateY(-10px);
     transition: all 0.3s ease;
     color: #2196F3;
     font-weight: 500;
+    z-index: 10;
 }
 
+/* Quand motion text est visible, augmenter hauteur container */
 .exercise-header-actions.motion-active {
-    flex-direction: column !important;
-    align-items: center;
-    gap: var(--spacing-sm);
+    min-height: 120px; /* Plus de place pour le texte */
 }
 
+/* Animation main motion */
 .motion-hand-icon {
     font-size: 1.5rem;
     margin-bottom: 0.5rem;
     animation: motionHandBounce 1.5s ease-in-out infinite;
 }
+
 
 .motion-instruction-text {
     font-size: 0.95rem;
@@ -9469,6 +9506,11 @@ input {
     
     .motion-hand-icon {
         font-size: 1.3rem;
+    }
+    
+    .exercise-header-actions .btn-change-exercise {
+        padding: var(--spacing-xs) var(--spacing-md);
+        font-size: 0.85rem;
     }
 }
 
