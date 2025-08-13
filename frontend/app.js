@@ -406,13 +406,12 @@ function createMotionCallbacksV2() {
 function startCountdown(seconds) {
     console.log('[Motion] Démarrage countdown', seconds);
     
-    // Transition vers état countdown
     transitionTo(WorkoutStates.READY_COUNTDOWN);
     
     let remaining = seconds;
-    updateCountdownDisplay(remaining);
+    updateCountdownDisplay(remaining); // Afficher "3" immédiatement
     
-    // Timer countdown
+    // Démarrer le countdown IMMÉDIATEMENT, pas après 1s
     const countdownTimer = setInterval(() => {
         remaining--;
         
@@ -421,17 +420,18 @@ function startCountdown(seconds) {
             playCountdownBeep(remaining);
         } else {
             clearInterval(countdownTimer);
+            window.currentCountdownTimer = null;
+            
             updateCountdownDisplay(0); // Afficher "GO!"
             playGoSound();
             
-            // Démarrer série après 500ms
+            // Petit délai pour voir "GO!" avant de démarrer
             setTimeout(() => {
                 startSeriesAfterCountdown();
             }, 500);
         }
     }, 1000);
     
-    // Stocker timer pour pouvoir l'interrompre
     window.currentCountdownTimer = countdownTimer;
 }
 
@@ -12569,6 +12569,8 @@ function showMotionInstructions() {
 }
 
 function hideMotionInstructions() {
+    console.log('[Motion] hideMotionInstructions appelé!');
+    console.trace(); // Pour voir la stack trace
     const instructions = document.getElementById('motionInstructions');
     if (instructions) {
         instructions.style.opacity = '0';
