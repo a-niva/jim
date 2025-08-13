@@ -2426,9 +2426,10 @@ function shouldRestartAndroid() {
     });
     
     const result = voiceRecognitionActive && 
-           (window.workoutState?.current === 'ready' || window.workoutState?.current === 'executing') &&
-           document.visibilityState === 'visible' &&
-           androidRestartCount < (PLATFORM_CONFIG?.android?.maxRestarts || 30);
+        (window.workoutState?.current === 'ready' || window.workoutState?.current === 'executing') &&
+        window.workoutState?.current !== 'ready_countdown' && // ← EXCLUSION EXPLICITE
+        document.visibilityState === 'visible' &&
+        androidRestartCount < (PLATFORM_CONFIG?.android?.maxRestarts || 30);
            
     console.log('[ANDROID DEBUG] shouldRestartAndroid() result:', result);
     return result;
@@ -2802,6 +2803,7 @@ if (PLATFORM_CONFIG?.isAndroid || PLATFORM_CONFIG?.isIOS || PLATFORM_CONFIG?.isD
             // iOS / Desktop : restart simple si série en cours
             if (voiceRecognitionActive &&
                 (window.workoutState?.current === 'ready' || window.workoutState?.current === 'executing') &&
+                window.workoutState?.current !== 'ready_countdown' && // ← MÊME EXCLUSION
                 document.visibilityState === 'visible') {
                 
                 console.log('[Voice] Desktop/iOS restart simple');
