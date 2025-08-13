@@ -359,39 +359,184 @@ const VoiceConfirmation = {
     }
 };
 
-// ===== CALLBACKS MOTION V2 AVEC VOCAL =====
+
+/**
+ * Affiche l'interface de pause motion avec boutons Continuer/Terminer
+ * À ajouter dans app.js après les autres fonctions motion
+ */
+function showPauseConfirmation() {
+    console.log('[Motion] === Affichage interface pause ===');
+    
+    // Pause timer série
+    if (setTimer) {
+        clearInterval(setTimer);
+        setTimer = null;
+    }
+    
+    // Sauvegarder temps écoulé
+    const elapsedTime = setTimerState.getElapsed ? setTimerState.getElapsed() : 0;
+    
+    // Chercher zone d'insertion (sous les steppers)
+    const inputSection = document.querySelector('.input-section');
+    if (!inputSection) {
+        console.error('[Motion] Zone input-section introuvable pour pause');
+        return;
+    }
+    
+    // Créer container pause
+    const pauseContainer = document.createElement('div');
+    pauseContainer.id = 'motionPauseConfirmation';
+    pauseContainer.className = 'motion-pause-container';
+    pauseContainer.innerHTML = `
+        <div class="pause-header">
+            <h3>📱 Série en pause</h3>
+            <div class="pause-timer">
+                <span class="timer-label">Temps écoulé :</span>
+                <span class="timer-value">${formatTime(elapsedTime)}</span>
+            </div>
+        </div>
+        
+        ${window.voiceData?.count > 0 ? `
+            <div class="pause-voice-info">
+                <i class="fas fa-microphone"></i>
+                <span>${window.voiceData.count} reps détectées</span>
+            </div>
+        ` : ''}
+        
+        <div class="pause-actions">
+            <button class="btn btn-outline-primary pause-btn-continue" 
+                    onclick="continueMotionSeries()">
+                <i class="fas fa-play"></i>
+                Continuer la série
+            </button>
+            
+            <button class="btn btn-primary pause-btn-finish" 
+                    onclick="finishMotionSeries()">
+                <i class="fas fa-check"></i>
+                Terminer la série
+            </button>
+        </div>
+        
+        <div class="pause-instruction">
+            <small>💡 Reposez votre téléphone puis cliquez "Continuer"</small>
+        </div>
+    `;
+    
+    // Insérer après input-section avec animation
+    inputSection.insertAdjacentElement('afterend', pauseContainer);
+    
+    // Animation d'apparition
+    requestAnimationFrame(() => {
+        pauseContainer.style.opacity = '0';
+        pauseContainer.style.transform = 'translateY(-20px)';
+        pauseContainer.style.transition = 'all 0.3s ease-out';
+        
+        requestAnimationFrame(() => {
+            pauseContainer.style.opacity = '1';
+            pauseContainer.style.transform = 'translateY(0)';
+        });
+    });
+    
+    // Transition état
+    transitionTo(WorkoutStates.EXECUTING); // Garder EXECUTING mais avec pause UI
+    
+    console.log('[Motion] Interface pause affichée');
+}
+
+/**
+ * Masque l'interface de pause avec animation
+ */
+function hidePauseConfirmation() {
+    const pauseContainer = document.getElementById('motionPauseConfirmation');
+    if (!pauseContainer) return;
+    
+    // Animation disparition
+    pauseContainer.style.transition = 'all 0.2s ease-in';
+    pauseContainer.style.opacity = '0';
+    pauseContainer.style.transform = 'translateY(-10px)';
+    
+    setTimeout(() => {
+        pauseContainer.remove();
+        console.log('[Motion] Interface pause masquée');
+    }, 200);
+}
+
+/**
+ * Continuer la série après pause motion
+ */
+function continueMotionSeries() {
+    console.log('[Motion] Continuation série après pause');
+    
+    // Masquer interface pause
+    hidePauseConfirmation();
+    
+    // Redémarrer timer série avec temps déjà écoulé
+    if (setTimerState.resume) {
+        setTimerState.resume();
+    }
+    startSetTimer();
+    
+    // Redémarrer motion detection pour nouvelle pause potentielle
+    if (window.motionDetector && currentUser?.motion_detection_enabled) {
+        showMotionInstructions();
+        window.motionDetector.startMonitoring(createMotionCallbacksV2());
+    }
+    
+    showToast('Série reprise', 'success');
+}
+
+/**
+ * Terminer la série après pause motion
+ */
+function finishMotionSeries() {
+    console.log('[Motion] Fin de série après pause');
+    
+    // Masquer interface pause
+    hidePauseConfirmation();
+    
+    // Arrêter motion detection
+    if (window.motionDetector) {
+        window.motionDetector.stopMonitoring();
+    }
+    
+    // Déclencher sauvegarde série (utilise données existantes + vocal si disponible)
+    if (typeof window.executeSet === 'function') {
+        // executeSet() détectera automatiquement qu'on est en EXECUTING et sauvegarde
+        window.executeSet();
+    } else {
+        console.error('[Motion] executeSet non disponible pour finir série');
+        showToast('Erreur: Impossible de terminer la série', 'error');
+    }
+}
+
+/**
+ * ===== MODIFICATION DE onPickup() EXISTANTE =====
+ * Remplacer l'appel direct à pauseWorkout() par showPauseConfirmation()
+ */
 function createMotionCallbacksV2() {
     return {
         onStationary: () => {
             console.log('[Motion] STATIONNAIRE détecté - Feature 1 active');
             
-            // Vérifier qu'on est bien en READY
             if (workoutState.current !== WorkoutStates.READY) {
                 console.log('[Motion] Ignoré - pas en état READY');
                 return;
             }
             
-            // Pour Feature 1 : juste log + feedback visuel
             showToast('Immobilité détectée ! Prêt pour démarrage', 'success');
-            
             startCountdown(3);
         },
 
         onPickup: (wasStationary) => {
             console.log('[Motion] MOUVEMENT détecté');
             
-            // AJOUTER - Gestion pendant série
+            // ✅ NOUVEAU : Gestion pause motion pendant série
             if (workoutState.current === WorkoutStates.EXECUTING) {
                 console.log('[Motion] Déclenchement pause série');
                 
-                // Late binding : résolution au moment de l'exécution
-                const pauseFn = window.pauseWorkout || pauseWorkout;
-                if (typeof pauseFn === 'function') {
-                    pauseFn();
-                    showToast('Série en pause - Reposez le téléphone', 'info');
-                } else {
-                    console.error('[Motion] pauseWorkout non accessible');
-                }
+                // ✅ UTILISER nouvelle interface au lieu de pauseWorkout()
+                showPauseConfirmation();
+                showToast('Série en pause - Utilisez les boutons ci-dessous', 'info');
                 return;
             }
             
@@ -401,8 +546,6 @@ function createMotionCallbacksV2() {
                 setTimeout(() => showMotionInstructions(), 500);
                 showToast('Mouvement détecté - reposez le téléphone', 'info');
             }
-            
-            // TODO Feature 3 : gestion pause pendant série
         }
     };
 }
@@ -5938,7 +6081,7 @@ async function updateSetRecommendations() {
 // ===== INTERFACE N/R MODERNE - FONCTIONS CORE =====
 
 /**
- * Initialise l'interface N/R avec les valeurs recommandées
+ * ✅ FONCTION CORRIGÉE : Initialise interface N/R selon état vocal
  * @param {number} targetReps - Objectif reps ML
  * @param {string} state - État interface ('ready'|'executing'|'validating')
  */
@@ -5954,17 +6097,31 @@ function initializeRepsDisplay(targetReps, state = 'ready') {
         return;
     }
     
+    // ✅ LOGIQUE INTELLIGENTE selon vocal
+    const isVoiceEnabled = currentUser?.voice_counting_enabled === true;
+    let initialCurrentReps;
+    
+    if (isVoiceEnabled) {
+        // Mode vocal : Commence à 0, progression par reconnaissance
+        initialCurrentReps = 0;
+        console.log('[RepsDisplay] Mode vocal : 0/' + targetReps);
+    } else {
+        // Mode manuel : Commence à target, utilisateur décrémente ou clique validation
+        initialCurrentReps = targetReps;
+        console.log('[RepsDisplay] Mode manuel : ' + targetReps + '/' + targetReps);
+    }
+    
     // Configuration selon état
     if (state === 'ready') {
-        currentRepEl.textContent = '0';
+        currentRepEl.textContent = initialCurrentReps;
         repsDisplayEl.className = 'reps-display-modern ready-state';
     } else {
-        currentRepEl.textContent = '0';
+        currentRepEl.textContent = initialCurrentReps;
         repsDisplayEl.className = 'reps-display-modern';
     }
     
     targetRepEl.textContent = targetReps || 12;
-    nextRepPreviewEl.textContent = '1';
+    nextRepPreviewEl.textContent = isVoiceEnabled ? '1' : (targetReps - 1);
     nextRepPreviewEl.style.opacity = '0';
     nextRepPreviewEl.className = 'next-rep-preview';
     
@@ -5973,7 +6130,7 @@ function initializeRepsDisplay(targetReps, state = 'ready') {
         backwardCompatEl.textContent = targetReps || 12;
     }
     
-    console.log(`[RepsDisplay] Initialisé - Target: ${targetReps}, État: ${state}`);
+    console.log(`[RepsDisplay] Initialisé - Mode: ${isVoiceEnabled ? 'vocal' : 'manuel'}, Current: ${initialCurrentReps}, Target: ${targetReps}`);
 }
 
 /**
@@ -5998,13 +6155,20 @@ function getCurrentRepsValue() {
     return 0;
 }
 
+
 /**
- * Initialise l'interface moderne N/R
+ * ✅ FONCTION CORRIGÉE : Initialise interface moderne avec logique vocale
  * @param {number} targetReps - Objectif de répétitions
- * @param {number} currentReps - Compteur initial (défaut 0)
+ * @param {number} currentReps - Compteur initial (calculé automatiquement)
  */
-function initializeModernRepsDisplay(targetReps = 12, currentReps = 0) {
-    console.log(`[UI] Initialisation interface N/R: ${currentReps}/${targetReps}`);
+function initializeModernRepsDisplay(targetReps = 12, currentReps = null) {
+    // ✅ CALCUL INTELLIGENT du currentReps initial
+    if (currentReps === null) {
+        const isVoiceEnabled = currentUser?.voice_counting_enabled === true;
+        currentReps = isVoiceEnabled ? 0 : targetReps;
+    }
+    
+    console.log(`[UI] Initialisation interface N/R: ${currentReps}/${targetReps} (vocal: ${currentUser?.voice_counting_enabled})`);
    
     // Vérifier si container existe déjà
     let repsDisplay = document.getElementById('repsDisplay');
@@ -6025,7 +6189,7 @@ function initializeModernRepsDisplay(targetReps = 12, currentReps = 0) {
         }
     }
    
-    // Structure HTML moderne
+    // Structure HTML moderne avec valeurs calculées
     repsDisplay.innerHTML = `
         <div class="current-rep" id="currentRep">${currentReps}</div>
         <div class="rep-separator">/</div>
@@ -6033,13 +6197,12 @@ function initializeModernRepsDisplay(targetReps = 12, currentReps = 0) {
         <div class="next-rep-preview" id="nextRepPreview"></div>
     `;
 
-    // === MICRO : Synchroniser état avec container statique ===
+    // Synchroniser avec container vocal
     const voiceContainer = document.getElementById('voiceStatusContainer');
     if (voiceContainer && currentUser?.voice_counting_enabled) {
         voiceContainer.style.display = 'flex';
         
-        // NE PLUS démarrer automatiquement - laisser transitionTo() gérer
-        // Seulement synchroniser l'état visuel avec l'état fonctionnel
+        // Synchroniser état visuel
         checkMicrophonePermissions().then(hasPermission => {
             if (hasPermission) {
                 const isCurrentlyActive = window.voiceRecognitionActive?.() || false;
@@ -6062,6 +6225,7 @@ function initializeModernRepsDisplay(targetReps = 12, currentReps = 0) {
    
     console.log('[UI] Interface N/R initialisée avec succès');
 }
+
 
 async function syncVoiceCountingWithProfile(enabled) {
     try {
@@ -6203,38 +6367,33 @@ function applyVoiceErrorState(errorType = 'generic', duration = 1000) {
 
 // Transition vers état prêt avec objectif affiché
 function transitionToReadyState() {
-    // === MOTION DETECTION CHECK EN PREMIER ===
-    if (currentUser?.motion_detection_enabled && 
-        window.motionDetectionEnabled && 
-        window.motionDetector &&
-        currentExercise?.exercise_type !== 'isometric') {
-        
-        console.log('[Motion] Activation mode motion');
-        showMotionInstructions();
-        updateMotionIndicator(false);
-        window.motionDetector.startMonitoring(createMotionCallbacksV2());
-        return; // SORTIR IMMÉDIATEMENT - pas de setup timer/vocal
-    }
-    
     const targetRepEl = document.getElementById('targetRep');
     const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) : 12;
     
-    // Affichage objectif avec état ready
-    updateRepDisplayModern(0, targetReps, { readyState: true });
+    // ✅ CALCUL INTELLIGENT selon mode vocal
+    const isVoiceEnabled = currentUser?.voice_counting_enabled === true;
+    const readyCurrentReps = isVoiceEnabled ? 0 : targetReps;
     
-    // NOUVEAU : Synchroniser interface vocal avec état ready
+    // Affichage avec état ready
+    updateRepDisplayModern(readyCurrentReps, targetReps, { readyState: true });
+    
+    // Synchroniser interface vocal avec état ready
     const voiceContainer = document.getElementById('voiceStatusContainer');
     if (voiceContainer) {
-        voiceContainer.style.display = 'flex';
-        
-        // Mettre à jour état visuel si vocal pas encore actif
-        if (window.voiceRecognitionActive || window.voiceRecognitionActive()) {
-            updateMicrophoneVisualState('listening');
+        if (isVoiceEnabled) {
+            voiceContainer.style.display = 'flex';
+            // Mettre à jour état visuel si vocal pas encore actif
+            if (window.voiceRecognitionActive || window.voiceRecognitionActive()) {
+                updateMicrophoneVisualState('listening');
+            }
+        } else {
+            voiceContainer.style.display = 'none';
         }
     }
     
-    console.log(`[RepsDisplay] Transition ready: Objectif ${targetReps} reps`);
+    console.log(`[RepsDisplay] Transition ready: ${readyCurrentReps}/${targetReps} reps (mode: ${isVoiceEnabled ? 'vocal' : 'manuel'})`);
 }
+
 
 function applyReadyStateToRepsDisplay() {
     const targetRepEl = document.getElementById('targetRep');
@@ -8141,6 +8300,16 @@ function formatTime(seconds) {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+async function checkMicrophonePermissions() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach(track => track.stop());
+        return true;
+    } catch (error) {
+        return false;
+    }
 }
 
 // ===== UI COUNTDOWN & CALIBRATION =====
@@ -12072,11 +12241,18 @@ function animateWeightModeSwitch(newMode, displayWeight) {
  * @param {number} delta - Changement (-1 ou +1)
  */
 function adjustReps(delta) {
+    // ✅ VÉRIFICATION : Ne fonctionne qu'en mode manuel
+    if (currentUser?.voice_counting_enabled) {
+        showToast('Désactivez le vocal pour ajuster manuellement', 'info');
+        return;
+    }
+    
     const currentRep = getCurrentRepsValue();
     const targetRepEl = document.getElementById('targetRep');
     const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) : 12;
     
-    const newRep = Math.max(0, Math.min(50, currentRep + delta));
+    // Limites : entre 1 et targetReps + 5 (permettre dépassement)
+    const newRep = Math.max(1, Math.min(targetReps + 5, currentRep + delta));
     
     if (newRep !== currentRep) {
         updateRepDisplayModern(newRep, targetReps);
@@ -12085,6 +12261,8 @@ function adjustReps(delta) {
         if (navigator.vibrate) {
             navigator.vibrate(20);
         }
+        
+        console.log(`[RepsDisplay] Ajustement manuel: ${currentRep} → ${newRep}`);
     }
 }
 
@@ -14636,7 +14814,13 @@ window.showSkipModal = showSkipModal;
 window.restartSkippedExercise = restartSkippedExercise;
 window.getExerciseName = getExerciseName;
 
-// ===== MODULE 2 : EXPORTS SWAP SYSTEM =====
+
+window.showPauseConfirmation = showPauseConfirmation;
+window.hidePauseConfirmation = hidePauseConfirmation;
+window.continueMotionSeries = continueMotionSeries;
+window.finishMotionSeries = finishMotionSeries;
+window.createMotionCallbacksV2 = createMotionCallbacksV2;
+
 window.canSwapExercise = canSwapExercise;
 window.initiateSwap = initiateSwap;
 window.executeSwapTransition = executeSwapTransition;
