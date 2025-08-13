@@ -386,9 +386,6 @@ function showPauseConfirmation() {
         setTimer = null;
     }
     
-    // Sauvegarder temps écoulé
-    const elapsedTime = setTimerState.getElapsed ? setTimerState.getElapsed() : 0;
-    
     // Chercher zone d'insertion (sous les steppers)
     const inputSection = document.querySelector('.input-section');
     if (!inputSection) {
@@ -403,10 +400,6 @@ function showPauseConfirmation() {
     pauseContainer.innerHTML = `
         <div class="pause-header">
             <h3>📱 Série en pause</h3>
-            <div class="pause-timer">
-                <span class="timer-label">Temps écoulé :</span>
-                <span class="timer-value">${formatTime(elapsedTime)}</span>
-            </div>
         </div>
         
         ${window.voiceData?.count > 0 ? `
@@ -5078,10 +5071,42 @@ async function selectExercise(exercise, skipValidation = false) {
         }
     }
     
-    // Mise à jour du nom et des instructions
+    // Mise à jour du nom et des instructions avec collapse
     document.getElementById('exerciseName').textContent = currentExercise.name;
-    document.getElementById('exerciseInstructions').textContent = 
-        currentExercise.instructions || 'Effectuez cet exercice avec une forme correcte';
+
+    const instructionsEl = document.getElementById('exerciseInstructions');
+    const instructions = currentExercise.instructions || 'Effectuez cet exercice avec une forme correcte';
+
+    // Créer l'interface collapsible
+    instructionsEl.innerHTML = `
+        <div class="instructions-toggle" onclick="toggleExerciseInstructions()" style="
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--primary);
+            font-weight: 500;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        ">
+            <i class="fas fa-chevron-down" id="instructionsChevron" style="
+                transition: transform 0.3s ease;
+                font-size: 0.8rem;
+            "></i>
+            <span>Instructions de l'exercice</span>
+        </div>
+        <div class="instructions-content" id="instructionsContent" style="
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            color: var(--text-muted);
+            line-height: 1.4;
+        ">
+            <div style="padding-bottom: 0.5rem;">
+                ${instructions}
+            </div>
+        </div>
+    `;
 
     // Initialiser les settings ML pour cet exercice
     if (!currentWorkoutSession.mlSettings) {
@@ -5195,6 +5220,29 @@ async function selectExercise(exercise, skipValidation = false) {
         }, 100);
     }
 }
+
+// À ajouter dans app.js
+function toggleExerciseInstructions() {
+    const content = document.getElementById('instructionsContent');
+    const chevron = document.getElementById('instructionsChevron');
+    
+    if (!content || !chevron) return;
+    
+    const isExpanded = content.style.maxHeight && content.style.maxHeight !== '0px';
+    
+    if (isExpanded) {
+        // Collapse
+        content.style.maxHeight = '0';
+        chevron.style.transform = 'rotate(0deg)';
+    } else {
+        // Expand
+        content.style.maxHeight = content.scrollHeight + 'px';
+        chevron.style.transform = 'rotate(180deg)';
+    }
+}
+
+
+window.toggleExerciseInstructions = toggleExerciseInstructions;
 
 /**
  * Système vocal unifié - plus de duplication
@@ -10761,6 +10809,9 @@ function clearWorkoutState() {
         clearInterval(window.currentIsometricTimer.interval);
         window.currentIsometricTimer.interval = null;
     }
+    // Nettoyer motion/pause UI restante (fallback)
+    document.getElementById('motionPauseConfirmation')?.remove();
+    document.getElementById('countdownInterface')?.remove();
     
     // Réinitialiser toutes les variables
     currentWorkout = null;
@@ -12752,18 +12803,32 @@ function showMotionInstructions() {
 
     const html = `
         <div id="motionInstructions" class="motionsensor-instructions" style="
-            background: #2196F3 !important;
+            background: linear-gradient(135deg, #2196F3, #1976D2) !important;
             color: white !important;
-            padding: 1rem !important;
+            padding: 1.5rem !important;
             text-align: center !important;
             margin: 1rem !important;
-            border-radius: 8px !important;
+            border-radius: 12px !important;
             display: block !important;
             position: relative !important;
             z-index: 1000 !important;
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
         ">
-            <i class="fas fa-mobile-alt motionsensor-icon"></i>
-            <p class="motionsensor-text">Posez votre téléphone pour démarrer</p>
+            <i class="fas fa-mobile-alt motionsensor-icon" style="
+                font-size: 1.5rem;
+                margin-bottom: 0.5rem;
+                display: block;
+                opacity: 0.9;
+            "></i>
+            <p class="motionsensor-text" style="
+                margin: 0;
+                font-size: 1.1rem;
+                font-weight: 500;
+                color: rgba(255, 255, 255, 0.95) !important;
+                text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+                animation: motionTextPulse 2s ease-in-out infinite;
+            ">Posez votre téléphone pour démarrer</p>
         </div>
     `;
 
@@ -12799,8 +12864,9 @@ function showMotionInstructions() {
 }
 
 function hideMotionInstructions() {
-    console.log('[Motion] hideMotionInstructions appelé!');
-    console.trace(); // Pour voir la stack trace
+    console.log('[Motion] hideMotionInstructions appelé');
+    
+    // Nettoyer instructions motion
     const instructions = document.getElementById('motionInstructions');
     if (instructions) {
         instructions.style.opacity = '0';
@@ -12810,7 +12876,22 @@ function hideMotionInstructions() {
             console.log('[Motion] Instructions masquées');
         }, 300);
     }
+    
+    // ✅ AUSSI nettoyer encart pause si existe (même fonction)
+    const pauseContainer = document.getElementById('motionPauseConfirmation');
+    if (pauseContainer) {
+        pauseContainer.remove();
+        console.log('[Motion] Encart pause nettoyé aussi');
+    }
+    
+    // ✅ AUSSI nettoyer countdown si existe
+    const countdownContainer = document.getElementById('countdownInterface');
+    if (countdownContainer) {
+        countdownContainer.remove();
+        console.log('[Motion] Interface countdown nettoyée aussi');
+    }
 }
+
 // === MOTION SENSOR : TOGGLE PRÉFÉRENCES (à ajouter avec autres toggles ~1500) ===
 // ===== TOGGLES PROFIL V2 =====
 async function toggleMotionDetection() {
