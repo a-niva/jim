@@ -499,14 +499,13 @@ function continueMotionSeries() {
     startSetTimer();
     
     // ✅ FIX PRINCIPAL : Plus de setTimeout automatique !
-    // On redemarre le monitoring motion SANS notification automatique
-    if (window.motionDetector && currentUser?.motion_detection_enabled) {
-        console.log('[Motion] Redémarrage monitoring immédiat - SANS notification');
-        // Juste redémarrer le monitoring, la notification apparaîtra naturellement 
-        // quand l'état repassera à READY
-        window.motionDetector.startMonitoring(createMotionCallbacksV2());
-    }
-    
+    setTimeout(() => {
+        if (window.motionDetector && currentUser?.motion_detection_enabled) {
+            console.log('[Motion] Redémarrage monitoring après délai - nouvelle notification intégrée');
+            showMotionInstructions(); // ← Utilisera la nouvelle version intégrée
+            window.motionDetector.startMonitoring(createMotionCallbacksV2());
+        }
+    }, 2000);    
     showToast('Série reprise - Reposez votre téléphone', 'success');
 }
 
@@ -12803,7 +12802,6 @@ function resetMotionDetectorForNewSeries() {
 }
 
 // === MOTION SENSOR : FONCTIONS UI SIMPLES ===
-
 function showMotionInstructions() {
     console.log('[Motion] === showMotionInstructions() appelée ===');
     console.log('[Motion] État actuel:', workoutState.current);
@@ -12829,106 +12827,103 @@ function showMotionInstructions() {
         setTimerState.reset();
     }
 
-    // ✅ FORCER suppression de tout container existant AVANT de créer
-    const existingContainer = document.getElementById('motionInstructions');
-    console.log('[Motion] Container existe déjà:', !!existingContainer);
-
-    if (existingContainer) {
-        console.log('[Motion] SUPPRESSION FORCÉE du container existant');
-        existingContainer.remove();
-        // Continuer pour créer un nouveau container propre
-    }
-
-    console.log('[Motion] Création d\'un nouveau container');
-
-    const html = `
-        <div id="motionInstructions" class="motionsensor-instructions" style="
-            background: linear-gradient(135deg, #2196F3, #1976D2) !important;
-            color: white !important;
-            padding: 1.5rem !important;
-            text-align: center !important;
-            margin: 1rem !important;
-            border-radius: 12px !important;
-            display: block !important;
-            position: relative !important;
-            z-index: 1000 !important;
-            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3) !important;
-            border: 1px solid rgba(255, 255, 255, 0.2) !important;
-        ">
-            <i class="fas fa-mobile-alt motionsensor-icon" style="
-                font-size: 1.5rem;
-                margin-bottom: 0.5rem;
-                display: block;
-                opacity: 0.9;
-            "></i>
-            <p class="motionsensor-text" style="
-                margin: 0;
-                font-size: 1.1rem;
-                font-weight: 500;
-                color: rgba(255, 255, 255, 0.95) !important;
-                text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-                animation: motionTextPulse 2s ease-in-out infinite;
-            ">Posez votre téléphone pour démarrer</p>
-        </div>
-    `;
-
-    // Essayer plusieurs méthodes d'insertion
-    let inserted = false;
-
-    // Méthode 1 : Après header
-    const header = document.querySelector('.exercise-header-modern');
-    if (header) {
-        header.insertAdjacentHTML('afterend', html);
-        inserted = true;
-    }
-
-    // Méthode 2 : Avant input-section
-    if (!inserted) {
-        const inputSection = document.querySelector('.input-section');
-        if (inputSection) {
-            inputSection.insertAdjacentHTML('beforebegin', html);
-            inserted = true;
-        }
-    }
-
-    // Méthode 3 : Dans le parent du bouton execute
-    if (!inserted) {
-        const executeBtn = document.getElementById('executeSetBtn');
-        if (executeBtn && executeBtn.parentElement) {
-            executeBtn.parentElement.insertAdjacentHTML('afterbegin', html);
-            inserted = true;
-        }
-    }
-
-    console.log('[Motion] Instructions insérées:', inserted);
+    // ✅ NOUVELLE APPROCHE : Transformer les dots + ajouter texte intégré
+    setSeriesDotsMotionMode(true);
+    showMotionTextUnderDots();
+    
+    console.log('[Motion] Instructions intégrées sous les dots affichées');
 }
 
 function hideMotionInstructions() {
     console.log('[Motion] hideMotionInstructions appelé');
     
-    // ✅ NOUVEAU : Nettoyage par sélecteur ET par ID (au cas où)
-    const instructionsContainers = document.querySelectorAll(
-        '#motionInstructions, .motionsensor-instructions, [id*="motionInstructions"]'
-    );
+    // ✅ NOUVELLE APPROCHE : Restaurer dots + supprimer texte
+    setSeriesDotsMotionMode(false);
+    hideMotionTextUnderDots();
     
-    // ✅ NOUVEAU : Nettoyage immédiat des containers orphelins
-    const orphanContainers = document.querySelectorAll('[style*="Posez votre téléphone"]');
-    
-    const allContainers = [...instructionsContainers, ...orphanContainers];
-    
-    if (allContainers.length === 0) {
-        console.log('[Motion] Aucune instruction motion à masquer');
-        return;
-    }
-    
-    allContainers.forEach((container, index) => {
-        console.log(`[Motion] Suppression container ${index + 1}/${allContainers.length}`);
-        container.remove(); // Suppression immédiate, pas d'animation
-    });
-    
-    console.log(`[Motion] ${allContainers.length} containers motion supprimés`);
+    console.log('[Motion] Instructions intégrées supprimées, dots restaurés');
 }
 
+// === GESTION MODE MOTION DOTS ===
+
+function setSeriesDotsMotionMode(motionActive) {
+    const dotsContainer = document.querySelector('.series-dots');
+    if (!dotsContainer) return;
+    
+    const dots = dotsContainer.querySelectorAll('.dot');
+    
+    if (motionActive) {
+        // Mode motion : tous les dots deviennent bleus, animations suspendues
+        dotsContainer.classList.add('motion-mode');
+        dots.forEach(dot => {
+            // Sauvegarder les classes originales
+            dot.dataset.originalClasses = dot.className;
+            // Appliquer style motion (tous bleus)
+            dot.className = 'dot motion-dot';
+        });
+        console.log('[Motion] Dots passés en mode motion (tous bleus)');
+    } else {
+        // Restaurer mode normal : récupérer les classes originales
+        dotsContainer.classList.remove('motion-mode');
+        dots.forEach(dot => {
+            if (dot.dataset.originalClasses) {
+                dot.className = dot.dataset.originalClasses;
+                delete dot.dataset.originalClasses;
+            }
+        });
+        console.log('[Motion] Dots restaurés en mode normal');
+    }
+}
+
+function showMotionTextUnderDots() {
+    const dotsContainer = document.querySelector('.series-dots');
+    if (!dotsContainer) return;
+    
+    // Vérifier si le texte existe déjà
+    let motionText = document.getElementById('motionTextUnderDots');
+    if (motionText) return; // Déjà affiché
+    
+    // Créer le texte motion sous les dots
+    motionText = document.createElement('div');
+    motionText.id = 'motionTextUnderDots';
+    motionText.className = 'motion-text-under-dots';
+    motionText.innerHTML = `
+        <i class="fas fa-hand-point-down motion-hand-icon"></i>
+        <span class="motion-instruction-text">Posez votre téléphone pour démarrer</span>
+    `;
+    
+    // Insérer après les dots
+    dotsContainer.parentNode.insertBefore(motionText, dotsContainer.nextSibling);
+    
+    // Animation d'apparition
+    requestAnimationFrame(() => {
+        motionText.style.opacity = '1';
+        motionText.style.transform = 'translateY(0)';
+    });
+    
+    console.log('[Motion] Texte motion affiché sous les dots');
+}
+
+function hideMotionTextUnderDots() {
+    const motionText = document.getElementById('motionTextUnderDots');
+    if (!motionText) return;
+    
+    // Animation de disparition
+    motionText.style.opacity = '0';
+    motionText.style.transform = 'translateY(-10px)';
+    
+    setTimeout(() => {
+        if (motionText.parentNode) {
+            motionText.remove();
+            console.log('[Motion] Texte motion supprimé');
+        }
+    }, 300);
+}
+
+// Exposer globalement
+window.setSeriesDotsMotionMode = setSeriesDotsMotionMode;
+window.showMotionTextUnderDots = showMotionTextUnderDots;
+window.hideMotionTextUnderDots = hideMotionTextUnderDots;
 // === MOTION SENSOR : TOGGLE PRÉFÉRENCES (à ajouter avec autres toggles ~1500) ===
 // ===== TOGGLES PROFIL V2 =====
 async function toggleMotionDetection() {
