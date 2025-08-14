@@ -638,29 +638,36 @@ function createMotionCallbacksV2() {
 function startCountdown(seconds) {
     console.log('[Motion] Démarrage countdown', seconds);
     
-    // ✅ PROTECTION PRÉVENTIVE : Forcer les steppers AVANT la transition
+    // ✅ NOUVEAU : Suspendre temporairement les reconfigurations d'exercice
+    window.suspendExerciseReconfiguration = true;
+    
+    // Sauvegarder l'état actuel des steppers AVANT toute modification
     const inputSection = document.querySelector('.input-section');
+    const stepperStates = [];
     if (inputSection) {
-        inputSection.style.display = 'block'; // ou 'flex'
-        inputSection.style.opacity = '1';
-        inputSection.style.visibility = 'visible';
-        inputSection.classList.remove('hidden', 'countdown-active', 'motion-active');
-        console.log('[Countdown] Steppers forcés visibles AVANT transition');
+        const allInputRows = inputSection.querySelectorAll('.input-row');
+        allInputRows.forEach((row, index) => {
+            stepperStates[index] = {
+                element: row,
+                display: row.style.display,
+                dataHidden: row.getAttribute('data-hidden'),
+                opacity: row.style.opacity,
+                visibility: row.style.visibility
+            };
+            // Forcer visible pendant countdown
+            row.removeAttribute('data-hidden');
+            row.style.display = 'flex';
+            row.style.opacity = '1';
+            row.style.visibility = 'visible';
+        });
     }
     
-    // Transition état (qui va appeler transitionTo avec le case modifié)
+    // Transition état
     transitionTo(WorkoutStates.READY_COUNTDOWN);
     
-    // ✅ DOUBLE PROTECTION : Re-forcer après la transition au cas où
-    if (inputSection) {
-        inputSection.style.display = 'block'; // ou 'flex'
-        inputSection.style.opacity = '1';
-        inputSection.style.visibility = 'visible';
-    }
     let remaining = seconds;
-    updateCountdownDisplay(remaining); // Afficher "3" immédiatement
+    updateCountdownDisplay(remaining);
     
-    // Démarrer le countdown IMMÉDIATEMENT, pas après 1s
     const countdownTimer = setInterval(() => {
         remaining--;
         
@@ -671,11 +678,12 @@ function startCountdown(seconds) {
             clearInterval(countdownTimer);
             window.currentCountdownTimer = null;
             
-            updateCountdownDisplay(0); // Afficher "GO!"
+            updateCountdownDisplay(0);
             playGoSound();
             
-            // Petit délai pour voir "GO!" avant de démarrer
             setTimeout(() => {
+                // ✅ RESTAURER les reconfigurations d'exercice après countdown
+                window.suspendExerciseReconfiguration = false;
                 startSeriesAfterCountdown();
             }, 500);
         }
@@ -7250,9 +7258,14 @@ function applyFallbackRecommendations() {
  * Configuration pour exercices avec poids (pas de changement)
  */
 async function configureWeighted(elements, exercise, weightRec) {
-    // [Code identique à ma réponse précédente]
     if (!exercise || !exercise.id) {
         console.error('[ConfigureWeighted] Exercice invalide');
+        return;
+    }
+
+    // ✅ CORRECTIF 3 : Ne pas modifier les steppers pendant countdown motion
+    if (workoutState.current === WorkoutStates.READY_COUNTDOWN) {
+        console.log('[ConfigureWeighted] Configuration suspendue pendant countdown motion');
         return;
     }
 
@@ -7741,14 +7754,17 @@ function configureIsometric(elements, recommendations) {
         elements.weightRow.style.display = 'none';
     }
     
+    // ✅ CORRECTIF 1 : Ne pas modifier les steppers pendant countdown motion
+    if (workoutState.current === WorkoutStates.READY_COUNTDOWN) {
+        console.log('[Isometric] Configuration suspendue pendant countdown motion');
+        return;
+    }
+    
     // === PRÉSERVER LE COMPORTEMENT ORIGINAL : Masquer ligne reps ===
     if (elements.repsRow) {
         elements.repsRow.setAttribute('data-hidden', 'true');
         elements.repsRow.style.display = 'none';
     }
-    
-    // Le timer isométrique sera créé par le système existant
-    // PAS d'interface moderne N/R pour les isométriques
     
     console.log('[Isometric] Configuration terminée - Timer mode');
 }
@@ -7956,6 +7972,12 @@ async function configureUIForExerciseType(type, recommendations) {
  * Configuration pour exercices bodyweight
  */
 function configureBodyweight(elements, recommendations) {
+    // ✅ CORRECTIF 2 : Ne pas modifier les steppers pendant countdown motion
+    if (workoutState.current === WorkoutStates.READY_COUNTDOWN) {
+        console.log('[Bodyweight] Configuration suspendue pendant countdown motion');
+        return;
+    }
+    
     // Masquer la ligne de poids
     if (elements.weightRow) {
         elements.weightRow.setAttribute('data-hidden', 'true');
