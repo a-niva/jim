@@ -7640,6 +7640,7 @@ input {
         min-height: 12vw;
         max-height: 60px;
         justify-items: stretch;
+        display: flex;
     }
 
     .input-row .input-icon {

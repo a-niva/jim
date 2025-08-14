@@ -498,9 +498,9 @@
                 <input type="checkbox" id="mlToggle" checked onchange="if(currentExercise) toggleMLAdjustment(currentExercise.id)" style="display: none;">
                 <span class="ai-status-text">
                     <i class="fas fa-brain" style="margin-right: 0.5rem; opacity: 0.8;"></i>
-                    IA : <span id="aiStatus" style="font-weight: 600;">Actif</span>
+                    IA : <a id="aiStatus" style="font-weight: 600;">Actif</a>
                 </span>
-                <span class="ai-confidence"> Confiance : <span id="aiConfidence">85</span>%</span>
+                <span class="ai-confidence"> Confiance : <a id="aiConfidence">85</a>%</span>
             </div>
             <button class="ai-expand-btn" onclick="event.stopPropagation(); toggleAIDetails();" title="Détails IA">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
