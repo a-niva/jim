@@ -12829,46 +12829,37 @@ function resetMotionDetectorForNewSeries() {
 // === MOTION SENSOR : FONCTIONS UI SIMPLES ===
 function showMotionInstructions() {
     console.log('[Motion] === showMotionInstructions() appelée ===');
-    console.log('[Motion] État actuel:', workoutState.current);
-    console.log('[Motion] Exercise:', currentExercise?.name);
-    console.log('[Motion] Motion enabled:', currentUser?.motion_detection_enabled);
-
-    // ✅ PROTECTION CRITIQUE : Ne JAMAIS afficher en état executing
+    
+    // Protection EXECUTING
     if (workoutState.current === WorkoutStates.EXECUTING) {
         console.warn('[Motion] PROTECTION: Instructions motion bloquées en état EXECUTING');
         return;
     }
 
-    // ✅ NOUVEAU : Arrêter le timer série si il tourne (bug fix)
-    if (setTimer) {
-        clearInterval(setTimer);
-        setTimer = null;
-        isSetTimerRunning = false;
-        console.log('[Motion] Timer série arrêté pour éviter conflit');
-    }
-    
-    // ✅ NOUVEAU : Reset état timer 
-    if (setTimerState && setTimerState.reset) {
-        setTimerState.reset();
-    }
-
-    // ✅ NOUVELLE APPROCHE : Transformer les dots + ajouter texte intégré
+    // Dots en mode motion
     setSeriesDotsMotionMode(true);
-    showMotionTextUnderDots();
     
-    console.log('[Motion] Instructions intégrées sous les dots affichées');
+    // Activer la zone dédiée
+    const motionZone = document.getElementById('motionNotificationZone');
+    if (motionZone) {
+        motionZone.classList.add('active');
+        console.log('[Motion] Zone motion dédiée activée');
+    }
 }
 
 function hideMotionInstructions() {
     console.log('[Motion] hideMotionInstructions appelé');
     
-    // ✅ NOUVELLE APPROCHE : Restaurer dots + supprimer texte
+    // Restaurer dots
     setSeriesDotsMotionMode(false);
-    hideMotionTextUnderDots();
     
-    console.log('[Motion] Instructions intégrées supprimées, dots restaurés');
+    // Désactiver la zone dédiée
+    const motionZone = document.getElementById('motionNotificationZone');
+    if (motionZone) {
+        motionZone.classList.remove('active');
+        console.log('[Motion] Zone motion dédiée désactivée');
+    }
 }
-
 // === GESTION MODE MOTION DOTS ===
 
 function setSeriesDotsMotionMode(motionActive) {

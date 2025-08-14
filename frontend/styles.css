@@ -2013,25 +2013,6 @@ span {
     /* ✅ Gestion des 3 zones égales pour centrage parfait */
 }
 
-/* ✅ ZONE MOTION ADAPTATIVE - uniquement quand nécessaire */
-.exercise-header-motion-zone {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center; /* ✅ Centre verticalement */
-    width: 100%;
-    /* ✅ Hauteur adaptative : 0 quand vide, contenu quand présent */
-    min-height: 0;
-    transition: all 0.3s ease;
-    margin: 0;
-    padding: 0;
-}
-
-.exercise-header-motion-zone:not(:empty) {
-    min-height: 60px; /* Espace suffisant pour le texte */
-    padding-top: 8px;
-}
-
 /* Ligne principale des contrôles - TOUJOURS HORIZONTALE */
 .exercise-header-actions-row {
     display: flex;
@@ -2042,15 +2023,6 @@ span {
     height: 48px; /* Hauteur fixe */
     margin-bottom: 0;
 }
-
-/* ✅ Zone gauche - largeur fixe pour équilibrer */
-.exercise-header-controls-row > :first-child {
-    width: 80px; /* Largeur fixe même si voice caché */
-    display: flex;
-    justify-content: flex-start;
-    flex-shrink: 0;
-}
-
 
 /* Voice container dans sa zone */
 .exercise-header-actions .voice-status-container {
@@ -2063,14 +2035,6 @@ span {
     /* Prend juste la place nécessaire dans ses 80px */
 }
 
-/* ✅ Zone centre - dots parfaitement centrés */
-.exercise-header-controls-row > :nth-child(2) {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
 .exercise-header-actions .series-dots {
     display: flex;
     justify-content: center;
@@ -2079,14 +2043,6 @@ span {
     height: 48px;
     margin: 0;
     padding: 0;
-}
-
-/* ✅ Zone droite - largeur fixe pour équilibrer */
-.exercise-header-controls-row > :last-child {
-    width: 80px; /* Même largeur que zone gauche */
-    display: flex;
-    justify-content: flex-end;
-    flex-shrink: 0;
 }
 
 .exercise-header-actions .btn-change-exercise {
@@ -2230,24 +2186,6 @@ span {
     50% { left: 100%; }
     100% { left: -100%; }
 }
-
-.input-section {
-    margin-top: 0 !important;
-    /* ✅ S'assurer que le layout grid reste intact */
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: var(--spacing-md) !important;
-    width: 100% !important;
-}
-
-/* ✅ Forcer layout input-row correct */
-.input-row {
-    display: grid !important;
-    grid-template-columns: auto auto 1fr auto !important;
-    gap: var(--spacing-sm) !important;
-    align-items: center !important;
-}
-
 
 .stepper-modern {
     display: flex;
@@ -2485,11 +2423,6 @@ span {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-}
-
-.input-section:has(.input-row[data-hidden=true]) .input-row:not([data-hidden]) {
-    max-width: 350px;
-    margin: 0 auto var(--spacing-lg);
 }
 
 .input-row .input-icon {
@@ -7288,11 +7221,6 @@ input {
             font-size: var(--font-base);
     }
     
-    .input-section {
-        max-width: 100%;
-        margin: 0 0 var(--spacing-xl);
-    }
-
     .workout-header {
         padding: var(--spacing-sm);
         margin-bottom: var(--spacing-sm);
@@ -8134,12 +8062,6 @@ input {
     .btn-change-exercise svg {
         width: 14px;
         height: 14px;
-    }
-
-    /* ✅ Zone équilibrée sur mobile */
-    .exercise-header-controls-row > :first-child,
-    .exercise-header-controls-row > :last-child {
-        width: 60px;
     }
 
     .exercise-header-actions .voice-status-container {
@@ -9484,11 +9406,7 @@ input {
     }
 }
 
-
 /* === MOTION MODE POUR SERIES DOTS === */
-
-
-
 .dot.motion-dot {
     background: #2196F3 !important;
     transform: scale(1.1) !important;
@@ -9497,52 +9415,6 @@ input {
 
 .series-dots.motion-mode .dot::before {
     display: none !important;
-}
-
-/* ✅ TEXTE MOTION bien centré */
-.motion-text-under-dots {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    padding: 0;
-    opacity: 0;
-    transform: translateY(-5px); /* ✅ Moins de translation */
-    transition: all 0.3s ease;
-    color: #2196F3;
-    font-weight: 500;
-}
-
-/* ✅ NOUVEAU : Stabiliser position des steppers */
-.input-section {
-    margin-top: 0 !important; /* Pas de marge variable */
-    position: relative;
-    /* S'assurer que la position reste constante */
-}
-
-/* ✅ Zone motion toujours à la même place */
-.motion-text-under-dots {
-    position: absolute;
-    top: 48px; /* Position fixe sous la ligne principale */
-    left: 0;
-    right: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-    text-align: center;
-    margin-top: 0.5rem;
-    opacity: 0;
-    transform: translateY(-10px);
-    transition: all 0.3s ease;
-    color: #2196F3;
-    font-weight: 500;
-    z-index: 10;
-    /* ✅ Hauteur réservée même quand invisible */
-    height: 60px;
 }
 
 /* Animation main motion */
@@ -9611,4 +9483,126 @@ input {
         opacity: 0.3;
         transform: scale(1.3);
     }
+}
+
+
+
+
+
+
+/* === HEADER SIMPLIFIÉ ET STABLE === */
+.exercise-header-actions {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin-top: 0;
+    /* ✅ Hauteur fixe et stable */
+    min-height: 48px;
+    max-height: 48px;
+}
+
+.exercise-header-controls-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    height: 48px;
+    margin: 0;
+    padding: 0;
+}
+
+/* ✅ Zones équilibrées pour centrage parfait */
+.exercise-header-controls-row > div:first-child {
+    width: 60px;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.exercise-header-controls-row > div:nth-child(2) {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+}
+
+.exercise-header-controls-row > div:last-child {
+    width: 60px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* === ZONE MOTION DÉDIÉE ENTRE STEPPERS ET IA === */
+.motion-notification-zone {
+    width: 100%;
+    /* ✅ Hauteur adaptative : 0 par défaut */
+    height: 0;
+    overflow: hidden;
+    transition: height 0.3s ease, padding 0.3s ease;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ✅ Quand notification motion active */
+.motion-notification-zone.active {
+    height: 80px;
+    padding: var(--spacing-md) 0;
+}
+
+.motion-notification-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #2196F3;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+}
+
+.motion-notification-zone.active .motion-notification-content {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.motion-notification-icon {
+    font-size: 1.4rem;
+    margin-bottom: 0.4rem;
+    animation: motionBounce 1.5s ease-in-out infinite;
+}
+
+.motion-notification-text {
+    font-size: 0.9rem;
+    text-align: center;
+    line-height: 1.3;
+}
+
+@keyframes motionBounce {
+    0%, 100% { transform: translateY(0px); opacity: 1; }
+    50% { transform: translateY(6px); opacity: 0.8; }
+}
+
+/* === BOUTON CHANGE EXERCISE OPTIMISÉ === */
+.btn-change-exercise {
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: var(--font-xs);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all .3s ease;
+    padding: var(--spacing-xs);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-change-exercise svg {
+    width: 14px;
+    height: 14px;
 }

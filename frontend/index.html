@@ -369,168 +369,169 @@
                     </div>
                 </div>
             </div>
+
+<!-- Exercice en cours -->                
+<div class="active-workout-interface-container" id="currentExercise" style="display: none;">
+    <!-- Container pour tout le contenu de l'exercice -->
+    <div class="exercise-content-container">
+        
+        <!-- 1. Header exercice avec nom, description et contrôles -->
+        <div class="exercise-header-modern">
+            <div class="exercise-title-section">
+                <h2 id="exerciseName">Nom de l'exercice</h2>
+                <p class="exercise-instructions" id="exerciseInstructions"></p>
+            </div>
             
-            <!-- Exercice en cours -->                
-            <div class="active-workout-interface-container" id="currentExercise" style="display: none;">
-                <!-- Container pour tout le contenu de l'exercice -->
-                <div class="exercise-content-container">
-                    <!-- 1. Header exercice avec nom, description et bouton changer -->
-                    <div class="exercise-header-modern">
-                        <div class="exercise-title-section">
-                            <h2 id="exerciseName">Nom de l'exercice</h2>
-                            <p class="exercise-instructions" id="exerciseInstructions"></p>
-                        </div>
-<div class="exercise-header-actions">
-    <!-- ✅ LIGNE PRINCIPALE avec 3 zones équilibrées -->
-    <div class="exercise-header-controls-row">
-        <!-- Zone gauche : 80px fixe -->
-        <div>
-            <div class="voice-status-container" id="voiceStatusContainer" style="display: none;">
-                <button class="voice-status-btn" id="voiceStatusBtn" onclick="toggleVoiceRecognition()">
-                    <i class="fas fa-microphone" id="voiceStatusIcon"></i>
-                </button>
-                <span class="voice-status-text" id="voiceStatusText">Micro prêt</span>
-            </div>
-        </div>
-        
-        <!-- Zone centre : flex 1 -->
-        <div>
-            <div class="series-dots">
-                <span class="dot active"></span>
-                <span class="dot"></span>
-                <span class="dot"></span>
-            </div>
-        </div>
-        
-        <!-- Zone droite : 80px fixe -->
-        <div>
-            <button class="btn-change-exercise" onclick="changeExercise()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 3v6h-6M3 21v-6h6M15 3a9 9 0 00-9 9M9 21a9 9 0 009-9"/>
-                </svg>
-            </button>
-        </div>
-    </div>
-    
-    <!-- ✅ ZONE MOTION adaptative -->
-    <div class="exercise-header-motion-zone" id="exerciseHeaderMotionZone">
-        <!-- Le texte motion sera inséré ici dynamiquement -->
-    </div>
-</div>
-                    </div>
-                    
-                    <!-- 2. Zone d'input poids/reps et validation -->
-                    <div class="active-workout-interface-container">                        
-                        <!-- Zone d'input moderne -->
-                        <div class="input-section">
-                            <!-- Poids -->
-                            <div class="input-row charge-weight-container charge-mode-total">
-                                <span class="input-icon charge-mode-icon" id="chargeIcon"></span>
-                                <button class="stepper-modern" onclick="adjustWeightDown()">−</button>
-                                <div class="value-display charge-weight-display">
-                                    <div class="charge-weight-value">
-                                        <span id="setWeight" class="value">20</span>
-                                        <span class="unit">kg</span>
-                                    </div>
-                                    <div class="charge-mode-label"></div>
-                                    <!-- TOOLTIP SUPPRIMÉ -->
-                                </div>
-                                <button class="stepper-modern" onclick="adjustWeightUp()">+</button>
-                            </div>
-                                                        
-                        <!-- Répétitions - NOUVELLE INTERFACE N/R -->
-                        <div class="input-row">
-                            <span class="input-icon">🔢</span>
-                            <button class="stepper-modern" onclick="adjustReps(-1)">−</button>
-                            <div class="value-display">
-                                <!-- NOUVELLE ARCHITECTURE N/R -->
-                                <div id="repsDisplay" class="reps-display-modern">
-                                    <div class="current-rep" id="currentRep">0</div>
-                                    <div class="rep-separator">/</div>
-                                    <div class="target-rep" id="targetRep">12</div>
-                                    <div class="next-rep-preview" id="nextRepPreview"></div>
-                                </div>
-                                <div class="reps-unit-label">reps</div>
-                            </div>
-                            <button class="stepper-modern" onclick="adjustReps(1)">+</button>
-                        </div>
-
-                            <!-- BACKWARD COMPATIBILITY : Element caché pour anciennes fonctions -->
-                            <span id="setReps" style="display: none;">12</span>
-                        </div>
-                        
-                        <!-- Feedback après série (remplace la zone d'input après validation) -->
-                        <div id="setFeedback" class="set-feedback-modern" style="display: none;">
-                            <!-- Section Fatigue -->
-                            <div class="feedback-section-modern">
-                                <div class="feedback-header">
-                                    <h4>Fatigue ressentie :</h4>
-                                </div>
-                                <div class="feedback-options-modern">
-                                    <button class="emoji-btn-modern" data-fatigue="1" onclick="selectFatigue(this, 1)">😎</button>
-                                    <button class="emoji-btn-modern" data-fatigue="2" onclick="selectFatigue(this, 2)">🙂</button>
-                                    <button class="emoji-btn-modern" data-fatigue="3" onclick="selectFatigue(this, 3)">😐</button>
-                                    <button class="emoji-btn-modern" data-fatigue="4" onclick="selectFatigue(this, 4)">😓</button>
-                                    <button class="emoji-btn-modern" data-fatigue="5" onclick="selectFatigue(this, 5)">🥵</button>
-                                </div>
-                            </div>
-
-                            <!-- Section Effort -->
-                            <div class="feedback-section-modern">
-                                <div class="feedback-header">
-                                    <h4>Effort  :</h4>
-                                </div>
-                                <div class="feedback-options-modern">
-                                    <button class="emoji-btn-modern" data-effort="1" onclick="selectEffort(this, 1)">❄️</button>
-                                    <button class="emoji-btn-modern" data-effort="2" onclick="selectEffort(this, 2)">🌨️</button>
-                                    <button class="emoji-btn-modern" data-effort="3" onclick="selectEffort(this, 3)">🌥️</button>
-                                    <button class="emoji-btn-modern" data-effort="4" onclick="selectEffort(this, 4)">🌤️</button>
-                                    <button class="emoji-btn-modern" data-effort="5" onclick="selectEffort(this, 5)">☀️</button>
-                                </div>
-                            </div>
+            <!-- ✅ CONTRÔLES HEADER STABLES : micro | dots | bouton -->
+            <div class="exercise-header-actions">
+                <div class="exercise-header-controls-row">
+                    <!-- Zone gauche : voice container -->
+                    <div>
+                        <div class="voice-status-container" id="voiceStatusContainer" style="display: none;">
+                            <button class="voice-status-btn" id="voiceStatusBtn" onclick="toggleVoiceRecognition()">
+                                <i class="fas fa-microphone" id="voiceStatusIcon"></i>
+                            </button>
+                            <span class="voice-status-text" id="voiceStatusText">Micro prêt</span>
                         </div>
                     </div>
                     
-                    <!-- 3. Ligne de statut IA cliquable -->
-                    <div class="ai-status-line" onclick="if(currentExercise && event.target.closest('.ai-expand-btn') === null) { document.getElementById('mlToggle').click(); }" style="cursor: pointer;">
-                        <div class="ai-toggle-container">
-                            <input type="checkbox" id="mlToggle" checked onchange="if(currentExercise) toggleMLAdjustment(currentExercise.id)" style="display: none;">
-                            <span class="ai-status-text">
-                                <i class="fas fa-brain" style="margin-right: 0.5rem; opacity: 0.8;"></i>
-                                IA : <a id="aiStatus" style="font-weight: 600;">Actif</span>
-                            </span>
-                            <span class="ai-confidence"> Confiance : <a id="aiConfidence">85</a>%</span>
+                    <!-- Zone centre : series dots -->
+                    <div>
+                        <div class="series-dots">
+                            <span class="dot active"></span>
+                            <span class="dot"></span>
+                            <span class="dot"></span>
                         </div>
-                        <button class="ai-expand-btn" onclick="event.stopPropagation(); toggleAIDetails();" title="Détails IA">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M19 9l-7 7-7-7"/>
+                    </div>
+                    
+                    <!-- Zone droite : bouton changer exercice -->
+                    <div>
+                        <button class="btn-change-exercise" onclick="changeExercise()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 3v6h-6M3 21v-6h6M15 3a9 9 0 00-9 9M9 21a9 9 0 009-9"/>
                             </svg>
                         </button>
                     </div>
-                    
-                    <!-- Détails AI (caché par défaut) -->
-                    <div class="ai-details-panel" id="aiDetailsPanel">
-                        <div class="ai-detail-grid">
-                            <div class="ai-detail-item">
-                                <span class="detail-label">Poids recommandé</span>
-                                <span class="detail-value" id="aiWeightRec">22.5kg</span>
-                            </div>
-                            <div class="ai-detail-item">
-                                <span class="detail-label">Reps recommandées</span>
-                                <span class="detail-value" id="aiRepsRec">10</span>
-                            </div>
-                            <div class="ai-detail-item">
-                                <span class="detail-label">Stratégie</span>
-                                <span class="detail-value" id="aiStrategy">Progressive</span>
-                            </div>
-                            <div class="ai-detail-item">
-                                <span class="detail-label">Raison</span>
-                                <span class="detail-value" id="aiReason">Basé sur vos 3 dernières séries</span>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
+        </div>
+        
+        <!-- 2. ✅ STEPPERS STABLES -->
+        <div class="input-section">
+            <!-- Poids -->
+            <div class="input-row charge-weight-container charge-mode-total">
+                <span class="input-icon charge-mode-icon" id="chargeIcon"></span>
+                <button class="stepper-modern" onclick="adjustWeightDown()">−</button>
+                <div class="value-display charge-weight-display">
+                    <div class="charge-weight-value">
+                        <span id="setWeight" class="value">20</span>
+                        <span class="unit">kg</span>
+                    </div>
+                    <div class="charge-mode-label"></div>
+                </div>
+                <button class="stepper-modern" onclick="adjustWeightUp()">+</button>
+            </div>
+                                        
+            <!-- Répétitions - NOUVELLE INTERFACE N/R -->
+            <div class="input-row">
+                <span class="input-icon">🔢</span>
+                <button class="stepper-modern" onclick="adjustReps(-1)">−</button>
+                <div class="value-display">
+                    <!-- NOUVELLE ARCHITECTURE N/R -->
+                    <div id="repsDisplay" class="reps-display-modern">
+                        <div class="current-rep" id="currentRep">0</div>
+                        <div class="rep-separator">/</div>
+                        <div class="target-rep" id="targetRep">12</div>
+                        <div class="next-rep-preview" id="nextRepPreview"></div>
+                    </div>
+                    <div class="reps-unit-label">reps</div>
+                </div>
+                <button class="stepper-modern" onclick="adjustReps(1)">+</button>
+            </div>
+
+            <!-- BACKWARD COMPATIBILITY : Element caché pour anciennes fonctions -->
+            <span id="setReps" style="display: none;">12</span>
+        </div>
+        
+        <!-- 3. ✅ ZONE MOTION DÉDIÉE (entre steppers et IA) -->
+        <div class="motion-notification-zone" id="motionNotificationZone">
+            <div class="motion-notification-content">
+                <i class="fas fa-hand-point-down motion-notification-icon"></i>
+                <span class="motion-notification-text">Posez votre téléphone pour démarrer</span>
+            </div>
+        </div>
+        
+        <!-- 4. Feedback après série (remplace la zone d'input après validation) -->
+        <div id="setFeedback" class="set-feedback-modern" style="display: none;">
+            <!-- Section Fatigue -->
+            <div class="feedback-section-modern">
+                <div class="feedback-header">
+                    <h4>Fatigue ressentie :</h4>
+                </div>
+                <div class="feedback-options-modern">
+                    <button class="emoji-btn-modern" data-fatigue="1" onclick="selectFatigue(this, 1)">😎</button>
+                    <button class="emoji-btn-modern" data-fatigue="2" onclick="selectFatigue(this, 2)">🙂</button>
+                    <button class="emoji-btn-modern" data-fatigue="3" onclick="selectFatigue(this, 3)">😐</button>
+                    <button class="emoji-btn-modern" data-fatigue="4" onclick="selectFatigue(this, 4)">😓</button>
+                    <button class="emoji-btn-modern" data-fatigue="5" onclick="selectFatigue(this, 5)">🥵</button>
+                </div>
+            </div>
+
+            <!-- Section Effort -->
+            <div class="feedback-section-modern">
+                <div class="feedback-header">
+                    <h4>Effort  :</h4>
+                </div>
+                <div class="feedback-options-modern">
+                    <button class="emoji-btn-modern" data-effort="1" onclick="selectEffort(this, 1)">❄️</button>
+                    <button class="emoji-btn-modern" data-effort="2" onclick="selectEffort(this, 2)">🌨️</button>
+                    <button class="emoji-btn-modern" data-effort="3" onclick="selectEffort(this, 3)">🌥️</button>
+                    <button class="emoji-btn-modern" data-effort="4" onclick="selectEffort(this, 4)">🌤️</button>
+                    <button class="emoji-btn-modern" data-effort="5" onclick="selectEffort(this, 5)">☀️</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 5. Ligne de statut IA cliquable -->
+        <div class="ai-status-line" onclick="if(currentExercise && event.target.closest('.ai-expand-btn') === null) { document.getElementById('mlToggle').click(); }" style="cursor: pointer;">
+            <div class="ai-toggle-container">
+                <input type="checkbox" id="mlToggle" checked onchange="if(currentExercise) toggleMLAdjustment(currentExercise.id)" style="display: none;">
+                <span class="ai-status-text">
+                    <i class="fas fa-brain" style="margin-right: 0.5rem; opacity: 0.8;"></i>
+                    IA : <span id="aiStatus" style="font-weight: 600;">Actif</span>
+                </span>
+                <span class="ai-confidence"> Confiance : <span id="aiConfidence">85</span>%</span>
+            </div>
+            <button class="ai-expand-btn" onclick="event.stopPropagation(); toggleAIDetails();" title="Détails IA">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 9l-7 7-7-7"/>
+                </svg>
+            </button>
+        </div>
+        
+        <!-- 6. Détails AI (caché par défaut) -->
+        <div class="ai-details-panel" id="aiDetailsPanel">
+            <div class="ai-detail-grid">
+                <div class="ai-detail-item">
+                    <span class="detail-label">Poids recommandé</span>
+                    <span class="detail-value" id="aiWeightRec">22.5kg</span>
+                </div>
+                <div class="ai-detail-item">
+                    <span class="detail-label">Reps recommandées</span>
+                    <span class="detail-value" id="aiRepsRec">10</span>
+                </div>
+                <div class="ai-detail-item">
+                    <span class="detail-label">Stratégie</span>
+                    <span class="detail-value" id="aiStrategy">Progressive</span>
+                </div>
+                <div class="ai-detail-item">
+                    <span class="detail-label">Raison</span>
+                    <span class="detail-value" id="aiReason">Basé sur vos 3 dernières séries</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
             <!-- Container pour les exercices du programme -->
             <div class="program-active-workout-container" id="programExercisesContainer" style="display: none;">
