@@ -9274,11 +9274,9 @@ input {
     width: 100%;
     height: 0;
     overflow: hidden;
-    transition: height 0.3s ease, padding 0.3s ease;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    transition: height 0.3s ease;
+    /* IMPORTANT : position relative ou static, PAS absolute */
+    position: relative; 
 }
 
 .motion-notification-zone.active {

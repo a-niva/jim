@@ -13006,34 +13006,44 @@ function setSeriesDotsMotionMode(motionActive) {
     }
 }
 
-function showMotionTextUnderDots() {
-    // ✅ Utiliser la zone réservée au lieu du container parent
-    const motionZone = document.getElementById('exerciseHeaderMotionZone');
-    if (!motionZone) return;
+function showMotionInstructions() {
+    console.log('[Motion] === showMotionInstructions() appelée ===');
+    console.log('[Motion] État actuel:', workoutState.current);
     
-    // Vérifier si le texte existe déjà
-    let motionText = document.getElementById('motionTextUnderDots');
-    if (motionText) return; // Déjà affiché
+    // Protection contre état executing
+    if (workoutState.current === WorkoutStates.EXECUTING) {
+        console.warn('[Motion] PROTECTION: Instructions motion bloquées en état EXECUTING');
+        return;
+    }
+
+    // Arrêter le timer série si il tourne
+    if (setTimer) {
+        clearInterval(setTimer);
+        setTimer = null;
+        console.log('[Motion] Timer série arrêté pour éviter conflit');
+    }
+
+    // 1. Dots en mode motion (tous bleus)
+    setSeriesDotsMotionMode(true);
     
-    // Créer le texte motion dans la zone réservée
-    motionText = document.createElement('div');
-    motionText.id = 'motionTextUnderDots';
-    motionText.className = 'motion-text-under-dots';
-    motionText.innerHTML = `
-        <i class="fas fa-hand-point-down motion-hand-icon"></i>
-        <span class="motion-instruction-text">Posez votre téléphone pour démarrer</span>
-    `;
+    // 2. ❌ SUPPRIMER L'APPEL À showMotionTextUnderDots() QUI NE MARCHE PAS
+    // showMotionTextUnderDots(); // SUPPRIMER CETTE LIGNE
     
-    // ✅ Insérer dans la zone motion réservée
-    motionZone.appendChild(motionText);
+    // 3. ✅ ACTIVER LA ZONE MOTION DÉDIÉE (le texte est déjà dans le HTML)
+    const motionZone = document.getElementById('motionNotificationZone');
+    if (motionZone) {
+        motionZone.classList.add('active');
+        console.log('[Motion] Zone motion activée (height 0 → 80px)');
+    } else {
+        console.error('[Motion] ⚠️ Zone motionNotificationZone introuvable !');
+    }
     
-    // Animation d'apparition
-    requestAnimationFrame(() => {
-        motionText.style.opacity = '1';
-        motionText.style.transform = 'translateY(0)';
-    });
-    
-    console.log('[Motion] Texte motion affiché dans la zone réservée');
+    // 4. S'assurer que les steppers restent visibles
+    const inputSection = document.querySelector('.input-section');
+    if (inputSection) {
+        inputSection.style.display = 'block';
+        inputSection.style.opacity = '1';
+    }
 }
 
 function hideMotionTextUnderDots() {
