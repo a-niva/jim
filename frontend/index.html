@@ -381,29 +381,38 @@
                             <p class="exercise-instructions" id="exerciseInstructions"></p>
                         </div>
 <div class="exercise-header-actions">
-    <!-- ✅ LIGNE PRINCIPALE : micro | dots | bouton -->
+    <!-- ✅ LIGNE PRINCIPALE avec 3 zones équilibrées -->
     <div class="exercise-header-controls-row">
-        <div class="voice-status-container" id="voiceStatusContainer" style="display: none;">
-            <button class="voice-status-btn" id="voiceStatusBtn" onclick="toggleVoiceRecognition()">
-                <i class="fas fa-microphone" id="voiceStatusIcon"></i>
+        <!-- Zone gauche : 80px fixe -->
+        <div>
+            <div class="voice-status-container" id="voiceStatusContainer" style="display: none;">
+                <button class="voice-status-btn" id="voiceStatusBtn" onclick="toggleVoiceRecognition()">
+                    <i class="fas fa-microphone" id="voiceStatusIcon"></i>
+                </button>
+                <span class="voice-status-text" id="voiceStatusText">Micro prêt</span>
+            </div>
+        </div>
+        
+        <!-- Zone centre : flex 1 -->
+        <div>
+            <div class="series-dots">
+                <span class="dot active"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+            </div>
+        </div>
+        
+        <!-- Zone droite : 80px fixe -->
+        <div>
+            <button class="btn-change-exercise" onclick="changeExercise()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 3v6h-6M3 21v-6h6M15 3a9 9 0 00-9 9M9 21a9 9 0 009-9"/>
+                </svg>
             </button>
-            <span class="voice-status-text" id="voiceStatusText">Micro prêt</span>
         </div>
-        
-        <div class="series-dots">
-            <span class="dot active"></span>
-            <span class="dot"></span>
-            <span class="dot"></span>
-        </div>
-        
-        <button class="btn-change-exercise" onclick="changeExercise()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 3v6h-6M3 21v-6h6M15 3a9 9 0 00-9 9M9 21a9 9 0 009-9"/>
-            </svg>
-        </button>
     </div>
     
-    <!-- ✅ ZONE RÉSERVÉE pour texte motion -->
+    <!-- ✅ ZONE MOTION adaptative -->
     <div class="exercise-header-motion-zone" id="exerciseHeaderMotionZone">
         <!-- Le texte motion sera inséré ici dynamiquement -->
     </div>
