@@ -12901,20 +12901,15 @@ function setSeriesDotsMotionMode(motionActive) {
 }
 
 function showMotionTextUnderDots() {
-    const dotsContainer = document.querySelector('.series-dots');
-    if (!dotsContainer) return;
-    
-    // ✅ Ajouter classe au container parent pour layout
-    const headerActions = document.querySelector('.exercise-header-actions');
-    if (headerActions) {
-        headerActions.classList.add('motion-active');
-    }
+    // ✅ Utiliser la zone réservée au lieu du container parent
+    const motionZone = document.getElementById('exerciseHeaderMotionZone');
+    if (!motionZone) return;
     
     // Vérifier si le texte existe déjà
     let motionText = document.getElementById('motionTextUnderDots');
     if (motionText) return; // Déjà affiché
     
-    // Créer le texte motion sous les dots
+    // Créer le texte motion dans la zone réservée
     motionText = document.createElement('div');
     motionText.id = 'motionTextUnderDots';
     motionText.className = 'motion-text-under-dots';
@@ -12923,8 +12918,8 @@ function showMotionTextUnderDots() {
         <span class="motion-instruction-text">Posez votre téléphone pour démarrer</span>
     `;
     
-    // ✅ Insérer dans le container header-actions directement
-    headerActions.appendChild(motionText);
+    // ✅ Insérer dans la zone motion réservée
+    motionZone.appendChild(motionText);
     
     // Animation d'apparition
     requestAnimationFrame(() => {
@@ -12932,18 +12927,12 @@ function showMotionTextUnderDots() {
         motionText.style.transform = 'translateY(0)';
     });
     
-    console.log('[Motion] Texte motion affiché sous les dots');
+    console.log('[Motion] Texte motion affiché dans la zone réservée');
 }
 
 function hideMotionTextUnderDots() {
     const motionText = document.getElementById('motionTextUnderDots');
     if (!motionText) return;
-    
-    // ✅ Retirer classe du parent
-    const headerActions = document.querySelector('.exercise-header-actions');
-    if (headerActions) {
-        headerActions.classList.remove('motion-active');
-    }
     
     // Animation de disparition
     motionText.style.opacity = '0';
