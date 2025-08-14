@@ -638,14 +638,25 @@ function createMotionCallbacksV2() {
 function startCountdown(seconds) {
     console.log('[Motion] Démarrage countdown', seconds);
     
-    transitionTo(WorkoutStates.READY_COUNTDOWN);
-    
-    // ✅ PROTECTION : S'assurer que les steppers restent visibles
+    // ✅ PROTECTION PRÉVENTIVE : Forcer les steppers AVANT la transition
     const inputSection = document.querySelector('.input-section');
     if (inputSection) {
-        inputSection.style.display = 'flex'; // Forcer affichage
+        inputSection.style.display = 'block'; // ou 'flex'
+        inputSection.style.opacity = '1';
+        inputSection.style.visibility = 'visible';
+        inputSection.classList.remove('hidden', 'countdown-active', 'motion-active');
+        console.log('[Countdown] Steppers forcés visibles AVANT transition');
     }
     
+    // Transition état (qui va appeler transitionTo avec le case modifié)
+    transitionTo(WorkoutStates.READY_COUNTDOWN);
+    
+    // ✅ DOUBLE PROTECTION : Re-forcer après la transition au cas où
+    if (inputSection) {
+        inputSection.style.display = 'block'; // ou 'flex'
+        inputSection.style.opacity = '1';
+        inputSection.style.visibility = 'visible';
+    }
     let remaining = seconds;
     updateCountdownDisplay(remaining); // Afficher "3" immédiatement
     
@@ -1065,14 +1076,14 @@ function transitionTo(state) {
         '#executeSetBtn',
         '#setFeedback', 
         '#restPeriod'
-        // ✅ RETIRER '.input-section' pour éviter de masquer les steppers
     ];
 
     // États qui ont besoin de l'UI visible - AJOUTER READY_COUNTDOWN
     const statesNeedingUI = [
         WorkoutStates.READY, 
         WorkoutStates.EXECUTING, 
-        WorkoutStates.READY_COUNTDOWN  // ✅ IMPORTANT : Garder steppers pendant countdown
+        WorkoutStates.READY_COUNTDOWN,
+        WorkoutStates.RESTING
     ];
 
     if (!statesNeedingUI.includes(newState)) {
@@ -1120,14 +1131,29 @@ function transitionTo(state) {
             document.getElementById('executeSetBtn').style.display = 'block';
             document.querySelector('.input-section').style.display = 'block';
             
-            // CRUCIAL : Garantir l'interface N/R avant vocal
+            // Protection supplémentaire pour garantir visibilité
+            const inputSectionReady = document.querySelector('.input-section');
+            if (inputSectionReady) {
+                inputSectionReady.style.display = 'block';
+                inputSectionReady.style.opacity = '1';
+                inputSectionReady.style.visibility = 'visible';
+                inputSectionReady.classList.remove('hidden', 'countdown-active', 'motion-active');
+            }
+            
+            // Masquer le feedback s'il était encore visible
+            const setFeedbackReady = document.getElementById('setFeedback');
+            if (setFeedbackReady) {
+                setFeedbackReady.style.display = 'none';
+            }
+            
+            // Code existant pour l'interface N/R...
             const currentRepEl = document.getElementById('currentRep');
             if (currentRepEl && currentRepEl.textContent !== '0') {
                 currentRepEl.textContent = '0';
                 console.log('[Fix] Interface N/R préservée avant démarrage vocal');
             }
             
-            // Vocal si activé (après garantie interface)
+            // Code existant pour le vocal...
             if (currentUser?.voice_counting_enabled && 
                 window.startVoiceRecognition && 
                 !window.voiceRecognitionActive?.()) {
@@ -1139,17 +1165,34 @@ function transitionTo(state) {
             console.log('[DEBUG] Case READY_COUNTDOWN atteint');
             // Masquer bouton execute pendant countdown
             document.getElementById('executeSetBtn').style.display = 'none';
-            document.querySelector('.input-section').style.display = 'none';
-            // CRITIQUE : Appeler showCountdownInterface
+      
+            // Forcer les steppers à rester visibles
+            const inputSectionCountdown = document.querySelector('.input-section');
+            if (inputSectionCountdown) {
+                inputSectionCountdown.style.display = 'block'; // ou 'flex' selon votre layout
+                inputSectionCountdown.style.opacity = '1';
+                inputSectionCountdown.style.visibility = 'visible';
+                inputSectionCountdown.classList.remove('hidden', 'countdown-active', 'motion-active');
+            }
+            
+            // Appeler showCountdownInterface (même si elle ne fait rien pour l'instant)
             showCountdownInterface();
             break;
                     
         case WorkoutStates.EXECUTING:
-            // CRITIQUE : Réafficher l'interface des steppers
+            // GARANTIR que les steppers sont visibles après countdown
             document.getElementById('executeSetBtn').style.display = 'block';
             document.querySelector('.input-section').style.display = 'block';
             
-            // S'assurer que les steppers sont visibles
+            // Protection supplémentaire
+            const inputSectionExecuting = document.querySelector('.input-section');
+            if (inputSectionExecuting) {
+                inputSectionExecuting.style.display = 'block'; // ou 'flex'
+                inputSectionExecuting.style.opacity = '1';
+                inputSectionExecuting.style.visibility = 'visible';
+            }
+            
+            // S'assurer que le container de steppers est visible (si existe)
             const stepperContainer = document.querySelector('.stepper-container');
             if (stepperContainer) {
                 stepperContainer.style.display = 'flex';
@@ -1158,15 +1201,21 @@ function transitionTo(state) {
             // Masquer le countdown s'il est encore là
             hideCountdownInterface();
             break;
-            
+                    
         case WorkoutStates.FEEDBACK:
             document.getElementById('setFeedback').style.display = 'block';
             
-            // ✅ MASQUER steppers pour que fatigue/effort les remplacent
+            // MASQUER les steppers pour que fatigue/effort les remplacent
             const inputSectionFeedback = document.querySelector('.input-section');
             if (inputSectionFeedback) {
                 inputSectionFeedback.style.display = 'none';
                 console.log('[UI] Steppers masqués pour feedback fatigue/effort');
+            }
+            
+            // IMPORTANT : Masquer aussi la zone motion si elle était active
+            const motionZoneFeedback = document.getElementById('motionNotificationZone');
+            if (motionZoneFeedback) {
+                motionZoneFeedback.classList.remove('active');
             }
             break;
 
@@ -1176,11 +1225,19 @@ function transitionTo(state) {
                 window.OverlayManager.show('rest', restPeriod);
             }
             
-            // ✅ RESTAURER steppers après feedback (pour série suivante)
+            // RESTAURER les steppers après feedback pour série suivante
             const inputSectionResting = document.querySelector('.input-section');
             if (inputSectionResting) {
                 inputSectionResting.style.display = 'block';
-                console.log('[UI] Steppers restaurés après feedback');
+                inputSectionResting.style.opacity = '1';
+                inputSectionResting.style.visibility = 'visible';
+                console.log('[UI] Steppers restaurés pendant repos');
+            }
+            
+            // Masquer le feedback qui était affiché
+            const setFeedbackResting = document.getElementById('setFeedback');
+            if (setFeedbackResting) {
+                setFeedbackResting.style.display = 'none';
             }
             break;
     }
@@ -10339,7 +10396,7 @@ async function loadAvailableExercises() {
                         </div>
                     </div>
 
-                <!-- AJOUTER : Filtres équipement -->
+                <!-- Filtres équipement -->
                 <div class="equipment-filters">
                     <div class="equipment-tabs">
                         ${(() => {
@@ -12760,44 +12817,83 @@ function completeRest() {
         transitionTo(WorkoutStates.COMPLETED);
         showSetCompletionOptions();
     } else {
-        // Incrémentation série (conserver logique)
+        // Incrémentation série
         currentSet++;
         currentWorkoutSession.currentSetNumber = currentSet;
         
-        // Mises à jour interface (conserver logique)
+        // Mises à jour interface
         updateSeriesDots();
         updateHeaderProgress();
+        
+        // Update recommendations AVANT le reset interface
+        if (currentWorkoutSession.type === 'program') {
+            updateProgramExerciseProgress();
+            loadProgramExercisesList();
+        }
+        
         updateSetRecommendations();
-        // Transition vers READY (interface exclusive)
-        // Reset l'interface N/R
-        transitionToReadyState();
+        
+        // Reset interface N/R avec protection
+        if (typeof transitionToReadyState === 'function') {
+            transitionToReadyState();
+            console.log('[Rest] Interface N/R reset via transitionToReadyState');
+        } else {
+            // Fallback direct si la fonction n'existe pas
+            const currentRepEl = document.getElementById('currentRep');
+            if (currentRepEl) {
+                currentRepEl.textContent = '0';
+                console.log('[Rest] Reset manuel du compteur de reps');
+            }
+            // Reset aussi via la fonction moderne si elle existe
+            if (typeof initializeModernRepsDisplay === 'function') {
+                const targetRep = document.getElementById('targetRep');
+                const targetValue = targetRep ? parseInt(targetRep.textContent) : 12;
+                initializeModernRepsDisplay(targetValue, 0);
+            }
+        }
+        
+        // Transition vers READY
         transitionTo(WorkoutStates.READY);
-        // NOUVEAU : Réactiver motion APRÈS transition (Fix race condition)
-        // Réactiver motion detection pour série suivante
+        
+        // Gestion motion/vocal selon les priorités
         if (currentUser?.motion_detection_enabled && 
             window.motionDetectionEnabled && 
             window.motionDetector &&
             currentExercise?.exercise_type !== 'isometric') {
             
-            console.log('[Motion] Réactivation motion detector');
+            console.log('[Motion] Réactivation motion detector pour série suivante');
             
             // Reset state interne motion detector
             window.motionDetector.state = 'unknown';
             window.motionDetector.stationaryStartTime = null;
             window.motionDetector.pickupStartTime = null;
             
-            // Réafficher instructions
+            // Réafficher instructions motion
             showMotionInstructions();
             updateMotionIndicator(false);
             
             // Redémarrer monitoring
             window.motionDetector.startMonitoring(createMotionCallbacksV2());
             
-            console.log('[Motion] Prêt pour série suivante');
+            console.log('[Motion] Motion detector prêt, vocal en attente');
+            
+            // ✅ PAS d'activation vocale ici si motion est actif
+            // Le vocal sera activé automatiquement après le countdown motion
+            
+        } else {
+            // ✅ Activer vocal SEULEMENT si pas de motion
+            console.log('[Rest] Pas de motion, activation vocale directe');
+            activateVoiceForWorkout();
         }
-               
-        // Sinon, vocal normal
-        activateVoiceForWorkout();
+        
+        // S'assurer que les steppers sont bien visibles
+        const inputSection = document.querySelector('.input-section');
+        if (inputSection) {
+            inputSection.style.display = 'flex';
+            inputSection.style.opacity = '1';
+            inputSection.style.visibility = 'visible';
+            console.log('[Rest] Steppers forcés visibles après repos');
+        }
     }
 }
 
@@ -12829,36 +12925,55 @@ function resetMotionDetectorForNewSeries() {
 // === MOTION SENSOR : FONCTIONS UI SIMPLES ===
 function showMotionInstructions() {
     console.log('[Motion] === showMotionInstructions() appelée ===');
+    console.log('[Motion] État actuel:', workoutState.current);
     
-    // Protection EXECUTING
+    // Protection contre état executing
     if (workoutState.current === WorkoutStates.EXECUTING) {
         console.warn('[Motion] PROTECTION: Instructions motion bloquées en état EXECUTING');
         return;
     }
 
-    // Dots en mode motion
+    // Arrêter le timer série si il tourne (bug fix)
+    if (setTimer) {
+        clearInterval(setTimer);
+        setTimer = null;
+        console.log('[Motion] Timer série arrêté pour éviter conflit');
+    }
+
+    // 1. Dots en mode motion (tous bleus)
     setSeriesDotsMotionMode(true);
     
-    // Activer la zone dédiée
+    // 2. ✅ ACTIVER LA ZONE MOTION DÉDIÉE
     const motionZone = document.getElementById('motionNotificationZone');
     if (motionZone) {
         motionZone.classList.add('active');
-        console.log('[Motion] Zone motion dédiée activée');
+        console.log('[Motion] Zone motion activée (height 0 → 80px)');
+    } else {
+        console.error('[Motion] ⚠️ Zone motionNotificationZone introuvable !');
+    }
+    
+    // 3. S'assurer que les steppers restent visibles
+    const inputSection = document.querySelector('.input-section');
+    if (inputSection) {
+        inputSection.style.display = 'block'; // ou 'flex'
+        inputSection.style.opacity = '1';
     }
 }
 
 function hideMotionInstructions() {
     console.log('[Motion] hideMotionInstructions appelé');
     
-    // Restaurer dots
+    // 1. Restaurer les dots en mode normal
     setSeriesDotsMotionMode(false);
     
-    // Désactiver la zone dédiée
+    // 2. ✅ DÉSACTIVER LA ZONE MOTION DÉDIÉE
     const motionZone = document.getElementById('motionNotificationZone');
     if (motionZone) {
         motionZone.classList.remove('active');
-        console.log('[Motion] Zone motion dédiée désactivée');
+        console.log('[Motion] Zone motion désactivée (height 80px → 0)');
     }
+    
+    // 3. Les steppers restent toujours visibles (ne pas toucher)
 }
 // === GESTION MODE MOTION DOTS ===
 

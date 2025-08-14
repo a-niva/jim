@@ -9143,95 +9143,191 @@ input {
     text-shadow: 0 2px 4px rgba(0,0,0,0.3) !important;
 }
 
-@keyframes countdown-pulse {
-    0% { transform: scale(1); }
-    100% { transform: scale(1.02); }
+
+
+
+
+
+
+
+
+
+
+
+
+/* ================================================= */
+/* SECTION HEADER - LAYOUT STABLE */
+/* ================================================= */
+
+.exercise-header-actions {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin-top: 0;
+    min-height: 48px;
+    max-height: 48px;
 }
 
-/* Supprimer le reset brutal qui casse tout */
-.countdown-mode {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    padding: 40px !important;
-    text-align: center !important;
-    background: linear-gradient(135deg, #FF9800, #F57C00) !important;
-    border: 2px solid #FF9800 !important;
-    border-radius: 12px !important;
-    color: white !important;
-    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3) !important;
-    position: relative !important;
-    overflow: visible !important;
-    font-family: inherit !important;
-    line-height: normal !important;
-    box-sizing: border-box !important;
+.exercise-header-controls-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    height: 48px;
+    margin: 0;
+    padding: 0;
 }
 
-/* Assurer que le contenu reste centré */
-.countdown-mode .countdown-content {
-    width: 100% !important;
-    max-width: 300px !important;
-    margin: 0 auto !important;
-    position: relative !important;
+/* Zones équilibrées pour centrage parfait des dots */
+.exercise-header-controls-row > div:first-child {
+    width: 60px;
+    display: flex;
+    justify-content: flex-start;
 }
 
-/* Fix ring container déformé */
-.countdown-mode .countdown-ring-container {
-    width: 120px !important;
-    height: 120px !important;
-    margin: 0 auto 1.5rem !important;
-    position: relative !important;
-    display: block !important;
+.exercise-header-controls-row > div:nth-child(2) {
+    flex: 1;
+    display: flex;
+    justify-content: center;
 }
 
-/* Fix SVG qui se déforme */
-.countdown-mode .countdown-ring {
-    width: 100% !important;
-    height: 100% !important;
-    transform: rotate(-90deg) !important;
-    display: block !important;
+.exercise-header-controls-row > div:last-child {
+    width: 60px;
+    display: flex;
+    justify-content: flex-end;
 }
 
-/* Fix nombre countdown centré */
-.countdown-mode .countdown-number {
-    position: absolute !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    font-size: 3rem !important;
-    font-weight: bold !important;
-    color: white !important;
-    text-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
-    font-family: inherit !important;
-    line-height: 1 !important;
-    z-index: 10 !important;
+/* Bouton changement exercice */
+.btn-change-exercise {
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: var(--font-xs);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all .3s ease;
+    padding: var(--spacing-xs);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-/* Fix textes countdown */
-.countdown-mode .countdown-text {
-    font-size: 1.2rem !important;
-    color: white !important;
-    margin: 0.5rem 0 !important;
-    font-weight: 500 !important;
-    font-family: inherit !important;
+.btn-change-exercise:hover {
+    background: rgba(255,255,255,.1);
+    border-color: rgba(255,255,255,.2);
 }
 
-.countdown-mode .countdown-subtext {
-    font-size: 0.9rem !important;
-    color: rgba(255, 255, 255, 0.8) !important;
-    margin: 0 !important;
-    font-family: inherit !important;
+.btn-change-exercise svg {
+    width: 14px;
+    height: 14px;
 }
 
-/* ===== BACKUP : Styles ring SVG robustes ===== */
-.countdown-ring-progress {
-    transition: stroke-dashoffset 1s linear !important;
-    stroke: white !important;
-    stroke-width: 4 !important;
-    fill: none !important;
+/* ================================================= */
+/* SECTION SERIES DOTS - ÉTATS VISUELS */
+/* ================================================= */
+
+/* Mode motion : tous les dots bleus */
+.dot.motion-dot {
+    background: #2196F3 !important;
+    transform: scale(1.1) !important;
+    transition: all 0.3s ease !important;
 }
-/* ===== STYLES INTERFACE PAUSE MOTION ===== */
+
+.series-dots.motion-mode .dot::before {
+    display: none !important;
+}
+
+/* Mode countdown : dots blancs animés */
+.dot.countdown-active {
+    background: white !important;
+    transform: scale(1.3) !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.6) !important;
+}
+
+/* Mode GO : animation finale */
+.dot.countdown-go {
+    background: var(--primary) !important;
+    transform: scale(1.1) !important;
+    animation: countdownGoBlink 0.6s ease-in-out 3 !important;
+}
+
+@keyframes countdownGoBlink {
+    0%, 100% { 
+        opacity: 1;
+        transform: scale(1.1);
+    }
+    50% { 
+        opacity: 0.3;
+        transform: scale(1.3);
+    }
+}
+
+/* ================================================= */
+/* SECTION ZONE MOTION - NOTIFICATION DÉDIÉE */
+/* ================================================= */
+
+.motion-notification-zone {
+    width: 100%;
+    height: 0;
+    overflow: hidden;
+    transition: height 0.3s ease, padding 0.3s ease;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.motion-notification-zone.active {
+    height: 80px;
+    padding: 1rem 0;
+}
+
+.motion-notification-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #2196F3;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+}
+
+.motion-notification-zone.active .motion-notification-content {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.motion-notification-icon {
+    font-size: 1.4rem;
+    margin-bottom: 0.4rem;
+    animation: motionBounce 1.5s ease-in-out infinite;
+}
+
+.motion-notification-text {
+    font-size: 0.9rem;
+    text-align: center;
+    line-height: 1.2;
+}
+
+@keyframes motionBounce {
+    0%, 100% { 
+        transform: translateY(0px);
+        opacity: 1;
+    }
+    50% { 
+        transform: translateY(6px);
+        opacity: 0.8;
+    }
+}
+
+/* ================================================= */
+/* SECTION PAUSE MOTION - INTERFACE CONFIRMATION */
+/* ================================================= */
 
 .motion-pause-container {
     background: linear-gradient(135deg, #2196F3, #1976D2);
@@ -9242,7 +9338,18 @@ input {
     color: white;
     text-align: center;
     box-shadow: 0 6px 20px rgba(33, 150, 243, 0.2);
-    animation: pauseGlow 2s ease-in-out infinite alternate;
+    animation: pauseSlideIn 0.3s ease-out, pauseGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes pauseSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 @keyframes pauseGlow {
@@ -9321,6 +9428,7 @@ input {
     justify-content: center;
     gap: 8px;
     min-height: 48px;
+    cursor: pointer;
 }
 
 .pause-btn-continue {
@@ -9355,9 +9463,12 @@ input {
     line-height: 1.4;
 }
 
-/* ===== ANIMATIONS RESPONSIVE ===== */
+/* ================================================= */
+/* MEDIA QUERIES - RESPONSIVE */
+/* ================================================= */
 
 @media (max-width: 768px) {
+    /* Pause motion responsive */
     .motion-pause-container {
         margin: 12px 0;
         padding: 20px 16px;
@@ -9378,231 +9489,19 @@ input {
     }
 }
 
-/* ===== ANIMATION D'APPARITION ===== */
-
-@keyframes pauseSlideIn {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.motion-pause-container {
-    animation: pauseSlideIn 0.3s ease-out;
-}
-
-@keyframes motionTextPulse {
-    0%, 100% { 
-        color: rgba(255, 255, 255, 0.95);
-        transform: scale(1);
-    }
-    50% { 
-        color: rgba(255, 255, 255, 1);
-        transform: scale(1.02);
-    }
-}
-
-/* === MOTION MODE POUR SERIES DOTS === */
-.dot.motion-dot {
-    background: #2196F3 !important;
-    transform: scale(1.1) !important;
-    transition: all 0.3s ease !important;
-}
-
-.series-dots.motion-mode .dot::before {
-    display: none !important;
-}
-
-/* Animation main motion */
-.motion-hand-icon {
-    font-size: 1.4rem; /* ✅ Légèrement plus petit */
-    margin-bottom: 0.3rem; /* ✅ Moins d'espace */
-    animation: motionHandBounce 1.5s ease-in-out infinite;
-}
-
-.motion-instruction-text {
-    font-size: 0.9rem; /* ✅ Plus compact */
-    text-align: center;
-    line-height: 1.2;
-    margin: 0;
-}
-
-
-@keyframes motionHandBounce {
-    0%, 100% { 
-        transform: translateY(0px);
-        opacity: 1;
-    }
-    50% { 
-        transform: translateY(6px);
-        opacity: 0.8;
-    }
-}
-
-/* Responsive */
 @media (max-width: 640px) {
-    .motion-instruction-text {
+    /* Motion notification responsive */
+    .motion-notification-text {
         font-size: 0.85rem;
     }
     
-    .motion-hand-icon {
+    .motion-notification-icon {
         font-size: 1.2rem;
     }
 
+    /* Header button responsive */
     .exercise-header-actions .btn-change-exercise {
         padding: var(--spacing-xs) var(--spacing-md);
         font-size: 0.85rem;
     }
-}
-
-/* === ANIMATION COUNTDOWN DOTS === */
-
-.dot.countdown-active {
-    background: white !important;
-    transform: scale(1.3) !important;
-    transition: all 0.2s ease !important;
-    box-shadow: 0 0 8px rgba(255, 255, 255, 0.6) !important;
-}
-
-.dot.countdown-go {
-    background: var(--primary) !important;
-    transform: scale(1.1) !important;
-    animation: countdownGoBlink 0.6s ease-in-out 3 !important;
-}
-
-@keyframes countdownGoBlink {
-    0%, 100% { 
-        opacity: 1;
-        transform: scale(1.1);
-    }
-    50% { 
-        opacity: 0.3;
-        transform: scale(1.3);
-    }
-}
-
-
-
-
-
-
-/* === HEADER SIMPLIFIÉ ET STABLE === */
-.exercise-header-actions {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    margin-top: 0;
-    /* ✅ Hauteur fixe et stable */
-    min-height: 48px;
-    max-height: 48px;
-}
-
-.exercise-header-controls-row {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    height: 48px;
-    margin: 0;
-    padding: 0;
-}
-
-/* ✅ Zones équilibrées pour centrage parfait */
-.exercise-header-controls-row > div:first-child {
-    width: 60px;
-    display: flex;
-    justify-content: flex-start;
-}
-
-.exercise-header-controls-row > div:nth-child(2) {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-}
-
-.exercise-header-controls-row > div:last-child {
-    width: 60px;
-    display: flex;
-    justify-content: flex-end;
-}
-
-/* === ZONE MOTION DÉDIÉE ENTRE STEPPERS ET IA === */
-.motion-notification-zone {
-    width: 100%;
-    /* ✅ Hauteur adaptative : 0 par défaut */
-    height: 0;
-    overflow: hidden;
-    transition: height 0.3s ease, padding 0.3s ease;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-
-/* ✅ Quand notification motion active */
-.motion-notification-zone.active {
-    height: 80px;
-    padding: var(--spacing-md) 0;
-}
-
-.motion-notification-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: #2196F3;
-    font-weight: 500;
-    opacity: 0;
-    transform: translateY(-10px);
-    transition: all 0.3s ease;
-}
-
-.motion-notification-zone.active .motion-notification-content {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.motion-notification-icon {
-    font-size: 1.4rem;
-    margin-bottom: 0.4rem;
-    animation: motionBounce 1.5s ease-in-out infinite;
-}
-
-.motion-notification-text {
-    font-size: 0.9rem;
-    text-align: center;
-    line-height: 1.3;
-}
-
-@keyframes motionBounce {
-    0%, 100% { transform: translateY(0px); opacity: 1; }
-    50% { transform: translateY(6px); opacity: 0.8; }
-}
-
-/* === BOUTON CHANGE EXERCISE OPTIMISÉ === */
-.btn-change-exercise {
-    background: rgba(255,255,255,.05);
-    border: 1px solid rgba(255,255,255,.1);
-    border-radius: var(--radius);
-    color: var(--text);
-    font-size: var(--font-xs);
-    font-weight: 500;
-    cursor: pointer;
-    transition: all .3s ease;
-    padding: var(--spacing-xs);
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.btn-change-exercise svg {
-    width: 14px;
-    height: 14px;
 }
