@@ -3554,6 +3554,24 @@ function isWorkoutComplete(workout) {
     return completedSets >= expectedSets;
 }
 
+async function deleteWorkout(workoutId) {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette séance ?\n\nCette action est irréversible et supprimera toutes les séries associées.')) {
+        return;
+    }
+    
+    try {
+        await apiDelete(`/api/workouts/${workoutId}`);
+        showToast('Séance supprimée avec succès', 'success');
+        
+        // Recharger le dashboard pour mettre à jour l'affichage
+        await loadDashboard();
+        
+    } catch (error) {
+        console.error('Erreur suppression séance:', error);
+        showToast('Erreur lors de la suppression', 'error');
+    }
+}
+
 function loadRecentWorkouts(workouts) {
     const container = document.getElementById('recentWorkouts');
     if (!container) return;
@@ -3678,6 +3696,10 @@ function loadRecentWorkouts(workouts) {
 
         return `
             <div class="dashboard-history-workout-card ${workout.status === 'pending' ? 'dashboard-history-workout-card--pending' : ''}">
+                <!-- Bouton de suppression -->
+                <button class="workout-delete-btn" onclick="deleteWorkout(${workout.id})" title="Supprimer cette séance">
+                    <i class="fas fa-times"></i>
+                </button>
                 <!-- Ligne 1: Header -->
                 <div class="workout-header-line">
                     <div class="workout-type">
@@ -15148,6 +15170,7 @@ window.apiPut = apiPut;
 window.apiDelete = apiDelete;
 window.generateMuscleDistribution = generateMuscleDistribution;
 window.loadRecentWorkouts = loadRecentWorkouts;
+window.deleteWorkout = deleteWorkout;
 window.enrichWorkoutsWithExercises = enrichWorkoutsWithExercises;
 window.toggleMuscleTooltip = toggleMuscleTooltip;
 window.confirmStartProgramWorkout = confirmStartProgramWorkout;

@@ -668,6 +668,22 @@ async def get_scoring_analytics(user_id: int, db: Session = Depends(get_db)):
             }
         }
 
+@router.delete("/api/workouts/{workout_id}")
+async def delete_workout(workout_id: int, db: Session = Depends(get_db)):
+    """Supprime une séance et toutes ses séries associées"""
+    workout = db.query(Workout).filter(Workout.id == workout_id).first()
+    if not workout:
+        raise HTTPException(status_code=404, detail="Workout not found")
+    
+    # Supprimer toutes les séries associées (cascade devrait le faire automatiquement)
+    db.query(WorkoutSet).filter(WorkoutSet.workout_id == workout_id).delete()
+    
+    # Supprimer la séance
+    db.delete(workout)
+    db.commit()
+    
+    return {"message": "Workout deleted successfully"}
+
 def _generate_scoring_recommendations(completion_rate: float, diversity_score: int, muscle_distribution: dict) -> list:
     """Génère des recommandations basées sur les analytics"""
     recommendations = []
