@@ -9504,3 +9504,228 @@ input {
         font-size: 0.85rem;
     }
 }
+
+/* ================================================= */
+/* BOUTON SPLIT OBLIQUE - INTERFACE PAUSE MOTION */
+/* ================================================= */
+
+.split-action-button {
+    position: relative;
+    width: 100%;
+    height: 64px;
+    margin: 24px 0 16px 0;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+}
+
+.split-btn-left,
+.split-btn-right {
+    position: absolute;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    font-size: 1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    z-index: 2;
+}
+
+/* Zone gauche - Continuer (vert) */
+.split-btn-left {
+    background: #4CAF50;
+    color: white;
+    clip-path: polygon(0 0, 58% 0, 50% 100%, 0 100%);
+}
+
+.split-btn-left:hover {
+    background: #45a049;
+    transform: translateX(-2px);
+}
+
+.split-btn-left:active {
+    transform: translateX(-1px) scale(0.98);
+}
+
+/* Zone droite - Terminer (rouge) */
+.split-btn-right {
+    background: #f44336;
+    color: white;
+    clip-path: polygon(50% 0, 100% 0, 100% 100%, 42% 100%);
+}
+
+.split-btn-right:hover {
+    background: #da190b;
+    transform: translateX(2px);
+}
+
+.split-btn-right:active {
+    transform: translateX(1px) scale(0.98);
+}
+
+/* Ligne de séparation oblique */
+.split-divider {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 2px;
+    height: 100%;
+    background: white;
+    transform: translateX(-50%) skewX(-8deg);
+    z-index: 3;
+    pointer-events: none;
+    opacity: 0.9;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Icônes et texte */
+.split-btn-left i,
+.split-btn-right i {
+    font-size: 1.1rem;
+}
+
+.split-btn-left span,
+.split-btn-right span {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* Animation au focus/hover du container */
+.split-action-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* ================================================= */
+/* RESPONSIVE - MOBILE OPTIMIZATIONS */
+/* ================================================= */
+
+@media (max-width: 768px) {
+    .split-action-button {
+        height: 56px;
+        margin: 20px 0 14px 0;
+        border-radius: 14px;
+    }
+    
+    .split-btn-left,
+    .split-btn-right {
+        font-size: 0.95rem;
+        gap: 6px;
+    }
+    
+    .split-btn-left i,
+    .split-btn-right i {
+        font-size: 1rem;
+    }
+    
+    .split-divider {
+        width: 1.5px;
+    }
+}
+
+@media (max-width: 480px) {
+    .split-action-button {
+        height: 52px;
+        border-radius: 12px;
+    }
+    
+    .split-btn-left,
+    .split-btn-right {
+        font-size: 0.9rem;
+        gap: 5px;
+    }
+    
+    .split-btn-left span,
+    .split-btn-right span {
+        font-size: 0.9rem;
+    }
+    
+    /* Réduire l'angle sur très petit écran pour plus de lisibilité */
+    .split-btn-left {
+        clip-path: polygon(0 0, 56% 0, 52% 100%, 0 100%);
+    }
+    
+    .split-btn-right {
+        clip-path: polygon(52% 0, 100% 0, 100% 100%, 44% 100%);
+    }
+    
+    .split-divider {
+        transform: translateX(-50%) skewX(-6deg);
+    }
+}
+
+/* ================================================= */
+/* FALLBACK POUR NAVIGATEURS SANS CLIP-PATH */
+/* ================================================= */
+
+@supports not (clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%)) {
+    .split-btn-left,
+    .split-btn-right {
+        clip-path: none;
+        width: 50%;
+    }
+    
+    .split-btn-left {
+        left: 0;
+        border-right: 1px solid white;
+    }
+    
+    .split-btn-right {
+        right: 0;
+        border-left: 1px solid white;
+    }
+    
+    .split-divider {
+        display: none;
+    }
+}
+
+/* ================================================= */
+/* ACCESSIBILITÉ */
+/* ================================================= */
+
+.split-btn-left:focus,
+.split-btn-right:focus {
+    outline: 3px solid rgba(255, 255, 255, 0.5);
+    outline-offset: 2px;
+}
+
+/* Contraste élevé */
+@media (prefers-contrast: high) {
+    .split-btn-left {
+        background: #2E7D32;
+        border: 2px solid white;
+    }
+    
+    .split-btn-right {
+        background: #C62828;
+        border: 2px solid white;
+    }
+    
+    .split-divider {
+        width: 3px;
+        background: white;
+    }
+}
+
+/* Réduction des animations */
+@media (prefers-reduced-motion: reduce) {
+    .split-btn-left,
+    .split-btn-right,
+    .split-action-button {
+        transition: none;
+    }
+    
+    .split-btn-left:hover,
+    .split-btn-right:hover,
+    .split-action-button:hover {
+        transform: none;
+    }
+}

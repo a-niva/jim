@@ -361,8 +361,8 @@ const VoiceConfirmation = {
 
 
 /**
- * Affiche l'interface de pause motion avec boutons Continuer/Terminer
- * À ajouter dans app.js après les autres fonctions motion
+ * Affiche l'interface de pause motion avec bouton split Continuer/Terminer
+ * À REMPLACER dans frontend/app.js fonction showPauseConfirmation()
  */
 function showPauseConfirmation() {
     console.log('[Motion] === Affichage interface pause ===');
@@ -393,13 +393,19 @@ function showPauseConfirmation() {
         return;
     }
     
-    // Créer container pause UNIQUE
+    // Créer container pause UNIQUE avec nouveau design
     const pauseContainer = document.createElement('div');
     pauseContainer.id = 'motionPauseConfirmation';
     pauseContainer.className = 'motion-pause-container';
     pauseContainer.innerHTML = `
         <div class="pause-header">
             <h3>📱 Série en pause</h3>
+            ${setTimerState.getElapsed ? `
+            <div class="pause-timer">
+                <span class="timer-label">Temps écoulé:</span>
+                <span class="timer-value">${formatTime(Math.floor(setTimerState.getElapsed() / 1000))}</span>
+            </div>
+            ` : ''}
         </div>
         
         ${window.voiceData?.count > 0 ? `
@@ -409,18 +415,17 @@ function showPauseConfirmation() {
             </div>
         ` : ''}
         
-        <div class="pause-actions">
-            <button class="btn btn-outline-primary pause-btn-continue" 
-                    onclick="continueMotionSeries()">
+        <!-- NOUVEAU: Bouton split avec trait oblique -->
+        <div class="split-action-button">
+            <button class="split-btn-left" onclick="continueMotionSeries()">
                 <i class="fas fa-play"></i>
-                Continuer la série
+                <span>Continuer</span>
             </button>
-            
-            <button class="btn btn-primary pause-btn-finish" 
-                    onclick="finishMotionSeries()">
+            <button class="split-btn-right" onclick="finishMotionSeries()">
                 <i class="fas fa-check"></i>
-                Terminer la série
+                <span>Terminer</span>
             </button>
+            <div class="split-divider"></div>
         </div>
         
         <div class="pause-instruction">
@@ -443,7 +448,7 @@ function showPauseConfirmation() {
         });
     });
     
-    console.log('[Motion] Interface pause affichée (unique)');
+    console.log('[Motion] Interface pause affichée avec bouton split');
 }
 
 function debugMotionPauseState() {
