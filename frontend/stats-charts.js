@@ -1588,16 +1588,30 @@ async function loadIntensityRecoveryChart(userId) {
         }
         
         // Préparer les données avec couleurs graduelles
-        const sessions = data.sessions.map(s => ({
-            x: s.charge,
-            y: s.ratio,
-            backgroundColor: getColorFromAge(s.days_ago),
-            borderColor: getColorFromAge(s.days_ago),
-            pointRadius: 12,
-            pointHoverRadius: 16,
-            borderWidth: 2,
-            ...s
-        }));
+        const sessions = data.sessions.map(s => {
+            const baseColor = getColorFromAge(s.days_ago);
+            
+            // Extraire les valeurs RGB pour ajouter la transparence
+            const rgbMatch = baseColor.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+            let transparentColor = baseColor;
+            
+            if (rgbMatch) {
+                const [, h, s, l] = rgbMatch;
+                // Convertir en HSLA avec 40% d'opacité (0.4)
+                transparentColor = `hsla(${h}, ${s}%, ${l}%, 0.4)`;
+            }
+            
+            return {
+                x: s.charge,
+                y: s.ratio,
+                backgroundColor: transparentColor, // 40% transparent
+                borderColor: transparentColor,     // 40% transparent
+                pointRadius: 4.8,        // 12 * 0.4 = 4.8 (réduction de 60%)
+                pointHoverRadius: 6.4,   // 16 * 0.4 = 6.4 (réduction de 60%)
+                borderWidth: 2,
+                ...s
+            };
+        });
         
         charts.intensityRecovery = new window.Chart(ctx, {
             type: 'scatter',
