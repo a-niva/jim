@@ -5336,7 +5336,11 @@ async function selectExercise(exercise, skipValidation = false) {
     window.currentSetStartTime = Date.now();
 
     // Démarrer l'affichage du timer
-    startSetTimer(); // GARDER UN SEUL APPEL
+    startSetTimer();
+
+    // ✅ CORRECTION : Transition vers EXECUTING pour afficher boutons flottants
+    transitionTo(WorkoutStates.EXECUTING);
+    console.log('[Motion] Mode manuel - transition vers EXECUTING pour boutons flottants');
 
     // Vocal legacy si activé sans motion
     if (currentUser?.voice_counting_enabled && !currentUser?.motion_detection_enabled) {
