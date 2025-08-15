@@ -360,6 +360,10 @@ const VoiceConfirmation = {
 };
 
 
+// Initialisation des variables de pause au niveau global
+window.isPaused = window.isPaused || false;
+window.pausedTime = window.pausedTime || null;
+
 /**
  * Affiche l'interface de pause motion avec bouton split Continuer/Terminer
  * À REMPLACER dans frontend/app.js fonction showPauseConfirmation()
@@ -14052,6 +14056,11 @@ let pausedTime = null;
 
 // ✅ CORRECTIF - Signature tolérante event optionnel
 function pauseWorkout(event = null) {
+    // Vérifier l'état de pause via window pour éviter la temporal dead zone
+    if (typeof window.isPaused === 'undefined') {
+        window.isPaused = false;
+    }
+    
     // Fermer tous les modals de swap avant pause
     if (document.querySelector('.modal.active')) {
         closeModal();
@@ -14064,7 +14073,7 @@ function pauseWorkout(event = null) {
     // ✅ ROBUSTE - Gestion event optionnel
     const pauseBtn = event?.target || document.querySelector('.pause-workout-btn') || null;
     
-    if (!isPaused) {
+    if (!window.isPaused) {
         // Sauvegarder l'état du timer de série
         if (setTimerState && setTimerState.isRunning) {
             setTimerState.pause();
@@ -14102,7 +14111,7 @@ function pauseWorkout(event = null) {
             pauseBtn.classList.add('btn-success');
         }
         
-        isPaused = true;
+        window.isPaused = true;
         saveWorkoutState();
         showToast('Séance mise en pause', 'info');
         
@@ -14152,7 +14161,7 @@ function pauseWorkout(event = null) {
             pauseBtn.classList.add('btn-warning');
         }
         
-        isPaused = false;
+        window.isPaused = false;
         // Reprendre le timer de série si nécessaire
         if (setTimerState && setTimerState.isPaused && workoutState.current === WorkoutStates.EXECUTING) {
             setTimerState.resume();
