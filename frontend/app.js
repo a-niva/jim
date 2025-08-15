@@ -1122,16 +1122,16 @@ function transitionTo(state) {
                 }, 1000);
                 break;
                 
-            case WorkoutStates.FEEDBACK:
+            // Afficher les boutons dans tous les états actifs de séance
+            case WorkoutStates.READY:
+            case WorkoutStates.READY_COUNTDOWN:
             case WorkoutStates.EXECUTING:
-                console.log('[UI] Affichage boutons flottants pour EXECUTING');
+            case WorkoutStates.EXECUTING_PAUSED:
+            case WorkoutStates.FEEDBACK:
+            case WorkoutStates.RESTING:
+                console.log('[UI] Affichage boutons flottants pour état:', newState);
                 floatingActions.style.display = 'block';
                 void floatingActions.offsetWidth; // Force reflow
-                floatingActions.classList.add('show');
-                break;
-            case WorkoutStates.RESTING:
-                floatingActions.style.display = 'block';
-                void floatingActions.offsetWidth;
                 floatingActions.classList.add('show');
                 break;
         }
@@ -14065,6 +14065,10 @@ function pauseWorkout(event = null) {
     const pauseBtn = event?.target || document.querySelector('.pause-workout-btn') || null;
     
     if (!isPaused) {
+        // Sauvegarder l'état du timer de série
+        if (setTimerState && setTimerState.isRunning) {
+            setTimerState.pause();
+        }
         // Mettre en pause
         if (workoutTimer) {
             clearInterval(workoutTimer);
@@ -14149,6 +14153,10 @@ function pauseWorkout(event = null) {
         }
         
         isPaused = false;
+        // Reprendre le timer de série si nécessaire
+        if (setTimerState && setTimerState.isPaused && workoutState.current === WorkoutStates.EXECUTING) {
+            setTimerState.resume();
+        }
         showToast('Séance reprise', 'success');
         // Afficher le contexte de reprise
         const pausedExercise = sessionStorage.getItem('pausedExerciseName');
