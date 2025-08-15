@@ -554,12 +554,6 @@ if (!window.motionPickupDebounce) {
 function createMotionCallbacksV2() {
     return {
         onStationary: () => {
-            // ✅ GUARD SIMPLE : Vérifier que Motion Detection est toujours activé
-            if (!currentUser?.motion_detection_enabled) {
-                console.log('[Motion] Motion Detection désactivé - ignore onStationary');
-                return;
-            }
-            
             console.log('[Motion] STATIONNAIRE détecté - Feature 1 active');
             console.log('[Motion] workoutState.current:', workoutState.current);
             console.log('[Motion] WorkoutStates.READY:', WorkoutStates.READY);
@@ -580,12 +574,6 @@ function createMotionCallbacksV2() {
         },
         
         onPickup: (wasStationary) => {
-            // ✅ GUARD SIMPLE : Vérifier que Motion Detection est toujours activé
-            if (!currentUser?.motion_detection_enabled) {
-                console.log('[Motion] Motion Detection désactivé - ignore onPickup');
-                return;
-            }
-
             console.log('[Motion] MOUVEMENT détecté');
 
             // ✅ DEBOUNCING GLOBAL : Éviter appels multiples rapides
@@ -613,7 +601,7 @@ function createMotionCallbacksV2() {
                     const dots = dotsContainer.querySelectorAll('.dot');
                     dots.forEach(dot => {
                         dot.classList.remove('countdown-active', 'countdown-go');
-                        dot.classList.add('motion-dot');
+                        dot.className = 'dot motion-dot'; // Remet en mode motion bleu
                     });
                     console.log('[Motion] Dots restaurés en mode motion');
                 }
@@ -639,7 +627,7 @@ function createMotionCallbacksV2() {
 
                 showPauseConfirmation();
                 showToast('Série en pause - Utilisez les boutons ci-dessous', 'info');
-                return;
+               return;
             }
 
             // Code existant pour autres états
