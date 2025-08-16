@@ -2957,7 +2957,7 @@ console.log('[Voice] ✅ Toutes les expositions globales configurées');
 document.addEventListener('DOMContentLoaded', () => {
     // CRITIQUE : Initialiser l'instance immédiatement
     console.log('[Voice] Initialisation automatique au chargement...');
-
+    let initSuccess = false; 
     // NOUVEAU : Protection double init
     if (window.voiceInitialized) {
         console.log('[Voice] Double init bloquée - module déjà initialisé');

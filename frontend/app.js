@@ -12946,10 +12946,20 @@ function completeRest() {
         // S'assurer que les steppers sont bien visibles
         const inputSection = document.querySelector('.input-section');
         if (inputSection) {
-            inputSection.style.display = 'flex';
-            inputSection.style.opacity = '1';
-            inputSection.style.visibility = 'visible';
-            console.log('[Rest] Steppers forcés visibles après repos');
+            // Retirer tous les styles inline problématiques
+            inputSection.removeAttribute('style');
+            
+            // Nettoyer les classes
+            inputSection.classList.remove('hidden', 'countdown-active', 'motion-active', 'transitioning');
+            
+            // Forcer chaque row à utiliser le layout CSS natif
+            const allInputRows = inputSection.querySelectorAll('.input-row');
+            allInputRows.forEach(row => {
+                row.removeAttribute('style'); // Laisser CSS gérer
+                row.removeAttribute('data-hidden');
+            });
+            
+            console.log('[Rest] Steppers réinitialisés avec layout CSS natif');
         }
     }
 }
@@ -13082,10 +13092,7 @@ function showMotionInstructions() {
 
     // 1. Dots en mode motion (tous bleus)
     setSeriesDotsMotionMode(true);
-    
-    // 2. ❌ SUPPRIMER L'APPEL À showMotionTextUnderDots() QUI NE MARCHE PAS
-    // showMotionTextUnderDots(); // SUPPRIMER CETTE LIGNE
-    
+
     // 3. ✅ ACTIVER LA ZONE MOTION DÉDIÉE (le texte est déjà dans le HTML)
     const motionZone = document.getElementById('motionNotificationZone');
     if (motionZone) {
@@ -13121,7 +13128,6 @@ function hideMotionTextUnderDots() {
 
 // Exposer globalement
 window.setSeriesDotsMotionMode = setSeriesDotsMotionMode;
-window.showMotionTextUnderDots = showMotionTextUnderDots;
 window.hideMotionTextUnderDots = hideMotionTextUnderDots;
 // === MOTION SENSOR : TOGGLE PRÉFÉRENCES (à ajouter avec autres toggles ~1500) ===
 // ===== TOGGLES PROFIL V2 =====
