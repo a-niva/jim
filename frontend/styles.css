@@ -9801,14 +9801,11 @@ input {
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 0;
+    opacity: 1; /* CHANGÉ: toujours visible */
     transition: all 0.2s ease;
     z-index: 10;
 }
 
-.dashboard-history-workout-card:hover .workout-delete-btn {
-    opacity: 1;
-}
 
 .workout-delete-btn:hover {
     background: var(--danger);

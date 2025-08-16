@@ -500,6 +500,22 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "Profil supprimé avec succès"}
 
+@app.delete("/api/workouts/{workout_id}")
+def delete_workout(workout_id: int, db: Session = Depends(get_db)):
+    """Supprime une séance et toutes ses séries associées"""
+    workout = db.query(Workout).filter(Workout.id == workout_id).first()
+    if not workout:
+        raise HTTPException(status_code=404, detail="Workout not found")
+    
+    # Supprimer toutes les séries associées d'abord
+    db.query(WorkoutSet).filter(WorkoutSet.workout_id == workout_id).delete()
+    
+    # Puis supprimer la séance
+    db.delete(workout)
+    db.commit()
+    
+    return {"message": "Workout deleted successfully"}
+
 @app.get("/api/users/{user_id}/favorites")
 def get_user_favorites(user_id: int, db: Session = Depends(get_db)):
     """Récupérer les exercices favoris d'un utilisateur"""
@@ -5056,7 +5072,9 @@ def refresh_user_stats(user_id: int, db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Erreur refresh stats: {e}")
         raise HTTPException(status_code=500, detail="Erreur lors de la mise à jour")
-    
+
+
+
 @app.post("/api/ml/feedback")
 def record_ml_feedback(
     feedback_data: dict,
