@@ -7024,7 +7024,28 @@ body.modal-active .floating-workout-actions {
 /* ================================================= */
 
 
+/* ===== LAYOUT INPUT-ROW - BASE (DESKTOP) ===== */
+.input-row {
+    display: grid;
+    grid-template-columns: 48px 48px 1fr 48px;
+    gap: var(--spacing-md);
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+    padding: 0 var(--spacing-sm);
+    min-height: 60px;
+}
 
+/* Assurer que les éléments enfants s'alignent correctement */
+.input-row > * {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Value display au centre prend toute la largeur disponible */
+.input-row .value-display {
+    grid-column: 3; /* Explicitement dans la 3ème colonne */
+}
 
 
 
@@ -7688,15 +7709,21 @@ input {
     }
 
     .input-row {
-        grid-template-columns: 44px 44px 1fr 44px !important;
-        gap: var(--spacing-sm) !important;
+        /* Garder le grid mais adapter les tailles */
+        grid-template-columns: 44px 44px 1fr 44px;
+        gap: var(--spacing-sm);
         padding: 0 var(--spacing-xs);
         margin-bottom: var(--spacing-md);
-        max-width: 100%;
-        min-height: 12vw;
+        min-height: 56px;
         max-height: 60px;
-        justify-items: stretch;
-        display: flex;
+    }
+    
+    /* Adapter les tailles des éléments enfants */
+    .input-row .stepper-modern,
+    .input-row .charge-mode-icon,
+    .input-row .input-icon {
+        width: 44px !important;
+        height: 44px !important;
     }
 
     .input-row .input-icon {
@@ -8265,27 +8292,6 @@ input {
 
 }
 
-@media (max-width:360px) {
-    .muscle-tab {
-            width: 44px;
-            height: 44px;
-    }
-
-    .equipment-filter {
-            width: 44px;
-            height: 44px;
-    }
-
-    .equipment-icon {
-            width: 24px;
-            height: 24px;
-    }
-
-    .input-row {
-            grid-template-columns: 10% 22% 46% 22%;
-    }
-
-}
 
 /* --- AUTRES --- */
 @media (hover:hover) {

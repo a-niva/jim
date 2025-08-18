@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
-from sqlalchemy import func, desc, cast, text, distinct
+from sqlalchemy import func, or_, desc, cast, text, distinct
 from sqlalchemy.dialects.postgresql import JSONB
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta, timezone, date
@@ -2598,6 +2598,30 @@ def get_active_workout(user_id: int, db: Session = Depends(get_db)):
     
     return workout
 
+@app.get("/api/users/{user_id}/workouts/resumable")
+def get_resumable_workout(user_id: int, db: Session = Depends(get_db)):
+    """Récupérer la séance reprenables = active OU abandoned avec contenu"""
+    # Chercher séances active ou abandonnées récentes (moins de 24h)
+    cutoff_time = datetime.now(timezone.utc) - timedelta(hours=24)
+    
+    workouts = db.query(Workout).filter(
+        Workout.user_id == user_id,
+        or_(Workout.status == "active", Workout.status == "abandoned"),
+        Workout.started_at >= cutoff_time
+    ).order_by(Workout.started_at.desc()).all()
+    
+    # Vérifier chaque séance pour s'assurer qu'elle a du contenu
+    for workout in workouts:
+        total_reps = db.query(func.sum(WorkoutSet.reps)).filter(
+            WorkoutSet.workout_id == workout.id
+        ).scalar() or 0
+        
+        if total_reps > 0:
+            return workout
+    
+    # Aucune séance reprenables trouvée
+    return None
+
 @app.post("/api/workouts/{workout_id}/sets")
 def add_set(workout_id: int, set_data: SetCreate, db: Session = Depends(get_db)):
     """Ajouter une série à la séance avec enregistrement ML"""
@@ -3248,6 +3272,31 @@ def complete_workout(workout_id: int, data: Dict[str, Any] = {}, db: Session = D
 
     db.commit()
     return {"message": "Séance terminée", "workout": workout}
+
+@app.delete("/api/workouts/{workout_id}/abandon")
+def abandon_workout_smart(workout_id: int, db: Session = Depends(get_db)):
+    """Abandonner intelligemment : supprimer si vide, marquer si contenu"""
+    workout = db.query(Workout).filter(Workout.id == workout_id).first()
+    if not workout:
+        raise HTTPException(status_code=404, detail="Séance non trouvée")
+    
+    # Calculer le total des reps effectuées
+    total_reps = db.query(func.sum(WorkoutSet.reps)).filter(
+        WorkoutSet.workout_id == workout_id
+    ).scalar() or 0
+    
+    if total_reps == 0:
+        # Supprimer complètement la séance vide
+        db.query(WorkoutSet).filter(WorkoutSet.workout_id == workout_id).delete(synchronize_session=False)
+        db.query(Workout).filter(Workout.id == workout_id).delete(synchronize_session=False)
+        db.commit()
+        return {"action": "deleted", "reason": "empty_session", "total_reps": 0}
+    else:
+        # Marquer comme abandonnée pour recovery future
+        workout.status = "abandoned"
+        workout.completed_at = datetime.now(timezone.utc)
+        db.commit()
+        return {"action": "abandoned", "reason": "has_content", "total_reps": total_reps}
 
 @app.put("/api/sets/{set_id}/rest-duration")
 def update_set_rest_duration(set_id: int, data: Dict[str, int], db: Session = Depends(get_db)):

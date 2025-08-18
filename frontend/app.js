@@ -2026,6 +2026,18 @@ function cleanupSpecializedViewContent(previousView) {
 // ===== NAVIGATION =====
 async function showView(viewName) {
     console.log(`🔍 showView(${viewName}) - currentUser: ${currentUser?.name || 'UNDEFINED'}`);
+
+    // Auto-suppression séances vides lors navigation
+    if (currentWorkoutSession?.workout?.id && currentWorkoutSession.completedSets?.length === 0) {
+        try { 
+            await apiDelete(`/api/workouts/${currentWorkoutSession.workout.id}/abandon`); 
+            currentWorkoutSession = { completedSets: [] }; 
+            localStorage.removeItem('fitness_workout_state');
+            console.log('[Navigation] Séance vide supprimée automatiquement');
+        } catch(e) {
+            console.warn('[Navigation] Erreur suppression séance vide:', e);
+        }
+    }
     
     // Stocker vue précédente pour cleanup
     const previousView = currentView;
@@ -2913,15 +2925,15 @@ async function loadDashboard() {
         existingBanner.remove();
     }
 
-    // Vérifier s'il y a une séance active
+    // Vérifier s'il y a une séance reprenable (active ou abandonnée avec contenu)
     try {
-        const activeWorkout = await apiGet(`/api/users/${currentUser.id}/workouts/active`);
-        if (activeWorkout && activeWorkout.id) {
-            showWorkoutResumeBanner(activeWorkout);
+        const resumableWorkout = await apiGet(`/api/users/${currentUser.id}/workouts/resumable`);
+        if (resumableWorkout && resumableWorkout.id) {
+            showWorkoutResumeBanner(resumableWorkout);
         }
     } catch (error) {
-        // Pas de séance active, c'est normal - ne rien afficher
-        console.log('Pas de séance active');
+        // Pas de séance reprenables, c'est normal - ne rien afficher
+        console.log('Pas de séance reprenable');
     }
     
     // Message de bienvenue
@@ -3277,10 +3289,6 @@ async function resumeWorkout(workoutId) {
 async function abandonActiveWorkout(workoutId) {
     if (confirm('Êtes-vous sûr de vouloir abandonner cette séance ?')) {
         
-        // Nettoyer IMMÉDIATEMENT le système audio
-        if (window.workoutAudio) {
-            window.workoutAudio.clearScheduledSounds();
-        }
         // Nettoyer IMMÉDIATEMENT l'état local et la bannière
         localStorage.removeItem('fitness_workout_state');
         clearWorkoutState();
@@ -3288,12 +3296,15 @@ async function abandonActiveWorkout(workoutId) {
         if (banner) banner.remove();
         
         try {
-            // Tenter l'API en arrière-plan
-            await apiPut(`/api/workouts/${workoutId}/complete`, {
-                total_duration: 0,
-                total_rest_time: 0
-            });
-            showToast('Séance abandonnée', 'info');
+            // Utiliser le nouvel endpoint abandon intelligent
+            const response = await apiDelete(`/api/workouts/${workoutId}/abandon`);
+            
+            if (response.action === 'deleted') {
+                showToast('Séance vide supprimée', 'info');
+            } else {
+                showToast('Séance abandonnée (récupérable)', 'info');
+            }
+            
         } catch (error) {
             console.error('Erreur API abandon:', error);
             showToast('Séance abandonnée (hors ligne)', 'info');
@@ -14235,10 +14246,7 @@ async function abandonWorkout() {
     // S'assurer que l'API est appelée de manière synchrone
     if (workoutId) {
         try {
-            await apiPut(`/api/workouts/${workoutId}/complete`, {
-                total_duration: 0,
-                total_rest_time: 0
-            });
+            await apiDelete(`/api/workouts/${workoutId}/abandon`);
             console.log('Séance marquée comme completed côté API');
         } catch (error) {
             console.warn('API /complete échouée, mais séance nettoyée localement:', error);
