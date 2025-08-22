@@ -10170,8 +10170,33 @@ async function selectProgramExercise(exerciseId, isInitialLoad = false) {
             currentWorkoutSession.exerciseOrder = 1;
         }
                 
-        // Utiliser la fonction selectExercise existante ET attendre qu'elle finisse
+// Utiliser la fonction selectExercise existante ET attendre qu'elle finisse
         await selectExercise(exerciseObj);
+        
+        // AJOUTER : Forcer la réinitialisation du motion detector après changement d'exercice
+        if (currentUser?.motion_detection_enabled && 
+            window.motionDetectionEnabled && 
+            window.motionDetector &&
+            currentExercise?.exercise_type !== 'isometric') {
+            
+            console.log('[Motion] Réinitialisation motion detector après changement exercice');
+            
+            // Reset complet de l'état interne
+            window.motionDetector.state = 'unknown';
+            window.motionDetector.stationaryStartTime = null;
+            window.motionDetector.pickupStartTime = null;
+            window.motionDetector.lastAcceleration = 0;
+            
+            // Arrêter puis redémarrer le monitoring
+            window.motionDetector.stopMonitoring();
+            
+            setTimeout(() => {
+                if (window.motionDetector && currentUser?.motion_detection_enabled) {
+                    console.log('[Motion] Redémarrage monitoring après changement exercice');
+                    window.motionDetector.startMonitoring(createMotionCallbacksV2());
+                }
+            }, 500); // Petit délai pour s'assurer que tout est stabilisé
+        }
         
         // Mettre à jour la liste des exercices
         loadProgramExercisesList();
