@@ -2028,32 +2028,8 @@ async function showView(viewName) {
     console.log(`🔍 showView(${viewName}) - currentUser: ${currentUser?.name || 'UNDEFINED'}`);
     
     // Stocker vue précédente pour cleanup
-    const previousView = currentView;
+    const previousView = getCurrentView();
     currentView = viewName;
-
-    // Auto-suppression séances vides SEULEMENT si anciennes (pas nouvellement créées)
-    if (currentWorkoutSession?.workout?.id && 
-        currentWorkoutSession.completedSets?.length === 0 && 
-        previousView === 'workout' && 
-        ['dashboard', 'stats', 'profile', 'planning'].includes(viewName)) {
-        
-        // Vérifier l'âge de la séance - ne supprimer que si > 2 minutes
-        const workoutAge = Date.now() - new Date(currentWorkoutSession.workout.started_at).getTime();
-        const isOldEnough = workoutAge > 2 * 60 * 1000; // 2 minutes
-        
-        if (isOldEnough) {
-            try { 
-                await apiDelete(`/api/workouts/${currentWorkoutSession.workout.id}/abandon`); 
-                currentWorkoutSession = { completedSets: [] }; 
-                localStorage.removeItem('fitness_workout_state');
-                console.log('[Navigation] Séance vide ancienne supprimée');
-            } catch(e) {
-                console.warn('[Navigation] Erreur suppression séance vide:', e);
-            }
-        } else {
-            console.log('[Navigation] Séance récente préservée (âge:', Math.round(workoutAge/1000), 's)');
-        }
-    }
 
     // Gérer le cas où currentUser est perdu
     if (!currentUser && ['dashboard', 'stats', 'profile'].includes(viewName)) {
@@ -2082,13 +2058,13 @@ async function showView(viewName) {
         }
     }
     
-    // Reste du code exactement identique
+    // Reste du code exactement identique...
     document.querySelectorAll('.view, .onboarding').forEach(el => {
         el.classList.remove('active');
         el.style.display = 'none';
     });
     // Nettoyage spécialisé contenus modules
-    cleanupSpecializedViewContent(previousView);  // Utiliser previousView au lieu de currentView
+    cleanupSpecializedViewContent(previousView);
     
     document.querySelectorAll('.nav-item').forEach(el => {
         el.classList.remove('active');
