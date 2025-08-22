@@ -2026,22 +2026,25 @@ function cleanupSpecializedViewContent(previousView) {
 // ===== NAVIGATION =====
 async function showView(viewName) {
     console.log(`🔍 showView(${viewName}) - currentUser: ${currentUser?.name || 'UNDEFINED'}`);
-
-    // Auto-suppression séances vides lors navigation
-    if (currentWorkoutSession?.workout?.id && currentWorkoutSession.completedSets?.length === 0) {
-        try { 
-            await apiDelete(`/api/workouts/${currentWorkoutSession.workout.id}/abandon`); 
-            currentWorkoutSession = { completedSets: [] }; 
-            localStorage.removeItem('fitness_workout_state');
-            console.log('[Navigation] Séance vide supprimée automatiquement');
-        } catch(e) {
-            console.warn('[Navigation] Erreur suppression séance vide:', e);
-        }
-    }
     
     // Stocker vue précédente pour cleanup
     const previousView = currentView;
     currentView = viewName;
+
+    // Auto-suppression séances vides SEULEMENT en sortant de workout
+    if (currentWorkoutSession?.workout?.id && 
+        currentWorkoutSession.completedSets?.length === 0 && 
+        previousView === 'workout' && 
+        ['dashboard', 'stats', 'profile', 'planning'].includes(viewName)) {
+        try { 
+            await apiDelete(`/api/workouts/${currentWorkoutSession.workout.id}/abandon`); 
+            currentWorkoutSession = { completedSets: [] }; 
+            localStorage.removeItem('fitness_workout_state');
+            console.log('[Navigation] Séance vide supprimée en quittant workout');
+        } catch(e) {
+            console.warn('[Navigation] Erreur suppression séance vide:', e);
+        }
+    }
 
     // Gérer le cas où currentUser est perdu
     if (!currentUser && ['dashboard', 'stats', 'profile'].includes(viewName)) {
