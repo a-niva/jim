@@ -2028,7 +2028,7 @@ async function showView(viewName) {
     console.log(`🔍 showView(${viewName}) - currentUser: ${currentUser?.name || 'UNDEFINED'}`);
     
     // Stocker vue précédente pour cleanup
-    const previousView = getCurrentView();
+    const previousView = currentView;
     currentView = viewName;
 
     // Gérer le cas où currentUser est perdu
