@@ -10170,7 +10170,7 @@ async function selectProgramExercise(exerciseId, isInitialLoad = false) {
             currentWorkoutSession.exerciseOrder = 1;
         }
                 
-// Utiliser la fonction selectExercise existante ET attendre qu'elle finisse
+        // Utiliser la fonction selectExercise existante ET attendre qu'elle finisse
         await selectExercise(exerciseObj);
         
         // AJOUTER : Forcer la réinitialisation du motion detector après changement d'exercice
