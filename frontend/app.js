@@ -2031,18 +2031,27 @@ async function showView(viewName) {
     const previousView = currentView;
     currentView = viewName;
 
-    // Auto-suppression séances vides SEULEMENT en sortant de workout
+    // Auto-suppression séances vides SEULEMENT si anciennes (pas nouvellement créées)
     if (currentWorkoutSession?.workout?.id && 
         currentWorkoutSession.completedSets?.length === 0 && 
         previousView === 'workout' && 
         ['dashboard', 'stats', 'profile', 'planning'].includes(viewName)) {
-        try { 
-            await apiDelete(`/api/workouts/${currentWorkoutSession.workout.id}/abandon`); 
-            currentWorkoutSession = { completedSets: [] }; 
-            localStorage.removeItem('fitness_workout_state');
-            console.log('[Navigation] Séance vide supprimée en quittant workout');
-        } catch(e) {
-            console.warn('[Navigation] Erreur suppression séance vide:', e);
+        
+        // Vérifier l'âge de la séance - ne supprimer que si > 2 minutes
+        const workoutAge = Date.now() - new Date(currentWorkoutSession.workout.started_at).getTime();
+        const isOldEnough = workoutAge > 2 * 60 * 1000; // 2 minutes
+        
+        if (isOldEnough) {
+            try { 
+                await apiDelete(`/api/workouts/${currentWorkoutSession.workout.id}/abandon`); 
+                currentWorkoutSession = { completedSets: [] }; 
+                localStorage.removeItem('fitness_workout_state');
+                console.log('[Navigation] Séance vide ancienne supprimée');
+            } catch(e) {
+                console.warn('[Navigation] Erreur suppression séance vide:', e);
+            }
+        } else {
+            console.log('[Navigation] Séance récente préservée (âge:', Math.round(workoutAge/1000), 's)');
         }
     }
 
