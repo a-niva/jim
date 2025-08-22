@@ -5050,26 +5050,20 @@ async function setupProgramWorkout(program) {
     // Charger la liste
     loadProgramExercisesList();
     
-    // Prendre le premier exercice non complété
+    // Prendre le premier exercice et le sélectionner
     const firstExercise = program.exercises[0];
     if (firstExercise) {
-        // Attendre que la sélection soit terminée avant de continuer
-        // Prendre le premier exercice non complété
-        const firstExercise = program.exercises[0];
-        if (firstExercise) {
-            // === RESET VARIABLES AVANT PREMIER EXERCICE ===
-            currentSet = 1;
-            currentWorkoutSession.currentSetNumber = 1;
-            currentWorkoutSession.isStartingExtraSet = false;
-            console.log(`🔧 setupProgramWorkout(): Variables resetées pour premier exercice`);
-            
-            // Attendre que la sélection soit terminée avant de continuer
-            await selectProgramExercise(firstExercise.exercise_id, true);
-        }
+        // Reset variables
+        currentSet = 1;
+        currentWorkoutSession.currentSetNumber = 1;
+        currentWorkoutSession.isStartingExtraSet = false;
+        console.log(`🔧 setupProgramWorkout(): Variables resetées pour premier exercice`);
+        
+        // Sélectionner le premier exercice
         await selectProgramExercise(firstExercise.exercise_id, true);
     }
     
-    // Note: loadProgramExercisesList() est appelé deux fois dans l'original, je conserve ce comportement
+    // Recharger la liste finale
     loadProgramExercisesList();
 }
 
