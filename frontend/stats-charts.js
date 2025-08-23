@@ -418,15 +418,18 @@ async function loadMuscleVolumeChart(userId) {
     const period = document.querySelector('.period-btn.active')?.dataset.period || '30';
     
     try {
-        const data = await window.apiGet(`/api/users/${userId}/stats/muscle-balance?days=${period}`);
+        console.log('📊 Chargement chart volume musculaire - période:', period);
         
-        if (!data.chart_data || data.chart_data.datasets.length === 0) {
+        // NOUVEL endpoint dédié
+        const data = await window.apiGet(`/api/users/${userId}/stats/muscle-volume?days=${period}`);
+        
+        if (!data || !data.datasets || data.datasets.length === 0) {
             document.getElementById('recordsWaterfall').innerHTML = 
                 '<p class="text-muted">Pas de données pour cette période</p>';
             return;
         }
         
-        renderMuscleVolumeChart(data.chart_data);
+        renderMuscleVolumeChart(data);
         
     } catch (error) {
         console.error('Erreur chart volume:', error);
@@ -470,7 +473,7 @@ function renderMuscleVolumeChart(chartData) {
         };
     });
     
-    // Chart stacked area avec config réutilisée
+    // Chart stacked area avec config simple
     new Chart(ctx, {
         type: 'line',
         data: {
@@ -522,6 +525,8 @@ function renderMuscleVolumeChart(chartData) {
             }
         }
     });
+    
+    console.log('✅ Chart volume musculaire créé');
 }
 
 // Fonction pour boutons de période
@@ -530,7 +535,7 @@ function selectMuscleVolumePeriod(period) {
     document.querySelectorAll('.period-btn').forEach(btn => {
         btn.classList.remove('active');
     });
-    document.querySelector(`[data-period="${period}"]`).classList.add('active');
+    document.querySelector(`[data-period="${period}"]`)?.classList.add('active');
     
     // Recharger
     if (window.currentUser?.id) {
