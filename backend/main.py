@@ -4303,7 +4303,6 @@ def get_recovery_gantt(user_id: int, db: Session = Depends(get_db)):
     
     return muscle_recovery
 
-
 @app.get("/api/users/{user_id}/stats/muscle-volume")
 def get_muscle_volume_chart(
     user_id: int, 
@@ -4321,9 +4320,9 @@ def get_muscle_volume_chart(
         end_date = datetime.now(timezone.utc)
         start_date = end_date - timedelta(days=days)
         
-        # Récupérer séries avec volume - requête simplifiée
+        # Récupérer séries avec volume - requête corrigée
         sets_data = db.query(
-            func.date(WorkoutSet.created_at).label('workout_date'),
+            func.date(WorkoutSet.date_performed).label('workout_date'),
             WorkoutSet.weight,
             WorkoutSet.reps,
             Exercise.muscle_groups
@@ -4334,7 +4333,7 @@ def get_muscle_volume_chart(
         ).filter(
             Workout.user_id == user_id,
             Workout.status == "completed",
-            WorkoutSet.created_at >= start_date
+            WorkoutSet.date_performed >= start_date
         ).all()
         
         if not sets_data:
