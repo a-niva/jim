@@ -4305,67 +4305,120 @@ def get_recovery_gantt(user_id: int, db: Session = Depends(get_db)):
 
 
 @app.get("/api/users/{user_id}/stats/muscle-balance")
-def get_muscle_balance(user_id: int, db: Session = Depends(get_db)):
-    """Graphique 11: Spider chart équilibre musculaire"""
-    # Récupérer les targets adaptatifs
-    targets = db.query(AdaptiveTargets).filter(
-        AdaptiveTargets.user_id == user_id
-    ).all()
+def get_muscle_balance(
+    user_id: int, 
+    days: int = Query(30, description="Période en jours (7, 30, 90)"),
+    db: Session = Depends(get_db)
+):
+    """Étendu : équilibre musculaire + données temporelles pour chart"""
+    from datetime import datetime, timezone, timedelta
     
-    # Si pas de targets, calculer les volumes actuels depuis les séances
-    if not targets:
-        # Calculer le volume par muscle sur les 30 derniers jours
-        cutoff_date = datetime.now(timezone.utc) - timedelta(days=30)
-        
-        muscle_volumes = defaultdict(float)
-        
-        # Récupérer tous les sets
-        sets = db.query(
-            WorkoutSet,
-            Exercise.muscle_groups
-        ).join(
-            Exercise, WorkoutSet.exercise_id == Exercise.id
-        ).join(
-            Workout, WorkoutSet.workout_id == Workout.id
-        ).filter(
-            Workout.user_id == user_id,
-            Workout.started_at >= cutoff_date,
-            Workout.status == "completed"
-        ).all()
-        
-        # Calculer le volume par muscle
-        for workout_set, muscle_groups in sets:
-            volume = (workout_set.weight or 0) * workout_set.reps
-            if muscle_groups:
-                volume_per_group = volume / len(muscle_groups)
-                for muscle in muscle_groups:
-                    muscle_volumes[muscle] += volume_per_group
-        
-        # Créer une réponse avec les vrais volumes
-        muscles = ["dos", "pectoraux", "jambes", "epaules", "bras", "abdominaux"]
-        current_volumes = [muscle_volumes.get(m, 0) for m in muscles]
-        
-        # Calculer un target "équilibré" basé sur la moyenne
-        total_volume = sum(current_volumes)
-        avg_volume = total_volume / 6 if total_volume > 0 else 5000
-        target_volumes = [avg_volume] * 6
-        
-        # Calculer les ratios
-        ratios = []
-        for current, target in zip(current_volumes, target_volumes):
-            if target > 0:
-                ratios.append(round((current / target) * 100, 1))
-            else:
-                ratios.append(0)
-        
+    # Date limite
+    end_date = datetime.now(timezone.utc)
+    start_date = end_date - timedelta(days=days)
+    
+    # Récupérer séries avec volume par muscle
+    sets_query = db.query(
+        WorkoutSet.created_at,
+        WorkoutSet.weight,
+        WorkoutSet.reps,
+        Exercise.muscle_groups
+    ).select_from(WorkoutSet).join(
+        Exercise, WorkoutSet.exercise_id == Exercise.id
+    ).join(
+        Workout, WorkoutSet.workout_id == Workout.id
+    ).filter(
+        Workout.user_id == user_id,
+        Workout.status == "completed",
+        WorkoutSet.created_at >= start_date
+    ).order_by(WorkoutSet.created_at).all()
+    
+    if not sets_query:
         return {
-            "muscles": muscles,
-            "targetVolumes": target_volumes,
-            "currentVolumes": current_volumes,
-            "ratios": ratios,
-            "recoveryDebts": [0] * 6
+            "muscles": [],
+            "ratios": [],
+            "total_volume": 0,
+            "chart_data": {"labels": [], "datasets": []}
         }
-
+    
+    # Groupes musculaires standard
+    muscles = ["dos", "pectoraux", "jambes", "epaules", "bras", "abdominaux"]
+    
+    # Calculer volumes par jour
+    daily_volumes = {}
+    for muscle in muscles:
+        daily_volumes[muscle] = {}
+    
+    for workout_set in sets_query:
+        date_key = workout_set.created_at.date().isoformat()
+        volume = (workout_set.weight or 0) * (workout_set.reps or 0)
+        
+        # Distribuer volume aux muscles travaillés
+        muscles_worked = workout_set.muscle_groups or []
+        if muscles_worked:
+            volume_per_muscle = volume / len(muscles_worked)
+            for muscle in muscles_worked:
+                muscle_key = muscle.lower()
+                if muscle_key in daily_volumes:
+                    if date_key not in daily_volumes[muscle_key]:
+                        daily_volumes[muscle_key][date_key] = 0
+                    daily_volumes[muscle_key][date_key] += volume_per_muscle
+    
+    # Créer série temporelle avec sommes glissantes
+    all_dates = sorted(set(date for muscle_data in daily_volumes.values() 
+                          for date in muscle_data.keys()))
+    
+    if not all_dates:
+        return {
+            "muscles": [],
+            "ratios": [],
+            "total_volume": 0,
+            "chart_data": {"labels": [], "datasets": []}
+        }
+    
+    # Calculer sommes glissantes
+    chart_datasets = []
+    total_volumes = {muscle: 0 for muscle in muscles}
+    
+    for muscle in muscles:
+        rolling_sums = []
+        
+        for i, date in enumerate(all_dates):
+            # Prendre les 'days' derniers jours jusqu'à cette date
+            window_start = max(0, i - days + 1)
+            window_dates = all_dates[window_start:i + 1]
+            
+            window_sum = sum(daily_volumes[muscle].get(d, 0) for d in window_dates)
+            rolling_sums.append(round(window_sum))
+            total_volumes[muscle] += daily_volumes[muscle].get(date, 0)
+        
+        chart_datasets.append({
+            "label": muscle.capitalize(),
+            "data": rolling_sums
+        })
+    
+    # Labels des dates (1 sur N pour lisibilité)
+    step = max(1, len(all_dates) // 10)
+    labels = [all_dates[i] if i % step == 0 else "" for i in range(len(all_dates))]
+    
+    # Calculs d'équilibre pour compatibilité
+    total_volume = sum(total_volumes.values())
+    ratios = []
+    if total_volume > 0:
+        avg_ratio = 100 / len(muscles)
+        ratios = [round((total_volumes[muscle] / total_volume * 100) / avg_ratio * 100) 
+                 for muscle in muscles]
+    
+    return {
+        "muscles": [m.capitalize() for m in muscles],
+        "ratios": ratios,
+        "total_volume": round(total_volume),
+        "chart_data": {
+            "labels": labels,
+            "datasets": chart_datasets,
+            "period_days": days
+        }
+    }
 
 @app.get("/api/users/{user_id}/stats/ml-confidence")
 def get_ml_confidence_evolution(user_id: int, days: int = 60, db: Session = Depends(get_db)):

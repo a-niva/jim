@@ -1119,3 +1119,7 @@
         font-size: var(--font-lg);
     }
 }
+
+#muscleVolumeChart {
+    max-height: 300px;
+}

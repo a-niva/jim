@@ -107,7 +107,7 @@ async function loadTabCharts(userId, tabName) {
     switch (tabName) {
         case 'performance':
             await Promise.all([
-                loadRecordsWaterfall(userId),
+                loadMuscleVolumeChart(userId),
                 loadIntensityRecoveryChart(userId)
             ]);
             // Charger la progression si un exercice est sélectionné
@@ -412,49 +412,135 @@ async function loadProgressionChart(userId, exerciseId) {
     }
 }
 
-// ===== GRAPHIQUE 4: RECORDS PERSONNELS =====
-async function loadRecordsWaterfall(userId) {
+
+// ===== CHART VOLUME MUSCULAIRE - AIRES EMPILÉES =====
+async function loadMuscleVolumeChart(userId) {
+    const period = document.querySelector('.period-btn.active')?.dataset.period || '30';
+    
     try {
-        const records = await window.apiGet(`/api/users/${userId}/stats/personal-records`);
+        const data = await window.apiGet(`/api/users/${userId}/stats/muscle-balance?days=${period}`);
         
-        const container = document.getElementById('recordsWaterfall');
-        if (!records || records.length === 0) {
-            container.innerHTML = '<p class="text-muted">Aucun record enregistré</p>';
+        if (!data.chart_data || data.chart_data.datasets.length === 0) {
+            document.getElementById('recordsWaterfall').innerHTML = 
+                '<p class="text-muted">Pas de données pour cette période</p>';
             return;
         }
         
-        // Créer le waterfall
-        container.innerHTML = records.slice(0, 10).map((record, index) => {
-            const muscleColor = getSafeMuscleColor(record.muscleGroups[0] || 'default');
-            const fatigueEmoji = ['💪', '😊', '😐', '😓', '😵'][record.fatigue - 1] || '😐';
-            
-            return `
-                <div class="waterfall-item" style="animation-delay: ${index * 0.1}s">
-                    <div class="waterfall-rank">#${index + 1}</div>
-                    <div class="waterfall-content" style="border-left-color: ${muscleColor}">
-                        <div class="waterfall-header">
-                            <h4>${record.exercise}</h4>
-                            <span class="waterfall-weight">${record.weight}kg</span>
-                        </div>
-                        <div class="waterfall-details">
-                            <span>${record.reps} reps</span>
-                            <span>${fatigueEmoji} Fatigue: ${record.fatigue}/5</span>
-                            <span>📅 Il y a ${record.daysAgo}j</span>
-                        </div>
-                            <div class="waterfall-muscles">
-                                ${record.muscleGroups.map(muscle => 
-                                    `<span class="muscle-tag" style="background-color: ${getSafeMuscleColor(muscle)}">${muscle}</span>`
-                                ).join('')}
-                            </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
+        renderMuscleVolumeChart(data.chart_data);
         
     } catch (error) {
-        console.error('Erreur chargement records:', error);
+        console.error('Erreur chart volume:', error);
+        document.getElementById('recordsWaterfall').innerHTML = 
+            '<p class="text-muted">Erreur chargement données</p>';
     }
 }
+
+function renderMuscleVolumeChart(chartData) {
+    // Réutiliser le container existant
+    const container = document.getElementById('recordsWaterfall');
+    container.innerHTML = '<canvas id="muscleVolumeChart" style="height: 300px;"></canvas>';
+    
+    const ctx = document.getElementById('muscleVolumeChart').getContext('2d');
+    
+    // Utiliser les couleurs existantes
+    const muscleColors = window.MuscleColors ? 
+        window.MuscleColors.getChartColors() : 
+        {
+            dos: '#3b82f6',
+            pectoraux: '#ec4899',
+            jambes: '#10b981', 
+            epaules: '#f59e0b',
+            bras: '#8b5cf6',
+            abdominaux: '#ef4444'
+        };
+    
+    // Préparer datasets pour stacked area
+    const datasets = chartData.datasets.map(dataset => {
+        const muscle = dataset.label.toLowerCase();
+        const color = muscleColors[muscle] || '#6b7280';
+        
+        return {
+            label: dataset.label,
+            data: dataset.data,
+            backgroundColor: color + '60', // 60 = ~37% opacity
+            borderColor: color,
+            borderWidth: 1,
+            fill: true,
+            tension: 0.3
+        };
+    });
+    
+    // Chart stacked area avec config réutilisée
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: chartData.labels,
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    stacked: true,
+                    title: {
+                        display: true,
+                        text: `Somme glissante ${chartData.period_days} jours`
+                    }
+                },
+                y: {
+                    stacked: true,
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Volume (kg)'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return Math.round(value) + 'kg';
+                        }
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    mode: 'index',
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${Math.round(context.parsed.y)}kg`;
+                        }
+                    }
+                },
+                legend: {
+                    position: 'top'
+                }
+            },
+            elements: {
+                point: {
+                    radius: 2
+                }
+            }
+        }
+    });
+}
+
+// Fonction pour boutons de période
+function selectMuscleVolumePeriod(period) {
+    // Mettre à jour boutons
+    document.querySelectorAll('.period-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`[data-period="${period}"]`).classList.add('active');
+    
+    // Recharger
+    if (window.currentUser?.id) {
+        loadMuscleVolumeChart(window.currentUser.id);
+    }
+}
+
+// Exposer globalement
+window.loadMuscleVolumeChart = loadMuscleVolumeChart;
+window.selectMuscleVolumePeriod = selectMuscleVolumePeriod;
 
 /**
  * Module M6 - Fonction cleanup pour éviter memory leaks
