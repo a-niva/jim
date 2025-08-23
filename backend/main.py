@@ -4322,7 +4322,7 @@ def get_muscle_volume_chart(
         
         # Récupérer séries avec volume - requête corrigée
         sets_data = db.query(
-            func.date(WorkoutSet.started_at).label('workout_date'),
+            func.date(Workout.started_at).label('workout_date'),
             WorkoutSet.weight,
             WorkoutSet.reps,
             Exercise.muscle_groups
@@ -4333,7 +4333,7 @@ def get_muscle_volume_chart(
         ).filter(
             Workout.user_id == user_id,
             Workout.status == "completed",
-            WorkoutSet.started_at >= start_date
+            Workout.started_at  >= start_date
         ).all()
         
         if not sets_data:
