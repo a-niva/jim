@@ -3276,7 +3276,6 @@ async function resumeWorkout(workoutId) {
 
 async function abandonActiveWorkout(workoutId) {
     if (confirm('Êtes-vous sûr de vouloir abandonner cette séance ?')) {
-        // Nettoyer IMMÉDIATEMENT l'état local et la bannière
         localStorage.removeItem('fitness_workout_state');
         clearWorkoutState();
         const banner = document.querySelector('.workout-resume-notification-banner');
@@ -3285,12 +3284,35 @@ async function abandonActiveWorkout(workoutId) {
         try {
             const response = await apiDelete(`/api/workouts/${workoutId}/abandon`);
             
-            // SI abandonnée avec contenu depuis dashboard → LA SUPPRIMER QUAND MÊME
             if (response.action === 'abandoned') {
                 await apiDelete(`/api/workouts/${workoutId}`);
                 showToast('Séance définitivement supprimée', 'info');
             } else {
                 showToast('Séance vide supprimée', 'info');
+            }
+            
+            // ✅ VERIFICATION avec retry pour s'assurer que la séance n'existe plus
+            let attempts = 0;
+            const maxAttempts = 3;
+            
+            while (attempts < maxAttempts) {
+                try {
+                    const stillExists = await apiGet(`/api/workouts/${workoutId}`);
+                    if (stillExists) {
+                        console.log(`Séance encore présente, retry ${attempts + 1}/${maxAttempts}`);
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                        attempts++;
+                    } else {
+                        break;  // Séance supprimée, on peut continuer
+                    }
+                } catch (error) {
+                    // 404 = séance supprimée, c'est ce qu'on veut
+                    if (error.message && error.message.includes('404')) {
+                        console.log('✅ Séance confirmée supprimée');
+                        break;
+                    }
+                    attempts++;
+                }
             }
             
         } catch (error) {
