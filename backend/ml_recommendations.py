@@ -278,7 +278,8 @@ class FitnessRecommendationEngine:
             
         except Exception as e:
             logger.error(f"Erreur recommandations pour user {user.id}, exercise {exercise.id}: {e}")
-            logger.error(f"Traceback:\n{traceback.format_exc()}")
+            logger.error(f"Erreur: {str(e)} - {traceback.format_exc()}")
+            self.db.rollback()
             # Fallback sur les valeurs par défaut
             return {
                 "weight_recommendation": None,
@@ -2367,7 +2368,7 @@ class FitnessRecommendationEngine:
             Exercise, WorkoutSet.exercise_id == Exercise.id
         ).filter(
             WorkoutSet.workout_id == workout_id,
-            Exercise.equipment_required.contains([equipment_type])
+            Exercise.equipment_required.op('@>')([equipment_type])
         ).order_by(WorkoutSet.id.desc()).first()
         
         return {
@@ -2403,7 +2404,7 @@ class FitnessRecommendationEngine:
         ).filter(
             Workout.user_id == user_id,
             WorkoutSet.completed_at >= cutoff,
-            Exercise.equipment_required.contains([equipment_type])
+            Exercise.equipment_required.op('@>')([equipment_type])
         ).all()
         
         return [s.weight for s in sets if s.weight and s.weight > 0]
