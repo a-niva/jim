@@ -159,6 +159,87 @@ class FitnessRecommendationEngine:
                     recommendations['weight'] = min(available_weights, 
                                                 key=lambda x: abs(x - recommendations['weight']))
 
+            # ═══════════ NOUVEAU SYSTÈME ML OPTIMISÉ ═══════════
+
+            # 1. CLASSIFICATION ÉQUIPEMENT
+            equipment_context = self._classify_equipment_context(exercise)
+
+            # 2. APPLICATION DES 4 COEFFICIENTS INUTILISÉS
+            if equipment_context['type'] != 'other':
+                
+                # 2a. Amplification effort contextuelle
+                raw_adjustment = (recommendations['weight'] / performance_state['baseline_weight']) - 1.0 if performance_state.get('baseline_weight', 0) > 0 else 0.0
+                amplified_adjustment = self._calculate_effort_amplifier(
+                    raw_adjustment, current_effort, coefficients
+                )
+                if performance_state.get('baseline_weight', 0) > 0:
+                    recommendations['weight'] = performance_state['baseline_weight'] * (1 + amplified_adjustment)
+                
+                # 2b. Balance poids/reps optimale selon préférence user
+                opt_weight, opt_reps, balance_type = self._calculate_optimal_balance(
+                    recommendations['weight'] or 20, recommendations['reps'] or 10, coefficients
+                )
+                recommendations['weight'] = opt_weight
+                recommendations['reps'] = opt_reps
+                
+                # 2c. Scaling volume contextuel selon numéro de série
+                final_weight, final_reps = self._apply_contextual_volume_scaling(
+                    recommendations['weight'], recommendations['reps'], set_number, coefficients
+                )
+                recommendations['weight'] = final_weight
+                recommendations['reps'] = final_reps
+
+            # 3. OPTIMISATIONS MULTI-BARRES (si équipement compatible)
+            plate_change_data = None
+            if equipment_context['optimization_strategy'] != 'none' and workout_id:
+                
+                session_state = self._get_session_equipment_state(workout_id, equipment_context['type'])
+                
+                # 3a. Optimisation inter-séries (même exercice)
+                inter_sets_result = self._optimize_inter_sets_smart(
+                    recommendations['weight'], equipment_context, coefficients, session_state
+                )
+                
+                # 3b. Optimisation intra-séance (multi-exercices)
+                intra_session_result = self._optimize_intra_session_advanced(
+                    exercise.id, inter_sets_result['weight'], equipment_context,
+                    available_weights or [], coefficients, workout_id
+                )
+                
+                # 3c. Optimisation inter-séances (continuité historique)
+                inter_sessions_result = self._optimize_inter_sessions_contextual(
+                    intra_session_result['weight'], equipment_context, coefficients, user.id
+                )
+                
+                # 4. APPLICATION FINALE ET ENRICHISSEMENT
+                final_optimized_weight = inter_sessions_result['weight']
+                
+                if abs(final_optimized_weight - recommendations['weight']) > 1.0:
+                    old_weight = recommendations['weight']
+                    recommendations['weight'] = final_optimized_weight
+                    
+                    # Enrichir reasoning pour UI
+                    optimizations = [
+                        inter_sets_result.get('reason', ''),
+                        intra_session_result.get('reason', ''),  
+                        inter_sessions_result.get('reason', '')
+                    ]
+                    active_opts = [opt for opt in optimizations if opt and 'none' not in opt.lower()]
+                    
+                    if active_opts:
+                        existing_reasoning = recommendations.get('reasoning', 'Conditions normales')
+                        recommendations['reasoning'] = existing_reasoning + f" • Optimisations: {'; '.join(active_opts[:2])}"
+                
+                # 5. NOUVEAU : Données pour modal UI changements disques
+                plate_change_data = self._calculate_plate_changes(
+                    session_state.get('current_plates_config', []),
+                    recommendations['weight'],
+                    equipment_context,
+                    getattr(user, 'equipment_config', {})
+                )
+
+            # ═══════════ FIN NOUVEAU SYSTÈME ═══════════
+
             return {
                 "weight_recommendation": round(recommendations['weight'], 1) if recommendations['weight'] is not None else None,
                 "reps_recommendation": max(1, recommendations['reps']),
@@ -182,7 +263,8 @@ class FitnessRecommendationEngine:
                 "baseline_reps": performance_state.get('baseline_reps'),
                 "reasoning": recommendations.get('reasoning', 'Conditions normales'),
                 "adaptation_strategy": "variable_weight" if user.prefer_weight_changes_between_sets else "fixed_weight",
-                "exercise_type": exercise.weight_type
+                "exercise_type": exercise.weight_type,
+                "plate_change_data": plate_change_data  # ← NOUVEAU CHAMP
             }
             
         except Exception as e:
@@ -200,7 +282,8 @@ class FitnessRecommendationEngine:
                 "reps_change": "same",
                 "baseline_weight": None,
                 "baseline_reps": exercise.default_reps_min,
-                "adaptation_strategy": "variable_weight" if user.prefer_weight_changes_between_sets else "fixed_weight"
+                "adaptation_strategy": "variable_weight" if user.prefer_weight_changes_between_sets else "fixed_weight",
+                "plate_change_data": None
             }
 
     def _get_historical_context(
@@ -1972,3 +2055,442 @@ class FitnessRecommendationEngine:
         except Exception as e:
             logger.error(f"Erreur enregistrement performance: {e}")
             self.db.rollback()
+
+
+
+
+
+
+    # ═══════════ MÉTHODES POUR 4 COEFFICIENTS ═══════════
+
+    def _calculate_effort_amplifier(self, base_adjustment: float, current_effort: int, coefficients) -> float:
+        """
+        Amplification intelligente selon effort ET effort_responsiveness
+        
+        Réinterprétation effort_responsiveness :
+        - 0.7 = Conservateur (ajustements doux)
+        - 1.3 = Agressif (ajustements marqués)
+        
+        Combine avec current_effort pour amplification contextuelle
+        """
+        base_sensitivity = coefficients.effort_responsiveness
+        
+        # Modulation selon effort actuel (courbe non-linéaire)
+        effort_multiplier = {
+            1: 0.5,   # Effort très facile → réduction amplification
+            2: 0.8, 
+            3: 1.0,   # Effort normal → amplification normale
+            4: 1.4,   # Effort dur → amplification renforcée  
+            5: 1.8    # Effort maximal → amplification maximale
+        }.get(current_effort, 1.0)
+        
+        final_amplifier = base_sensitivity * effort_multiplier
+        amplified = base_adjustment * final_amplifier
+        
+        # Protection contre ajustements extrêmes
+        return max(-0.3, min(0.3, amplified))
+
+    def _calculate_optimal_balance(self, target_weight: float, target_reps: int, coefficients) -> tuple:
+        """
+        Redistribution intelligente poids/reps selon strength_endurance_ratio
+        
+        Réinterprétation strength_endurance_ratio :
+        - 0.3 = Priorité volume (plus de reps, poids stables)
+        - 0.7 = Priorité force (poids précis, moins de reps)
+        """
+        preference = coefficients.strength_endurance_ratio
+        current_volume = target_weight * target_reps
+        
+        if preference < 0.35:
+            # VOLUME PRIORITY : +15% reps, poids plus conservateur
+            new_reps = int(target_reps * 1.15)
+            new_weight = current_volume / new_reps  # Maintenir volume constant
+            return new_weight, new_reps, "volume_priority"
+            
+        elif preference > 0.65:
+            # FORCE PRIORITY : -10% reps, permet poids plus lourds
+            new_reps = max(5, int(target_reps * 0.9))  # Min 5 reps
+            new_weight = current_volume / new_reps
+            return new_weight, new_reps, "force_priority"
+        else:
+            # BALANCED : Pas de redistribution
+            return target_weight, target_reps, "balanced"
+
+    def _calculate_smart_tolerance(self, base_weight: float, current_reps: int, coefficients) -> Dict:
+        """
+        Calcul tolérance contextuelle utilisant volume_adaptability
+        
+        Réinterprétation volume_adaptability :
+        - 1.0 = Strict (pas de compromis)
+        - 1.5 = Flexible (±20% volume acceptable pour optimisations)
+        """
+        base_flexibility = coefficients.volume_adaptability
+        
+        # Bonus tolérance si hautes reps (plus de marge d'erreur)
+        reps_bonus = min(0.2, (current_reps - 8) * 0.02)  # +2% par rep >8
+        
+        # Malus tolérance si poids lourds (précision critique)
+        heavy_penalty = max(0, (base_weight - 100) * 0.001)  # -0.1% par kg >100kg
+        
+        final_flexibility = base_flexibility + reps_bonus - heavy_penalty
+        
+        # Convertir en tolérance absolue
+        weight_tolerance = base_weight * (final_flexibility - 1.0) * 0.15  # Max 15%
+        
+        return {
+            'absolute_tolerance_kg': max(1.0, weight_tolerance),
+            'relative_tolerance': final_flexibility,
+            'reasoning': f"Base: {base_flexibility:.1f}, Reps: +{reps_bonus:.2f}, Heavy: -{heavy_penalty:.3f}"
+        }
+
+    def _apply_contextual_volume_scaling(self, weight: float, reps: int, set_number: int, coefficients) -> tuple:
+        """
+        Scaling volume avec optimal_volume_multiplier et contexte série
+        
+        Réinterprétation optimal_volume_multiplier :
+        - 0.8 = Volume réduit (-20%)  
+        - 1.2 = Volume augmenté (+20%)
+        
+        Modulation selon numéro de série (fatigue accumulated)
+        """
+        base_multiplier = coefficients.optimal_volume_multiplier
+        
+        # Modulation selon numéro de série
+        set_modulation = {
+            1: 1.0,    # Première série : scaling complet
+            2: 0.8,    # Deuxième série : 80% du scaling
+            3: 0.6,    # Troisième série : 60% du scaling
+            4: 0.4,    # Quatrième série : 40% du scaling
+        }.get(set_number, 0.2)  # Série 5+ : scaling minimal
+        
+        effective_multiplier = 1.0 + (base_multiplier - 1.0) * set_modulation
+        target_volume = weight * reps * effective_multiplier
+        
+        # Application avec balance force/endurance
+        strength_bias = coefficients.strength_endurance_ratio
+        if strength_bias > 0.6:
+            # Force bias → plus sur poids
+            new_weight = weight * (effective_multiplier ** 0.7)
+            new_reps = int(target_volume / new_weight)
+        elif strength_bias < 0.4:
+            # Volume bias → plus sur reps
+            new_reps = int(reps * (effective_multiplier ** 0.7))
+            new_weight = target_volume / new_reps
+        else:
+            # Balanced → proportionnel
+            factor = effective_multiplier ** 0.5
+            new_weight = weight * factor
+            new_reps = int(reps * factor)
+        
+        return new_weight, new_reps
+
+    # ═══════════ MÉTHODES OPTIMISATION MULTI-BARRES ═══════════
+
+    def _classify_equipment_context(self, exercise: Exercise) -> Dict:
+        """
+        Classification intelligente équipement selon exercise.equipment_required
+        """
+        required = exercise.equipment_required or []
+        
+        # Classification par priorité
+        if any(eq in ['barbell', 'barbell_athletic'] for eq in required):
+            return {
+                'type': 'barbell_athletic',
+                'bar_weight': 20,
+                'optimization_strategy': 'heavy_bar_continuity',
+                'change_cost': 'high',
+                'plate_sides': 2  # 2 côtés de barre
+            }
+        elif 'barbell_ez' in required:
+            return {
+                'type': 'barbell_ez', 
+                'bar_weight': 10,
+                'optimization_strategy': 'medium_bar_flexibility',
+                'change_cost': 'medium',
+                'plate_sides': 2
+            }
+        elif 'dumbbells' in required or 'barbell_short_pair' in required:
+            return {
+                'type': 'dumbbells_adjustable',
+                'bar_weight': 2.5,  # Par barre courte
+                'optimization_strategy': 'dual_bar_symmetry', 
+                'change_cost': 'moderate',
+                'plate_sides': 4  # 2 barres × 2 côtés
+            }
+        else:
+            return {
+                'type': 'other',
+                'optimization_strategy': 'none',
+                'change_cost': 'none'
+            }
+
+    def _optimize_inter_sets_smart(self, target_weight: float, equipment_context: Dict, coefficients, session_state: Dict) -> Dict:
+        """
+        Optimisation inter-séries avec stratégies spécialisées par équipement
+        """
+        current_weight = session_state.get('last_weight_same_equipment', target_weight)
+        tolerance = self._calculate_smart_tolerance(target_weight, 
+                                                session_state.get('current_reps', 10), 
+                                                coefficients)
+        
+        strategy = equipment_context['optimization_strategy']
+        
+        if strategy == 'heavy_bar_continuity':
+            # Barre athlétique : coût changement élevé → tolérance élargie
+            if abs(target_weight - current_weight) <= tolerance['absolute_tolerance_kg'] * 1.5:
+                bias_strength = 0.4  # 40% vers poids actuel
+                optimized = current_weight * bias_strength + target_weight * (1 - bias_strength)
+                return {
+                    'weight': optimized,
+                    'optimization': 'continuity_bias',
+                    'reason': f'Évite changement barbell ({abs(target_weight-current_weight):.1f}kg diff)'
+                }
+                
+        elif strategy == 'dual_bar_symmetry':
+            # Dumbbells : optimisation symétrie
+            if target_weight % 2 != 0:  # Poids impair → arrondir
+                optimized = round(target_weight / 2) * 2
+                if abs(optimized - target_weight) <= tolerance['absolute_tolerance_kg']:
+                    return {
+                        'weight': optimized,
+                        'optimization': 'symmetry_rounding',
+                        'reason': f'Arrondi pour symétrie dumbbells ({target_weight}→{optimized}kg)'
+                    }
+        
+        return {'weight': target_weight, 'optimization': 'none'}
+
+    def _optimize_intra_session_advanced(self, current_exercise_id: int, target_weight: float, equipment_context: Dict, available_weights: List[float], coefficients, workout_id: int) -> Dict:
+        """
+        Optimisation sophistiquée tenant compte des exercices à venir
+        """
+        if coefficients.volume_adaptability < 1.1:
+            return {'weight': target_weight, 'reason': 'User strict'}
+        
+        # Récupérer prochains exercices même équipement
+        upcoming_same_equipment = self._get_upcoming_exercises_same_equipment(
+            workout_id, current_exercise_id, equipment_context['type']
+        )
+        
+        if not upcoming_same_equipment:
+            return {'weight': target_weight, 'reason': 'Pas d\'exercices similaires à venir'}
+        
+        # Estimer poids des prochains exercices
+        upcoming_weights = []
+        for ex_id in upcoming_same_equipment[:3]:  # Max 3 exercices ahead
+            estimated = self._estimate_upcoming_weight(ex_id, coefficients)
+            upcoming_weights.append(estimated)
+        
+        # Algorithme de scoring matriciel
+        tolerance = self._calculate_smart_tolerance(target_weight, 10, coefficients)
+        candidates = [w for w in available_weights 
+                    if abs(w - target_weight) <= tolerance['absolute_tolerance_kg']]
+        
+        if len(candidates) < 2:
+            return {'weight': target_weight, 'reason': 'Pas assez de candidats'}
+        
+        # Score chaque candidat
+        best_weight = target_weight
+        best_score = float('inf')
+        
+        for candidate in candidates:
+            # Score = précision + facilité transitions futures
+            precision_score = abs(candidate - target_weight) / target_weight
+            transition_score = sum(abs(candidate - up) for up in upcoming_weights) / len(upcoming_weights)
+            
+            # Pondération selon préférence force/volume
+            if coefficients.strength_endurance_ratio > 0.6:
+                total_score = precision_score * 0.8 + transition_score * 0.2  # Précision prioritaire
+            else:
+                total_score = precision_score * 0.4 + transition_score * 0.6  # Facilité prioritaire
+            
+            if total_score < best_score:
+                best_score = total_score
+                best_weight = candidate
+        
+        return {
+            'weight': best_weight,
+            'optimization': 'multi_exercise_scoring',
+            'reason': f'Optimisé pour {len(upcoming_same_equipment)} exercices à venir',
+            'upcoming_count': len(upcoming_same_equipment)
+        }
+
+    def _optimize_inter_sessions_contextual(self, target_weight: float, equipment_context: Dict, coefficients, user_id: int) -> Dict:
+        """
+        Optimisation inter-séances avec mémoire contextuelle
+        """
+        if coefficients.volume_adaptability < 1.15:
+            return {'weight': target_weight, 'reason': 'Tolérance insuffisante'}
+        
+        # Récupérer historique récent même type équipement
+        recent_weights = self._get_recent_weights_by_equipment(
+            user_id, equipment_context['type'], days=5
+        )
+        
+        if not recent_weights:
+            return {'weight': target_weight, 'reason': 'Pas d\'historique récent'}
+        
+        tolerance = self._calculate_smart_tolerance(target_weight, 10, coefficients)
+        
+        # Chercher poids récent dans tolérance
+        compatible_recent = [w for w in recent_weights 
+                            if abs(w - target_weight) <= tolerance['absolute_tolerance_kg']]
+        
+        if compatible_recent:
+            # Prendre le plus fréquent
+            from collections import Counter
+            most_common = Counter(compatible_recent).most_common(1)[0][0]
+            
+            return {
+                'weight': most_common,
+                'optimization': 'inter_session_continuity',
+                'reason': f'Continuité avec {most_common}kg (utilisé récemment)',
+                'frequency': compatible_recent.count(most_common)
+            }
+        
+        return {'weight': target_weight, 'reason': 'Pas de poids récent compatible'}
+
+    # ═══════════ MÉTHODES HELPER DATA ═══════════
+
+    def _get_session_equipment_state(self, workout_id: int, equipment_type: str) -> Dict:
+        """Récupère état équipement dans la séance courante"""
+        # Trouver dernière série même type équipement
+        last_set = self.db.query(WorkoutSet).join(Exercise).filter(
+            WorkoutSet.workout_id == workout_id,
+            Exercise.equipment_required.contains([equipment_type])
+        ).order_by(WorkoutSet.created_at.desc()).first()
+        
+        return {
+            'last_weight_same_equipment': last_set.weight if last_set else None,
+            'last_exercise_id': last_set.exercise_id if last_set else None,
+            'current_reps': 10,  # Estimation par défaut
+            'current_plates_config': self._reconstruct_plates_config(last_set.weight if last_set else 20, equipment_type)
+        }
+
+    def _get_upcoming_exercises_same_equipment(self, workout_id: int, current_exercise_id: int, equipment_type: str) -> List[int]:
+        """Récupère prochains exercices même équipement dans séance"""
+        # Cette méthode doit être implementée selon la structure du programme
+        # Pour l'instant, retourner liste vide
+        return []
+
+    def _estimate_upcoming_weight(self, exercise_id: int, coefficients) -> float:
+        """Estime poids probable pour un exercice futur basé sur historique user"""
+        # Cette méthode doit utiliser l'historique utilisateur pour l'exercice
+        # Pour l'instant, retourner estimation par défaut
+        return 20.0
+
+    def _get_recent_weights_by_equipment(self, user_id: int, equipment_type: str, days: int) -> List[float]:
+        """Récupère poids récents pour un type d'équipement"""
+        from datetime import datetime, timedelta, timezone
+        
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+        
+        sets = self.db.query(WorkoutSet.weight).join(Exercise).join(Workout).filter(
+            Workout.user_id == user_id,
+            WorkoutSet.completed_at >= cutoff,
+            Exercise.equipment_required.contains([equipment_type])
+        ).all()
+        
+        return [s.weight for s in sets if s.weight and s.weight > 0]
+
+    def _reconstruct_plates_config(self, weight: float, equipment_type: str) -> List[Dict]:
+        """Reconstitue la configuration probable de disques pour un poids donné"""
+        # Cette méthode reconstitue les disques utilisés
+        # Sera utilisée par le modal UI pour calculer les changements
+        
+        if equipment_type == 'barbell_athletic':
+            bar_weight = 20
+            charge_per_side = (weight - bar_weight) / 2
+        elif equipment_type == 'barbell_ez':
+            bar_weight = 10  
+            charge_per_side = (weight - bar_weight) / 2
+        elif equipment_type == 'dumbbells_adjustable':
+            bar_weight = 2.5
+            charge_per_side = (weight / 2 - bar_weight)  # Par dumbbell
+        else:
+            return []
+        
+        # Algorithme simple de reconstruction
+        plates = []
+        remaining = charge_per_side
+        standard_plates = [20, 15, 10, 5, 2.5, 2, 1.25, 1]
+        
+        for plate in standard_plates:
+            count = int(remaining // plate)
+            if count > 0:
+                plates.append({'weight': plate, 'count': count})
+                remaining -= plate * count
+            if remaining < 0.5:
+                break
+        
+        return plates
+
+    # ═══════════ NOUVELLE MÉTHODE POUR MODAL UI ═══════════
+
+    def _calculate_plate_changes(
+        self, 
+        current_config: List[Dict], 
+        target_weight: float,
+        equipment_context: Dict,
+        user_equipment_config: Dict
+    ) -> Dict:
+        """
+        NOUVEAU : Calcule les changements de disques nécessaires pour modal UI
+        
+        Args:
+            current_config: Configuration actuelle des disques
+            target_weight: Poids cible à atteindre
+            equipment_context: Type d'équipement et contexte
+            user_equipment_config: Configuration équipement utilisateur
+            
+        Returns:
+            Dict avec détails des changements pour le modal UI
+        """
+        # Calculer configuration cible
+        target_config = self._reconstruct_plates_config(target_weight, equipment_context['type'])
+        
+        # Calculer différences
+        changes_needed = {
+            'add_plates': [],      # Disques à ajouter
+            'remove_plates': [],   # Disques à retirer  
+            'total_changes': 0,    # Nombre total changements
+            'change_complexity': 'simple'  # simple/medium/complex
+        }
+        
+        # Algorithme de comparaison
+        current_dict = {p['weight']: p['count'] for p in current_config}
+        target_dict = {p['weight']: p['count'] for p in target_config}
+        
+        all_weights = set(current_dict.keys()) | set(target_dict.keys())
+        
+        for weight in all_weights:
+            current_count = current_dict.get(weight, 0)
+            target_count = target_dict.get(weight, 0)
+            diff = target_count - current_count
+            
+            if diff > 0:
+                changes_needed['add_plates'].append({
+                    'weight': weight,
+                    'count': diff,
+                    'side': equipment_context['plate_sides']
+                })
+            elif diff < 0:
+                changes_needed['remove_plates'].append({
+                    'weight': weight, 
+                    'count': abs(diff),
+                    'side': equipment_context['plate_sides']
+                })
+        
+        # Calculer complexité
+        total_changes = len(changes_needed['add_plates']) + len(changes_needed['remove_plates'])
+        changes_needed['total_changes'] = total_changes
+        
+        if total_changes == 0:
+            changes_needed['change_complexity'] = 'none'
+        elif total_changes <= 2:
+            changes_needed['change_complexity'] = 'simple'
+        elif total_changes <= 4:
+            changes_needed['change_complexity'] = 'medium'
+        else:
+            changes_needed['change_complexity'] = 'complex'
+        
+        return changes_needed
