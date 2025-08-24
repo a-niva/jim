@@ -3301,39 +3301,27 @@ async function abandonActiveWorkout(workoutId) {
         if (banner) banner.remove();
         
         try {
-            console.log('🚨 [DEBUG] Étape 1: Appel /abandon');
-            const response = await apiDelete(`/api/workouts/${workoutId}/abandon`);
-            console.log('🚨 [DEBUG] Response /abandon:', response);
+            console.log('🚨 [DEBUG] Nettoyage complet de toutes les séances abandonnées...');
             
-            if (response.action === 'abandoned') {
-                console.log('🚨 [DEBUG] Étape 2: Suppression définitive');
-                await apiDelete(`/api/workouts/${workoutId}`);
-                console.log('🚨 [DEBUG] Séance supprimée définitivement');
-                showToast('Séance définitivement supprimée', 'info');
-            } else {
-                console.log('🚨 [DEBUG] Séance était vide, supprimée directement');
-                showToast('Séance vide supprimée', 'info');
-            }
+            // ✅ SOLUTION : Supprimer TOUTES les séances abandonnées d'un coup
+            await apiDelete(`/api/users/${currentUser.id}/workouts/abandoned/cleanup`);
+            showToast('Toutes les séances abandonnées supprimées', 'info');
             
         } catch (error) {
-            console.error('Erreur API abandon:', error);
-            showToast('Séance abandonnée (hors ligne)', 'info');
+            console.error('Erreur nettoyage global:', error);
+            // Fallback : supprimer au moins celle-ci
+            try {
+                const response = await apiDelete(`/api/workouts/${workoutId}/abandon`);
+                if (response.action === 'abandoned') {
+                    await apiDelete(`/api/workouts/${workoutId}`);
+                }
+                showToast('Séance abandonnée supprimée', 'info');
+            } catch (fallbackError) {
+                showToast('Séance abandonnée (hors ligne)', 'info');
+            }
         }
         
-        // Vérification avant rechargement
-        console.log('🚨 [DEBUG] Attente 1s avant rechargement...');
-        setTimeout(async () => {
-            console.log('🚨 [DEBUG] Test: Séance existe-t-elle encore?');
-            try {
-                const stillExists = await apiGet(`/api/workouts/${workoutId}`);
-                console.log('🚨 [DEBUG] PROBLÈME: Séance existe encore!', stillExists);
-            } catch (error) {
-                console.log('✅ [DEBUG] Parfait: Séance n\'existe plus (404 attendu)');
-            }
-            
-            console.log('🚨 [DEBUG] Rechargement dashboard...');
-            loadDashboard();
-        }, 500);
+        setTimeout(() => loadDashboard(), 500);
     }
 }
 
