@@ -161,14 +161,23 @@ class FitnessRecommendationEngine:
 
             # ═══════════ NOUVEAU SYSTÈME ML OPTIMISÉ ═══════════
 
-            # 1. CLASSIFICATION ÉQUIPEMENT
-            equipment_context = self._classify_equipment_context(exercise)
+            # PROTECTION : S'assurer que recommendations a des valeurs valides
+            if not recommendations.get('weight') or recommendations['weight'] <= 0:
+                logger.warning(f"Poids invalide dans recommendations: {recommendations.get('weight')}")
+                # Ne pas appliquer les optimisations si données invalides
+            else:
+                # 1. CLASSIFICATION ÉQUIPEMENT
+                equipment_context = self._classify_equipment_context(exercise)
 
             # 2. APPLICATION DES 4 COEFFICIENTS INUTILISÉS
             if equipment_context['type'] != 'other':
                 
                 # 2a. Amplification effort contextuelle
-                raw_adjustment = (recommendations['weight'] / performance_state['baseline_weight']) - 1.0 if performance_state.get('baseline_weight', 0) > 0 else 0.0
+                baseline_weight = performance_state.get('baseline_weight', 0)
+                if baseline_weight and baseline_weight > 0 and recommendations['weight']:
+                    raw_adjustment = (recommendations['weight'] / baseline_weight) - 1.0
+                else:
+                    raw_adjustment = 0.0
                 amplified_adjustment = self._calculate_effort_amplifier(
                     raw_adjustment, current_effort, coefficients
                 )
@@ -2171,10 +2180,10 @@ class FitnessRecommendationEngine:
         if strength_bias > 0.6:
             # Force bias → plus sur poids
             new_weight = weight * (effective_multiplier ** 0.7)
-            new_reps = int(target_volume / new_weight)
+            new_reps = max(1, int(target_volume / max(1, new_weight)))
         elif strength_bias < 0.4:
             # Volume bias → plus sur reps
-            new_reps = int(reps * (effective_multiplier ** 0.7))
+            new_reps = max(1, int(reps * (effective_multiplier ** 0.7)))
             new_weight = target_volume / new_reps
         else:
             # Balanced → proportionnel
@@ -2354,7 +2363,9 @@ class FitnessRecommendationEngine:
     def _get_session_equipment_state(self, workout_id: int, equipment_type: str) -> Dict:
         """Récupère état équipement dans la séance courante"""
         # Trouver dernière série même type équipement
-        last_set = self.db.query(WorkoutSet).join(Exercise).filter(
+        last_set = self.db.query(WorkoutSet).join(
+            Exercise, WorkoutSet.exercise_id == Exercise.id
+        ).filter(
             WorkoutSet.workout_id == workout_id,
             Exercise.equipment_required.contains([equipment_type])
         ).order_by(WorkoutSet.id.desc()).first()
@@ -2362,7 +2373,7 @@ class FitnessRecommendationEngine:
         return {
             'last_weight_same_equipment': last_set.weight if last_set else None,
             'last_exercise_id': last_set.exercise_id if last_set else None,
-            'current_reps': 10,  # Estimation par défaut
+            'current_reps': 10,
             'current_plates_config': self._reconstruct_plates_config(last_set.weight if last_set else 20, equipment_type)
         }
 
@@ -2384,7 +2395,12 @@ class FitnessRecommendationEngine:
         
         cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         
-        sets = self.db.query(WorkoutSet.weight).join(Exercise).join(Workout).filter(
+        # CORRECTION : Jointure explicite
+        sets = self.db.query(WorkoutSet.weight).join(
+            Exercise, WorkoutSet.exercise_id == Exercise.id
+        ).join(
+            Workout, WorkoutSet.workout_id == Workout.id
+        ).filter(
             Workout.user_id == user_id,
             WorkoutSet.completed_at >= cutoff,
             Exercise.equipment_required.contains([equipment_type])

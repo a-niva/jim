@@ -11912,7 +11912,12 @@ async function executeSet() {
                 voice_data: voiceDataToSend || voiceData // Priorité aux données enrichies ML
             };
         }
-        
+
+        console.log('🔍 VÉRIFICATION POIDS:');
+        console.log('- Affiché UI:', document.getElementById('weightInput')?.value);  
+        console.log('- Envoyé API:', workoutState.pendingSetData.weight);
+        console.log('- currentExerciseRealWeight:', currentExerciseRealWeight);
+                
         // === ENRICHISSEMENT MÉTADONNÉES STRATÉGIQUES (CONSERVÉ) ===
         // Ajouter les informations ML et stratégiques pour la sauvegarde finale
         if (workoutState.currentRecommendation) {
