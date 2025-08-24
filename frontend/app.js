@@ -3276,7 +3276,6 @@ async function resumeWorkout(workoutId) {
 
 async function abandonActiveWorkout(workoutId) {
     if (confirm('Êtes-vous sûr de vouloir abandonner cette séance ?')) {
-        
         // Nettoyer IMMÉDIATEMENT l'état local et la bannière
         localStorage.removeItem('fitness_workout_state');
         clearWorkoutState();
@@ -3284,13 +3283,14 @@ async function abandonActiveWorkout(workoutId) {
         if (banner) banner.remove();
         
         try {
-            // Utiliser le nouvel endpoint abandon intelligent
             const response = await apiDelete(`/api/workouts/${workoutId}/abandon`);
             
-            if (response.action === 'deleted') {
-                showToast('Séance vide supprimée', 'info');
+            // SI abandonnée avec contenu depuis dashboard → LA SUPPRIMER QUAND MÊME
+            if (response.action === 'abandoned') {
+                await apiDelete(`/api/workouts/${workoutId}`);
+                showToast('Séance définitivement supprimée', 'info');
             } else {
-                showToast('Séance abandonnée (récupérable)', 'info');
+                showToast('Séance vide supprimée', 'info');
             }
             
         } catch (error) {
@@ -3298,7 +3298,6 @@ async function abandonActiveWorkout(workoutId) {
             showToast('Séance abandonnée (hors ligne)', 'info');
         }
         
-        // FORCER le rechargement du dashboard pour être sûr
         loadDashboard();
     }
 }
