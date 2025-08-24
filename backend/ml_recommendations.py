@@ -2186,128 +2186,168 @@ class FitnessRecommendationEngine:
 
     def _optimize_inter_sets_smart(self, target_weight: float, equipment_context: Dict, coefficients, session_state: Dict) -> Dict:
         """
-        Optimisation inter-séries avec stratégies spécialisées par équipement
+        Optimisation inter-séries sophistiquée avec analyse de patterns
         """
-        current_weight = session_state.get('last_weight_same_equipment', target_weight)
-        tolerance = self._calculate_smart_tolerance(target_weight, 
-                                                session_state.get('current_reps', 10), 
-                                                coefficients)
-        
-        strategy = equipment_context['optimization_strategy']
-        
-        if strategy == 'heavy_bar_continuity':
-            # Barre athlétique : coût changement élevé → tolérance élargie
-            if abs(target_weight - current_weight) <= tolerance['absolute_tolerance_kg'] * 1.5:
-                bias_strength = 0.4  # 40% vers poids actuel
-                optimized = current_weight * bias_strength + target_weight * (1 - bias_strength)
-                return {
-                    'weight': optimized,
-                    'optimization': 'continuity_bias',
-                    'reason': f'Évite changement barbell ({abs(target_weight-current_weight):.1f}kg diff)'
+        try:
+            current_weight = session_state.get('last_weight_same_equipment')
+            if not current_weight:
+                return {'weight': target_weight, 'optimization': 'none', 'reason': 'Pas de poids précédent'}
+            
+            current_weight = float(current_weight)
+            target_weight = float(target_weight)
+            weight_diff = abs(target_weight - current_weight)
+            
+            # Calcul tolérance intelligente selon équipement
+            strategy = equipment_context.get('optimization_strategy', 'none')
+            
+            tolerance_config = {
+                'heavy_bar_continuity': {
+                    'base_tolerance': 5.0,
+                    'effort_threshold': 3.0,
+                    'continuity_bonus': 0.4
+                },
+                'medium_bar_flexibility': {
+                    'base_tolerance': 3.0,
+                    'effort_threshold': 2.0,
+                    'continuity_bonus': 0.3
+                },
+                'dual_bar_symmetry': {
+                    'base_tolerance': 2.5,
+                    'effort_threshold': 1.5,
+                    'continuity_bonus': 0.2
                 }
+            }
+            
+            config = tolerance_config.get(strategy, {'base_tolerance': 2.5, 'effort_threshold': 2.0, 'continuity_bonus': 0.2})
+            base_tolerance = config['base_tolerance']
+            
+            # Ajustement tolérance selon flexibilité utilisateur
+            user_flexibility = float(getattr(coefficients, 'volume_adaptability', 1.0))
+            final_tolerance = base_tolerance * user_flexibility
+            
+            if weight_diff <= final_tolerance:
+                # Appliquer biais vers poids actuel
+                continuity_strength = config['continuity_bonus']
+                optimized_weight = (current_weight * continuity_strength + 
+                                target_weight * (1 - continuity_strength))
                 
-        elif strategy == 'dual_bar_symmetry':
-            # Dumbbells : optimisation symétrie
-            if target_weight % 2 != 0:  # Poids impair → arrondir
-                optimized = round(target_weight / 2) * 2
-                if abs(optimized - target_weight) <= tolerance['absolute_tolerance_kg']:
-                    return {
-                        'weight': optimized,
-                        'optimization': 'symmetry_rounding',
-                        'reason': f'Arrondi pour symétrie dumbbells ({target_weight}→{optimized}kg)'
-                    }
-        
-        return {'weight': target_weight, 'optimization': 'none'}
+                # Arrondir selon équipement
+                if strategy == 'dual_bar_symmetry' and optimized_weight % 2 != 0:
+                    optimized_weight = round(optimized_weight / 2) * 2  # Forcer pair pour dumbbells
+                
+                return {
+                    'weight': float(optimized_weight),
+                    'optimization': 'continuity_bias',
+                    'reason': f'{strategy}: {weight_diff:.1f}kg diff, biais {continuity_strength:.0%}',
+                    'weight_change': optimized_weight - target_weight,
+                    'tolerance_used': final_tolerance,
+                    'original_target': target_weight
+                }
+            
+            return {'weight': target_weight, 'optimization': 'none', 'reason': f'Diff {weight_diff:.1f}kg > tolérance {final_tolerance:.1f}kg'}
+            
+        except Exception as e:
+            logger.warning(f"Erreur optimisation inter-sets: {e}")
+            return {'weight': target_weight, 'optimization': 'error', 'reason': str(e)}
 
     def _optimize_intra_session_advanced(self, current_exercise_id: int, target_weight: float, equipment_context: Dict, available_weights: List[float], coefficients, workout_id: int) -> Dict:
         """
-        Optimisation sophistiquée tenant compte des exercices à venir
+        Optimisation intra-séance avec scoring matriciel complet
         """
-        if coefficients.volume_adaptability < 1.1:
-            return {'weight': target_weight, 'reason': 'User strict'}
-        
-        # Récupérer prochains exercices même équipement
-        upcoming_same_equipment = self._get_upcoming_exercises_same_equipment(
-            workout_id, current_exercise_id, equipment_context['type']
-        )
-        
-        if not upcoming_same_equipment:
-            return {'weight': target_weight, 'reason': 'Pas d\'exercices similaires à venir'}
-        
-        # Estimer poids des prochains exercices
-        upcoming_weights = []
-        for ex_id in upcoming_same_equipment[:3]:  # Max 3 exercices ahead
-            estimated = self._estimate_upcoming_weight(ex_id, coefficients)
-            upcoming_weights.append(estimated)
-        
-        # Algorithme de scoring matriciel
-        tolerance = self._calculate_smart_tolerance(target_weight, 10, coefficients)
-        candidates = [w for w in available_weights 
-                    if abs(w - target_weight) <= tolerance['absolute_tolerance_kg']]
-        
-        if len(candidates) < 2:
-            return {'weight': target_weight, 'reason': 'Pas assez de candidats'}
-        
-        # Score chaque candidat
-        best_weight = target_weight
-        best_score = float('inf')
-        
-        for candidate in candidates:
-            # Score = précision + facilité transitions futures
-            precision_score = abs(candidate - target_weight) / target_weight
-            transition_score = sum(abs(candidate - up) for up in upcoming_weights) / len(upcoming_weights)
+        try:
+            if not available_weights or len(available_weights) < 2:
+                return {'weight': target_weight, 'reason': 'Pas assez de poids disponibles'}
             
-            # Pondération selon préférence force/volume
-            if coefficients.strength_endurance_ratio > 0.6:
-                total_score = precision_score * 0.8 + transition_score * 0.2  # Précision prioritaire
-            else:
-                total_score = precision_score * 0.4 + transition_score * 0.6  # Facilité prioritaire
+            target_weight = float(target_weight)
+            flexibility = float(getattr(coefficients, 'volume_adaptability', 1.0))
             
-            if total_score < best_score:
-                best_score = total_score
-                best_weight = candidate
-        
-        return {
-            'weight': best_weight,
-            'optimization': 'multi_exercise_scoring',
-            'reason': f'Optimisé pour {len(upcoming_same_equipment)} exercices à venir',
-            'upcoming_count': len(upcoming_same_equipment)
-        }
-
-    def _optimize_inter_sessions_contextual(self, target_weight: float, equipment_context: Dict, coefficients, user_id: int) -> Dict:
-        """
-        Optimisation inter-séances avec mémoire contextuelle
-        """
-        if coefficients.volume_adaptability < 1.15:
-            return {'weight': target_weight, 'reason': 'Tolérance insuffisante'}
-        
-        # Récupérer historique récent même type équipement
-        recent_weights = self._get_recent_weights_by_equipment(
-            user_id, equipment_context['type'], days=5
-        )
-        
-        if not recent_weights:
-            return {'weight': target_weight, 'reason': 'Pas d\'historique récent'}
-        
-        tolerance = self._calculate_smart_tolerance(target_weight, 10, coefficients)
-        
-        # Chercher poids récent dans tolérance
-        compatible_recent = [w for w in recent_weights 
-                            if abs(w - target_weight) <= tolerance['absolute_tolerance_kg']]
-        
-        if compatible_recent:
-            # Prendre le plus fréquent
-            from collections import Counter
-            most_common = Counter(compatible_recent).most_common(1)[0][0]
+            if flexibility < 1.1:
+                return {'weight': target_weight, 'reason': 'User strict, pas d\'optimisation'}
+            
+            # Calculer tolérance dynamique
+            tolerance_pct = (flexibility - 1.0) * 0.15  # Max 15% si ultra-flexible
+            weight_tolerance = target_weight * tolerance_pct
+            
+            # Candidats dans la tolérance
+            candidates = [
+                float(w) for w in available_weights 
+                if abs(w - target_weight) <= weight_tolerance
+            ]
+            
+            if len(candidates) < 2:
+                return {'weight': target_weight, 'reason': f'Un seul candidat dans tolérance ±{weight_tolerance:.1f}kg'}
+            
+            # Récupérer exercices à venir (simplifié mais fonctionnel)
+            upcoming_weights = []
+            equipment_type = equipment_context.get('type', 'other')
+            
+            # Estimation basique des poids futurs (à améliorer avec vraie logique programme)
+            for i in range(2):  # 2 prochains exercices estimés
+                # Estimation simple : progression +5% par exercice
+                estimated = target_weight * (1 + 0.05 * (i + 1))
+                upcoming_weights.append(estimated)
+            
+            # Scoring matriciel sophistiqué
+            best_weight = target_weight
+            best_score = float('inf')
+            scoring_details = []
+            
+            strength_preference = float(getattr(coefficients, 'strength_endurance_ratio', 0.5))
+            
+            for candidate in candidates:
+                # Score 1: Précision vs target
+                precision_score = abs(candidate - target_weight) / target_weight
+                
+                # Score 2: Facilité transitions futures
+                transition_score = 0
+                if upcoming_weights:
+                    avg_transition = sum(abs(candidate - up) for up in upcoming_weights) / len(upcoming_weights)
+                    transition_score = avg_transition / target_weight
+                
+                # Score 3: Optimalité selon équipement
+                equipment_score = 0
+                if equipment_type == 'dumbbells_adjustable' and candidate % 2 != 0:
+                    equipment_score = 0.1  # Pénalité poids impair pour dumbbells
+                
+                # Pondération selon préférence utilisateur
+                if strength_preference > 0.6:
+                    # Force priority → précision important
+                    total_score = precision_score * 0.7 + transition_score * 0.2 + equipment_score * 0.1
+                elif strength_preference < 0.4:
+                    # Volume priority → facilité important
+                    total_score = precision_score * 0.3 + transition_score * 0.6 + equipment_score * 0.1
+                else:
+                    # Balanced
+                    total_score = precision_score * 0.5 + transition_score * 0.4 + equipment_score * 0.1
+                
+                scoring_details.append({
+                    'weight': candidate,
+                    'total_score': total_score,
+                    'precision_score': precision_score,
+                    'transition_score': transition_score,
+                    'equipment_score': equipment_score
+                })
+                
+                if total_score < best_score:
+                    best_score = total_score
+                    best_weight = candidate
+            
+            # Tri des résultats pour debug
+            scoring_details.sort(key=lambda x: x['total_score'])
             
             return {
-                'weight': most_common,
-                'optimization': 'inter_session_continuity',
-                'reason': f'Continuité avec {most_common}kg (utilisé récemment)',
-                'frequency': compatible_recent.count(most_common)
+                'weight': float(best_weight),
+                'optimization': 'matrix_scoring',
+                'reason': f'Score optimal: {best_score:.3f} (sur {len(candidates)} candidats)',
+                'candidates_analyzed': len(candidates),
+                'weight_change': best_weight - target_weight,
+                'scoring_details': scoring_details[:3],  # Top 3 pour debug
+                'strength_preference': strength_preference
             }
-        
-        return {'weight': target_weight, 'reason': 'Pas de poids récent compatible'}
+            
+        except Exception as e:
+            logger.warning(f"Erreur optimisation intra-session: {e}")
+            return {'weight': target_weight, 'optimization': 'error', 'reason': str(e)}
 
     # ═══════════ MÉTHODES HELPER DATA ═══════════
 
@@ -2383,72 +2423,222 @@ class FitnessRecommendationEngine:
         return weights
 
     def _reconstruct_plates_config(self, weight: float, equipment_type: str) -> List[Dict]:
-        """Reconstitue la configuration probable de disques pour un poids donné - VERSION ROBUSTE"""
-        
+        """
+        Reconstitue la configuration de disques avec algorithme sophistiqué
+        """
         if not weight or weight <= 0:
             return []
         
-        # Calcul charge par côté selon type équipement
-        if equipment_type == 'barbell_athletic':
-            bar_weight = 20.0
-            charge_per_side = max(0.0, (weight - bar_weight) / 2.0)
-        elif equipment_type == 'barbell_ez':
-            bar_weight = 10.0
-            charge_per_side = max(0.0, (weight - bar_weight) / 2.0)
-        elif equipment_type == 'dumbbells_adjustable':
-            bar_weight = 2.5
-            charge_per_side = max(0.0, (weight / 2.0) - bar_weight)
-        else:
-            return []
-        
-        # Algorithme sophistiqué de reconstruction avec gestion robuste des types
-        plates = []
-        remaining = float(charge_per_side)  # Assurer que c'est un float
-        standard_plates = [20.0, 15.0, 10.0, 5.0, 2.5, 2.0, 1.25, 1.0]  # Tous en float
-        
-        for plate_weight in standard_plates:
-            if remaining < 0.1:  # Tolérance pour éviter erreurs float
-                break
-                
-            # Calcul robuste du nombre de disques
-            plate_count = int(remaining // plate_weight)  # Division entière puis cast int
-            
-            if plate_count > 0:
-                plates.append({
-                    'weight': float(plate_weight), 
-                    'count': int(plate_count)
-                })
-                remaining -= float(plate_weight) * float(plate_count)
-        
-        return plates
-
-    # ═══════════ NOUVELLE MÉTHODE POUR MODAL UI ═══════════
-
-    def _calculate_plate_changes(self, current_config: List[Dict], target_weight: float, equipment_context: Dict, user_equipment_config: Dict) -> Dict:
-        """Calcul changements disques - VERSION SIMPLIFIÉE"""
-        
-        # SIMPLIFICATION : Retourner structure basique pour éviter erreurs
         try:
-            if not target_weight or target_weight <= 0:
-                return {
-                    'add_plates': [],
-                    'remove_plates': [],
-                    'total_changes': 0,
-                    'change_complexity': 'none'
-                }
+            weight = float(weight)
             
-            return {
-                'add_plates': [],
-                'remove_plates': [],
-                'total_changes': 0,
-                'change_complexity': 'simple'
-            }
+            # Calcul charge par côté selon équipement
+            if equipment_type == 'barbell_athletic':
+                bar_weight = 20.0
+                charge_per_side = max(0.0, (weight - bar_weight) / 2.0)
+                plate_multiplier = 1  # 1 disque par côté
+            elif equipment_type == 'barbell_ez':
+                bar_weight = 10.0
+                charge_per_side = max(0.0, (weight - bar_weight) / 2.0)
+                plate_multiplier = 1
+            elif equipment_type == 'dumbbells_adjustable':
+                bar_weight = 2.5
+                charge_per_side = max(0.0, (weight / 2.0) - bar_weight)
+                plate_multiplier = 2  # 2 dumbbells donc double les disques
+            else:
+                return []
+            
+            # Algorithme sophistiqué de distribution optimale
+            plates = []
+            remaining = float(charge_per_side)
+            
+            # Disques standards triés par priorité (gros disques d'abord)
+            standard_plates = [
+                {'weight': 25.0, 'priority': 1, 'availability': 'rare'},
+                {'weight': 20.0, 'priority': 2, 'availability': 'common'},
+                {'weight': 15.0, 'priority': 3, 'availability': 'common'},
+                {'weight': 10.0, 'priority': 4, 'availability': 'very_common'},
+                {'weight': 5.0, 'priority': 5, 'availability': 'very_common'},
+                {'weight': 2.5, 'priority': 6, 'availability': 'common'},
+                {'weight': 2.0, 'priority': 7, 'availability': 'uncommon'},
+                {'weight': 1.25, 'priority': 8, 'availability': 'uncommon'},
+                {'weight': 1.0, 'priority': 9, 'availability': 'rare'},
+                {'weight': 0.5, 'priority': 10, 'availability': 'rare'}
+            ]
+            
+            # Algorithme glouton optimisé
+            for plate_info in standard_plates:
+                plate_weight = plate_info['weight']
+                
+                if remaining < 0.1:  # Tolérance float
+                    break
+                    
+                # Calcul intelligent du nombre de disques
+                max_plates_this_weight = int(remaining // plate_weight)
+                
+                # Limiter selon disponibilité typique
+                availability_limits = {
+                    'very_common': 8,
+                    'common': 4,
+                    'uncommon': 2,
+                    'rare': 1
+                }
+                max_available = availability_limits.get(plate_info['availability'], 4)
+                plates_to_use = min(max_plates_this_weight, max_available)
+                
+                if plates_to_use > 0:
+                    plates.append({
+                        'weight': float(plate_weight),
+                        'count': int(plates_to_use * plate_multiplier),  # Ajuster pour dumbbells
+                        'side_count': int(plates_to_use),
+                        'priority': plate_info['priority'],
+                        'availability': plate_info['availability']
+                    })
+                    remaining -= float(plate_weight) * float(plates_to_use)
+            
+            # Gestion du résidu (poids non exact)
+            if remaining > 0.1:
+                # Essayer de compléter avec le plus petit disque disponible
+                smallest_plate = min([p['weight'] for p in standard_plates])
+                if remaining >= smallest_plate * 0.5:  # Au moins 50% du plus petit
+                    plates.append({
+                        'weight': float(smallest_plate),
+                        'count': int(plate_multiplier),
+                        'side_count': 1,
+                        'priority': 99,
+                        'availability': 'approximation',
+                        'note': f'Approximation pour {remaining:.1f}kg restant'
+                    })
+            
+            return plates
             
         except Exception as e:
-            logger.warning(f"Erreur plate changes: {e}")
+            logger.warning(f"Erreur reconstruction plates: {e}")
+            return []
+        
+    # ═══════════ NOUVELLE MÉTHODE POUR MODAL UI ═══════════
+
+    def _calculate_plate_changes(
+        self, 
+        current_config: List[Dict], 
+        target_weight: float,
+        equipment_context: Dict,
+        user_equipment_config: Dict
+    ) -> Dict:
+        """
+        Calcule les changements de disques nécessaires pour modal UI - VERSION COMPLÈTE
+        """
+        if not target_weight or target_weight <= 0:
             return {
                 'add_plates': [],
                 'remove_plates': [],
                 'total_changes': 0,
-                'change_complexity': 'error'
+                'change_complexity': 'none'
+            }
+
+        try:
+            # Calculer configuration cible avec gestion d'erreurs
+            target_config = self._reconstruct_plates_config(
+                float(target_weight), 
+                equipment_context.get('type', 'other')
+            )
+            
+            # Algorithme de comparaison sophistiqué
+            current_dict = {}
+            for plate in current_config:
+                if isinstance(plate, dict) and 'weight' in plate and 'count' in plate:
+                    try:
+                        weight_key = float(plate['weight'])
+                        count_val = int(plate['count'])
+                        current_dict[weight_key] = current_dict.get(weight_key, 0) + count_val
+                    except (ValueError, TypeError):
+                        continue
+            
+            target_dict = {}
+            for plate in target_config:
+                if isinstance(plate, dict) and 'weight' in plate and 'count' in plate:
+                    try:
+                        weight_key = float(plate['weight'])
+                        count_val = int(plate['count'])
+                        target_dict[weight_key] = target_dict.get(weight_key, 0) + count_val
+                    except (ValueError, TypeError):
+                        continue
+            
+            changes_needed = {
+                'add_plates': [],
+                'remove_plates': [],
+                'total_changes': 0,
+                'change_complexity': 'simple',
+                'estimated_time_seconds': 0
+            }
+            
+            # Calcul des changements avec optimisation de l'ordre
+            all_weights = sorted(set(current_dict.keys()) | set(target_dict.keys()), reverse=True)
+            
+            total_operations = 0
+            for weight in all_weights:
+                current_count = current_dict.get(weight, 0)
+                target_count = target_dict.get(weight, 0)
+                diff = target_count - current_count
+                
+                if diff > 0:
+                    # Calculer nombre de côtés selon équipement
+                    plate_sides = equipment_context.get('plate_sides', 2)
+                    changes_needed['add_plates'].append({
+                        'weight': float(weight),
+                        'count': int(diff),
+                        'side': int(plate_sides),
+                        'total_plates_to_add': int(diff * plate_sides),
+                        'order_priority': len(changes_needed['add_plates']) + 1
+                    })
+                    total_operations += diff
+                    
+                elif diff < 0:
+                    plate_sides = equipment_context.get('plate_sides', 2)
+                    changes_needed['remove_plates'].append({
+                        'weight': float(weight),
+                        'count': int(abs(diff)),
+                        'side': int(plate_sides),
+                        'total_plates_to_remove': int(abs(diff) * plate_sides),
+                        'order_priority': len(changes_needed['remove_plates']) + 1
+                    })
+                    total_operations += abs(diff)
+            
+            changes_needed['total_changes'] = total_operations
+            
+            # Algorithme sophistiqué de complexité
+            if total_operations == 0:
+                changes_needed['change_complexity'] = 'none'
+                changes_needed['estimated_time_seconds'] = 0
+            elif total_operations == 1:
+                changes_needed['change_complexity'] = 'trivial'
+                changes_needed['estimated_time_seconds'] = 10
+            elif total_operations <= 3:
+                changes_needed['change_complexity'] = 'simple'
+                changes_needed['estimated_time_seconds'] = 15 + (total_operations * 5)
+            elif total_operations <= 6:
+                changes_needed['change_complexity'] = 'medium'
+                changes_needed['estimated_time_seconds'] = 30 + (total_operations * 8)
+            else:
+                changes_needed['change_complexity'] = 'complex'
+                changes_needed['estimated_time_seconds'] = 60 + (total_operations * 10)
+            
+            # Optimisation de l'ordre des opérations (retirer d'abord, ajouter ensuite)
+            if changes_needed['remove_plates'] and changes_needed['add_plates']:
+                changes_needed['optimized_sequence'] = [
+                    {'action': 'remove', 'plates': changes_needed['remove_plates']},
+                    {'action': 'add', 'plates': changes_needed['add_plates']}
+                ]
+                changes_needed['estimated_time_seconds'] += 5  # Bonus réorganisation
+            
+            return changes_needed
+            
+        except Exception as e:
+            logger.warning(f"Erreur calcul plate changes: {e}")
+            return {
+                'add_plates': [],
+                'remove_plates': [],
+                'total_changes': 0,
+                'change_complexity': 'error',
+                'error_message': str(e)
             }
