@@ -2154,46 +2154,42 @@ class FitnessRecommendationEngine:
         }
 
     def _apply_contextual_volume_scaling(self, weight: float, reps: int, set_number: int, coefficients) -> tuple:
-        """
-        Scaling volume avec optimal_volume_multiplier et contexte série
+        """Scaling volume avec optimal_volume_multiplier et contexte série - VERSION ROBUSTE"""
         
-        Réinterprétation optimal_volume_multiplier :
-        - 0.8 = Volume réduit (-20%)  
-        - 1.2 = Volume augmenté (+20%)
+        # Protection contre valeurs invalides
+        weight = float(weight) if weight and weight > 0 else 20.0
+        reps = int(reps) if reps and reps > 0 else 10
+        set_number = int(set_number) if set_number and set_number > 0 else 1
         
-        Modulation selon numéro de série (fatigue accumulated)
-        """
-        base_multiplier = coefficients.optimal_volume_multiplier
+        base_multiplier = float(getattr(coefficients, 'optimal_volume_multiplier', 1.0))
         
         # Modulation selon numéro de série
         set_modulation = {
-            1: 1.0,    # Première série : scaling complet
-            2: 0.8,    # Deuxième série : 80% du scaling
-            3: 0.6,    # Troisième série : 60% du scaling
-            4: 0.4,    # Quatrième série : 40% du scaling
-        }.get(set_number, 0.2)  # Série 5+ : scaling minimal
+            1: 1.0,    2: 0.8,    3: 0.6,    4: 0.4,
+        }.get(set_number, 0.2)
         
         effective_multiplier = 1.0 + (base_multiplier - 1.0) * set_modulation
-        target_volume = weight * reps * effective_multiplier
+        target_volume = float(weight) * float(reps) * effective_multiplier
         
         # Application avec balance force/endurance
-        strength_bias = coefficients.strength_endurance_ratio
+        strength_bias = float(getattr(coefficients, 'strength_endurance_ratio', 0.5))
+        
         if strength_bias > 0.6:
             # Force bias → plus sur poids
-            new_weight = weight * (effective_multiplier ** 0.7)
-            new_reps = max(1, int(target_volume / max(1, new_weight)))
+            new_weight = float(weight) * (effective_multiplier ** 0.7)
+            new_reps = max(1, int(target_volume / max(1.0, new_weight)))
         elif strength_bias < 0.4:
             # Volume bias → plus sur reps
-            new_reps = max(1, int(reps * (effective_multiplier ** 0.7)))
-            new_weight = target_volume / new_reps
+            new_reps = max(1, int(float(reps) * (effective_multiplier ** 0.7)))
+            new_weight = target_volume / max(1.0, float(new_reps))
         else:
             # Balanced → proportionnel
             factor = effective_multiplier ** 0.5
-            new_weight = weight * factor
-            new_reps = int(reps * factor)
+            new_weight = float(weight) * factor
+            new_reps = max(1, int(float(reps) * factor))
         
-        return new_weight, new_reps
-
+        return float(new_weight), int(new_reps)
+    
     # ═══════════ MÉTHODES OPTIMISATION MULTI-BARRES ═══════════
 
     def _classify_equipment_context(self, exercise: Exercise) -> Dict:
@@ -2362,20 +2358,25 @@ class FitnessRecommendationEngine:
     # ═══════════ MÉTHODES HELPER DATA ═══════════
 
     def _get_session_equipment_state(self, workout_id: int, equipment_type: str) -> Dict:
-        """Récupère état équipement dans la séance courante"""
-        # Trouver dernière série même type équipement
+        """Récupère état équipement dans la séance courante - VERSION CORRIGÉE"""
+        from sqlalchemy.dialects.postgresql import JSONB
+        from sqlalchemy import cast, text
+        
+        # SOLUTION ROBUSTE : Utiliser l'opérateur ? de PostgreSQL pour JSON
         last_set = self.db.query(WorkoutSet).join(
             Exercise, WorkoutSet.exercise_id == Exercise.id
         ).filter(
             WorkoutSet.workout_id == workout_id,
-            Exercise.equipment_required.op('@>')(text(f"'{json.dumps([equipment_type])}'::jsonb"))
+            Exercise.equipment_required.op('?')(equipment_type)
         ).order_by(WorkoutSet.id.desc()).first()
         
         return {
             'last_weight_same_equipment': last_set.weight if last_set else None,
             'last_exercise_id': last_set.exercise_id if last_set else None,
             'current_reps': 10,
-            'current_plates_config': self._reconstruct_plates_config(last_set.weight if last_set else 20, equipment_type)
+            'current_plates_config': self._reconstruct_plates_config(
+                last_set.weight if last_set else 20.0, equipment_type
+            )
         }
 
     def _get_upcoming_exercises_same_equipment(self, workout_id: int, current_exercise_id: int, equipment_type: str) -> List[int]:
@@ -2391,12 +2392,12 @@ class FitnessRecommendationEngine:
         return 20.0
 
     def _get_recent_weights_by_equipment(self, user_id: int, equipment_type: str, days: int) -> List[float]:
-        """Récupère poids récents pour un type d'équipement"""
+        """Récupère poids récents pour un type d'équipement - VERSION CORRIGÉE"""
         from datetime import datetime, timedelta, timezone
         
         cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         
-        # CORRECTION : Jointure explicite
+        # SOLUTION ROBUSTE : Utiliser l'opérateur ? de PostgreSQL pour JSON
         sets = self.db.query(WorkoutSet.weight).join(
             Exercise, WorkoutSet.exercise_id == Exercise.id
         ).join(
@@ -2404,40 +2405,48 @@ class FitnessRecommendationEngine:
         ).filter(
             Workout.user_id == user_id,
             WorkoutSet.completed_at >= cutoff,
-            Exercise.equipment_required.op('@>')(text(f"'{json.dumps([equipment_type])}'::jsonb"))
+            Exercise.equipment_required.op('?')(equipment_type)
         ).all()
         
         return [s.weight for s in sets if s.weight and s.weight > 0]
 
     def _reconstruct_plates_config(self, weight: float, equipment_type: str) -> List[Dict]:
-        """Reconstitue la configuration probable de disques pour un poids donné"""
-        # Cette méthode reconstitue les disques utilisés
-        # Sera utilisée par le modal UI pour calculer les changements
+        """Reconstitue la configuration probable de disques pour un poids donné - VERSION ROBUSTE"""
         
+        if not weight or weight <= 0:
+            return []
+        
+        # Calcul charge par côté selon type équipement
         if equipment_type == 'barbell_athletic':
-            bar_weight = 20
-            charge_per_side = (weight - bar_weight) / 2
+            bar_weight = 20.0
+            charge_per_side = max(0.0, (weight - bar_weight) / 2.0)
         elif equipment_type == 'barbell_ez':
-            bar_weight = 10  
-            charge_per_side = (weight - bar_weight) / 2
+            bar_weight = 10.0
+            charge_per_side = max(0.0, (weight - bar_weight) / 2.0)
         elif equipment_type == 'dumbbells_adjustable':
             bar_weight = 2.5
-            charge_per_side = (weight / 2 - bar_weight)  # Par dumbbell
+            charge_per_side = max(0.0, (weight / 2.0) - bar_weight)
         else:
             return []
         
-        # Algorithme simple de reconstruction
+        # Algorithme sophistiqué de reconstruction avec gestion robuste des types
         plates = []
-        remaining = charge_per_side
-        standard_plates = [20, 15, 10, 5, 2.5, 2, 1.25, 1]
+        remaining = float(charge_per_side)  # Assurer que c'est un float
+        standard_plates = [20.0, 15.0, 10.0, 5.0, 2.5, 2.0, 1.25, 1.0]  # Tous en float
         
-        for plate in standard_plates:
-            count = int(remaining // plate)
-            if count > 0:
-                plates.append({'weight': plate, 'count': count})
-                remaining -= plate * count
-            if remaining < 0.5:
+        for plate_weight in standard_plates:
+            if remaining < 0.1:  # Tolérance pour éviter erreurs float
                 break
+                
+            # Calcul robuste du nombre de disques
+            plate_count = int(remaining // plate_weight)  # Division entière puis cast int
+            
+            if plate_count > 0:
+                plates.append({
+                    'weight': float(plate_weight), 
+                    'count': int(plate_count)
+                })
+                remaining -= float(plate_weight) * float(plate_count)
         
         return plates
 
@@ -2450,64 +2459,86 @@ class FitnessRecommendationEngine:
         equipment_context: Dict,
         user_equipment_config: Dict
     ) -> Dict:
-        """
-        NOUVEAU : Calcule les changements de disques nécessaires pour modal UI
+        """Calcule les changements de disques nécessaires pour modal UI - VERSION ROBUSTE"""
         
-        Args:
-            current_config: Configuration actuelle des disques
-            target_weight: Poids cible à atteindre
-            equipment_context: Type d'équipement et contexte
-            user_equipment_config: Configuration équipement utilisateur
+        if not target_weight or target_weight <= 0:
+            return {
+                'add_plates': [],
+                'remove_plates': [],
+                'total_changes': 0,
+                'change_complexity': 'none'
+            }
+        
+        try:
+            # Calculer configuration cible avec gestion d'erreurs
+            target_config = self._reconstruct_plates_config(
+                float(target_weight), 
+                equipment_context.get('type', 'other')
+            )
             
-        Returns:
-            Dict avec détails des changements pour le modal UI
-        """
-        # Calculer configuration cible
-        target_config = self._reconstruct_plates_config(target_weight, equipment_context['type'])
-        
-        # Calculer différences
-        changes_needed = {
-            'add_plates': [],      # Disques à ajouter
-            'remove_plates': [],   # Disques à retirer  
-            'total_changes': 0,    # Nombre total changements
-            'change_complexity': 'simple'  # simple/medium/complex
-        }
-        
-        # Algorithme de comparaison
-        current_dict = {p['weight']: p['count'] for p in current_config}
-        target_dict = {p['weight']: p['count'] for p in target_config}
-        
-        all_weights = set(current_dict.keys()) | set(target_dict.keys())
-        
-        for weight in all_weights:
-            current_count = current_dict.get(weight, 0)
-            target_count = target_dict.get(weight, 0)
-            diff = target_count - current_count
+            # Calculer différences avec protection contre erreurs
+            changes_needed = {
+                'add_plates': [],
+                'remove_plates': [],
+                'total_changes': 0,
+                'change_complexity': 'simple'
+            }
             
-            if diff > 0:
-                changes_needed['add_plates'].append({
-                    'weight': weight,
-                    'count': diff,
-                    'side': equipment_context['plate_sides']
-                })
-            elif diff < 0:
-                changes_needed['remove_plates'].append({
-                    'weight': weight, 
-                    'count': abs(diff),
-                    'side': equipment_context['plate_sides']
-                })
-        
-        # Calculer complexité
-        total_changes = len(changes_needed['add_plates']) + len(changes_needed['remove_plates'])
-        changes_needed['total_changes'] = total_changes
-        
-        if total_changes == 0:
-            changes_needed['change_complexity'] = 'none'
-        elif total_changes <= 2:
-            changes_needed['change_complexity'] = 'simple'
-        elif total_changes <= 4:
-            changes_needed['change_complexity'] = 'medium'
-        else:
-            changes_needed['change_complexity'] = 'complex'
-        
-        return changes_needed
+            # Algorithme de comparaison robuste
+            current_dict = {}
+            for plate in current_config:
+                if isinstance(plate, dict) and 'weight' in plate and 'count' in plate:
+                    weight_key = float(plate['weight'])
+                    current_dict[weight_key] = int(plate['count'])
+            
+            target_dict = {}
+            for plate in target_config:
+                if isinstance(plate, dict) and 'weight' in plate and 'count' in plate:
+                    weight_key = float(plate['weight'])
+                    target_dict[weight_key] = int(plate['count'])
+            
+            # Calcul des changements nécessaires
+            all_weights = set(current_dict.keys()) | set(target_dict.keys())
+            
+            for weight in all_weights:
+                current_count = current_dict.get(weight, 0)
+                target_count = target_dict.get(weight, 0)
+                diff = target_count - current_count
+                
+                if diff > 0:
+                    changes_needed['add_plates'].append({
+                        'weight': float(weight),
+                        'count': int(diff),
+                        'side': int(equipment_context.get('plate_sides', 2))
+                    })
+                elif diff < 0:
+                    changes_needed['remove_plates'].append({
+                        'weight': float(weight),
+                        'count': int(abs(diff)),
+                        'side': int(equipment_context.get('plate_sides', 2))
+                    })
+            
+            # Calculer complexité
+            total_changes = len(changes_needed['add_plates']) + len(changes_needed['remove_plates'])
+            changes_needed['total_changes'] = total_changes
+            
+            if total_changes == 0:
+                changes_needed['change_complexity'] = 'none'
+            elif total_changes <= 2:
+                changes_needed['change_complexity'] = 'simple'
+            elif total_changes <= 4:
+                changes_needed['change_complexity'] = 'medium'
+            else:
+                changes_needed['change_complexity'] = 'complex'
+            
+            return changes_needed
+            
+        except Exception as e:
+            # Fallback robuste en cas d'erreur
+            logger.warning(f"Erreur calcul plate changes: {e}")
+            return {
+                'add_plates': [],
+                'remove_plates': [],
+                'total_changes': 0,
+                'change_complexity': 'error'
+            }
