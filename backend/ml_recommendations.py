@@ -2357,7 +2357,7 @@ class FitnessRecommendationEngine:
         last_set = self.db.query(WorkoutSet).join(Exercise).filter(
             WorkoutSet.workout_id == workout_id,
             Exercise.equipment_required.contains([equipment_type])
-        ).order_by(WorkoutSet.created_at.desc()).first()
+        ).order_by(WorkoutSet.id.desc()).first()
         
         return {
             'last_weight_same_equipment': last_set.weight if last_set else None,
