@@ -2368,7 +2368,7 @@ class FitnessRecommendationEngine:
             Exercise, WorkoutSet.exercise_id == Exercise.id
         ).filter(
             WorkoutSet.workout_id == workout_id,
-            Exercise.equipment_required.op('@>')([equipment_type])
+            Exercise.equipment_required.op('@>')(json.dumps([equipment_type]) + '::jsonb')  # Cast explicite
         ).order_by(WorkoutSet.id.desc()).first()
         
         return {
@@ -2404,7 +2404,7 @@ class FitnessRecommendationEngine:
         ).filter(
             Workout.user_id == user_id,
             WorkoutSet.completed_at >= cutoff,
-            Exercise.equipment_required.op('@>')([equipment_type])
+            Exercise.equipment_required.op('@>')(json.dumps([equipment_type]) + '::jsonb')  # Cast explicite
         ).all()
         
         return [s.weight for s in sets if s.weight and s.weight > 0]
