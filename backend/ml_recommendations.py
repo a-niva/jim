@@ -4,7 +4,7 @@ import math
 import json
 from collections import defaultdict
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, desc
+from sqlalchemy import func, and_, desc, text
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime, timedelta, timezone
 import statistics
@@ -2368,7 +2368,7 @@ class FitnessRecommendationEngine:
             Exercise, WorkoutSet.exercise_id == Exercise.id
         ).filter(
             WorkoutSet.workout_id == workout_id,
-            Exercise.equipment_required.op('@>')(json.dumps([equipment_type]) + '::jsonb')  # Cast explicite
+            Exercise.equipment_required.op('@>')(text(f"'{json.dumps([equipment_type])}'::jsonb"))
         ).order_by(WorkoutSet.id.desc()).first()
         
         return {
@@ -2404,7 +2404,7 @@ class FitnessRecommendationEngine:
         ).filter(
             Workout.user_id == user_id,
             WorkoutSet.completed_at >= cutoff,
-            Exercise.equipment_required.op('@>')(json.dumps([equipment_type]) + '::jsonb')  # Cast explicite
+            Exercise.equipment_required.op('@>')(text(f"'{json.dumps([equipment_type])}'::jsonb"))
         ).all()
         
         return [s.weight for s in sets if s.weight and s.weight > 0]
