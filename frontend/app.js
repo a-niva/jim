@@ -13407,8 +13407,8 @@ async function saveFeedbackAndRest() {
                 }
                 
                 workoutState.pendingSetData = null;
-                clearPendingDataBackup();
                 startRestPeriod(calculateRestDuration());
+                clearPendingDataBackup();
                 
                 showToast('Série enregistrée hors ligne', 'warning');
                 return;
