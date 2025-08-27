@@ -12742,189 +12742,44 @@ function checkAutoValidation() {
 }
 
 // ===== INTERFACE MODIFICATION SÉRIE =====
-function showModifySetInterface() {
+// ===== RETOUR SIMPLE AUX STEPPERS =====
+function returnToSteppers() {
     if (!workoutState.pendingSetData) {
-        console.error('Pas de données à modifier');
+        console.error('Pas de données à restaurer');
         return;
     }
     
-    const isIsometric = currentExercise?.exercise_type === 'isometric';
-    const hasWeight = workoutState.pendingSetData.weight !== null && workoutState.pendingSetData.weight !== undefined;
+    // Restaurer les valeurs dans les steppers existants
+    restoreSteppersFromPendingData();
     
-    const modalContent = `
-        <div class="modify-set-interface">
-            <h3 style="margin-bottom: 20px;">Modifier la série</h3>
-            
-            <!-- Modification Répétitions/Durée -->
-            <div class="modify-field" style="margin-bottom: 20px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: 600;">
-                    ${isIsometric ? 'Durée (secondes) :' : 'Répétitions :'}
-                </label>
-                <div style="display: flex; align-items: center; gap: 15px; justify-content: center;">
-                    <button class="btn btn-sm" onclick="adjustPendingReps(-1)" style="width: 40px; height: 40px;">-</button>
-                    <input type="number" id="modify-reps" 
-                           value="${isIsometric ? workoutState.pendingSetData.duration_seconds : workoutState.pendingSetData.reps}" 
-                           style="width: 80px; text-align: center; font-size: 24px; font-weight: bold;"
-                           onchange="updatePendingReps(this.value)">
-                    <button class="btn btn-sm" onclick="adjustPendingReps(1)" style="width: 40px; height: 40px;">+</button>
-                </div>
-            </div>
-            
-            <!-- Modification Poids (si applicable) -->
-            ${hasWeight && !isIsometric ? `
-            <div class="modify-field" style="margin-bottom: 20px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: 600;">
-                    Poids (${currentWeightMode === 'charge' ? 'charge' : 'total'}) :
-                </label>
-                <div style="display: flex; align-items: center; gap: 15px; justify-content: center;">
-                    <button class="btn btn-sm" onclick="adjustPendingWeight(-0.5)" style="width: 40px; height: 40px;">-</button>
-                    <input type="number" id="modify-weight" 
-                           value="${calculateDisplayWeight(workoutState.pendingSetData.weight, currentWeightMode, currentExercise)}" 
-                           step="0.5" style="width: 80px; text-align: center; font-size: 24px; font-weight: bold;"
-                           onchange="updatePendingWeight(this.value)">
-                    <button class="btn btn-sm" onclick="adjustPendingWeight(0.5)" style="width: 40px; height: 40px;">+</button>
-                </div>
-            </div>
-            ` : ''}
-            
-            <!-- Avertissement données vocales -->
-            ${workoutState.pendingSetData.voice_data ? `
-            <div class="voice-data-warning" style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 5px; margin-bottom: 20px;">
-                <i class="fas fa-info-circle" style="color: #f39c12;"></i>
-                Série enregistrée vocalement. Les modifications remplaceront les données vocales.
-            </div>
-            ` : ''}
-            
-            <!-- Actions -->
-            <div class="modal-actions" style="display: flex; gap: 10px; justify-content: center;">
-                <button class="btn btn-primary" onclick="confirmModifications()">
-                    <i class="fas fa-check"></i> Confirmer
-                </button>
-                <button class="btn btn-secondary" onclick="closeModal()">
-                    <i class="fas fa-times"></i> Annuler
-                </button>
-            </div>
-        </div>
-    `;
+    // Transition vers EXECUTING (steppers visibles automatiquement)
+    transitionTo(WorkoutStates.EXECUTING);
     
-    showModal('Modifier la série', modalContent);
+    showToast('Modifiez vos valeurs avec les steppers', 'info');
 }
 
-function adjustPendingReps(delta) {
-    const input = document.getElementById('modify-reps');
-    const newValue = Math.max(0, parseInt(input.value) + delta);
-    input.value = newValue;
-    updatePendingReps(newValue);
-}
-
-function updatePendingReps(value) {
-    const reps = Math.max(0, parseInt(value) || 0);
-    const isIsometric = currentExercise?.exercise_type === 'isometric';
+function restoreSteppersFromPendingData() {
+    const pending = workoutState.pendingSetData;
     
-    if (isIsometric) {
-        modifySetData('duration_seconds', reps);
-        modifySetData('reps', reps); // Pour isométrique, reps = durée
-    } else {
-        modifySetData('reps', reps);
-    }
-}
-
-function adjustPendingWeight(delta) {
-    const input = document.getElementById('modify-weight');
-    const newValue = Math.max(0, parseFloat(input.value) + delta);
-    
-    // Vérifier les limites selon l'équipement
-    const barWeight = getBarWeight(currentExercise);
-    const minWeight = currentWeightMode === 'charge' ? 0 : barWeight;
-    const validatedValue = Math.max(minWeight, newValue);
-    
-    input.value = validatedValue.toFixed(1);
-    updatePendingWeight(validatedValue);
-}
-
-function updatePendingWeight(value) {
-    const weight = Math.max(0, parseFloat(value) || 0);
-    
-    // Convertir en poids TOTAL si on est en mode charge
-    let weightTotal = weight;
-    if (currentWeightMode === 'charge' && isEquipmentCompatibleWithChargeMode(currentExercise)) {
-        weightTotal = convertWeight(weight, 'charge', 'total', currentExercise);
+    // Restaurer répétitions
+    if (pending.reps !== undefined) {
+        document.getElementById('setReps').textContent = pending.reps;
+        const targetRep = document.getElementById('targetRep');
+        if (targetRep) targetRep.textContent = pending.reps;
     }
     
-    // Valider le poids minimum
-    const barWeight = getBarWeight(currentExercise);
-    const finalWeight = Math.max(barWeight, weightTotal);
-    
-    modifySetData('weight', finalWeight);
-}
-
-function modifySetData(field, newValue) {
-    if (!workoutState.pendingSetData) return;
-    
-    const oldValue = workoutState.pendingSetData[field];
-    workoutState.pendingSetData[field] = newValue;
-    
-    // Invalider données vocales si modification
-    if (field === 'reps' && oldValue !== newValue && workoutState.pendingSetData.voice_data) {
-        workoutState.pendingSetData.voice_data = {
-            ...workoutState.pendingSetData.voice_data,
-            modified_manually: true,
-            original_voice_count: workoutState.pendingSetData.voice_data.original_voice_count || oldValue,
-            confidence: Math.min(0.5, workoutState.pendingSetData.voice_data.confidence || 0.5)
-        };
-        
-        console.log(`[Voice] Données vocal invalidées: ${oldValue} → ${newValue}`);
+    // Restaurer durée isométrique
+    if (pending.duration_seconds !== undefined) {
+        document.getElementById('setReps').textContent = pending.duration_seconds;
+        const targetRep = document.getElementById('targetRep');
+        if (targetRep) targetRep.textContent = pending.duration_seconds;
     }
     
-    // Invalider le cache ML si modification du poids
-    if (field === 'weight' && typeof invalidateMLCache === 'function') {
-        invalidateMLCache('weight_modified');
+    // Restaurer poids
+    if (pending.weight !== null && pending.weight !== undefined) {
+        currentExerciseRealWeight = pending.weight;
+        updateWeightDisplay();
     }
-    
-    // Marquer comme modifié
-    workoutState.pendingSetData.user_modified = true;
-    workoutState.pendingSetData.modified_fields = workoutState.pendingSetData.modified_fields || [];
-    if (!workoutState.pendingSetData.modified_fields.includes(field)) {
-        workoutState.pendingSetData.modified_fields.push(field);
-    }
-}
-
-function confirmModifications() {
-    console.log('[Modify] Modifications confirmées:', workoutState.pendingSetData);
-    closeModal();
-    
-    // Mettre à jour l'affichage
-    const isIsometric = currentExercise?.exercise_type === 'isometric';
-    
-    if (isIsometric && workoutState.pendingSetData.duration_seconds) {
-        const repsDisplay = document.getElementById('setReps');
-        if (repsDisplay) {
-            repsDisplay.textContent = workoutState.pendingSetData.duration_seconds;
-        }
-        // Mettre à jour l'interface moderne si elle existe
-        if (typeof updateRepDisplayModern === 'function') {
-            updateRepDisplayModern(workoutState.pendingSetData.duration_seconds, workoutState.pendingSetData.duration_seconds, {
-                isIsometric: true
-            });
-        }
-    } else if (workoutState.pendingSetData.reps) {
-        const repsDisplay = document.getElementById('setReps');
-        if (repsDisplay) {
-            repsDisplay.textContent = workoutState.pendingSetData.reps;
-        }
-        // Mettre à jour l'interface moderne si elle existe
-        if (typeof updateRepDisplayModern === 'function') {
-            updateRepDisplayModern(workoutState.pendingSetData.reps, currentExercise?.last_reps || 10);
-        }
-    }
-    
-    // Mettre à jour currentExerciseRealWeight si le poids a été modifié
-    if (workoutState.pendingSetData.weight !== undefined && workoutState.pendingSetData.weight !== null) {
-        currentExerciseRealWeight = workoutState.pendingSetData.weight; // Toujours en TOTAL
-        updateWeightDisplay(); // Met à jour l'affichage selon le mode actuel
-    }
-    
-    showToast('Modifications enregistrées', 'success');
 }
 
 // ===== SAUVEGARDE DÉFENSIVE PENDINGSETDATA =====
@@ -13139,6 +12994,21 @@ async function syncOfflineSetData() {
     }
 }
 
+// ===== CALCUL DURÉE REPOS =====
+function calculateRestDuration() {
+    let restDuration = currentExercise?.base_rest_time_seconds || 60;
+    let isMLRest = false;
+    
+    // Si l'IA est active ET a une recommandation
+    if (currentWorkoutSession.mlSettings?.[currentExercise.id]?.autoAdjust && 
+        workoutState.currentRecommendation?.rest_seconds_recommendation) {
+        restDuration = workoutState.currentRecommendation.rest_seconds_recommendation;
+        isMLRest = true;
+    }
+    
+    return restDuration;
+}
+
 async function saveFeedbackAndRest() {
     if (!workoutState.pendingSetData) {
         console.error('Pas de données de série en attente');
@@ -13151,38 +13021,39 @@ async function saveFeedbackAndRest() {
         finalWeight = convertWeight(finalWeight, 'charge', 'total', currentExercise);
     }
     
+    // ✅ SCOPE FIX: Définir setData AVANT le try pour qu'elle soit accessible dans le catch
+    const setData = {
+        ...workoutState.pendingSetData,
+        weight: finalWeight, // Utiliser le poids converti
+        exercise_id: currentExercise.id,
+        set_number: currentSet,
+        fatigue_level: currentWorkoutSession.currentSetFatigue,
+        effort_level: currentWorkoutSession.currentSetEffort,
+        exercise_order_in_session: currentWorkoutSession.exerciseOrder,
+        set_order_in_session: currentWorkoutSession.globalSetCount + 1,
+        base_rest_time_seconds: currentExercise.base_rest_time_seconds || 90,
+        // Ajouter les propriétés ML si elles existent
+        ml_weight_suggestion: workoutState.currentRecommendation?.weight_recommendation,
+        ml_reps_suggestion: workoutState.currentRecommendation?.reps_recommendation,
+        ml_confidence: workoutState.currentRecommendation?.confidence,
+        ml_adjustment_enabled: currentWorkoutSession.mlSettings?.[currentExercise.id]?.autoAdjust,
+        suggested_rest_seconds: workoutState.currentRecommendation?.rest_seconds_recommendation,
+        // MODULE 3 : Ajout contexte swap
+        swap_from_exercise_id: null,
+        swap_reason: null
+    };
+
+    // MODULE 3 : Détecter si exercice actuel provient d'un swap
+    const activeSwap = currentWorkoutSession.swaps?.find(swap => 
+        swap.new_id === currentExercise.id
+    );
+
+    if (activeSwap) {
+        setData.swap_from_exercise_id = activeSwap.original_id;
+        setData.swap_reason = activeSwap.reason;
+    }
+    
     try {
-        // Ajouter le feedback aux données
-        const setData = {
-            ...workoutState.pendingSetData,
-            exercise_id: currentExercise.id,
-            set_number: currentSet,
-            fatigue_level: currentWorkoutSession.currentSetFatigue,
-            effort_level: currentWorkoutSession.currentSetEffort,
-            exercise_order_in_session: currentWorkoutSession.exerciseOrder,
-            set_order_in_session: currentWorkoutSession.globalSetCount + 1,
-            base_rest_time_seconds: currentExercise.base_rest_time_seconds || 90,
-            // Ajouter les propriétés ML si elles existent
-            ml_weight_suggestion: workoutState.currentRecommendation?.weight_recommendation,
-            ml_reps_suggestion: workoutState.currentRecommendation?.reps_recommendation,
-            ml_confidence: workoutState.currentRecommendation?.confidence,
-            ml_adjustment_enabled: currentWorkoutSession.mlSettings?.[currentExercise.id]?.autoAdjust,
-            suggested_rest_seconds: workoutState.currentRecommendation?.rest_seconds_recommendation,
-            // MODULE 3 : Ajout contexte swap
-            swap_from_exercise_id: null,
-            swap_reason: null
-        };
-
-        // MODULE 3 : Détecter si exercice actuel provient d'un swap
-        const activeSwap = currentWorkoutSession.swaps?.find(swap => 
-            swap.new_id === currentExercise.id
-        );
-
-        if (activeSwap) {
-            setData.swap_from_exercise_id = activeSwap.original_id;
-            setData.swap_reason = activeSwap.reason;
-        }
-                
         // Validation des données avant envoi
         if (!setData.exercise_id || !setData.set_number || !setData.fatigue_level || !setData.effort_level) {
             console.error('❌ Données de série incomplètes:', setData);
@@ -15755,14 +15626,7 @@ window.addExtraSet = addExtraSet;
 window.updateSetNavigationButtons = updateSetNavigationButtons;
 window.selectFatigue = selectFatigue;
 
-window.showModifySetInterface = showModifySetInterface;
-window.adjustPendingReps = adjustPendingReps;
-window.updatePendingReps = updatePendingReps;
-window.adjustPendingWeight = adjustPendingWeight;
-window.updatePendingWeight = updatePendingWeight;
-window.modifySetData = modifySetData;
-window.confirmModifications = confirmModifications;
-
+window.returnToSteppers = returnToSteppers;
 // Exports pour sauvegarde défensive
 window.safeguardPendingData = safeguardPendingData;
 window.cleanupOldBackups = cleanupOldBackups;
