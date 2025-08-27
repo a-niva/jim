@@ -1035,6 +1035,29 @@ function transitionTo(state) {
     
     // 1. CAPTURER L'ANCIEN ÉTAT AVANT TOUTE MODIFICATION
     const oldState = workoutState.current;
+    // Protection transition avec pendingSetData
+    if (workoutState.pendingSetData) {
+        // Transitions interdites avec des données pending
+        const forbiddenWithPending = [WorkoutStates.IDLE, WorkoutStates.COMPLETED];
+        
+        if (forbiddenWithPending.includes(state)) {
+            console.warn(`[Transition] Interdit: ${oldState} → ${state} avec pendingSetData`);
+            
+            if (confirm('Vous avez une série non confirmée. Voulez-vous la sauvegarder avant de continuer ?')) {
+                // Forcer la sauvegarde
+                if (currentWorkoutSession.currentSetFatigue && currentWorkoutSession.currentSetEffort) {
+                    saveFeedbackAndRest();
+                } else {
+                    showToast('Veuillez sélectionner fatigue et effort', 'warning');
+                    return; // Bloquer la transition
+                }
+            } else {
+                // Abandonner les données
+                workoutState.pendingSetData = null;
+                clearPendingDataBackup();
+            }
+        }
+    }
     const newState = state;
     
     // 2. LOGS DE DEBUG
@@ -1379,6 +1402,8 @@ function cleanupMotionSystem() {
 window.addEventListener('beforeunload', () => {
     cleanupMotionSystem();
 });
+
+
 
 // ===== CALLBACKS MOTION CENTRALISÉS =====
 // ===== UI MOTION INDICATOR =====
@@ -9870,6 +9895,41 @@ window.addEventListener('offline', () => {
     showToast('Mode hors ligne', 'warning');
 });
 
+
+// ===== EVENT HANDLERS POUR SAUVEGARDE DÉFENSIVE =====
+window.addEventListener('beforeunload', (event) => {
+    if (workoutState.pendingSetData) {
+        safeguardPendingData();
+        // Note: returnValue est suffisant, pas besoin de preventDefault
+        event.returnValue = 'Vous avez des modifications non sauvegardées.';
+    }
+});
+
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && workoutState.pendingSetData) {
+        console.log('[Visibility] App cachée, sauvegarde défensive');
+        safeguardPendingData();
+    } else if (document.visibilityState === 'visible') {
+        // Vérifier s'il y a des données à récupérer
+        checkPendingDataRecovery();
+    }
+});
+
+// Event listeners pour la synchronisation
+window.addEventListener('online', async () => {
+    console.log('[Network] Connexion rétablie');
+    
+    // Attendre un peu pour que la connexion se stabilise
+    setTimeout(async () => {
+        await syncOfflineSetData();
+    }, 2000);
+});
+
+window.addEventListener('offline', () => {
+    console.log('[Network] Mode hors ligne activé');
+    showToast('Mode hors ligne - Les données seront synchronisées au retour de la connexion', 'info');
+});
+
 function showExerciseSelection() {
     document.getElementById('exerciseSelection').style.display = 'block';
     document.getElementById('currentExercise').style.display = 'none';
@@ -11154,6 +11214,11 @@ document.addEventListener('DOMContentLoaded', () => {
             window.OverlayManager.hideAll();
         }
     }
+
+    // Vérifier les données pending après chargement de la page
+    setTimeout(() => {
+        checkPendingDataRecovery();
+    }, 1000);
     
     // Permissions (conserver)
     setTimeout(() => {
@@ -11892,6 +11957,8 @@ async function executeSet() {
                 weight: null,
                 voice_data: voiceDataToSend || voiceData // Priorité aux données enrichies ML
             };
+            // Sauvegarder immédiatement en cas d'interruption
+            safeguardPendingData();
         } else if (isBodyweight) {
             // Récupérer les reps (avec priorité au vocal si disponible)
             repsValue = voiceData ? voiceData.count : getCurrentRepsValue();
@@ -11907,6 +11974,8 @@ async function executeSet() {
                 weight: null,
                 voice_data: voiceDataToSend || voiceData // Priorité aux données enrichies ML
             };
+            // Sauvegarder immédiatement en cas d'interruption
+            safeguardPendingData();
         } else {
             // === EXERCICES AVEC POIDS ===
             // Récupérer les reps (avec priorité au vocal si disponible)
@@ -11933,6 +12002,8 @@ async function executeSet() {
                 weight: finalWeight,  // Toujours TOTAL, jamais converti
                 voice_data: voiceDataToSend || voiceData // Priorité aux données enrichies ML
             };
+            // Sauvegarder immédiatement en cas d'interruption
+            safeguardPendingData();
         }
 
         console.log('🔍 VÉRIFICATION POIDS:');
@@ -12670,6 +12741,404 @@ function checkAutoValidation() {
     }
 }
 
+// ===== INTERFACE MODIFICATION SÉRIE =====
+function showModifySetInterface() {
+    if (!workoutState.pendingSetData) {
+        console.error('Pas de données à modifier');
+        return;
+    }
+    
+    const isIsometric = currentExercise?.exercise_type === 'isometric';
+    const hasWeight = workoutState.pendingSetData.weight !== null && workoutState.pendingSetData.weight !== undefined;
+    
+    const modalContent = `
+        <div class="modify-set-interface">
+            <h3 style="margin-bottom: 20px;">Modifier la série</h3>
+            
+            <!-- Modification Répétitions/Durée -->
+            <div class="modify-field" style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600;">
+                    ${isIsometric ? 'Durée (secondes) :' : 'Répétitions :'}
+                </label>
+                <div style="display: flex; align-items: center; gap: 15px; justify-content: center;">
+                    <button class="btn btn-sm" onclick="adjustPendingReps(-1)" style="width: 40px; height: 40px;">-</button>
+                    <input type="number" id="modify-reps" 
+                           value="${isIsometric ? workoutState.pendingSetData.duration_seconds : workoutState.pendingSetData.reps}" 
+                           style="width: 80px; text-align: center; font-size: 24px; font-weight: bold;"
+                           onchange="updatePendingReps(this.value)">
+                    <button class="btn btn-sm" onclick="adjustPendingReps(1)" style="width: 40px; height: 40px;">+</button>
+                </div>
+            </div>
+            
+            <!-- Modification Poids (si applicable) -->
+            ${hasWeight && !isIsometric ? `
+            <div class="modify-field" style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600;">
+                    Poids (${currentWeightMode === 'charge' ? 'charge' : 'total'}) :
+                </label>
+                <div style="display: flex; align-items: center; gap: 15px; justify-content: center;">
+                    <button class="btn btn-sm" onclick="adjustPendingWeight(-0.5)" style="width: 40px; height: 40px;">-</button>
+                    <input type="number" id="modify-weight" 
+                           value="${calculateDisplayWeight(workoutState.pendingSetData.weight, currentWeightMode, currentExercise)}" 
+                           step="0.5" style="width: 80px; text-align: center; font-size: 24px; font-weight: bold;"
+                           onchange="updatePendingWeight(this.value)">
+                    <button class="btn btn-sm" onclick="adjustPendingWeight(0.5)" style="width: 40px; height: 40px;">+</button>
+                </div>
+            </div>
+            ` : ''}
+            
+            <!-- Avertissement données vocales -->
+            ${workoutState.pendingSetData.voice_data ? `
+            <div class="voice-data-warning" style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 5px; margin-bottom: 20px;">
+                <i class="fas fa-info-circle" style="color: #f39c12;"></i>
+                Série enregistrée vocalement. Les modifications remplaceront les données vocales.
+            </div>
+            ` : ''}
+            
+            <!-- Actions -->
+            <div class="modal-actions" style="display: flex; gap: 10px; justify-content: center;">
+                <button class="btn btn-primary" onclick="confirmModifications()">
+                    <i class="fas fa-check"></i> Confirmer
+                </button>
+                <button class="btn btn-secondary" onclick="closeModal()">
+                    <i class="fas fa-times"></i> Annuler
+                </button>
+            </div>
+        </div>
+    `;
+    
+    showModal('Modifier la série', modalContent);
+}
+
+function adjustPendingReps(delta) {
+    const input = document.getElementById('modify-reps');
+    const newValue = Math.max(0, parseInt(input.value) + delta);
+    input.value = newValue;
+    updatePendingReps(newValue);
+}
+
+function updatePendingReps(value) {
+    const reps = Math.max(0, parseInt(value) || 0);
+    const isIsometric = currentExercise?.exercise_type === 'isometric';
+    
+    if (isIsometric) {
+        modifySetData('duration_seconds', reps);
+        modifySetData('reps', reps); // Pour isométrique, reps = durée
+    } else {
+        modifySetData('reps', reps);
+    }
+}
+
+function adjustPendingWeight(delta) {
+    const input = document.getElementById('modify-weight');
+    const newValue = Math.max(0, parseFloat(input.value) + delta);
+    
+    // Vérifier les limites selon l'équipement
+    const barWeight = getBarWeight(currentExercise);
+    const minWeight = currentWeightMode === 'charge' ? 0 : barWeight;
+    const validatedValue = Math.max(minWeight, newValue);
+    
+    input.value = validatedValue.toFixed(1);
+    updatePendingWeight(validatedValue);
+}
+
+function updatePendingWeight(value) {
+    const weight = Math.max(0, parseFloat(value) || 0);
+    
+    // Convertir en poids TOTAL si on est en mode charge
+    let weightTotal = weight;
+    if (currentWeightMode === 'charge' && isEquipmentCompatibleWithChargeMode(currentExercise)) {
+        weightTotal = convertWeight(weight, 'charge', 'total', currentExercise);
+    }
+    
+    // Valider le poids minimum
+    const barWeight = getBarWeight(currentExercise);
+    const finalWeight = Math.max(barWeight, weightTotal);
+    
+    modifySetData('weight', finalWeight);
+}
+
+function modifySetData(field, newValue) {
+    if (!workoutState.pendingSetData) return;
+    
+    const oldValue = workoutState.pendingSetData[field];
+    workoutState.pendingSetData[field] = newValue;
+    
+    // Invalider données vocales si modification
+    if (field === 'reps' && oldValue !== newValue && workoutState.pendingSetData.voice_data) {
+        workoutState.pendingSetData.voice_data = {
+            ...workoutState.pendingSetData.voice_data,
+            modified_manually: true,
+            original_voice_count: workoutState.pendingSetData.voice_data.original_voice_count || oldValue,
+            confidence: Math.min(0.5, workoutState.pendingSetData.voice_data.confidence || 0.5)
+        };
+        
+        console.log(`[Voice] Données vocal invalidées: ${oldValue} → ${newValue}`);
+    }
+    
+    // Invalider le cache ML si modification du poids
+    if (field === 'weight' && typeof invalidateMLCache === 'function') {
+        invalidateMLCache('weight_modified');
+    }
+    
+    // Marquer comme modifié
+    workoutState.pendingSetData.user_modified = true;
+    workoutState.pendingSetData.modified_fields = workoutState.pendingSetData.modified_fields || [];
+    if (!workoutState.pendingSetData.modified_fields.includes(field)) {
+        workoutState.pendingSetData.modified_fields.push(field);
+    }
+}
+
+function confirmModifications() {
+    console.log('[Modify] Modifications confirmées:', workoutState.pendingSetData);
+    closeModal();
+    
+    // Mettre à jour l'affichage
+    const isIsometric = currentExercise?.exercise_type === 'isometric';
+    
+    if (isIsometric && workoutState.pendingSetData.duration_seconds) {
+        const repsDisplay = document.getElementById('setReps');
+        if (repsDisplay) {
+            repsDisplay.textContent = workoutState.pendingSetData.duration_seconds;
+        }
+        // Mettre à jour l'interface moderne si elle existe
+        if (typeof updateRepDisplayModern === 'function') {
+            updateRepDisplayModern(workoutState.pendingSetData.duration_seconds, workoutState.pendingSetData.duration_seconds, {
+                isIsometric: true
+            });
+        }
+    } else if (workoutState.pendingSetData.reps) {
+        const repsDisplay = document.getElementById('setReps');
+        if (repsDisplay) {
+            repsDisplay.textContent = workoutState.pendingSetData.reps;
+        }
+        // Mettre à jour l'interface moderne si elle existe
+        if (typeof updateRepDisplayModern === 'function') {
+            updateRepDisplayModern(workoutState.pendingSetData.reps, currentExercise?.last_reps || 10);
+        }
+    }
+    
+    // Mettre à jour currentExerciseRealWeight si le poids a été modifié
+    if (workoutState.pendingSetData.weight !== undefined && workoutState.pendingSetData.weight !== null) {
+        currentExerciseRealWeight = workoutState.pendingSetData.weight; // Toujours en TOTAL
+        updateWeightDisplay(); // Met à jour l'affichage selon le mode actuel
+    }
+    
+    showToast('Modifications enregistrées', 'success');
+}
+
+// ===== SAUVEGARDE DÉFENSIVE PENDINGSETDATA =====
+// Initialiser le tabId au chargement
+if (!window.tabId) {
+    window.tabId = 'tab_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+function safeguardPendingData() {
+    if (!workoutState.pendingSetData || !currentWorkout || !currentExercise) {
+        return;
+    }
+    
+    const backup = {
+        data: workoutState.pendingSetData,
+        timestamp: Date.now(),
+        workoutId: currentWorkout.id,
+        exerciseId: currentExercise.id,
+        setNumber: currentSet,
+        tabId: window.tabId,
+        workoutType: currentWorkoutSession.type,
+        exerciseName: currentExercise.name,
+        // Ajouter le mode de poids actuel pour restaurer correctement
+        weightMode: currentWeightMode,
+        // Ajouter le poids réel pour validation
+        realWeight: currentExerciseRealWeight
+    };
+    
+    const uniqueKey = `workout_pending_${currentWorkout.id}_${currentSet}_${Date.now()}`;
+    
+    try {
+        localStorage.setItem(uniqueKey, JSON.stringify(backup));
+        console.log('[Backup] pendingSetData sauvegardé:', uniqueKey);
+        
+        // Nettoyer les vieux backups
+        cleanupOldBackups();
+    } catch (e) {
+        console.error('[Backup] Erreur localStorage:', e);
+        // Si localStorage est plein, essayer de nettoyer et réessayer
+        if (e.name === 'QuotaExceededError') {
+            cleanupOldBackups(true); // Force cleanup
+            try {
+                localStorage.setItem(uniqueKey, JSON.stringify(backup));
+            } catch (e2) {
+                showToast('Impossible de sauvegarder (mémoire pleine)', 'warning');
+            }
+        }
+    }
+}
+
+function cleanupOldBackups(force = false) {
+    const cutoff = Date.now() - (force ? (6 * 60 * 60 * 1000) : (24 * 60 * 60 * 1000)); // 6h si forcé, 24h sinon
+    const currentTabId = window.tabId;
+    
+    Object.keys(localStorage)
+        .filter(key => key.startsWith('workout_pending_'))
+        .forEach(key => {
+            try {
+                const data = JSON.parse(localStorage.getItem(key));
+                // Supprimer si trop vieux OU du même onglet mais pas récent
+                if (data.timestamp < cutoff || 
+                    (data.tabId === currentTabId && data.timestamp < Date.now() - 300000)) { // 5 min pour même onglet
+                    localStorage.removeItem(key);
+                    console.log('[Cleanup] Backup supprimé:', key);
+                }
+            } catch (e) {
+                localStorage.removeItem(key);
+            }
+        });
+}
+
+function clearPendingDataBackup() {
+    // Nettoyer tous les backups de l'onglet actuel
+    const currentTabId = window.tabId;
+    
+    Object.keys(localStorage)
+        .filter(key => key.startsWith('workout_pending_'))
+        .forEach(key => {
+            try {
+                const data = JSON.parse(localStorage.getItem(key));
+                if (data.tabId === currentTabId) {
+                    localStorage.removeItem(key);
+                }
+            } catch (e) {
+                localStorage.removeItem(key);
+            }
+        });
+}
+
+// ===== RECOVERY PENDINGSETDATA =====
+function checkPendingDataRecovery() {
+    // Ne pas interférer si on est déjà en feedback avec des données pending
+    if (workoutState.current === WorkoutStates.FEEDBACK && workoutState.pendingSetData) {
+        return;
+    }
+    
+    const pendingBackups = Object.keys(localStorage)
+        .filter(key => key.startsWith('workout_pending_'))
+        .map(key => {
+            try {
+                return {
+                    key: key,
+                    ...JSON.parse(localStorage.getItem(key))
+                };
+            } catch (e) {
+                localStorage.removeItem(key); // Nettoyer les données corrompues
+                return null;
+            }
+        })
+        .filter(backup => backup && backup.timestamp > Date.now() - (24 * 60 * 60 * 1000))
+        .sort((a, b) => b.timestamp - a.timestamp);
+
+    if (pendingBackups.length === 0) return;
+    
+    const mostRecent = pendingBackups[0];
+    console.log('[Recovery] Données pending trouvées:', mostRecent);
+    
+    // Vérifier si c'est pour la séance en cours
+    if (currentWorkout && currentWorkout.id === mostRecent.workoutId) {
+        // Proposer la récupération après un court délai pour ne pas bloquer le chargement
+        setTimeout(() => {
+            const timeAgo = Math.round((Date.now() - mostRecent.timestamp) / 60000); // minutes
+            const message = `Une série non sauvegardée a été trouvée pour "${mostRecent.exerciseName}" (il y a ${timeAgo} minutes). Voulez-vous la récupérer ?`;
+            
+            if (confirm(message)) {
+                // Restaurer le contexte
+                workoutState.pendingSetData = mostRecent.data;
+                workoutState.recoveredFromBackup = true;
+                
+                // Restaurer le mode de poids si différent
+                if (mostRecent.weightMode && mostRecent.weightMode !== currentWeightMode) {
+                    currentWeightMode = mostRecent.weightMode;
+                    updateWeightDisplay();
+                }
+                
+                // Si on n'est pas déjà dans le bon exercice, proposer de le charger
+                if (!currentExercise || currentExercise.id !== mostRecent.exerciseId) {
+                    showToast('Chargez l\'exercice pour continuer', 'info');
+                } else {
+                    // Aller directement en feedback si on est dans le bon exercice
+                    transitionTo(WorkoutStates.FEEDBACK);
+                }
+                
+                // Nettoyer le backup utilisé
+                localStorage.removeItem(mostRecent.key);
+                
+                showToast('Série récupérée avec succès', 'success');
+            } else {
+                // Nettoyer tous les backups si refusé
+                pendingBackups.forEach(backup => localStorage.removeItem(backup.key));
+            }
+        }, 500);
+    } else {
+        // Données pour une autre séance, nettoyer
+        pendingBackups.forEach(backup => localStorage.removeItem(backup.key));
+    }
+}
+
+// ===== GESTION HORS LIGNE AVANCÉE =====
+function queueOfflineSetData(setData) {
+    const offline_queue = JSON.parse(localStorage.getItem('offline_sets_queue') || '[]');
+    
+    const queueEntry = {
+        ...setData,
+        queued_at: Date.now(),
+        workout_id: currentWorkout.id,
+        exercise_name: currentExercise.name,
+        set_display: `${currentExercise.name} - Série ${setData.set_number}`
+    };
+    
+    offline_queue.push(queueEntry);
+    
+    try {
+        localStorage.setItem('offline_sets_queue', JSON.stringify(offline_queue));
+        console.log('[Offline] Série ajoutée à la queue:', queueEntry.set_display);
+    } catch (e) {
+        console.error('[Offline] Erreur sauvegarde queue:', e);
+        showToast('Impossible de sauvegarder hors ligne', 'error');
+    }
+}
+
+async function syncOfflineSetData() {
+    const offline_queue = JSON.parse(localStorage.getItem('offline_sets_queue') || '[]');
+    
+    if (offline_queue.length === 0) return;
+    
+    console.log(`[Sync] ${offline_queue.length} séries à synchroniser`);
+    showToast(`Synchronisation de ${offline_queue.length} séries...`, 'info');
+    
+    const failed = [];
+    
+    for (const setData of offline_queue) {
+        try {
+            // Retirer les métadonnées de queue
+            const { queued_at, set_display, ...cleanData } = setData;
+            
+            await apiPost(`/api/workouts/${setData.workout_id}/sets`, cleanData);
+            console.log('[Sync] Série synchronisée:', set_display);
+        } catch (error) {
+            console.error('[Sync] Échec synchronisation:', error);
+            failed.push(setData);
+        }
+    }
+    
+    // Mettre à jour la queue avec seulement les échecs
+    if (failed.length > 0) {
+        localStorage.setItem('offline_sets_queue', JSON.stringify(failed));
+        showToast(`${failed.length} séries n'ont pas pu être synchronisées`, 'warning');
+    } else {
+        localStorage.removeItem('offline_sets_queue');
+        showToast('Toutes les séries ont été synchronisées !', 'success');
+    }
+}
+
 async function saveFeedbackAndRest() {
     if (!workoutState.pendingSetData) {
         console.error('Pas de données de série en attente');
@@ -12727,6 +13196,65 @@ async function saveFeedbackAndRest() {
         if (!currentWorkout?.id) {
             console.error('❌ currentWorkout.id manquant pour enregistrement série');
             throw new Error('Aucune séance active - impossible d\'enregistrer la série');
+        }
+
+        // Vérifier la connexion avant de sauvegarder
+        if (!navigator.onLine) {
+            console.log('[Offline] Mode hors ligne détecté');
+            
+            // Enrichir avec l'id temporaire
+            const offlineSet = {
+                ...setData,
+                id: 'offline_' + Date.now(),
+                offline: true
+            };
+            
+            // Ajouter à la queue
+            queueOfflineSetData(setData);
+            
+            // Ajouter aux séries complétées localement
+            currentWorkoutSession.completedSets.push(offlineSet);
+            currentWorkoutSession.globalSetCount++;
+            
+            // Mettre à jour le programme si nécessaire
+            if (currentWorkoutSession.type === 'program' && currentExercise) {
+                const programExercise = currentWorkoutSession.programExercises[currentExercise.id];
+                if (programExercise) {
+                    programExercise.completedSets++;
+                    if (programExercise.completedSets >= programExercise.totalSets) {
+                        programExercise.isCompleted = true;
+                        programExercise.endTime = new Date();
+                        currentWorkoutSession.completedExercisesCount++;
+                    }
+                }
+            }
+            
+            // Mettre à jour l'historique visuel
+            updateSetsHistory();
+            
+            // Enregistrer la décision ML si présente
+            if (workoutState.currentRecommendation && currentWorkoutSession.mlHistory?.enabled) {
+                addToMLHistory(
+                    currentExercise.id,
+                    currentSet,
+                    workoutState.currentRecommendation,
+                    setData.weight,
+                    setData.reps
+                );
+            }
+            
+            showToast('Mode hors ligne - Série enregistrée localement', 'warning');
+            
+            // Nettoyer et continuer le workflow
+            workoutState.pendingSetData = null;
+            clearPendingDataBackup();
+            
+            // Calculer et démarrer le repos
+            const restDuration = calculateRestDuration();
+            workoutState.plannedRestDuration = restDuration;
+            
+            startRestPeriod(restDuration);
+            return; // Important : sortir de la fonction ici
         }
 
         const savedSet = await apiPost(`/api/workouts/${currentWorkout.id}/sets`, setData);
@@ -12828,6 +13356,8 @@ async function saveFeedbackAndRest() {
                 // Pour les autres exercices : écran de repos classique
                 transitionTo(WorkoutStates.RESTING);
                 startRestPeriod(restDuration, isMLRest);
+                // Nettoyer le backup après sauvegarde réussie
+                clearPendingDataBackup();
             }
         }
         
@@ -12836,6 +13366,55 @@ async function saveFeedbackAndRest() {
         
     } catch (error) {
         console.error('Erreur enregistrement série:', error);
+        
+        // Si erreur réseau, proposer le mode hors ligne
+        if (error.message && (error.message.includes('Failed to fetch') || 
+            error.message.includes('Network') || 
+            error.message.includes('connexion'))) {
+            
+            if (confirm('Connexion impossible. Enregistrer la série hors ligne ?')) {
+                queueOfflineSetData(setData);
+                
+                // Continuer comme si c'était sauvegardé
+                const offlineSet = { ...setData, id: 'offline_' + Date.now(), offline: true };
+                currentWorkoutSession.completedSets.push(offlineSet);
+                currentWorkoutSession.globalSetCount++;
+                
+                // Gérer le programme si nécessaire
+                if (currentWorkoutSession.type === 'program' && currentExercise) {
+                    const programExercise = currentWorkoutSession.programExercises[currentExercise.id];
+                    if (programExercise) {
+                        programExercise.completedSets++;
+                        if (programExercise.completedSets >= programExercise.totalSets) {
+                            programExercise.isCompleted = true;
+                            programExercise.endTime = new Date();
+                            currentWorkoutSession.completedExercisesCount++;
+                        }
+                    }
+                }
+                
+                updateSetsHistory();
+                
+                // Enregistrer ML si nécessaire
+                if (workoutState.currentRecommendation && currentWorkoutSession.mlHistory?.enabled) {
+                    addToMLHistory(
+                        currentExercise.id,
+                        currentSet,
+                        workoutState.currentRecommendation,
+                        setData.weight,
+                        setData.reps
+                    );
+                }
+                
+                workoutState.pendingSetData = null;
+                clearPendingDataBackup();
+                startRestPeriod(calculateRestDuration());
+                
+                showToast('Série enregistrée hors ligne', 'warning');
+                return;
+            }
+        }
+        
         showToast('Erreur lors de l\'enregistrement', 'error');
     }
 }
@@ -15175,6 +15754,23 @@ window.endWorkout = endWorkout;
 window.addExtraSet = addExtraSet;
 window.updateSetNavigationButtons = updateSetNavigationButtons;
 window.selectFatigue = selectFatigue;
+
+window.showModifySetInterface = showModifySetInterface;
+window.adjustPendingReps = adjustPendingReps;
+window.updatePendingReps = updatePendingReps;
+window.adjustPendingWeight = adjustPendingWeight;
+window.updatePendingWeight = updatePendingWeight;
+window.modifySetData = modifySetData;
+window.confirmModifications = confirmModifications;
+
+// Exports pour sauvegarde défensive
+window.safeguardPendingData = safeguardPendingData;
+window.cleanupOldBackups = cleanupOldBackups;
+window.clearPendingDataBackup = clearPendingDataBackup;
+window.checkPendingDataRecovery = checkPendingDataRecovery;
+window.queueOfflineSetData = queueOfflineSetData;
+window.syncOfflineSetData = syncOfflineSetData;
+
 window.selectEffort = selectEffort;
 window.toggleAIDetails = toggleAIDetails;
 window.showAutoValidation = showAutoValidation;
