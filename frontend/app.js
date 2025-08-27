@@ -1230,6 +1230,11 @@ function transitionTo(state) {
                 inputSectionExecuting.style.display = 'block'; // ou 'flex'
                 inputSectionExecuting.style.opacity = '1';
                 inputSectionExecuting.style.visibility = 'visible';
+                // Masquer le feedback fatigue/effort si on revient des steppers
+                const setFeedbackExecuting = document.getElementById('setFeedback');
+                if (setFeedbackExecuting) {
+                    setFeedbackExecuting.style.display = 'none';
+                }
             }
             
             // S'assurer que le container de steppers est visible (si existe)
@@ -12766,6 +12771,11 @@ function restoreSteppersFromPendingData() {
         document.getElementById('setReps').textContent = pending.reps;
         const targetRep = document.getElementById('targetRep');
         if (targetRep) targetRep.textContent = pending.reps;
+        
+        // Mettre à jour l'interface moderne si elle existe
+        if (typeof updateRepDisplayModern === 'function') {
+            updateRepDisplayModern(0, pending.reps); // Current = 0, Target = pending.reps
+        }
     }
     
     // Restaurer durée isométrique
@@ -12773,6 +12783,11 @@ function restoreSteppersFromPendingData() {
         document.getElementById('setReps').textContent = pending.duration_seconds;
         const targetRep = document.getElementById('targetRep');
         if (targetRep) targetRep.textContent = pending.duration_seconds;
+        
+        // Mettre à jour l'interface moderne pour isométrique
+        if (typeof updateRepDisplayModern === 'function') {
+            updateRepDisplayModern(0, pending.duration_seconds);
+        }
     }
     
     // Restaurer poids
