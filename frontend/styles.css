@@ -9568,101 +9568,159 @@ input {
 }
 
 /* ================================================= */
-/* BOUTON SPLIT OBLIQUE - INTERFACE PAUSE MOTION */
+/* SECTION PAUSE MOTION - INTERFACE CONFIRMATION */
 /* ================================================= */
 
-.split-action-button {
-    position: relative;
-    width: 100%;
-    height: 64px;
-    margin: 24px 0 16px 0;
+.motion-pause-container {
+    background: linear-gradient(135deg, #2196F3, #1976D2);
+    border: 2px solid #2196F3;
     border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    cursor: pointer;
+    padding: 24px;
+    margin: 16px 0;
+    color: white;
+    text-align: center;
+    box-shadow: 0 6px 20px rgba(33, 150, 243, 0.2);
+    animation: pauseSlideIn 0.3s ease-out;
 }
 
-.split-btn-left,
-.split-btn-right {
-    position: absolute;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    border: none;
-    font-size: 1rem;
+@keyframes pauseSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.pause-header {
+    margin-bottom: 20px;
+}
+
+.pause-header h3 {
+    margin: 0;
+    font-size: 1.4rem;
     font-weight: 600;
+    color: white;
+}
+
+.pause-voice-info {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin: 16px 0;
+    padding: 12px;
+    background: rgba(76, 175, 80, 0.2);
+    border: 1px solid rgba(76, 175, 80, 0.4);
+    border-radius: 12px;
+    font-size: 0.95rem;
+}
+
+.pause-voice-info i {
+    color: #4CAF50;
+    font-size: 1.1rem;
+}
+
+.pause-actions {
+    display: flex;
+    gap: 16px;
+    margin: 24px 0 16px 0;
+    justify-content: center;
+}
+
+.pause-btn-continue,
+.pause-btn-finish {
+    flex: 1;
+    max-width: 140px;
+    padding: 14px 20px;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    transition: all 0.2s ease;
+    min-height: 48px;
     cursor: pointer;
-    z-index: 2;
 }
 
-/* Zone gauche - Continuer (vert) */
-.split-btn-left {
+.pause-btn-continue {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: white;
+    backdrop-filter: blur(10px);
+}
+
+.pause-btn-continue:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+}
+
+.pause-btn-finish {
     background: #4CAF50;
     color: white;
-    clip-path: polygon(0 0, 58% 0, 50% 100%, 0 100%);
+    border-color: #4CAF50;
 }
 
-.split-btn-left:hover {
+.pause-btn-finish:hover {
     background: #45a049;
-    transform: translateX(-2px);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
 }
 
-.split-btn-left:active {
-    transform: translateX(-1px) scale(0.98);
+.pause-btn-continue:active,
+.pause-btn-finish:active {
+    transform: translateY(0) scale(0.98);
 }
 
-/* Zone droite - Terminer (rouge) */
-.split-btn-right {
-    background: #f44336;
-    color: white;
-    clip-path: polygon(50% 0, 100% 0, 100% 100%, 42% 100%);
+.pause-btn-continue i,
+.pause-btn-finish i {
+    font-size: 1rem;
 }
 
-.split-btn-right:hover {
-    background: #da190b;
-    transform: translateX(2px);
+.pause-instruction {
+    margin-top: 12px;
+    opacity: 0.8;
+    font-size: 0.85rem;
+    line-height: 1.4;
 }
 
-.split-btn-right:active {
-    transform: translateX(1px) scale(0.98);
+/* ================================================= */
+/* CLASSES UTILISÉES AILLEURS - CONSERVATION */
+/* ================================================= */
+
+.motion-notification-text {
+    font-size: 0.9rem;
+    text-align: center;
+    line-height: 1.2;
 }
 
-/* Ligne de séparation oblique */
-.split-divider {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    width: 2px;
-    height: 100%;
-    background: white;
-    transform: translateX(-50%) skewX(-8deg);
-    z-index: 3;
-    pointer-events: none;
-    opacity: 0.9;
-    box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+.motion-notification-icon {
+    font-size: 1.4rem;
+    margin-bottom: 0.4rem;
+    animation: motionBounce 1.5s ease-in-out infinite;
 }
 
-/* Icônes et texte */
-.split-btn-left i,
-.split-btn-right i {
-    font-size: 1.1rem;
+@keyframes motionBounce {
+    0%, 100% { 
+        transform: translateY(0px);
+        opacity: 1;
+    }
+    50% { 
+        transform: translateY(6px);
+        opacity: 0.8;
+    }
 }
 
-.split-btn-left span,
-.split-btn-right span {
-    font-weight: 600;
-    letter-spacing: 0.5px;
-}
-
-/* Animation au focus/hover du container */
-.split-action-button:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+.exercise-header-actions .btn-change-exercise {
+    padding: var(--spacing-xs) var(--spacing-md);
+    font-size: 0.85rem;
 }
 
 /* ================================================= */
@@ -9670,82 +9728,58 @@ input {
 /* ================================================= */
 
 @media (max-width: 768px) {
-    .split-action-button {
-        height: 56px;
-        margin: 20px 0 14px 0;
-        border-radius: 14px;
+    .motion-pause-container {
+        margin: 12px 0;
+        padding: 20px 16px;
     }
     
-    .split-btn-left,
-    .split-btn-right {
-        font-size: 0.95rem;
-        gap: 6px;
+    .pause-actions {
+        flex-direction: column;
+        gap: 12px;
     }
     
-    .split-btn-left i,
-    .split-btn-right i {
-        font-size: 1rem;
+    .pause-btn-continue,
+    .pause-btn-finish {
+        max-width: none;
+        padding: 12px 20px;
+        font-size: 0.9rem;
     }
     
-    .split-divider {
-        width: 1.5px;
+    .pause-header h3 {
+        font-size: 1.25rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .motion-notification-text {
+        font-size: 0.85rem;
+    }
+    
+    .motion-notification-icon {
+        font-size: 1.2rem;
+    }
+
+    .exercise-header-actions .btn-change-exercise {
+        padding: var(--spacing-xs) var(--spacing-md);
+        font-size: 0.85rem;
     }
 }
 
 @media (max-width: 480px) {
-    .split-action-button {
-        height: 52px;
+    .motion-pause-container {
+        padding: 18px 14px;
         border-radius: 12px;
     }
     
-    .split-btn-left,
-    .split-btn-right {
-        font-size: 0.9rem;
-        gap: 5px;
+    .pause-btn-continue,
+    .pause-btn-finish {
+        padding: 10px 16px;
+        min-height: 44px;
+        border-radius: 10px;
     }
     
-    .split-btn-left span,
-    .split-btn-right span {
-        font-size: 0.9rem;
-    }
-    
-    /* Réduire l'angle sur très petit écran pour plus de lisibilité */
-    .split-btn-left {
-        clip-path: polygon(0 0, 56% 0, 52% 100%, 0 100%);
-    }
-    
-    .split-btn-right {
-        clip-path: polygon(52% 0, 100% 0, 100% 100%, 44% 100%);
-    }
-    
-    .split-divider {
-        transform: translateX(-50%) skewX(-6deg);
-    }
-}
-
-/* ================================================= */
-/* FALLBACK POUR NAVIGATEURS SANS CLIP-PATH */
-/* ================================================= */
-
-@supports not (clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%)) {
-    .split-btn-left,
-    .split-btn-right {
-        clip-path: none;
-        width: 50%;
-    }
-    
-    .split-btn-left {
-        left: 0;
-        border-right: 1px solid white;
-    }
-    
-    .split-btn-right {
-        right: 0;
-        border-left: 1px solid white;
-    }
-    
-    .split-divider {
-        display: none;
+    .pause-header h3 {
+        font-size: 1.1rem;
     }
 }
 
@@ -9753,42 +9787,31 @@ input {
 /* ACCESSIBILITÉ */
 /* ================================================= */
 
-.split-btn-left:focus,
-.split-btn-right:focus {
+.pause-btn-continue:focus,
+.pause-btn-finish:focus {
     outline: 3px solid rgba(255, 255, 255, 0.5);
     outline-offset: 2px;
 }
 
-/* Contraste élevé */
-@media (prefers-contrast: high) {
-    .split-btn-left {
-        background: #2E7D32;
-        border: 2px solid white;
-    }
-    
-    .split-btn-right {
-        background: #C62828;
-        border: 2px solid white;
-    }
-    
-    .split-divider {
-        width: 3px;
-        background: white;
-    }
-}
-
 /* Réduction des animations */
 @media (prefers-reduced-motion: reduce) {
-    .split-btn-left,
-    .split-btn-right,
-    .split-action-button {
+    .pause-btn-continue,
+    .pause-btn-finish,
+    .motion-pause-container {
         transition: none;
     }
     
-    .split-btn-left:hover,
-    .split-btn-right:hover,
-    .split-action-button:hover {
+    .pause-btn-continue:hover,
+    .pause-btn-finish:hover {
         transform: none;
+    }
+    
+    .motion-pause-container {
+        animation: none;
+    }
+    
+    .motion-notification-icon {
+        animation: none;
     }
 }
 

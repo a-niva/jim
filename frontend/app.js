@@ -365,20 +365,19 @@ window.isPaused = window.isPaused || false;
 window.pausedTime = window.pausedTime || null;
 
 /**
- * Affiche l'interface de pause motion avec bouton split Continuer/Terminer
- * À REMPLACER dans frontend/app.js fonction showPauseConfirmation()
+ * Affiche l'interface de pause motion avec boutons séparés modernes
  */
 function showPauseConfirmation() {
     console.log('[Motion] === Affichage interface pause ===');
     
-    // ✅ VÉRIFICATION : Si interface existe déjà, ne pas dupliquer
+    // Vérification : Si interface existe déjà, ne pas dupliquer
     const existingPause = document.getElementById('motionPauseConfirmation');
     if (existingPause) {
         console.log('[Motion] Interface pause déjà affichée, skip duplication');
         return;
     }
     
-    // ✅ ARRÊTER motion detector pour éviter recalls multiples
+    // Arrêter motion detector pour éviter recalls multiples
     if (window.motionDetector) {
         window.motionDetector.stopMonitoring();
         console.log('[Motion] Monitoring arrêté pendant pause');
@@ -397,19 +396,13 @@ function showPauseConfirmation() {
         return;
     }
     
-    // Créer container pause UNIQUE avec nouveau design
+    // Créer container pause avec nouveau design propre
     const pauseContainer = document.createElement('div');
     pauseContainer.id = 'motionPauseConfirmation';
     pauseContainer.className = 'motion-pause-container';
     pauseContainer.innerHTML = `
         <div class="pause-header">
             <h3>📱 Série en pause</h3>
-            ${setTimerState.getElapsed ? `
-            <div class="pause-timer">
-                <span class="timer-label">Temps écoulé:</span>
-                <span class="timer-value">${formatTime(Math.floor(setTimerState.getElapsed() / 1000))}</span>
-            </div>
-            ` : ''}
         </div>
         
         ${window.voiceData?.count > 0 ? `
@@ -419,17 +412,15 @@ function showPauseConfirmation() {
             </div>
         ` : ''}
         
-        <!-- NOUVEAU: Bouton split avec trait oblique -->
-        <div class="split-action-button">
-            <button class="split-btn-left" onclick="continueMotionSeries()">
+        <div class="pause-actions">
+            <button class="pause-btn-continue" onclick="continueMotionSeries()">
                 <i class="fas fa-play"></i>
                 <span>Continuer</span>
             </button>
-            <button class="split-btn-right" onclick="finishMotionSeries()">
+            <button class="pause-btn-finish" onclick="finishMotionSeries()">
                 <i class="fas fa-check"></i>
                 <span>Terminer</span>
             </button>
-            <div class="split-divider"></div>
         </div>
         
         <div class="pause-instruction">
@@ -452,7 +443,7 @@ function showPauseConfirmation() {
         });
     });
     
-    console.log('[Motion] Interface pause affichée avec bouton split');
+    console.log('[Motion] Interface pause affichée avec boutons modernes');
 }
 
 function debugMotionPauseState() {
