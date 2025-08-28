@@ -1248,7 +1248,7 @@ function transitionTo(state) {
                     
                     const pending = workoutState.pendingSetData;
                     const currentReps = pending.reps || pending.duration_seconds || 0; // Ce qu'il a FAIT
-                    const targetReps = currentExercise?.last_reps || 10; // Ce qui était RECOMMANDÉ
+                    const targetReps = pending.original_target_reps || 10; // Ce qui était VRAIMENT affiché
                     
                     if (currentReps > 0) {
                         // Restaurer l'affichage EXACT d'avant validation
@@ -11995,6 +11995,7 @@ async function executeSet() {
                 voice_data: voiceDataToSend || voiceData // Priorité aux données enrichies ML
             };
             // Sauvegarder immédiatement en cas d'interruption
+            workoutState.pendingSetData.original_target_reps = parseInt(document.getElementById('targetRep')?.textContent || document.getElementById('setReps').textContent);
             safeguardPendingData();
         } else if (isBodyweight) {
             // Récupérer les reps (avec priorité au vocal si disponible)
@@ -12012,6 +12013,7 @@ async function executeSet() {
                 voice_data: voiceDataToSend || voiceData // Priorité aux données enrichies ML
             };
             // Sauvegarder immédiatement en cas d'interruption
+            workoutState.pendingSetData.original_target_reps = parseInt(document.getElementById('targetRep')?.textContent || document.getElementById('setReps').textContent);
             safeguardPendingData();
         } else {
             // === EXERCICES AVEC POIDS ===
