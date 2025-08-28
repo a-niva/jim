@@ -1237,10 +1237,28 @@ function transitionTo(state) {
                     console.log('[UI] Feedback masqué lors retour steppers');
                 }
 
-                // Si on revient avec pendingSetData, ne pas réinitialiser l'interface N/R
+                // Si on revient avec pendingSetData, restaurer au lieu de réinitialiser
                 if (workoutState.pendingSetData) {
-                    console.log('[UI] Restoration pending data, skip interface reset');
-                    return; // CRITIQUE : éviter la double initialisation
+                    console.log('[UI] Restoration pending data avec restauration immédiate');
+                    
+                    // Restaurer les steppers immédiatement dans le updateWorkoutState
+                    const pending = workoutState.pendingSetData;
+                    const targetReps = pending.reps || pending.duration_seconds || 0;
+                    
+                    if (targetReps > 0) {
+                        // Forcer la mise à jour MAINTENANT
+                        if (typeof updateRepDisplayModern === 'function') {
+                            updateRepDisplayModern(0, targetReps);
+                            console.log('[UI] Interface N/R restaurée immédiatement:', '0/', targetReps);
+                        }
+                        
+                        // Aussi mettre à jour les éléments DOM directement
+                        const targetRep = document.getElementById('targetRep');
+                        if (targetRep) targetRep.textContent = targetReps;
+                        document.getElementById('setReps').textContent = targetReps;
+                    }
+                    
+                    // Continuer l'exécution normale au lieu de return
                 }
             }
             
@@ -12760,9 +12778,6 @@ function returnToSteppers() {
         console.error('Pas de données à restaurer');
         return;
     }
-    
-    // Restaurer les valeurs dans les steppers existants
-    restoreSteppersFromPendingData();
     
     // Transition vers EXECUTING (steppers visibles automatiquement)
     transitionTo(WorkoutStates.EXECUTING);
