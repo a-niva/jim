@@ -1191,9 +1191,14 @@ function transitionTo(state) {
             if (currentRepEl && currentRepEl.textContent !== '0') {
                 currentRepEl.textContent = '0';
                 console.log('[Fix] Interface N/R préservée avant démarrage vocal');
+                // Nettoyer pendingSetData au début d'une nouvelle série
+                if (workoutState.pendingSetData && oldState === WorkoutStates.RESTING) {
+                    workoutState.pendingSetData = null;
+                    console.log('[UI] PendingSetData nettoyée pour nouvelle série');
+                }
             }
             
-            // Code existant pour le vocal...
+            // Code existant pour le vocal :
             if (currentUser?.voice_counting_enabled && 
                 window.startVoiceRecognition && 
                 !window.voiceRecognitionActive?.()) {
@@ -1237,8 +1242,8 @@ function transitionTo(state) {
                     console.log('[UI] Feedback masqué lors retour steppers');
                 }
 
-                // Si on revient avec pendingSetData, restaurer les vraies valeurs
-                if (workoutState.pendingSetData) {
+                // Si on revient avec pendingSetData ET que l'oldState était FEEDBACK (vrai retour)
+                if (workoutState.pendingSetData && oldState === WorkoutStates.FEEDBACK) {
                     console.log('[UI] Restoration pending data avec valeurs correctes');
                     
                     const pending = workoutState.pendingSetData;
