@@ -1230,10 +1230,17 @@ function transitionTo(state) {
                 inputSectionExecuting.style.display = 'block'; // ou 'flex'
                 inputSectionExecuting.style.opacity = '1';
                 inputSectionExecuting.style.visibility = 'visible';
-                // Masquer le feedback fatigue/effort si on revient des steppers
+                // Masquer le feedback fatigue/effort si on revient des steppers  
                 const setFeedbackExecuting = document.getElementById('setFeedback');
                 if (setFeedbackExecuting) {
                     setFeedbackExecuting.style.display = 'none';
+                    console.log('[UI] Feedback masqué lors retour steppers');
+                }
+
+                // Si on revient avec pendingSetData, ne pas réinitialiser l'interface N/R
+                if (workoutState.pendingSetData) {
+                    console.log('[UI] Restoration pending data, skip interface reset');
+                    return; // CRITIQUE : éviter la double initialisation
                 }
             }
             
@@ -12766,15 +12773,21 @@ function returnToSteppers() {
 function restoreSteppersFromPendingData() {
     const pending = workoutState.pendingSetData;
     
-    // Restaurer répétitions
-    if (pending.reps !== undefined) {
-        document.getElementById('setReps').textContent = pending.reps;
+    // Restaurer répétitions avec protection
+    const targetReps = pending.reps || pending.duration_seconds || 0;
+    const currentReps = 0; // Toujours remettre à 0 pour nouvelle série
+
+    if (targetReps > 0) {
+        document.getElementById('setReps').textContent = targetReps;
         const targetRep = document.getElementById('targetRep');
-        if (targetRep) targetRep.textContent = pending.reps;
+        if (targetRep) targetRep.textContent = targetReps;
         
-        // Mettre à jour l'interface moderne si elle existe
+        // Forcer la mise à jour de l'interface moderne
         if (typeof updateRepDisplayModern === 'function') {
-            updateRepDisplayModern(0, pending.reps); // Current = 0, Target = pending.reps
+            setTimeout(() => {
+                updateRepDisplayModern(currentReps, targetReps);
+                console.log('[Restore] Interface N/R forcée:', currentReps, '/', targetReps);
+            }, 50);
         }
     }
     
