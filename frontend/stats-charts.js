@@ -515,7 +515,7 @@ function renderMuscleVolumeChart(chartData) {
     });
     
     // Chart stacked area avec axe catégoriel mais espacement intelligent
-    new Chart(ctx, {
+    new window.Chart(ctx, {
         type: 'line',
         data: {
             labels: labels,
