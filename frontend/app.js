@@ -3688,24 +3688,10 @@ function loadRecentWorkouts(workouts) {
         const restRatio = displayDuration > 0 ? 
             Math.min((restTimeSeconds / totalSeconds * 100), 100).toFixed(0) : 0;
         
-        // Calcul du temps écoulé - CORRECTION FUSEAU HORAIRE
-        const now = new Date();
+        // Utiliser la fonction formatTimeAgo qui existe déjà et gère correctement les timezones
         const workoutDateStr = workout.started_at || workout.completed_at;
-        // Forcer l'interprétation UTC si pas de timezone explicite
-        const workoutDate = new Date(workoutDateStr + (workoutDateStr.includes('Z') ? '' : 'Z'));
-        const diffMs = now - workoutDate;
-        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-
-        let timeAgo = 'Aujourd\'hui';
-        if (diffDays > 0) {
-            timeAgo = diffDays === 1 ? 'Hier' : `Il y a ${diffDays} jours`;
-        } else if (diffHours > 0) {
-            timeAgo = `Il y a ${diffHours}h`;
-        } else {
-            timeAgo = 'À l\'instant';
-        }
-        
+        const timeAgo = formatTimeAgo(workoutDateStr);
+                
         // Récupérer les muscles travaillés
         const musclesWorked = workout.exercises ? 
             [...new Set(workout.exercises.flatMap(ex => ex.muscle_groups || []))] : [];

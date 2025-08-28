@@ -446,8 +446,8 @@ function renderMuscleVolumeChart(chartData) {
     const ctx = document.getElementById('muscleVolumeChart').getContext('2d');
     
     // Utiliser les couleurs existantes
-    const muscleColors = window.MuscleColors ? 
-        window.MuscleColors.getChartColors() : 
+    const muscleColors = window.MuscleColors ?
+        window.MuscleColors.getChartColors() :
         {
             dos: '#3b82f6',
             pectoraux: '#ec4899',
@@ -457,14 +457,39 @@ function renderMuscleVolumeChart(chartData) {
             abdominaux: '#ef4444'
         };
     
-    // Préparer datasets pour stacked area
+    // CORRECTION : Reconstruire les dates complètes depuis les labels non-vides
+    const allDates = [];
+    const nonEmptyLabels = chartData.labels.filter(label => label !== "");
+    
+    if (nonEmptyLabels.length === 0) {
+        console.error('Aucune date valide trouvée dans chartData.labels');
+        return;
+    }
+    
+    // Reconstruire la série temporelle complète
+    const firstDate = new Date(nonEmptyLabels[0]);
+    const dataLength = chartData.datasets[0]?.data?.length || 0;
+    
+    for (let i = 0; i < dataLength; i++) {
+        const currentDate = new Date(firstDate);
+        currentDate.setDate(firstDate.getDate() + i);
+        allDates.push(currentDate.toISOString().split('T')[0]); // Format YYYY-MM-DD
+    }
+    
+    // Préparer datasets avec format {x: date, y: value}
     const datasets = chartData.datasets.map(dataset => {
         const muscle = dataset.label.toLowerCase();
         const color = muscleColors[muscle] || '#6b7280';
         
+        // Convertir data array en format temporel
+        const timeSeriesData = dataset.data.map((value, index) => ({
+            x: allDates[index],
+            y: value
+        }));
+        
         return {
             label: dataset.label,
-            data: dataset.data,
+            data: timeSeriesData,
             backgroundColor: color + '60', // 60 = ~37% opacity
             borderColor: color,
             borderWidth: 1,
@@ -473,22 +498,32 @@ function renderMuscleVolumeChart(chartData) {
         };
     });
     
-    // Chart stacked area avec config simple
+    // Chart avec axe temporel
     new Chart(ctx, {
         type: 'line',
         data: {
-            labels: chartData.labels,
-            datasets: datasets
+            datasets: datasets // Pas de labels - utilise les données temporelles
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
                 x: {
+                    type: 'time',
+                    time: {
+                        unit: 'day',
+                        displayFormats: {
+                            day: 'dd MMM'
+                        },
+                        tooltipFormat: 'dd MMM yyyy'
+                    },
                     stacked: true,
                     title: {
                         display: true,
                         text: `Somme glissante ${chartData.period_days} jours`
+                    },
+                    ticks: {
+                        maxTicksLimit: 8 // Limiter le nombre de labels pour la lisibilité
                     }
                 },
                 y: {
@@ -509,6 +544,15 @@ function renderMuscleVolumeChart(chartData) {
                 tooltip: {
                     mode: 'index',
                     callbacks: {
+                        title: function(context) {
+                            // Format de date lisible pour le tooltip
+                            const date = new Date(context[0].parsed.x);
+                            return date.toLocaleDateString('fr-FR', { 
+                                weekday: 'short',
+                                day: 'numeric', 
+                                month: 'short' 
+                            });
+                        },
                         label: function(context) {
                             return `${context.dataset.label}: ${Math.round(context.parsed.y)}kg`;
                         }
@@ -526,7 +570,7 @@ function renderMuscleVolumeChart(chartData) {
         }
     });
     
-    console.log('✅ Chart volume musculaire créé');
+    console.log('✅ Chart volume musculaire créé avec axe temporel');
 }
 
 // Fonction pour boutons de période
