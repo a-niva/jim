@@ -4377,9 +4377,17 @@ def get_muscle_volume_chart(
                             daily_volumes[muscle_key][date_str] = 0
                         daily_volumes[muscle_key][date_str] += volume_per_muscle
         
-        # Créer série temporelle
-        all_dates = sorted(set(date for muscle_data in daily_volumes.values() 
-                              for date in muscle_data.keys()))
+        # Créer série temporelle COMPLÈTE sur toute la période
+        from datetime import date as date_class
+        current_date = start_date.date()
+        end_date_only = end_date.date()
+        all_dates = []
+
+        while current_date <= end_date_only:
+            all_dates.append(current_date.isoformat())
+            current_date += timedelta(days=1)
+
+        print(f"📊 Série temporelle générée: {len(all_dates)} jours de {all_dates[0]} à {all_dates[-1]}")
         
         if not all_dates:
             return {
@@ -4393,8 +4401,8 @@ def get_muscle_volume_chart(
         for muscle in muscles:
             # Sommes glissantes
             rolling_sums = []
-            for i, date in enumerate(all_dates):
-                # Prendre la somme des derniers 'days' jours jusqu'à cette date
+            for i, date_str in enumerate(all_dates):
+                # Fenêtre glissante : prendre les N derniers jours jusqu'à cette date
                 window_start = max(0, i - days + 1)
                 window_dates = all_dates[window_start:i + 1]
                 window_sum = sum(daily_volumes[muscle].get(d, 0) for d in window_dates)
@@ -4405,8 +4413,14 @@ def get_muscle_volume_chart(
                 "data": rolling_sums
             })
         
-        # Labels lisibles (1 sur N)
-        step = max(1, len(all_dates) // 10)
+        # Labels lisibles - afficher 1 date sur N pour éviter surcharge
+        if len(all_dates) <= 7:
+            step = 1  # Afficher toutes les dates pour 7 jours
+        elif len(all_dates) <= 30:
+            step = 3  # Afficher 1 date sur 3 pour 30 jours
+        else:
+            step = 7  # Afficher 1 date sur 7 pour 90 jours
+
         labels = [all_dates[i] if i % step == 0 else "" for i in range(len(all_dates))]
         
         return {
