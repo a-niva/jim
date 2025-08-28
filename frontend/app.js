@@ -12924,13 +12924,6 @@ function checkPendingDataRecovery() {
         return;
     }
 
-    // Ne pas proposer recovery si les données sont très récentes (< 2 minutes)
-    const dataAge = Date.now() - pending.timestamp;
-    if (dataAge < 120000) { // 2 minutes
-        console.log('[Recovery] Données trop récentes, probablement faux positif');
-        return;
-    }
-
     // Ne pas interférer si on est déjà en feedback avec des données pending
     if (workoutState.current === WorkoutStates.FEEDBACK && workoutState.pendingSetData) {
         return;
@@ -12956,6 +12949,12 @@ function checkPendingDataRecovery() {
     
     const mostRecent = pendingBackups[0];
     console.log('[Recovery] Données pending trouvées:', mostRecent);
+    
+    const dataAge = Date.now() - mostRecent.timestamp;
+    if (dataAge < 120000) { // 2 minutes
+        console.log('[Recovery] Données trop récentes, probablement faux positif');
+        return;
+    }
     
     // Vérifier si c'est pour la séance en cours
     if (currentWorkout && currentWorkout.id === mostRecent.workoutId) {
