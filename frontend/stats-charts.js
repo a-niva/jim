@@ -457,39 +457,55 @@ function renderMuscleVolumeChart(chartData) {
             abdominaux: '#ef4444'
         };
     
-    // CORRECTION : Reconstruire les dates complètes depuis les labels non-vides
-    const allDates = [];
-    const nonEmptyLabels = chartData.labels.filter(label => label !== "");
+    // CORRECTION : Créer des labels avec espacement proportionnel au temps
+    const labels = [];
+    const nonEmptyIndices = [];
     
-    if (nonEmptyLabels.length === 0) {
-        console.error('Aucune date valide trouvée dans chartData.labels');
-        return;
+    // Identifier les positions des labels non-vides
+    chartData.labels.forEach((label, index) => {
+        if (label !== "") {
+            nonEmptyIndices.push(index);
+        }
+    });
+    
+    // Si pas assez de dates de référence, utiliser les labels existants
+    if (nonEmptyIndices.length < 2) {
+        console.warn('Pas assez de dates de référence, utilisation labels originaux');
+        for (let i = 0; i < chartData.datasets[0]?.data?.length || 0; i++) {
+            labels.push(chartData.labels[i] || `Jour ${i + 1}`);
+        }
+    } else {
+        // Calculer l'espacement des dates de référence
+        const firstIndex = nonEmptyIndices[0];
+        const firstDate = new Date(chartData.labels[firstIndex]);
+        
+        // Créer tous les labels basés sur une progression quotidienne
+        for (let i = 0; i < chartData.datasets[0]?.data?.length || 0; i++) {
+            const currentDate = new Date(firstDate);
+            currentDate.setDate(firstDate.getDate() + (i - firstIndex));
+            
+            // Afficher 1 label sur 3-4 pour éviter la surcharge
+            const shouldShowLabel = i % Math.max(1, Math.floor(chartData.datasets[0].data.length / 8)) === 0;
+            
+            if (shouldShowLabel) {
+                labels.push(currentDate.toLocaleDateString('fr-FR', { 
+                    day: 'numeric', 
+                    month: 'short' 
+                }));
+            } else {
+                labels.push(''); // Label vide pour maintenir l'espacement
+            }
+        }
     }
     
-    // Reconstruire la série temporelle complète
-    const firstDate = new Date(nonEmptyLabels[0]);
-    const dataLength = chartData.datasets[0]?.data?.length || 0;
-    
-    for (let i = 0; i < dataLength; i++) {
-        const currentDate = new Date(firstDate);
-        currentDate.setDate(firstDate.getDate() + i);
-        allDates.push(currentDate.toISOString().split('T')[0]); // Format YYYY-MM-DD
-    }
-    
-    // Préparer datasets avec format {x: date, y: value}
+    // Préparer datasets pour stacked area
     const datasets = chartData.datasets.map(dataset => {
         const muscle = dataset.label.toLowerCase();
         const color = muscleColors[muscle] || '#6b7280';
         
-        // Convertir data array en format temporel
-        const timeSeriesData = dataset.data.map((value, index) => ({
-            x: allDates[index],
-            y: value
-        }));
-        
         return {
             label: dataset.label,
-            data: timeSeriesData,
+            data: dataset.data,
             backgroundColor: color + '60', // 60 = ~37% opacity
             borderColor: color,
             borderWidth: 1,
@@ -498,32 +514,29 @@ function renderMuscleVolumeChart(chartData) {
         };
     });
     
-    // Chart avec axe temporel
+    // Chart stacked area avec axe catégoriel mais espacement intelligent
     new Chart(ctx, {
         type: 'line',
         data: {
-            datasets: datasets // Pas de labels - utilise les données temporelles
+            labels: labels,
+            datasets: datasets
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
                 x: {
-                    type: 'time',
-                    time: {
-                        unit: 'day',
-                        displayFormats: {
-                            day: 'dd MMM'
-                        },
-                        tooltipFormat: 'dd MMM yyyy'
-                    },
                     stacked: true,
                     title: {
                         display: true,
                         text: `Somme glissante ${chartData.period_days} jours`
                     },
                     ticks: {
-                        maxTicksLimit: 8 // Limiter le nombre de labels pour la lisibilité
+                        maxRotation: 45,
+                        callback: function(value, index) {
+                            // Afficher seulement les labels non-vides
+                            return labels[index] !== '' ? labels[index] : '';
+                        }
                     }
                 },
                 y: {
@@ -545,13 +558,22 @@ function renderMuscleVolumeChart(chartData) {
                     mode: 'index',
                     callbacks: {
                         title: function(context) {
-                            // Format de date lisible pour le tooltip
-                            const date = new Date(context[0].parsed.x);
-                            return date.toLocaleDateString('fr-FR', { 
-                                weekday: 'short',
-                                day: 'numeric', 
-                                month: 'short' 
-                            });
+                            const index = context[0].dataIndex;
+                            // Calculer la date réelle pour le tooltip
+                            if (nonEmptyIndices.length >= 2) {
+                                const firstIndex = nonEmptyIndices[0];
+                                const firstDate = new Date(chartData.labels[firstIndex]);
+                                const targetDate = new Date(firstDate);
+                                targetDate.setDate(firstDate.getDate() + (index - firstIndex));
+                                
+                                return targetDate.toLocaleDateString('fr-FR', { 
+                                    weekday: 'short',
+                                    day: 'numeric', 
+                                    month: 'short',
+                                    year: 'numeric'
+                                });
+                            }
+                            return labels[index] || `Point ${index + 1}`;
                         },
                         label: function(context) {
                             return `${context.dataset.label}: ${Math.round(context.parsed.y)}kg`;
@@ -570,7 +592,7 @@ function renderMuscleVolumeChart(chartData) {
         }
     });
     
-    console.log('✅ Chart volume musculaire créé avec axe temporel');
+    console.log('✅ Chart volume musculaire créé avec espacement temporel intelligent');
 }
 
 // Fonction pour boutons de période

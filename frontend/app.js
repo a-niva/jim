@@ -5930,7 +5930,19 @@ function renderMLHistory(exerciseId) {
 
 // Helpers pour l'affichage
 function formatTimeAgo(timestamp) {
-    const seconds = Math.floor((new Date() - new Date(timestamp)) / 1000);
+    const now = new Date();
+    
+    // Forcer l'interprétation UTC du timestamp backend
+    let workoutDate;
+    if (typeof timestamp === 'string') {
+        // Si pas de timezone, ajouter Z pour forcer UTC
+        workoutDate = new Date(timestamp.includes('Z') || timestamp.includes('+') || timestamp.includes('-') ? 
+                               timestamp : timestamp + 'Z');
+    } else {
+        workoutDate = new Date(timestamp);
+    }
+    
+    const seconds = Math.floor((now - workoutDate) / 1000);
     if (seconds < 60) return 'À l\'instant';
     const minutes = Math.floor(seconds / 60);
     if (minutes < 60) return `Il y a ${minutes}min`;
