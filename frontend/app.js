@@ -9943,12 +9943,17 @@ window.addEventListener('beforeunload', (event) => {
 });
 
 document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden' && workoutState.pendingSetData) {
-        console.log('[Visibility] App cachée, sauvegarde défensive');
-        safeguardPendingData();
-    } else if (document.visibilityState === 'visible') {
-        // Vérifier s'il y a des données à récupérer
-        checkPendingDataRecovery();
+    if (document.hidden && workoutState.pendingSetData) {
+        // Ne sauvegarder que si réellement nécessaire (pas juste verrouillage)
+        const timeHidden = Date.now();
+        
+        setTimeout(() => {
+            // Si l'app est toujours cachée après 30 secondes = vraie interruption
+            if (document.hidden && workoutState.pendingSetData) {
+                console.log('[Visibility] App réellement interrompue, sauvegarde défensive');
+                safeguardPendingData();
+            }
+        }, 30000); // 30 secondes de délai
     }
 });
 
@@ -12923,6 +12928,20 @@ function clearPendingDataBackup() {
 
 // ===== RECOVERY PENDINGSETDATA =====
 function checkPendingDataRecovery() {
+    // Ne pas proposer recovery si on est déjà en série
+    if (workoutState.current === WorkoutStates.EXECUTING || 
+        workoutState.current === WorkoutStates.FEEDBACK) {
+        console.log('[Recovery] Série déjà en cours, skip recovery');
+        return;
+    }
+
+    // Ne pas proposer recovery si les données sont très récentes (< 2 minutes)
+    const dataAge = Date.now() - pending.timestamp;
+    if (dataAge < 120000) { // 2 minutes
+        console.log('[Recovery] Données trop récentes, probablement faux positif');
+        return;
+    }
+
     // Ne pas interférer si on est déjà en feedback avec des données pending
     if (workoutState.current === WorkoutStates.FEEDBACK && workoutState.pendingSetData) {
         return;
@@ -13170,7 +13189,7 @@ async function saveFeedbackAndRest() {
             
             // Nettoyer et continuer le workflow
             workoutState.pendingSetData = null;
-            clearPendingDataBackup();
+            clearPendingDataBackup(); // Nettoyer aussi le localStorage
             
             // Calculer et démarrer le repos
             const restDuration = calculateRestDuration();
