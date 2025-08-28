@@ -1237,28 +1237,30 @@ function transitionTo(state) {
                     console.log('[UI] Feedback masqué lors retour steppers');
                 }
 
-                // Si on revient avec pendingSetData, restaurer au lieu de réinitialiser
+                // Si on revient avec pendingSetData, restaurer les vraies valeurs
                 if (workoutState.pendingSetData) {
-                    console.log('[UI] Restoration pending data avec restauration immédiate');
+                    console.log('[UI] Restoration pending data avec valeurs correctes');
                     
-                    // Restaurer les steppers immédiatement dans le updateWorkoutState
                     const pending = workoutState.pendingSetData;
-                    const targetReps = pending.reps || pending.duration_seconds || 0;
+                    const currentReps = pending.reps || pending.duration_seconds || 0; // Ce qu'il a FAIT
+                    const targetReps = currentExercise?.last_reps || 10; // Ce qui était RECOMMANDÉ
                     
-                    if (targetReps > 0) {
-                        // Forcer la mise à jour MAINTENANT
+                    if (currentReps > 0) {
+                        // Restaurer l'affichage EXACT d'avant validation
                         if (typeof updateRepDisplayModern === 'function') {
-                            updateRepDisplayModern(0, targetReps);
-                            console.log('[UI] Interface N/R restaurée immédiatement:', '0/', targetReps);
+                            updateRepDisplayModern(currentReps, targetReps);
+                            console.log('[UI] Interface N/R restaurée:', currentReps, '/', targetReps);
                         }
                         
-                        // Aussi mettre à jour les éléments DOM directement
+                        // Mettre à jour les éléments DOM
                         const targetRep = document.getElementById('targetRep');
+                        const currentRep = document.getElementById('currentRep');
                         if (targetRep) targetRep.textContent = targetReps;
-                        document.getElementById('setReps').textContent = targetReps;
+                        if (currentRep) currentRep.textContent = currentReps;
+                        document.getElementById('setReps').textContent = targetReps; // Pour compat
                     }
                     
-                    // Continuer l'exécution normale au lieu de return
+                    // Continuer l'exécution normale
                 }
             }
             
