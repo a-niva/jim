@@ -1,5 +1,29 @@
 // frontend/ai-session-manager.js - NOUVEAU FICHIER
 
+const PPL_CATEGORIES = {
+    'push': {
+        'name': 'Push (Pousser)',
+        'muscles': ['pectoraux', 'epaules', 'bras'],
+        'description': 'Exercices de poussée - pectoraux, épaules, triceps',
+        'icon': '💪',
+        'color': '#3b82f6'
+    },
+    'pull': {
+        'name': 'Pull (Tirer)', 
+        'muscles': ['dos', 'bras'],
+        'description': 'Exercices de traction - dos, biceps',
+        'icon': '🏋️',
+        'color': '#10b981'
+    },
+    'legs': {
+        'name': 'Legs (Jambes)',
+        'muscles': ['jambes'],
+        'description': 'Exercices jambes complètes',
+        'icon': '🦵',
+        'color': '#f59e0b'
+    }
+};
+
 class AISessionManager {
     constructor(containerId = 'ai-session') {
         this.containerId = containerId;
@@ -971,7 +995,7 @@ class AISessionManager {
             workoutHeader.insertAdjacentHTML('afterbegin', metadataHTML);
         }
     }
-    
+
 }
 
 

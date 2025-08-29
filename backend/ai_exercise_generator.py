@@ -12,6 +12,7 @@ import logging
 from backend.models import User, Exercise, Workout, WorkoutSet, Program
 from backend.ml_engine import RecoveryTracker
 from backend.equipment_service import EquipmentService
+from sqlalchemy.orm.attributes import flag_modified
 
 logger = logging.getLogger(__name__)
 
@@ -122,10 +123,16 @@ class AIExerciseGenerator:
     def _get_all_muscle_readiness(self, user_id: int) -> Dict[str, float]:
         """Récupère récupération pour tous groupes musculaires"""
         
+        # Valeurs par défaut
+        default_readiness = {
+            "pectoraux": 0.75, "dos": 0.75, "jambes": 0.80,
+            "epaules": 0.70, "bras": 0.75, "abdominaux": 0.85
+        }
+        
         try:
             user = self.db.query(User).filter(User.id == user_id).first()
-            if not user:
-                return {}
+            if not user or not self.recovery_tracker:
+                return default_readiness
             
             muscle_groups = ["pectoraux", "dos", "jambes", "epaules", "bras", "abdominaux"]
             readiness = {}
@@ -135,17 +142,13 @@ class AIExerciseGenerator:
                     readiness[muscle] = self.recovery_tracker.get_muscle_readiness(muscle, user)
                 except Exception as e:
                     logger.warning(f"Erreur récupération {muscle}: {e}")
-                    readiness[muscle] = 0.75  # Valeur par défaut
+                    readiness[muscle] = default_readiness.get(muscle, 0.75)
             
             return readiness
             
         except Exception as e:
             logger.error(f"Erreur récupération musculaire user {user_id}: {e}")
-            # Valeurs par défaut conservatrices
-            return {
-                "pectoraux": 0.75, "dos": 0.75, "jambes": 0.80,
-                "epaules": 0.70, "bras": 0.75, "abdominaux": 0.85
-            }
+            return default_readiness
     
     def _recommend_ppl(self, user_id: int, muscle_readiness: Dict[str, float]) -> Dict[str, Any]:
         """Recommande catégorie PPL basée sur récupération + historique"""
