@@ -385,7 +385,7 @@ class AIExerciseGenerator:
                         workout_ppls.update(exercise.ppl)
                 
                 # Mettre à jour dernière utilisation
-                workout_days_ago = (datetime.now(timezone.utc) - workout.started_at).days
+                workout_days_ago = (datetime.now(timezone.utc) - workout.started_at.replace(tzinfo=timezone.utc)).days
                 for ppl in workout_ppls:
                     if ppl in ppl_usage:
                         ppl_usage[ppl] = min(ppl_usage[ppl], workout_days_ago)
