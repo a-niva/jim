@@ -196,7 +196,7 @@ class AISessionManager {
         }
         
         const rec = this.pplRecommendation;
-        const categories = rec.ppl_categories || {};
+        const categories = PPL_CATEGORIES;
         
         return `
             <div class="ppl-recommendation-card ${rec.confidence > 0.7 ? 'high-confidence' : ''}">

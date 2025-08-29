@@ -2979,7 +2979,6 @@ function collectFocusAreas() {
 }
 
 // ===== DASHBOARD =====
-
 async function loadDashboard() {
     if (!currentUser) {
         console.error('loadDashboard: currentUser non défini');
@@ -3047,6 +3046,8 @@ async function loadDashboard() {
         // AJOUT MANQUANT 1: Charger l'état musculaire
         await loadMuscleReadiness();
         
+        // Déclarer mainActions avant utilisation
+        const mainActions = document.getElementById('mainActions');
         // Si mainActions est null, utiliser workoutSection à la place
         const workoutSection = document.querySelector('.workout-options');
         if (!mainActions && workoutSection && !document.getElementById('aiSessionCard')) {
