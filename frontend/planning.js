@@ -570,7 +570,6 @@ class PlanningManager {
 
 
     renderSession(session, dayData) {
-        console.log('🎨 Rendu session:', session);
         
         // CONSERVER TOUTES LES FEATURES EXISTANTES
         const exercises = session.exercise_pool || session.exercises || [];

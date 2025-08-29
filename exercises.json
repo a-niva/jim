@@ -2,7 +2,7 @@
   {
     "name": "Tractions",
     "muscle_groups": ["dos"],
-    "muscles": ["grand-dorsal", "trapezes"],
+    "muscles": ["grand-dorsal","trapezes"],
     "equipment_required": ["pull_up_bar"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -13,30 +13,14 @@
     "intensity_factor": 1.3,
     "instructions": "Suspendre à la barre, mains en pronation, tirer le corps vers le haut jusqu'à ce que le menton dépasse la barre.",
     "weight_type": "hybrid",
-    "bodyweight_percentage": {
-      "beginner": 90,
-      "intermediate": 95,
-      "advanced": 100
-    },
-    "base_weights_kg": {
-      "beginner": {
-        "base": 0,
-        "per_kg_bodyweight": 0
-      },
-      "intermediate": {
-        "base": 2,
-        "per_kg_bodyweight": 0.05
-      },
-      "advanced": {
-        "base": 5,
-        "per_kg_bodyweight": 0.15
-      }
-    }
+    "bodyweight_percentage": {"beginner":90,"intermediate":95,"advanced":100},
+    "base_weights_kg": {"beginner":{"base":0,"per_kg_bodyweight":0},"intermediate":{"base":2,"per_kg_bodyweight":0.05},"advanced":{"base":5,"per_kg_bodyweight":0.15}},
+    "ppl": ["pull"]
   },
   {
     "name": "Rowing haltère",
     "muscle_groups": ["dos"],
-    "muscles": ["grand-dorsal", "trapezes"],
+    "muscles": ["grand-dorsal","trapezes"],
     "equipment_required": ["dumbbells"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -47,26 +31,14 @@
     "intensity_factor": 1.1,
     "instructions": "Un genou sur le banc, tirer l'haltère vers la hanche en serrant l'omoplate.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 10,
-        "per_kg_bodyweight": 0.15
-      },
-      "intermediate": {
-        "base": 15,
-        "per_kg_bodyweight": 0.25
-      },
-      "advanced": {
-        "base": 20,
-        "per_kg_bodyweight": 0.4
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":10,"per_kg_bodyweight":0.15},"intermediate":{"base":15,"per_kg_bodyweight":0.25},"advanced":{"base":20,"per_kg_bodyweight":0.4}},
+    "ppl": ["pull"]
   },
   {
     "name": "Développé couché haltères",
     "muscle_groups": ["pectoraux"],
-    "muscles": ["pectoraux-inferieurs", "pectoraux-superieurs"],
-    "equipment_required": ["dumbbells", "bench_flat"],
+    "muscles": ["pectoraux-inferieurs","pectoraux-superieurs"],
+    "equipment_required": ["dumbbells","bench_flat"],
     "difficulty": "intermediate",
     "default_sets": 3,
     "default_reps_min": 8,
@@ -76,20 +48,8 @@
     "intensity_factor": 1.2,
     "instructions": "Allongé sur le banc, haltères au niveau de la poitrine, pousser vers le haut en contrôlant.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 20,
-        "per_kg_bodyweight": 0.25
-      },
-      "intermediate": {
-        "base": 30,
-        "per_kg_bodyweight": 0.4
-      },
-      "advanced": {
-        "base": 40,
-        "per_kg_bodyweight": 0.6
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":20,"per_kg_bodyweight":0.25},"intermediate":{"base":30,"per_kg_bodyweight":0.4},"advanced":{"base":40,"per_kg_bodyweight":0.6}},
+    "ppl": ["push"]
   },
   {
     "name": "Pompes",
@@ -105,11 +65,8 @@
     "intensity_factor": 0.8,
     "instructions": "Position planche, mains écartées largeur d'épaules. Descendre en contrôlant, remonter en poussant.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 50,
-      "intermediate": 65,
-      "advanced": 70
-    }
+    "bodyweight_percentage": {"beginner":50,"intermediate":65,"advanced":70},
+    "ppl": ["push"]
   },
   {
     "name": "Curl biceps haltères",
@@ -125,25 +82,13 @@
     "intensity_factor": 0.7,
     "instructions": "Debout, haltères le long du corps, plier les coudes en gardant les bras immobiles.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 8,
-        "per_kg_bodyweight": 0.05
-      },
-      "intermediate": {
-        "base": 12,
-        "per_kg_bodyweight": 0.1
-      },
-      "advanced": {
-        "base": 16,
-        "per_kg_bodyweight": 0.15
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":8,"per_kg_bodyweight":0.05},"intermediate":{"base":12,"per_kg_bodyweight":0.1},"advanced":{"base":16,"per_kg_bodyweight":0.15}},
+    "ppl": ["pull"]
   },
   {
     "name": "Dips",
     "muscle_groups": ["bras"],
-    "muscles": ["triceps", "pectoraux-inferieurs"],
+    "muscles": ["triceps","pectoraux-inferieurs"],
     "equipment_required": ["dip_bar"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -154,25 +99,9 @@
     "intensity_factor": 1.2,
     "instructions": "Mains sur les barres parallèles, descendre en pliant les coudes, remonter en poussant.",
     "weight_type": "hybrid",
-    "bodyweight_percentage": {
-      "beginner": 85,
-      "intermediate": 90,
-      "advanced": 95
-    },
-    "base_weights_kg": {
-      "beginner": {
-        "base": 0,
-        "per_kg_bodyweight": 0
-      },
-      "intermediate": {
-        "base": 5,
-        "per_kg_bodyweight": 0.1
-      },
-      "advanced": {
-        "base": 10,
-        "per_kg_bodyweight": 0.2
-      }
-    }
+    "bodyweight_percentage": {"beginner":85,"intermediate":90,"advanced":95},
+    "base_weights_kg": {"beginner":{"base":0,"per_kg_bodyweight":0},"intermediate":{"base":5,"per_kg_bodyweight":0.1},"advanced":{"base":10,"per_kg_bodyweight":0.2}},
+    "ppl": ["push"]
   },
   {
     "name": "Extension triceps haltère",
@@ -188,20 +117,8 @@
     "intensity_factor": 0.8,
     "instructions": "Un haltère à deux mains derrière la tête, étendre les bras vers le haut.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 8,
-        "per_kg_bodyweight": 0.08
-      },
-      "intermediate": {
-        "base": 12,
-        "per_kg_bodyweight": 0.12
-      },
-      "advanced": {
-        "base": 18,
-        "per_kg_bodyweight": 0.18
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":8,"per_kg_bodyweight":0.08},"intermediate":{"base":12,"per_kg_bodyweight":0.12},"advanced":{"base":18,"per_kg_bodyweight":0.18}},
+    "ppl": ["push"]
   },
   {
     "name": "Élévations latérales",
@@ -217,25 +134,13 @@
     "intensity_factor": 0.7,
     "instructions": "Debout, haltères le long du corps, lever les bras sur les côtés jusqu'à hauteur d'épaules.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 6,
-        "per_kg_bodyweight": 0.04
-      },
-      "intermediate": {
-        "base": 10,
-        "per_kg_bodyweight": 0.06
-      },
-      "advanced": {
-        "base": 14,
-        "per_kg_bodyweight": 0.1
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":6,"per_kg_bodyweight":0.04},"intermediate":{"base":10,"per_kg_bodyweight":0.06},"advanced":{"base":14,"per_kg_bodyweight":0.1}},
+    "ppl": ["push"]
   },
   {
     "name": "Développé militaire",
     "muscle_groups": ["epaules"],
-    "muscles": ["deltoides-anterieurs", "deltoides-lateraux"],
+    "muscles": ["deltoides-anterieurs","deltoides-lateraux"],
     "equipment_required": ["barbell"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -246,25 +151,13 @@
     "intensity_factor": 1.3,
     "instructions": "Debout, barre au niveau des épaules, pousser vers le haut au-dessus de la tête.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 25,
-        "per_kg_bodyweight": 0.3
-      },
-      "intermediate": {
-        "base": 35,
-        "per_kg_bodyweight": 0.5
-      },
-      "advanced": {
-        "base": 45,
-        "per_kg_bodyweight": 0.7
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":25,"per_kg_bodyweight":0.3},"intermediate":{"base":35,"per_kg_bodyweight":0.5},"advanced":{"base":45,"per_kg_bodyweight":0.7}},
+    "ppl": ["push"]
   },
   {
     "name": "Squats",
     "muscle_groups": ["jambes"],
-    "muscles": ["quadriceps", "fessiers"],
+    "muscles": ["quadriceps","fessiers"],
     "equipment_required": ["bodyweight"],
     "difficulty": "beginner",
     "default_sets": 3,
@@ -275,16 +168,13 @@
     "intensity_factor": 0.9,
     "instructions": "Pieds écartés largeur d'épaules, descendre comme pour s'asseoir, remonter en poussant sur les talons.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 80,
-      "intermediate": 85,
-      "advanced": 90
-    }
+    "bodyweight_percentage": {"beginner":80,"intermediate":85,"advanced":90},
+    "ppl": ["legs"]
   },
   {
     "name": "Squat barre",
     "muscle_groups": ["jambes"],
-    "muscles": ["quadriceps", "fessiers"],
+    "muscles": ["quadriceps","fessiers"],
     "equipment_required": ["barbell"],
     "difficulty": "advanced",
     "default_sets": 3,
@@ -295,25 +185,13 @@
     "intensity_factor": 1.5,
     "instructions": "Barre sur les trapèzes, pieds écartés, descendre en gardant le dos droit.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 20,
-        "per_kg_bodyweight": 0.8
-      },
-      "intermediate": {
-        "base": 40,
-        "per_kg_bodyweight": 1
-      },
-      "advanced": {
-        "base": 60,
-        "per_kg_bodyweight": 1.3
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":20,"per_kg_bodyweight":0.8},"intermediate":{"base":40,"per_kg_bodyweight":1},"advanced":{"base":60,"per_kg_bodyweight":1.3}},
+    "ppl": ["legs"]
   },
   {
     "name": "Presse à cuisses",
     "muscle_groups": ["jambes"],
-    "muscles": ["quadriceps", "ischio-jambiers"],
+    "muscles": ["quadriceps","ischio-jambiers"],
     "equipment_required": ["leg_press"],
     "difficulty": "beginner",
     "default_sets": 3,
@@ -324,20 +202,8 @@
     "intensity_factor": 1,
     "instructions": "Sur la machine, pieds sur la plateforme, pousser en contrôlant la descente.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 60,
-        "per_kg_bodyweight": 1
-      },
-      "intermediate": {
-        "base": 90,
-        "per_kg_bodyweight": 1.5
-      },
-      "advanced": {
-        "base": 120,
-        "per_kg_bodyweight": 2.2
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":60,"per_kg_bodyweight":1},"intermediate":{"base":90,"per_kg_bodyweight":1.5},"advanced":{"base":120,"per_kg_bodyweight":2.2}},
+    "ppl": ["legs"]
   },
   {
     "name": "Crunchs",
@@ -353,16 +219,13 @@
     "intensity_factor": 0.6,
     "instructions": "Allongé sur le dos, mains derrière la tête, relever le buste en contractant les abdos.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 20,
-      "intermediate": 25,
-      "advanced": 30
-    }
+    "bodyweight_percentage": {"beginner":20,"intermediate":25,"advanced":30},
+    "ppl": ["legs"]
   },
   {
     "name": "Planche",
     "muscle_groups": ["abdominaux"],
-    "muscles": ["abdominaux", "obliques"],
+    "muscles": ["abdominaux","obliques"],
     "equipment_required": ["bodyweight"],
     "difficulty": "beginner",
     "default_sets": 3,
@@ -373,11 +236,8 @@
     "intensity_factor": 0.8,
     "instructions": "Position pompe, maintenir la position en contractant les abdos et fessiers.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 0,
-      "intermediate": 0,
-      "advanced": 0
-    }
+    "bodyweight_percentage": {"beginner":0,"intermediate":0,"advanced":0},
+    "ppl": ["legs"]
   },
   {
     "name": "Tirage vertical",
@@ -393,26 +253,14 @@
     "intensity_factor": 1,
     "instructions": "Assis à la machine, tirer la barre vers la poitrine en serrant les omoplates.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 30,
-        "per_kg_bodyweight": 0.4
-      },
-      "intermediate": {
-        "base": 40,
-        "per_kg_bodyweight": 0.6
-      },
-      "advanced": {
-        "base": 50,
-        "per_kg_bodyweight": 0.8
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":30,"per_kg_bodyweight":0.4},"intermediate":{"base":40,"per_kg_bodyweight":0.6},"advanced":{"base":50,"per_kg_bodyweight":0.8}},
+    "ppl": ["pull"]
   },
   {
     "name": "Développé incliné",
     "muscle_groups": ["pectoraux"],
     "muscles": ["pectoraux-superieurs"],
-    "equipment_required": ["dumbbells", "bench_incline"],
+    "equipment_required": ["dumbbells","bench_incline"],
     "difficulty": "intermediate",
     "default_sets": 3,
     "default_reps_min": 8,
@@ -422,26 +270,14 @@
     "intensity_factor": 1.1,
     "instructions": "Sur banc incliné, développer les haltères en direction oblique vers le haut.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 16,
-        "per_kg_bodyweight": 0.2
-      },
-      "intermediate": {
-        "base": 24,
-        "per_kg_bodyweight": 0.35
-      },
-      "advanced": {
-        "base": 32,
-        "per_kg_bodyweight": 0.5
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":16,"per_kg_bodyweight":0.2},"intermediate":{"base":24,"per_kg_bodyweight":0.35},"advanced":{"base":32,"per_kg_bodyweight":0.5}},
+    "ppl": ["push"]
   },
-    {
+  {
     "name": "Développé incliné barre",
     "muscle_groups": ["pectoraux"],
     "muscles": ["pectoraux-superieurs"],
-    "equipment_required": ["barbell", "bench_incline"],
+    "equipment_required": ["barbell","bench_incline"],
     "difficulty": "intermediate",
     "default_sets": 3,
     "default_reps_min": 8,
@@ -451,20 +287,8 @@
     "intensity_factor": 1.1,
     "instructions": "Sur banc incliné, pousser la barre vers le haut en partant de la poitrine, en direction oblique vers le haut.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 30,
-        "per_kg_bodyweight": 0.2
-      },
-      "intermediate": {
-        "base": 40,
-        "per_kg_bodyweight": 0.35
-      },
-      "advanced": {
-        "base": 50,
-        "per_kg_bodyweight": 0.5
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":30,"per_kg_bodyweight":0.2},"intermediate":{"base":40,"per_kg_bodyweight":0.35},"advanced":{"base":50,"per_kg_bodyweight":0.5}},
+    "ppl": ["push"]
   },
   {
     "name": "Tirage élastique",
@@ -480,25 +304,13 @@
     "intensity_factor": 0.7,
     "instructions": "Élastique fixé devant, tirer vers soi en serrant les omoplates.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 5,
-        "per_kg_bodyweight": 0
-      },
-      "intermediate": {
-        "base": 10,
-        "per_kg_bodyweight": 0
-      },
-      "advanced": {
-        "base": 15,
-        "per_kg_bodyweight": 0
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":5,"per_kg_bodyweight":0},"intermediate":{"base":10,"per_kg_bodyweight":0},"advanced":{"base":15,"per_kg_bodyweight":0}},
+    "ppl": ["pull"]
   },
   {
     "name": "Swing kettlebell",
     "muscle_groups": ["jambes"],
-    "muscles": ["ischio-jambiers", "fessiers"],
+    "muscles": ["ischio-jambiers","fessiers"],
     "equipment_required": ["kettlebells"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -509,25 +321,13 @@
     "intensity_factor": 1.2,
     "instructions": "Kettlebell entre les jambes, mouvement de balancier en poussant avec les hanches.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 12,
-        "per_kg_bodyweight": 0.1
-      },
-      "intermediate": {
-        "base": 16,
-        "per_kg_bodyweight": 0.15
-      },
-      "advanced": {
-        "base": 24,
-        "per_kg_bodyweight": 0.2
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":12,"per_kg_bodyweight":0.1},"intermediate":{"base":16,"per_kg_bodyweight":0.15},"advanced":{"base":24,"per_kg_bodyweight":0.2}},
+    "ppl": ["legs","pull"]
   },
   {
     "name": "Soulevé de terre",
-    "muscle_groups": ["dos", "jambes"],
-    "muscles": ["lombaires", "grand-dorsal", "trapezes", "fessiers", "ischio-jambiers"],
+    "muscle_groups": ["dos","jambes"],
+    "muscles": ["lombaires","grand-dorsal","trapezes","fessiers","ischio-jambiers"],
     "equipment_required": ["barbell"],
     "difficulty": "advanced",
     "default_sets": 3,
@@ -538,25 +338,13 @@
     "intensity_factor": 1.5,
     "instructions": "Barre au sol, pieds sous les hanches. Garder le dos droit, la poitrine haute, et pousser sur les jambes pour soulever la charge. Redresser complètement le corps.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 50,
-        "per_kg_bodyweight": 0.8
-      },
-      "intermediate": {
-        "base": 80,
-        "per_kg_bodyweight": 1.2
-      },
-      "advanced": {
-        "base": 100,
-        "per_kg_bodyweight": 1.8
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":50,"per_kg_bodyweight":0.8},"intermediate":{"base":80,"per_kg_bodyweight":1.2},"advanced":{"base":100,"per_kg_bodyweight":1.8}},
+    "ppl": ["pull","legs"]
   },
   {
     "name": "Rowing barre buste penché",
     "muscle_groups": ["dos"],
-    "muscles": ["grand-dorsal", "trapezes", "lombaires"],
+    "muscles": ["grand-dorsal","trapezes","lombaires"],
     "equipment_required": ["barbell"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -567,25 +355,13 @@
     "intensity_factor": 1.2,
     "instructions": "Pencher le buste en avant, dos droit. Tirer la barre vers le bas de l'abdomen en contractant les dorsaux.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 30,
-        "per_kg_bodyweight": 0.4
-      },
-      "intermediate": {
-        "base": 45,
-        "per_kg_bodyweight": 0.7
-      },
-      "advanced": {
-        "base": 60,
-        "per_kg_bodyweight": 1
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":30,"per_kg_bodyweight":0.4},"intermediate":{"base":45,"per_kg_bodyweight":0.7},"advanced":{"base":60,"per_kg_bodyweight":1}},
+    "ppl": ["pull"]
   },
   {
     "name": "Good Mornings",
-    "muscle_groups": ["jambes", "dos"],
-    "muscles": ["ischio-jambiers", "fessiers", "lombaires"],
+    "muscle_groups": ["jambes","dos"],
+    "muscles": ["ischio-jambiers","fessiers","lombaires"],
     "equipment_required": ["barbell"],
     "difficulty": "advanced",
     "default_sets": 3,
@@ -596,25 +372,13 @@
     "intensity_factor": 1.1,
     "instructions": "Barre sur les trapèzes. Fléchir les hanches en gardant les jambes presque tendues et le dos droit. Descendre le torse jusqu'à ce qu'il soit parallèle au sol.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 20,
-        "per_kg_bodyweight": 0.2
-      },
-      "intermediate": {
-        "base": 30,
-        "per_kg_bodyweight": 0.4
-      },
-      "advanced": {
-        "base": 40,
-        "per_kg_bodyweight": 0.6
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":20,"per_kg_bodyweight":0.2},"intermediate":{"base":30,"per_kg_bodyweight":0.4},"advanced":{"base":40,"per_kg_bodyweight":0.6}},
+    "ppl": ["legs","pull"]
   },
   {
     "name": "Hyperextensions",
     "muscle_groups": ["dos"],
-    "muscles": ["lombaires", "fessiers"],
+    "muscles": ["lombaires","fessiers"],
     "equipment_required": ["bodyweight"],
     "difficulty": "beginner",
     "default_sets": 3,
@@ -625,31 +389,15 @@
     "intensity_factor": 0.8,
     "instructions": "Sur un banc à lombaires ou au sol, fléchir le torse vers le bas puis le relever en contractant les muscles du bas du dos.",
     "weight_type": "hybrid",
-    "bodyweight_percentage": {
-      "beginner": 40,
-      "intermediate": 45,
-      "advanced": 50
-    },
-    "base_weights_kg": {
-      "beginner": {
-        "base": 0,
-        "per_kg_bodyweight": 0
-      },
-      "intermediate": {
-        "base": 5,
-        "per_kg_bodyweight": 0.05
-      },
-      "advanced": {
-        "base": 10,
-        "per_kg_bodyweight": 0.1
-      }
-    }
+    "bodyweight_percentage": {"beginner":40,"intermediate":45,"advanced":50},
+    "base_weights_kg": {"beginner":{"base":0,"per_kg_bodyweight":0},"intermediate":{"base":5,"per_kg_bodyweight":0.05},"advanced":{"base":10,"per_kg_bodyweight":0.1}},
+    "ppl": ["legs","pull"]
   },
   {
     "name": "Développé couché barre",
     "muscle_groups": ["pectoraux"],
-    "muscles": ["pectoraux-inferieurs", "pectoraux-superieurs", "triceps"],
-    "equipment_required": ["barbell", "bench_flat"],
+    "muscles": ["pectoraux-inferieurs","pectoraux-superieurs","triceps"],
+    "equipment_required": ["barbell","bench_flat"],
     "difficulty": "intermediate",
     "default_sets": 3,
     "default_reps_min": 6,
@@ -659,26 +407,14 @@
     "intensity_factor": 1.3,
     "instructions": "Allongé sur le banc, descendre la barre jusqu'à la poitrine de manière contrôlée, puis la repousser vigoureusement.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 40,
-        "per_kg_bodyweight": 0.5
-      },
-      "intermediate": {
-        "base": 60,
-        "per_kg_bodyweight": 0.8
-      },
-      "advanced": {
-        "base": 80,
-        "per_kg_bodyweight": 1.2
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":40,"per_kg_bodyweight":0.5},"intermediate":{"base":60,"per_kg_bodyweight":0.8},"advanced":{"base":80,"per_kg_bodyweight":1.2}},
+    "ppl": ["push"]
   },
   {
     "name": "Écartés avec haltères",
     "muscle_groups": ["pectoraux"],
-    "muscles": ["pectoraux-inferieurs", "pectoraux-superieurs"],
-    "equipment_required": ["dumbbells", "bench_flat"],
+    "muscles": ["pectoraux-inferieurs","pectoraux-superieurs"],
+    "equipment_required": ["dumbbells","bench_flat"],
     "difficulty": "beginner",
     "default_sets": 3,
     "default_reps_min": 10,
@@ -688,25 +424,13 @@
     "intensity_factor": 0.9,
     "instructions": "Allongé sur le banc, haltères en main, bras presque tendus. Écarter les bras sur les côtés puis les ramener au-dessus de la poitrine.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 10,
-        "per_kg_bodyweight": 0.1
-      },
-      "intermediate": {
-        "base": 14,
-        "per_kg_bodyweight": 0.15
-      },
-      "advanced": {
-        "base": 20,
-        "per_kg_bodyweight": 0.2
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":10,"per_kg_bodyweight":0.1},"intermediate":{"base":14,"per_kg_bodyweight":0.15},"advanced":{"base":20,"per_kg_bodyweight":0.2}},
+    "ppl": ["push"]
   },
   {
     "name": "Pompes diamant",
-    "muscle_groups": ["bras", "pectoraux"],
-    "muscles": ["triceps", "pectoraux-inferieurs"],
+    "muscle_groups": ["bras","pectoraux"],
+    "muscles": ["triceps","pectoraux-inferieurs"],
     "equipment_required": ["bodyweight"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -717,17 +441,14 @@
     "intensity_factor": 0.9,
     "instructions": "Position de pompe avec les mains rapprochées, formant un diamant avec les pouces et les index. Descendre et remonter en gardant les coudes près du corps.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 45,
-      "intermediate": 55,
-      "advanced": 65
-    }
+    "bodyweight_percentage": {"beginner":45,"intermediate":55,"advanced":65},
+    "ppl": ["push"]
   },
   {
     "name": "Développé décliné haltères",
     "muscle_groups": ["pectoraux"],
     "muscles": ["pectoraux-inferieurs"],
-    "equipment_required": ["dumbbells", "bench_decline"],
+    "equipment_required": ["dumbbells","bench_decline"],
     "difficulty": "intermediate",
     "default_sets": 3,
     "default_reps_min": 8,
@@ -737,25 +458,13 @@
     "intensity_factor": 1.1,
     "instructions": "Sur un banc décliné, pousser les haltères vers le haut en partant de la poitrine.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 22,
-        "per_kg_bodyweight": 0.28
-      },
-      "intermediate": {
-        "base": 32,
-        "per_kg_bodyweight": 0.45
-      },
-      "advanced": {
-        "base": 42,
-        "per_kg_bodyweight": 0.65
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":22,"per_kg_bodyweight":0.28},"intermediate":{"base":32,"per_kg_bodyweight":0.45},"advanced":{"base":42,"per_kg_bodyweight":0.65}},
+    "ppl": ["push"]
   },
   {
     "name": "Fentes avant",
     "muscle_groups": ["jambes"],
-    "muscles": ["quadriceps", "fessiers"],
+    "muscles": ["quadriceps","fessiers"],
     "equipment_required": ["bodyweight"],
     "difficulty": "beginner",
     "default_sets": 3,
@@ -766,16 +475,13 @@
     "intensity_factor": 0.9,
     "instructions": "Faire un grand pas en avant, fléchir les deux genoux jusqu'à ce que le genou arrière frôle le sol. Pousser sur la jambe avant pour revenir à la position de départ.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 75,
-      "intermediate": 80,
-      "advanced": 85
-    }
+    "bodyweight_percentage": {"beginner":75,"intermediate":80,"advanced":85},
+    "ppl": ["legs"]
   },
   {
     "name": "Fentes avant avec haltères",
     "muscle_groups": ["jambes"],
-    "muscles": ["quadriceps", "fessiers"],
+    "muscles": ["quadriceps","fessiers"],
     "equipment_required": ["dumbbells"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -786,25 +492,13 @@
     "intensity_factor": 1.1,
     "instructions": "Tenir un haltère dans chaque main. Faire un grand pas en avant, fléchir les deux genoux. Pousser sur la jambe avant pour revenir.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 12,
-        "per_kg_bodyweight": 0.15
-      },
-      "intermediate": {
-        "base": 20,
-        "per_kg_bodyweight": 0.25
-      },
-      "advanced": {
-        "base": 30,
-        "per_kg_bodyweight": 0.4
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":12,"per_kg_bodyweight":0.15},"intermediate":{"base":20,"per_kg_bodyweight":0.25},"advanced":{"base":30,"per_kg_bodyweight":0.4}},
+    "ppl": ["legs"]
   },
   {
     "name": "Goblet Squat",
     "muscle_groups": ["jambes"],
-    "muscles": ["quadriceps", "fessiers"],
+    "muscles": ["quadriceps","fessiers"],
     "equipment_required": ["kettlebells"],
     "difficulty": "beginner",
     "default_sets": 3,
@@ -815,25 +509,13 @@
     "intensity_factor": 1,
     "instructions": "Tenir un kettlebell ou un haltère verticalement contre sa poitrine. Effectuer un squat complet en gardant le torse droit.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 12,
-        "per_kg_bodyweight": 0.1
-      },
-      "intermediate": {
-        "base": 20,
-        "per_kg_bodyweight": 0.2
-      },
-      "advanced": {
-        "base": 28,
-        "per_kg_bodyweight": 0.35
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":12,"per_kg_bodyweight":0.1},"intermediate":{"base":20,"per_kg_bodyweight":0.2},"advanced":{"base":28,"per_kg_bodyweight":0.35}},
+    "ppl": ["legs"]
   },
   {
     "name": "Soulevé de terre roumain",
     "muscle_groups": ["jambes"],
-    "muscles": ["ischio-jambiers", "fessiers", "lombaires"],
+    "muscles": ["ischio-jambiers","fessiers","lombaires"],
     "equipment_required": ["barbell"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -844,20 +526,8 @@
     "intensity_factor": 1.2,
     "instructions": "Debout, barre en main. Descendre la barre le long des jambes en poussant les hanches vers l'arrière, genoux légèrement fléchis. Sentir l'étirement des ischios.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 35,
-        "per_kg_bodyweight": 0.5
-      },
-      "intermediate": {
-        "base": 55,
-        "per_kg_bodyweight": 0.8
-      },
-      "advanced": {
-        "base": 75,
-        "per_kg_bodyweight": 1.1
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":35,"per_kg_bodyweight":0.5},"intermediate":{"base":55,"per_kg_bodyweight":0.8},"advanced":{"base":75,"per_kg_bodyweight":1.1}},
+    "ppl": ["legs","pull"]
   },
   {
     "name": "Extensions mollets debout",
@@ -873,30 +543,14 @@
     "intensity_factor": 0.7,
     "instructions": "Debout, monter sur la pointe des pieds le plus haut possible, marquer une pause, puis redescendre lentement.",
     "weight_type": "hybrid",
-    "bodyweight_percentage": {
-      "beginner": 90,
-      "intermediate": 95,
-      "advanced": 100
-    },
-    "base_weights_kg": {
-      "beginner": {
-        "base": 0,
-        "per_kg_bodyweight": 0
-      },
-      "intermediate": {
-        "base": 10,
-        "per_kg_bodyweight": 0.1
-      },
-      "advanced": {
-        "base": 20,
-        "per_kg_bodyweight": 0.2
-      }
-    }
+    "bodyweight_percentage": {"beginner":90,"intermediate":95,"advanced":100},
+    "base_weights_kg": {"beginner":{"base":0,"per_kg_bodyweight":0},"intermediate":{"base":10,"per_kg_bodyweight":0.1},"advanced":{"base":20,"per_kg_bodyweight":0.2}},
+    "ppl": ["legs"]
   },
   {
     "name": "Oiseau avec haltères (Bent-over reverse fly)",
-    "muscle_groups": ["epaules", "dos"],
-    "muscles": ["deltoides-posterieurs", "trapezes"],
+    "muscle_groups": ["epaules","dos"],
+    "muscles": ["deltoides-posterieurs","trapezes"],
     "equipment_required": ["dumbbells"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -907,25 +561,13 @@
     "intensity_factor": 0.8,
     "instructions": "Buste penché, dos droit, haltères en main. Élever les bras sur les côtés en gardant les coudes légèrement fléchis.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 8,
-        "per_kg_bodyweight": 0.05
-      },
-      "intermediate": {
-        "base": 12,
-        "per_kg_bodyweight": 0.08
-      },
-      "advanced": {
-        "base": 16,
-        "per_kg_bodyweight": 0.12
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":8,"per_kg_bodyweight":0.05},"intermediate":{"base":12,"per_kg_bodyweight":0.08},"advanced":{"base":16,"per_kg_bodyweight":0.12}},
+    "ppl": ["pull"]
   },
   {
     "name": "Arnold Press",
     "muscle_groups": ["epaules"],
-    "muscles": ["deltoides-anterieurs", "deltoides-lateraux"],
+    "muscles": ["deltoides-anterieurs","deltoides-lateraux"],
     "equipment_required": ["dumbbells"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -936,25 +578,13 @@
     "intensity_factor": 1.1,
     "instructions": "Assis, haltères à hauteur des épaules, paumes vers soi. Pousser vers le haut en effectuant une rotation des poignets pour que les paumes soient vers l'avant en fin de mouvement.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 14,
-        "per_kg_bodyweight": 0.15
-      },
-      "intermediate": {
-        "base": 20,
-        "per_kg_bodyweight": 0.25
-      },
-      "advanced": {
-        "base": 28,
-        "per_kg_bodyweight": 0.35
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":14,"per_kg_bodyweight":0.15},"intermediate":{"base":20,"per_kg_bodyweight":0.25},"advanced":{"base":28,"per_kg_bodyweight":0.35}},
+    "ppl": ["push"]
   },
   {
     "name": "Rowing menton",
     "muscle_groups": ["epaules"],
-    "muscles": ["deltoides-lateraux", "trapezes"],
+    "muscles": ["deltoides-lateraux","trapezes"],
     "equipment_required": ["barbell"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -965,20 +595,8 @@
     "intensity_factor": 1,
     "instructions": "Debout, barre en main, prise serrée. Tirer la barre vers le menton en levant les coudes le plus haut possible.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 15,
-        "per_kg_bodyweight": 0.15
-      },
-      "intermediate": {
-        "base": 25,
-        "per_kg_bodyweight": 0.25
-      },
-      "advanced": {
-        "base": 35,
-        "per_kg_bodyweight": 0.35
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":15,"per_kg_bodyweight":0.15},"intermediate":{"base":25,"per_kg_bodyweight":0.25},"advanced":{"base":35,"per_kg_bodyweight":0.35}},
+    "ppl": ["push","pull"]
   },
   {
     "name": "Élévations frontales avec haltères",
@@ -994,20 +612,8 @@
     "intensity_factor": 0.7,
     "instructions": "Debout, haltères devant les cuisses. Lever un bras tendu devant soi jusqu'à hauteur d'épaule, puis redescendre. Alterner les bras.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 8,
-        "per_kg_bodyweight": 0.05
-      },
-      "intermediate": {
-        "base": 12,
-        "per_kg_bodyweight": 0.08
-      },
-      "advanced": {
-        "base": 16,
-        "per_kg_bodyweight": 0.12
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":8,"per_kg_bodyweight":0.05},"intermediate":{"base":12,"per_kg_bodyweight":0.08},"advanced":{"base":16,"per_kg_bodyweight":0.12}},
+    "ppl": ["push"]
   },
   {
     "name": "Curl marteau",
@@ -1023,26 +629,14 @@
     "intensity_factor": 0.7,
     "instructions": "Debout, haltères en prise neutre (marteau). Fléchir les coudes sans bouger les bras pour monter les haltères.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 9,
-        "per_kg_bodyweight": 0.06
-      },
-      "intermediate": {
-        "base": 13,
-        "per_kg_bodyweight": 0.11
-      },
-      "advanced": {
-        "base": 18,
-        "per_kg_bodyweight": 0.16
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":9,"per_kg_bodyweight":0.06},"intermediate":{"base":13,"per_kg_bodyweight":0.11},"advanced":{"base":18,"per_kg_bodyweight":0.16}},
+    "ppl": ["pull"]
   },
   {
     "name": "Barre au front (Skull Crusher)",
     "muscle_groups": ["bras"],
     "muscles": ["triceps"],
-    "equipment_required": ["barbell", "bench_flat"],
+    "equipment_required": ["barbell","bench_flat"],
     "difficulty": "intermediate",
     "default_sets": 3,
     "default_reps_min": 8,
@@ -1052,20 +646,8 @@
     "intensity_factor": 0.9,
     "instructions": "Allongé sur un banc, tenir la barre au-dessus de la poitrine, bras tendus. Descendre la barre vers le front en pliant uniquement les coudes.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 15,
-        "per_kg_bodyweight": 0.15
-      },
-      "intermediate": {
-        "base": 25,
-        "per_kg_bodyweight": 0.25
-      },
-      "advanced": {
-        "base": 35,
-        "per_kg_bodyweight": 0.4
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":15,"per_kg_bodyweight":0.15},"intermediate":{"base":25,"per_kg_bodyweight":0.25},"advanced":{"base":35,"per_kg_bodyweight":0.4}},
+    "ppl": ["push"]
   },
   {
     "name": "Curl concentré",
@@ -1081,20 +663,8 @@
     "intensity_factor": 0.7,
     "instructions": "Assis sur un banc, coude calé contre l'intérieur de la cuisse. Effectuer une flexion du coude pour monter l'haltère.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 7,
-        "per_kg_bodyweight": 0.04
-      },
-      "intermediate": {
-        "base": 11,
-        "per_kg_bodyweight": 0.09
-      },
-      "advanced": {
-        "base": 15,
-        "per_kg_bodyweight": 0.14
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":7,"per_kg_bodyweight":0.04},"intermediate":{"base":11,"per_kg_bodyweight":0.09},"advanced":{"base":15,"per_kg_bodyweight":0.14}},
+    "ppl": ["pull"]
   },
   {
     "name": "Extensions triceps avec élastique",
@@ -1110,20 +680,8 @@
     "intensity_factor": 0.8,
     "instructions": "Fixer un élastique en hauteur. Saisir l'élastique et le tirer vers le bas jusqu'à ce que les bras soient complètement tendus.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 5,
-        "per_kg_bodyweight": 0
-      },
-      "intermediate": {
-        "base": 10,
-        "per_kg_bodyweight": 0
-      },
-      "advanced": {
-        "base": 15,
-        "per_kg_bodyweight": 0
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":5,"per_kg_bodyweight":0},"intermediate":{"base":10,"per_kg_bodyweight":0},"advanced":{"base":15,"per_kg_bodyweight":0}},
+    "ppl": ["push"]
   },
   {
     "name": "Relevés de jambes suspendu",
@@ -1139,16 +697,13 @@
     "intensity_factor": 1,
     "instructions": "Suspendu à une barre, monter les jambes (tendues ou fléchies) le plus haut possible en contractant les abdominaux.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 40,
-      "intermediate": 45,
-      "advanced": 50
-    }
+    "bodyweight_percentage": {"beginner":40,"intermediate":45,"advanced":50},
+    "ppl": ["legs"]
   },
   {
     "name": "Russian Twists",
     "muscle_groups": ["abdominaux"],
-    "muscles": ["obliques", "abdominaux"],
+    "muscles": ["obliques","abdominaux"],
     "equipment_required": ["bodyweight"],
     "difficulty": "beginner",
     "default_sets": 3,
@@ -1159,25 +714,9 @@
     "intensity_factor": 0.8,
     "instructions": "Assis au sol, talons décollés, buste incliné. Pivoter le torse de gauche à droite en touchant le sol avec les mains de chaque côté.",
     "weight_type": "hybrid",
-    "bodyweight_percentage": {
-      "beginner": 30,
-      "intermediate": 35,
-      "advanced": 40
-    },
-    "base_weights_kg": {
-      "beginner": {
-        "base": 0,
-        "per_kg_bodyweight": 0
-      },
-      "intermediate": {
-        "base": 5,
-        "per_kg_bodyweight": 0.05
-      },
-      "advanced": {
-        "base": 10,
-        "per_kg_bodyweight": 0.1
-      }
-    }
+    "bodyweight_percentage": {"beginner":30,"intermediate":35,"advanced":40},
+    "base_weights_kg": {"beginner":{"base":0,"per_kg_bodyweight":0},"intermediate":{"base":5,"per_kg_bodyweight":0.05},"advanced":{"base":10,"per_kg_bodyweight":0.1}},
+    "ppl": ["legs"]
   },
   {
     "name": "Planche latérale",
@@ -1193,16 +732,13 @@
     "intensity_factor": 0.8,
     "instructions": "En appui sur un avant-bras et le côté du pied, maintenir le corps aligné et les hanches décollées du sol. Tenir la position.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 0,
-      "intermediate": 0,
-      "advanced": 0
-    }
+    "bodyweight_percentage": {"beginner":0,"intermediate":0,"advanced":0},
+    "ppl": ["legs"]
   },
   {
     "name": "Mountain Climbers",
-    "muscle_groups": ["abdominaux", "jambes"],
-    "muscles": ["abdominaux", "quadriceps"],
+    "muscle_groups": ["abdominaux","jambes"],
+    "muscles": ["abdominaux","quadriceps"],
     "equipment_required": ["bodyweight"],
     "difficulty": "beginner",
     "default_sets": 3,
@@ -1213,16 +749,13 @@
     "intensity_factor": 0.9,
     "instructions": "En position de planche, ramener alternativement et rapidement les genoux vers la poitrine, comme si vous couriez sur place.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 50,
-      "intermediate": 55,
-      "advanced": 60
-    }
+    "bodyweight_percentage": {"beginner":50,"intermediate":55,"advanced":60},
+    "ppl": ["legs"]
   },
   {
     "name": "Tractions prise neutre",
-    "muscle_groups": ["dos", "bras"],
-    "muscles": ["grand-dorsal", "biceps"],
+    "muscle_groups": ["dos","bras"],
+    "muscles": ["grand-dorsal","biceps"],
     "equipment_required": ["pull_up_bar"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -1233,30 +766,14 @@
     "intensity_factor": 1.3,
     "instructions": "À une barre avec des poignées parallèles, se suspendre et tirer le corps vers le haut jusqu'à ce que le menton dépasse les mains.",
     "weight_type": "hybrid",
-    "bodyweight_percentage": {
-      "beginner": 90,
-      "intermediate": 95,
-      "advanced": 100
-    },
-    "base_weights_kg": {
-      "beginner": {
-        "base": 0,
-        "per_kg_bodyweight": 0
-      },
-      "intermediate": {
-        "base": 3,
-        "per_kg_bodyweight": 0.06
-      },
-      "advanced": {
-        "base": 6,
-        "per_kg_bodyweight": 0.16
-      }
-    }
+    "bodyweight_percentage": {"beginner":90,"intermediate":95,"advanced":100},
+    "base_weights_kg": {"beginner":{"base":0,"per_kg_bodyweight":0},"intermediate":{"base":3,"per_kg_bodyweight":0.06},"advanced":{"base":6,"per_kg_bodyweight":0.16}},
+    "ppl": ["pull"]
   },
   {
     "name": "Tirage bûcheron (Dumbbell Row)",
     "muscle_groups": ["dos"],
-    "muscles": ["grand-dorsal", "trapezes"],
+    "muscles": ["grand-dorsal","trapezes"],
     "equipment_required": ["dumbbells"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -1267,24 +784,12 @@
     "intensity_factor": 1.1,
     "instructions": "Un genou et une main en appui sur un banc, le dos parallèle au sol. Tirer un haltère vers la hanche en serrant l'omoplate.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 10,
-        "per_kg_bodyweight": 0.15
-      },
-      "intermediate": {
-        "base": 15,
-        "per_kg_bodyweight": 0.25
-      },
-      "advanced": {
-        "base": 20,
-        "per_kg_bodyweight": 0.4
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":10,"per_kg_bodyweight":0.15},"intermediate":{"base":15,"per_kg_bodyweight":0.25},"advanced":{"base":20,"per_kg_bodyweight":0.4}},
+    "ppl": ["pull"]
   },
   {
     "name": "Shrugs avec haltères",
-    "muscle_groups": ["dos", "epaules"],
+    "muscle_groups": ["dos","epaules"],
     "muscles": ["trapezes"],
     "equipment_required": ["dumbbells"],
     "difficulty": "beginner",
@@ -1296,26 +801,14 @@
     "intensity_factor": 0.8,
     "instructions": "Debout, un haltère lourd dans chaque main. Hausser les épaules le plus haut possible, marquer une pause et redescendre.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 20,
-        "per_kg_bodyweight": 0.3
-      },
-      "intermediate": {
-        "base": 30,
-        "per_kg_bodyweight": 0.5
-      },
-      "advanced": {
-        "base": 40,
-        "per_kg_bodyweight": 0.7
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":20,"per_kg_bodyweight":0.3},"intermediate":{"base":30,"per_kg_bodyweight":0.5},"advanced":{"base":40,"per_kg_bodyweight":0.7}},
+    "ppl": ["pull"]
   },
   {
     "name": "Pullover avec haltère",
-    "muscle_groups": ["pectoraux", "dos"],
-    "muscles": ["pectoraux-inferieurs", "grand-dorsal"],
-    "equipment_required": ["dumbbells", "bench_flat"],
+    "muscle_groups": ["pectoraux","dos"],
+    "muscles": ["pectoraux-inferieurs","grand-dorsal"],
+    "equipment_required": ["dumbbells","bench_flat"],
     "difficulty": "intermediate",
     "default_sets": 3,
     "default_reps_min": 10,
@@ -1325,26 +818,14 @@
     "intensity_factor": 1,
     "instructions": "Allongé en travers d'un banc, tenir un haltère à deux mains au-dessus de la poitrine. Descendre l'haltère derrière la tête en gardant les bras légèrement fléchis.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 12,
-        "per_kg_bodyweight": 0.1
-      },
-      "intermediate": {
-        "base": 18,
-        "per_kg_bodyweight": 0.2
-      },
-      "advanced": {
-        "base": 25,
-        "per_kg_bodyweight": 0.3
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":12,"per_kg_bodyweight":0.1},"intermediate":{"base":18,"per_kg_bodyweight":0.2},"advanced":{"base":25,"per_kg_bodyweight":0.3}},
+    "ppl": ["push","pull"]
   },
   {
     "name": "Pompes inclinées",
     "muscle_groups": ["pectoraux"],
     "muscles": ["pectoraux-inferieurs"],
-    "equipment_required": ["bodyweight", "bench_flat"],
+    "equipment_required": ["bodyweight","bench_flat"],
     "difficulty": "beginner",
     "default_sets": 3,
     "default_reps_min": 10,
@@ -1354,17 +835,14 @@
     "intensity_factor": 0.7,
     "instructions": "Mains posées sur un banc ou une surface surélevée. Effectuer des pompes. Plus l'inclinaison est grande, plus c'est facile.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 40,
-      "intermediate": 50,
-      "advanced": 55
-    }
+    "bodyweight_percentage": {"beginner":40,"intermediate":50,"advanced":55},
+    "ppl": ["push"]
   },
   {
     "name": "Pompes déclinées",
-    "muscle_groups": ["pectoraux", "epaules"],
-    "muscles": ["pectoraux-superieurs", "deltoides-anterieurs"],
-    "equipment_required": ["bodyweight", "bench_flat"],
+    "muscle_groups": ["pectoraux","epaules"],
+    "muscles": ["pectoraux-superieurs","deltoides-anterieurs"],
+    "equipment_required": ["bodyweight","bench_flat"],
     "difficulty": "intermediate",
     "default_sets": 3,
     "default_reps_min": 8,
@@ -1374,17 +852,14 @@
     "intensity_factor": 1,
     "instructions": "Pieds surélevés sur un banc. Effectuer des pompes. Cet angle accentue le travail sur le haut des pectoraux.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 60,
-      "intermediate": 70,
-      "advanced": 75
-    }
+    "bodyweight_percentage": {"beginner":60,"intermediate":70,"advanced":75},
+    "ppl": ["push"]
   },
   {
     "name": "Squat bulgare (Bulgarian Split Squat)",
     "muscle_groups": ["jambes"],
-    "muscles": ["quadriceps", "fessiers"],
-    "equipment_required": ["dumbbells", "bench_flat"],
+    "muscles": ["quadriceps","fessiers"],
+    "equipment_required": ["dumbbells","bench_flat"],
     "difficulty": "intermediate",
     "default_sets": 3,
     "default_reps_min": 8,
@@ -1394,31 +869,15 @@
     "intensity_factor": 1.2,
     "instructions": "Pied arrière posé sur un banc. Descendre en fente jusqu'à ce que la cuisse avant soit parallèle au sol. Tenir des haltères pour plus de difficulté.",
     "weight_type": "hybrid",
-    "bodyweight_percentage": {
-      "beginner": 70,
-      "intermediate": 75,
-      "advanced": 80
-    },
-    "base_weights_kg": {
-      "beginner": {
-        "base": 10,
-        "per_kg_bodyweight": 0.1
-      },
-      "intermediate": {
-        "base": 16,
-        "per_kg_bodyweight": 0.2
-      },
-      "advanced": {
-        "base": 24,
-        "per_kg_bodyweight": 0.3
-      }
-    }
+    "bodyweight_percentage": {"beginner":70,"intermediate":75,"advanced":80},
+    "base_weights_kg": {"beginner":{"base":10,"per_kg_bodyweight":0.1},"intermediate":{"base":16,"per_kg_bodyweight":0.2},"advanced":{"base":24,"per_kg_bodyweight":0.3}},
+    "ppl": ["legs"]
   },
   {
     "name": "Hip Thrust",
     "muscle_groups": ["jambes"],
-    "muscles": ["fessiers", "ischio-jambiers"],
-    "equipment_required": ["barbell", "bench_flat"],
+    "muscles": ["fessiers","ischio-jambiers"],
+    "equipment_required": ["barbell","bench_flat"],
     "difficulty": "intermediate",
     "default_sets": 3,
     "default_reps_min": 8,
@@ -1428,20 +887,8 @@
     "intensity_factor": 1.2,
     "instructions": "Dos des épaules appuyé sur un banc, barre sur les hanches. Pousser les hanches vers le haut jusqu'à ce que le corps forme une ligne droite des épaules aux genoux.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 40,
-        "per_kg_bodyweight": 0.8
-      },
-      "intermediate": {
-        "base": 70,
-        "per_kg_bodyweight": 1.2
-      },
-      "advanced": {
-        "base": 100,
-        "per_kg_bodyweight": 1.8
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":40,"per_kg_bodyweight":0.8},"intermediate":{"base":70,"per_kg_bodyweight":1.2},"advanced":{"base":100,"per_kg_bodyweight":1.8}},
+    "ppl": ["legs"]
   },
   {
     "name": "Leg Curls avec élastique",
@@ -1457,25 +904,13 @@
     "intensity_factor": 0.7,
     "instructions": "Allongé sur le ventre, un élastique attaché à un point fixe et à votre cheville. Fléchir le genou contre la résistance de l'élastique.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 5,
-        "per_kg_bodyweight": 0
-      },
-      "intermediate": {
-        "base": 10,
-        "per_kg_bodyweight": 0
-      },
-      "advanced": {
-        "base": 15,
-        "per_kg_bodyweight": 0
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":5,"per_kg_bodyweight":0},"intermediate":{"base":10,"per_kg_bodyweight":0},"advanced":{"base":15,"per_kg_bodyweight":0}},
+    "ppl": ["legs"]
   },
   {
     "name": "Pike Push-ups",
-    "muscle_groups": ["epaules", "bras"],
-    "muscles": ["deltoides-anterieurs", "triceps"],
+    "muscle_groups": ["epaules","bras"],
+    "muscles": ["deltoides-anterieurs","triceps"],
     "equipment_required": ["bodyweight"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -1486,16 +921,13 @@
     "intensity_factor": 1.1,
     "instructions": "Position du chien tête en bas (corps en V inversé). Plier les coudes pour amener le sommet de la tête vers le sol, puis repousser.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 60,
-      "intermediate": 70,
-      "advanced": 80
-    }
+    "bodyweight_percentage": {"beginner":60,"intermediate":70,"advanced":80},
+    "ppl": ["push"]
   },
   {
     "name": "Face pulls avec élastique",
-    "muscle_groups": ["epaules", "dos"],
-    "muscles": ["deltoides-posterieurs", "trapezes"],
+    "muscle_groups": ["epaules","dos"],
+    "muscles": ["deltoides-posterieurs","trapezes"],
     "equipment_required": ["resistance_bands"],
     "difficulty": "beginner",
     "default_sets": 3,
@@ -1506,25 +938,13 @@
     "intensity_factor": 0.8,
     "instructions": "Fixer un élastique à hauteur du visage. Tirer l'élastique vers le visage en écartant les mains et en contractant l'arrière des épaules.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 5,
-        "per_kg_bodyweight": 0
-      },
-      "intermediate": {
-        "base": 10,
-        "per_kg_bodyweight": 0
-      },
-      "advanced": {
-        "base": 15,
-        "per_kg_bodyweight": 0
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":5,"per_kg_bodyweight":0},"intermediate":{"base":10,"per_kg_bodyweight":0},"advanced":{"base":15,"per_kg_bodyweight":0}},
+    "ppl": ["pull"]
   },
   {
     "name": "Tractions australiennes (inverted row)",
     "muscle_groups": ["dos"],
-    "muscles": ["grand-dorsal", "trapezes"],
+    "muscles": ["grand-dorsal","trapezes"],
     "equipment_required": ["barbell"],
     "difficulty": "beginner",
     "default_sets": 3,
@@ -1535,17 +955,14 @@
     "intensity_factor": 0.9,
     "instructions": "Se placer sous une barre fixée bas. Corps gainé, tirer la poitrine vers la barre. Plus les pieds sont élevés, plus c'est difficile.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 50,
-      "intermediate": 60,
-      "advanced": 70
-    }
+    "bodyweight_percentage": {"beginner":50,"intermediate":60,"advanced":70},
+    "ppl": ["pull"]
   },
   {
     "name": "Curl incliné",
     "muscle_groups": ["bras"],
     "muscles": ["biceps"],
-    "equipment_required": ["dumbbells", "bench_incline"],
+    "equipment_required": ["dumbbells","bench_incline"],
     "difficulty": "intermediate",
     "default_sets": 3,
     "default_reps_min": 10,
@@ -1555,20 +972,8 @@
     "intensity_factor": 0.8,
     "instructions": "Assis sur un banc incliné, bras pendant verticalement. Effectuer une flexion des coudes. L'inclinaison étire davantage le biceps.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 7,
-        "per_kg_bodyweight": 0.05
-      },
-      "intermediate": {
-        "base": 11,
-        "per_kg_bodyweight": 0.1
-      },
-      "advanced": {
-        "base": 15,
-        "per_kg_bodyweight": 0.15
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":7,"per_kg_bodyweight":0.05},"intermediate":{"base":11,"per_kg_bodyweight":0.1},"advanced":{"base":15,"per_kg_bodyweight":0.15}},
+    "ppl": ["pull"]
   },
   {
     "name": "Dips sur banc",
@@ -1584,16 +989,13 @@
     "intensity_factor": 0.8,
     "instructions": "Mains sur le bord d'un banc, pieds au sol. Descendre le corps en pliant les coudes, puis remonter. Garder les jambes tendues pour augmenter la difficulté.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 50,
-      "intermediate": 60,
-      "advanced": 70
-    }
+    "bodyweight_percentage": {"beginner":50,"intermediate":60,"advanced":70},
+    "ppl": ["push"]
   },
   {
     "name": "Essuie-glaces au sol (Wipers)",
     "muscle_groups": ["abdominaux"],
-    "muscles": ["obliques", "abdominaux"],
+    "muscles": ["obliques","abdominaux"],
     "equipment_required": ["bodyweight"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -1604,11 +1006,8 @@
     "intensity_factor": 0.9,
     "instructions": "Allongé sur le dos, jambes tendues à la verticale. Descendre les jambes de manière contrôlée d'un côté, puis de l'autre, sans toucher le sol.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 30,
-      "intermediate": 35,
-      "advanced": 40
-    }
+    "bodyweight_percentage": {"beginner":30,"intermediate":35,"advanced":40},
+    "ppl": ["legs"]
   },
   {
     "name": "V-ups",
@@ -1624,16 +1023,13 @@
     "intensity_factor": 1,
     "instructions": "Allongé sur le dos, bras tendus derrière la tête. Relever simultanément le buste et les jambes tendues pour toucher vos pieds en formant un 'V'.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 45,
-      "intermediate": 50,
-      "advanced": 55
-    }
+    "bodyweight_percentage": {"beginner":45,"intermediate":50,"advanced":55},
+    "ppl": ["legs"]
   },
   {
     "name": "Box Jumps",
     "muscle_groups": ["jambes"],
-    "muscles": ["quadriceps", "fessiers", "mollets"],
+    "muscles": ["quadriceps","fessiers","mollets"],
     "equipment_required": ["bodyweight"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -1644,11 +1040,8 @@
     "intensity_factor": 1.1,
     "instructions": "Face à une boîte ou un banc stable, sauter pieds joints pour atterrir en douceur sur la surface. Redescendre en marchant.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 100,
-      "intermediate": 100,
-      "advanced": 100
-    }
+    "bodyweight_percentage": {"beginner":100,"intermediate":100,"advanced":100},
+    "ppl": ["legs"]
   },
   {
     "name": "Abduction de la hanche avec élastique",
@@ -1664,25 +1057,13 @@
     "intensity_factor": 0.7,
     "instructions": "Élastique autour des genoux ou des chevilles. Debout ou couché, écarter les jambes contre la résistance de la bande.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 5,
-        "per_kg_bodyweight": 0
-      },
-      "intermediate": {
-        "base": 10,
-        "per_kg_bodyweight": 0
-      },
-      "advanced": {
-        "base": 15,
-        "per_kg_bodyweight": 0
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":5,"per_kg_bodyweight":0},"intermediate":{"base":10,"per_kg_bodyweight":0},"advanced":{"base":15,"per_kg_bodyweight":0}},
+    "ppl": ["legs"]
   },
   {
     "name": "Marche du fermier",
-    "muscle_groups": ["dos", "jambes", "abdominaux"],
-    "muscles": ["trapezes", "lombaires", "fessiers", "abdominaux"],
+    "muscle_groups": ["dos","jambes","abdominaux"],
+    "muscles": ["trapezes","lombaires","fessiers","abdominaux"],
     "equipment_required": ["dumbbells"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -1693,25 +1074,13 @@
     "intensity_factor": 1.1,
     "instructions": "Tenir un haltère lourd ou un kettlebell dans chaque main. Marcher sur une distance ou une durée définie en gardant le corps gainé et droit.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 20,
-        "per_kg_bodyweight": 0.3
-      },
-      "intermediate": {
-        "base": 30,
-        "per_kg_bodyweight": 0.5
-      },
-      "advanced": {
-        "base": 40,
-        "per_kg_bodyweight": 0.8
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":20,"per_kg_bodyweight":0.3},"intermediate":{"base":30,"per_kg_bodyweight":0.5},"advanced":{"base":40,"per_kg_bodyweight":0.8}},
+    "ppl": ["legs"]
   },
   {
     "name": "Renegade Row",
-    "muscle_groups": ["dos", "abdominaux"],
-    "muscles": ["grand-dorsal", "abdominaux", "obliques"],
+    "muscle_groups": ["dos","abdominaux"],
+    "muscles": ["grand-dorsal","abdominaux","obliques"],
     "equipment_required": ["dumbbells"],
     "difficulty": "advanced",
     "default_sets": 3,
@@ -1722,20 +1091,8 @@
     "intensity_factor": 1.3,
     "instructions": "Position de planche, mains sur des haltères. Effectuer un tirage (rowing) avec un bras, puis l'autre, en gardant les hanches stables.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 8,
-        "per_kg_bodyweight": 0.1
-      },
-      "intermediate": {
-        "base": 12,
-        "per_kg_bodyweight": 0.2
-      },
-      "advanced": {
-        "base": 16,
-        "per_kg_bodyweight": 0.3
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":8,"per_kg_bodyweight":0.1},"intermediate":{"base":12,"per_kg_bodyweight":0.2},"advanced":{"base":16,"per_kg_bodyweight":0.3}},
+    "ppl": ["pull","legs"]
   },
   {
     "name": "Curl Zottman",
@@ -1751,26 +1108,14 @@
     "intensity_factor": 0.8,
     "instructions": "Monter l'haltère en curl supination (paume vers le haut). En haut, tourner le poignet en pronation (paume vers le bas) et contrôler la descente.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 7,
-        "per_kg_bodyweight": 0.05
-      },
-      "intermediate": {
-        "base": 10,
-        "per_kg_bodyweight": 0.1
-      },
-      "advanced": {
-        "base": 14,
-        "per_kg_bodyweight": 0.15
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":7,"per_kg_bodyweight":0.05},"intermediate":{"base":10,"per_kg_bodyweight":0.1},"advanced":{"base":14,"per_kg_bodyweight":0.15}},
+    "ppl": ["pull"]
   },
   {
     "name": "Développé couché prise serrée",
-    "muscle_groups": ["bras", "pectoraux"],
-    "muscles": ["triceps", "pectoraux-inferieurs"],
-    "equipment_required": ["barbell", "bench_flat"],
+    "muscle_groups": ["bras","pectoraux"],
+    "muscles": ["triceps","pectoraux-inferieurs"],
+    "equipment_required": ["barbell","bench_flat"],
     "difficulty": "intermediate",
     "default_sets": 3,
     "default_reps_min": 8,
@@ -1780,25 +1125,13 @@
     "intensity_factor": 1.1,
     "instructions": "Comme un développé couché, mais avec une prise plus serrée (largeur d'épaules) pour cibler davantage les triceps.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 30,
-        "per_kg_bodyweight": 0.4
-      },
-      "intermediate": {
-        "base": 50,
-        "per_kg_bodyweight": 0.6
-      },
-      "advanced": {
-        "base": 70,
-        "per_kg_bodyweight": 0.9
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":30,"per_kg_bodyweight":0.4},"intermediate":{"base":50,"per_kg_bodyweight":0.6},"advanced":{"base":70,"per_kg_bodyweight":0.9}},
+    "ppl": ["push"]
   },
   {
     "name": "Handstand Push-ups (assisté)",
-    "muscle_groups": ["epaules", "bras"],
-    "muscles": ["deltoides-anterieurs", "deltoides-lateraux", "triceps"],
+    "muscle_groups": ["epaules","bras"],
+    "muscles": ["deltoides-anterieurs","deltoides-lateraux","triceps"],
     "equipment_required": ["bodyweight"],
     "difficulty": "advanced",
     "default_sets": 3,
@@ -1809,11 +1142,8 @@
     "intensity_factor": 1.4,
     "instructions": "En équilibre sur les mains contre un mur. Descendre le corps en pliant les coudes jusqu'à ce que la tête touche le sol, puis repousser.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 80,
-      "intermediate": 90,
-      "advanced": 100
-    }
+    "bodyweight_percentage": {"beginner":80,"intermediate":90,"advanced":100},
+    "ppl": ["push"]
   },
   {
     "name": "Superman",
@@ -1829,11 +1159,8 @@
     "intensity_factor": 0.7,
     "instructions": "Allongé sur le ventre, décoller simultanément les bras, le buste et les jambes du sol. Maintenir la contraction lombaire.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 10,
-      "intermediate": 15,
-      "advanced": 20
-    }
+    "bodyweight_percentage": {"beginner":10,"intermediate":15,"advanced":20},
+    "ppl": ["legs","pull"]
   },
   {
     "name": "Wall Sit",
@@ -1849,16 +1176,13 @@
     "intensity_factor": 0.8,
     "instructions": "Dos plaqué contre un mur, descendre en position de chaise (cuisses parallèles au sol). Maintenir la position.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 0,
-      "intermediate": 0,
-      "advanced": 0
-    }
+    "bodyweight_percentage": {"beginner":0,"intermediate":0,"advanced":0},
+    "ppl": ["legs"]
   },
   {
     "name": "Burpees",
-    "muscle_groups": ["jambes", "pectoraux", "abdominaux"],
-    "muscles": ["quadriceps", "fessiers", "pectoraux-inferieurs", "abdominaux"],
+    "muscle_groups": ["jambes","pectoraux","abdominaux"],
+    "muscles": ["quadriceps","fessiers","pectoraux-inferieurs","abdominaux"],
     "equipment_required": ["bodyweight"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -1869,16 +1193,13 @@
     "intensity_factor": 1.3,
     "instructions": "S'accroupir, poser les mains au sol, lancer les pieds en arrière (position de pompe), faire une pompe, ramener les pieds, et finir par un saut vertical.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 100,
-      "intermediate": 100,
-      "advanced": 100
-    }
+    "bodyweight_percentage": {"beginner":100,"intermediate":100,"advanced":100},
+    "ppl": ["push","legs"]
   },
   {
     "name": "Tirage menton avec élastique",
     "muscle_groups": ["dos"],
-    "muscles": ["grand-dorsal", "biceps"],
+    "muscles": ["grand-dorsal","biceps"],
     "equipment_required": ["resistance_bands"],
     "difficulty": "beginner",
     "default_sets": 3,
@@ -1889,25 +1210,13 @@
     "intensity_factor": 0.8,
     "instructions": "Similaire aux tractions, mais avec un élastique sous les pieds pour aider à la montée. Idéal pour apprendre le mouvement.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 5,
-        "per_kg_bodyweight": 0
-      },
-      "intermediate": {
-        "base": 10,
-        "per_kg_bodyweight": 0
-      },
-      "advanced": {
-        "base": 15,
-        "per_kg_bodyweight": 0
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":5,"per_kg_bodyweight":0},"intermediate":{"base":10,"per_kg_bodyweight":0},"advanced":{"base":15,"per_kg_bodyweight":0}},
+    "ppl": ["push","pull"]
   },
   {
     "name": "Écartés avec élastique",
     "muscle_groups": ["pectoraux"],
-    "muscles": ["pectoraux-inferieurs", "pectoraux-superieurs"],
+    "muscles": ["pectoraux-inferieurs","pectoraux-superieurs"],
     "equipment_required": ["resistance_bands"],
     "difficulty": "beginner",
     "default_sets": 3,
@@ -1918,25 +1227,13 @@
     "intensity_factor": 0.7,
     "instructions": "Fixer un élastique derrière soi. Bras écartés, ramener les mains l'une vers l'autre devant la poitrine en contractant les pectoraux.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 5,
-        "per_kg_bodyweight": 0
-      },
-      "intermediate": {
-        "base": 10,
-        "per_kg_bodyweight": 0
-      },
-      "advanced": {
-        "base": 15,
-        "per_kg_bodyweight": 0
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":5,"per_kg_bodyweight":0},"intermediate":{"base":10,"per_kg_bodyweight":0},"advanced":{"base":15,"per_kg_bodyweight":0}},
+    "ppl": ["push"]
   },
   {
     "name": "Squat Pistol (assisté)",
     "muscle_groups": ["jambes"],
-    "muscles": ["quadriceps", "fessiers"],
+    "muscles": ["quadriceps","fessiers"],
     "equipment_required": ["bodyweight"],
     "difficulty": "advanced",
     "default_sets": 3,
@@ -1947,16 +1244,13 @@
     "intensity_factor": 1.4,
     "instructions": "Squat sur une seule jambe. Utiliser un support pour l'équilibre au début. Descendre le plus bas possible et remonter.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 80,
-      "intermediate": 90,
-      "advanced": 100
-    }
+    "bodyweight_percentage": {"beginner":80,"intermediate":90,"advanced":100},
+    "ppl": ["legs"]
   },
   {
     "name": "Pont fessier (Glute Bridge)",
     "muscle_groups": ["jambes"],
-    "muscles": ["fessiers", "ischio-jambiers"],
+    "muscles": ["fessiers","ischio-jambiers"],
     "equipment_required": ["bodyweight"],
     "difficulty": "beginner",
     "default_sets": 3,
@@ -1967,30 +1261,14 @@
     "intensity_factor": 0.7,
     "instructions": "Allongé sur le dos, genoux fléchis. Pousser sur les talons pour décoller les fesses du sol jusqu'à l'alignement du corps.",
     "weight_type": "hybrid",
-    "bodyweight_percentage": {
-      "beginner": 50,
-      "intermediate": 55,
-      "advanced": 60
-    },
-    "base_weights_kg": {
-      "beginner": {
-        "base": 0,
-        "per_kg_bodyweight": 0
-      },
-      "intermediate": {
-        "base": 10,
-        "per_kg_bodyweight": 0.1
-      },
-      "advanced": {
-        "base": 20,
-        "per_kg_bodyweight": 0.2
-      }
-    }
+    "bodyweight_percentage": {"beginner":50,"intermediate":55,"advanced":60},
+    "base_weights_kg": {"beginner":{"base":0,"per_kg_bodyweight":0},"intermediate":{"base":10,"per_kg_bodyweight":0.1},"advanced":{"base":20,"per_kg_bodyweight":0.2}},
+    "ppl": ["legs"]
   },
   {
     "name": "Rowing inversé sur barres parallèles",
-    "muscle_groups": ["dos", "bras"],
-    "muscles": ["grand-dorsal", "biceps"],
+    "muscle_groups": ["dos","bras"],
+    "muscles": ["grand-dorsal","biceps"],
     "equipment_required": ["dip_bar"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -2001,11 +1279,8 @@
     "intensity_factor": 1,
     "instructions": "Allongé sous des barres parallèles, les saisir et tirer le corps vers le haut, en gardant le corps droit et gainé.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 50,
-      "intermediate": 60,
-      "advanced": 70
-    }
+    "bodyweight_percentage": {"beginner":50,"intermediate":60,"advanced":70},
+    "ppl": ["pull"]
   },
   {
     "name": "Extensions mollets assis",
@@ -2021,25 +1296,13 @@
     "intensity_factor": 0.7,
     "instructions": "Assis sur un banc, un haltère posé sur chaque genou. Monter sur la pointe des pieds. Cible le muscle soléaire.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 15,
-        "per_kg_bodyweight": 0.2
-      },
-      "intermediate": {
-        "base": 25,
-        "per_kg_bodyweight": 0.4
-      },
-      "advanced": {
-        "base": 35,
-        "per_kg_bodyweight": 0.6
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":15,"per_kg_bodyweight":0.2},"intermediate":{"base":25,"per_kg_bodyweight":0.4},"advanced":{"base":35,"per_kg_bodyweight":0.6}},
+    "ppl": ["legs"]
   },
   {
     "name": "Crunch bicyclette",
     "muscle_groups": ["abdominaux"],
-    "muscles": ["abdominaux", "obliques"],
+    "muscles": ["abdominaux","obliques"],
     "equipment_required": ["bodyweight"],
     "difficulty": "beginner",
     "default_sets": 3,
@@ -2050,16 +1313,13 @@
     "intensity_factor": 0.8,
     "instructions": "Sur le dos, mains derrière la tête. Ramener alternativement un coude vers le genou opposé, en pédalant avec les jambes.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 25,
-      "intermediate": 30,
-      "advanced": 35
-    }
+    "bodyweight_percentage": {"beginner":25,"intermediate":30,"advanced":35},
+    "ppl": ["legs"]
   },
   {
     "name": "Press Pallof",
     "muscle_groups": ["abdominaux"],
-    "muscles": ["obliques", "abdominaux"],
+    "muscles": ["obliques","abdominaux"],
     "equipment_required": ["resistance_bands"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -2070,25 +1330,13 @@
     "intensity_factor": 0.9,
     "instructions": "Élastique fixé sur le côté. Le tenir à deux mains devant la poitrine. Tendre les bras et résister à la rotation. Excellent pour le gainage.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 5,
-        "per_kg_bodyweight": 0
-      },
-      "intermediate": {
-        "base": 10,
-        "per_kg_bodyweight": 0
-      },
-      "advanced": {
-        "base": 15,
-        "per_kg_bodyweight": 0
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":5,"per_kg_bodyweight":0},"intermediate":{"base":10,"per_kg_bodyweight":0},"advanced":{"base":15,"per_kg_bodyweight":0}},
+    "ppl": ["legs"]
   },
   {
     "name": "Kettlebell Deadlift",
-    "muscle_groups": ["jambes", "dos"],
-    "muscles": ["fessiers", "ischio-jambiers", "lombaires"],
+    "muscle_groups": ["jambes","dos"],
+    "muscles": ["fessiers","ischio-jambiers","lombaires"],
     "equipment_required": ["kettlebells"],
     "difficulty": "beginner",
     "default_sets": 3,
@@ -2099,25 +1347,13 @@
     "intensity_factor": 1.1,
     "instructions": "Kettlebell entre les pieds. Soulever en poussant sur les jambes et en gardant le dos droit, comme un soulevé de terre classique.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 16,
-        "per_kg_bodyweight": 0.2
-      },
-      "intermediate": {
-        "base": 24,
-        "per_kg_bodyweight": 0.4
-      },
-      "advanced": {
-        "base": 32,
-        "per_kg_bodyweight": 0.6
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":16,"per_kg_bodyweight":0.2},"intermediate":{"base":24,"per_kg_bodyweight":0.4},"advanced":{"base":32,"per_kg_bodyweight":0.6}},
+    "ppl": ["legs","pull"]
   },
   {
     "name": "Kettlebell High Pull",
-    "muscle_groups": ["epaules", "jambes"],
-    "muscles": ["deltoides-lateraux", "trapezes", "fessiers"],
+    "muscle_groups": ["epaules","jambes"],
+    "muscles": ["deltoides-lateraux","trapezes","fessiers"],
     "equipment_required": ["kettlebells"],
     "difficulty": "advanced",
     "default_sets": 3,
@@ -2128,26 +1364,14 @@
     "intensity_factor": 1.3,
     "instructions": "Commencer comme un swing, mais au lieu de pousser vers l'avant, tirer le kettlebell vers le haut, coude au-dessus de la main.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 12,
-        "per_kg_bodyweight": 0.15
-      },
-      "intermediate": {
-        "base": 16,
-        "per_kg_bodyweight": 0.2
-      },
-      "advanced": {
-        "base": 20,
-        "per_kg_bodyweight": 0.25
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":12,"per_kg_bodyweight":0.15},"intermediate":{"base":16,"per_kg_bodyweight":0.2},"advanced":{"base":20,"per_kg_bodyweight":0.25}},
+    "ppl": ["pull","legs"]
   },
   {
     "name": "Développé couché avec haltères (prise neutre)",
-    "muscle_groups": ["pectoraux", "bras"],
-    "muscles": ["pectoraux-inferieurs", "triceps"],
-    "equipment_required": ["dumbbells", "bench_flat"],
+    "muscle_groups": ["pectoraux","bras"],
+    "muscles": ["pectoraux-inferieurs","triceps"],
+    "equipment_required": ["dumbbells","bench_flat"],
     "difficulty": "intermediate",
     "default_sets": 3,
     "default_reps_min": 8,
@@ -2157,25 +1381,13 @@
     "intensity_factor": 1.2,
     "instructions": "Allongé sur un banc, pousser les haltères vers le haut en gardant les paumes des mains face à face (prise marteau).",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 18,
-        "per_kg_bodyweight": 0.22
-      },
-      "intermediate": {
-        "base": 28,
-        "per_kg_bodyweight": 0.38
-      },
-      "advanced": {
-        "base": 38,
-        "per_kg_bodyweight": 0.55
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":18,"per_kg_bodyweight":0.22},"intermediate":{"base":28,"per_kg_bodyweight":0.38},"advanced":{"base":38,"per_kg_bodyweight":0.55}},
+    "ppl": ["push"]
   },
   {
     "name": "Tirage horizontal avec haltère (un bras)",
     "muscle_groups": ["dos"],
-    "muscles": ["grand-dorsal", "trapezes"],
+    "muscles": ["grand-dorsal","trapezes"],
     "equipment_required": ["dumbbells"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -2186,26 +1398,14 @@
     "intensity_factor": 1.1,
     "instructions": "Aussi connu sous le nom de Rowing haltère, cet exercice est unilatéral et permet une grande amplitude de mouvement.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 10,
-        "per_kg_bodyweight": 0.15
-      },
-      "intermediate": {
-        "base": 15,
-        "per_kg_bodyweight": 0.25
-      },
-      "advanced": {
-        "base": 20,
-        "per_kg_bodyweight": 0.4
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":10,"per_kg_bodyweight":0.15},"intermediate":{"base":15,"per_kg_bodyweight":0.25},"advanced":{"base":20,"per_kg_bodyweight":0.4}},
+    "ppl": ["pull"]
   },
   {
     "name": "Curl araignée (Spider curl)",
     "muscle_groups": ["bras"],
     "muscles": ["biceps"],
-    "equipment_required": ["dumbbells", "bench_incline"],
+    "equipment_required": ["dumbbells","bench_incline"],
     "difficulty": "intermediate",
     "default_sets": 3,
     "default_reps_min": 10,
@@ -2215,25 +1415,13 @@
     "intensity_factor": 0.8,
     "instructions": "Allongé sur le ventre sur un banc incliné. Laisser pendre les bras et effectuer des curls. Isole parfaitement le biceps.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 6,
-        "per_kg_bodyweight": 0.04
-      },
-      "intermediate": {
-        "base": 10,
-        "per_kg_bodyweight": 0.08
-      },
-      "advanced": {
-        "base": 14,
-        "per_kg_bodyweight": 0.12
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":6,"per_kg_bodyweight":0.04},"intermediate":{"base":10,"per_kg_bodyweight":0.08},"advanced":{"base":14,"per_kg_bodyweight":0.12}},
+    "ppl": ["pull"]
   },
   {
     "name": "L-Sit",
-    "muscle_groups": ["abdominaux", "bras"],
-    "muscles": ["abdominaux", "triceps"],
+    "muscle_groups": ["abdominaux","bras"],
+    "muscles": ["abdominaux","triceps"],
     "equipment_required": ["dip_bar"],
     "difficulty": "advanced",
     "default_sets": 3,
@@ -2244,11 +1432,8 @@
     "intensity_factor": 1.3,
     "instructions": "En appui sur des barres parallèles ou au sol, soulever les jambes tendues à l'horizontale, formant un 'L' avec le corps. Tenir la position.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 0,
-      "intermediate": 0,
-      "advanced": 0
-    }
+    "bodyweight_percentage": {"beginner":0,"intermediate":0,"advanced":0},
+    "ppl": ["legs"]
   },
   {
     "name": "Dead-bug",
@@ -2264,16 +1449,13 @@
     "intensity_factor": 0.7,
     "instructions": "Sur le dos, genoux à 90°, bras tendus vers le plafond. Descendre simultanément et de manière contrôlée un bras et la jambe opposée, sans toucher le sol.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 10,
-      "intermediate": 15,
-      "advanced": 20
-    }
+    "bodyweight_percentage": {"beginner":10,"intermediate":15,"advanced":20},
+    "ppl": ["legs"]
   },
   {
     "name": "Kettlebell Halo",
-    "muscle_groups": ["epaules", "abdominaux"],
-    "muscles": ["deltoides-lateraux", "obliques"],
+    "muscle_groups": ["epaules","abdominaux"],
+    "muscles": ["deltoides-lateraux","obliques"],
     "equipment_required": ["kettlebells"],
     "difficulty": "beginner",
     "default_sets": 3,
@@ -2284,25 +1466,13 @@
     "intensity_factor": 0.9,
     "instructions": "Debout, tenir le kettlebell par les cornes devant la poitrine. Faire un cercle avec le kettlebell autour de la tête, en gardant le torse stable.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 6,
-        "per_kg_bodyweight": 0.05
-      },
-      "intermediate": {
-        "base": 8,
-        "per_kg_bodyweight": 0.1
-      },
-      "advanced": {
-        "base": 12,
-        "per_kg_bodyweight": 0.15
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":6,"per_kg_bodyweight":0.05},"intermediate":{"base":8,"per_kg_bodyweight":0.1},"advanced":{"base":12,"per_kg_bodyweight":0.15}},
+    "ppl": ["push"]
   },
   {
     "name": "Overhead Squat",
-    "muscle_groups": ["jambes", "epaules"],
-    "muscles": ["quadriceps", "fessiers", "deltoides-lateraux"],
+    "muscle_groups": ["jambes","epaules"],
+    "muscles": ["quadriceps","fessiers","deltoides-lateraux"],
     "equipment_required": ["barbell"],
     "difficulty": "advanced",
     "default_sets": 3,
@@ -2313,20 +1483,8 @@
     "intensity_factor": 1.4,
     "instructions": "Tenir une barre au-dessus de la tête, bras tendus, prise large. Effectuer un squat complet en gardant la barre stable au-dessus de la tête.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 20,
-        "per_kg_bodyweight": 0.3
-      },
-      "intermediate": {
-        "base": 30,
-        "per_kg_bodyweight": 0.5
-      },
-      "advanced": {
-        "base": 40,
-        "per_kg_bodyweight": 0.7
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":20,"per_kg_bodyweight":0.3},"intermediate":{"base":30,"per_kg_bodyweight":0.5},"advanced":{"base":40,"per_kg_bodyweight":0.7}},
+    "ppl": ["legs"]
   },
   {
     "name": "Squat Sissy",
@@ -2342,16 +1500,13 @@
     "intensity_factor": 1.1,
     "instructions": "Se pencher en arrière en décollant les talons, tout en fléchissant les genoux vers l'avant. Le corps doit rester aligné des genoux aux épaules. Isole fortement les quadriceps.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 60,
-      "intermediate": 70,
-      "advanced": 80
-    }
+    "bodyweight_percentage": {"beginner":60,"intermediate":70,"advanced":80},
+    "ppl": ["legs"]
   },
   {
     "name": "Kneeling Pallof Press",
     "muscle_groups": ["abdominaux"],
-    "muscles": ["obliques", "abdominaux"],
+    "muscles": ["obliques","abdominaux"],
     "equipment_required": ["resistance_bands"],
     "difficulty": "beginner",
     "default_sets": 3,
@@ -2362,25 +1517,13 @@
     "intensity_factor": 0.8,
     "instructions": "Version à genoux du Press Pallof, offrant une meilleure stabilité pour se concentrer sur la contraction des obliques.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 4,
-        "per_kg_bodyweight": 0
-      },
-      "intermediate": {
-        "base": 8,
-        "per_kg_bodyweight": 0
-      },
-      "advanced": {
-        "base": 12,
-        "per_kg_bodyweight": 0
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":4,"per_kg_bodyweight":0},"intermediate":{"base":8,"per_kg_bodyweight":0},"advanced":{"base":12,"per_kg_bodyweight":0}},
+    "ppl": ["legs"]
   },
   {
     "name": "Side Lunges (Fentes latérales)",
     "muscle_groups": ["jambes"],
-    "muscles": ["quadriceps", "fessiers"],
+    "muscles": ["quadriceps","fessiers"],
     "equipment_required": ["bodyweight"],
     "difficulty": "beginner",
     "default_sets": 3,
@@ -2391,25 +1534,9 @@
     "intensity_factor": 0.9,
     "instructions": "Faire un grand pas sur le côté, en gardant l'autre jambe tendue. Pousser sur la jambe fléchie pour revenir à la position de départ. Alterner les côtés.",
     "weight_type": "hybrid",
-    "bodyweight_percentage": {
-      "beginner": 70,
-      "intermediate": 75,
-      "advanced": 80
-    },
-    "base_weights_kg": {
-      "beginner": {
-        "base": 0,
-        "per_kg_bodyweight": 0
-      },
-      "intermediate": {
-        "base": 8,
-        "per_kg_bodyweight": 0.1
-      },
-      "advanced": {
-        "base": 16,
-        "per_kg_bodyweight": 0.2
-      }
-    }
+    "bodyweight_percentage": {"beginner":70,"intermediate":75,"advanced":80},
+    "base_weights_kg": {"beginner":{"base":0,"per_kg_bodyweight":0},"intermediate":{"base":8,"per_kg_bodyweight":0.1},"advanced":{"base":16,"per_kg_bodyweight":0.2}},
+    "ppl": ["legs"]
   },
   {
     "name": "Élévations latérales buste penché",
@@ -2425,20 +1552,8 @@
     "intensity_factor": 0.8,
     "instructions": "Similaire à l'oiseau, cet exercice cible spécifiquement l'arrière de l'épaule, crucial pour une bonne posture.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 8,
-        "per_kg_bodyweight": 0.05
-      },
-      "intermediate": {
-        "base": 12,
-        "per_kg_bodyweight": 0.08
-      },
-      "advanced": {
-        "base": 16,
-        "per_kg_bodyweight": 0.12
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":8,"per_kg_bodyweight":0.05},"intermediate":{"base":12,"per_kg_bodyweight":0.08},"advanced":{"base":16,"per_kg_bodyweight":0.12}},
+    "ppl": ["push"]
   },
   {
     "name": "Dragon Flag",
@@ -2454,16 +1569,13 @@
     "intensity_factor": 1.4,
     "instructions": "Allongé sur un banc, se tenant au bord. Monter le corps à la verticale, puis le descendre le plus lentement possible en le gardant droit comme une planche.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 80,
-      "intermediate": 90,
-      "advanced": 100
-    }
+    "bodyweight_percentage": {"beginner":80,"intermediate":90,"advanced":100},
+    "ppl": ["legs"]
   },
   {
     "name": "Zercher Squat",
-    "muscle_groups": ["jambes", "abdominaux"],
-    "muscles": ["quadriceps", "fessiers", "abdominaux"],
+    "muscle_groups": ["jambes","abdominaux"],
+    "muscles": ["quadriceps","fessiers","abdominaux"],
     "equipment_required": ["barbell"],
     "difficulty": "advanced",
     "default_sets": 3,
@@ -2474,25 +1586,13 @@
     "intensity_factor": 1.4,
     "instructions": "Tenir une barre dans le creux des coudes, contre le torse. Effectuer un squat. Exige un gainage abdominal extrême.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 30,
-        "per_kg_bodyweight": 0.4
-      },
-      "intermediate": {
-        "base": 50,
-        "per_kg_bodyweight": 0.7
-      },
-      "advanced": {
-        "base": 70,
-        "per_kg_bodyweight": 1
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":30,"per_kg_bodyweight":0.4},"intermediate":{"base":50,"per_kg_bodyweight":0.7},"advanced":{"base":70,"per_kg_bodyweight":1}},
+    "ppl": ["legs"]
   },
   {
     "name": "Band Pull-Aparts",
-    "muscle_groups": ["epaules", "dos"],
-    "muscles": ["deltoides-posterieurs", "trapezes"],
+    "muscle_groups": ["epaules","dos"],
+    "muscles": ["deltoides-posterieurs","trapezes"],
     "equipment_required": ["resistance_bands"],
     "difficulty": "beginner",
     "default_sets": 3,
@@ -2503,25 +1603,13 @@
     "intensity_factor": 0.7,
     "instructions": "Tenir un élastique devant soi, bras tendus. Écarter les bras en tirant sur l'élastique jusqu'à ce qu'il touche la poitrine.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 5,
-        "per_kg_bodyweight": 0
-      },
-      "intermediate": {
-        "base": 10,
-        "per_kg_bodyweight": 0
-      },
-      "advanced": {
-        "base": 15,
-        "per_kg_bodyweight": 0
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":5,"per_kg_bodyweight":0},"intermediate":{"base":10,"per_kg_bodyweight":0},"advanced":{"base":15,"per_kg_bodyweight":0}},
+    "ppl": ["pull"]
   },
   {
     "name": "Chin-ups (Tractions prise supination)",
-    "muscle_groups": ["dos", "bras"],
-    "muscles": ["grand-dorsal", "biceps"],
+    "muscle_groups": ["dos","bras"],
+    "muscles": ["grand-dorsal","biceps"],
     "equipment_required": ["pull_up_bar"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -2532,25 +1620,9 @@
     "intensity_factor": 1.3,
     "instructions": "Prise supination (paumes vers soi), largeur d'épaules. Tirer le corps vers le haut jusqu'à ce que le menton dépasse la barre. Sollicite fortement les biceps.",
     "weight_type": "hybrid",
-    "bodyweight_percentage": {
-      "beginner": 90,
-      "intermediate": 95,
-      "advanced": 100
-    },
-    "base_weights_kg": {
-      "beginner": {
-        "base": 0,
-        "per_kg_bodyweight": 0
-      },
-      "intermediate": {
-        "base": 2,
-        "per_kg_bodyweight": 0.05
-      },
-      "advanced": {
-        "base": 5,
-        "per_kg_bodyweight": 0.15
-      }
-    }
+    "bodyweight_percentage": {"beginner":90,"intermediate":95,"advanced":100},
+    "base_weights_kg": {"beginner":{"base":0,"per_kg_bodyweight":0},"intermediate":{"base":2,"per_kg_bodyweight":0.05},"advanced":{"base":5,"per_kg_bodyweight":0.15}},
+    "ppl": ["pull"]
   },
   {
     "name": "Élévations des mollets 'Donkey'",
@@ -2566,16 +1638,13 @@
     "intensity_factor": 0.8,
     "instructions": "Se pencher en avant, en appui sur un banc. Quelqu'un s'assoit sur le bas du dos pour ajouter du poids. Effectuer des extensions de mollets.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 150,
-      "intermediate": 170,
-      "advanced": 200
-    }
+    "bodyweight_percentage": {"beginner":150,"intermediate":170,"advanced":200},
+    "ppl": ["legs"]
   },
   {
     "name": "Kettlebell Windmill",
-    "muscle_groups": ["epaules", "abdominaux"],
-    "muscles": ["deltoides-lateraux", "obliques", "lombaires"],
+    "muscle_groups": ["epaules","abdominaux"],
+    "muscles": ["deltoides-lateraux","obliques","lombaires"],
     "equipment_required": ["kettlebells"],
     "difficulty": "advanced",
     "default_sets": 3,
@@ -2586,25 +1655,13 @@
     "intensity_factor": 1.2,
     "instructions": "Kettlebell tenu à bout de bras au-dessus de la tête. Se pencher sur le côté en gardant le bras tendu, jusqu'à toucher le sol avec l'autre main.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 8,
-        "per_kg_bodyweight": 0.1
-      },
-      "intermediate": {
-        "base": 12,
-        "per_kg_bodyweight": 0.15
-      },
-      "advanced": {
-        "base": 16,
-        "per_kg_bodyweight": 0.2
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":8,"per_kg_bodyweight":0.1},"intermediate":{"base":12,"per_kg_bodyweight":0.15},"advanced":{"base":16,"per_kg_bodyweight":0.2}},
+    "ppl": ["legs","pull"]
   },
   {
     "name": "Extensions lombaires au sol (avec rotation)",
-    "muscle_groups": ["dos", "abdominaux"],
-    "muscles": ["lombaires", "obliques"],
+    "muscle_groups": ["dos","abdominaux"],
+    "muscles": ["lombaires","obliques"],
     "equipment_required": ["bodyweight"],
     "difficulty": "beginner",
     "default_sets": 3,
@@ -2615,16 +1672,13 @@
     "intensity_factor": 0.8,
     "instructions": "Position Superman. En haut, pivoter le torse d'un côté, revenir au centre, puis de l'autre côté avant de redescendre.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 10,
-      "intermediate": 15,
-      "advanced": 20
-    }
+    "bodyweight_percentage": {"beginner":10,"intermediate":15,"advanced":20},
+    "ppl": ["legs","pull"]
   },
   {
     "name": "Single Leg Deadlift",
     "muscle_groups": ["jambes"],
-    "muscles": ["ischio-jambiers", "fessiers"],
+    "muscles": ["ischio-jambiers","fessiers"],
     "equipment_required": ["dumbbells"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -2635,30 +1689,14 @@
     "intensity_factor": 1.1,
     "instructions": "Soulevé de terre sur une seule jambe. Se pencher en avant en levant la jambe libre derrière soi pour garder l'équilibre.",
     "weight_type": "hybrid",
-    "bodyweight_percentage": {
-      "beginner": 80,
-      "intermediate": 85,
-      "advanced": 90
-    },
-    "base_weights_kg": {
-      "beginner": {
-        "base": 8,
-        "per_kg_bodyweight": 0.1
-      },
-      "intermediate": {
-        "base": 12,
-        "per_kg_bodyweight": 0.15
-      },
-      "advanced": {
-        "base": 20,
-        "per_kg_bodyweight": 0.25
-      }
-    }
+    "bodyweight_percentage": {"beginner":80,"intermediate":85,"advanced":90},
+    "base_weights_kg": {"beginner":{"base":8,"per_kg_bodyweight":0.1},"intermediate":{"base":12,"per_kg_bodyweight":0.15},"advanced":{"base":20,"per_kg_bodyweight":0.25}},
+    "ppl": ["legs","pull"]
   },
   {
     "name": "Développé militaire avec haltères",
     "muscle_groups": ["epaules"],
-    "muscles": ["deltoides-anterieurs", "deltoides-lateraux", "triceps"],
+    "muscles": ["deltoides-anterieurs","deltoides-lateraux","triceps"],
     "equipment_required": ["dumbbells"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -2669,25 +1707,13 @@
     "intensity_factor": 1.2,
     "instructions": "Assis ou debout, pousser les haltères au-dessus de la tête sans cambrer le dos. Permet une trajectoire plus naturelle que la barre.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 18,
-        "per_kg_bodyweight": 0.2
-      },
-      "intermediate": {
-        "base": 25,
-        "per_kg_bodyweight": 0.35
-      },
-      "advanced": {
-        "base": 35,
-        "per_kg_bodyweight": 0.5
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":18,"per_kg_bodyweight":0.2},"intermediate":{"base":25,"per_kg_bodyweight":0.35},"advanced":{"base":35,"per_kg_bodyweight":0.5}},
+    "ppl": ["push"]
   },
   {
     "name": "Cossack Squat",
     "muscle_groups": ["jambes"],
-    "muscles": ["quadriceps", "fessiers"],
+    "muscles": ["quadriceps","fessiers"],
     "equipment_required": ["bodyweight"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -2698,25 +1724,9 @@
     "intensity_factor": 1.1,
     "instructions": "Pieds très écartés. Descendre en squat sur un côté, en gardant l'autre jambe tendue. Excellent pour la mobilité et la force.",
     "weight_type": "hybrid",
-    "bodyweight_percentage": {
-      "beginner": 70,
-      "intermediate": 75,
-      "advanced": 80
-    },
-    "base_weights_kg": {
-      "beginner": {
-        "base": 0,
-        "per_kg_bodyweight": 0
-      },
-      "intermediate": {
-        "base": 8,
-        "per_kg_bodyweight": 0.1
-      },
-      "advanced": {
-        "base": 12,
-        "per_kg_bodyweight": 0.15
-      }
-    }
+    "bodyweight_percentage": {"beginner":70,"intermediate":75,"advanced":80},
+    "base_weights_kg": {"beginner":{"base":0,"per_kg_bodyweight":0},"intermediate":{"base":8,"per_kg_bodyweight":0.1},"advanced":{"base":12,"per_kg_bodyweight":0.15}},
+    "ppl": ["legs"]
   },
   {
     "name": "Hollow Hold",
@@ -2732,16 +1742,13 @@
     "intensity_factor": 0.9,
     "instructions": "Allongé sur le dos, décoller les épaules et les jambes du sol, bas du dos plaqué. Le corps forme une 'banane'. Tenir la position.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 0,
-      "intermediate": 0,
-      "advanced": 0
-    }
+    "bodyweight_percentage": {"beginner":0,"intermediate":0,"advanced":0},
+    "ppl": ["legs"]
   },
   {
     "name": "Jumping Jacks",
-    "muscle_groups": ["jambes", "epaules"],
-    "muscles": ["mollets", "deltoides-lateraux"],
+    "muscle_groups": ["jambes","epaules"],
+    "muscles": ["mollets","deltoides-lateraux"],
     "equipment_required": ["bodyweight"],
     "difficulty": "beginner",
     "default_sets": 3,
@@ -2752,16 +1759,13 @@
     "intensity_factor": 0.7,
     "instructions": "Sauter en écartant simultanément les jambes et en levant les bras au-dessus de la tête. Revenir en position initiale avec un autre saut.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 100,
-      "intermediate": 100,
-      "advanced": 100
-    }
+    "bodyweight_percentage": {"beginner":100,"intermediate":100,"advanced":100},
+    "ppl": ["legs"]
   },
   {
     "name": "Écartés à la poulie basse avec élastique",
-    "muscle_groups": ["pectoraux", "epaules"],
-    "muscles": ["pectoraux-superieurs", "deltoides-anterieurs"],
+    "muscle_groups": ["pectoraux","epaules"],
+    "muscles": ["pectoraux-superieurs","deltoides-anterieurs"],
     "equipment_required": ["resistance_bands"],
     "difficulty": "beginner",
     "default_sets": 3,
@@ -2772,25 +1776,13 @@
     "intensity_factor": 0.8,
     "instructions": "Fixer deux élastiques en position basse. Se pencher en avant et tirer les poignées vers le haut et l'intérieur, en se concentrant sur le haut des pectoraux.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 5,
-        "per_kg_bodyweight": 0
-      },
-      "intermediate": {
-        "base": 8,
-        "per_kg_bodyweight": 0
-      },
-      "advanced": {
-        "base": 12,
-        "per_kg_bodyweight": 0
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":5,"per_kg_bodyweight":0},"intermediate":{"base":8,"per_kg_bodyweight":0},"advanced":{"base":12,"per_kg_bodyweight":0}},
+    "ppl": ["push"]
   },
   {
     "name": "Front Squat",
-    "muscle_groups": ["jambes", "abdominaux"],
-    "muscles": ["quadriceps", "fessiers", "abdominaux"],
+    "muscle_groups": ["jambes","abdominaux"],
+    "muscles": ["quadriceps","fessiers","abdominaux"],
     "equipment_required": ["barbell"],
     "difficulty": "advanced",
     "default_sets": 3,
@@ -2801,25 +1793,13 @@
     "intensity_factor": 1.4,
     "instructions": "Barre reposant sur l'avant des épaules (clavicules), tenue avec les doigts ou bras croisés. Descendre en squat en gardant le torse très droit.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 30,
-        "per_kg_bodyweight": 0.5
-      },
-      "intermediate": {
-        "base": 50,
-        "per_kg_bodyweight": 0.8
-      },
-      "advanced": {
-        "base": 70,
-        "per_kg_bodyweight": 1.2
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":30,"per_kg_bodyweight":0.5},"intermediate":{"base":50,"per_kg_bodyweight":0.8},"advanced":{"base":70,"per_kg_bodyweight":1.2}},
+    "ppl": ["legs"]
   },
   {
     "name": "Floor Press avec barre",
-    "muscle_groups": ["pectoraux", "bras"],
-    "muscles": ["pectoraux-inferieurs", "triceps"],
+    "muscle_groups": ["pectoraux","bras"],
+    "muscles": ["pectoraux-inferieurs","triceps"],
     "equipment_required": ["barbell"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -2830,25 +1810,13 @@
     "intensity_factor": 1.1,
     "instructions": "Allongé au sol, genoux fléchis. Descendre la barre jusqu'à ce que les triceps touchent le sol, puis repousser. Limite l'amplitude pour cibler la force de poussée.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 35,
-        "per_kg_bodyweight": 0.45
-      },
-      "intermediate": {
-        "base": 55,
-        "per_kg_bodyweight": 0.7
-      },
-      "advanced": {
-        "base": 75,
-        "per_kg_bodyweight": 1.1
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":35,"per_kg_bodyweight":0.45},"intermediate":{"base":55,"per_kg_bodyweight":0.7},"advanced":{"base":75,"per_kg_bodyweight":1.1}},
+    "ppl": ["push"]
   },
   {
     "name": "Archer Push-ups",
-    "muscle_groups": ["pectoraux", "bras"],
-    "muscles": ["pectoraux-inferieurs", "pectoraux-superieurs", "triceps"],
+    "muscle_groups": ["pectoraux","bras"],
+    "muscles": ["pectoraux-inferieurs","pectoraux-superieurs","triceps"],
     "equipment_required": ["bodyweight"],
     "difficulty": "advanced",
     "default_sets": 3,
@@ -2859,17 +1827,14 @@
     "intensity_factor": 1.2,
     "instructions": "En position de pompe large, descendre d'un côté en pliant un coude, tandis que l'autre bras reste tendu. Alterner de côté. Progression vers la pompe à un bras.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 60,
-      "intermediate": 70,
-      "advanced": 80
-    }
+    "bodyweight_percentage": {"beginner":60,"intermediate":70,"advanced":80},
+    "ppl": ["push"]
   },
   {
     "name": "Dumbbell Squeeze Press",
     "muscle_groups": ["pectoraux"],
-    "muscles": ["pectoraux-inferieurs", "pectoraux-superieurs"],
-    "equipment_required": ["dumbbells", "bench_flat"],
+    "muscles": ["pectoraux-inferieurs","pectoraux-superieurs"],
+    "equipment_required": ["dumbbells","bench_flat"],
     "difficulty": "beginner",
     "default_sets": 3,
     "default_reps_min": 10,
@@ -2879,20 +1844,8 @@
     "intensity_factor": 0.9,
     "instructions": "Allongé sur un banc, presser deux haltères l'un contre l'autre au-dessus de la poitrine. Monter et descendre les haltères en maintenant cette pression constante.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 12,
-        "per_kg_bodyweight": 0.15
-      },
-      "intermediate": {
-        "base": 18,
-        "per_kg_bodyweight": 0.25
-      },
-      "advanced": {
-        "base": 24,
-        "per_kg_bodyweight": 0.35
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":12,"per_kg_bodyweight":0.15},"intermediate":{"base":18,"per_kg_bodyweight":0.25},"advanced":{"base":24,"per_kg_bodyweight":0.35}},
+    "ppl": ["push"]
   },
   {
     "name": "Tirage vertical prise serrée neutre",
@@ -2908,25 +1861,13 @@
     "intensity_factor": 1,
     "instructions": "Utiliser une poignée en V. Tirer la poignée vers le haut de la poitrine, en gardant le torse droit et en se concentrant sur l'étirement et la contraction des dorsaux.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 32,
-        "per_kg_bodyweight": 0.45
-      },
-      "intermediate": {
-        "base": 42,
-        "per_kg_bodyweight": 0.65
-      },
-      "advanced": {
-        "base": 52,
-        "per_kg_bodyweight": 0.85
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":32,"per_kg_bodyweight":0.45},"intermediate":{"base":42,"per_kg_bodyweight":0.65},"advanced":{"base":52,"per_kg_bodyweight":0.85}},
+    "ppl": ["pull"]
   },
   {
     "name": "T-Bar Row (avec barre)",
     "muscle_groups": ["dos"],
-    "muscles": ["grand-dorsal", "trapezes"],
+    "muscles": ["grand-dorsal","trapezes"],
     "equipment_required": ["barbell"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -2937,25 +1878,13 @@
     "intensity_factor": 1.2,
     "instructions": "Caler une extrémité de la barre dans un coin. Charger l'autre extrémité. Se placer à califourchon et tirer la barre vers soi avec une poignée.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 25,
-        "per_kg_bodyweight": 0.3
-      },
-      "intermediate": {
-        "base": 40,
-        "per_kg_bodyweight": 0.6
-      },
-      "advanced": {
-        "base": 55,
-        "per_kg_bodyweight": 0.9
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":25,"per_kg_bodyweight":0.3},"intermediate":{"base":40,"per_kg_bodyweight":0.6},"advanced":{"base":55,"per_kg_bodyweight":0.9}},
+    "ppl": ["pull"]
   },
   {
     "name": "Rowing pendlay",
     "muscle_groups": ["dos"],
-    "muscles": ["grand-dorsal", "trapezes", "lombaires"],
+    "muscles": ["grand-dorsal","trapezes","lombaires"],
     "equipment_required": ["barbell"],
     "difficulty": "advanced",
     "default_sets": 3,
@@ -2966,25 +1895,13 @@
     "intensity_factor": 1.3,
     "instructions": "Buste penché parallèle au sol, barre au sol à chaque répétition. Tirer la barre explosivement vers le sternum sans bouger le torse.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 35,
-        "per_kg_bodyweight": 0.4
-      },
-      "intermediate": {
-        "base": 50,
-        "per_kg_bodyweight": 0.7
-      },
-      "advanced": {
-        "base": 65,
-        "per_kg_bodyweight": 1
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":35,"per_kg_bodyweight":0.4},"intermediate":{"base":50,"per_kg_bodyweight":0.7},"advanced":{"base":65,"per_kg_bodyweight":1}},
+    "ppl": ["pull"]
   },
   {
     "name": "Presse à cuisses (pieds hauts et écartés)",
     "muscle_groups": ["jambes"],
-    "muscles": ["fessiers", "ischio-jambiers"],
+    "muscles": ["fessiers","ischio-jambiers"],
     "equipment_required": ["leg_press"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -2995,25 +1912,13 @@
     "intensity_factor": 1.1,
     "instructions": "Placer les pieds hauts et écartés sur la plateforme pour maximiser l'implication des fessiers et des ischio-jambiers.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 70,
-        "per_kg_bodyweight": 1.1
-      },
-      "intermediate": {
-        "base": 100,
-        "per_kg_bodyweight": 1.6
-      },
-      "advanced": {
-        "base": 130,
-        "per_kg_bodyweight": 2.3
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":70,"per_kg_bodyweight":1.1},"intermediate":{"base":100,"per_kg_bodyweight":1.6},"advanced":{"base":130,"per_kg_bodyweight":2.3}},
+    "ppl": ["legs"]
   },
   {
     "name": "Presse à cuisses unilatérale",
     "muscle_groups": ["jambes"],
-    "muscles": ["quadriceps", "fessiers"],
+    "muscles": ["quadriceps","fessiers"],
     "equipment_required": ["leg_press"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -3024,20 +1929,8 @@
     "intensity_factor": 1,
     "instructions": "Utiliser une seule jambe à la fois pour pousser la plateforme. Aide à corriger les déséquilibres musculaires.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 25,
-        "per_kg_bodyweight": 0.4
-      },
-      "intermediate": {
-        "base": 40,
-        "per_kg_bodyweight": 0.7
-      },
-      "advanced": {
-        "base": 55,
-        "per_kg_bodyweight": 1
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":25,"per_kg_bodyweight":0.4},"intermediate":{"base":40,"per_kg_bodyweight":0.7},"advanced":{"base":55,"per_kg_bodyweight":1}},
+    "ppl": ["legs"]
   },
   {
     "name": "Barbell Hack Squat",
@@ -3053,20 +1946,8 @@
     "intensity_factor": 1.3,
     "instructions": "Tenir une barre derrière les jambes. Effectuer un squat. La charge derrière le corps met l'accent sur les quadriceps.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 30,
-        "per_kg_bodyweight": 0.4
-      },
-      "intermediate": {
-        "base": 50,
-        "per_kg_bodyweight": 0.8
-      },
-      "advanced": {
-        "base": 70,
-        "per_kg_bodyweight": 1.2
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":30,"per_kg_bodyweight":0.4},"intermediate":{"base":50,"per_kg_bodyweight":0.8},"advanced":{"base":70,"per_kg_bodyweight":1.2}},
+    "ppl": ["legs"]
   },
   {
     "name": "Marche latérale avec élastique",
@@ -3082,25 +1963,13 @@
     "intensity_factor": 0.8,
     "instructions": "Bande de résistance autour des genoux ou des chevilles. En position de demi-squat, faire des pas sur le côté sans que les genoux ne rentrent vers l'intérieur.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 5,
-        "per_kg_bodyweight": 0
-      },
-      "intermediate": {
-        "base": 10,
-        "per_kg_bodyweight": 0
-      },
-      "advanced": {
-        "base": 15,
-        "per_kg_bodyweight": 0
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":5,"per_kg_bodyweight":0},"intermediate":{"base":10,"per_kg_bodyweight":0},"advanced":{"base":15,"per_kg_bodyweight":0}},
+    "ppl": ["legs"]
   },
   {
     "name": "Bradford Press",
     "muscle_groups": ["epaules"],
-    "muscles": ["deltoides-anterieurs", "deltoides-lateraux"],
+    "muscles": ["deltoides-anterieurs","deltoides-lateraux"],
     "equipment_required": ["barbell"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -3111,25 +1980,13 @@
     "intensity_factor": 1.1,
     "instructions": "Développer une barre jusqu'au-dessus de la tête, la descendre derrière la nuque, puis la ramener devant, sans verrouiller les coudes. Mouvement fluide.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 15,
-        "per_kg_bodyweight": 0.1
-      },
-      "intermediate": {
-        "base": 25,
-        "per_kg_bodyweight": 0.2
-      },
-      "advanced": {
-        "base": 35,
-        "per_kg_bodyweight": 0.3
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":15,"per_kg_bodyweight":0.1},"intermediate":{"base":25,"per_kg_bodyweight":0.2},"advanced":{"base":35,"per_kg_bodyweight":0.3}},
+    "ppl": ["push"]
   },
   {
     "name": "Kettlebell Bottom-Up Press",
-    "muscle_groups": ["epaules", "abdominaux"],
-    "muscles": ["deltoides-anterieurs", "deltoides-lateraux", "obliques"],
+    "muscle_groups": ["epaules","abdominaux"],
+    "muscles": ["deltoides-anterieurs","deltoides-lateraux","obliques"],
     "equipment_required": ["kettlebells"],
     "difficulty": "advanced",
     "default_sets": 3,
@@ -3140,25 +1997,13 @@
     "intensity_factor": 1.3,
     "instructions": "Tenir un kettlebell par la poignée, avec la base vers le ciel. Le développer lentement au-dessus de la tête, en luttant pour le garder stable. Excellent pour la stabilité de l'épaule.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 6,
-        "per_kg_bodyweight": 0.05
-      },
-      "intermediate": {
-        "base": 8,
-        "per_kg_bodyweight": 0.1
-      },
-      "advanced": {
-        "base": 12,
-        "per_kg_bodyweight": 0.15
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":6,"per_kg_bodyweight":0.05},"intermediate":{"base":8,"per_kg_bodyweight":0.1},"advanced":{"base":12,"per_kg_bodyweight":0.15}},
+    "ppl": ["push"]
   },
   {
     "name": "Y-Raises avec haltères",
-    "muscle_groups": ["epaules", "dos"],
-    "muscles": ["deltoides-lateraux", "trapezes"],
+    "muscle_groups": ["epaules","dos"],
+    "muscles": ["deltoides-lateraux","trapezes"],
     "equipment_required": ["dumbbells"],
     "difficulty": "beginner",
     "default_sets": 3,
@@ -3169,20 +2014,8 @@
     "intensity_factor": 0.8,
     "instructions": "Buste penché ou sur un banc incliné. Lever les bras en diagonale pour former un 'Y' avec le corps. Cible les trapèzes inférieurs et les deltoïdes.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 4,
-        "per_kg_bodyweight": 0.03
-      },
-      "intermediate": {
-        "base": 7,
-        "per_kg_bodyweight": 0.05
-      },
-      "advanced": {
-        "base": 10,
-        "per_kg_bodyweight": 0.08
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":4,"per_kg_bodyweight":0.03},"intermediate":{"base":7,"per_kg_bodyweight":0.05},"advanced":{"base":10,"per_kg_bodyweight":0.08}},
+    "ppl": ["pull"]
   },
   {
     "name": "Drag Curl",
@@ -3198,20 +2031,8 @@
     "intensity_factor": 0.8,
     "instructions": "Tirer la barre vers le haut en la faisant glisser le long du torse, en tirant les coudes vers l'arrière. Cible le pic du biceps.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 15,
-        "per_kg_bodyweight": 0.1
-      },
-      "intermediate": {
-        "base": 20,
-        "per_kg_bodyweight": 0.15
-      },
-      "advanced": {
-        "base": 25,
-        "per_kg_bodyweight": 0.2
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":15,"per_kg_bodyweight":0.1},"intermediate":{"base":20,"per_kg_bodyweight":0.15},"advanced":{"base":25,"per_kg_bodyweight":0.2}},
+    "ppl": ["pull"]
   },
   {
     "name": "Curl Biceps '21s'",
@@ -3227,20 +2048,8 @@
     "intensity_factor": 1,
     "instructions": "Effectuer 7 répétitions sur la moitié basse du mouvement, 7 répétitions sur la moitié haute, et 7 répétitions complètes, sans pause.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 12,
-        "per_kg_bodyweight": 0.08
-      },
-      "intermediate": {
-        "base": 18,
-        "per_kg_bodyweight": 0.12
-      },
-      "advanced": {
-        "base": 24,
-        "per_kg_bodyweight": 0.18
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":12,"per_kg_bodyweight":0.08},"intermediate":{"base":18,"per_kg_bodyweight":0.12},"advanced":{"base":24,"per_kg_bodyweight":0.18}},
+    "ppl": ["pull"]
   },
   {
     "name": "Triceps Kickbacks",
@@ -3256,20 +2065,8 @@
     "intensity_factor": 0.7,
     "instructions": "Buste penché, bras supérieur parallèle au sol. Tendre l'avant-bras vers l'arrière contre la gravité, en se concentrant sur la contraction du triceps.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 5,
-        "per_kg_bodyweight": 0.05
-      },
-      "intermediate": {
-        "base": 8,
-        "per_kg_bodyweight": 0.08
-      },
-      "advanced": {
-        "base": 12,
-        "per_kg_bodyweight": 0.12
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":5,"per_kg_bodyweight":0.05},"intermediate":{"base":8,"per_kg_bodyweight":0.08},"advanced":{"base":12,"per_kg_bodyweight":0.12}},
+    "ppl": ["push"]
   },
   {
     "name": "Extensions triceps sur banc (Bodyweight)",
@@ -3285,16 +2082,13 @@
     "intensity_factor": 1,
     "instructions": "Face à un banc, mains sur le bord. Reculer les pieds et descendre le front vers le banc en pliant les coudes, puis remonter.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 40,
-      "intermediate": 50,
-      "advanced": 60
-    }
+    "bodyweight_percentage": {"beginner":40,"intermediate":50,"advanced":60},
+    "ppl": ["push"]
   },
   {
     "name": "Toes-to-Bar",
-    "muscle_groups": ["abdominaux", "dos"],
-    "muscles": ["abdominaux", "grand-dorsal"],
+    "muscle_groups": ["abdominaux","dos"],
+    "muscles": ["abdominaux","grand-dorsal"],
     "equipment_required": ["pull_up_bar"],
     "difficulty": "advanced",
     "default_sets": 3,
@@ -3305,11 +2099,8 @@
     "intensity_factor": 1.3,
     "instructions": "Suspendu à la barre. Utiliser un mouvement de kipping ou strict pour amener les pointes de pieds à toucher la barre.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 45,
-      "intermediate": 50,
-      "advanced": 55
-    }
+    "bodyweight_percentage": {"beginner":45,"intermediate":50,"advanced":55},
+    "ppl": ["legs"]
   },
   {
     "name": "Wood Chops (Bûcheron) avec élastique",
@@ -3325,20 +2116,8 @@
     "intensity_factor": 0.9,
     "instructions": "Fixer l'élastique en hauteur. Tirer la bande en diagonale vers le bas, à travers le corps, en pivotant le torse.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 5,
-        "per_kg_bodyweight": 0
-      },
-      "intermediate": {
-        "base": 10,
-        "per_kg_bodyweight": 0
-      },
-      "advanced": {
-        "base": 15,
-        "per_kg_bodyweight": 0
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":5,"per_kg_bodyweight":0},"intermediate":{"base":10,"per_kg_bodyweight":0},"advanced":{"base":15,"per_kg_bodyweight":0}},
+    "ppl": ["legs"]
   },
   {
     "name": "Hollow Hold Rocks",
@@ -3354,16 +2133,13 @@
     "intensity_factor": 1,
     "instructions": "En position de Hollow Hold (banane), effectuer un léger mouvement de balancier d'avant en arrière sans perdre la forme.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 0,
-      "intermediate": 0,
-      "advanced": 0
-    }
+    "bodyweight_percentage": {"beginner":0,"intermediate":0,"advanced":0},
+    "ppl": ["legs"]
   },
   {
     "name": "Tuck Hold",
-    "muscle_groups": ["abdominaux", "bras"],
-    "muscles": ["abdominaux", "triceps"],
+    "muscle_groups": ["abdominaux","bras"],
+    "muscles": ["abdominaux","triceps"],
     "equipment_required": ["dip_bar"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -3374,17 +2150,14 @@
     "intensity_factor": 1.1,
     "instructions": "En appui sur des barres parallèles, lever les genoux vers la poitrine et maintenir la position, corps stable.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 0,
-      "intermediate": 0,
-      "advanced": 0
-    }
+    "bodyweight_percentage": {"beginner":0,"intermediate":0,"advanced":0},
+    "ppl": ["legs"]
   },
   {
     "name": "Around the Worlds",
-    "muscle_groups": ["epaules", "pectoraux"],
-    "muscles": ["deltoides-anterieurs", "pectoraux-superieurs"],
-    "equipment_required": ["dumbbells", "bench_flat"],
+    "muscle_groups": ["epaules","pectoraux"],
+    "muscles": ["deltoides-anterieurs","pectoraux-superieurs"],
+    "equipment_required": ["dumbbells","bench_flat"],
     "difficulty": "intermediate",
     "default_sets": 3,
     "default_reps_min": 10,
@@ -3394,20 +2167,8 @@
     "intensity_factor": 0.9,
     "instructions": "Allongé sur un banc, haltères légers. Partir bras le long du corps, et décrire un grand arc de cercle pour amener les haltères au-dessus de la tête, puis revenir.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 6,
-        "per_kg_bodyweight": 0.04
-      },
-      "intermediate": {
-        "base": 9,
-        "per_kg_bodyweight": 0.06
-      },
-      "advanced": {
-        "base": 12,
-        "per_kg_bodyweight": 0.08
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":6,"per_kg_bodyweight":0.04},"intermediate":{"base":9,"per_kg_bodyweight":0.06},"advanced":{"base":12,"per_kg_bodyweight":0.08}},
+    "ppl": ["push"]
   },
   {
     "name": "Shrugs avec barre",
@@ -3423,26 +2184,14 @@
     "intensity_factor": 0.9,
     "instructions": "Debout, tenir une barre devant les cuisses. Hausser les épaules le plus haut possible sans plier les coudes. Marquer une pause en haut.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 40,
-        "per_kg_bodyweight": 0.6
-      },
-      "intermediate": {
-        "base": 60,
-        "per_kg_bodyweight": 1
-      },
-      "advanced": {
-        "base": 80,
-        "per_kg_bodyweight": 1.4
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":40,"per_kg_bodyweight":0.6},"intermediate":{"base":60,"per_kg_bodyweight":1},"advanced":{"base":80,"per_kg_bodyweight":1.4}},
+    "ppl": ["pull"]
   },
   {
     "name": "Développé militaire assis",
     "muscle_groups": ["epaules"],
-    "muscles": ["deltoides-anterieurs", "deltoides-lateraux"],
-    "equipment_required": ["barbell", "bench_incline"],
+    "muscles": ["deltoides-anterieurs","deltoides-lateraux"],
+    "equipment_required": ["barbell","bench_incline"],
     "difficulty": "intermediate",
     "default_sets": 3,
     "default_reps_min": 6,
@@ -3452,25 +2201,13 @@
     "intensity_factor": 1.2,
     "instructions": "Assis sur un banc avec dossier à 90 degrés, développer la barre au-dessus de la tête. La position assise isole mieux les épaules.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 20,
-        "per_kg_bodyweight": 0.25
-      },
-      "intermediate": {
-        "base": 30,
-        "per_kg_bodyweight": 0.45
-      },
-      "advanced": {
-        "base": 40,
-        "per_kg_bodyweight": 0.65
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":20,"per_kg_bodyweight":0.25},"intermediate":{"base":30,"per_kg_bodyweight":0.45},"advanced":{"base":40,"per_kg_bodyweight":0.65}},
+    "ppl": ["push"]
   },
   {
     "name": "Kettlebell Turkish Get-Up",
-    "muscle_groups": ["jambes", "epaules", "abdominaux"],
-    "muscles": ["quadriceps", "fessiers", "deltoides-lateraux", "abdominaux", "obliques"],
+    "muscle_groups": ["jambes","epaules","abdominaux"],
+    "muscles": ["quadriceps","fessiers","deltoides-lateraux","abdominaux","obliques"],
     "equipment_required": ["kettlebells"],
     "difficulty": "advanced",
     "default_sets": 3,
@@ -3481,25 +2218,13 @@
     "intensity_factor": 1.4,
     "instructions": "Mouvement complexe partant du sol pour arriver debout, tout en gardant un kettlebell à bout de bras au-dessus de la tête.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 8,
-        "per_kg_bodyweight": 0.1
-      },
-      "intermediate": {
-        "base": 12,
-        "per_kg_bodyweight": 0.15
-      },
-      "advanced": {
-        "base": 16,
-        "per_kg_bodyweight": 0.2
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":8,"per_kg_bodyweight":0.1},"intermediate":{"base":12,"per_kg_bodyweight":0.15},"advanced":{"base":16,"per_kg_bodyweight":0.2}},
+    "ppl": ["push","legs"]
   },
   {
     "name": "Squat avec pause",
     "muscle_groups": ["jambes"],
-    "muscles": ["quadriceps", "fessiers"],
+    "muscles": ["quadriceps","fessiers"],
     "equipment_required": ["barbell"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -3510,20 +2235,8 @@
     "intensity_factor": 1.4,
     "instructions": "Effectuer un squat barre normal, mais marquer une pause de 2-3 secondes en bas de la descente avant de remonter explosivement.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 35,
-        "per_kg_bodyweight": 0.5
-      },
-      "intermediate": {
-        "base": 55,
-        "per_kg_bodyweight": 0.9
-      },
-      "advanced": {
-        "base": 75,
-        "per_kg_bodyweight": 1.3
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":35,"per_kg_bodyweight":0.5},"intermediate":{"base":55,"per_kg_bodyweight":0.9},"advanced":{"base":75,"per_kg_bodyweight":1.3}},
+    "ppl": ["legs"]
   },
   {
     "name": "Relevés de talons sur presse à cuisses",
@@ -3539,25 +2252,13 @@
     "intensity_factor": 0.8,
     "instructions": "Assis à la presse, placer la pointe des pieds sur le bas de la plateforme. Pousser avec les mollets pour étendre les chevilles.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 40,
-        "per_kg_bodyweight": 0.5
-      },
-      "intermediate": {
-        "base": 60,
-        "per_kg_bodyweight": 1
-      },
-      "advanced": {
-        "base": 80,
-        "per_kg_bodyweight": 1.5
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":40,"per_kg_bodyweight":0.5},"intermediate":{"base":60,"per_kg_bodyweight":1},"advanced":{"base":80,"per_kg_bodyweight":1.5}},
+    "ppl": ["legs"]
   },
   {
     "name": "Pompes Spiderman",
-    "muscle_groups": ["pectoraux", "abdominaux"],
-    "muscles": ["pectoraux-inferieurs", "obliques"],
+    "muscle_groups": ["pectoraux","abdominaux"],
+    "muscles": ["pectoraux-inferieurs","obliques"],
     "equipment_required": ["bodyweight"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -3568,16 +2269,13 @@
     "intensity_factor": 1,
     "instructions": "En descendant pour une pompe, amener un genou sur le côté vers le coude du même côté. Alterner à chaque répétition.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 55,
-      "intermediate": 65,
-      "advanced": 70
-    }
+    "bodyweight_percentage": {"beginner":55,"intermediate":65,"advanced":70},
+    "ppl": ["push","legs"]
   },
   {
     "name": "Typewriter Pull-ups",
-    "muscle_groups": ["dos", "bras"],
-    "muscles": ["grand-dorsal", "biceps"],
+    "muscle_groups": ["dos","bras"],
+    "muscles": ["grand-dorsal","biceps"],
     "equipment_required": ["pull_up_bar"],
     "difficulty": "advanced",
     "default_sets": 3,
@@ -3588,17 +2286,14 @@
     "intensity_factor": 1.4,
     "instructions": "Faire une traction. En haut, se déplacer horizontalement d'une main à l'autre, en gardant le menton au-dessus de la barre.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 90,
-      "intermediate": 95,
-      "advanced": 100
-    }
+    "bodyweight_percentage": {"beginner":90,"intermediate":95,"advanced":100},
+    "ppl": ["pull"]
   },
   {
     "name": "Hip Thrust unilatéral",
     "muscle_groups": ["jambes"],
-    "muscles": ["fessiers", "ischio-jambiers"],
-    "equipment_required": ["bodyweight", "bench_flat"],
+    "muscles": ["fessiers","ischio-jambiers"],
+    "equipment_required": ["bodyweight","bench_flat"],
     "difficulty": "intermediate",
     "default_sets": 3,
     "default_reps_min": 10,
@@ -3608,31 +2303,15 @@
     "intensity_factor": 1,
     "instructions": "Comme un Hip Thrust, mais sur une seule jambe, l'autre étant tendue ou fléchie. Peut se faire avec un haltère sur la hanche.",
     "weight_type": "hybrid",
-    "bodyweight_percentage": {
-      "beginner": 40,
-      "intermediate": 45,
-      "advanced": 50
-    },
-    "base_weights_kg": {
-      "beginner": {
-        "base": 0,
-        "per_kg_bodyweight": 0
-      },
-      "intermediate": {
-        "base": 10,
-        "per_kg_bodyweight": 0.1
-      },
-      "advanced": {
-        "base": 15,
-        "per_kg_bodyweight": 0.2
-      }
-    }
+    "bodyweight_percentage": {"beginner":40,"intermediate":45,"advanced":50},
+    "base_weights_kg": {"beginner":{"base":0,"per_kg_bodyweight":0},"intermediate":{"base":10,"per_kg_bodyweight":0.1},"advanced":{"base":15,"per_kg_bodyweight":0.2}},
+    "ppl": ["legs"]
   },
   {
     "name": "Développé incliné prise serrée",
-    "muscle_groups": ["pectoraux", "bras"],
-    "muscles": ["pectoraux-superieurs", "triceps"],
-    "equipment_required": ["barbell", "bench_incline"],
+    "muscle_groups": ["pectoraux","bras"],
+    "muscles": ["pectoraux-superieurs","triceps"],
+    "equipment_required": ["barbell","bench_incline"],
     "difficulty": "intermediate",
     "default_sets": 3,
     "default_reps_min": 8,
@@ -3642,25 +2321,13 @@
     "intensity_factor": 1.2,
     "instructions": "Sur banc incliné, utiliser une prise largeur d'épaules pour développer la barre. Cible le haut des pectoraux et les triceps.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 25,
-        "per_kg_bodyweight": 0.35
-      },
-      "intermediate": {
-        "base": 40,
-        "per_kg_bodyweight": 0.55
-      },
-      "advanced": {
-        "base": 55,
-        "per_kg_bodyweight": 0.8
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":25,"per_kg_bodyweight":0.35},"intermediate":{"base":40,"per_kg_bodyweight":0.55},"advanced":{"base":55,"per_kg_bodyweight":0.8}},
+    "ppl": ["push"]
   },
   {
     "name": "Face pulls à genoux avec élastique",
-    "muscle_groups": ["epaules", "dos"],
-    "muscles": ["deltoides-posterieurs", "trapezes"],
+    "muscle_groups": ["epaules","dos"],
+    "muscles": ["deltoides-posterieurs","trapezes"],
     "equipment_required": ["resistance_bands"],
     "difficulty": "beginner",
     "default_sets": 3,
@@ -3671,20 +2338,8 @@
     "intensity_factor": 0.8,
     "instructions": "À genoux pour plus de stabilité, tirer l'élastique vers le visage en écartant les mains pour une meilleure contraction de l'arrière de l'épaule.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 5,
-        "per_kg_bodyweight": 0
-      },
-      "intermediate": {
-        "base": 10,
-        "per_kg_bodyweight": 0
-      },
-      "advanced": {
-        "base": 15,
-        "per_kg_bodyweight": 0
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":5,"per_kg_bodyweight":0},"intermediate":{"base":10,"per_kg_bodyweight":0},"advanced":{"base":15,"per_kg_bodyweight":0}},
+    "ppl": ["pull"]
   },
   {
     "name": "Crunch avec lest",
@@ -3700,20 +2355,8 @@
     "intensity_factor": 0.8,
     "instructions": "Effectuer des crunchs en tenant un haltère ou un disque sur la poitrine pour augmenter la résistance.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 5,
-        "per_kg_bodyweight": 0.05
-      },
-      "intermediate": {
-        "base": 10,
-        "per_kg_bodyweight": 0.1
-      },
-      "advanced": {
-        "base": 15,
-        "per_kg_bodyweight": 0.15
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":5,"per_kg_bodyweight":0.05},"intermediate":{"base":10,"per_kg_bodyweight":0.1},"advanced":{"base":15,"per_kg_bodyweight":0.15}},
+    "ppl": ["legs"]
   },
   {
     "name": "Relevés de jambes sur banc plat",
@@ -3729,16 +2372,13 @@
     "intensity_factor": 0.8,
     "instructions": "Allongé sur un banc, se tenant au bord. Relever les jambes (tendues ou fléchies) en contractant la partie inférieure des abdominaux.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 40,
-      "intermediate": 45,
-      "advanced": 50
-    }
+    "bodyweight_percentage": {"beginner":40,"intermediate":45,"advanced":50},
+    "ppl": ["legs"]
   },
   {
     "name": "Kettlebell Goblet Squat unilatéral",
-    "muscle_groups": ["jambes", "abdominaux"],
-    "muscles": ["quadriceps", "fessiers", "obliques"],
+    "muscle_groups": ["jambes","abdominaux"],
+    "muscles": ["quadriceps","fessiers","obliques"],
     "equipment_required": ["kettlebells"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -3749,25 +2389,13 @@
     "intensity_factor": 1.1,
     "instructions": "Tenir un kettlebell d'un seul côté, en position 'rack'. Effectuer un squat. La charge asymétrique engage fortement les obliques pour stabiliser.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 8,
-        "per_kg_bodyweight": 0.08
-      },
-      "intermediate": {
-        "base": 12,
-        "per_kg_bodyweight": 0.15
-      },
-      "advanced": {
-        "base": 16,
-        "per_kg_bodyweight": 0.25
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":8,"per_kg_bodyweight":0.08},"intermediate":{"base":12,"per_kg_bodyweight":0.15},"advanced":{"base":16,"per_kg_bodyweight":0.25}},
+    "ppl": ["legs"]
   },
   {
     "name": "Overhead Lunge (Fente avec charge au-dessus de la tête)",
-    "muscle_groups": ["jambes", "epaules"],
-    "muscles": ["quadriceps", "fessiers", "deltoides-lateraux"],
+    "muscle_groups": ["jambes","epaules"],
+    "muscles": ["quadriceps","fessiers","deltoides-lateraux"],
     "equipment_required": ["dumbbells"],
     "difficulty": "advanced",
     "default_sets": 3,
@@ -3778,20 +2406,8 @@
     "intensity_factor": 1.3,
     "instructions": "Tenir un ou deux haltères au-dessus de la tête, bras tendus. Effectuer des fentes avant en gardant la charge stable. Demande beaucoup d'équilibre.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 6,
-        "per_kg_bodyweight": 0.08
-      },
-      "intermediate": {
-        "base": 10,
-        "per_kg_bodyweight": 0.12
-      },
-      "advanced": {
-        "base": 14,
-        "per_kg_bodyweight": 0.18
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":6,"per_kg_bodyweight":0.08},"intermediate":{"base":10,"per_kg_bodyweight":0.12},"advanced":{"base":14,"per_kg_bodyweight":0.18}},
+    "ppl": ["legs","push"]
   },
   {
     "name": "Nordic Hamstring Curls (assisté)",
@@ -3807,16 +2423,13 @@
     "intensity_factor": 1.4,
     "instructions": "À genoux, chevilles bloquées par un partenaire ou un support. Se laisser tomber en avant de manière contrôlée, en résistant avec les ischio-jambiers.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 70,
-      "intermediate": 85,
-      "advanced": 100
-    }
+    "bodyweight_percentage": {"beginner":70,"intermediate":85,"advanced":100},
+    "ppl": ["legs"]
   },
   {
     "name": "Soulevé de terre Sumo",
-    "muscle_groups": ["jambes", "dos"],
-    "muscles": ["fessiers", "quadriceps", "ischio-jambiers", "lombaires"],
+    "muscle_groups": ["jambes","dos"],
+    "muscles": ["fessiers","quadriceps","ischio-jambiers","lombaires"],
     "equipment_required": ["barbell"],
     "difficulty": "advanced",
     "default_sets": 3,
@@ -3827,26 +2440,14 @@
     "intensity_factor": 1.5,
     "instructions": "Position très large, pointes de pieds vers l'extérieur, prise à l'intérieur des jambes. Garder le torse plus droit que pour un soulevé de terre conventionnel.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 55,
-        "per_kg_bodyweight": 0.9
-      },
-      "intermediate": {
-        "base": 85,
-        "per_kg_bodyweight": 1.3
-      },
-      "advanced": {
-        "base": 110,
-        "per_kg_bodyweight": 1.9
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":55,"per_kg_bodyweight":0.9},"intermediate":{"base":85,"per_kg_bodyweight":1.3},"advanced":{"base":110,"per_kg_bodyweight":1.9}},
+    "ppl": ["legs","pull"]
   },
   {
     "name": "I-Y-T Raises",
-    "muscle_groups": ["epaules", "dos"],
-    "muscles": ["deltoides-lateraux", "deltoides-posterieurs", "trapezes"],
-    "equipment_required": ["dumbbells", "bench_incline"],
+    "muscle_groups": ["epaules","dos"],
+    "muscles": ["deltoides-lateraux","deltoides-posterieurs","trapezes"],
+    "equipment_required": ["dumbbells","bench_incline"],
     "difficulty": "beginner",
     "default_sets": 3,
     "default_reps_min": 8,
@@ -3856,26 +2457,14 @@
     "intensity_factor": 0.9,
     "instructions": "Sur banc incliné, effectuer une levée en I (bras droits devant), puis en Y (diagonale), puis en T (sur les côtés), pour une répétition complète.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 4,
-        "per_kg_bodyweight": 0.03
-      },
-      "intermediate": {
-        "base": 6,
-        "per_kg_bodyweight": 0.05
-      },
-      "advanced": {
-        "base": 9,
-        "per_kg_bodyweight": 0.08
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":4,"per_kg_bodyweight":0.03},"intermediate":{"base":6,"per_kg_bodyweight":0.05},"advanced":{"base":9,"per_kg_bodyweight":0.08}},
+    "ppl": ["pull"]
   },
   {
     "name": "Pompes avec pieds surélevés et élastique",
-    "muscle_groups": ["pectoraux", "epaules"],
-    "muscles": ["pectoraux-superieurs", "deltoides-anterieurs"],
-    "equipment_required": ["bodyweight", "bench_flat", "resistance_bands"],
+    "muscle_groups": ["pectoraux","epaules"],
+    "muscles": ["pectoraux-superieurs","deltoides-anterieurs"],
+    "equipment_required": ["bodyweight","bench_flat","resistance_bands"],
     "difficulty": "advanced",
     "default_sets": 3,
     "default_reps_min": 8,
@@ -3885,30 +2474,14 @@
     "intensity_factor": 1.2,
     "instructions": "Combiner les pompes déclinées avec une bande de résistance passée dans le dos et tenue par les mains pour une surcharge maximale.",
     "weight_type": "hybrid",
-    "bodyweight_percentage": {
-      "beginner": 60,
-      "intermediate": 70,
-      "advanced": 75
-    },
-    "base_weights_kg": {
-      "beginner": {
-        "base": 5,
-        "per_kg_bodyweight": 0
-      },
-      "intermediate": {
-        "base": 10,
-        "per_kg_bodyweight": 0
-      },
-      "advanced": {
-        "base": 15,
-        "per_kg_bodyweight": 0
-      }
-    }
+    "bodyweight_percentage": {"beginner":60,"intermediate":70,"advanced":75},
+    "base_weights_kg": {"beginner":{"base":5,"per_kg_bodyweight":0},"intermediate":{"base":10,"per_kg_bodyweight":0},"advanced":{"base":15,"per_kg_bodyweight":0}},
+    "ppl": ["push"]
   },
   {
     "name": "Ab Rollout avec barre",
-    "muscle_groups": ["abdominaux", "dos"],
-    "muscles": ["abdominaux", "grand-dorsal"],
+    "muscle_groups": ["abdominaux","dos"],
+    "muscles": ["abdominaux","grand-dorsal"],
     "equipment_required": ["barbell"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -3919,25 +2492,13 @@
     "intensity_factor": 1.1,
     "instructions": "À genoux, tenir une barre chargée de petits disques. Faire rouler la barre vers l'avant jusqu'à l'extension quasi complète, puis revenir en contractant les abdos.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 5,
-        "per_kg_bodyweight": 0.05
-      },
-      "intermediate": {
-        "base": 10,
-        "per_kg_bodyweight": 0.1
-      },
-      "advanced": {
-        "base": 15,
-        "per_kg_bodyweight": 0.15
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":5,"per_kg_bodyweight":0.05},"intermediate":{"base":10,"per_kg_bodyweight":0.1},"advanced":{"base":15,"per_kg_bodyweight":0.15}},
+    "ppl": ["legs"]
   },
   {
     "name": "Planche avec bras tendus (Plank push-up position)",
-    "muscle_groups": ["abdominaux", "epaules"],
-    "muscles": ["abdominaux", "deltoides-anterieurs"],
+    "muscle_groups": ["abdominaux","epaules"],
+    "muscles": ["abdominaux","deltoides-anterieurs"],
     "equipment_required": ["bodyweight"],
     "difficulty": "beginner",
     "default_sets": 3,
@@ -3948,16 +2509,13 @@
     "intensity_factor": 0.9,
     "instructions": "Tenir la position haute des pompes, mains directement sous les épaules, corps droit et gainé. Plus exigeant pour les épaules que la planche sur avant-bras.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 0,
-      "intermediate": 0,
-      "advanced": 0
-    }
+    "bodyweight_percentage": {"beginner":0,"intermediate":0,"advanced":0},
+    "ppl": ["legs"]
   },
   {
     "name": "Soulevé de terre à une main avec Kettlebell",
-    "muscle_groups": ["dos", "jambes", "abdominaux"],
-    "muscles": ["lombaires", "fessiers", "obliques"],
+    "muscle_groups": ["dos","jambes","abdominaux"],
+    "muscles": ["lombaires","fessiers","obliques"],
     "equipment_required": ["kettlebells"],
     "difficulty": "advanced",
     "default_sets": 3,
@@ -3968,26 +2526,14 @@
     "intensity_factor": 1.3,
     "instructions": "Effectuer un soulevé de terre en tenant un kettlebell lourd d'une seule main. Le corps doit lutter contre la rotation, engageant fortement les obliques.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 12,
-        "per_kg_bodyweight": 0.15
-      },
-      "intermediate": {
-        "base": 20,
-        "per_kg_bodyweight": 0.3
-      },
-      "advanced": {
-        "base": 28,
-        "per_kg_bodyweight": 0.5
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":12,"per_kg_bodyweight":0.15},"intermediate":{"base":20,"per_kg_bodyweight":0.3},"advanced":{"base":28,"per_kg_bodyweight":0.5}},
+    "ppl": ["legs","pull"]
   },
   {
     "name": "Développé couché avec élastique inversé",
-    "muscle_groups": ["pectoraux", "bras"],
-    "muscles": ["pectoraux-inferieurs", "triceps"],
-    "equipment_required": ["barbell", "bench_flat", "resistance_bands"],
+    "muscle_groups": ["pectoraux","bras"],
+    "muscles": ["pectoraux-inferieurs","triceps"],
+    "equipment_required": ["barbell","bench_flat","resistance_bands"],
     "difficulty": "advanced",
     "default_sets": 3,
     "default_reps_min": 5,
@@ -3997,26 +2543,14 @@
     "intensity_factor": 1.4,
     "instructions": "Attacher des élastiques à un support au-dessus du banc et à la barre. L'élastique aide en bas du mouvement et allège la charge, permettant de surcharger la partie haute (lockout).",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 50,
-        "per_kg_bodyweight": 0.7
-      },
-      "intermediate": {
-        "base": 70,
-        "per_kg_bodyweight": 1
-      },
-      "advanced": {
-        "base": 90,
-        "per_kg_bodyweight": 1.4
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":50,"per_kg_bodyweight":0.7},"intermediate":{"base":70,"per_kg_bodyweight":1},"advanced":{"base":90,"per_kg_bodyweight":1.4}},
+    "ppl": ["push"]
   },
   {
     "name": "Muscle-up à la barre (assisté)",
-    "muscle_groups": ["dos", "bras", "pectoraux"],
-    "muscles": ["grand-dorsal", "biceps", "triceps", "pectoraux-inferieurs"],
-    "equipment_required": ["pull_up_bar", "resistance_bands"],
+    "muscle_groups": ["dos","bras","pectoraux"],
+    "muscles": ["grand-dorsal","biceps","triceps","pectoraux-inferieurs"],
+    "equipment_required": ["pull_up_bar","resistance_bands"],
     "difficulty": "advanced",
     "default_sets": 3,
     "default_reps_min": 3,
@@ -4026,11 +2560,8 @@
     "intensity_factor": 1.5,
     "instructions": "Mouvement combinant une traction explosive et un dip pour passer au-dessus de la barre. Utiliser un élastique pour s'assister au début.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 100,
-      "intermediate": 100,
-      "advanced": 100
-    }
+    "bodyweight_percentage": {"beginner":100,"intermediate":100,"advanced":100},
+    "ppl": ["pull","push"]
   },
   {
     "name": "Kneeling Squat",
@@ -4046,25 +2577,13 @@
     "intensity_factor": 1,
     "instructions": "À genoux, barre sur le dos. S'asseoir sur les talons, puis remonter en poussant les hanches vers l'avant, contractant fortement les fessiers.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 20,
-        "per_kg_bodyweight": 0.2
-      },
-      "intermediate": {
-        "base": 30,
-        "per_kg_bodyweight": 0.4
-      },
-      "advanced": {
-        "base": 40,
-        "per_kg_bodyweight": 0.6
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":20,"per_kg_bodyweight":0.2},"intermediate":{"base":30,"per_kg_bodyweight":0.4},"advanced":{"base":40,"per_kg_bodyweight":0.6}},
+    "ppl": ["legs"]
   },
   {
     "name": "Side Plank with Row (Planche latérale avec tirage)",
-    "muscle_groups": ["abdominaux", "dos"],
-    "muscles": ["obliques", "grand-dorsal"],
+    "muscle_groups": ["abdominaux","dos"],
+    "muscles": ["obliques","grand-dorsal"],
     "equipment_required": ["resistance_bands"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -4075,25 +2594,13 @@
     "intensity_factor": 1.1,
     "instructions": "En position de planche latérale, effectuer un mouvement de tirage (rowing) avec le bras libre en utilisant un élastique.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 5,
-        "per_kg_bodyweight": 0
-      },
-      "intermediate": {
-        "base": 8,
-        "per_kg_bodyweight": 0
-      },
-      "advanced": {
-        "base": 12,
-        "per_kg_bodyweight": 0
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":5,"per_kg_bodyweight":0},"intermediate":{"base":8,"per_kg_bodyweight":0},"advanced":{"base":12,"per_kg_bodyweight":0}},
+    "ppl": ["legs","pull"]
   },
   {
     "name": "Jefferson Curl",
-    "muscle_groups": ["dos", "jambes"],
-    "muscles": ["lombaires", "ischio-jambiers"],
+    "muscle_groups": ["dos","jambes"],
+    "muscles": ["lombaires","ischio-jambiers"],
     "equipment_required": ["kettlebells"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -4104,20 +2611,8 @@
     "intensity_factor": 1,
     "instructions": "Debout sur une boîte, avec un kettlebell léger. Enrouler la colonne vertébrale vertèbre par vertèbre pour descendre le poids le plus bas possible. Excellent pour la mobilité de la chaîne postérieure.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 4,
-        "per_kg_bodyweight": 0.05
-      },
-      "intermediate": {
-        "base": 8,
-        "per_kg_bodyweight": 0.1
-      },
-      "advanced": {
-        "base": 12,
-        "per_kg_bodyweight": 0.15
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":4,"per_kg_bodyweight":0.05},"intermediate":{"base":8,"per_kg_bodyweight":0.1},"advanced":{"base":12,"per_kg_bodyweight":0.15}},
+    "ppl": ["legs","pull"]
   },
   {
     "name": "Élévations latérales à un bras avec haltère",
@@ -4133,25 +2628,13 @@
     "intensity_factor": 0.7,
     "instructions": "Se tenir à un support avec une main pour la stabilité. Effectuer des élévations latérales avec l'autre bras. Permet une meilleure concentration sur le muscle.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 7,
-        "per_kg_bodyweight": 0.05
-      },
-      "intermediate": {
-        "base": 11,
-        "per_kg_bodyweight": 0.07
-      },
-      "advanced": {
-        "base": 15,
-        "per_kg_bodyweight": 0.11
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":7,"per_kg_bodyweight":0.05},"intermediate":{"base":11,"per_kg_bodyweight":0.07},"advanced":{"base":15,"per_kg_bodyweight":0.11}},
+    "ppl": ["push"]
   },
   {
     "name": "Wall Handstand Hold",
-    "muscle_groups": ["epaules", "bras"],
-    "muscles": ["deltoides-anterieurs", "deltoides-lateraux", "triceps"],
+    "muscle_groups": ["epaules","bras"],
+    "muscles": ["deltoides-anterieurs","deltoides-lateraux","triceps"],
     "equipment_required": ["bodyweight"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -4162,14 +2645,10 @@
     "intensity_factor": 1.2,
     "instructions": "Se mettre en équilibre sur les mains contre un mur (face au mur ou dos au mur) et maintenir la position.",
     "weight_type": "bodyweight",
-    "bodyweight_percentage": {
-      "beginner": 0,
-      "intermediate": 0,
-      "advanced": 0
-    }
-  }
-,
-{
+    "bodyweight_percentage": {"beginner":0,"intermediate":0,"advanced":0},
+    "ppl": ["push"]
+  },
+  {
     "name": "Curl biceps barre",
     "muscle_groups": ["bras"],
     "muscles": ["biceps"],
@@ -4183,20 +2662,8 @@
     "intensity_factor": 0.7,
     "instructions": "Debout, tenir la barre devant soi, bras le long du corps. Plier les coudes en gardant les bras immobiles pour monter la barre vers les épaules.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 20,
-        "per_kg_bodyweight": 0.1
-      },
-      "intermediate": {
-        "base": 30,
-        "per_kg_bodyweight": 0.2
-      },
-      "advanced": {
-        "base": 40,
-        "per_kg_bodyweight": 0.3
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":20,"per_kg_bodyweight":0.1},"intermediate":{"base":30,"per_kg_bodyweight":0.2},"advanced":{"base":40,"per_kg_bodyweight":0.3}},
+    "ppl": ["pull"]
   },
   {
     "name": "Élévations frontales barre",
@@ -4212,108 +2679,60 @@
     "intensity_factor": 0.8,
     "instructions": "Debout, tenir la barre devant les cuisses. Lever la barre devant soi jusqu'à hauteur d'épaule, bras tendus.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 20,
-        "per_kg_bodyweight": 0.1
-      },
-      "intermediate": {
-        "base": 25,
-        "per_kg_bodyweight": 0.15
-      },
-      "advanced": {
-        "base": 30,
-        "per_kg_bodyweight": 0.2
-      }
-    }
-  }
- ,{
-  "name": "Extension triceps barre",
-  "muscle_groups": ["bras"],
-  "muscles": ["triceps"],
-  "equipment_required": ["barbell"],
-  "difficulty": "beginner",
-  "default_sets": 3,
-  "default_reps_min": 10,
-  "default_reps_max": 15,
-  "base_rest_time_seconds": 60,
-  "exercise_type": "isolation",
-  "intensity_factor": 0.8,
-  "instructions": "Debout ou assis, barre tenue à deux mains au-dessus de la tête, descendre la barre derrière la nuque en pliant les coudes, puis étendre les bras vers le haut.",
-  "weight_type": "external",
-  "base_weights_kg": {
-    "beginner": {
-      "base": 15,
-      "per_kg_bodyweight": 0
-    },
-    "intermediate": {
-      "base": 20,
-      "per_kg_bodyweight": 0
-    },
-    "advanced": {
-      "base": 25,
-      "per_kg_bodyweight": 0
-    }
-  }
- },
- {
-  "name": "Shrugs barre",
-  "muscle_groups": ["dos", "epaules"],
-  "muscles": ["trapezes"],
-  "equipment_required": ["barbell"],
-  "difficulty": "beginner",
-  "default_sets": 3,
-  "default_reps_min": 12,
-  "default_reps_max": 20,
-  "base_rest_time_seconds": 60,
-  "exercise_type": "isolation",
-  "intensity_factor": 0.8,
-  "instructions": "Debout, barre en main devant les cuisses. Hausser les épaules le plus haut possible, marquer une pause et redescendre.",
-  "weight_type": "external",
-  "base_weights_kg": {
-    "beginner": {
-      "base": 30,
-      "per_kg_bodyweight": 0.3
-    },
-    "intermediate": {
-      "base": 45,
-      "per_kg_bodyweight": 0.5
-    },
-    "advanced": {
-      "base": 60,
-      "per_kg_bodyweight": 0.7
-    }
-  }
- },
- {
-  "name": "Soulevé de terre jambes tendues barre",
-  "muscle_groups": ["jambes", "dos"],
-  "muscles": ["ischio-jambiers", "fessiers", "lombaires"],
-  "equipment_required": ["barbell"],
-  "difficulty": "intermediate",
-  "default_sets": 3,
-  "default_reps_min": 8,
-  "default_reps_max": 12,
-  "base_rest_time_seconds": 90,
-  "exercise_type": "compound",
-  "intensity_factor": 1.2,
-  "instructions": "Debout, tenir la barre devant soi, jambes tendues. Pencher le buste en avant tout en gardant le dos droit, descendre la barre le long des jambes.",
-  "weight_type": "external",
-  "base_weights_kg": {
-    "beginner": {
-      "base": 40,
-      "per_kg_bodyweight": 0.5
-    },
-    "intermediate": {
-      "base": 60,
-      "per_kg_bodyweight": 0.8
-    },
-    "advanced": {
-      "base": 80,
-      "per_kg_bodyweight": 1
-    }
-  }
-},
+    "base_weights_kg": {"beginner":{"base":20,"per_kg_bodyweight":0.1},"intermediate":{"base":25,"per_kg_bodyweight":0.15},"advanced":{"base":30,"per_kg_bodyweight":0.2}},
+    "ppl": ["push"]
+  },
+  {
+    "name": "Extension triceps barre",
+    "muscle_groups": ["bras"],
+    "muscles": ["triceps"],
+    "equipment_required": ["barbell"],
+    "difficulty": "beginner",
+    "default_sets": 3,
+    "default_reps_min": 10,
+    "default_reps_max": 15,
+    "base_rest_time_seconds": 60,
+    "exercise_type": "isolation",
+    "intensity_factor": 0.8,
+    "instructions": "Debout ou assis, barre tenue à deux mains au-dessus de la tête, descendre la barre derrière la nuque en pliant les coudes, puis étendre les bras vers le haut.",
+    "weight_type": "external",
+    "base_weights_kg": {"beginner":{"base":15,"per_kg_bodyweight":0},"intermediate":{"base":20,"per_kg_bodyweight":0},"advanced":{"base":25,"per_kg_bodyweight":0}},
+    "ppl": ["push"]
+  },
+  {
+    "name": "Shrugs barre",
+    "muscle_groups": ["dos","epaules"],
+    "muscles": ["trapezes"],
+    "equipment_required": ["barbell"],
+    "difficulty": "beginner",
+    "default_sets": 3,
+    "default_reps_min": 12,
+    "default_reps_max": 20,
+    "base_rest_time_seconds": 60,
+    "exercise_type": "isolation",
+    "intensity_factor": 0.8,
+    "instructions": "Debout, barre en main devant les cuisses. Hausser les épaules le plus haut possible, marquer une pause et redescendre.",
+    "weight_type": "external",
+    "base_weights_kg": {"beginner":{"base":30,"per_kg_bodyweight":0.3},"intermediate":{"base":45,"per_kg_bodyweight":0.5},"advanced":{"base":60,"per_kg_bodyweight":0.7}},
+    "ppl": ["pull"]
+  },
+  {
+    "name": "Soulevé de terre jambes tendues barre",
+    "muscle_groups": ["jambes","dos"],
+    "muscles": ["ischio-jambiers","fessiers","lombaires"],
+    "equipment_required": ["barbell"],
+    "difficulty": "intermediate",
+    "default_sets": 3,
+    "default_reps_min": 8,
+    "default_reps_max": 12,
+    "base_rest_time_seconds": 90,
+    "exercise_type": "compound",
+    "intensity_factor": 1.2,
+    "instructions": "Debout, tenir la barre devant soi, jambes tendues. Pencher le buste en avant tout en gardant le dos droit, descendre la barre le long des jambes.",
+    "weight_type": "external",
+    "base_weights_kg": {"beginner":{"base":40,"per_kg_bodyweight":0.5},"intermediate":{"base":60,"per_kg_bodyweight":0.8},"advanced":{"base":80,"per_kg_bodyweight":1}},
+    "ppl": ["legs","pull"]
+  },
   {
     "name": "Curl biceps barre EZ",
     "muscle_groups": ["bras"],
@@ -4328,20 +2747,8 @@
     "intensity_factor": 0.7,
     "instructions": "Debout, tenir la barre EZ devant soi, bras le long du corps. Plier les coudes en gardant les bras immobiles pour monter la barre vers les épaules. La barre EZ réduit la tension sur les poignets.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 20,
-        "per_kg_bodyweight": 0.1
-      },
-      "intermediate": {
-        "base": 30,
-        "per_kg_bodyweight": 0.2
-      },
-      "advanced": {
-        "base": 40,
-        "per_kg_bodyweight": 0.3
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":20,"per_kg_bodyweight":0.1},"intermediate":{"base":30,"per_kg_bodyweight":0.2},"advanced":{"base":40,"per_kg_bodyweight":0.3}},
+    "ppl": ["pull"]
   },
   {
     "name": "Curl Biceps '21s' barre EZ",
@@ -4357,20 +2764,8 @@
     "intensity_factor": 1,
     "instructions": "Effectuer 7 répétitions sur la moitié basse du mouvement, 7 répétitions sur la moitié haute, et 7 répétitions complètes, sans pause. La barre EZ offre une prise plus naturelle pour cet exercice intense.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 12,
-        "per_kg_bodyweight": 0.08
-      },
-      "intermediate": {
-        "base": 18,
-        "per_kg_bodyweight": 0.12
-      },
-      "advanced": {
-        "base": 24,
-        "per_kg_bodyweight": 0.18
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":12,"per_kg_bodyweight":0.08},"intermediate":{"base":18,"per_kg_bodyweight":0.12},"advanced":{"base":24,"per_kg_bodyweight":0.18}},
+    "ppl": ["pull"]
   },
   {
     "name": "Drag Curl barre EZ",
@@ -4386,26 +2781,14 @@
     "intensity_factor": 0.8,
     "instructions": "Tirer la barre EZ vers le haut en la faisant glisser le long du torse, en tirant les coudes vers l'arrière. Cible le pic du biceps. La barre EZ permet une meilleure activation musculaire.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 15,
-        "per_kg_bodyweight": 0.1
-      },
-      "intermediate": {
-        "base": 20,
-        "per_kg_bodyweight": 0.15
-      },
-      "advanced": {
-        "base": 25,
-        "per_kg_bodyweight": 0.2
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":15,"per_kg_bodyweight":0.1},"intermediate":{"base":20,"per_kg_bodyweight":0.15},"advanced":{"base":25,"per_kg_bodyweight":0.2}},
+    "ppl": ["pull"]
   },
   {
     "name": "Barre au front (Skull Crusher) barre EZ",
     "muscle_groups": ["bras"],
     "muscles": ["triceps"],
-    "equipment_required": ["barbell_ez", "bench_flat"],
+    "equipment_required": ["barbell_ez","bench_flat"],
     "difficulty": "intermediate",
     "default_sets": 3,
     "default_reps_min": 8,
@@ -4415,20 +2798,8 @@
     "intensity_factor": 0.9,
     "instructions": "Allongé sur un banc, tenir la barre EZ au-dessus de la poitrine, bras tendus. Descendre la barre vers le front en pliant uniquement les coudes. La barre EZ réduit la tension sur les poignets et permet un mouvement plus naturel.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 15,
-        "per_kg_bodyweight": 0.15
-      },
-      "intermediate": {
-        "base": 25,
-        "per_kg_bodyweight": 0.25
-      },
-      "advanced": {
-        "base": 35,
-        "per_kg_bodyweight": 0.4
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":15,"per_kg_bodyweight":0.15},"intermediate":{"base":25,"per_kg_bodyweight":0.25},"advanced":{"base":35,"per_kg_bodyweight":0.4}},
+    "ppl": ["push"]
   },
   {
     "name": "Extension triceps barre EZ",
@@ -4444,26 +2815,14 @@
     "intensity_factor": 0.8,
     "instructions": "Debout ou assis, barre EZ tenue à deux mains au-dessus de la tête, descendre la barre derrière la nuque en pliant les coudes, puis étendre les bras vers le haut. La prise de la barre EZ est plus confortable pour les poignets.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 15,
-        "per_kg_bodyweight": 0
-      },
-      "intermediate": {
-        "base": 20,
-        "per_kg_bodyweight": 0
-      },
-      "advanced": {
-        "base": 25,
-        "per_kg_bodyweight": 0
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":15,"per_kg_bodyweight":0},"intermediate":{"base":20,"per_kg_bodyweight":0},"advanced":{"base":25,"per_kg_bodyweight":0}},
+    "ppl": ["push"]
   },
   {
     "name": "Développé couché barre EZ",
     "muscle_groups": ["pectoraux"],
-    "muscles": ["pectoraux-moyens", "triceps", "deltoides-anterieurs"],
-    "equipment_required": ["barbell_ez", "bench_flat"],
+    "muscles": ["pectoraux-moyens","triceps","deltoides-anterieurs"],
+    "equipment_required": ["barbell_ez","bench_flat"],
     "difficulty": "beginner",
     "default_sets": 3,
     "default_reps_min": 8,
@@ -4473,26 +2832,14 @@
     "intensity_factor": 1.2,
     "instructions": "Allongé sur un banc, descendre la barre EZ vers la poitrine et la repousser. Adapté pour charges légères à modérées. La barre EZ offre une prise plus confortable pour les poignets.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 25,
-        "per_kg_bodyweight": 0.3
-      },
-      "intermediate": {
-        "base": 35,
-        "per_kg_bodyweight": 0.5
-      },
-      "advanced": {
-        "base": 45,
-        "per_kg_bodyweight": 0.7
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":25,"per_kg_bodyweight":0.3},"intermediate":{"base":35,"per_kg_bodyweight":0.5},"advanced":{"base":45,"per_kg_bodyweight":0.7}},
+    "ppl": ["push"]
   },
   {
     "name": "Développé incliné barre EZ",
     "muscle_groups": ["pectoraux"],
-    "muscles": ["pectoraux-superieurs", "triceps", "deltoides-anterieurs"],
-    "equipment_required": ["barbell_ez", "bench_incline"],
+    "muscles": ["pectoraux-superieurs","triceps","deltoides-anterieurs"],
+    "equipment_required": ["barbell_ez","bench_incline"],
     "difficulty": "intermediate",
     "default_sets": 3,
     "default_reps_min": 8,
@@ -4502,25 +2849,13 @@
     "intensity_factor": 1.1,
     "instructions": "Sur banc incliné, descendre la barre EZ vers le haut de la poitrine et la repousser. Parfait pour cibler le haut des pectoraux avec une prise confortable.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 20,
-        "per_kg_bodyweight": 0.25
-      },
-      "intermediate": {
-        "base": 30,
-        "per_kg_bodyweight": 0.4
-      },
-      "advanced": {
-        "base": 40,
-        "per_kg_bodyweight": 0.6
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":20,"per_kg_bodyweight":0.25},"intermediate":{"base":30,"per_kg_bodyweight":0.4},"advanced":{"base":40,"per_kg_bodyweight":0.6}},
+    "ppl": ["push"]
   },
   {
     "name": "Développé militaire barre EZ",
     "muscle_groups": ["epaules"],
-    "muscles": ["deltoides-anterieurs", "deltoides-lateraux", "triceps"],
+    "muscles": ["deltoides-anterieurs","deltoides-lateraux","triceps"],
     "equipment_required": ["barbell_ez"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -4531,20 +2866,8 @@
     "intensity_factor": 1.1,
     "instructions": "Debout, barre EZ au niveau des épaules, pousser vers le haut au-dessus de la tête. Excellent pour développer la force des épaules avec une prise plus naturelle.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 15,
-        "per_kg_bodyweight": 0.15
-      },
-      "intermediate": {
-        "base": 25,
-        "per_kg_bodyweight": 0.3
-      },
-      "advanced": {
-        "base": 35,
-        "per_kg_bodyweight": 0.45
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":15,"per_kg_bodyweight":0.15},"intermediate":{"base":25,"per_kg_bodyweight":0.3},"advanced":{"base":35,"per_kg_bodyweight":0.45}},
+    "ppl": ["push"]
   },
   {
     "name": "Élévations frontales barre EZ",
@@ -4560,25 +2883,13 @@
     "intensity_factor": 0.8,
     "instructions": "Debout, tenir la barre EZ devant les cuisses. Lever la barre devant soi jusqu'à hauteur d'épaule, bras tendus. La barre EZ offre une prise plus naturelle et réduit la tension sur les poignets.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 20,
-        "per_kg_bodyweight": 0.1
-      },
-      "intermediate": {
-        "base": 25,
-        "per_kg_bodyweight": 0.15
-      },
-      "advanced": {
-        "base": 30,
-        "per_kg_bodyweight": 0.2
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":20,"per_kg_bodyweight":0.1},"intermediate":{"base":25,"per_kg_bodyweight":0.15},"advanced":{"base":30,"per_kg_bodyweight":0.2}},
+    "ppl": ["push"]
   },
   {
     "name": "Rowing menton barre EZ",
     "muscle_groups": ["epaules"],
-    "muscles": ["deltoides-lateraux", "trapezes"],
+    "muscles": ["deltoides-lateraux","trapezes"],
     "equipment_required": ["barbell_ez"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -4589,24 +2900,12 @@
     "intensity_factor": 1,
     "instructions": "Debout, barre EZ en main, prise serrée. Tirer la barre vers le menton en levant les coudes le plus haut possible. La barre EZ permet une prise plus confortable pour ce mouvement avec prise serrée.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 15,
-        "per_kg_bodyweight": 0.15
-      },
-      "intermediate": {
-        "base": 25,
-        "per_kg_bodyweight": 0.25
-      },
-      "advanced": {
-        "base": 35,
-        "per_kg_bodyweight": 0.35
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":15,"per_kg_bodyweight":0.15},"intermediate":{"base":25,"per_kg_bodyweight":0.25},"advanced":{"base":35,"per_kg_bodyweight":0.35}},
+    "ppl": ["push","pull"]
   },
   {
     "name": "Shrugs barre EZ",
-    "muscle_groups": ["dos", "epaules"],
+    "muscle_groups": ["dos","epaules"],
     "muscles": ["trapezes"],
     "equipment_required": ["barbell_ez"],
     "difficulty": "beginner",
@@ -4618,25 +2917,13 @@
     "intensity_factor": 0.8,
     "instructions": "Debout, barre EZ en main devant les cuisses. Hausser les épaules le plus haut possible, marquer une pause et redescendre. La barre EZ permet une prise plus naturelle.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 25,
-        "per_kg_bodyweight": 0.2
-      },
-      "intermediate": {
-        "base": 35,
-        "per_kg_bodyweight": 0.4
-      },
-      "advanced": {
-        "base": 45,
-        "per_kg_bodyweight": 0.6
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":25,"per_kg_bodyweight":0.2},"intermediate":{"base":35,"per_kg_bodyweight":0.4},"advanced":{"base":45,"per_kg_bodyweight":0.6}},
+    "ppl": ["pull"]
   },
   {
     "name": "Rowing barre EZ buste penché",
     "muscle_groups": ["dos"],
-    "muscles": ["grand-dorsal", "trapezes", "lombaires"],
+    "muscles": ["grand-dorsal","trapezes","lombaires"],
     "equipment_required": ["barbell_ez"],
     "difficulty": "intermediate",
     "default_sets": 3,
@@ -4647,26 +2934,14 @@
     "intensity_factor": 1.2,
     "instructions": "Pencher le buste en avant, dos droit. Tirer la barre EZ vers le bas de l'abdomen en contractant les dorsaux. Adapté pour charges légères à modérées avec une prise plus confortable.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 20,
-        "per_kg_bodyweight": 0.3
-      },
-      "intermediate": {
-        "base": 30,
-        "per_kg_bodyweight": 0.5
-      },
-      "advanced": {
-        "base": 40,
-        "per_kg_bodyweight": 0.7
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":20,"per_kg_bodyweight":0.3},"intermediate":{"base":30,"per_kg_bodyweight":0.5},"advanced":{"base":40,"per_kg_bodyweight":0.7}},
+    "ppl": ["pull"]
   },
   {
     "name": "Développé couché prise serrée barre EZ",
     "muscle_groups": ["bras"],
-    "muscles": ["triceps", "pectoraux-moyens"],
-    "equipment_required": ["barbell_ez", "bench_flat"],
+    "muscles": ["triceps","pectoraux-moyens"],
+    "equipment_required": ["barbell_ez","bench_flat"],
     "difficulty": "intermediate",
     "default_sets": 3,
     "default_reps_min": 8,
@@ -4676,26 +2951,14 @@
     "intensity_factor": 1,
     "instructions": "Allongé sur un banc, prise serrée sur la barre EZ. Descendre vers la poitrine et repousser en se concentrant sur les triceps. La barre EZ offre une prise plus naturelle pour ce mouvement.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 20,
-        "per_kg_bodyweight": 0.2
-      },
-      "intermediate": {
-        "base": 30,
-        "per_kg_bodyweight": 0.35
-      },
-      "advanced": {
-        "base": 40,
-        "per_kg_bodyweight": 0.5
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":20,"per_kg_bodyweight":0.2},"intermediate":{"base":30,"per_kg_bodyweight":0.35},"advanced":{"base":40,"per_kg_bodyweight":0.5}},
+    "ppl": ["push"]
   },
   {
     "name": "Hip Thrust barre EZ",
     "muscle_groups": ["jambes"],
-    "muscles": ["fessiers", "ischio-jambiers"],
-    "equipment_required": ["barbell_ez", "bench_flat"],
+    "muscles": ["fessiers","ischio-jambiers"],
+    "equipment_required": ["barbell_ez","bench_flat"],
     "difficulty": "intermediate",
     "default_sets": 3,
     "default_reps_min": 10,
@@ -4705,25 +2968,13 @@
     "intensity_factor": 1.1,
     "instructions": "Dos contre un banc, barre EZ sur les hanches. Pousser les hanches vers le haut en contractant les fessiers. Parfait pour charges légères à modérées avec un meilleur confort de prise.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 20,
-        "per_kg_bodyweight": 0.3
-      },
-      "intermediate": {
-        "base": 35,
-        "per_kg_bodyweight": 0.6
-      },
-      "advanced": {
-        "base": 50,
-        "per_kg_bodyweight": 0.9
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":20,"per_kg_bodyweight":0.3},"intermediate":{"base":35,"per_kg_bodyweight":0.6},"advanced":{"base":50,"per_kg_bodyweight":0.9}},
+    "ppl": ["legs"]
   },
   {
     "name": "Front Squat barre EZ",
     "muscle_groups": ["jambes"],
-    "muscles": ["quadriceps", "fessiers", "abdominaux"],
+    "muscles": ["quadriceps","fessiers","abdominaux"],
     "equipment_required": ["barbell_ez"],
     "difficulty": "advanced",
     "default_sets": 3,
@@ -4734,19 +2985,7 @@
     "intensity_factor": 1.3,
     "instructions": "Barre EZ en position avant, descendre en squat en gardant le torse droit. Plus accessible que le front squat classique grâce à la prise plus confortable de la barre EZ.",
     "weight_type": "external",
-    "base_weights_kg": {
-      "beginner": {
-        "base": 15,
-        "per_kg_bodyweight": 0.2
-      },
-      "intermediate": {
-        "base": 25,
-        "per_kg_bodyweight": 0.4
-      },
-      "advanced": {
-        "base": 35,
-        "per_kg_bodyweight": 0.6
-      }
-    }
+    "base_weights_kg": {"beginner":{"base":15,"per_kg_bodyweight":0.2},"intermediate":{"base":25,"per_kg_bodyweight":0.4},"advanced":{"base":35,"per_kg_bodyweight":0.6}},
+    "ppl": ["legs"]
   }
 ]
