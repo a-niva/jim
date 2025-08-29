@@ -27,7 +27,7 @@ class User(Base):
     motion_detection_enabled = Column(Boolean, default=False)
     motion_calibration_data = Column(JSON, nullable=True)
     motion_calibration_date = Column(DateTime, nullable=True)
-
+    
     # Relations
     workouts = relationship("Workout", back_populates="user", cascade="all, delete-orphan")
     programs = relationship("Program", back_populates="user", cascade="all, delete-orphan")
@@ -59,7 +59,7 @@ class Exercise(Base):
     weight_type = Column(String, default="external")  # "external", "bodyweight", "hybrid"
     base_weights_kg = Column(JSON, nullable=True)  # Structure avec base + per_kg_bodyweight
     bodyweight_percentage = Column(JSON, nullable=True)  # Pour exercices bodyweight/hybrid
-
+    ppl = Column(JSON, default=lambda: [])
 
 class Program(Base):
     """Programme de fitness complet avec structure temporelle et scoring"""

@@ -2178,24 +2178,26 @@ async function showView(viewName) {
 
 
 async function showAISession() {
-    /**
-     * Affiche l'onglet Séance IA
-     * Réutilise pattern de vos autres fonctions show*()
-     */
-    
     console.log('🤖 Affichage Séance IA');
+
+    // Gérer manuellement l'affichage de la vue
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('ai-session').classList.add('active');
     
-    // Réutilise votre fonction showView existante
-    showView('ai-session');
+    // Mettre à jour nav active
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    const aiNavItem = [...document.querySelectorAll('.nav-item')].find(item => 
+        item.onclick && item.onclick.toString().includes('showAISession'));
+    if (aiNavItem) aiNavItem.classList.add('active');
     
-    // Initialiser manager IA (pattern similaire à showPlanning)
+    // Initialiser manager IA
     if (!window.aiSessionManager) {
         console.log('🆕 Création AISessionManager');
         window.aiSessionManager = new AISessionManager('ai-session');
         await window.aiSessionManager.initialize();
     } else {
         console.log('🔄 Refresh AISessionManager existant');
-        await window.aiSessionManager.initialize(); // Refresh
+        await window.aiSessionManager.initialize();
     }
 }
 

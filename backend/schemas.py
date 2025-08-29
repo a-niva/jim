@@ -66,7 +66,8 @@ class ExerciseResponse(BaseModel):
     weight_type: str = "external"
     base_weights_kg: Optional[Dict[str, Dict[str, float]]] = None
     bodyweight_percentage: Optional[Dict[str, float]] = None
-    
+    ppl: List[str] = []
+
     class Config:
         from_attributes = True
 
@@ -293,6 +294,7 @@ class ExerciseAlternative(BaseModel):
     name: str
     muscle_groups: List[str]
     equipment_required: List[str]
+    ppl: List[str] = []
     difficulty: str
     score: float
     reason_match: str
