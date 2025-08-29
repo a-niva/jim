@@ -40,6 +40,46 @@ MUSCLE_GROUP_MAPPING = {
     "biceps": "bras"
 }
 
+PPL_CATEGORIES = {
+    'push': {
+        'name': 'Push (Pousser)',
+        'muscles': ['pectoraux', 'epaules', 'bras'],  # triceps inclus dans bras
+        'description': 'Exercices de poussée - pectoraux, épaules, triceps',
+        'icon': '💪',
+        'color': '#3b82f6'
+    },
+    'pull': {
+        'name': 'Pull (Tirer)', 
+        'muscles': ['dos', 'bras'],  # biceps inclus dans bras
+        'description': 'Exercices de traction - dos, biceps',
+        'icon': '🏋️',
+        'color': '#10b981'
+    },
+    'legs': {
+        'name': 'Legs (Jambes)',
+        'muscles': ['jambes'],
+        'description': 'Exercices jambes complètes',
+        'icon': '🦵',
+        'color': '#f59e0b'
+    },
+    'core': {
+        'name': 'Core (Abdominaux)',
+        'muscles': ['abdominaux'], 
+        'description': 'Exercices gainage et abdominaux',
+        'icon': '💥',
+        'color': '#ef4444'
+    }
+}
+
+PPL_MUSCLE_MAPPING = {
+    'pectoraux': ['push'],
+    'epaules': ['push'],
+    'dos': ['pull'],
+    'jambes': ['legs'],
+    'abdominaux': ['core'],
+    'bras': ['push', 'pull']  # Hybride - dépend du contexte triceps/biceps
+}
+
 def normalize_muscle_group(muscle_group: str) -> str:
     """Normalise un groupe musculaire vers le format standard"""
     return MUSCLE_GROUP_MAPPING.get(muscle_group, muscle_group.lower())

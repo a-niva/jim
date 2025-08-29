@@ -30,7 +30,7 @@ from backend.equipment_service import EquipmentService
 from sqlalchemy import extract, and_
 import calendar
 from collections import defaultdict
-
+from backend.ai_exercise_generator import AIExerciseGenerator
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -2586,7 +2586,82 @@ def start_workout(user_id: int, workout: WorkoutCreate, db: Session = Depends(ge
                 db.commit()
                 logger.info(f"Schedule mis à jour: session {today} démarrée")
     
+
+    # === NOUVEAU : Support type séance IA ===
+    if workout.type == 'ai':
+        # Validation données IA si fournies
+        ai_session_data = getattr(workout, 'ai_session_data', None)
+        
+        if ai_session_data and not ai_session_data.get('exercises'):
+            raise HTTPException(status_code=400, detail="Données séance IA incomplètes")
+        
+        # Workflow identique au type program - pas de logique spéciale
+        logger.info(f"Création workout type IA pour user {user_id}")
+        
+        # Marquer génération comme lancée dans l'historique du programme actif
+        try:
+            active_program = db.query(Program).filter(
+                Program.user_id == user_id,
+                Program.is_active == True
+            ).first()
+            
+            if (active_program and active_program.ai_generation_history and 
+                len(active_program.ai_generation_history) > 0):
+                # Marquer la dernière génération comme lancée
+                active_program.ai_generation_history[-1]["user_launched"] = True
+                active_program.ai_generation_history[-1]["launched_at"] = datetime.now(timezone.utc).isoformat()
+                
+                from sqlalchemy.orm.attributes import flag_modified
+                flag_modified(active_program, "ai_generation_history")
+                db.commit()
+                
+        except Exception as e:
+            logger.warning(f"Erreur marquage génération lancée: {e}")
+
     return {"message": "Séance démarrée", "workout": db_workout}
+
+
+@app.put("/api/workouts/{workout_id}/ai-metadata")
+def save_ai_workout_metadata(
+    workout_id: int,
+    metadata: dict,
+    db: Session = Depends(get_db)
+):
+    """Sauvegarde métadonnées spécifiques séances IA"""
+    
+    workout = db.query(Workout).filter(Workout.id == workout_id).first()
+    if not workout:
+        raise HTTPException(status_code=404, detail="Workout non trouvé")
+    
+    if workout.type != 'ai':
+        raise HTTPException(status_code=400, detail="Métadonnées IA uniquement pour workout type 'ai'")
+    
+    try:
+        # Stocker dans le champ approprié de votre modèle Workout
+        # Adapter selon structure de votre table Workout
+        
+        if hasattr(workout, 'ai_metadata'):
+            workout.ai_metadata = metadata
+        elif hasattr(workout, 'metadata'):
+            if not workout.metadata:
+                workout.metadata = {}
+            workout.metadata['ai_session'] = metadata
+        else:
+            # Si pas de champ métadonnées, logger seulement
+            logger.info(f"Métadonnées IA workout {workout_id}: {metadata}")
+        
+        db.commit()
+        
+        return {
+            "message": "Métadonnées IA sauvées",
+            "workout_id": workout_id,
+            "metadata": metadata
+        }
+        
+    except Exception as e:
+        logger.error(f"Erreur sauvegarde métadonnées IA: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
 
 @app.get("/api/users/{user_id}/workouts/active")
 def get_active_workout(user_id: int, db: Session = Depends(get_db)):
@@ -5181,6 +5256,90 @@ def get_plate_layout(user_id: int, weight: float, exercise_id: int = Query(None)
     except Exception as e:
         logger.error(f"Erreur layout user {user_id}, exercice {exercise_id}, poids {weight}, equipment {exercise_equipment}: {e}")
         raise HTTPException(status_code=500, detail=f"Erreur calcul layout: {str(e)}")
+
+# Dans backend/main.py - AJOUTER après vos endpoints existants
+
+# ===== ENDPOINTS IA GÉNÉRATION EXERCICES =====
+
+@app.post("/api/ai/generate-exercises")
+def generate_ai_exercises(request_data: dict, db: Session = Depends(get_db)):
+    """
+    Endpoint principal génération exercices IA
+    
+    Body: {
+        'user_id': 123,
+        'params': {
+            'ppl_override': null,           # ou 'push'/'pull'/'legs' 
+            'exploration_factor': 0.6,      # 0=favoris, 1=nouveaux
+            'target_exercise_count': 5,     # 3-8
+            'manual_muscle_focus': [],      # [] ou ['pectoraux', 'bras']
+            'randomness_seed': 12345        # Pour regénération reproductible
+        }
+    }
+    """
+    
+    try:
+        # Validation utilisateur
+        user_id = request_data.get('user_id')
+        params = request_data.get('params', {})
+        
+        if not user_id:
+            raise HTTPException(status_code=400, detail="user_id requis")
+        
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+        
+        # Génération IA
+        generator = AIExerciseGenerator(db)
+        result = generator.generate_exercise_list(user_id, params)
+        
+        logger.info(f"✅ Génération IA réussie pour user {user_id}: {len(result['exercises'])} exercices")
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erreur génération IA: {e}")
+        raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
+
+
+@app.get("/api/ai/ppl-recommendation/{user_id}")
+def get_ppl_recommendation(user_id: int, db: Session = Depends(get_db)):
+    """
+    Endpoint recommandation PPL basée récupération + historique
+    
+    Returns: {
+        'category': 'push',
+        'confidence': 0.85,
+        'reasoning': 'Pectoraux excellente récupération (95%)',
+        'alternatives': {'pull': 0.70, 'legs': 0.80},
+        'muscle_readiness': {...}
+    }
+    """
+    
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+        
+        # Génération recommandation
+        generator = AIExerciseGenerator(db)
+        muscle_readiness = generator._get_all_muscle_readiness(user_id)
+        ppl_recommendation = generator._recommend_ppl(user_id, muscle_readiness)
+        
+        return {
+            **ppl_recommendation,
+            'muscle_readiness': muscle_readiness
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erreur recommandation PPL: {e}")
+        raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
+    
 
 @app.put("/api/users/{user_id}/plate-helper")  
 def toggle_plate_helper(user_id: int, enabled: bool = Body(..., embed=True), db: Session = Depends(get_db)):

@@ -2170,8 +2170,37 @@ async function showView(viewName) {
         case 'planning':
             // Initialisation gérée par showPlanning()
             break;
+        case 'ai-session':
+            await showAISession();
+            break;
         }
 }
+
+
+async function showAISession() {
+    /**
+     * Affiche l'onglet Séance IA
+     * Réutilise pattern de vos autres fonctions show*()
+     */
+    
+    console.log('🤖 Affichage Séance IA');
+    
+    // Réutilise votre fonction showView existante
+    showView('ai-session');
+    
+    // Initialiser manager IA (pattern similaire à showPlanning)
+    if (!window.aiSessionManager) {
+        console.log('🆕 Création AISessionManager');
+        window.aiSessionManager = new AISessionManager('ai-session');
+        await window.aiSessionManager.initialize();
+    } else {
+        console.log('🔄 Refresh AISessionManager existant');
+        await window.aiSessionManager.initialize(); // Refresh
+    }
+}
+
+// Exposer globalement pour navigation
+window.showAISession = showAISession;
 
 function showMainInterface() {
     document.getElementById('onboarding').classList.remove('active');
@@ -3018,6 +3047,21 @@ async function loadDashboard() {
         // AJOUT MANQUANT 1: Charger l'état musculaire
         await loadMuscleReadiness();
         
+        // Si mainActions est null, utiliser workoutSection à la place
+        const workoutSection = document.querySelector('.workout-options');
+        if (!mainActions && workoutSection && !document.getElementById('aiSessionCard')) {
+            const aiSessionCard = document.createElement('div');
+            aiSessionCard.id = 'aiSessionCard';
+            aiSessionCard.className = 'action-card';
+            aiSessionCard.innerHTML = `
+                <div class="action-icon"><i class="fas fa-robot"></i></div>
+                <h3>Séance IA</h3>
+                <p>Génération intelligente d'exercices</p>
+            `;
+            aiSessionCard.onclick = () => showAISession();
+            workoutSection.appendChild(aiSessionCard);
+        }
+
         // AJOUT MANQUANT 2: Charger les séances récentes avec exercices enrichis
         if (stats.recent_workouts) {
             const enrichedWorkouts = await enrichWorkoutsWithExercises(stats.recent_workouts);
@@ -3381,6 +3425,40 @@ async function abandonActiveWorkout(workoutId) {
 // ===== MODULE 0 : GESTION DES EXERCICES SKIPPÉS =====
 
 async function skipExercise(exerciseId, reason) {
+
+    // NOUVEAU : Support skip exercices IA
+    if (window.currentWorkoutSession?.type === 'ai') {
+        console.log('⏭️ Skip exercice dans séance IA');
+        
+        // Marquer comme skipped dans session IA
+        const currentIndex = window.currentWorkoutSession.exerciseOrder - 1;
+        const skippedExercise = window.currentWorkoutSession.exercises[currentIndex];
+        
+        if (skippedExercise) {
+            window.currentWorkoutSession.skipped_exercises.push({
+                exercise_id: skippedExercise.exercise_id,
+                exercise_name: skippedExercise.name,
+                skipped_at: new Date().toISOString(),
+                reason: 'user_skip'
+            });
+        }
+        
+        // Passer à exercice suivant
+        const nextIndex = currentIndex + 1;
+        if (nextIndex < window.currentWorkoutSession.exercises.length) {
+            await window.selectExerciseFromAIProgram(
+                window.currentWorkoutSession.exercises[nextIndex].exercise_id, 
+                nextIndex
+            );
+        } else {
+            // Plus d'exercices, finir séance
+            window.showToast('Tous les exercices terminés !', 'success');
+            window.finishWorkout();
+        }
+        
+        return;
+    }
+
     console.log(`📊 MODULE 0 - Skipping exercise ${exerciseId} for reason: ${reason}`);
     
     const exerciseState = currentWorkoutSession.programExercises[exerciseId];
@@ -5020,6 +5098,19 @@ async function setupProgramWorkout(program) {
     let todayExercises = null;
     let todayDate = null;
     
+
+    if (window.currentWorkoutSession?.type === 'ai') {
+        console.log('🤖 Setup séance IA via AISessionManager');
+        
+        // Déléguer à AISessionManager qui gère tout
+        if (window.aiSessionManager) {
+            await window.aiSessionManager.setupAIWorkoutInterface();
+            return;
+        } else {
+            console.warn('AISessionManager non disponible, setup basique');
+        }
+    }
+
     if (program.schedule) {
         // Chercher la session d'aujourd'hui dans le schedule
         todayDate = new Date().toISOString().split('T')[0];
@@ -15594,6 +15685,71 @@ function showPlanningFromProgram() {
     }, 200);
 }
 
+
+async function selectExerciseFromAIProgram(exerciseId, exerciseIndex) {
+    /**
+     * Sélection exercice depuis séance IA générée
+     * 
+     * Adapte selectExerciseFromProgram() pour séances IA
+     * Réutilise toute la logique existante
+     */
+    
+    if (!window.currentWorkoutSession || window.currentWorkoutSession.type !== 'ai') {
+        console.error('Fonction appelée hors contexte séance IA');
+        return;
+    }
+    
+    try {
+        console.log(`🎯 Sélection exercice IA: ${exerciseId} (index ${exerciseIndex})`);
+        
+        // Récupérer exercice depuis liste générée
+        const aiExercise = window.currentWorkoutSession.exercises[exerciseIndex];
+        if (!aiExercise) {
+            window.showToast('Exercice IA introuvable', 'error');
+            return;
+        }
+        
+        // Utiliser selectExercise() existant avec données exercice IA
+        const exerciseForSelection = {
+            id: aiExercise.exercise_id,
+            name: aiExercise.name,
+            muscle_groups: aiExercise.muscle_groups,
+            equipment_required: aiExercise.equipment_required,
+            difficulty: aiExercise.difficulty,
+            default_sets: aiExercise.default_sets,
+            default_reps_min: aiExercise.default_reps_min,
+            default_reps_max: aiExercise.default_reps_max,
+            base_rest_time_seconds: aiExercise.base_rest_time_seconds,
+            exercise_type: aiExercise.exercise_type || 'strength',
+            instructions: aiExercise.instructions
+        };
+        
+        // Mettre à jour ordre exercice dans session
+        window.currentWorkoutSession.exerciseOrder = exerciseIndex + 1;
+        
+        // Appeler fonction existante
+        await window.selectExercise(exerciseForSelection);
+        
+        // Marquer exercice comme actuel dans interface programme
+        document.querySelectorAll('.program-exercise-item').forEach(item => {
+            item.classList.remove('active', 'current-exercise');
+        });
+        
+        const currentItem = document.querySelector(`[data-exercise-index="${exerciseIndex}"]`);
+        if (currentItem) {
+            currentItem.classList.add('active', 'current-exercise');
+        }
+        
+        console.log('✅ Exercice IA sélectionné avec succès');
+        
+    } catch (error) {
+        console.error('❌ Erreur sélection exercice IA:', error);
+        window.showToast('Erreur lors de la sélection', 'error');
+    }
+}
+
+// Exposer globalement
+window.selectExerciseFromAIProgram = selectExerciseFromAIProgram;
 
 function showEndWorkoutModal() {
     const modal = document.getElementById('workoutEndModal');

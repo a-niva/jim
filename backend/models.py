@@ -76,6 +76,8 @@ class Program(Base):
     session_duration_minutes = Column(Integer, nullable=False)
     focus_areas = Column(JSON, nullable=False)  # ["upper_body", "legs", "core"]
     
+    ai_generation_history = Column(JSON, default=lambda: [])
+
     # Structure temporelle NOUVELLE
     weekly_structure = Column(JSON, nullable=False)  
     # Format: [

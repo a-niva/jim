@@ -9846,3 +9846,416 @@ input {
 .workout-delete-btn i {
     font-size: 0.9rem;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ===== INTERFACE SÉANCE IA ===== */
+
+.ai-session-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.ai-session-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.ai-session-header h2 {
+    color: var(--primary);
+    margin-bottom: 0.5rem;
+}
+
+.ai-session-header .subtitle {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+/* Recommandation PPL */
+.ppl-recommendation-card {
+    background: var(--bg-card);
+    border: 2px solid var(--primary);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin: 1rem 0;
+}
+
+.ppl-recommendation-card.high-confidence {
+    border-color: var(--success);
+    background: rgba(16, 185, 129, 0.05);
+}
+
+.ppl-main-recommendation {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.ppl-category-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.ppl-icon {
+    font-size: 2rem;
+}
+
+.ppl-info h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text);
+}
+
+.ppl-reasoning {
+    color: var(--text-muted);
+    margin: 0 0 0.5rem 0;
+    font-style: italic;
+}
+
+.ppl-confidence {
+    font-size: 0.85rem;
+    color: var(--primary);
+}
+
+/* Options PPL alternatives */
+.ppl-override-options h5 {
+    margin: 0 0 1rem 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.ppl-alternatives {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.5rem;
+}
+
+.ppl-option {
+    padding: 0.75rem 0.5rem;
+    border: 2px solid var(--border);
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+    cursor: pointer;
+    text-align: center;
+    font-size: 0.8rem;
+    transition: all 0.3s ease;
+}
+
+.ppl-option:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+}
+
+.ppl-option.selected {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: white;
+}
+
+/* Paramètres génération */
+.ai-params-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin: 1rem 0;
+}
+
+.param-control {
+    background: var(--bg-secondary);
+    padding: 1rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+}
+
+.param-control.full-width {
+    grid-column: 1 / -1;
+}
+
+.param-control label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.param-control input[type="range"] {
+    width: 100%;
+    margin: 0.5rem 0;
+}
+
+.slider-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+}
+
+.param-help {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+    display: block;
+}
+
+/* Focus muscles sélecteur */
+.muscle-focus-selector {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.muscle-focus-btn {
+    padding: 0.5rem;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.3s ease;
+}
+
+.muscle-focus-btn:hover {
+    border-color: var(--primary);
+}
+
+.muscle-focus-btn.selected {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+/* Actions principales */
+.ai-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin: 2rem 0;
+}
+
+.ai-actions .btn {
+    min-width: 160px;
+    font-weight: 600;
+}
+
+/* Preview exercices générés */
+.generated-session-summary {
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+    padding: 1rem;
+    margin: 1rem 0;
+}
+
+.session-meta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.ppl-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    color: white;
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+
+.quality-score {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.exercise-count {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+/* Liste exercices preview */
+.exercises-preview-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.exercise-preview-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    transition: all 0.3s ease;
+}
+
+.exercise-preview-item:hover {
+    border-color: var(--primary);
+    transform: translateX(4px);
+}
+
+.exercise-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.exercise-details {
+    flex: 1;
+}
+
+.exercise-name {
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.25rem;
+}
+
+.exercise-params {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+}
+
+.exercise-muscles {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+}
+
+.muscle-tag {
+    background: var(--primary);
+    color: white;
+    padding: 0.15rem 0.4rem;
+    border-radius: 10px;
+    font-size: 0.7rem;
+}
+
+.equipment-tag {
+    background: var(--text-muted);
+    color: white;
+    padding: 0.15rem 0.4rem;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    margin-left: 0.5rem;
+}
+
+.exercise-actions .btn-small {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
+}
+
+/* Actions lancement */
+.launch-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.launch-actions .btn {
+    min-width: 140px;
+}
+
+/* États spéciaux */
+.outdated-message {
+    background: var(--warning);
+    color: var(--bg);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius);
+    text-align: center;
+    font-size: 0.8rem;
+    margin-bottom: 1rem;
+}
+
+.error-state {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted);
+}
+
+.error-state .error-icon {
+    font-size: 2rem;
+    color: var(--danger);
+    margin-bottom: 1rem;
+}
+
+.muscle-readiness-fallback {
+    text-align: center;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+    border: 1px dashed var(--border);
+}
+
+/* Mobile adaptations */
+@media (max-width: 768px) {
+    .ai-params-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .ppl-alternatives {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .ai-session-container {
+        padding: 0.5rem;
+    }
+    
+    .ppl-category-display {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .session-meta {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .launch-actions {
+        flex-direction: column;
+    }
+    
+    .muscle-focus-selector {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .ppl-alternatives {
+        grid-template-columns: 1fr;
+    }
+    
+    .muscle-focus-selector {
+        grid-template-columns: 1fr;
+    }
+    
+    .ai-actions {
+        flex-direction: column;
+    }
+}
