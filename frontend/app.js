@@ -2134,7 +2134,7 @@ async function showView(viewName) {
     if (navItem) {
         navItem.classList.add('active');
     }
-    if (['dashboard', 'stats', 'profile', 'home', 'workout', 'planning'].includes(viewName)) {
+    if (['dashboard', 'stats', 'profile', 'home', 'workout', 'planning', 'ai-session'].includes(viewName)) {
         document.getElementById('bottomNav').style.display = 'flex';
         
         // Double vérification après un court délai
@@ -2200,7 +2200,7 @@ async function showAISession() {
     // ENSUITE initialiser le manager
     if (!window.aiSessionManager) {
         console.log('🆕 Création AISessionManager');
-        window.aiSessionManager = new AISessionManager('ai-session-container');
+        window.aiSessionManager = new AISessionManager('ai-session');
         await window.aiSessionManager.initialize();
     } else {
         console.log('🔄 Refresh AISessionManager existant');

@@ -10259,3 +10259,21 @@ input {
         flex-direction: column;
     }
 }
+
+/* === INTERFACE SÉANCE IA === */
+.ai-session-main {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 1rem;
+    min-height: 100vh;
+}
+
+.ai-session-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.ai-session-header h2 {
+    color: var(--primary);
+    margin-bottom: 0.5rem;
+}
