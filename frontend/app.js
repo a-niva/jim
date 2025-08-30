@@ -2179,10 +2179,17 @@ async function showView(viewName) {
 
 async function showAISession() {
     console.log('🤖 Affichage Séance IA');
-
-    // Gérer manuellement l'affichage de la vue
+    
+    // D'abord afficher la vue
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    document.getElementById('ai-session').classList.add('active');
+    const aiView = document.getElementById('ai-session');
+    if (aiView) {
+        aiView.classList.add('active');
+        console.log('✅ Vue AI activée');
+    } else {
+        console.error('❌ Vue ai-session introuvable');
+        return;
+    }
     
     // Mettre à jour nav active
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
@@ -2190,7 +2197,7 @@ async function showAISession() {
         item.onclick && item.onclick.toString().includes('showAISession'));
     if (aiNavItem) aiNavItem.classList.add('active');
     
-    // Initialiser manager IA
+    // ENSUITE initialiser le manager
     if (!window.aiSessionManager) {
         console.log('🆕 Création AISessionManager');
         window.aiSessionManager = new AISessionManager('ai-session-container');
