@@ -25,10 +25,10 @@ const PPL_CATEGORIES = {
 };
 
 class AISessionManager {
-    constructor(containerId = 'ai-session') {
+    constructor(containerId = 'ai-session-container') {
         this.containerId = containerId;
-        this.container = null;
-        
+        this.container = null;  // Sera défini dans initialize()
+            
         // Paramètres génération avec valeurs par défaut intelligentes
         this.params = {
             ppl_override: null,           // null = auto-recommendation
@@ -59,12 +59,13 @@ class AISessionManager {
          */
         
         console.log('🤖 Initialisation AISessionManager');
-        
+                
         this.container = document.getElementById(this.containerId);
         if (!this.container) {
             console.error(`Container ${this.containerId} introuvable`);
             return false;
         }
+        console.log('📦 Container trouvé:', this.container);
         
         try {
             // Charger recommandation PPL depuis votre backend
@@ -124,7 +125,12 @@ class AISessionManager {
         /**
          * Affiche l'interface principale de génération
          */
+        if (!this.container) {
+            console.error('❌ Container non défini dans render()');
+            return;
+        }
         
+        console.log('🎨 Début render dans:', this.container);
         this.container.innerHTML = `
             <div class="ai-session-container">
                 <div class="ai-session-header">
@@ -184,6 +190,7 @@ class AISessionManager {
                 </div>
             </div>
         `;
+        console.log('✅ Render terminé');
     }
     
     renderPPLRecommendation() {
