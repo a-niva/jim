@@ -716,7 +716,7 @@ updateButtonStates() {
             }, 1000 + i * 100);
         }
         
-        // Animation bounce du bouton launch
+        // Animation bounce du bouton launch (utilise l'animation CSS)
         setTimeout(() => {
             const launchBtn = document.getElementById('launchAISessionBtn');
             if (launchBtn) {
