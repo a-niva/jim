@@ -10472,7 +10472,7 @@ input {
 }
 
 .ai-session-exercise-preview-item:hover::before {
-    opacity: 1;
+    opacity: 0.5;
 }
 
 .ai-session-exercise-preview-item:hover {

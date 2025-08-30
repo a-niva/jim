@@ -358,304 +358,322 @@ class AISessionManager {
             container.innerHTML = this.renderMuscleFocusOptions();
         }
     }
-// ===== CORRECTIONS JAVASCRIPT POUR CORRESPONDRE AUX NOUVEAUX STYLES =====
+    
+    // ===== CORRECTIONS JAVASCRIPT POUR CORRESPONDRE AUX NOUVEAUX STYLES =====
 
-/**
- * CORRIGER renderExercisePreview() pour utiliser les nouvelles classes et couleurs
- * 
- * LOCALISATION: Dans ai-session-manager.js, méthode renderExercisePreview()
- * ACTION: Remplacer complètement cette méthode
- */
+    /**
+     * CORRIGER renderExercisePreview() pour utiliser les nouvelles classes et couleurs
+     * 
+     * LOCALISATION: Dans ai-session-manager.js, méthode renderExercisePreview()
+     * ACTION: Remplacer complètement cette méthode
+     */
 
-renderExercisePreview() {
-    if (!this.lastGenerated || !this.lastGenerated.exercises) return '';
-    
-    const qualityScore = Math.round(this.lastGenerated.quality_score || 75);
-    const pplUsed = this.lastGenerated.ppl_used || 'push';
-    
-    // Déterminer classe score selon valeur
-    let scoreClass = 'average';
-    if (qualityScore >= 85) scoreClass = 'excellent';
-    else if (qualityScore >= 70) scoreClass = 'good';
-    
-    return `
-        <div class="ai-session-generated-summary">
-            <div class="ai-session-meta">
-                <div class="ai-session-exercise-count">
-                    <i class="fas fa-list"></i> ${this.lastGenerated.exercises.length} exercices
-                </div>
-                <div class="ai-session-ppl-badge" data-ppl="${pplUsed}">
-                    <i class="fas fa-dumbbell"></i>
-                    ${pplUsed.toUpperCase()}
-                </div>
-                <div class="ai-session-quality-score" data-score="${scoreClass}">
-                    <i class="fas fa-star"></i> ${qualityScore}%
-                </div>
-            </div>
-        </div>
+    renderExercisePreview() {
+        if (!this.lastGenerated || !this.lastGenerated.exercises) return '';
         
-        <div id="aiExercisesList" class="ai-session-exercises-preview-list">
-            ${this.lastGenerated.exercises.map((ex, index) => this.renderSingleExercise(ex, index)).join('')}
-        </div>
+        const qualityScore = Math.round(this.lastGenerated.quality_score || 75);
+        const pplUsed = this.lastGenerated.ppl_used || 'push';
         
-        <div class="ai-session-launch-actions">
-            <button id="launchAISessionBtn" class="ai-session-btn ai-session-btn-success">
-                <i class="fas fa-rocket"></i> Lancer Séance
-            </button>
-            <p class="ai-session-launch-note">
-                <i class="fas fa-info-circle"></i> 
-                Interface de séance classique avec tous vos outils habituels
-            </p>
-        </div>
-    `;
-}
-
-/**
- * NOUVELLE MÉTHODE pour rendre un exercice individuel
- * 
- * LOCALISATION: Dans ai-session-manager.js, ajouter cette nouvelle méthode
- * ACTION: Ajouter cette méthode dans la classe AISessionManager
- */
-
-renderSingleExercise(ex, index) {
-    return `
-        <div class="ai-session-exercise-preview-item" data-exercise-index="${index}">
-            <span class="ai-session-exercise-drag-handle" title="Glisser pour réordonner">
-                <i class="fas fa-grip-vertical"></i>
-            </span>
-            
-            <div class="ai-session-exercise-number">${index + 1}</div>
-            
-            <div class="ai-session-exercise-details">
-                <div class="ai-session-exercise-name">${ex.exercise_name || ex.name}</div>
-                <div class="ai-session-exercise-params">
-                    <i class="fas fa-dumbbell"></i>
-                    ${ex.sets || 3} × ${ex.reps_min || 8}-${ex.reps_max || 12}
-                    <i class="fas fa-clock"></i>
-                    ${Math.round((ex.rest_seconds || 90) / 60)}min repos
-                </div>
-                <div class="ai-session-exercise-muscles">
-                    ${(ex.muscle_groups || []).map(muscle => 
-                        `<span class="ai-session-muscle-tag"><i class="fas fa-bullseye"></i> ${muscle}</span>`
-                    ).join('')}
-                    ${ex.equipment_required && ex.equipment_required.length > 0 ? 
-                        `<span class="ai-session-equipment-tag"><i class="fas fa-tools"></i> ${ex.equipment_required[0]}</span>` : ''}
+        // Déterminer classe score selon valeur
+        let scoreClass = 'average';
+        if (qualityScore >= 85) scoreClass = 'excellent';
+        else if (qualityScore >= 70) scoreClass = 'good';
+        
+        return `
+            <div class="ai-session-generated-summary">
+                <div class="ai-session-meta">
+                    <div class="ai-session-exercise-count">
+                        <i class="fas fa-list"></i> ${this.lastGenerated.exercises.length} exercices
+                    </div>
+                    <div class="ai-session-ppl-badge" data-ppl="${pplUsed}">
+                        <i class="fas fa-dumbbell"></i>
+                        ${pplUsed.toUpperCase()}
+                    </div>
+                    <div class="ai-session-quality-score" data-score="${scoreClass}">
+                        <i class="fas fa-star"></i> ${qualityScore}%
+                    </div>
                 </div>
             </div>
             
-            <div class="ai-session-exercise-actions">
-                <button class="ai-session-btn-small ai-session-btn-secondary" 
-                        onclick="window.aiSessionManager.swapExercise(${index})"
-                        title="Remplacer cet exercice">
-                    <i class="fas fa-exchange-alt"></i>
+            <div id="aiExercisesList" class="ai-session-exercises-preview-list">
+                ${this.lastGenerated.exercises.map((ex, index) => this.renderSingleExercise(ex, index)).join('')}
+            </div>
+            
+            <div class="ai-session-launch-actions">
+                <button id="launchAISessionBtn" class="ai-session-btn ai-session-btn-success">
+                    <i class="fas fa-rocket"></i> Lancer Séance
                 </button>
+                <p class="ai-session-launch-note">
+                    <i class="fas fa-info-circle"></i> 
+                    Interface de séance classique avec tous vos outils habituels
+                </p>
             </div>
-        </div>
-    `;
-}
-
-/**
- * CORRIGER animateScoreChange() pour les nouvelles classes
- * 
- * LOCALISATION: Dans ai-session-manager.js, méthode animateScoreChange()
- * ACTION: Remplacer cette méthode
- */
-
-animateScoreChange(newScore) {
-    const scoreElement = document.querySelector('#generatedSessionPreview .ai-session-quality-score');
-    if (!scoreElement) return;
-    
-    // Déterminer nouvelle classe selon score
-    let scoreClass = 'average';
-    if (newScore >= 85) scoreClass = 'excellent';
-    else if (newScore >= 70) scoreClass = 'good';
-    
-    // Appliquer nouvelle classe avec animation
-    scoreElement.setAttribute('data-score', scoreClass);
-    scoreElement.innerHTML = `<i class="fas fa-star"></i> ${newScore}%`;
-    
-    // Animation scale
-    scoreElement.style.transform = 'scale(1.15)';
-    scoreElement.style.transition = 'all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
-    
-    setTimeout(() => {
-        scoreElement.style.transform = 'scale(1)';
-    }, 400);
-    
-    // Animation flash couleur
-    const originalBg = scoreElement.style.background;
-    if (scoreClass === 'excellent') {
-        scoreElement.style.background = 'linear-gradient(135deg, #10b981, #059669)';
-        scoreElement.style.boxShadow = '0 8px 32px rgba(16, 185, 129, 0.6)';
-    } else if (scoreClass === 'good') {
-        scoreElement.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
-        scoreElement.style.boxShadow = '0 8px 32px rgba(245, 158, 11, 0.6)';
-    } else {
-        scoreElement.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
-        scoreElement.style.boxShadow = '0 8px 32px rgba(239, 68, 68, 0.6)';
+        `;
     }
-    
-    setTimeout(() => {
-        scoreElement.style.background = originalBg;
-    }, 1000);
-}
 
-/**
- * CORRIGER updateGeneratedSessionDisplay() pour reload complet
- * 
- * LOCALISATION: Dans ai-session-manager.js, méthode updateGeneratedSessionDisplay()
- * ACTION: Améliorer cette méthode
- */
+    /**
+     * NOUVELLE MÉTHODE pour rendre un exercice individuel
+     * 
+     * LOCALISATION: Dans ai-session-manager.js, ajouter cette nouvelle méthode
+     * ACTION: Ajouter cette méthode dans la classe AISessionManager
+     */
 
-updateGeneratedSessionDisplay() {
-    const previewContainer = document.getElementById('exercisePreviewContainer');
-    const previewSection = document.getElementById('generatedSessionPreview');
-    
-    if (previewContainer && this.lastGenerated) {
-        // Supprimer anciens messages obsolètes
-        const obsoleteMessages = previewSection?.querySelectorAll('.ai-session-outdated-message');
-        obsoleteMessages?.forEach(msg => msg.remove());
-        
-        // Mettre à jour contenu HTML
-        previewContainer.innerHTML = this.renderExercisePreview();
-        
-        // Initialiser fonctionnalités après un délai
-        setTimeout(() => {
-            this.initializeExercisesDragDrop();
-            this.bindLaunchButton();
-            this.addExerciseHoverEffects();
-        }, 150);
-        
-        // Animation apparition des exercices
-        setTimeout(() => {
-            const items = document.querySelectorAll('.ai-session-exercise-preview-item');
-            items.forEach((item, index) => {
-                item.style.opacity = '0';
-                item.style.transform = 'translateY(20px)';
-                item.style.transition = 'all 0.4s ease';
+    renderSingleExercise(ex, index) {
+        return `
+            <div class="ai-session-exercise-preview-item" data-exercise-index="${index}">
+                <span class="ai-session-exercise-drag-handle" title="Glisser pour réordonner">
+                    <i class="fas fa-grip-vertical"></i>
+                </span>
                 
-                setTimeout(() => {
-                    item.style.opacity = '1';
-                    item.style.transform = 'translateY(0)';
-                }, index * 100);
-            });
-        }, 200);
+                <div class="ai-session-exercise-number">${index + 1}</div>
+                
+                <div class="ai-session-exercise-details">
+                    <div class="ai-session-exercise-name">${ex.exercise_name || ex.name}</div>
+                    <div class="ai-session-exercise-params">
+                        <i class="fas fa-dumbbell"></i>
+                        ${ex.sets || 3} × ${ex.reps_min || 8}-${ex.reps_max || 12}
+                        <i class="fas fa-clock"></i>
+                        ${Math.round((ex.rest_seconds || 90) / 60)}min repos
+                    </div>
+                    <div class="ai-session-exercise-muscles">
+                        ${(ex.muscle_groups || []).map(muscle => 
+                            `<span class="ai-session-muscle-tag"><i class="fas fa-bullseye"></i> ${muscle}</span>`
+                        ).join('')}
+                        ${ex.equipment_required && ex.equipment_required.length > 0 ? 
+                            `<span class="ai-session-equipment-tag"><i class="fas fa-tools"></i> ${ex.equipment_required[0]}</span>` : ''}
+                    </div>
+                </div>
+                
+                <div class="ai-session-exercise-actions">
+                    <button class="ai-session-btn-small ai-session-btn-secondary" 
+                            onclick="window.aiSessionManager.swapExercise(${index})"
+                            title="Remplacer cet exercice">
+                        <i class="fas fa-exchange-alt"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * CORRIGER animateScoreChange() pour les nouvelles classes
+     * 
+     * LOCALISATION: Dans ai-session-manager.js, méthode animateScoreChange()
+     * ACTION: Remplacer cette méthode
+     */
+
+    animateScoreChange(newScore) {
+        const scoreElement = document.querySelector('#generatedSessionPreview .ai-session-quality-score');
+        if (!scoreElement) return;
         
-        // Calculer et afficher score initial avec animation
+        // Déterminer nouvelle classe selon score
+        let scoreClass = 'average';
+        if (newScore >= 85) scoreClass = 'excellent';
+        else if (newScore >= 70) scoreClass = 'good';
+        
+        // Appliquer nouvelle classe avec animation
+        scoreElement.setAttribute('data-score', scoreClass);
+        scoreElement.innerHTML = `<i class="fas fa-star"></i> ${newScore}%`;
+        
+        // Animation scale
+        scoreElement.style.transform = 'scale(1.15)';
+        scoreElement.style.transition = 'all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+        
         setTimeout(() => {
-            this.updateAISessionScoring(this.lastGenerated.exercises);
-        }, 300);
+            scoreElement.style.transform = 'scale(1)';
+        }, 400);
+        
+        // Animation flash couleur
+        const originalBg = scoreElement.style.background;
+        if (scoreClass === 'excellent') {
+            scoreElement.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+            scoreElement.style.boxShadow = '0 8px 32px rgba(16, 185, 129, 0.6)';
+        } else if (scoreClass === 'good') {
+            scoreElement.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+            scoreElement.style.boxShadow = '0 8px 32px rgba(245, 158, 11, 0.6)';
+        } else {
+            scoreElement.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+            scoreElement.style.boxShadow = '0 8px 32px rgba(239, 68, 68, 0.6)';
+        }
+        
+        setTimeout(() => {
+            scoreElement.style.background = originalBg;
+        }, 1000);
     }
-    
-    if (previewSection) {
-        previewSection.style.display = 'block';
-    }
-    
-    this.updateButtonStates();
-}
 
-/**
- * NOUVELLE MÉTHODE pour ajouter effets hover aux exercices
- * 
- * LOCALISATION: Dans ai-session-manager.js, ajouter cette nouvelle méthode
- * ACTION: Ajouter cette méthode dans la classe AISessionManager
- */
+    /**
+     * CORRIGER updateGeneratedSessionDisplay() pour reload complet
+     * 
+     * LOCALISATION: Dans ai-session-manager.js, méthode updateGeneratedSessionDisplay()
+     * ACTION: Améliorer cette méthode
+     */
 
-addExerciseHoverEffects() {
-    const items = document.querySelectorAll('.ai-session-exercise-preview-item');
-    
-    items.forEach((item, index) => {
-        // Effet parallax léger sur hover
-        item.addEventListener('mouseenter', (e) => {
-            const handle = item.querySelector('.ai-session-exercise-drag-handle');
-            const number = item.querySelector('.ai-session-exercise-number');
-            
-            if (handle) handle.style.transform = 'translateX(-3px) scale(1.1)';
-            if (number) number.style.transform = 'scale(1.1) rotate(-5deg)';
+
+    updateGeneratedSessionDisplay() {
+        console.log('🎨 [DEBUG] updateGeneratedSessionDisplay appelé');
+        
+        const previewContainer = document.getElementById('exercisePreviewContainer');
+        const previewSection = document.getElementById('generatedSessionPreview');
+        
+        console.log('🔍 [DEBUG] Containers trouvés:', {
+            previewContainer: !!previewContainer,
+            previewSection: !!previewSection,
+            hasGenerated: !!this.lastGenerated
         });
         
-        item.addEventListener('mouseleave', (e) => {
-            const handle = item.querySelector('.ai-session-exercise-drag-handle');
-            const number = item.querySelector('.ai-session-exercise-number');
+        if (previewContainer && this.lastGenerated) {
+            // Supprimer messages obsolètes
+            const obsoleteMessages = previewSection?.querySelectorAll('.ai-session-outdated-message');
+            obsoleteMessages?.forEach(msg => msg.remove());
             
-            if (handle) handle.style.transform = 'translateX(0) scale(1)';
-            if (number) number.style.transform = 'scale(1) rotate(0deg)';
+            // Générer HTML
+            const html = this.renderExercisePreview();
+            console.log('📄 [DEBUG] HTML généré, longueur:', html.length);
+            previewContainer.innerHTML = html;
+            
+            // Initialiser fonctionnalités avec délais
+            setTimeout(() => {
+                console.log('🔧 [DEBUG] Initialisation drag & drop');
+                this.initializeExercisesDragDrop();
+            }, 100);
+            
+            setTimeout(() => {
+                console.log('🔗 [DEBUG] Binding bouton launch');
+                this.bindLaunchButton();
+            }, 150);
+            
+            setTimeout(() => {
+                console.log('📊 [DEBUG] Calcul scoring initial');
+                this.updateAISessionScoring(this.lastGenerated.exercises);
+            }, 200);
+            
+            // Animation apparition
+            setTimeout(() => {
+                const items = document.querySelectorAll('.ai-session-exercise-preview-item');
+                console.log('✨ [DEBUG] Animation de', items.length, 'items');
+                items.forEach((item, index) => {
+                    item.style.opacity = '0';
+                    item.style.transform = 'translateY(20px)';
+                    setTimeout(() => {
+                        item.style.transition = 'all 0.4s ease';
+                        item.style.opacity = '1';
+                        item.style.transform = 'translateY(0)';
+                    }, index * 100);
+                });
+            }, 250);
+        }
+        
+        if (previewSection) {
+            previewSection.style.display = 'block';
+            console.log('👁️ [DEBUG] Section preview affichée');
+        }
+        
+        this.updateButtonStates();
+        console.log('✅ [DEBUG] updateGeneratedSessionDisplay terminé');
+    }
+
+    /**
+     * NOUVELLE MÉTHODE pour ajouter effets hover aux exercices
+     * 
+     * LOCALISATION: Dans ai-session-manager.js, ajouter cette nouvelle méthode
+     * ACTION: Ajouter cette méthode dans la classe AISessionManager
+     */
+
+    addExerciseHoverEffects() {
+        const items = document.querySelectorAll('.ai-session-exercise-preview-item');
+        
+        items.forEach((item, index) => {
+            // Effet parallax léger sur hover
+            item.addEventListener('mouseenter', (e) => {
+                const handle = item.querySelector('.ai-session-exercise-drag-handle');
+                const number = item.querySelector('.ai-session-exercise-number');
+                
+                if (handle) handle.style.transform = 'translateX(-3px) scale(1.1)';
+                if (number) number.style.transform = 'scale(1.1) rotate(-5deg)';
+            });
+            
+            item.addEventListener('mouseleave', (e) => {
+                const handle = item.querySelector('.ai-session-exercise-drag-handle');
+                const number = item.querySelector('.ai-session-exercise-number');
+                
+                if (handle) handle.style.transform = 'translateX(0) scale(1)';
+                if (number) number.style.transform = 'scale(1) rotate(0deg)';
+            });
         });
-    });
-}
-
-/**
- * CORRIGER showGeneratingState() pour meilleur feedback
- * 
- * LOCALISATION: Dans ai-session-manager.js, méthode showGeneratingState()
- * ACTION: Améliorer cette méthode
- */
-
-showGeneratingState() {
-    const generateBtn = document.getElementById('generateSessionBtn');
-    if (generateBtn) {
-        generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Génération en cours...';
-        generateBtn.disabled = true;
-        generateBtn.style.background = 'linear-gradient(135deg, #6b7280, #4b5563)';
-        generateBtn.style.transform = 'scale(0.98)';
-        generateBtn.style.cursor = 'not-allowed';
     }
-    
-    // Animation de la section preview pendant génération
-    const preview = document.getElementById('generatedSessionPreview');
-    if (preview) {
-        preview.style.opacity = '0.6';
-        preview.style.transform = 'scale(0.98)';
-        preview.style.filter = 'blur(2px)';
-        preview.style.transition = 'all 0.3s ease';
-    }
-}
 
-/**
- * CORRIGER updateButtonStates() pour reset visual
- * 
- * LOCALISATION: Dans ai-session-manager.js, méthode updateButtonStates()
- * ACTION: Améliorer cette méthode
- */
+    /**
+     * CORRIGER showGeneratingState() pour meilleur feedback
+     * 
+     * LOCALISATION: Dans ai-session-manager.js, méthode showGeneratingState()
+     * ACTION: Améliorer cette méthode
+     */
 
-updateButtonStates() {
-    const generateBtn = document.getElementById('generateSessionBtn');
-    const regenerateBtn = document.getElementById('regenerateSessionBtn');
-    
-    if (generateBtn) {
-        generateBtn.innerHTML = '<i class="fas fa-magic"></i> Générer Séance';
-        generateBtn.disabled = false;
-        generateBtn.style.background = '';
-        generateBtn.style.transform = '';
-        generateBtn.style.cursor = '';
-    }
-    
-    if (regenerateBtn) {
-        regenerateBtn.disabled = !this.lastGenerated;
-        if (this.lastGenerated) {
-            regenerateBtn.style.opacity = '1';
-            regenerateBtn.style.cursor = 'pointer';
-        } else {
-            regenerateBtn.style.opacity = '0.5';
-            regenerateBtn.style.cursor = 'not-allowed';
+    showGeneratingState() {
+        const generateBtn = document.getElementById('generateSessionBtn');
+        if (generateBtn) {
+            generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Génération en cours...';
+            generateBtn.disabled = true;
+            generateBtn.style.background = 'linear-gradient(135deg, #6b7280, #4b5563)';
+            generateBtn.style.transform = 'scale(0.98)';
+            generateBtn.style.cursor = 'not-allowed';
+        }
+        
+        // Animation de la section preview pendant génération
+        const preview = document.getElementById('generatedSessionPreview');
+        if (preview) {
+            preview.style.opacity = '0.6';
+            preview.style.transform = 'scale(0.98)';
+            preview.style.filter = 'blur(2px)';
+            preview.style.transition = 'all 0.3s ease';
         }
     }
-    
-    // Reset preview visual
-    const preview = document.getElementById('generatedSessionPreview');
-    if (preview) {
-        preview.style.opacity = '1';
-        preview.style.transform = 'scale(1)';
-        preview.style.filter = 'none';
-    }
-}
 
-/**
- * CORRIGER markGenerationOutdated() pour nouvelle classe
- * 
- * LOCALISATION: Dans ai-session-manager.js, méthode markGenerationOutdated()
- * ACTION: Corriger cette méthode
- */
+    /**
+     * CORRIGER updateButtonStates() pour reset visual
+     * 
+     * LOCALISATION: Dans ai-session-manager.js, méthode updateButtonStates()
+     * ACTION: Améliorer cette méthode
+     */
+
+    updateButtonStates() {
+        const generateBtn = document.getElementById('generateSessionBtn');
+        const regenerateBtn = document.getElementById('regenerateSessionBtn');
+        
+        if (generateBtn) {
+            generateBtn.innerHTML = '<i class="fas fa-magic"></i> Générer Séance';
+            generateBtn.disabled = false;
+            generateBtn.style.background = '';
+            generateBtn.style.transform = '';
+            generateBtn.style.cursor = '';
+        }
+        
+        if (regenerateBtn) {
+            regenerateBtn.disabled = !this.lastGenerated;
+            if (this.lastGenerated) {
+                regenerateBtn.style.opacity = '1';
+                regenerateBtn.style.cursor = 'pointer';
+            } else {
+                regenerateBtn.style.opacity = '0.5';
+                regenerateBtn.style.cursor = 'not-allowed';
+            }
+        }
+        
+        // Reset preview visual
+        const preview = document.getElementById('generatedSessionPreview');
+        if (preview) {
+            preview.style.opacity = '1';
+            preview.style.transform = 'scale(1)';
+            preview.style.filter = 'none';
+        }
+    }
+
+    /**
+     * CORRIGER markGenerationOutdated() pour nouvelle classe
+     * 
+     * LOCALISATION: Dans ai-session-manager.js, méthode markGenerationOutdated()
+     * ACTION: Corriger cette méthode
+     */
 
     markGenerationOutdated() {
         if (this.lastGenerated) {
@@ -890,24 +908,29 @@ updateButtonStates() {
         await this.generateSession();
     }
     
+
     async launchAISession() {
-        /**
-         * Lance séance IA en réutilisant EXACTEMENT le workflow Planning/Programme
-         * 
-         * Reproduit : startProgramWorkout() → setupProgramWorkout() → showView('workout')
-         */
+        console.log('🚀 [DEBUG] Début launchAISession()');
         
         if (!this.lastGenerated || !this.lastGenerated.exercises) {
+            console.error('❌ [DEBUG] Pas de séance générée');
             window.showToast('Aucune séance générée à lancer', 'warning');
             return;
         }
         
         try {
-            console.log('🚀 Lancement séance IA - Workflow Programme');
+            console.log('📋 [DEBUG] Exercices à lancer:', this.lastGenerated.exercises);
             
-            // 1. CRÉER WORKOUT BACKEND (comme Planning)
+            // 1. NETTOYER l'état existant (comme startProgramWorkout)
+            if (typeof window.clearWorkoutState === 'function') {
+                console.log('🧹 [DEBUG] Nettoyage état workout');
+                window.clearWorkoutState();
+            }
+            
+            // 2. CRÉER WORKOUT BACKEND
+            console.log('💾 [DEBUG] Création workout backend');
             const workoutData = {
-                type: 'ai', // Type spécifique mais traité comme 'program'
+                type: 'ai',
                 ai_session_data: {
                     exercises: this.lastGenerated.exercises,
                     generation_params: this.params,
@@ -917,33 +940,47 @@ updateButtonStates() {
             };
             
             const response = await window.apiPost(`/api/users/${window.currentUser.id}/workouts`, workoutData);
-            window.currentWorkout = response.workout;
+            console.log('✅ [DEBUG] Workout créé:', response);
             
-            // 2. CRÉER STRUCTURE PROGRAMME FACTICE pour réutiliser startProgramWorkout()
+            // 3. CRÉER PROGRAMME FACTICE comme dans startProgramWorkout
             const fakeProgramForAI = {
-                id: 'ai-generated',
+                id: 'ai-generated-' + Date.now(),
                 name: `Séance IA ${this.lastGenerated.ppl_used.toUpperCase()}`,
+                type: 'ai',
                 exercises: this.lastGenerated.exercises.map((ex, index) => ({
-                    exercise_id: ex.exercise_id,
+                    exercise_id: ex.exercise_id || ex.id,
                     exercise_name: ex.exercise_name || ex.name,
                     name: ex.exercise_name || ex.name,
                     muscle_groups: ex.muscle_groups || [],
+                    muscle_group: ex.muscle_groups?.[0] || 'unknown',
                     sets: ex.sets || ex.default_sets || 3,
+                    totalSets: ex.sets || ex.default_sets || 3, // Important pour startProgramWorkout
                     reps_min: ex.reps_min || ex.default_reps_min || 8,
                     reps_max: ex.reps_max || ex.default_reps_max || 12,
                     rest_seconds: ex.rest_seconds || ex.base_rest_time_seconds || 90,
                     equipment_required: ex.equipment_required || [],
                     difficulty: ex.difficulty || 'intermediate',
                     instructions: ex.instructions || '',
-                    order_in_session: index + 1
-                })),
-                type: 'ai'
+                    order_in_session: index + 1,
+                    index: index,
+                    completedSets: 0,
+                    isCompleted: false
+                }))
             };
             
-            // 3. APPELER EXACTEMENT startProgramWorkout() existant
+            console.log('🏗️ [DEBUG] Programme factice créé:', fakeProgramForAI);
+            
+            // 4. VÉRIFIER que startProgramWorkout existe
+            if (typeof window.startProgramWorkout !== 'function') {
+                console.error('❌ [DEBUG] startProgramWorkout n\'existe pas');
+                throw new Error('Fonction startProgramWorkout non disponible');
+            }
+            
+            // 5. APPELER startProgramWorkout (le workflow principal)
+            console.log('🎯 [DEBUG] Appel startProgramWorkout');
             await window.startProgramWorkout(fakeProgramForAI);
             
-            // 4. MARQUER comme séance IA dans les métadonnées
+            // 6. MARQUER comme séance IA dans les métadonnées
             if (window.currentWorkoutSession) {
                 window.currentWorkoutSession.aiMetadata = {
                     originalType: 'ai',
@@ -951,13 +988,18 @@ updateButtonStates() {
                     qualityScore: this.lastGenerated.quality_score,
                     generationParams: this.params
                 };
+                console.log('✅ [DEBUG] Métadonnées IA ajoutées');
             }
             
-            window.showToast(`Séance ${this.lastGenerated.ppl_used.toUpperCase()} lancée !`, 'success');
+            // 7. TOAST de confirmation
+            window.showToast(`🤖 Séance ${this.lastGenerated.ppl_used.toUpperCase()} lancée !`, 'success');
+            
+            console.log('🎉 [DEBUG] Lancement terminé avec succès');
             
         } catch (error) {
-            console.error('❌ Erreur lancement séance IA:', error);
-            window.showToast('Erreur lors du lancement de la séance', 'error');
+            console.error('❌ [DEBUG] Erreur dans launchAISession:', error);
+            console.error('📊 [DEBUG] Stack trace:', error.stack);
+            window.showToast('Erreur lors du lancement de la séance: ' + error.message, 'error');
         }
     }
     
@@ -1226,15 +1268,29 @@ updateButtonStates() {
         });
     }
 
+
     bindLaunchButton() {
-        /**
-         * BINDING BOUTON LANCEMENT - CLASSES CORRESPONDANTES AU CSS
-         */
+        console.log('🔗 [DEBUG] bindLaunchButton appelé');
         
         const launchBtn = document.getElementById('launchAISessionBtn');
+        console.log('🔍 [DEBUG] Bouton trouvé:', launchBtn);
+        
         if (launchBtn) {
-            launchBtn.removeEventListener('click', this.launchAISession); // Éviter double binding
-            launchBtn.addEventListener('click', this.launchAISession);
+            // Supprimer anciens listeners
+            launchBtn.removeEventListener('click', this.launchAISession);
+            
+            // Ajouter nouveau listener avec bind correct
+            const boundLaunch = this.launchAISession.bind(this);
+            launchBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🖱️ [DEBUG] Bouton cliqué');
+                boundLaunch();
+            });
+            
+            console.log('✅ [DEBUG] Event listener bindé');
+        } else {
+            console.error('❌ [DEBUG] Bouton launchAISessionBtn non trouvé');
         }
     }
         
@@ -1421,36 +1477,39 @@ updateButtonStates() {
     // ===== SCORING TEMPS RÉEL ADAPTÉ DE PLANNING.JS =====
     
     async updateAISessionScoring(exercises) {
-        /**
-         * Calcule et anime le score qualité séance IA
-         * Adapté de planning.js updateLiveScoring()
-         */
+        console.log('📊 [DEBUG] Calcul scoring avec', exercises.length, 'exercices');
         
-        if (!exercises || exercises.length === 0) return;
+        if (!exercises || exercises.length === 0) {
+            console.log('⚠️ [DEBUG] Pas d\'exercices pour scoring');
+            return;
+        }
         
-        let newScore;
+        let newScore = 75; // Score par défaut
         
         try {
-            // Tenter API optimisation si disponible
+            // Tenter API backend si disponible
             const response = await window.apiPost('/api/programs/optimize-session', {
                 user_id: window.currentUser.id,
                 exercises: exercises
             });
             
             newScore = Math.round(response.quality_score || 75);
+            console.log('✅ [DEBUG] Score API:', newScore);
             
         } catch (apiError) {
-            console.warn('⚠️ API scoring non disponible, calcul local');
+            console.warn('⚠️ [DEBUG] API scoring échouée, calcul local');
             newScore = this.calculateLocalQualityScore(exercises);
         }
-        
-        // Animer le changement de score
-        this.animateScoreChange(newScore);
         
         // Mettre à jour dans lastGenerated
         if (this.lastGenerated) {
             this.lastGenerated.quality_score = newScore;
         }
+        
+        // Animer le changement
+        this.animateScoreChange(newScore);
+        
+        console.log('🎯 [DEBUG] Score final:', newScore);
         
         return newScore;
     }
@@ -1655,41 +1714,82 @@ updateButtonStates() {
     // ===== DRAG & DROP ADAPTÉ DE PLANNING.JS =====
         
     initializeExercisesDragDrop() {
-        /**
-         * Initialise drag & drop pour réordonner exercices
-         * Adapté de planning.js initializeEditDragDrop() - CLASSES CSS CORRESPONDANTES
-         */
+        console.log('🔄 [DEBUG] Initialisation drag & drop');
         
         const container = document.getElementById('aiExercisesList');
-        if (!container || !window.Sortable) return;
+        if (!container) {
+            console.error('❌ [DEBUG] Container aiExercisesList non trouvé');
+            return;
+        }
+        
+        if (!window.Sortable) {
+            console.error('❌ [DEBUG] Sortable.js non disponible');
+            return;
+        }
         
         // Détruire instance existante
         if (this.sortableInstance) {
             this.sortableInstance.destroy();
+            console.log('🗑️ [DEBUG] Ancienne instance Sortable détruite');
         }
         
-        // Créer nouvelle instance Sortable
+        // Créer nouvelle instance
         this.sortableInstance = new Sortable(container, {
             animation: 150,
             handle: '.ai-session-exercise-drag-handle',
             ghostClass: 'ai-session-exercise-ghost',
             chosenClass: 'ai-session-exercise-chosen',
+            
             onEnd: async (evt) => {
-                if (evt.oldIndex === evt.newIndex) return;
+                console.log('📦 [DEBUG] Drag terminé:', evt.oldIndex, '→', evt.newIndex);
                 
-                // Réorganiser tableau exercises
-                const [moved] = this.lastGenerated.exercises.splice(evt.oldIndex, 1);
-                this.lastGenerated.exercises.splice(evt.newIndex, 0, moved);
+                if (evt.oldIndex === evt.newIndex) {
+                    console.log('ℹ️ [DEBUG] Même position, rien à faire');
+                    return;
+                }
                 
-                // Recalculer et animer scoring
-                await this.updateAISessionScoring(this.lastGenerated.exercises);
-                
-                console.log('🔄 Exercices réordonnés:', 
-                    this.lastGenerated.exercises.map(ex => ex.exercise_name || ex.name)
-                );
+                try {
+                    // 1. RÉORGANISER le tableau exercises
+                    const [moved] = this.lastGenerated.exercises.splice(evt.oldIndex, 1);
+                    this.lastGenerated.exercises.splice(evt.newIndex, 0, moved);
+                    console.log('✅ [DEBUG] Tableau exercises réorganisé');
+                    
+                    // 2. METTRE À JOUR LES NUMÉROS dans le DOM
+                    this.updateExerciseNumbers();
+                    
+                    // 3. RECALCULER ET ANIMER LE SCORE
+                    await this.updateAISessionScoring(this.lastGenerated.exercises);
+                    
+                    console.log('🎯 [DEBUG] Réorganisation terminée');
+                    
+                } catch (error) {
+                    console.error('❌ [DEBUG] Erreur pendant drag & drop:', error);
+                }
             }
         });
+        
+        console.log('✅ [DEBUG] Sortable initialisé');
     }
+
+        
+    updateExerciseNumbers() {
+        console.log('🔢 [DEBUG] Mise à jour numéros exercices');
+        
+        const exerciseItems = document.querySelectorAll('.ai-session-exercise-preview-item');
+        
+        exerciseItems.forEach((item, index) => {
+            const numberElement = item.querySelector('.ai-session-exercise-number');
+            if (numberElement) {
+                numberElement.textContent = index + 1;
+            }
+            
+            // Mettre à jour aussi l'attribut data
+            item.setAttribute('data-exercise-index', index);
+        });
+        
+        console.log('✅ [DEBUG] Numéros mis à jour');
+    }
+
 
 }
 
