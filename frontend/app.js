@@ -2185,22 +2185,22 @@ async function showAISession() {
     const aiView = document.getElementById('ai-session');
     if (aiView) {
         aiView.classList.add('active');
+        aiView.style.display = 'block';
         console.log('✅ Vue AI activée');
     } else {
         console.error('❌ Vue ai-session introuvable');
         return;
     }
     
-    // Mettre à jour nav active
+    // Reste du code inchangé...
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
     const aiNavItem = [...document.querySelectorAll('.nav-item')].find(item => 
         item.onclick && item.onclick.toString().includes('showAISession'));
     if (aiNavItem) aiNavItem.classList.add('active');
     
-    // ENSUITE initialiser le manager
     if (!window.aiSessionManager) {
         console.log('🆕 Création AISessionManager');
-        window.aiSessionManager = new AISessionManager('ai-session');
+        window.aiSessionManager = new AISessionManager('ai-session-container');
         await window.aiSessionManager.initialize();
     } else {
         console.log('🔄 Refresh AISessionManager existant');
