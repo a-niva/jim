@@ -9858,7 +9858,6 @@ input {
 
 
 
-
 /* ===== INTERFACE SÉANCE IA - DESIGN COMPLET ET LISIBLE ===== */
 
 /* Container principal */
@@ -9914,13 +9913,13 @@ input {
     gap: 0.5rem;
 }
 
-/* ===== RECOMMANDATION PPL - DESIGN AMÉLIORÉ ===== */
+/* ===== RECOMMANDATION PPL - DESIGN COMPACTÉ ===== */
 
 .ai-session-ppl-recommendation-card {
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%);
     border: 2px solid var(--primary);
     border-radius: var(--radius);
-    padding: 1.5rem;
+    padding: 1rem;
     margin: 0;
     text-align: center;
     position: relative;
@@ -9943,53 +9942,53 @@ input {
 }
 
 .ai-session-ppl-main-recommendation {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
 }
 
 .ai-session-ppl-category-display {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-    padding: 1rem;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    padding: 0.75rem;
     background: rgba(255, 255, 255, 0.05);
     border-radius: var(--radius);
     backdrop-filter: blur(10px);
 }
 
 .ai-session-ppl-icon {
-    font-size: 2rem;
+    font-size: 1.5rem;
 }
 
 .ai-session-ppl-info h4 {
-    margin: 0 0 0.5rem 0;
+    margin: 0 0 0.25rem 0;
     color: var(--text);
-    font-size: 1.2rem;
+    font-size: 1rem;
     font-weight: 700;
 }
 
 .ai-session-ppl-reasoning {
     color: var(--text-muted);
-    margin: 0 0 0.5rem 0;
+    margin: 0 0 0.25rem 0;
     font-style: italic;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     line-height: 1.4;
 }
 
 .ai-session-ppl-confidence {
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     color: var(--success);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
-/* Options PPL alternatives - DESIGN AMÉLIORÉ */
+/* Options PPL alternatives - DESIGN COMPACTÉ */
 .ai-session-ppl-override-section h5 {
-    margin: 0 0 1rem 0;
+    margin: 0 0 0.75rem 0;
     color: var(--text);
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     text-align: center;
     font-weight: 600;
 }
@@ -9997,22 +9996,22 @@ input {
 .ai-session-ppl-alternatives {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 0.75rem;
-    margin-bottom: 1rem;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
 }
 
 .ai-session-ppl-option {
-    padding: 0.75rem 0.5rem;
+    padding: 0.6rem 0.4rem;
     border: 2px solid var(--border);
     background: var(--bg-secondary);
     border-radius: var(--radius);
     cursor: pointer;
     text-align: center;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-weight: 600;
     color: var(--text);
     transition: all 0.3s ease;
-    min-height: 65px;
+    min-height: 55px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -10333,14 +10332,14 @@ input {
     background: linear-gradient(90deg, var(--primary), var(--success));
 }
 
+/* META COMPACTÉ SUR UNE LIGNE */
 .ai-session-meta {
-    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-    flex-wrap: wrap;
-    padding: 1.5rem;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1rem;
     background: linear-gradient(135deg, 
         rgba(59, 130, 246, 0.1) 0%, 
         rgba(16, 185, 129, 0.1) 30%, 
@@ -10363,15 +10362,24 @@ input {
     background: linear-gradient(90deg, var(--primary), var(--success), var(--warning), var(--danger));
 }
 
+.ai-session-exercise-count,
+.ai-session-ppl-badge,
+.ai-session-quality-score {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.8rem;
+    flex: 1;
+    text-align: center;
+    min-width: 0;
+}
+
 .ai-session-ppl-badge {
-    padding: 0.8rem 1.5rem;
     border-radius: 25px;
     color: white;
     font-weight: 800;
-    font-size: 0.9rem;
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    justify-content: center;
+    gap: 0.4rem;
     box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
     text-transform: uppercase;
     letter-spacing: 0.8px;
@@ -10392,9 +10400,7 @@ input {
 }
 
 .ai-session-quality-score {
-    font-size: 1rem;
     font-weight: 800;
-    padding: 0.6rem 1.2rem;
     border-radius: 25px;
     transition: all 0.3s ease;
     border: 2px solid;
@@ -10424,27 +10430,25 @@ input {
 }
 
 .ai-session-exercise-count {
-    font-size: 0.95rem;
     color: white;
     font-weight: 700;
     background: linear-gradient(135deg, var(--primary), rgba(59, 130, 246, 0.8));
-    padding: 0.6rem 1.2rem;
     border-radius: 25px;
     border: 2px solid rgba(255, 255, 255, 0.3);
     box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
 }
 
-/* Liste exercices preview - DESIGN PREMIUM */
+/* EXERCICES COMPACTÉS */
 .ai-session-exercises-preview-list {
     display: grid;
-    gap: 0.75rem;
+    gap: 0.5rem;
 }
 
 .ai-session-exercise-preview-item {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    padding: 1.5rem;
+    gap: 0.75rem;
+    padding: 1rem;
     background: linear-gradient(135deg, var(--bg-card) 0%, rgba(59, 130, 246, 0.08) 100%);
     border: 2px solid transparent;
     border-radius: 12px;
@@ -10452,7 +10456,7 @@ input {
     position: relative;
     overflow: hidden;
     cursor: move;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
 }
 
 .ai-session-exercise-preview-item::before {
@@ -10472,7 +10476,7 @@ input {
 }
 
 .ai-session-exercise-preview-item:hover::before {
-    opacity: 0.5;
+    opacity: 1;
 }
 
 .ai-session-exercise-preview-item:hover {
@@ -10486,8 +10490,8 @@ input {
 .ai-session-exercise-drag-handle {
     color: var(--text-muted);
     cursor: grab;
-    font-size: 1.2rem;
-    padding: 0.5rem;
+    font-size: 1rem;
+    padding: 0.4rem;
     border-radius: 6px;
     transition: all 0.3s ease;
     background: rgba(59, 130, 246, 0.1);
@@ -10508,18 +10512,18 @@ input {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
     background: linear-gradient(135deg, var(--primary), var(--success));
     color: white;
     border-radius: 50%;
     font-weight: 800;
-    font-size: 1rem;
+    font-size: 0.9rem;
     flex-shrink: 0;
     box-shadow: 
         0 4px 12px rgba(59, 130, 246, 0.4),
         inset 0 2px 4px rgba(255, 255, 255, 0.2);
-    border: 2px pitting, rgba(255, 255, 255, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.3);
 }
 
 .ai-session-exercise-details {
@@ -10530,18 +10534,18 @@ input {
 .ai-session-exercise-name {
     font-weight: 800;
     color: var(--text);
-    margin-bottom: 0.6rem;
-    font-size: 1.05rem;
-    line-height: 1.3;
+    margin-bottom: 0.4rem;
+    font-size: 0.95rem;
+    line-height: 1.2;
 }
 
 .ai-session-exercise-params {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     color: var(--primary);
-    margin-bottom: 0.8rem;
+    margin-bottom: 0.5rem;
     font-weight: 700;
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(16, 185, 129, 0.15));
-    padding: 0.4rem 0.8rem;
+    padding: 0.3rem 0.6rem;
     border-radius: 20px;
     display: inline-block;
     border: 1px solid rgba(59, 130, 246, 0.3);
@@ -10549,32 +10553,31 @@ input {
 
 .ai-session-exercise-muscles {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.3rem;
     flex-wrap: wrap;
     align-items: center;
+}
+
+.ai-session-muscle-tag,
+.ai-session-equipment-tag {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.7rem;
+    border-radius: 18px;
+    font-weight: 700;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    text-transform: capitalize;
 }
 
 .ai-session-muscle-tag {
     background: linear-gradient(135deg, var(--success), rgba(16, 185, 129, 0.8));
     color: white;
-    padding: 0.3rem 0.8rem;
-    border-radius: 18px;
-    font-size: 0.75rem;
-    font-weight: 700;
     box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    text-transform: capitalize;
 }
 
 .ai-session-equipment-tag {
     background: linear-gradient(135deg, var(--warning), rgba(245, 158, 11, 0.8));
     color: white;
-    padding: 0.3rem 0.8rem;
-    border-radius: 18px;
-    font-size: 0.75rem;
-    font-weight: 700;
     box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .ai-session-exercise-actions {
@@ -10594,9 +10597,10 @@ input {
     color: var(--text);
     position: relative;
     overflow: hidden;
+    cursor: pointer;
 }
 
-.ai-session-exunar-actions .ai-session-btn-small::before {
+.ai-session-exercise-actions .ai-session-btn-small::before {
     content: '';
     position: absolute;
     top: 0;
@@ -10665,7 +10669,7 @@ input {
 }
 
 .ai-session-launch-actions .ai-session-btn-success {
-    background: linear-gradient(135 милитаризованныхdeg, varთ 135deg, var(--success), rgba(16, 185, 129, 0.8));
+    background: linear-gradient(135deg, var(--success), rgba(16, 185, 129, 0.8));
     color: white;
     box-shadow: 
         0 6px 24px rgba(16, 185, 129, 0.4),
@@ -10728,7 +10732,7 @@ input {
 
 .ai-session-alternative-muscles {
     display: flex;
-        gap: 0.25rem;
+    gap: 0.25rem;
     flex-wrap: wrap;
     margin-bottom: 0.25rem;
 }
@@ -10790,7 +10794,100 @@ input {
     animation: ai-session-score-pulse 0.4s ease;
 }
 
+/* ===== SYSTÈME COLLAPSE ===== */
+
+.collapsible-section {
+    transition: all 0.3s ease;
+}
+
+.collapsible-section.collapsed {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    margin: 0;
+    padding: 0;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.collapse-toggle {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+}
+
+.collapse-toggle:hover {
+    color: var(--primary);
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.collapse-toggle.collapsed {
+    transform: rotate(-90deg);
+}
+
+.ai-session-section.post-generation {
+    margin-bottom: 0.5rem;
+}
+
+.ai-session-section.post-generation .section-header h3 {
+    font-size: 0.95rem;
+    margin-bottom: 0;
+}
+
+/* === ÉTATS DRAG & DROP === */
+.ai-session-exercise-ghost {
+    opacity: 0.5;
+    background: var(--primary) !important;
+    color: white !important;
+}
+
+.ai-session-exercise-chosen {
+    transform: rotate(2deg) scale(1.02);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* === ANIMATION BOUNCE POUR CÉLÉBRATION === */
+@keyframes bounce {
+    0%, 20%, 53%, 80%, 100% { 
+        transform: translate3d(0,0,0); 
+    }
+    40%, 43% { 
+        transform: translate3d(0, -15px, 0); 
+    }
+    70% { 
+        transform: translate3d(0, -7px, 0); 
+    }
+    90% { 
+        transform: translate3d(0, -2px, 0); 
+    }
+}
+
 /* ===== RESPONSIVE DESIGN ===== */
+
+@media (max-width: 480px) {
+    .ai-session-meta {
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+    }
+    
+    .ai-session-exercise-count,
+    .ai-session-ppl-badge,
+    .ai-session-quality-score {
+        font-size: 0.75rem;
+        padding: 0.3rem 0.5rem;
+    }
+}
 
 /* Tablettes et petits laptops */
 @media (max-width: 1024px) {
@@ -10871,12 +10968,6 @@ input {
         padding: 0.75rem 0.4rem;
     }
     
-    /* Session meta en colonne */
-    .ai-session-meta {
-        flex-direction: column;
-        gap: 1rem;
-    }
-    
     /* Actions principales en colonne */
     .ai-session-actions {
         flex-direction: column;
@@ -10903,10 +10994,11 @@ input {
     
     /* Exercise preview optimisé mobile */
     .ai-session-exercise-preview-item {
-        padding: 1.25rem;
+        padding: 1rem;
         gap: 0.75rem;
+        margin-bottom: 0.5rem;
     }
-    
+        
     .ai-session-exercise-preview-item:hover {
         transform: translateY(-2px) scale(1.01);
     }
@@ -10918,7 +11010,9 @@ input {
     }
     
     .ai-session-exercise-name {
-        font-size: 0.9rem;
+        font-size: 0.95rem;
+        margin-bottom: 0.4rem;
+        line-height: 1.2;
     }
     
     .ai-session-exercise-muscles {
@@ -10929,56 +11023,6 @@ input {
     .ai-session-equipment-tag {
         font-size: 0.65rem;
         padding: 0.2rem 0.5rem;
-    }
-}
-
-/* Très petits écrans */
-@media (max-width: 480px) {
-    .ai-session-main {
-        padding: 0.25rem;
-    }
-    
-    .ai-session-section {
-        padding: 0.75rem;
-    }
-    
-    .ai-session-ppl-alternatives {
-        grid-template-columns: 1fr;
-    }
-    
-    .ai-session-muscle-focus-selector {
-        grid-template-columns: 1fr;
-    }
-    
-    .ai-session-ppl-option {
-        min-height: 55px;
-        font-size: 0.85rem;
-    }
-    
-    .ai-session-muscle-focus-btn {
-        min-height: 50px;
-        font-size: 0.85rem;
-    }
-    
-    .ai-session-exercise-preview-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.75rem;
-        text-align: left;
-    }
-    
-    .ai-session-exercise-details {
-        width: 100%;
-    }
-    
-    .ai-session-exercise-actions {
-        width: 100%;
-        display: flex;
-        justify-content: flex-end;
-    }
-    
-    .ai-session-exercise-number {
-        align-self: flex-start;
     }
 }
 
@@ -10998,129 +11042,5 @@ input {
     
     .ai-session-param-control:hover {
         box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
-    }
-}
-
-/* === PRÉVISUALISATION EXERCICES AVEC DRAG & DROP === */
-.ai-session-summary {
-    background: var(--bg-card, #ffffff);
-    border: 1px solid var(--border, #e5e7eb);
-    border-radius: var(--radius, 8px);
-    padding: 1rem;
-    margin-bottom: 1.5rem;
-}
-
-.ai-session-stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-}
-
-.ai-session-stat-item {
-    text-align: center;
-}
-
-.ai-session-stat-label {
-    display: block;
-    font-size: 0.8rem;
-    color: var(--text-muted, #6b7280);
-    margin-bottom: 0.25rem;
-}
-
-.ai-session-stat-value {
-    display: block;
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--text-primary, #111827);
-}
-
-.ai-session-exercise-list-draggable {
-    margin: 1rem 0;
-}
-
-.ai-session-exercise-item-draggable {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    background: var(--bg-card, #ffffff);
-    border: 1px solid var(--border, #e5e7eb);
-    border-radius: var(--radius, 8px);
-    margin-bottom: 0.5rem;
-    transition: all 0.2s ease;
-    cursor: move;
-}
-
-.ai-session-exercise-item-draggable:hover {
-    border-color: var(--primary, #3b82f6);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.ai-session-exercise-meta {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-    margin-bottom: 0.25rem;
-    flex-wrap: wrap;
-}
-
-.ai-session-exercise-rest {
-    font-size: 0.8rem;
-    color: var(--text-muted, #6b7280);
-}
-
-.ai-session-exercise-ghost {
-    opacity: 0.5;
-    background: var(--primary, #3b82f6) !important;
-    color: white !important;
-}
-
-.ai-session-exercise-chosen {
-    transform: rotate(2deg) scale(1.02);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-}
-
-.ai-session-launch-section {
-    text-align: center;
-    margin-top: 2rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid var(--border, #e5e7eb);
-}
-
-.ai-session-btn-large {
-    padding: 1rem 2rem;
-    font-size: 1.1rem;
-    font-weight: 600;
-}
-
-.ai-session-btn-success {
-    background: var(--success, #10b981);
-    color: white;
-    border: none;
-    border-radius: var(--radius, 8px);
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.ai-session-btn-success:hover {
-    background: var(--success-dark, #059669);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-}
-
-/* === ANIMATION BOUNCE POUR CÉLÉBRATION === */
-@keyframes bounce {
-    0%, 20%, 53%, 80%, 100% { 
-        transform: translate3d(0,0,0); 
-    }
-    40%, 43% { 
-        transform: translate3d(0, -15px, 0); 
-    }
-    70% { 
-        transform: translate3d(0, -7px, 0); 
-    }
-    90% { 
-        transform: translate3d(0, -2px, 0); 
     }
 }

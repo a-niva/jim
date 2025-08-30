@@ -358,7 +358,7 @@ class AISessionManager {
             container.innerHTML = this.renderMuscleFocusOptions();
         }
     }
-    
+
     // ===== CORRECTIONS JAVASCRIPT POUR CORRESPONDRE AUX NOUVEAUX STYLES =====
 
     /**
@@ -567,8 +567,27 @@ class AISessionManager {
             previewSection.style.display = 'block';
             console.log('👁️ [DEBUG] Section preview affichée');
         }
-        
+
         this.updateButtonStates();
+        
+        // Après génération réussie, collapse les sections
+        if (this.lastGenerated) {
+            setTimeout(() => {
+                this.makeCollapsible();
+                // Auto-collapse après génération
+                document.querySelectorAll('.collapsible-section').forEach(section => {
+                    section.classList.add('collapsed');
+                });
+                document.querySelectorAll('.collapse-toggle').forEach(toggle => {
+                    toggle.classList.add('collapsed');
+                });
+                document.querySelectorAll('.ai-session-section').forEach(section => {
+                    if (section.querySelector('.collapsible-section')) {
+                        section.classList.add('post-generation');
+                    }
+                });
+            }, 500);
+        }
         console.log('✅ [DEBUG] updateGeneratedSessionDisplay terminé');
     }
 
@@ -1788,6 +1807,38 @@ class AISessionManager {
         });
         
         console.log('✅ [DEBUG] Numéros mis à jour');
+    }
+
+    makeCollapsible() {
+        const pplContainer = document.getElementById('pplRecommendationContainer').parentElement;
+        const paramsContainer = document.querySelector('.ai-session-params-container').parentElement;
+        
+        [pplContainer, paramsContainer].forEach(section => {
+            if (!section.querySelector('.section-header')) {
+                const h3 = section.querySelector('h3');
+                if (h3) {
+                    const header = document.createElement('div');
+                    header.className = 'section-header';
+                    header.innerHTML = `
+                        ${h3.outerHTML}
+                        <button class="collapse-toggle">
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                    `;
+                    
+                    const content = section.querySelector('#pplRecommendationContainer, .ai-session-params-container');
+                    content.className += ' collapsible-section';
+                    
+                    h3.replaceWith(header);
+                    
+                    header.addEventListener('click', () => {
+                        content.classList.toggle('collapsed');
+                        header.querySelector('.collapse-toggle').classList.toggle('collapsed');
+                        section.classList.toggle('post-generation');
+                    });
+                }
+            }
+        });
     }
 
 
