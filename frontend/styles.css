@@ -9860,7 +9860,6 @@ input {
 
 
 
-
 /* ===== INTERFACE SÉANCE IA - DESIGN COMPLET ET LISIBLE ===== */
 
 /* Container principal */
@@ -9891,14 +9890,14 @@ input {
     gap: 0.5rem;
 }
 
-.ai-session-header .subtitle {
+.ai-session-header .ai-session-subtitle {
     color: var(--text-muted);
     font-size: 0.9rem;
     margin: 0;
 }
 
 /* Sections générales */
-.section {
+.ai-session-section {
     margin-bottom: 2rem;
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -9906,7 +9905,7 @@ input {
     padding: 1.5rem;
 }
 
-.section h3 {
+.ai-session-section h3 {
     color: var(--text);
     margin-bottom: 1rem;
     font-size: 1.1rem;
@@ -9917,13 +9916,13 @@ input {
 }
 
 /* État musculaire - Réutilise le style existant */
-.muscle-readiness-container {
+.ai-session-muscle-readiness-container {
     /* Hérite des styles muscle-readiness existants */
 }
 
 /* ===== RECOMMANDATION PPL - DESIGN AMÉLIORÉ ===== */
 
-.ppl-recommendation-card {
+.ai-session-ppl-recommendation-card {
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%);
     border: 2px solid var(--primary);
     border-radius: var(--radius);
@@ -9934,7 +9933,7 @@ input {
     overflow: hidden;
 }
 
-.ppl-recommendation-card::before {
+.ai-session-ppl-recommendation-card::before {
     content: '';
     position: absolute;
     top: 0;
@@ -9944,16 +9943,16 @@ input {
     background: linear-gradient(90deg, var(--primary), var(--success));
 }
 
-.ppl-recommendation-card.high-confidence {
+.ai-session-ppl-recommendation-card.ai-session-high-confidence {
     border-color: var(--success);
     background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(59, 130, 246, 0.1) 100%);
 }
 
-.ppl-main-recommendation {
+.ai-session-ppl-main-recommendation {
     margin-bottom: 1.5rem;
 }
 
-.ppl-category-display {
+.ai-session-ppl-category-display {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -9965,18 +9964,18 @@ input {
     backdrop-filter: blur(10px);
 }
 
-.ppl-icon {
+.ai-session-ppl-icon {
     font-size: 2rem;
 }
 
-.ppl-info h4 {
+.ai-session-ppl-info h4 {
     margin: 0 0 0.5rem 0;
     color: var(--text);
     font-size: 1.2rem;
     font-weight: 700;
 }
 
-.ppl-reasoning {
+.ai-session-ppl-reasoning {
     color: var(--text-muted);
     margin: 0 0 0.5rem 0;
     font-style: italic;
@@ -9984,7 +9983,7 @@ input {
     line-height: 1.4;
 }
 
-.ppl-confidence {
+.ai-session-ppl-confidence {
     font-size: 0.85rem;
     color: var(--success);
     font-weight: 700;
@@ -9993,7 +9992,7 @@ input {
 }
 
 /* Options PPL alternatives - DESIGN AMÉLIORÉ */
-.ppl-override-section h5 {
+.ai-session-ppl-override-section h5 {
     margin: 0 0 1rem 0;
     color: var(--text);
     font-size: 0.95rem;
@@ -10001,14 +10000,14 @@ input {
     font-weight: 600;
 }
 
-.ppl-alternatives {
+.ai-session-ppl-alternatives {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 0.75rem;
     margin-bottom: 1rem;
 }
 
-.ppl-option {
+.ai-session-ppl-option {
     padding: 0.75rem 0.5rem;
     border: 2px solid var(--border);
     background: var(--bg-secondary);
@@ -10029,7 +10028,7 @@ input {
     overflow: hidden;
 }
 
-.ppl-option::before {
+.ai-session-ppl-option::before {
     content: '';
     position: absolute;
     top: 0;
@@ -10040,25 +10039,25 @@ input {
     transition: left 0.5s ease;
 }
 
-.ppl-option:hover {
+.ai-session-ppl-option:hover {
     border-color: var(--primary);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
     color: var(--text);
 }
 
-.ppl-option:hover::before {
+.ai-session-ppl-option:hover::before {
     left: 100%;
 }
 
-.ppl-option.selected {
+.ai-session-ppl-option.ai-session-selected {
     border-color: var(--primary);
     background: var(--primary);
     color: white;
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
 }
 
-.ppl-auto-btn {
+.ai-session-ppl-auto-btn {
     grid-column: 1 / -1;
     background: linear-gradient(135deg, var(--primary), var(--success));
     color: white;
@@ -10067,20 +10066,20 @@ input {
     min-height: 50px;
 }
 
-.ppl-auto-btn:hover {
+.ai-session-ppl-auto-btn:hover {
     background: linear-gradient(135deg, var(--primary-dark), var(--success));
     transform: translateY(-1px);
 }
 
 /* ===== PARAMÈTRES - DESIGN AMÉLIORÉ ===== */
 
-.ai-params-container {
+.ai-session-params-container {
     display: grid;
     grid-template-columns: 1fr;
     gap: 1.5rem;
 }
 
-.param-control {
+.ai-session-param-control {
     background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(59, 130, 246, 0.03) 100%);
     padding: 1.25rem;
     border-radius: var(--radius);
@@ -10088,12 +10087,12 @@ input {
     transition: all 0.3s ease;
 }
 
-.param-control:hover {
+.ai-session-param-control:hover {
     border-color: var(--primary);
     box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
 }
 
-.param-control label {
+.ai-session-param-control label {
     display: block;
     margin-bottom: 0.75rem;
     font-weight: 600;
@@ -10105,7 +10104,7 @@ input {
 }
 
 /* Sliders améliorés */
-.param-control input[type="range"] {
+.ai-session-param-control input[type="range"] {
     width: 100%;
     margin: 0.75rem 0;
     height: 8px;
@@ -10117,7 +10116,7 @@ input {
     position: relative;
 }
 
-.param-control input[type="range"]::-webkit-slider-thumb {
+.ai-session-param-control input[type="range"]::-webkit-slider-thumb {
     appearance: none;
     width: 24px;
     height: 24px;
@@ -10129,12 +10128,12 @@ input {
     transition: all 0.3s ease;
 }
 
-.param-control input[type="range"]::-webkit-slider-thumb:hover {
+.ai-session-param-control input[type="range"]::-webkit-slider-thumb:hover {
     transform: scale(1.1);
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.6);
 }
 
-.param-control input[type="range"]::-moz-range-thumb {
+.ai-session-param-control input[type="range"]::-moz-range-thumb {
     width: 24px;
     height: 24px;
     background: linear-gradient(135deg, var(--primary), var(--primary-dark));
@@ -10145,7 +10144,7 @@ input {
     transition: all 0.3s ease;
 }
 
-.slider-labels {
+.ai-session-slider-labels {
     display: flex;
     justify-content: space-between;
     font-size: 0.75rem;
@@ -10153,7 +10152,7 @@ input {
     margin-top: 0.25rem;
 }
 
-.range-value {
+.ai-session-range-value {
     display: inline-block;
     min-width: 3rem;
     text-align: center;
@@ -10165,7 +10164,7 @@ input {
     font-size: 0.85rem;
 }
 
-.param-help {
+.ai-session-param-help {
     color: var(--text-muted);
     font-size: 0.8rem;
     margin-top: 0.75rem;
@@ -10179,14 +10178,14 @@ input {
 
 /* ===== FOCUS MUSCLES - DESIGN PARFAIT ===== */
 
-.muscle-focus-selector {
+.ai-session-muscle-focus-selector {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
     gap: 0.75rem;
     margin-top: 0.75rem;
 }
 
-.muscle-focus-btn {
+.ai-session-muscle-focus-btn {
     padding: 0.75rem 0.5rem;
     border: 2px solid var(--border);
     background: linear-gradient(135deg, var(--bg-card) 0%, rgba(59, 130, 246, 0.03) 100%);
@@ -10205,7 +10204,7 @@ input {
     overflow: hidden;
 }
 
-.muscle-focus-btn::before {
+.ai-session-muscle-focus-btn::before {
     content: '';
     position: absolute;
     top: 0;
@@ -10216,18 +10215,18 @@ input {
     transition: left 0.5s ease;
 }
 
-.muscle-focus-btn:hover {
+.ai-session-muscle-focus-btn:hover {
     border-color: var(--primary);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
     color: var(--text);
 }
 
-.muscle-focus-btn:hover::before {
+.ai-session-muscle-focus-btn:hover::before {
     left: 100%;
 }
 
-.muscle-focus-btn.selected {
+.ai-session-muscle-focus-btn.ai-session-selected {
     background: linear-gradient(135deg, var(--primary), var(--primary-dark));
     color: white;
     border-color: var(--primary);
@@ -10235,14 +10234,14 @@ input {
     font-weight: 700;
 }
 
-.muscle-focus-btn.selected:hover {
+.ai-session-muscle-focus-btn.ai-session-selected:hover {
     transform: translateY(-1px);
     box-shadow: 0 6px 16px rgba(59, 130, 246, 0.5);
 }
 
 /* ===== ACTIONS PRINCIPALES ===== */
 
-.ai-actions {
+.ai-session-actions {
     display: flex;
     gap: 1rem;
     justify-content: center;
@@ -10250,7 +10249,7 @@ input {
     padding: 0 1rem;
 }
 
-.ai-actions .btn {
+.ai-session-actions .ai-session-btn {
     min-width: 160px;
     font-weight: 700;
     padding: 0.9rem 1.5rem;
@@ -10263,25 +10262,25 @@ input {
     transition: all 0.3s ease;
 }
 
-.ai-actions .btn-primary {
+.ai-session-actions .ai-session-btn-primary {
     background: linear-gradient(135deg, var(--primary), var(--primary-dark));
     border: none;
     color: white;
     box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
 }
 
-.ai-actions .btn-primary:hover {
+.ai-session-actions .ai-session-btn-primary:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
 }
 
-.ai-actions .btn-secondary {
+.ai-session-actions .ai-session-btn-secondary {
     background: linear-gradient(135deg, var(--bg-card), var(--bg-secondary));
     border: 2px solid var(--border);
     color: var(--text);
 }
 
-.ai-actions .btn-secondary:hover {
+.ai-session-actions .ai-session-btn-secondary:hover {
     border-color: var(--primary);
     background: linear-gradient(135deg, var(--bg-secondary), var(--bg-card));
     transform: translateY(-1px);
@@ -10290,7 +10289,7 @@ input {
 
 /* ===== PREVIEW EXERCICES - DESIGN PREMIUM ===== */
 
-.generated-session-summary {
+.ai-session-generated-summary {
     background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(59, 130, 246, 0.05) 100%);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -10300,7 +10299,7 @@ input {
     overflow: hidden;
 }
 
-.generated-session-summary::before {
+.ai-session-generated-summary::before {
     content: '';
     position: absolute;
     top: 0;
@@ -10310,7 +10309,7 @@ input {
     background: linear-gradient(90deg, var(--primary), var(--success));
 }
 
-.session-meta {
+.ai-session-meta {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -10323,7 +10322,7 @@ input {
     backdrop-filter: blur(10px);
 }
 
-.ppl-badge {
+.ai-session-ppl-badge {
     padding: 0.6rem 1.2rem;
     border-radius: 25px;
     color: white;
@@ -10338,7 +10337,7 @@ input {
     letter-spacing: 0.5px;
 }
 
-.quality-score {
+.ai-session-quality-score {
     font-size: 0.9rem;
     color: var(--success);
     font-weight: 700;
@@ -10346,9 +10345,10 @@ input {
     padding: 0.4rem 0.8rem;
     border-radius: 20px;
     border: 2px solid var(--success);
+    transition: all 0.3s ease;
 }
 
-.exercise-count {
+.ai-session-exercise-count {
     font-size: 0.9rem;
     color: var(--text-muted);
     font-weight: 600;
@@ -10358,12 +10358,12 @@ input {
 }
 
 /* Liste exercices preview - DESIGN PREMIUM */
-.exercises-preview-list {
+.ai-session-exercises-preview-list {
     display: grid;
     gap: 0.75rem;
 }
 
-.exercise-preview-item {
+.ai-session-exercise-preview-item {
     display: flex;
     align-items: center;
     gap: 1rem;
@@ -10374,9 +10374,10 @@ input {
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
+    cursor: move;
 }
 
-.exercise-preview-item::before {
+.ai-session-exercise-preview-item::before {
     content: '';
     position: absolute;
     left: 0;
@@ -10388,17 +10389,32 @@ input {
     transition: transform 0.3s ease;
 }
 
-.exercise-preview-item:hover {
+.ai-session-exercise-preview-item:hover {
     border-color: var(--primary);
     transform: translateX(8px);
     box-shadow: 0 4px 20px rgba(59, 130, 246, 0.15);
 }
 
-.exercise-preview-item:hover::before {
+.ai-session-exercise-preview-item:hover::before {
     transform: scaleY(1);
 }
 
-.exercise-number {
+.ai-session-exercise-drag-handle {
+    color: var(--text-muted);
+    cursor: grab;
+    font-size: 1.1rem;
+    transition: color 0.2s ease;
+}
+
+.ai-session-exercise-drag-handle:hover {
+    color: var(--primary);
+}
+
+.ai-session-exercise-drag-handle:active {
+    cursor: grabbing;
+}
+
+.ai-session-exercise-number {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -10413,33 +10429,33 @@ input {
     box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
-.exercise-details {
+.ai-session-exercise-details {
     flex: 1;
     min-width: 0;
 }
 
-.exercise-name {
+.ai-session-exercise-name {
     font-weight: 700;
     color: var(--text);
     margin-bottom: 0.4rem;
     font-size: 0.95rem;
 }
 
-.exercise-params {
+.ai-session-exercise-params {
     font-size: 0.8rem;
     color: var(--text-muted);
     margin-bottom: 0.6rem;
     font-weight: 600;
 }
 
-.exercise-muscles {
+.ai-session-exercise-muscles {
     display: flex;
     gap: 0.3rem;
     flex-wrap: wrap;
     align-items: center;
 }
 
-.muscle-tag {
+.ai-session-muscle-tag {
     background: linear-gradient(135deg, var(--primary), var(--primary-dark));
     color: white;
     padding: 0.25rem 0.6rem;
@@ -10449,7 +10465,7 @@ input {
     box-shadow: 0 1px 4px rgba(59, 130, 246, 0.3);
 }
 
-.equipment-tag {
+.ai-session-equipment-tag {
     background: linear-gradient(135deg, var(--text-muted), rgba(107, 114, 128, 0.8));
     color: white;
     padding: 0.25rem 0.6rem;
@@ -10459,35 +10475,51 @@ input {
 }
 
 /* Actions exercice */
-.exercise-actions {
+.ai-session-exercise-actions {
     flex-shrink: 0;
+    display: flex;
+    gap: 0.5rem;
 }
 
-.exercise-actions .btn-small {
+.ai-session-exercise-actions .ai-session-btn-small {
     padding: 0.5rem 0.7rem;
     font-size: 0.8rem;
     min-width: auto;
     border-radius: var(--radius);
     font-weight: 600;
     transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
 }
 
-.exercise-actions .btn-secondary {
+.ai-session-exercise-actions .ai-session-btn-small.ai-session-btn-secondary {
     background: var(--bg-secondary);
     border: 2px solid var(--border);
     color: var(--text);
 }
 
-.exercise-actions .btn-secondary:hover {
+.ai-session-exercise-actions .ai-session-btn-small.ai-session-btn-secondary:hover {
     border-color: var(--primary);
     background: var(--primary);
     color: white;
     transform: scale(1.05);
 }
 
+/* === ÉTATS DRAG & DROP === */
+.ai-session-exercise-ghost {
+    opacity: 0.5;
+    background: var(--primary) !important;
+    color: white !important;
+}
+
+.ai-session-exercise-chosen {
+    transform: rotate(2deg) scale(1.02);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
 /* ===== ACTIONS LANCEMENT ===== */
 
-.launch-actions {
+.ai-session-launch-actions {
     display: flex;
     gap: 1rem;
     justify-content: center;
@@ -10496,7 +10528,7 @@ input {
     border-top: 1px solid var(--border);
 }
 
-.launch-actions .btn {
+.ai-session-launch-actions .ai-session-btn {
     min-width: 160px;
     font-weight: 700;
     padding: 0.9rem 1.5rem;
@@ -10505,23 +10537,80 @@ input {
     text-transform: uppercase;
     letter-spacing: 0.5px;
     transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
 }
 
-.launch-actions .btn-success {
+.ai-session-launch-actions .ai-session-btn-success {
     background: linear-gradient(135deg, var(--success), rgba(16, 185, 129, 0.8));
-    border: none;
     color: white;
     box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
 }
 
-.launch-actions .btn-success:hover {
+.ai-session-launch-actions .ai-session-btn-success:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
 }
 
+.ai-session-launch-note {
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+/* === MODAL ALTERNATIVES SWAP === */
+.ai-session-alternatives-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.ai-session-alternative-item {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.ai-session-alternative-item:hover {
+    border-color: var(--primary);
+    background: rgba(59, 130, 246, 0.05);
+    transform: translateY(-1px);
+}
+
+.ai-session-alternative-info {
+    flex: 1;
+}
+
+.ai-session-alternative-name {
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+}
+
+.ai-session-alternative-muscles {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.25rem;
+}
+
+.ai-session-alternative-score {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
 /* ===== ÉTATS SPÉCIAUX ===== */
 
-.outdated-message {
+.ai-session-outdated-message {
     background: linear-gradient(135deg, var(--warning), rgba(245, 158, 11, 0.8));
     color: var(--bg);
     padding: 0.8rem 1.2rem;
@@ -10533,30 +10622,41 @@ input {
     box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
 }
 
-.error-state {
+.ai-session-error-state {
     text-align: center;
     padding: 2rem;
     color: var(--text-muted);
 }
 
-.error-state .error-icon {
+.ai-session-error-state .ai-session-error-icon {
     font-size: 2.5rem;
     color: var(--danger);
     margin-bottom: 1rem;
 }
 
-.error-state h4 {
+.ai-session-error-state h4 {
     color: var(--text);
     margin-bottom: 0.5rem;
 }
 
-.muscle-readiness-fallback {
+.ai-session-muscle-readiness-fallback {
     text-align: center;
     padding: 1.5rem;
     background: var(--bg-secondary);
     border-radius: var(--radius);
     border: 2px dashed var(--border);
     color: var(--text-muted);
+}
+
+/* === ANIMATIONS SCORE === */
+@keyframes ai-session-score-pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.ai-session-quality-score.ai-session-animating {
+    animation: ai-session-score-pulse 0.4s ease;
 }
 
 /* ===== RESPONSIVE DESIGN ===== */
@@ -10568,11 +10668,11 @@ input {
         padding: 0.75rem;
     }
     
-    .section {
+    .ai-session-section {
         padding: 1.25rem;
     }
     
-    .muscle-focus-selector {
+    .ai-session-muscle-focus-selector {
         grid-template-columns: repeat(3, 1fr);
     }
 }
@@ -10590,12 +10690,12 @@ input {
         gap: 0.25rem;
     }
     
-    .section {
+    .ai-session-section {
         padding: 1rem;
         margin-bottom: 1.5rem;
     }
     
-    .section h3 {
+    .ai-session-section h3 {
         font-size: 1rem;
         flex-direction: column;
         align-items: flex-start;
@@ -10603,101 +10703,101 @@ input {
     }
     
     /* PPL Alternatives optimisées mobile */
-    .ppl-alternatives {
+    .ai-session-ppl-alternatives {
         grid-template-columns: repeat(2, 1fr);
         gap: 0.75rem;
     }
     
-    .ppl-auto-btn {
+    .ai-session-ppl-auto-btn {
         grid-column: 1 / -1;
         min-height: 55px;
     }
     
-    .ppl-option {
+    .ai-session-ppl-option {
         min-height: 60px;
         font-size: 0.8rem;
     }
     
-    .ppl-category-display {
+    .ai-session-ppl-category-display {
         flex-direction: column;
         gap: 0.75rem;
         padding: 0.75rem;
     }
     
-    .ppl-icon {
+    .ai-session-ppl-icon {
         font-size: 1.5rem;
     }
     
     /* Focus muscles - 2 colonnes sur mobile */
-    .muscle-focus-selector {
+    .ai-session-muscle-focus-selector {
         grid-template-columns: repeat(2, 1fr);
         gap: 0.75rem;
     }
     
-    .muscle-focus-btn {
+    .ai-session-muscle-focus-btn {
         min-height: 50px;
         font-size: 0.8rem;
         padding: 0.75rem 0.4rem;
     }
     
     /* Session meta en colonne */
-    .session-meta {
+    .ai-session-meta {
         flex-direction: column;
         gap: 0.75rem;
         padding: 0.75rem;
     }
     
     /* Actions principales en colonne */
-    .ai-actions {
+    .ai-session-actions {
         flex-direction: column;
         padding: 0;
         gap: 0.75rem;
     }
     
-    .ai-actions .btn {
+    .ai-session-actions .ai-session-btn {
         width: 100%;
         min-width: auto;
         padding: 1rem 1.5rem;
     }
     
     /* Actions lancement en colonne */
-    .launch-actions {
+    .ai-session-launch-actions {
         flex-direction: column;
         gap: 0.75rem;
     }
     
-    .launch-actions .btn {
+    .ai-session-launch-actions .ai-session-btn {
         width: 100%;
         min-width: auto;
         padding: 1rem 1.5rem;
     }
     
     /* Exercise preview optimisé mobile */
-    .exercise-preview-item {
+    .ai-session-exercise-preview-item {
         padding: 1rem;
         gap: 0.75rem;
     }
     
-    .exercise-preview-item:hover {
+    .ai-session-exercise-preview-item:hover {
         transform: translateX(4px);
     }
     
-    .exercise-number {
+    .ai-session-exercise-number {
         width: 32px;
         height: 32px;
         font-size: 0.85rem;
     }
     
-    .exercise-name {
+    .ai-session-exercise-name {
         font-size: 0.9rem;
     }
     
-    .exercise-muscles {
+    .ai-session-exercise-muscles {
         gap: 0.25rem;
     }
     
-    .muscle-tag,
-    .equipment-tag {
+    .ai-session-muscle-tag,
+    .ai-session-equipment-tag {
         font-size: 0.65rem;
         padding: 0.2rem 0.5rem;
     }
@@ -10709,65 +10809,384 @@ input {
         padding: 0.25rem;
     }
     
-    .section {
+    .ai-session-section {
         padding: 0.75rem;
     }
     
-    .ppl-alternatives {
+    .ai-session-ppl-alternatives {
         grid-template-columns: 1fr;
     }
     
-    .muscle-focus-selector {
+    .ai-session-muscle-focus-selector {
         grid-template-columns: 1fr;
     }
     
-    .ppl-option {
+    .ai-session-ppl-option {
         min-height: 55px;
         font-size: 0.85rem;
     }
     
-    .muscle-focus-btn {
+    .ai-session-muscle-focus-btn {
         min-height: 50px;
         font-size: 0.85rem;
     }
     
-    .exercise-preview-item {
+    .ai-session-exercise-preview-item {
         flex-direction: column;
         align-items: flex-start;
         gap: 0.75rem;
         text-align: left;
     }
     
-    .exercise-details {
+    .ai-session-exercise-details {
         width: 100%;
     }
     
-    .exercise-actions {
+    .ai-session-exercise-actions {
         width: 100%;
         display: flex;
         justify-content: flex-end;
     }
     
-    .exercise-number {
+    .ai-session-exercise-number {
         align-self: flex-start;
     }
 }
 
 /* Mode sombre - ajustements spécifiques */
 @media (prefers-color-scheme: dark) {
-    .ppl-recommendation-card {
+    .ai-session-ppl-recommendation-card {
         background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(16, 185, 129, 0.1) 100%);
     }
     
-    .ppl-recommendation-card.high-confidence {
+    .ai-session-ppl-recommendation-card.ai-session-high-confidence {
         background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(59, 130, 246, 0.1) 100%);
     }
     
-    .exercise-preview-item:hover {
+    .ai-session-exercise-preview-item:hover {
         box-shadow: 0 4px 20px rgba(255, 255, 255, 0.1);
     }
     
-    .param-control:hover {
+    .ai-session-param-control:hover {
         box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+    }
+}
+
+/* === PRÉVISUALISATION EXERCICES AVEC DRAG & DROP === */
+.ai-session-summary {
+    background: var(--bg-card, #ffffff);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: var(--radius, 8px);
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.ai-session-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.ai-session-stat-item {
+    text-align: center;
+}
+
+.ai-session-stat-label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-muted, #6b7280);
+    margin-bottom: 0.25rem;
+}
+
+.ai-session-stat-value {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary, #111827);
+}
+
+.ai-session-quality-score {
+    font-weight: 700;
+    transition: all 0.3s ease;
+}
+
+/* === LISTE EXERCICES DRAGGABLE === */
+.ai-session-exercise-list-draggable {
+    margin: 1rem 0;
+}
+
+.ai-session-exercise-item-draggable {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--bg-card, #ffffff);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: var(--radius, 8px);
+    margin-bottom: 0.5rem;
+    transition: all 0.2s ease;
+    cursor: move;
+}
+
+.ai-session-exercise-item-draggable:hover {
+    border-color: var(--primary, #3b82f6);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.ai-session-exercise-drag-handle {
+    color: var(--text-muted, #6b7280);
+    cursor: grab;
+    font-size: 1.1rem;
+    transition: color 0.2s ease;
+}
+
+.ai-session-exercise-drag-handle:hover {
+    color: var(--primary, #3b82f6);
+}
+
+.ai-session-exercise-drag-handle:active {
+    cursor: grabbing;
+}
+
+.ai-session-exercise-number {
+    min-width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: var(--primary, #3b82f6);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.ai-session-exercise-details {
+    flex: 1;
+}
+
+.ai-session-exercise-name {
+    font-weight: 600;
+    color: var(--text-primary, #111827);
+    margin-bottom: 0.25rem;
+}
+
+.ai-session-exercise-meta {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.25rem;
+    flex-wrap: wrap;
+}
+
+.ai-session-exercise-params {
+    font-size: 0.85rem;
+    color: var(--text-secondary, #4b5563);
+    background: var(--bg-muted, #f3f4f6);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+}
+
+.ai-session-exercise-rest {
+    font-size: 0.8rem;
+    color: var(--text-muted, #6b7280);
+}
+
+.ai-session-exercise-muscles {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+}
+
+.ai-session-muscle-tag {
+    font-size: 0.75rem;
+    background: var(--success, #10b981);
+    color: white;
+    padding: 0.1rem 0.4rem;
+    border-radius: 12px;
+}
+
+.ai-session-equipment-tag {
+    font-size: 0.75rem;
+    background: var(--warning, #f59e0b);
+    color: white;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+}
+
+.ai-session-exercise-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* === BOUTONS ACTIONS === */
+.ai-session-btn-small {
+    padding: 0.4rem 0.6rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+}
+
+.ai-session-btn-small.ai-session-btn-secondary {
+    background: var(--secondary, #6b7280);
+    color: white;
+}
+
+.ai-session-btn-small.ai-session-btn-secondary:hover {
+    background: var(--secondary-dark, #4b5563);
+    transform: translateY(-1px);
+}
+
+/* === ÉTATS DRAG & DROP === */
+.ai-session-exercise-ghost {
+    opacity: 0.5;
+    background: var(--primary, #3b82f6) !important;
+    color: white !important;
+}
+
+.ai-session-exercise-chosen {
+    transform: rotate(2deg) scale(1.02);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* === SECTION LANCEMENT === */
+.ai-session-launch-section {
+    text-align: center;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border, #e5e7eb);
+}
+
+.ai-session-btn-large {
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.ai-session-btn-success {
+    background: var(--success, #10b981);
+    color: white;
+    border: none;
+    border-radius: var(--radius, 8px);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.ai-session-btn-success:hover {
+    background: var(--success-dark, #059669);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.ai-session-launch-note {
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    color: var(--text-muted, #6b7280);
+}
+
+.ai-session-ppl-badge {
+    background: var(--primary, #3b82f6);
+    color: white;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+/* === MODAL ALTERNATIVES SWAP === */
+.ai-session-alternatives-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.ai-session-alternative-item {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    background: var(--bg-card, #ffffff);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: var(--radius, 8px);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.ai-session-alternative-item:hover {
+    border-color: var(--primary, #3b82f6);
+    background: rgba(59, 130, 246, 0.05);
+    transform: translateY(-1px);
+}
+
+.ai-session-alternative-info {
+    flex: 1;
+}
+
+.ai-session-alternative-name {
+    font-weight: 600;
+    color: var(--text-primary, #111827);
+    margin-bottom: 0.5rem;
+}
+
+.ai-session-alternative-muscles {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.25rem;
+}
+
+.ai-session-alternative-score {
+    font-size: 0.85rem;
+    color: var(--text-secondary, #4b5563);
+    font-weight: 500;
+}
+
+/* === ANIMATIONS SCORE === */
+@keyframes ai-session-score-pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.ai-session-quality-score.animating {
+    animation: ai-session-score-pulse 0.4s ease;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+    .ai-session-stats {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+        text-align: left;
+    }
+    
+    .ai-session-stat-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .ai-session-exercise-item-draggable {
+        padding: 0.75rem;
+        gap: 0.75rem;
+    }
+    
+    .ai-session-exercise-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+    
+    .ai-session-btn-large {
+        width: 100%;
+        padding: 1rem;
+    }
+    
+    .ai-session-container {
+        padding: 0.5rem;
     }
 }

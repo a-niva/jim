@@ -193,165 +193,264 @@ class AISessionManager {
         console.log('✅ Render terminé');
     }
     
+
     renderPPLRecommendation() {
-        /**
-         * Affiche la recommandation PPL avec options override
-         */
+        if (!this.pplRecommendation) return '<div class="ai-session-error-state">Chargement recommandation...</div>';
         
-        if (!this.pplRecommendation) {
-            return '<p>Chargement recommandation...</p>';
-        }
+        const confidence = this.pplRecommendation.confidence || 0.5;
+        const category = this.pplRecommendation.category || 'push';
+        const reasoning = this.pplRecommendation.reasoning || 'Recommandation basée sur votre récupération';
         
-        const rec = this.pplRecommendation;
-        const categories = PPL_CATEGORIES;
+        const pplIcons = {
+            push: 'fas fa-hand-paper',
+            pull: 'fas fa-hand-rock', 
+            legs: 'fas fa-running'
+        };
+        
+        const pplLabels = {
+            push: 'PUSH (Poussée)',
+            pull: 'PULL (Traction)',
+            legs: 'LEGS (Jambes)'
+        };
         
         return `
-            <div class="ppl-recommendation-card ${rec.confidence > 0.7 ? 'high-confidence' : ''}">
-                <div class="ppl-main-recommendation">
-                    <div class="ppl-category-display">
-                        <span class="ppl-icon">${categories[rec.category]?.icon || '🎯'}</span>
-                        <div class="ppl-info">
-                            <h4>${categories[rec.category]?.name || rec.category.toUpperCase()}</h4>
-                            <p class="ppl-reasoning">${rec.reasoning}</p>
-                            <div class="ppl-confidence">
-                                Confiance: <strong>${Math.round(rec.confidence * 100)}%</strong>
+            <div class="ai-session-ppl-recommendation-card ${confidence > 0.7 ? 'ai-session-high-confidence' : ''}">
+                <div class="ai-session-ppl-main-recommendation">
+                    <div class="ai-session-ppl-category-display">
+                        <div class="ai-session-ppl-icon">
+                            <i class="${pplIcons[category]}"></i>
+                        </div>
+                        <div class="ai-session-ppl-info">
+                            <h4>${pplLabels[category]}</h4>
+                            <p class="ai-session-ppl-reasoning">${reasoning}</p>
+                            <div class="ai-session-ppl-confidence">
+                                Confiance: ${Math.round(confidence * 100)}%
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                <div class="ppl-override-options">
-                    <h5>Ou forcer une catégorie :</h5>
-                    <div class="ppl-alternatives">
-                        ${Object.keys(categories).map(ppl => `
-                            <button class="ppl-option ${this.params.ppl_override === ppl ? 'selected' : ''}" 
-                                    data-ppl="${ppl}" 
-                                    onclick="window.aiSessionManager.selectPPL('${ppl}')">
-                                ${categories[ppl]?.icon || '🎯'} ${categories[ppl]?.name || ppl}
-                                ${rec.alternatives && rec.alternatives[ppl] ? 
-                                    `<br><small>${Math.round(rec.alternatives[ppl] * 100)}%</small>` : ''}
-                            </button>
-                        `).join('')}
-                        <button class="ppl-option ${this.params.ppl_override === null ? 'selected' : ''}" 
-                                data-ppl="auto"
-                                onclick="window.aiSessionManager.selectPPL(null)">
-                            🤖 Auto<br><small>Recommandé</small>
-                        </button>
+                <div class="ai-session-ppl-override-section">
+                    <h5>Ou choisir manuellement :</h5>
+                    <div class="ai-session-ppl-alternatives">
+                        <div class="ai-session-ppl-option ${this.params.ppl_override === null ? 'ai-session-selected' : ''}" 
+                            onclick="window.aiSessionManager.setPPLOverride(null)">
+                            <i class="fas fa-magic"></i><br>Auto
+                        </div>
+                        <div class="ai-session-ppl-option ${this.params.ppl_override === 'push' ? 'ai-session-selected' : ''}" 
+                            onclick="window.aiSessionManager.setPPLOverride('push')">
+                            <i class="fas fa-hand-paper"></i><br>Push
+                        </div>
+                        <div class="ai-session-ppl-option ${this.params.ppl_override === 'pull' ? 'ai-session-selected' : ''}" 
+                            onclick="window.aiSessionManager.setPPLOverride('pull')">
+                            <i class="fas fa-hand-rock"></i><br>Pull
+                        </div>
+                        <div class="ai-session-ppl-option ${this.params.ppl_override === 'legs' ? 'ai-session-selected' : ''}" 
+                            onclick="window.aiSessionManager.setPPLOverride('legs')">
+                            <i class="fas fa-running"></i><br>Legs
+                        </div>
                     </div>
                 </div>
             </div>
         `;
     }
     
+    setPPLOverride(value) {
+        this.params.ppl_override = value;
+        this.markGenerationOutdated();
+        
+        // Re-render PPL section
+        const container = document.getElementById('pplRecommendationContainer');
+        if (container) {
+            container.innerHTML = this.renderPPLRecommendation();
+        }
+    }
+
     renderParametersUI() {
-        /**
-         * Interface paramètres de génération
-         */
+        const explorationValue = Math.round(this.params.exploration_factor * 100);
+        const exerciseCount = this.params.target_exercise_count;
         
         return `
-            <div class="ai-params-grid">
-                <!-- Nombre d'exercices -->
-                <div class="param-control">
-                    <label for="exerciseCountSlider">
-                        <i class="fas fa-list"></i> Nombre d'exercices: 
-                        <strong id="exerciseCountDisplay">${this.params.target_exercise_count}</strong>
-                    </label>
-                    <input type="range" 
-                           id="exerciseCountSlider"
-                           min="3" max="8" step="1" 
-                           value="${this.params.target_exercise_count}"
-                           onchange="window.aiSessionManager.onParameterChange('target_exercise_count', this.value)">
-                    <div class="slider-labels">
-                        <span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span>
-                    </div>
+            <div class="ai-session-param-control">
+                <label for="explorationSlider">
+                    <i class="fas fa-balance-scale"></i>
+                    Équilibre Favoris/Nouveaux: <span class="ai-session-range-value">${explorationValue}%</span>
+                </label>
+                <input type="range" 
+                    id="explorationSlider" 
+                    min="0" max="100" 
+                    value="${explorationValue}"
+                    oninput="window.aiSessionManager.updateExplorationFactor(this.value)">
+                <div class="ai-session-slider-labels">
+                    <span>Favoris</span>
+                    <span>Équilibre</span>
+                    <span>Nouveaux</span>
                 </div>
-                
-                <!-- Exploration vs Favoris -->
-                <div class="param-control">
-                    <label for="explorationSlider">
-                        <i class="fas fa-compass"></i> Exploration: 
-                        <strong id="explorationDisplay">${Math.round(this.params.exploration_factor * 100)}%</strong>
-                    </label>
-                    <input type="range" 
-                           id="explorationSlider"
-                           min="0" max="1" step="0.1" 
-                           value="${this.params.exploration_factor}"
-                           onchange="window.aiSessionManager.onParameterChange('exploration_factor', this.value)">
-                    <div class="slider-labels">
-                        <span>Favoris</span><span>Équilibré</span><span>Nouveaux</span>
-                    </div>
+                <div class="ai-session-param-help">
+                    0% privilégie vos exercices favoris, 100% explore de nouveaux exercices
                 </div>
-                
-                <!-- Focus manuel groupes musculaires -->
-                <div class="param-control full-width">
-                    <label><i class="fas fa-bullseye"></i> Focus manuel (optionnel)</label>
-                    <div class="muscle-focus-selector">
-                        ${['pectoraux', 'dos', 'jambes', 'epaules', 'bras', 'abdominaux'].map(muscle => `
-                            <button class="muscle-focus-btn ${this.params.manual_muscle_focus.includes(muscle) ? 'selected' : ''}"
-                                    data-muscle="${muscle}"
-                                    onclick="window.aiSessionManager.toggleMuscleFocus('${muscle}')">
-                                ${muscle.charAt(0).toUpperCase() + muscle.slice(1)}
-                            </button>
-                        `).join('')}
-                    </div>
-                    <small class="param-help">Sélectionnez pour cibler des groupes musculaires spécifiques</small>
+            </div>
+            
+            <div class="ai-session-param-control">
+                <label for="exerciseCountSlider">
+                    <i class="fas fa-list-ol"></i>
+                    Nombre d'exercices: <span class="ai-session-range-value">${exerciseCount}</span>
+                </label>
+                <input type="range" 
+                    id="exerciseCountSlider" 
+                    min="3" max="8" 
+                    value="${exerciseCount}"
+                    oninput="window.aiSessionManager.updateExerciseCount(this.value)">
+                <div class="ai-session-slider-labels">
+                    <span>3 (Court)</span>
+                    <span>5 (Optimal)</span>
+                    <span>8 (Long)</span>
+                </div>
+                <div class="ai-session-param-help">
+                    Plus d'exercices = séance plus longue mais plus complète
+                </div>
+            </div>
+            
+            <div class="ai-session-param-control">
+                <label><i class="fas fa-crosshairs"></i> Focus muscles (optionnel) :</label>
+                <div class="ai-session-muscle-focus-selector">
+                    ${this.renderMuscleFocusOptions()}
+                </div>
+                <div class="ai-session-param-help">
+                    Sélectionnez des groupes musculaires à privilégier dans la génération
                 </div>
             </div>
         `;
     }
     
+
+    updateExplorationFactor(value) {
+        this.params.exploration_factor = parseInt(value) / 100;
+        this.markGenerationOutdated();
+        
+        // Mettre à jour affichage valeur
+        const valueDisplay = document.querySelector('#explorationSlider + .ai-session-slider-labels + .ai-session-param-help').previousElementSibling.querySelector('.ai-session-range-value');
+        if (valueDisplay) valueDisplay.textContent = `${value}%`;
+    }
+
+    updateExerciseCount(value) {
+        this.params.target_exercise_count = parseInt(value);
+        this.markGenerationOutdated();
+        
+        // Mettre à jour affichage valeur
+        const valueDisplay = document.querySelector('#exerciseCountSlider').previousElementSibling.querySelector('.ai-session-range-value');
+        if (valueDisplay) valueDisplay.textContent = value;
+    }
+
+    toggleMuscleFocus(muscle) {
+        const index = this.params.manual_muscle_focus.indexOf(muscle);
+        if (index > -1) {
+            this.params.manual_muscle_focus.splice(index, 1);
+        } else {
+            this.params.manual_muscle_focus.push(muscle);
+        }
+        
+        this.markGenerationOutdated();
+        
+        // Re-render muscle focus section
+        const container = document.querySelector('.ai-session-muscle-focus-selector');
+        if (container) {
+            container.innerHTML = this.renderMuscleFocusOptions();
+        }
+    }
+
+    markGenerationOutdated() {
+        if (this.lastGenerated) {
+            const preview = document.getElementById('generatedSessionPreview');
+            if (preview && !preview.querySelector('.ai-session-outdated-message')) {
+                const message = document.createElement('div');
+                message.className = 'ai-session-outdated-message';
+                message.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Paramètres modifiés - Regénérer pour appliquer';
+                preview.insertBefore(message, preview.firstChild);
+            }
+        }
+    }
+
+    renderMuscleFocusOptions() {
+        const muscles = [
+            'pectoraux', 'dos', 'épaules', 'bras', 'jambes', 'abdominaux'
+        ];
+        
+        return muscles.map(muscle => `
+            <div class="ai-session-muscle-focus-btn ${this.params.manual_muscle_focus.includes(muscle) ? 'ai-session-selected' : ''}"
+                onclick="window.aiSessionManager.toggleMuscleFocus('${muscle}')">
+                ${muscle}
+            </div>
+        `).join('');
+    }
+
     renderExercisePreview() {
         /**
-         * Affiche preview des exercices générés
+         * RENDU PRÉVISUALISATION - CLASSES CORRESPONDANTES AU CSS
+         * 
+         * Localisation : Dans ai-session-manager.js, remplacer la méthode renderExercisePreview()
          */
         
-        if (!this.lastGenerated || !this.lastGenerated.exercises) {
-            return '<p>Aucune séance générée</p>';
-        }
+        if (!this.lastGenerated || !this.lastGenerated.exercises) return '';
         
-        const exercises = this.lastGenerated.exercises;
-        const pplInfo = PPL_CATEGORIES[this.lastGenerated.ppl_used] || {};
+        const qualityScore = Math.round(this.lastGenerated.quality_score || 75);
+        const scoreColor = qualityScore >= 85 ? '#10b981' : 
+                          qualityScore >= 70 ? '#f59e0b' : '#ef4444';
         
         return `
-            <div class="generated-session-summary">
-                <div class="session-meta">
-                    <span class="ppl-badge" style="background-color: ${pplInfo.color || '#3b82f6'};">
-                        ${pplInfo.icon || '🎯'} ${this.lastGenerated.ppl_used.toUpperCase()}
-                    </span>
-                    <span class="quality-score">
-                        Score: <strong>${Math.round(this.lastGenerated.quality_score)}%</strong>
-                    </span>
-                    <span class="exercise-count">
-                        ${exercises.length} exercices
-                    </span>
+            <div class="ai-session-generated-summary">
+                <div class="ai-session-meta">
+                    <div class="ai-session-exercise-count">${this.lastGenerated.exercises.length} exercices</div>
+                    <div class="ai-session-ppl-badge">
+                        <i class="fas fa-dumbbell"></i>
+                        ${this.lastGenerated.ppl_used.toUpperCase()}
+                    </div>
+                    <div class="ai-session-quality-score" style="color: ${scoreColor}">
+                        Qualité ${qualityScore}%
+                    </div>
                 </div>
-                
-                <div class="exercises-preview-list">
-                    ${exercises.map((ex, index) => `
-                        <div class="exercise-preview-item" data-exercise-index="${index}">
-                            <div class="exercise-number">${index + 1}</div>
-                            <div class="exercise-details">
-                                <div class="exercise-name">${ex.name}</div>
-                                <div class="exercise-params">
-                                    ${ex.default_sets || 3} séries × ${ex.default_reps_min || 8}-${ex.default_reps_max || 12} reps
-                                    ${ex.equipment_required && ex.equipment_required.length > 0 ? 
-                                        `<span class="equipment-tag">${ex.equipment_required[0]}</span>` : ''}
-                                </div>
-                                <div class="exercise-muscles">
-                                    ${(ex.muscle_groups || []).map(muscle => 
-                                        `<span class="muscle-tag">${muscle}</span>`
-                                    ).join('')}
-                                </div>
-                            </div>
-                            <div class="exercise-actions">
-                                <button class="btn-small btn-secondary" 
-                                        onclick="window.aiSessionManager.swapExercise(${index})">
-                                    <i class="fas fa-exchange-alt"></i>
-                                </button>
+            </div>
+            
+            <div id="aiExercisesList" class="ai-session-exercises-preview-list">
+                ${this.lastGenerated.exercises.map((ex, index) => `
+                    <div class="ai-session-exercise-preview-item" data-exercise-index="${index}">
+                        <span class="ai-session-exercise-drag-handle" title="Glisser pour réordonner">
+                            <i class="fas fa-grip-vertical"></i>
+                        </span>
+                        
+                        <div class="ai-session-exercise-number">${index + 1}</div>
+                        
+                        <div class="ai-session-exercise-details">
+                            <div class="ai-session-exercise-name">${ex.exercise_name || ex.name}</div>
+                            <div class="ai-session-exercise-params">${ex.sets || 3} × ${ex.reps_min || 8}-${ex.reps_max || 12} • ${Math.round((ex.rest_seconds || 90) / 60)}min repos</div>
+                            <div class="ai-session-exercise-muscles">
+                                ${(ex.muscle_groups || []).map(muscle => 
+                                    `<span class="ai-session-muscle-tag">${muscle}</span>`
+                                ).join('')}
+                                ${ex.equipment_required ? 
+                                    `<span class="ai-session-equipment-tag">${ex.equipment_required[0]}</span>` : ''}
                             </div>
                         </div>
-                    `).join('')}
-                </div>
+                        
+                        <div class="ai-session-exercise-actions">
+                            <button class="ai-session-btn-small ai-session-btn-secondary" 
+                                    onclick="window.aiSessionManager.swapExercise(${index})"
+                                    title="Remplacer cet exercice">
+                                <i class="fas fa-exchange-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            
+            <div class="ai-session-launch-actions">
+                <button id="launchAISessionBtn" class="ai-session-btn ai-session-btn-success">
+                    <i class="fas fa-play"></i> Lancer Séance
+                </button>
+                <p class="ai-session-launch-note">
+                    <i class="fas fa-info-circle"></i> 
+                    Interface de séance classique avec tous vos outils habituels
+                </p>
             </div>
         `;
     }
@@ -424,68 +523,72 @@ class AISessionManager {
     
     async launchAISession() {
         /**
-         * FONCTION CRITIQUE - Lance séance avec exercices générés
+         * Lance séance IA en réutilisant EXACTEMENT le workflow Planning/Programme
          * 
-         * Réutilise votre logique startProgramWorkout() existante
+         * Reproduit : startProgramWorkout() → setupProgramWorkout() → showView('workout')
          */
         
         if (!this.lastGenerated || !this.lastGenerated.exercises) {
-            window.showToast('Aucune séance générée à lancer', 'error');
+            window.showToast('Aucune séance générée à lancer', 'warning');
             return;
         }
         
         try {
-            console.log('🚀 Lancement séance IA:', this.lastGenerated);
+            console.log('🚀 Lancement séance IA - Workflow Programme');
             
-            // Créer workout type 'ai' via votre endpoint existant
+            // 1. CRÉER WORKOUT BACKEND (comme Planning)
             const workoutData = {
-                type: 'ai',
+                type: 'ai', // Type spécifique mais traité comme 'program'
                 ai_session_data: {
                     exercises: this.lastGenerated.exercises,
                     generation_params: this.params,
-                    quality_score: this.lastGenerated.quality_score,
-                    ppl_category: this.lastGenerated.ppl_used,
-                    generated_at: new Date().toISOString()
+                    ppl_used: this.lastGenerated.ppl_used,
+                    quality_score: this.lastGenerated.quality_score
                 }
             };
             
             const response = await window.apiPost(`/api/users/${window.currentUser.id}/workouts`, workoutData);
-            console.log('✅ Workout IA créé:', response.workout);
-            
-            // Initialiser session IA (similaire à votre logique programme)
             window.currentWorkout = response.workout;
-            window.currentWorkoutSession = {
-                type: 'ai',
-                workout: response.workout,
-                exercises: this.lastGenerated.exercises,  // Liste prédéfinie comme programme
-                aiMetadata: {
-                    pplCategory: this.lastGenerated.ppl_used,
-                    generationParams: this.params,
-                    qualityScore: this.lastGenerated.quality_score
-                },
-                // RÉUTILISE toutes les propriétés de votre currentWorkoutSession programme
-                currentExercise: null,
-                currentSetNumber: 1,
-                exerciseOrder: 1,
-                globalSetCount: 0,
-                completedSets: [],
-                skipped_exercises: [],
-                swaps: [],
-                modifications: [],
-                totalRestTime: 0,
-                totalSetTime: 0,
-                startTime: new Date()
+            
+            // 2. CRÉER STRUCTURE PROGRAMME FACTICE pour réutiliser startProgramWorkout()
+            const fakeProgramForAI = {
+                id: 'ai-generated',
+                name: `Séance IA ${this.lastGenerated.ppl_used.toUpperCase()}`,
+                exercises: this.lastGenerated.exercises.map((ex, index) => ({
+                    exercise_id: ex.exercise_id,
+                    exercise_name: ex.exercise_name || ex.name,
+                    name: ex.exercise_name || ex.name,
+                    muscle_groups: ex.muscle_groups || [],
+                    sets: ex.sets || ex.default_sets || 3,
+                    reps_min: ex.reps_min || ex.default_reps_min || 8,
+                    reps_max: ex.reps_max || ex.default_reps_max || 12,
+                    rest_seconds: ex.rest_seconds || ex.base_rest_time_seconds || 90,
+                    equipment_required: ex.equipment_required || [],
+                    difficulty: ex.difficulty || 'intermediate',
+                    instructions: ex.instructions || '',
+                    order_in_session: index + 1
+                })),
+                type: 'ai'
             };
             
-            // Transition vers interface séance (RÉUTILISE votre showView)
-            window.showView('workout');
-            await this.setupAIWorkoutInterface();
+            // 3. APPELER EXACTEMENT startProgramWorkout() existant
+            await window.startProgramWorkout(fakeProgramForAI);
             
-            window.showToast('🤖 Séance IA démarrée !', 'success');
+            // 4. MARQUER comme séance IA dans les métadonnées
+            if (window.currentWorkoutSession) {
+                window.currentWorkoutSession.aiMetadata = {
+                    originalType: 'ai',
+                    pplUsed: this.lastGenerated.ppl_used,
+                    qualityScore: this.lastGenerated.quality_score,
+                    generationParams: this.params
+                };
+            }
+            
+            window.showToast(`Séance ${this.lastGenerated.ppl_used.toUpperCase()} lancée !`, 'success');
             
         } catch (error) {
             console.error('❌ Erreur lancement séance IA:', error);
-            window.showToast('Erreur lors du lancement', 'error');
+            window.showToast('Erreur lors du lancement de la séance', 'error');
         }
     }
     
@@ -635,36 +738,7 @@ class AISessionManager {
             this.markGenerationOutdated();
         }
     }
-    
-    toggleMuscleFocus(muscle) {
-        /**
-         * Toggle focus manuel muscle
-         */
         
-        const index = this.params.manual_muscle_focus.indexOf(muscle);
-        
-        if (index > -1) {
-            // Retirer du focus
-            this.params.manual_muscle_focus.splice(index, 1);
-        } else {
-            // Ajouter au focus
-            this.params.manual_muscle_focus.push(muscle);
-        }
-        
-        // Mettre à jour affichage
-        const btn = document.querySelector(`[data-muscle="${muscle}"]`);
-        if (btn) {
-            btn.classList.toggle('selected', this.params.manual_muscle_focus.includes(muscle));
-        }
-        
-        console.log('🎯 Focus muscles:', this.params.manual_muscle_focus);
-        
-        // Invalider génération précédente
-        if (this.lastGenerated) {
-            this.markGenerationOutdated();
-        }
-    }
-    
     bindEventListeners() {
         /**
          * Bind événements interface
@@ -709,17 +783,30 @@ class AISessionManager {
             preview.style.display = 'none';
         }
     }
-    
+
+
     updateGeneratedSessionDisplay() {
         /**
-         * Met à jour affichage après génération réussie
+         * MISE À JOUR AFFICHAGE - CLASSES CORRESPONDANTES AU CSS
+         * 
+         * Localisation : Dans ai-session-manager.js, remplacer la méthode updateGeneratedSessionDisplay()
          */
         
         const previewContainer = document.getElementById('exercisePreviewContainer');
         const previewSection = document.getElementById('generatedSessionPreview');
         
         if (previewContainer && this.lastGenerated) {
+            // Mettre à jour contenu HTML
             previewContainer.innerHTML = this.renderExercisePreview();
+            
+            // Initialiser drag & drop APRÈS mise à jour HTML
+            setTimeout(() => {
+                this.initializeExercisesDragDrop();
+                this.bindLaunchButton();
+            }, 100);
+            
+            // Calculer et afficher score initial
+            this.updateAISessionScoring(this.lastGenerated.exercises);
         }
         
         if (previewSection) {
@@ -727,6 +814,18 @@ class AISessionManager {
         }
         
         this.updateButtonStates();
+    }
+    
+    bindLaunchButton() {
+        /**
+         * BINDING BOUTON LANCEMENT - CLASSES CORRESPONDANTES AU CSS
+         */
+        
+        const launchBtn = document.getElementById('launchAISessionBtn');
+        if (launchBtn) {
+            launchBtn.removeEventListener('click', this.launchAISession); // Éviter double binding
+            launchBtn.addEventListener('click', this.launchAISession);
+        }
     }
     
     updateButtonStates() {
@@ -747,26 +846,7 @@ class AISessionManager {
         }
     }
     
-    markGenerationOutdated() {
-        /**
-         * Marque génération comme obsolète après changement paramètres
-         */
-        
-        const preview = document.getElementById('generatedSessionPreview');
-        if (preview && this.lastGenerated) {
-            preview.classList.add('outdated');
-            
-            // Ajouter message obsolète
-            let outdatedMsg = preview.querySelector('.outdated-message');
-            if (!outdatedMsg) {
-                outdatedMsg = document.createElement('div');
-                outdatedMsg.className = 'outdated-message';
-                outdatedMsg.innerHTML = '⚠️ Paramètres modifiés - Regénérez pour actualiser';
-                preview.insertBefore(outdatedMsg, preview.firstChild);
-            }
-        }
-    }
-    
+   
     renderError(error) {
         /**
          * Affiche erreur génération
@@ -800,96 +880,6 @@ class AISessionManager {
                     <small>La génération utilisera des valeurs par défaut</small>
                 </div>
             `;
-        }
-    }
-
-
-
-    async launchAISession() {
-        /**
-         * Lance séance IA en utilisant l'interface classique
-         * 
-         * Utilise même workflow que startProgramWorkout() mais avec exercices IA
-         */
-        
-        if (!this.lastGenerated || !this.lastGenerated.exercises) {
-            window.showToast('Aucune séance générée à lancer', 'warning');
-            return;
-        }
-        
-        try {
-            console.log('🚀 Lancement séance IA avec', this.lastGenerated.exercises.length, 'exercices');
-            
-            // 1. Nettoyer état workout existant (comme startProgramWorkout)
-            window.clearWorkoutState();
-            
-            // 2. Créer workout backend avec type 'ai'
-            const workoutData = {
-                type: 'ai',
-                ai_session_data: {
-                    exercises: this.lastGenerated.exercises,
-                    generation_params: this.params,
-                    ppl_used: this.lastGenerated.ppl_used,
-                    quality_score: this.lastGenerated.quality_score
-                }
-            };
-            
-            const response = await window.apiPost(`/api/users/${window.currentUser.id}/workouts`, workoutData);
-            window.currentWorkout = response.workout;
-            
-            // 3. Préparer currentWorkoutSession (format program-like)
-            window.currentWorkoutSession = {
-                type: 'ai',
-                workout: response.workout,
-                exercises: this.lastGenerated.exercises,
-                aiParameters: this.params,
-                pplUsed: this.lastGenerated.ppl_used,
-                qualityScore: this.lastGenerated.quality_score,
-                
-                // États séance standards (RÉUTILISE EXISTANT)
-                currentExercise: null,
-                currentSetNumber: 1,
-                exerciseOrder: 1,
-                globalSetCount: 0,
-                sessionFatigue: 3,
-                completedSets: [],
-                totalRestTime: 0,
-                totalSetTime: 0,
-                startTime: new Date(),
-                
-                // Support swap/skip comme programme
-                skipped_exercises: [],
-                swaps: [],
-                modifications: [],
-                pendingSwap: null,
-                
-                // Métadonnées IA
-                session_metadata: {
-                    source: 'ai_generation',
-                    generation_timestamp: this.lastGenerated.generation_metadata?.generated_at,
-                    ppl_recommendation: this.lastGenerated.ppl_recommendation
-                }
-            };
-            
-            // 4. Préparer structure exercices format programme
-            window.currentWorkoutSession.programExercises = {};
-            this.lastGenerated.exercises.forEach((exercise, index) => {
-                window.currentWorkoutSession.programExercises[exercise.exercise_id] = {
-                    ...exercise,
-                    index: index,
-                    status: 'planned'
-                };
-            });
-            
-            // 5. Transition vers interface séance (RÉUTILISE WORKFLOW PROGRAMME)
-            window.showView('workout');
-            await this.setupAIWorkoutInterface();
-            
-            window.showToast(`Séance ${this.lastGenerated.ppl_used.toUpperCase()} lancée !`, 'success');
-            
-        } catch (error) {
-            console.error('❌ Erreur lancement séance IA:', error);
-            window.showToast('Erreur lors du lancement de la séance', 'error');
         }
     }
     
@@ -1003,9 +993,266 @@ class AISessionManager {
         }
     }
 
+    
+    // ===== SCORING TEMPS RÉEL ADAPTÉ DE PLANNING.JS =====
+    
+    async updateAISessionScoring(exercises) {
+        /**
+         * Calcule et anime le score qualité séance IA
+         * Adapté de planning.js updateLiveScoring()
+         */
+        
+        if (!exercises || exercises.length === 0) return;
+        
+        let newScore;
+        
+        try {
+            // Tenter API optimisation si disponible
+            const response = await window.apiPost('/api/programs/optimize-session', {
+                user_id: window.currentUser.id,
+                exercises: exercises
+            });
+            
+            newScore = Math.round(response.quality_score || 75);
+            
+        } catch (apiError) {
+            console.warn('⚠️ API scoring non disponible, calcul local');
+            newScore = this.calculateLocalQualityScore(exercises);
+        }
+        
+        // Animer le changement de score
+        this.animateScoreChange(newScore);
+        
+        // Mettre à jour dans lastGenerated
+        if (this.lastGenerated) {
+            this.lastGenerated.quality_score = newScore;
+        }
+        
+        return newScore;
+    }
+    
+    calculateLocalQualityScore(exercises) {
+        /**
+         * Calcul local basique de score qualité
+         * Adapté de planning.js calculatePreviewQualityScoreFallback()
+         */
+        
+        if (!exercises || exercises.length === 0) return 50;
+        
+        let score = 75; // Score base
+        
+        // Bonus diversité groupes musculaires
+        const uniqueMuscles = new Set();
+        exercises.forEach(ex => {
+            if (ex.muscle_groups) {
+                ex.muscle_groups.forEach(muscle => uniqueMuscles.add(muscle));
+            }
+        });
+        score += Math.min(uniqueMuscles.size * 2, 15);
+        
+        // Bonus équilibre exercices composés/isolation
+        const compoundCount = exercises.filter(ex => 
+            ex.muscle_groups && ex.muscle_groups.length > 1
+        ).length;
+        const balanceRatio = compoundCount / exercises.length;
+        if (balanceRatio >= 0.4 && balanceRatio <= 0.7) {
+            score += 5;
+        }
+        
+        // Malus répétition équipements
+        const equipmentSet = new Set();
+        exercises.forEach(ex => {
+            if (ex.equipment_required) {
+                equipmentSet.add(ex.equipment_required[0]);
+            }
+        });
+        if (equipmentSet.size < exercises.length * 0.6) {
+            score -= 5;
+        }
+        
+        return Math.min(Math.max(score, 40), 95);
+    }
+    
+    animateScoreChange(newScore) {
+        /**
+         * Anime le changement de score avec couleur
+         * Adapté de planning.js - CLASSES CSS CORRESPONDANTES
+         */
+        
+        const scoreElement = document.querySelector('#generatedSessionPreview .ai-session-quality-score');
+        if (!scoreElement) return;
+        
+        // Couleur selon score
+        const scoreColor = newScore >= 85 ? '#10b981' : 
+                          newScore >= 70 ? '#f59e0b' : '#ef4444';
+        
+        // Animation flash
+        scoreElement.style.transition = 'all 0.3s ease';
+        scoreElement.style.transform = 'scale(1.1)';
+        scoreElement.style.color = scoreColor;
+        scoreElement.textContent = `Qualité ${newScore}%`;
+        
+        // Retour normal
+        setTimeout(() => {
+            scoreElement.style.transform = 'scale(1)';
+        }, 300);
+    }
+    
+    // ===== SWAP D'EXERCICES ADAPTÉ DE PLANNING.JS =====
+    
+    async swapExercise(exerciseIndex) {
+        /**
+         * Initie le swap d'un exercice dans la séance IA
+         * Adapté de planning.js showSwapModal()
+         */
+        
+        if (!this.lastGenerated || !this.lastGenerated.exercises) return;
+        
+        const exercise = this.lastGenerated.exercises[exerciseIndex];
+        if (!exercise) return;
+        
+        try {
+            // Récupérer alternatives du backend
+            const alternatives = await window.apiPost('/api/exercises/find-alternatives', {
+                exercise_id: exercise.exercise_id,
+                user_id: window.currentUser.id,
+                ppl_category: this.lastGenerated.ppl_used,
+                target_muscles: exercise.muscle_groups,
+                exclude_ids: this.lastGenerated.exercises.map(ex => ex.exercise_id)
+            });
+            
+            // Afficher modal alternatives
+            this.showSwapModal(exerciseIndex, exercise, alternatives.alternatives);
+            
+        } catch (error) {
+            console.error('Erreur récupération alternatives:', error);
+            window.showToast('Erreur lors de la recherche d\'alternatives', 'error');
+        }
+    }
+    
+    showSwapModal(exerciseIndex, currentExercise, alternatives) {
+        /**
+         * Affiche modal de sélection alternative
+         * Adapté de planning.js renderAlternative() - CLASSES CSS CORRESPONDANTES
+         */
+        
+        const alternativesHTML = alternatives.slice(0, 5).map(alt => `
+            <div class="ai-session-alternative-item" onclick="window.aiSessionManager.performSwap(${exerciseIndex}, ${alt.exercise_id})">
+                <div class="ai-session-alternative-info">
+                    <div class="ai-session-alternative-name">${alt.name}</div>
+                    <div class="ai-session-alternative-muscles">
+                        ${(alt.muscle_groups || []).map(muscle => 
+                            `<span class="ai-session-muscle-tag">${muscle}</span>`
+                        ).join('')}
+                    </div>
+                    <div class="ai-session-alternative-score">Score: ${Math.round((alt.score || 0.75) * 100)}%</div>
+                </div>
+            </div>
+        `).join('');
+        
+        const modalHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Remplacer "${currentExercise.exercise_name || currentExercise.name}"</h3>
+                    <button class="modal-close" onclick="window.closeModal()">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="ai-session-alternatives-list">
+                        ${alternativesHTML}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        window.showModal(modalHTML);
+    }
+    
+    async performSwap(exerciseIndex, newExerciseId) {
+        /**
+         * Effectue le remplacement d'exercice
+         * Adapté de planning.js performSwap()
+         */
+        
+        try {
+            // Récupérer détails nouvel exercice
+            const newExercise = await window.apiGet(`/api/exercises/${newExerciseId}?user_id=${window.currentUser.id}`);
+            
+            // Remplacer dans lastGenerated
+            const oldExercise = this.lastGenerated.exercises[exerciseIndex];
+            this.lastGenerated.exercises[exerciseIndex] = {
+                exercise_id: newExercise.id,
+                exercise_name: newExercise.name,
+                name: newExercise.name,
+                muscle_groups: newExercise.muscle_groups || [newExercise.muscle_group],
+                muscle_group: newExercise.muscle_group,
+                equipment_required: newExercise.equipment_required,
+                difficulty: newExercise.difficulty,
+                sets: oldExercise.sets || 3,
+                reps_min: oldExercise.reps_min || 8,
+                reps_max: oldExercise.reps_max || 12,
+                rest_seconds: oldExercise.rest_seconds || 90
+            };
+            
+            // Fermer modal
+            window.closeModal();
+            
+            // Mettre à jour affichage
+            this.updateGeneratedSessionDisplay();
+            
+            // Recalculer scoring avec animation
+            await this.updateAISessionScoring(this.lastGenerated.exercises);
+            
+            // Réinitialiser drag & drop
+            this.initializeExercisesDragDrop();
+            
+            window.showToast(`Exercice remplacé par "${newExercise.name}"`, 'success');
+            
+        } catch (error) {
+            console.error('Erreur swap exercice:', error);
+            window.showToast('Erreur lors du remplacement', 'error');
+        }
+    }
+    
+    // ===== DRAG & DROP ADAPTÉ DE PLANNING.JS =====
+        
+    initializeExercisesDragDrop() {
+        /**
+         * Initialise drag & drop pour réordonner exercices
+         * Adapté de planning.js initializeEditDragDrop() - CLASSES CSS CORRESPONDANTES
+         */
+        
+        const container = document.getElementById('aiExercisesList');
+        if (!container || !window.Sortable) return;
+        
+        // Détruire instance existante
+        if (this.sortableInstance) {
+            this.sortableInstance.destroy();
+        }
+        
+        // Créer nouvelle instance Sortable
+        this.sortableInstance = new Sortable(container, {
+            animation: 150,
+            handle: '.ai-session-exercise-drag-handle',
+            ghostClass: 'ai-session-exercise-ghost',
+            chosenClass: 'ai-session-exercise-chosen',
+            onEnd: async (evt) => {
+                if (evt.oldIndex === evt.newIndex) return;
+                
+                // Réorganiser tableau exercises
+                const [moved] = this.lastGenerated.exercises.splice(evt.oldIndex, 1);
+                this.lastGenerated.exercises.splice(evt.newIndex, 0, moved);
+                
+                // Recalculer et animer scoring
+                await this.updateAISessionScoring(this.lastGenerated.exercises);
+                
+                console.log('🔄 Exercices réordonnés:', 
+                    this.lastGenerated.exercises.map(ex => ex.exercise_name || ex.name)
+                );
+            }
+        });
+    }
+
 }
-
-
 
 // Exposer la classe globalement
 window.AISessionManager = AISessionManager;
