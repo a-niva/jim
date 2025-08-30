@@ -2193,7 +2193,7 @@ async function showAISession() {
     // Initialiser manager IA
     if (!window.aiSessionManager) {
         console.log('🆕 Création AISessionManager');
-        window.aiSessionManager = new AISessionManager('ai-session');
+        window.aiSessionManager = new AISessionManager('ai-session-main');
         await window.aiSessionManager.initialize();
     } else {
         console.log('🔄 Refresh AISessionManager existant');
