@@ -9859,7 +9859,6 @@ input {
 
 
 
-
 /* ===== INTERFACE SÉANCE IA - DESIGN COMPLET ET LISIBLE ===== */
 
 /* Container principal */
@@ -9913,11 +9912,6 @@ input {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-}
-
-/* État musculaire - Réutilise le style existant */
-.ai-session-muscle-readiness-container {
-    /* Hérite des styles muscle-readiness existants */
 }
 
 /* ===== RECOMMANDATION PPL - DESIGN AMÉLIORÉ ===== */
@@ -10165,15 +10159,7 @@ input {
 }
 
 .ai-session-param-help {
-    color: var(--text-muted);
-    font-size: 0.8rem;
-    margin-top: 0.75rem;
-    display: block;
-    line-height: 1.4;
-    background: rgba(59, 130, 246, 0.05);
-    padding: 0.5rem;
-    border-radius: 6px;
-    border-left: 3px solid var(--primary);
+    display: none !important;
 }
 
 /* ===== FOCUS MUSCLES - DESIGN PARFAIT ===== */
@@ -10243,48 +10229,86 @@ input {
 
 .ai-session-actions {
     display: flex;
-    gap: 1rem;
+    gap: 2rem;
     justify-content: center;
-    margin: 2rem 0;
-    padding: 0 1rem;
+    align-items: center;
+    margin: 3rem 0;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%);
+    border-radius: 16px;
+    border: 2px solid rgba(59, 130, 246, 0.15);
+    position: relative;
+    overflow: hidden;
+}
+
+.ai-session-actions::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary), var(--success), var(--primary));
 }
 
 .ai-session-actions .ai-session-btn {
-    min-width: 160px;
-    font-weight: 700;
-    padding: 0.9rem 1.5rem;
-    border-radius: var(--radius);
-    font-size: 0.95rem;
+    min-width: 180px;
+    font-weight: 800;
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    font-size: 1rem;
     position: relative;
     overflow: hidden;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    transition: all 0.3s ease;
+    letter-spacing: 0.8px;
+    transition: all 0.4s ease;
+    border: 2px solid transparent;
+    cursor: pointer;
+}
+
+.ai-session-actions .ai-session-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.6s ease;
+}
+
+.ai-session-actions .ai-session-btn:hover::before {
+    left: 100%;
 }
 
 .ai-session-actions .ai-session-btn-primary {
-    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-    border: none;
+    background: linear-gradient(135deg, var(--primary), var(--success));
     color: white;
-    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+    box-shadow: 
+        0 6px 20px rgba(59, 130, 246, 0.4),
+        inset 0 2px 4px rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
 }
 
 .ai-session-actions .ai-session-btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 
+        0 10px 28px rgba(59, 130, 246, 0.5),
+        0 4px 16px rgba(16, 185, 129, 0.3);
 }
 
 .ai-session-actions .ai-session-btn-secondary {
-    background: linear-gradient(135deg, var(--bg-card), var(--bg-secondary));
-    border: 2px solid var(--border);
+    background: linear-gradient(135deg, var(--bg-secondary), rgba(107, 114, 128, 0.1));
+    border-color: var(--border);
     color: var(--text);
 }
 
 .ai-session-actions .ai-session-btn-secondary:hover {
     border-color: var(--primary);
-    background: linear-gradient(135deg, var(--bg-secondary), var(--bg-card));
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+    background: linear-gradient(135deg, var(--primary), var(--success));
+    color: white;
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
 }
 
 /* ===== PREVIEW EXERCICES - DESIGN PREMIUM ===== */
@@ -10313,48 +10337,101 @@ input {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
     flex-wrap: wrap;
-    padding: 1rem;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: var(--radius);
+    padding: 1.5rem;
+    background: linear-gradient(135deg, 
+        rgba(59, 130, 246, 0.1) 0%, 
+        rgba(16, 185, 129, 0.1) 30%, 
+        rgba(245, 158, 11, 0.1) 70%, 
+        rgba(239, 68, 68, 0.1) 100%);
+    border-radius: 16px;
+    border: 2px solid rgba(59, 130, 246, 0.2);
     backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+}
+
+.ai-session-meta::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary), var(--success), var(--warning), var(--danger));
 }
 
 .ai-session-ppl-badge {
-    padding: 0.6rem 1.2rem;
+    padding: 0.8rem 1.5rem;
     border-radius: 25px;
     color: white;
-    font-weight: 700;
-    font-size: 0.85rem;
-    background: linear-gradient(135deg, var(--primary), var(--success));
+    font-weight: 800;
+    font-size: 0.9rem;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+    gap: 0.6rem;
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.ai-session-ppl-badge[data-ppl="push"] {
+    background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+}
+
+.ai-session-ppl-badge[data-ppl="pull"] {
+    background: linear-gradient(135deg, #4ecdc4, #44a08d);
+}
+
+.ai-session-ppl-badge[data-ppl="legs"] {
+    background: linear-gradient(135deg, #a8edea, #fed6e3);
+    color: #333;
+}
+
+.ai-session-quality-score {
+    font-size: 1rem;
+    font-weight: 800;
+    padding: 0.6rem 1.2rem;
+    border-radius: 25px;
+    transition: all 0.3s ease;
+    border: 2px solid;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
-.ai-session-quality-score {
-    font-size: 0.9rem;
-    color: var(--success);
-    font-weight: 700;
-    background: rgba(16, 185, 129, 0.1);
-    padding: 0.4rem 0.8rem;
-    border-radius: 20px;
-    border: 2px solid var(--success);
-    transition: all 0.3s ease;
+.ai-session-quality-score[data-score="excellent"] {
+    background: linear-gradient(135deg, var(--success), rgba(16, 185, 129, 0.8));
+    color: white;
+    border-color: var(--success);
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
+}
+
+.ai-session-quality-score[data-score="good"] {
+    background: linear-gradient(135deg, var(--warning), rgba(245, 158, 11, 0.8));
+    color: white;
+    border-color: var(--warning);
+    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.4);
+}
+
+.ai-session-quality-score[data-score="average"] {
+    background: linear-gradient(135deg, var(--danger), rgba(239, 68, 68, 0.8));
+    color: white;
+    border-color: var(--danger);
+    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4);
 }
 
 .ai-session-exercise-count {
-    font-size: 0.9rem;
-    color: var(--text-muted);
-    font-weight: 600;
-    background: rgba(156, 163, 175, 0.1);
-    padding: 0.4rem 0.8rem;
-    border-radius: 20px;
+    font-size: 0.95rem;
+    color: white;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--primary), rgba(59, 130, 246, 0.8));
+    padding: 0.6rem 1.2rem;
+    border-radius: 25px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
 }
 
 /* Liste exercices preview - DESIGN PREMIUM */
@@ -10367,66 +10444,82 @@ input {
     display: flex;
     align-items: center;
     gap: 1rem;
-    padding: 1.25rem;
-    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(59, 130, 246, 0.02) 100%);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    transition: all 0.3s ease;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(59, 130, 246, 0.08) 100%);
+    border: 2px solid transparent;
+    border-radius: 12px;
+    transition: all 0.4s ease;
     position: relative;
     overflow: hidden;
     cursor: move;
+    margin-bottom: 0.75rem;
 }
 
 .ai-session-exercise-preview-item::before {
     content: '';
     position: absolute;
-    left: 0;
     top: 0;
+    left: 0;
+    right: 0;
     bottom: 0;
-    width: 3px;
-    background: linear-gradient(180deg, var(--primary), var(--success));
-    transform: scaleY(0);
-    transition: transform 0.3s ease;
-}
-
-.ai-session-exercise-preview-item:hover {
-    border-color: var(--primary);
-    transform: translateX(8px);
-    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.15);
+    background: linear-gradient(135deg, var(--primary), var(--success), var(--warning));
+    border-radius: 12px;
+    padding: 2px;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: xor;
+    opacity: 0;
+    transition: opacity 0.4s ease;
 }
 
 .ai-session-exercise-preview-item:hover::before {
-    transform: scaleY(1);
+    opacity: 1;
+}
+
+.ai-session-exercise-preview-item:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow:
+        0 8px 32px rgba(59, 130, 246, 0.25),
+        0 4px 16px rgba(16, 185, 129, 0.15);
+    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(59, 130, 246, 0.12) 100%);
 }
 
 .ai-session-exercise-drag-handle {
     color: var(--text-muted);
     cursor: grab;
-    font-size: 1.1rem;
-    transition: color 0.2s ease;
+    font-size: 1.2rem;
+    padding: 0.5rem;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    background: rgba(59, 130, 246, 0.1);
 }
 
 .ai-session-exercise-drag-handle:hover {
     color: var(--primary);
+    background: rgba(59, 130, 246, 0.2);
+    transform: scale(1.1);
 }
 
 .ai-session-exercise-drag-handle:active {
     cursor: grabbing;
+    transform: scale(0.95);
 }
 
 .ai-session-exercise-number {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
-    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--primary), var(--success));
     color: white;
     border-radius: 50%;
-    font-weight: 700;
-    font-size: 0.95rem;
+    font-weight: 800;
+    font-size: 1rem;
     flex-shrink: 0;
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+    box-shadow: 
+        0 4px 12px rgba(59, 130, 246, 0.4),
+        inset 0 2px 4px rgba(255, 255, 255, 0.2);
+    border: 2px pitting, rgba(255, 255, 255, 0.3);
 }
 
 .ai-session-exercise-details {
@@ -10435,46 +10528,55 @@ input {
 }
 
 .ai-session-exercise-name {
-    font-weight: 700;
+    font-weight: 800;
     color: var(--text);
-    margin-bottom: 0.4rem;
-    font-size: 0.95rem;
+    margin-bottom: 0.6rem;
+    font-size: 1.05rem;
+    line-height: 1.3;
 }
 
 .ai-session-exercise-params {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    margin-bottom: 0.6rem;
-    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--primary);
+    margin-bottom: 0.8rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(16, 185, 129, 0.15));
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    display: inline-block;
+    border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 .ai-session-exercise-muscles {
     display: flex;
-    gap: 0.3rem;
+    gap: 0.5rem;
     flex-wrap: wrap;
     align-items: center;
 }
 
 .ai-session-muscle-tag {
-    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    background: linear-gradient(135deg, var(--success), rgba(16, 185, 129, 0.8));
     color: white;
-    padding: 0.25rem 0.6rem;
-    border-radius: 15px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    box-shadow: 0 1px 4px rgba(59, 130, 246, 0.3);
+    padding: 0.3rem 0.8rem;
+    border-radius: 18px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    text-transform: capitalize;
 }
 
 .ai-session-equipment-tag {
-    background: linear-gradient(135deg, var(--text-muted), rgba(107, 114, 128, 0.8));
+    background: linear-gradient(135deg, var(--warning), rgba(245, 158, 11, 0.8));
     color: white;
-    padding: 0.25rem 0.6rem;
-    border-radius: 15px;
-    font-size: 0.7rem;
-    font-weight: 600;
+    padding: 0.3rem 0.8rem;
+    border-radius: 18px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Actions exercice */
 .ai-session-exercise-actions {
     flex-shrink: 0;
     display: flex;
@@ -10482,81 +10584,110 @@ input {
 }
 
 .ai-session-exercise-actions .ai-session-btn-small {
-    padding: 0.5rem 0.7rem;
-    font-size: 0.8rem;
-    min-width: auto;
-    border-radius: var(--radius);
-    font-weight: 600;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.85rem;
+    border-radius: 10px;
+    font-weight: 700;
     transition: all 0.3s ease;
-    border: none;
-    cursor: pointer;
-}
-
-.ai-session-exercise-actions .ai-session-btn-small.ai-session-btn-secondary {
-    background: var(--bg-secondary);
-    border: 2px solid var(--border);
+    border: 2px solid transparent;
+    background: linear-gradient(135deg, var(--bg-secondary), rgba(59, 130, 246, 0.1));
     color: var(--text);
+    position: relative;
+    overflow: hidden;
 }
 
-.ai-session-exercise-actions .ai-session-btn-small.ai-session-btn-secondary:hover {
+.ai-session-exunar-actions .ai-session-btn-small::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.ai-session-exercise-actions .ai-session-btn-small:hover {
     border-color: var(--primary);
-    background: var(--primary);
+    background: linear-gradient(135deg, var(--primary), var(--success));
     color: white;
-    transform: scale(1.05);
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
 }
 
-/* === ÉTATS DRAG & DROP === */
-.ai-session-exercise-ghost {
-    opacity: 0.5;
-    background: var(--primary) !important;
-    color: white !important;
-}
-
-.ai-session-exercise-chosen {
-    transform: rotate(2deg) scale(1.02);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+.ai-session-exercise-actions .ai-session-btn-small:hover::before {
+    left: 100%;
 }
 
 /* ===== ACTIONS LANCEMENT ===== */
 
+.launch-actions {
+    display: none !important;
+}
+
 .ai-session-launch-actions {
     display: flex;
-    gap: 1rem;
-    justify-content: center;
-    margin-top: 1.5rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid var(--border);
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    margin-top: 2rem;
+    padding: 2rem 1rem;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(59, 130, 246, 0.05) 100%);
+    border-radius: 16px;
+    border: 2px solid rgba(16, 185, 129, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.ai-session-launch-actions::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--success), var(--primary), var(--success));
 }
 
 .ai-session-launch-actions .ai-session-btn {
-    min-width: 160px;
-    font-weight: 700;
-    padding: 0.9rem 1.5rem;
-    border-radius: var(--radius);
-    font-size: 0.95rem;
+    min-width: 200px;
+    font-weight: 800;
+    padding: 1.2rem 2rem;
+    border-radius: 12px;
+    font-size: 1.1rem;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    transition: all 0.3s ease;
+    letter-spacing: 1px;
+    transition: all 0.4s ease;
     border: none;
     cursor: pointer;
+    position: relative;
+    overflow: hidden;
 }
 
 .ai-session-launch-actions .ai-session-btn-success {
-    background: linear-gradient(135deg, var(--success), rgba(16, 185, 129, 0.8));
+    background: linear-gradient(135 милитаризованныхdeg, varთ 135deg, var(--success), rgba(16, 185, 129, 0.8));
     color: white;
-    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    box-shadow: 
+        0 6px 24px rgba(16, 185, 129, 0.4),
+        inset 0 2px 4px rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
 }
 
 .ai-session-launch-actions .ai-session-btn-success:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    transform: translateY(-4px) scale(1.05);
+    box-shadow: 
+        0 10px 32px rgba(16, 185, 129, 0.5),
+        0 4px 16px rgba(59, 130, 246, 0.3);
+    background: linear-gradient(135deg, var(--success), var(--primary));
 }
 
 .ai-session-launch-note {
-    margin-top: 1rem;
-    font-size: 0.85rem;
-    color: var(--text-muted);
     text-align: center;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-style: italic;
+    max-width: 400px;
+    line-height: 1.5;
 }
 
 /* === MODAL ALTERNATIVES SWAP === */
@@ -10597,7 +10728,7 @@ input {
 
 .ai-session-alternative-muscles {
     display: flex;
-    gap: 0.25rem;
+        gap: 0.25rem;
     flex-wrap: wrap;
     margin-bottom: 0.25rem;
 }
@@ -10743,15 +10874,13 @@ input {
     /* Session meta en colonne */
     .ai-session-meta {
         flex-direction: column;
-        gap: 0.75rem;
-        padding: 0.75rem;
+        gap: 1rem;
     }
     
     /* Actions principales en colonne */
     .ai-session-actions {
         flex-direction: column;
-        padding: 0;
-        gap: 0.75rem;
+        gap: 1rem;
     }
     
     .ai-session-actions .ai-session-btn {
@@ -10763,7 +10892,7 @@ input {
     /* Actions lancement en colonne */
     .ai-session-launch-actions {
         flex-direction: column;
-        gap: 0.75rem;
+        gap: 1rem;
     }
     
     .ai-session-launch-actions .ai-session-btn {
@@ -10774,12 +10903,12 @@ input {
     
     /* Exercise preview optimisé mobile */
     .ai-session-exercise-preview-item {
-        padding: 1rem;
+        padding: 1.25rem;
         gap: 0.75rem;
     }
     
     .ai-session-exercise-preview-item:hover {
-        transform: translateX(4px);
+        transform: translateY(-2px) scale(1.01);
     }
     
     .ai-session-exercise-number {
@@ -10905,12 +11034,6 @@ input {
     color: var(--text-primary, #111827);
 }
 
-.ai-session-quality-score {
-    font-weight: 700;
-    transition: all 0.3s ease;
-}
-
-/* === LISTE EXERCICES DRAGGABLE === */
 .ai-session-exercise-list-draggable {
     margin: 1rem 0;
 }
@@ -10934,44 +11057,6 @@ input {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.ai-session-exercise-drag-handle {
-    color: var(--text-muted, #6b7280);
-    cursor: grab;
-    font-size: 1.1rem;
-    transition: color 0.2s ease;
-}
-
-.ai-session-exercise-drag-handle:hover {
-    color: var(--primary, #3b82f6);
-}
-
-.ai-session-exercise-drag-handle:active {
-    cursor: grabbing;
-}
-
-.ai-session-exercise-number {
-    min-width: 2rem;
-    height: 2rem;
-    border-radius: 50%;
-    background: var(--primary, #3b82f6);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.9rem;
-    font-weight: 600;
-}
-
-.ai-session-exercise-details {
-    flex: 1;
-}
-
-.ai-session-exercise-name {
-    font-weight: 600;
-    color: var(--text-primary, #111827);
-    margin-bottom: 0.25rem;
-}
-
 .ai-session-exercise-meta {
     display: flex;
     gap: 0.5rem;
@@ -10980,67 +11065,11 @@ input {
     flex-wrap: wrap;
 }
 
-.ai-session-exercise-params {
-    font-size: 0.85rem;
-    color: var(--text-secondary, #4b5563);
-    background: var(--bg-muted, #f3f4f6);
-    padding: 0.2rem 0.5rem;
-    border-radius: 4px;
-}
-
 .ai-session-exercise-rest {
     font-size: 0.8rem;
     color: var(--text-muted, #6b7280);
 }
 
-.ai-session-exercise-muscles {
-    display: flex;
-    gap: 0.25rem;
-    flex-wrap: wrap;
-}
-
-.ai-session-muscle-tag {
-    font-size: 0.75rem;
-    background: var(--success, #10b981);
-    color: white;
-    padding: 0.1rem 0.4rem;
-    border-radius: 12px;
-}
-
-.ai-session-equipment-tag {
-    font-size: 0.75rem;
-    background: var(--warning, #f59e0b);
-    color: white;
-    padding: 0.1rem 0.4rem;
-    border-radius: 4px;
-}
-
-.ai-session-exercise-actions {
-    display: flex;
-    gap: 0.5rem;
-}
-
-/* === BOUTONS ACTIONS === */
-.ai-session-btn-small {
-    padding: 0.4rem 0.6rem;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.8rem;
-    transition: all 0.2s ease;
-}
-
-.ai-session-btn-small.ai-session-btn-secondary {
-    background: var(--secondary, #6b7280);
-    color: white;
-}
-
-.ai-session-btn-small.ai-session-btn-secondary:hover {
-    background: var(--secondary-dark, #4b5563);
-    transform: translateY(-1px);
-}
-
-/* === ÉTATS DRAG & DROP === */
 .ai-session-exercise-ghost {
     opacity: 0.5;
     background: var(--primary, #3b82f6) !important;
@@ -11052,7 +11081,6 @@ input {
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
-/* === SECTION LANCEMENT === */
 .ai-session-launch-section {
     text-align: center;
     margin-top: 2rem;
@@ -11081,112 +11109,18 @@ input {
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
-.ai-session-launch-note {
-    margin-top: 1rem;
-    font-size: 0.85rem;
-    color: var(--text-muted, #6b7280);
-}
-
-.ai-session-ppl-badge {
-    background: var(--primary, #3b82f6);
-    color: white;
-    padding: 0.2rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    font-weight: 600;
-}
-
-/* === MODAL ALTERNATIVES SWAP === */
-.ai-session-alternatives-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.ai-session-alternative-item {
-    display: flex;
-    align-items: center;
-    padding: 1rem;
-    background: var(--bg-card, #ffffff);
-    border: 1px solid var(--border, #e5e7eb);
-    border-radius: var(--radius, 8px);
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.ai-session-alternative-item:hover {
-    border-color: var(--primary, #3b82f6);
-    background: rgba(59, 130, 246, 0.05);
-    transform: translateY(-1px);
-}
-
-.ai-session-alternative-info {
-    flex: 1;
-}
-
-.ai-session-alternative-name {
-    font-weight: 600;
-    color: var(--text-primary, #111827);
-    margin-bottom: 0.5rem;
-}
-
-.ai-session-alternative-muscles {
-    display: flex;
-    gap: 0.25rem;
-    flex-wrap: wrap;
-    margin-bottom: 0.25rem;
-}
-
-.ai-session-alternative-score {
-    font-size: 0.85rem;
-    color: var(--text-secondary, #4b5563);
-    font-weight: 500;
-}
-
-/* === ANIMATIONS SCORE === */
-@keyframes ai-session-score-pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
-}
-
-.ai-session-quality-score.animating {
-    animation: ai-session-score-pulse 0.4s ease;
-}
-
-/* === RESPONSIVE === */
-@media (max-width: 768px) {
-    .ai-session-stats {
-        grid-template-columns: 1fr;
-        gap: 0.5rem;
-        text-align: left;
+/* === ANIMATION BOUNCE POUR CÉLÉBRATION === */
+@keyframes bounce {
+    0%, 20%, 53%, 80%, 100% { 
+        transform: translate3d(0,0,0); 
     }
-    
-    .ai-session-stat-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+    40%, 43% { 
+        transform: translate3d(0, -15px, 0); 
     }
-    
-    .ai-session-exercise-item-draggable {
-        padding: 0.75rem;
-        gap: 0.75rem;
+    70% { 
+        transform: translate3d(0, -7px, 0); 
     }
-    
-    .ai-session-exercise-meta {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.25rem;
-    }
-    
-    .ai-session-btn-large {
-        width: 100%;
-        padding: 1rem;
-    }
-    
-    .ai-session-container {
-        padding: 0.5rem;
+    90% { 
+        transform: translate3d(0, -2px, 0); 
     }
 }

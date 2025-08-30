@@ -358,6 +358,304 @@ class AISessionManager {
             container.innerHTML = this.renderMuscleFocusOptions();
         }
     }
+// ===== CORRECTIONS JAVASCRIPT POUR CORRESPONDRE AUX NOUVEAUX STYLES =====
+
+/**
+ * CORRIGER renderExercisePreview() pour utiliser les nouvelles classes et couleurs
+ * 
+ * LOCALISATION: Dans ai-session-manager.js, méthode renderExercisePreview()
+ * ACTION: Remplacer complètement cette méthode
+ */
+
+renderExercisePreview() {
+    if (!this.lastGenerated || !this.lastGenerated.exercises) return '';
+    
+    const qualityScore = Math.round(this.lastGenerated.quality_score || 75);
+    const pplUsed = this.lastGenerated.ppl_used || 'push';
+    
+    // Déterminer classe score selon valeur
+    let scoreClass = 'average';
+    if (qualityScore >= 85) scoreClass = 'excellent';
+    else if (qualityScore >= 70) scoreClass = 'good';
+    
+    return `
+        <div class="ai-session-generated-summary">
+            <div class="ai-session-meta">
+                <div class="ai-session-exercise-count">
+                    <i class="fas fa-list"></i> ${this.lastGenerated.exercises.length} exercices
+                </div>
+                <div class="ai-session-ppl-badge" data-ppl="${pplUsed}">
+                    <i class="fas fa-dumbbell"></i>
+                    ${pplUsed.toUpperCase()}
+                </div>
+                <div class="ai-session-quality-score" data-score="${scoreClass}">
+                    <i class="fas fa-star"></i> ${qualityScore}%
+                </div>
+            </div>
+        </div>
+        
+        <div id="aiExercisesList" class="ai-session-exercises-preview-list">
+            ${this.lastGenerated.exercises.map((ex, index) => this.renderSingleExercise(ex, index)).join('')}
+        </div>
+        
+        <div class="ai-session-launch-actions">
+            <button id="launchAISessionBtn" class="ai-session-btn ai-session-btn-success">
+                <i class="fas fa-rocket"></i> Lancer Séance
+            </button>
+            <p class="ai-session-launch-note">
+                <i class="fas fa-info-circle"></i> 
+                Interface de séance classique avec tous vos outils habituels
+            </p>
+        </div>
+    `;
+}
+
+/**
+ * NOUVELLE MÉTHODE pour rendre un exercice individuel
+ * 
+ * LOCALISATION: Dans ai-session-manager.js, ajouter cette nouvelle méthode
+ * ACTION: Ajouter cette méthode dans la classe AISessionManager
+ */
+
+renderSingleExercise(ex, index) {
+    return `
+        <div class="ai-session-exercise-preview-item" data-exercise-index="${index}">
+            <span class="ai-session-exercise-drag-handle" title="Glisser pour réordonner">
+                <i class="fas fa-grip-vertical"></i>
+            </span>
+            
+            <div class="ai-session-exercise-number">${index + 1}</div>
+            
+            <div class="ai-session-exercise-details">
+                <div class="ai-session-exercise-name">${ex.exercise_name || ex.name}</div>
+                <div class="ai-session-exercise-params">
+                    <i class="fas fa-dumbbell"></i>
+                    ${ex.sets || 3} × ${ex.reps_min || 8}-${ex.reps_max || 12}
+                    <i class="fas fa-clock"></i>
+                    ${Math.round((ex.rest_seconds || 90) / 60)}min repos
+                </div>
+                <div class="ai-session-exercise-muscles">
+                    ${(ex.muscle_groups || []).map(muscle => 
+                        `<span class="ai-session-muscle-tag"><i class="fas fa-bullseye"></i> ${muscle}</span>`
+                    ).join('')}
+                    ${ex.equipment_required && ex.equipment_required.length > 0 ? 
+                        `<span class="ai-session-equipment-tag"><i class="fas fa-tools"></i> ${ex.equipment_required[0]}</span>` : ''}
+                </div>
+            </div>
+            
+            <div class="ai-session-exercise-actions">
+                <button class="ai-session-btn-small ai-session-btn-secondary" 
+                        onclick="window.aiSessionManager.swapExercise(${index})"
+                        title="Remplacer cet exercice">
+                    <i class="fas fa-exchange-alt"></i>
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * CORRIGER animateScoreChange() pour les nouvelles classes
+ * 
+ * LOCALISATION: Dans ai-session-manager.js, méthode animateScoreChange()
+ * ACTION: Remplacer cette méthode
+ */
+
+animateScoreChange(newScore) {
+    const scoreElement = document.querySelector('#generatedSessionPreview .ai-session-quality-score');
+    if (!scoreElement) return;
+    
+    // Déterminer nouvelle classe selon score
+    let scoreClass = 'average';
+    if (newScore >= 85) scoreClass = 'excellent';
+    else if (newScore >= 70) scoreClass = 'good';
+    
+    // Appliquer nouvelle classe avec animation
+    scoreElement.setAttribute('data-score', scoreClass);
+    scoreElement.innerHTML = `<i class="fas fa-star"></i> ${newScore}%`;
+    
+    // Animation scale
+    scoreElement.style.transform = 'scale(1.15)';
+    scoreElement.style.transition = 'all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+    
+    setTimeout(() => {
+        scoreElement.style.transform = 'scale(1)';
+    }, 400);
+    
+    // Animation flash couleur
+    const originalBg = scoreElement.style.background;
+    if (scoreClass === 'excellent') {
+        scoreElement.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+        scoreElement.style.boxShadow = '0 8px 32px rgba(16, 185, 129, 0.6)';
+    } else if (scoreClass === 'good') {
+        scoreElement.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+        scoreElement.style.boxShadow = '0 8px 32px rgba(245, 158, 11, 0.6)';
+    } else {
+        scoreElement.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+        scoreElement.style.boxShadow = '0 8px 32px rgba(239, 68, 68, 0.6)';
+    }
+    
+    setTimeout(() => {
+        scoreElement.style.background = originalBg;
+    }, 1000);
+}
+
+/**
+ * CORRIGER updateGeneratedSessionDisplay() pour reload complet
+ * 
+ * LOCALISATION: Dans ai-session-manager.js, méthode updateGeneratedSessionDisplay()
+ * ACTION: Améliorer cette méthode
+ */
+
+updateGeneratedSessionDisplay() {
+    const previewContainer = document.getElementById('exercisePreviewContainer');
+    const previewSection = document.getElementById('generatedSessionPreview');
+    
+    if (previewContainer && this.lastGenerated) {
+        // Supprimer anciens messages obsolètes
+        const obsoleteMessages = previewSection?.querySelectorAll('.ai-session-outdated-message');
+        obsoleteMessages?.forEach(msg => msg.remove());
+        
+        // Mettre à jour contenu HTML
+        previewContainer.innerHTML = this.renderExercisePreview();
+        
+        // Initialiser fonctionnalités après un délai
+        setTimeout(() => {
+            this.initializeExercisesDragDrop();
+            this.bindLaunchButton();
+            this.addExerciseHoverEffects();
+        }, 150);
+        
+        // Animation apparition des exercices
+        setTimeout(() => {
+            const items = document.querySelectorAll('.ai-session-exercise-preview-item');
+            items.forEach((item, index) => {
+                item.style.opacity = '0';
+                item.style.transform = 'translateY(20px)';
+                item.style.transition = 'all 0.4s ease';
+                
+                setTimeout(() => {
+                    item.style.opacity = '1';
+                    item.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        }, 200);
+        
+        // Calculer et afficher score initial avec animation
+        setTimeout(() => {
+            this.updateAISessionScoring(this.lastGenerated.exercises);
+        }, 300);
+    }
+    
+    if (previewSection) {
+        previewSection.style.display = 'block';
+    }
+    
+    this.updateButtonStates();
+}
+
+/**
+ * NOUVELLE MÉTHODE pour ajouter effets hover aux exercices
+ * 
+ * LOCALISATION: Dans ai-session-manager.js, ajouter cette nouvelle méthode
+ * ACTION: Ajouter cette méthode dans la classe AISessionManager
+ */
+
+addExerciseHoverEffects() {
+    const items = document.querySelectorAll('.ai-session-exercise-preview-item');
+    
+    items.forEach((item, index) => {
+        // Effet parallax léger sur hover
+        item.addEventListener('mouseenter', (e) => {
+            const handle = item.querySelector('.ai-session-exercise-drag-handle');
+            const number = item.querySelector('.ai-session-exercise-number');
+            
+            if (handle) handle.style.transform = 'translateX(-3px) scale(1.1)';
+            if (number) number.style.transform = 'scale(1.1) rotate(-5deg)';
+        });
+        
+        item.addEventListener('mouseleave', (e) => {
+            const handle = item.querySelector('.ai-session-exercise-drag-handle');
+            const number = item.querySelector('.ai-session-exercise-number');
+            
+            if (handle) handle.style.transform = 'translateX(0) scale(1)';
+            if (number) number.style.transform = 'scale(1) rotate(0deg)';
+        });
+    });
+}
+
+/**
+ * CORRIGER showGeneratingState() pour meilleur feedback
+ * 
+ * LOCALISATION: Dans ai-session-manager.js, méthode showGeneratingState()
+ * ACTION: Améliorer cette méthode
+ */
+
+showGeneratingState() {
+    const generateBtn = document.getElementById('generateSessionBtn');
+    if (generateBtn) {
+        generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Génération en cours...';
+        generateBtn.disabled = true;
+        generateBtn.style.background = 'linear-gradient(135deg, #6b7280, #4b5563)';
+        generateBtn.style.transform = 'scale(0.98)';
+        generateBtn.style.cursor = 'not-allowed';
+    }
+    
+    // Animation de la section preview pendant génération
+    const preview = document.getElementById('generatedSessionPreview');
+    if (preview) {
+        preview.style.opacity = '0.6';
+        preview.style.transform = 'scale(0.98)';
+        preview.style.filter = 'blur(2px)';
+        preview.style.transition = 'all 0.3s ease';
+    }
+}
+
+/**
+ * CORRIGER updateButtonStates() pour reset visual
+ * 
+ * LOCALISATION: Dans ai-session-manager.js, méthode updateButtonStates()
+ * ACTION: Améliorer cette méthode
+ */
+
+updateButtonStates() {
+    const generateBtn = document.getElementById('generateSessionBtn');
+    const regenerateBtn = document.getElementById('regenerateSessionBtn');
+    
+    if (generateBtn) {
+        generateBtn.innerHTML = '<i class="fas fa-magic"></i> Générer Séance';
+        generateBtn.disabled = false;
+        generateBtn.style.background = '';
+        generateBtn.style.transform = '';
+        generateBtn.style.cursor = '';
+    }
+    
+    if (regenerateBtn) {
+        regenerateBtn.disabled = !this.lastGenerated;
+        if (this.lastGenerated) {
+            regenerateBtn.style.opacity = '1';
+            regenerateBtn.style.cursor = 'pointer';
+        } else {
+            regenerateBtn.style.opacity = '0.5';
+            regenerateBtn.style.cursor = 'not-allowed';
+        }
+    }
+    
+    // Reset preview visual
+    const preview = document.getElementById('generatedSessionPreview');
+    if (preview) {
+        preview.style.opacity = '1';
+        preview.style.transform = 'scale(1)';
+        preview.style.filter = 'none';
+    }
+}
+
+/**
+ * CORRIGER markGenerationOutdated() pour nouvelle classe
+ * 
+ * LOCALISATION: Dans ai-session-manager.js, méthode markGenerationOutdated()
+ * ACTION: Corriger cette méthode
+ */
 
     markGenerationOutdated() {
         if (this.lastGenerated) {
@@ -365,10 +663,69 @@ class AISessionManager {
             if (preview && !preview.querySelector('.ai-session-outdated-message')) {
                 const message = document.createElement('div');
                 message.className = 'ai-session-outdated-message';
-                message.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Paramètres modifiés - Regénérer pour appliquer';
+                message.innerHTML = `
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    Paramètres modifiés - Cliquez sur "Regénérer" pour appliquer
+                `;
                 preview.insertBefore(message, preview.firstChild);
+                
+                // Animation apparition
+                message.style.opacity = '0';
+                message.style.transform = 'translateY(-10px)';
+                message.style.transition = 'all 0.3s ease';
+                
+                setTimeout(() => {
+                    message.style.opacity = '1';
+                    message.style.transform = 'translateY(0)';
+                }, 100);
             }
         }
+    }
+
+    celebrateGeneration() {
+        // Animation confetti légère
+        const container = this.container;
+        if (!container) return;
+        
+        // Créer quelques particules de célébration
+        for (let i = 0; i < 6; i++) {
+            const particle = document.createElement('div');
+            particle.innerHTML = ['🎉', '✨', '⭐', '🚀', '💪', '🔥'][i];
+            particle.style.position = 'fixed';
+            particle.style.fontSize = '1.5rem';
+            particle.style.pointerEvents = 'none';
+            particle.style.zIndex = '9999';
+            particle.style.left = Math.random() * window.innerWidth + 'px';
+            particle.style.top = '50%';
+            particle.style.opacity = '0';
+            particle.style.transition = 'all 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+            
+            document.body.appendChild(particle);
+            
+            // Animation
+            setTimeout(() => {
+                particle.style.opacity = '1';
+                particle.style.transform = `translateY(-100px) rotate(${Math.random() * 360}deg) scale(1.2)`;
+            }, i * 100);
+            
+            // Cleanup
+            setTimeout(() => {
+                particle.style.opacity = '0';
+                particle.style.transform += ' translateY(-50px)';
+                setTimeout(() => particle.remove(), 500);
+            }, 1000 + i * 100);
+        }
+        
+        // Animation bounce du bouton launch
+        setTimeout(() => {
+            const launchBtn = document.getElementById('launchAISessionBtn');
+            if (launchBtn) {
+                launchBtn.style.animation = 'bounce 0.8s ease-in-out';
+                setTimeout(() => {
+                    launchBtn.style.animation = '';
+                }, 800);
+            }
+        }, 1500);
     }
 
     renderMuscleFocusOptions() {
@@ -384,68 +741,41 @@ class AISessionManager {
         `).join('');
     }
 
+
     renderExercisePreview() {
-        /**
-         * RENDU PRÉVISUALISATION - CLASSES CORRESPONDANTES AU CSS
-         * 
-         * Localisation : Dans ai-session-manager.js, remplacer la méthode renderExercisePreview()
-         */
-        
         if (!this.lastGenerated || !this.lastGenerated.exercises) return '';
         
         const qualityScore = Math.round(this.lastGenerated.quality_score || 75);
-        const scoreColor = qualityScore >= 85 ? '#10b981' : 
-                          qualityScore >= 70 ? '#f59e0b' : '#ef4444';
+        const pplUsed = this.lastGenerated.ppl_used || 'push';
+        
+        // Déterminer classe score selon valeur
+        let scoreClass = 'average';
+        if (qualityScore >= 85) scoreClass = 'excellent';
+        else if (qualityScore >= 70) scoreClass = 'good';
         
         return `
             <div class="ai-session-generated-summary">
                 <div class="ai-session-meta">
-                    <div class="ai-session-exercise-count">${this.lastGenerated.exercises.length} exercices</div>
-                    <div class="ai-session-ppl-badge">
-                        <i class="fas fa-dumbbell"></i>
-                        ${this.lastGenerated.ppl_used.toUpperCase()}
+                    <div class="ai-session-exercise-count">
+                        <i class="fas fa-list"></i> ${this.lastGenerated.exercises.length} exercices
                     </div>
-                    <div class="ai-session-quality-score" style="color: ${scoreColor}">
-                        Qualité ${qualityScore}%
+                    <div class="ai-session-ppl-badge" data-ppl="${pplUsed}">
+                        <i class="fas fa-dumbbell"></i>
+                        ${pplUsed.toUpperCase()}
+                    </div>
+                    <div class="ai-session-quality-score" data-score="${scoreClass}">
+                        <i class="fas fa-star"></i> ${qualityScore}%
                     </div>
                 </div>
             </div>
             
             <div id="aiExercisesList" class="ai-session-exercises-preview-list">
-                ${this.lastGenerated.exercises.map((ex, index) => `
-                    <div class="ai-session-exercise-preview-item" data-exercise-index="${index}">
-                        <span class="ai-session-exercise-drag-handle" title="Glisser pour réordonner">
-                            <i class="fas fa-grip-vertical"></i>
-                        </span>
-                        
-                        <div class="ai-session-exercise-number">${index + 1}</div>
-                        
-                        <div class="ai-session-exercise-details">
-                            <div class="ai-session-exercise-name">${ex.exercise_name || ex.name}</div>
-                            <div class="ai-session-exercise-params">${ex.sets || 3} × ${ex.reps_min || 8}-${ex.reps_max || 12} • ${Math.round((ex.rest_seconds || 90) / 60)}min repos</div>
-                            <div class="ai-session-exercise-muscles">
-                                ${(ex.muscle_groups || []).map(muscle => 
-                                    `<span class="ai-session-muscle-tag">${muscle}</span>`
-                                ).join('')}
-                                ${ex.equipment_required ? 
-                                    `<span class="ai-session-equipment-tag">${ex.equipment_required[0]}</span>` : ''}
-                            </div>
-                        </div>
-                        
-                        <div class="ai-session-exercise-actions">
-                            <button class="ai-session-btn-small ai-session-btn-secondary" 
-                                    onclick="window.aiSessionManager.swapExercise(${index})"
-                                    title="Remplacer cet exercice">
-                                <i class="fas fa-exchange-alt"></i>
-                            </button>
-                        </div>
-                    </div>
-                `).join('')}
+                ${this.lastGenerated.exercises.map((ex, index) => this.renderSingleExercise(ex, index)).join('')}
             </div>
             
             <div class="ai-session-launch-actions">
                 <button id="launchAISessionBtn" class="ai-session-btn ai-session-btn-success">
-                    <i class="fas fa-play"></i> Lancer Séance
+                    <i class="fas fa-rocket"></i> Lancer Séance
                 </button>
                 <p class="ai-session-launch-note">
                     <i class="fas fa-info-circle"></i> 
@@ -454,7 +784,46 @@ class AISessionManager {
             </div>
         `;
     }
-    
+
+
+    renderSingleExercise(ex, index) {
+        return `
+            <div class="ai-session-exercise-preview-item" data-exercise-index="${index}">
+                <span class="ai-session-exercise-drag-handle" title="Glisser pour réordonner">
+                    <i class="fas fa-grip-vertical"></i>
+                </span>
+                
+                <div class="ai-session-exercise-number">${index + 1}</div>
+                
+                <div class="ai-session-exercise-details">
+                    <div class="ai-session-exercise-name">${ex.exercise_name || ex.name}</div>
+                    <div class="ai-session-exercise-params">
+                        <i class="fas fa-dumbbell"></i>
+                        ${ex.sets || 3} × ${ex.reps_min || 8}-${ex.reps_max || 12}
+                        <i class="fas fa-clock"></i>
+                        ${Math.round((ex.rest_seconds || 90) / 60)}min repos
+                    </div>
+                    <div class="ai-session-exercise-muscles">
+                        ${(ex.muscle_groups || []).map(muscle => 
+                            `<span class="ai-session-muscle-tag"><i class="fas fa-bullseye"></i> ${muscle}</span>`
+                        ).join('')}
+                        ${ex.equipment_required && ex.equipment_required.length > 0 ? 
+                            `<span class="ai-session-equipment-tag"><i class="fas fa-tools"></i> ${ex.equipment_required[0]}</span>` : ''}
+                    </div>
+                </div>
+                
+                <div class="ai-session-exercise-actions">
+                    <button class="ai-session-btn-small ai-session-btn-secondary" 
+                            onclick="window.aiSessionManager.swapExercise(${index})"
+                            title="Remplacer cet exercice">
+                        <i class="fas fa-exchange-alt"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+
     async generateSession() {
         /**
          * FONCTION CRITIQUE - Génère séance IA
@@ -765,48 +1134,65 @@ class AISessionManager {
     }
     
     // ===== MÉTHODES UTILITAIRES =====
-    
+
     showGeneratingState() {
-        /**
-         * Affiche état génération en cours
-         */
-        
         const generateBtn = document.getElementById('generateSessionBtn');
         if (generateBtn) {
-            generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Génération...';
+            generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Génération en cours...';
             generateBtn.disabled = true;
+            generateBtn.style.background = 'linear-gradient(135deg, #6b7280, #4b5563)';
+            generateBtn.style.transform = 'scale(0.98)';
+            generateBtn.style.cursor = 'not-allowed';
         }
         
-        // Masquer preview précédente
+        // Animation de la section preview pendant génération
         const preview = document.getElementById('generatedSessionPreview');
         if (preview) {
-            preview.style.display = 'none';
+            preview.style.opacity = '0.6';
+            preview.style.transform = 'scale(0.98)';
+            preview.style.filter = 'blur(2px)';
+            preview.style.transition = 'all 0.3s ease';
         }
     }
 
-
     updateGeneratedSessionDisplay() {
-        /**
-         * MISE À JOUR AFFICHAGE - CLASSES CORRESPONDANTES AU CSS
-         * 
-         * Localisation : Dans ai-session-manager.js, remplacer la méthode updateGeneratedSessionDisplay()
-         */
-        
         const previewContainer = document.getElementById('exercisePreviewContainer');
         const previewSection = document.getElementById('generatedSessionPreview');
         
         if (previewContainer && this.lastGenerated) {
+            // Supprimer anciens messages obsolètes
+            const obsoleteMessages = previewSection?.querySelectorAll('.ai-session-outdated-message');
+            obsoleteMessages?.forEach(msg => msg.remove());
+            
             // Mettre à jour contenu HTML
             previewContainer.innerHTML = this.renderExercisePreview();
             
-            // Initialiser drag & drop APRÈS mise à jour HTML
+            // Initialiser fonctionnalités après un délai
             setTimeout(() => {
                 this.initializeExercisesDragDrop();
                 this.bindLaunchButton();
-            }, 100);
+                this.addExerciseHoverEffects();
+            }, 150);
             
-            // Calculer et afficher score initial
-            this.updateAISessionScoring(this.lastGenerated.exercises);
+            // Animation apparition des exercices
+            setTimeout(() => {
+                const items = document.querySelectorAll('.ai-session-exercise-preview-item');
+                items.forEach((item, index) => {
+                    item.style.opacity = '0';
+                    item.style.transform = 'translateY(20px)';
+                    item.style.transition = 'all 0.4s ease';
+                    
+                    setTimeout(() => {
+                        item.style.opacity = '1';
+                        item.style.transform = 'translateY(0)';
+                    }, index * 100);
+                });
+            }, 200);
+            
+            // Calculer et afficher score initial avec animation
+            setTimeout(() => {
+                this.updateAISessionScoring(this.lastGenerated.exercises);
+            }, 300);
         }
         
         if (previewSection) {
@@ -816,6 +1202,30 @@ class AISessionManager {
         this.updateButtonStates();
     }
     
+
+    addExerciseHoverEffects() {
+        const items = document.querySelectorAll('.ai-session-exercise-preview-item');
+        
+        items.forEach((item, index) => {
+            // Effet parallax léger sur hover
+            item.addEventListener('mouseenter', (e) => {
+                const handle = item.querySelector('.ai-session-exercise-drag-handle');
+                const number = item.querySelector('.ai-session-exercise-number');
+                
+                if (handle) handle.style.transform = 'translateX(-3px) scale(1.1)';
+                if (number) number.style.transform = 'scale(1.1) rotate(-5deg)';
+            });
+            
+            item.addEventListener('mouseleave', (e) => {
+                const handle = item.querySelector('.ai-session-exercise-drag-handle');
+                const number = item.querySelector('.ai-session-exercise-number');
+                
+                if (handle) handle.style.transform = 'translateX(0) scale(1)';
+                if (number) number.style.transform = 'scale(1) rotate(0deg)';
+            });
+        });
+    }
+
     bindLaunchButton() {
         /**
          * BINDING BOUTON LANCEMENT - CLASSES CORRESPONDANTES AU CSS
@@ -827,25 +1237,39 @@ class AISessionManager {
             launchBtn.addEventListener('click', this.launchAISession);
         }
     }
-    
-    updateButtonStates() {
-        /**
-         * Met à jour état des boutons
-         */
         
+    updateButtonStates() {
         const generateBtn = document.getElementById('generateSessionBtn');
         const regenerateBtn = document.getElementById('regenerateSessionBtn');
         
         if (generateBtn) {
             generateBtn.innerHTML = '<i class="fas fa-magic"></i> Générer Séance';
             generateBtn.disabled = false;
+            generateBtn.style.background = '';
+            generateBtn.style.transform = '';
+            generateBtn.style.cursor = '';
         }
         
         if (regenerateBtn) {
             regenerateBtn.disabled = !this.lastGenerated;
+            if (this.lastGenerated) {
+                regenerateBtn.style.opacity = '1';
+                regenerateBtn.style.cursor = 'pointer';
+            } else {
+                regenerateBtn.style.opacity = '0.5';
+                regenerateBtn.style.cursor = 'not-allowed';
+            }
+        }
+        
+        // Reset preview visual
+        const preview = document.getElementById('generatedSessionPreview');
+        if (preview) {
+            preview.style.opacity = '1';
+            preview.style.transform = 'scale(1)';
+            preview.style.filter = 'none';
         }
     }
-    
+        
    
     renderError(error) {
         /**
@@ -1073,29 +1497,44 @@ class AISessionManager {
         return Math.min(Math.max(score, 40), 95);
     }
     
+
     animateScoreChange(newScore) {
-        /**
-         * Anime le changement de score avec couleur
-         * Adapté de planning.js - CLASSES CSS CORRESPONDANTES
-         */
-        
         const scoreElement = document.querySelector('#generatedSessionPreview .ai-session-quality-score');
         if (!scoreElement) return;
         
-        // Couleur selon score
-        const scoreColor = newScore >= 85 ? '#10b981' : 
-                          newScore >= 70 ? '#f59e0b' : '#ef4444';
+        // Déterminer nouvelle classe selon score
+        let scoreClass = 'average';
+        if (newScore >= 85) scoreClass = 'excellent';
+        else if (newScore >= 70) scoreClass = 'good';
         
-        // Animation flash
-        scoreElement.style.transition = 'all 0.3s ease';
-        scoreElement.style.transform = 'scale(1.1)';
-        scoreElement.style.color = scoreColor;
-        scoreElement.textContent = `Qualité ${newScore}%`;
+        // Appliquer nouvelle classe avec animation
+        scoreElement.setAttribute('data-score', scoreClass);
+        scoreElement.innerHTML = `<i class="fas fa-star"></i> ${newScore}%`;
         
-        // Retour normal
+        // Animation scale
+        scoreElement.style.transform = 'scale(1.15)';
+        scoreElement.style.transition = 'all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+        
         setTimeout(() => {
             scoreElement.style.transform = 'scale(1)';
-        }, 300);
+        }, 400);
+        
+        // Animation flash couleur
+        const originalBg = scoreElement.style.background;
+        if (scoreClass === 'excellent') {
+            scoreElement.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+            scoreElement.style.boxShadow = '0 8px 32px rgba(16, 185, 129, 0.6)';
+        } else if (scoreClass === 'good') {
+            scoreElement.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+            scoreElement.style.boxShadow = '0 8px 32px rgba(245, 158, 11, 0.6)';
+        } else {
+            scoreElement.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+            scoreElement.style.boxShadow = '0 8px 32px rgba(239, 68, 68, 0.6)';
+        }
+        
+        setTimeout(() => {
+            scoreElement.style.background = originalBg;
+        }, 1000);
     }
     
     // ===== SWAP D'EXERCICES ADAPTÉ DE PLANNING.JS =====
