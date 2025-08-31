@@ -3501,6 +3501,23 @@ async function skipExercise(exerciseId, reason) {
     }
 }
 
+async function skipExerciseFromProgram(exerciseIndex) {
+    // Wrapper pour séances AI - utilise skipExercise() existante
+    if (window.currentWorkoutSession?.type === 'ai') {
+        const aiExercise = window.currentWorkoutSession.exercises[exerciseIndex];
+        if (aiExercise) {
+            await skipExercise(aiExercise.exercise_id, 'user_skip');
+        }
+        return;
+    }
+    
+    // Pour programmes normaux
+    console.warn('skipExerciseFromProgram appelée pour programme normal');
+}
+
+// Exposer globalement
+window.skipExerciseFromProgram = skipExerciseFromProgram;
+
 function showSkipModal(exerciseId) {
     const exerciseName = getExerciseName(exerciseId);
     
@@ -6125,19 +6142,29 @@ function updateSeriesDots() {
 }
 
 function updateHeaderProgress() {
-    // Déterminer le type de séance
-    const isProgram = currentWorkoutSession.type === 'program' && currentWorkoutSession.program;
-        
-    // Gestion conditionnelle exercice progress et séparateur
+    // Support 3 types : free, program, ai
+    const isStructuredSession = currentWorkoutSession.type === 'program' || currentWorkoutSession.type === 'ai';
+    
+    // Éléments UI
     const exerciseProgressEl = document.getElementById('exerciseProgress');
     const separatorEl = document.querySelector('.progress-separator');
     const workoutProgressContainer = document.querySelector('.workout-progress-compact');
     
-    if (isProgram) {
-        // MODE PROGRAMME : afficher exercice progress et séparateur
+    if (isStructuredSession) {
+        // MODE STRUCTURÉ (Programme OU AI) : afficher exercice progress
         if (exerciseProgressEl) {
-            const totalExercises = currentWorkoutSession.program.exercises.length;
-            const currentExerciseIndex = currentWorkoutSession.exerciseOrder || 1;
+            let totalExercises, currentExerciseIndex;
+            
+            if (currentWorkoutSession.type === 'ai') {
+                // Séances AI
+                totalExercises = currentWorkoutSession.exercises?.length || '?';
+                currentExerciseIndex = currentWorkoutSession.exerciseOrder || 1;
+            } else {
+                // Programmes classiques
+                totalExercises = currentWorkoutSession.program.exercises.length;
+                currentExerciseIndex = currentWorkoutSession.exerciseOrder || 1;
+            }
+            
             exerciseProgressEl.textContent = `Exercice ${currentExerciseIndex}/${totalExercises}`;
             exerciseProgressEl.style.display = 'inline';
         }
@@ -6146,12 +6173,18 @@ function updateHeaderProgress() {
             separatorEl.style.display = 'inline';
         }
         
-        // Retirer la classe single-item si présente
+        // Retirer classe single-item
         if (workoutProgressContainer) {
             workoutProgressContainer.classList.remove('single-item');
         }
+        
+        // Mettre à jour liste exercices si programme classique
+        if (currentWorkoutSession.type === 'program') {
+            updateProgramExerciseProgress();
+        }
+        
     } else {
-        // MODE SÉANCE LIBRE : masquer exercice progress et séparateur
+        // MODE LIBRE : masquer exercice progress
         if (exerciseProgressEl) {
             exerciseProgressEl.style.display = 'none';
         }
@@ -6160,15 +6193,10 @@ function updateHeaderProgress() {
             separatorEl.style.display = 'none';
         }
         
-        // Ajouter classe pour centrer le contenu restant
+        // Centrer contenu restant
         if (workoutProgressContainer) {
             workoutProgressContainer.classList.add('single-item');
         }
-    }
-    
-    // Mettre à jour la liste du programme si visible
-    if (currentWorkoutSession.type === 'program') {
-        updateProgramExerciseProgress();
     }
 }
 
@@ -14120,8 +14148,32 @@ function changeExercise() {
     showSwapReasonModal(currentExercise.id);
 }
 
-async function initiateSwap(exerciseId) {
+async function initiateSwap(exerciseId, exerciseIndex = null) {    
     console.log(`🔍 INITIATE SWAP for exercise ${exerciseId}`);
+
+    // Support séances AI
+    if (window.currentWorkoutSession?.type === 'ai' && exerciseIndex !== null) {
+        const aiExercise = window.currentWorkoutSession.exercises[exerciseIndex];
+        if (aiExercise) {
+            // Utiliser votre logique swap existante mais avec données AI
+            window.currentWorkoutSession.pendingSwap = {
+                originalExerciseId: aiExercise.exercise_id,
+                exerciseIndex: exerciseIndex,
+                context: 'ai_session'
+            };
+            
+            try {
+                // Réutiliser showAlternatives existant
+                await window.showAlternativesFromAPI(aiExercise.exercise_id, 'user_request');
+                return;
+            } catch (error) {
+                console.error('Erreur alternatives AI:', error);
+                window.showToast('Impossible de trouver des alternatives', 'error');
+            }
+        }
+        return;
+    }
+
     
     if (!canSwapExercise(exerciseId)) {
         showToast('Impossible de changer cet exercice maintenant', 'warning');

@@ -948,6 +948,7 @@ class AISessionManager {
             
             const response = await window.apiPost(`/api/users/${window.currentUser.id}/workouts`, workoutData);
             window.currentWorkout = response.workout;
+            window.currentWorkoutSession.workout = response.workout;
             
             // 3. Initialiser currentWorkoutSession pour séance AI
             window.currentWorkoutSession = {
@@ -1034,95 +1035,182 @@ class AISessionManager {
         try {
             console.log('🔧 Configuration interface séance IA complète');
             
-            // 1. INTERFACE GÉNÉRALE SÉANCE (comme setupProgramWorkout)
+            // 1. CONFIGURATION ÉLÉMENTS INTERFACE (identique setupProgramWorkout)
             const exerciseSelection = document.getElementById('exerciseSelection');
             const currentExercise = document.getElementById('currentExercise');
             const programContainer = document.getElementById('programExercisesContainer');
             const workoutHeader = document.getElementById('workoutHeader');
             const fatigueTracker = document.getElementById('fatigueTracker');
+            const workoutTitle = document.getElementById('workoutTitle');
             
-            // Configurer visibilité éléments (pattern séance programme)
+            // Visibilité (pattern exact séance programme)
             if (exerciseSelection) exerciseSelection.style.display = 'none';
             if (currentExercise) currentExercise.style.display = 'block';
             if (programContainer) programContainer.style.display = 'block';
             if (workoutHeader) workoutHeader.style.display = 'block';
             if (fatigueTracker) fatigueTracker.style.display = 'block';
             
-            // 2. STRUCTURE DONNÉES EXERCICES (format programme compatible)
+            // Titre
+            if (workoutTitle) {
+                workoutTitle.textContent = `🤖 Séance IA - ${this.lastGenerated.ppl_used.toUpperCase()}`;
+            }
+            
+            // 2. STRUCTURE DONNÉES (compatible programme)
             window.currentWorkoutSession.programExercises = {};
             window.currentWorkoutSession.totalExercisesCount = this.lastGenerated.exercises.length;
             
             this.lastGenerated.exercises.forEach((exercise, index) => {
                 window.currentWorkoutSession.programExercises[exercise.exercise_id] = {
                     ...exercise,
+                    id: exercise.exercise_id,
                     index: index + 1,
                     order: index + 1,
-                    status: 'planned'
+                    totalSets: exercise.default_sets || 3,
+                    completedSets: 0,
+                    isCompleted: false,
+                    status: 'planned',
+                    startTime: null,
+                    endTime: null
                 };
             });
             
-            // 3. GÉNÉRATION HTML LISTE EXERCICES
+            // 3. HTML EXERCICES AVEC BOUTONS
             const exercisesHTML = this.lastGenerated.exercises.map((exercise, index) => {
                 const isActive = index === 0;
                 return `
-                    <div class="program-exercise-item ${isActive ? 'active current-exercise' : ''}" 
+                    <div class="session-ai-exercise-item ${isActive ? 'session-ai-active session-ai-current' : ''}" 
                         data-exercise-id="${exercise.exercise_id}"
                         data-exercise-index="${index}"
                         onclick="selectExerciseFromAIProgram(${exercise.exercise_id}, ${index})">
                         
-                        <div class="exercise-order">${exercise.order_in_session}</div>
+                        <div class="session-ai-order">${exercise.order_in_session}</div>
                         
-                        <div class="exercise-info">
-                            <div class="exercise-name">${exercise.name}</div>
-                            <div class="exercise-params">
+                        <div class="session-ai-info">
+                            <div class="session-ai-name">${exercise.name}</div>
+                            <div class="session-ai-params">
                                 ${exercise.default_sets}×${exercise.default_reps_min}-${exercise.default_reps_max}
                                 ${exercise.equipment_required ? ` • ${exercise.equipment_required[0]}` : ''}
                             </div>
-                            <div class="exercise-muscles">
-                                ${exercise.muscle_groups.map(m => `<span class="muscle-tag">${m}</span>`).join('')}
+                            <div class="session-ai-muscles">
+                                ${exercise.muscle_groups.map(m => `<span class="session-ai-muscle-tag">${m}</span>`).join('')}
                             </div>
                         </div>
                         
-                        <div class="exercise-status">
-                            <div class="exercise-progress">
-                                <span class="sets-counter">0/${exercise.default_sets}</span>
+                        <div class="session-ai-status">
+                            <div class="session-ai-progress">
+                                <span class="session-ai-sets-counter">0/${exercise.default_sets}</span>
                             </div>
+                        </div>
+                        
+                        <div class="session-ai-actions">
+                            <button class="session-ai-btn session-ai-btn-swap" 
+                                    onclick="event.stopPropagation(); initiateSwap(${exercise.exercise_id}, ${index})"
+                                    title="Remplacer exercice">
+                                <i class="fas fa-exchange-alt"></i>
+                            </button>
+                            <button class="session-ai-btn session-ai-btn-skip"
+                                    onclick="event.stopPropagation(); skipExerciseFromProgram(${index})"
+                                    title="Passer exercice">
+                                <i class="fas fa-forward"></i>
+                            </button>
                         </div>
                     </div>
                 `;
             }).join('');
             
-            // 4. INJECTION HTML DANS CONTAINER
+            // 4. INJECTION HTML
             programContainer.innerHTML = `
-                <div class="program-exercises-header">
+                <div class="session-ai-header">
                     <h3>🤖 Séance IA - ${this.lastGenerated.ppl_used.toUpperCase()}</h3>
                     <p>Score qualité: <strong>${Math.round(this.lastGenerated.quality_score)}%</strong></p>
                 </div>
-                <div class="program-exercises-list">
+                <div class="session-ai-exercises-list">
                     ${exercisesHTML}
                 </div>
             `;
             
-            // 5. SÉLECTION AUTOMATIQUE PREMIER EXERCICE (CRITIQUE)
+            // 5. ÉLÉMENTS SPÉCIALISÉS AI
+            await this.setupAIStatusElements();
+            
+            // 6. SÉLECTION AUTO PREMIER EXERCICE
             if (this.lastGenerated.exercises.length > 0) {
                 const firstExercise = this.lastGenerated.exercises[0];
-                console.log('🎯 Sélection automatique premier exercice:', firstExercise.name);
-                
-                // Utiliser la fonction dédiée AI
+                console.log('🎯 Sélection automatique:', firstExercise.name);
                 await window.selectExerciseFromAIProgram(firstExercise.exercise_id, 0);
             }
-            
-            // 6. MÉTADONNÉES AI DANS HEADER
-            this.displayAISessionMetadata();
-            
-            // 7. INITIALISATION COMPLÈTE INTERFACE (comme programme)
-            window.updateHeaderProgress?.();
             
             console.log('✅ Interface séance IA configurée complètement');
             
         } catch (error) {
             console.error('❌ Erreur setup interface IA:', error);
             window.showToast('Erreur configuration interface', 'error');
+        }
+    }
+
+    async setupAIStatusElements() {
+        // AI STATUS LINE
+        const workoutContainer = document.querySelector('#workout .container');
+        if (workoutContainer && !document.getElementById('sessionAiStatusLine')) {
+            const aiStatusHTML = `
+                <div class="session-ai-status-line" id="sessionAiStatusLine" onclick="window.aiSessionManager.toggleAIDetails()">
+                    <div class="session-ai-toggle-container">
+                        <div class="session-ai-status-text">
+                            <i class="fas fa-brain"></i>
+                            <span id="sessionAiStatus">IA : Actif</span>
+                        </div>
+                        <button class="session-ai-expand-btn" type="button">
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="session-ai-details-panel" id="sessionAiDetailsPanel" style="display: none;">
+                    <div class="session-ai-detail-grid">
+                        <div class="session-ai-detail-item">
+                            <span class="session-ai-detail-label">Catégorie PPL</span>
+                            <span class="session-ai-detail-value">${this.lastGenerated.ppl_used.toUpperCase()}</span>
+                        </div>
+                        <div class="session-ai-detail-item">
+                            <span class="session-ai-detail-label">Score qualité</span>
+                            <span class="session-ai-detail-value">${Math.round(this.lastGenerated.quality_score)}%</span>
+                        </div>
+                        <div class="session-ai-detail-item">
+                            <span class="session-ai-detail-label">Exercices</span>
+                            <span class="session-ai-detail-value">${this.lastGenerated.exercises.length}</span>
+                        </div>
+                        <div class="session-ai-detail-item">
+                            <span class="session-ai-detail-label">Exploration</span>
+                            <span class="session-ai-detail-value">${Math.round(this.params.exploration_factor * 100)}%</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Insérer après fatigueTracker
+            const fatigueTracker = document.getElementById('fatigueTracker');
+            if (fatigueTracker) {
+                fatigueTracker.insertAdjacentHTML('afterend', aiStatusHTML);
+            }
+        }
+        
+        // MOTION NOTIFICATION ZONE
+        const motionZone = document.getElementById('motionNotificationZone');
+        if (motionZone) {
+            motionZone.style.display = 'block';
+        }
+    }
+
+    toggleAIDetails() {
+        const panel = document.getElementById('sessionAiDetailsPanel');
+        const expandBtn = document.querySelector('.session-ai-expand-btn i');
+        
+        if (panel) {
+            const isVisible = panel.style.display === 'block';
+            panel.style.display = isVisible ? 'none' : 'block';
+            
+            if (expandBtn) {
+                expandBtn.className = isVisible ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
+            }
         }
     }
 
