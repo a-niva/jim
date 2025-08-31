@@ -8987,17 +8987,34 @@ async function endWorkout() {
             completion_rate: sessionMetadata.completion_rate
         });
 
-        await apiPut(`/api/workouts/${currentWorkout.id}/complete`, {
+        // Préparation des données pour l'API
+        const completeData = {
             total_duration: totalDurationSeconds,
             total_rest_time: currentWorkoutSession.totalRestTime,
-            // MODULE 0 : Données existantes
             skipped_exercises: allSkippedExercises,
             session_metadata: sessionMetadata,
-            
-            // MODULE 3 : Nouvelles données swap
             swaps: currentWorkoutSession.swaps || [],
             modifications: currentWorkoutSession.modifications || []
-        });
+        };
+
+        // NOUVEAU : Ajouter métadonnées AI si séance AI
+        if (currentWorkoutSession?.type === 'ai' && currentWorkoutSession.aiMetadata) {
+            const { pplUsed, qualityScore, generationParams } = currentWorkoutSession.aiMetadata;
+            if (pplUsed && qualityScore && generationParams) {
+                completeData.ai_metadata = {
+                    ppl_used: pplUsed,
+                    quality_score: qualityScore,
+                    generation_params: generationParams,
+                    exercises_completed: currentWorkoutSession.completedExercisesCount,
+                    exercises_skipped: currentWorkoutSession.skipped_exercises.length
+                };
+                console.log('📊 Ajout métadonnées AI à la sauvegarde de séance:', completeData.ai_metadata);
+            } else {
+                console.warn('⚠️ Métadonnées AI incomplètes, non incluses dans la sauvegarde');
+            }
+        }
+
+        await apiPut(`/api/workouts/${currentWorkout.id}/complete`, completeData);
         
         // Réinitialiser l'état
         clearWorkoutState();
