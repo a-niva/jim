@@ -15794,30 +15794,27 @@ function showPlanningFromProgram() {
 
 
 async function selectExerciseFromAIProgram(exerciseId, exerciseIndex) {
-    /**
-     * Sélection exercice depuis séance IA générée
-     * 
-     * Adapte selectExerciseFromProgram() pour séances IA
-     * Réutilise toute la logique existante
-     */
-    
     if (!window.currentWorkoutSession || window.currentWorkoutSession.type !== 'ai') {
-        console.error('Fonction appelée hors contexte séance IA');
+        console.error('❌ Fonction appelée hors contexte séance IA');
         return;
     }
     
     try {
         console.log(`🎯 Sélection exercice IA: ${exerciseId} (index ${exerciseIndex})`);
         
-        // Récupérer exercice depuis liste générée
         const aiExercise = window.currentWorkoutSession.exercises[exerciseIndex];
         if (!aiExercise) {
             window.showToast('Exercice IA introuvable', 'error');
             return;
         }
         
-        // Utiliser selectExercise() existant avec données exercice IA
-        const exerciseForSelection = {
+        // WORKFLOW PROGRAMME COMPLET (pas libre)
+        
+        // 1. Mettre à jour l'ordre dans la session
+        window.currentWorkoutSession.exerciseOrder = exerciseIndex + 1;
+        
+        // 2. Créer objet exercice format programme
+        const exerciseForProgramWorkflow = {
             id: aiExercise.exercise_id,
             name: aiExercise.name,
             muscle_groups: aiExercise.muscle_groups,
@@ -15828,26 +15825,52 @@ async function selectExerciseFromAIProgram(exerciseId, exerciseIndex) {
             default_reps_max: aiExercise.default_reps_max,
             base_rest_time_seconds: aiExercise.base_rest_time_seconds,
             exercise_type: aiExercise.exercise_type || 'strength',
-            instructions: aiExercise.instructions
+            instructions: aiExercise.instructions || ''
         };
         
-        // Mettre à jour ordre exercice dans session
-        window.currentWorkoutSession.exerciseOrder = exerciseIndex + 1;
+        // 3. Mettre à jour variables globales (CRITIQUE)
+        window.currentExercise = exerciseForProgramWorkflow;
+        window.currentSet = 1;
+        window.currentWorkoutSession.currentSetNumber = 1;
         
-        // Appeler fonction existante
-        await window.selectExercise(exerciseForSelection);
-        
-        // Marquer exercice comme actuel dans interface programme
-        document.querySelectorAll('.program-exercise-item').forEach(item => {
-            item.classList.remove('active', 'current-exercise');
-        });
-        
-        const currentItem = document.querySelector(`[data-exercise-index="${exerciseIndex}"]`);
-        if (currentItem) {
-            currentItem.classList.add('active', 'current-exercise');
+        // 4. Configurer interface exercice (workflow programme)
+        if (window.setupExerciseInterface) {
+            await window.setupExerciseInterface(exerciseForProgramWorkflow);
+        } else {
+            // Fallback si fonction dédiée n'existe pas
+            await window.selectExercise(exerciseForProgramWorkflow);
         }
         
-        console.log('✅ Exercice IA sélectionné avec succès');
+        // 5. Initialiser WorkoutState correctement
+        if (window.WorkoutStates && window.workoutState) {
+            window.workoutState.current = window.WorkoutStates.READY;
+        }
+        
+        // 6. Démarrer countdown automatique (comme programme)
+        setTimeout(() => {
+            if (window.startExerciseCountdown) {
+                window.startExerciseCountdown();
+            } else if (window.transitionToCountdown) {
+                window.transitionToCountdown();
+            }
+            console.log('🎯 Countdown automatique démarré pour exercice AI');
+        }, 500);
+        
+        // 7. Mettre à jour UI liste exercices
+        document.querySelectorAll('.session-ai-exercise-item').forEach(item => {
+            item.classList.remove('session-ai-active', 'session-ai-current');
+        });
+        const currentItem = document.querySelector(`[data-exercise-index="${exerciseIndex}"]`);
+        if (currentItem) {
+            currentItem.classList.add('session-ai-active', 'session-ai-current');
+        }
+        
+        // 8. Mettre à jour header progress
+        if (window.updateHeaderProgress) {
+            window.updateHeaderProgress();
+        }
+        
+        console.log('✅ Exercice IA sélectionné avec workflow programme complet');
         
     } catch (error) {
         console.error('❌ Erreur sélection exercice IA:', error);
