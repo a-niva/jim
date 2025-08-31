@@ -5087,6 +5087,12 @@ function setupFreeWorkout() {
 }
 
 async function setupProgramWorkout(program) {
+    // Support séances AI
+    if (window.currentWorkoutSession?.type === 'ai') {
+        console.log('🤖 Séance IA détectée, pas de setup programme nécessaire');
+        return; // Sortir directement, l'interface est déjà configurée
+    }
+
     // Récupérer la session du jour depuis le schedule
     let todayExercises = null;
     let todayDate = null;
@@ -10307,6 +10313,45 @@ function handleExerciseCardClick(exerciseId) {
 }
 
 async function selectProgramExercise(exerciseId, isInitialLoad = false) {
+    // NOUVEAU : Support pour séances AI
+    if (window.currentWorkoutSession?.type === 'ai') {
+        const aiExercise = window.currentWorkoutSession.exercises.find(ex => ex.exercise_id === exerciseId);
+        if (aiExercise) {
+            // Adapter format pour selectExercise()
+            const exerciseForSelection = {
+                id: aiExercise.exercise_id,
+                name: aiExercise.name,
+                muscle_groups: aiExercise.muscle_groups,
+                equipment_required: aiExercise.equipment_required,
+                difficulty: aiExercise.difficulty,
+                default_sets: aiExercise.default_sets,
+                default_reps_min: aiExercise.default_reps_min,
+                default_reps_max: aiExercise.default_reps_max,
+                base_rest_time_seconds: aiExercise.base_rest_time_seconds,
+                instructions: aiExercise.instructions || '',
+                exercise_type: aiExercise.exercise_type || 'strength'
+            };
+            
+            // Mettre à jour l'ordre dans la session
+            const exerciseIndex = window.currentWorkoutSession.exercises.indexOf(aiExercise);
+            window.currentWorkoutSession.exerciseOrder = exerciseIndex + 1;
+            
+            // Utiliser selectExercise existant
+            await selectExercise(exerciseForSelection);
+            
+            // Mettre à jour l'UI liste exercices
+            document.querySelectorAll('.program-exercise-item').forEach(item => {
+                item.classList.remove('active', 'current-exercise');
+            });
+            const currentItem = document.querySelector(`[data-exercise-index="${exerciseIndex}"]`);
+            if (currentItem) {
+                currentItem.classList.add('active', 'current-exercise');
+            }
+            
+            return;
+        }
+    }
+    
     if (!currentWorkoutSession.program) return;
     
     // Vérifier l'état actuel et demander confirmation si nécessaire

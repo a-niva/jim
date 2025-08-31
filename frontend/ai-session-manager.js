@@ -929,155 +929,203 @@ class AISessionManager {
     
 
     async launchAISession() {
-        console.log('🚀 [DEBUG] Début launchAISession()');
-        
         if (!this.lastGenerated || !this.lastGenerated.exercises) {
-            console.error('❌ [DEBUG] Pas de séance générée');
             window.showToast('Aucune séance générée à lancer', 'warning');
             return;
         }
         
         try {
-            console.log('📋 [DEBUG] Exercices à lancer:', this.lastGenerated.exercises);
+            console.log('🚀 Lancement séance IA avec', this.lastGenerated.exercises.length, 'exercices');
             
-            // 1. NETTOYER l'état existant (comme startProgramWorkout)
-            if (typeof window.clearWorkoutState === 'function') {
-                console.log('🧹 [DEBUG] Nettoyage état workout');
-                window.clearWorkoutState();
-            }
+            // 1. Nettoyer l'état existant
+            window.clearWorkoutState();
             
-            // 2. CRÉER WORKOUT BACKEND
-            console.log('💾 [DEBUG] Création workout backend');
+            // 2. Créer workout type 'free' (PAS 'program')
             const workoutData = {
-                type: 'ai',
-                ai_session_data: {
-                    exercises: this.lastGenerated.exercises,
-                    generation_params: this.params,
-                    ppl_used: this.lastGenerated.ppl_used,
-                    quality_score: this.lastGenerated.quality_score
-                }
+                type: 'free',  // IMPORTANT : type 'free' pour éviter vérifications programme
+                ai_generated: true  // Flag pour identifier séances AI
             };
             
             const response = await window.apiPost(`/api/users/${window.currentUser.id}/workouts`, workoutData);
-            console.log('✅ [DEBUG] Workout créé:', response);
+            window.currentWorkout = response.workout;
             
-            // 3. CRÉER PROGRAMME FACTICE comme dans startProgramWorkout
-            const fakeProgramForAI = {
-                id: 'ai-generated-' + Date.now(),
-                name: `Séance IA ${this.lastGenerated.ppl_used.toUpperCase()}`,
-                type: 'ai',
-                exercises: this.lastGenerated.exercises.map((ex, index) => ({
-                    exercise_id: ex.exercise_id || ex.id,
-                    exercise_name: ex.exercise_name || ex.name,
-                    name: ex.exercise_name || ex.name,
-                    muscle_groups: ex.muscle_groups || [],
-                    muscle_group: ex.muscle_groups?.[0] || 'unknown',
-                    sets: ex.sets || ex.default_sets || 3,
-                    totalSets: ex.sets || ex.default_sets || 3, // Important pour startProgramWorkout
-                    reps_min: ex.reps_min || ex.default_reps_min || 8,
-                    reps_max: ex.reps_max || ex.default_reps_max || 12,
-                    rest_seconds: ex.rest_seconds || ex.base_rest_time_seconds || 90,
-                    equipment_required: ex.equipment_required || [],
-                    difficulty: ex.difficulty || 'intermediate',
-                    instructions: ex.instructions || '',
-                    order_in_session: index + 1,
-                    index: index,
-                    completedSets: 0,
-                    isCompleted: false
-                }))
-            };
-            
-            console.log('🏗️ [DEBUG] Programme factice créé:', fakeProgramForAI);
-            
-            // 4. VÉRIFIER que startProgramWorkout existe
-            if (typeof window.startProgramWorkout !== 'function') {
-                console.error('❌ [DEBUG] startProgramWorkout n\'existe pas');
-                throw new Error('Fonction startProgramWorkout non disponible');
-            }
-            
-            // 5. APPELER startProgramWorkout (le workflow principal)
-            console.log('🎯 [DEBUG] Appel startProgramWorkout');
-            await window.startProgramWorkout(fakeProgramForAI);
-            
-            // 6. MARQUER comme séance IA dans les métadonnées
-            if (window.currentWorkoutSession) {
-                window.currentWorkoutSession.aiMetadata = {
-                    originalType: 'ai',
+            // 3. Initialiser currentWorkoutSession pour séance AI
+            window.currentWorkoutSession = {
+                type: 'ai',  // Type custom pour tracking
+                workout: response.workout,
+                exercises: this.lastGenerated.exercises,
+                
+                // États standards
+                currentExercise: null,
+                currentSetNumber: 1,
+                exerciseOrder: 1,
+                globalSetCount: 0,
+                sessionFatigue: 3,
+                completedSets: [],
+                totalRestTime: 0,
+                totalSetTime: 0,
+                startTime: new Date(),
+                
+                // Structures pour interface programme
+                programExercises: {},
+                completedExercisesCount: 0,
+                totalExercisesCount: this.lastGenerated.exercises.length,
+                
+                // Support swap/skip
+                skipped_exercises: [],
+                swaps: [],
+                modifications: [],
+                pendingSwap: null,
+                
+                // Métadonnées AI
+                aiMetadata: {
                     pplUsed: this.lastGenerated.ppl_used,
                     qualityScore: this.lastGenerated.quality_score,
-                    generationParams: this.params
-                };
-                console.log('✅ [DEBUG] Métadonnées IA ajoutées');
-            }
+                    generationParams: this.params,
+                    generatedAt: new Date().toISOString()
+                },
+                
+                // Session metadata pour backend
+                session_metadata: {
+                    source: 'ai_generation',
+                    ppl_category: this.lastGenerated.ppl_used,
+                    generation_quality: this.lastGenerated.quality_score
+                }
+            };
             
-            // 7. TOAST de confirmation
-            window.showToast(`🤖 Séance ${this.lastGenerated.ppl_used.toUpperCase()} lancée !`, 'success');
-            
-            console.log('🎉 [DEBUG] Lancement terminé avec succès');
-            
-        } catch (error) {
-            console.error('❌ [DEBUG] Erreur dans launchAISession:', error);
-            console.error('📊 [DEBUG] Stack trace:', error.stack);
-            window.showToast('Erreur lors du lancement de la séance: ' + error.message, 'error');
-        }
-    }
-    
-    async setupAIWorkoutInterface() {
-        /**
-         * Configure interface séance pour exercices IA
-         * Réutilise votre logique setupProgramWorkout() existante
-         */
-        
-        try {
-            // Préparer exercices format programme (compatible avec votre interface)
-            const programExercises = {};
+            // 4. Préparer programExercises (réutilise logique programme)
             this.lastGenerated.exercises.forEach((exercise, index) => {
-                programExercises[exercise.exercise_id] = {
+                window.currentWorkoutSession.programExercises[exercise.exercise_id] = {
                     ...exercise,
+                    id: exercise.exercise_id,
                     index: index + 1,
-                    order: index + 1
+                    totalSets: exercise.default_sets || 3,
+                    completedSets: 0,
+                    isCompleted: false,
+                    status: 'planned',
+                    startTime: null,
+                    endTime: null
                 };
             });
             
-            // Configurer currentWorkoutSession comme programme
-            window.currentWorkoutSession.programExercises = programExercises;
-            window.currentWorkoutSession.totalExercisesCount = this.lastGenerated.exercises.length;
-            
-            // Interface programme (RÉUTILISE votre logique existante)
-            const exerciseSelection = document.getElementById('exerciseSelection');
-            const programContainer = document.getElementById('programExercisesContainer');
-            
-            if (exerciseSelection) exerciseSelection.style.display = 'none';
-            if (programContainer) programContainer.style.display = 'block';
-            
-            // Afficher liste exercices IA (adaptation de votre renderProgramExercises)
-            this.renderAIProgramExercisesList();
-            
-            // Sélectionner premier exercice automatiquement
-            const firstExercise = this.lastGenerated.exercises[0];
-            if (firstExercise && window.selectExercise) {
-                // Adapter format pour votre fonction selectExercise
-                const exerciseForSelection = {
-                    id: firstExercise.exercise_id,
-                    name: firstExercise.name,
-                    muscle_groups: firstExercise.muscle_groups,
-                    equipment_required: firstExercise.equipment_required,
-                    default_sets: firstExercise.default_sets,
-                    default_reps_min: firstExercise.default_reps_min,
-                    default_reps_max: firstExercise.default_reps_max,
-                    instructions: firstExercise.instructions
-                };
-                
-                await window.selectExercise(exerciseForSelection);
-                console.log('🎯 Premier exercice IA sélectionné:', exerciseForSelection.name);
+            // 5. Masquer interface AI et afficher interface workout
+            const aiView = document.getElementById('ai-session');
+            if (aiView) {
+                aiView.classList.remove('active');
+                aiView.style.display = 'none';
             }
+            
+            // 6. Afficher directement la vue workout
+            // showView gère automatiquement le masquage des autres vues et l'affichage de workout
+            window.showView('workout');
+            
+            // 7. Configurer l'interface séance
+            await this.setupAIWorkoutInterface();
+            
+            window.showToast(`🤖 Séance ${this.lastGenerated.ppl_used.toUpperCase()} démarrée !`, 'success');
+            
+        } catch (error) {
+            console.error('❌ Erreur lancement séance IA:', error);
+            window.showToast('Erreur lors du lancement de la séance', 'error');
+        }
+    }
+
+    async setupAIWorkoutInterface() {
+        try {
+            // Masquer sélection d'exercice libre
+            const exerciseSelection = document.getElementById('exerciseSelection');
+            if (exerciseSelection) {
+                exerciseSelection.style.display = 'none';
+            }
+            
+            // Afficher container exercices programme
+            const programContainer = document.getElementById('programExercisesContainer');
+            if (programContainer) {
+                programContainer.style.display = 'block';
+                
+                // Générer liste exercices
+                const exercisesHTML = this.lastGenerated.exercises.map((exercise, index) => {
+                    const isActive = index === 0;
+                    return `
+                        <div class="program-exercise-item ${isActive ? 'active current-exercise' : ''}" 
+                            data-exercise-id="${exercise.exercise_id}"
+                            data-exercise-index="${index}"
+                            onclick="selectExerciseFromProgram(${exercise.exercise_id}, ${index})">
+                            
+                            <div class="exercise-order">${exercise.order_in_session}</div>
+                            
+                            <div class="exercise-info">
+                                <div class="exercise-name">${exercise.name}</div>
+                                <div class="exercise-params">
+                                    ${exercise.default_sets}×${exercise.default_reps_min}-${exercise.default_reps_max}
+                                    ${exercise.equipment_required ? ` • ${exercise.equipment_required[0]}` : ''}
+                                </div>
+                                <div class="exercise-muscles">
+                                    ${exercise.muscle_groups.map(m => `<span class="muscle-tag">${m}</span>`).join('')}
+                                </div>
+                            </div>
+                            
+                            <div class="exercise-status">
+                                <div class="exercise-progress">
+                                    <span class="sets-counter">0/${exercise.default_sets}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                programContainer.innerHTML = `
+                    <div class="program-exercises-header">
+                        <h3>🤖 Séance IA - ${this.lastGenerated.ppl_used.toUpperCase()}</h3>
+                        <p>Score qualité: <strong>${Math.round(this.lastGenerated.quality_score)}%</strong></p>
+                    </div>
+                    <div class="program-exercises-list">
+                        ${exercisesHTML}
+                    </div>
+                `;
+            }
+            
+            // Afficher les autres éléments de l'interface séance (très important!)
+            const workoutHeader = document.getElementById('workoutHeader');
+            if (workoutHeader) {
+                workoutHeader.style.display = 'block';
+            }
+            
+            const fatigueTracker = document.getElementById('fatigueTracker');
+            if (fatigueTracker) {
+                fatigueTracker.style.display = 'block';
+            }
+            
+            // Sélectionner automatiquement le premier exercice
+            if (this.lastGenerated.exercises.length > 0) {
+                const firstExercise = this.lastGenerated.exercises[0];
+                // Utiliser selectProgramExercise plutôt que selectExerciseFromProgram pour cohérence
+                await window.selectProgramExercise(firstExercise.exercise_id, true);
+            }
+            
+            // Afficher métadonnées AI dans l'interface
+            this.displayAISessionMetadata();
             
         } catch (error) {
             console.error('❌ Erreur setup interface IA:', error);
-            window.showToast('Erreur configuration séance', 'error');
+            window.showToast('Erreur configuration interface', 'error');
         }
     }
-    
+
+    displayAISessionMetadata() {
+        const workoutHeader = document.getElementById('workoutHeader');
+        if (workoutHeader) {
+            const metadataHTML = `
+                <div class="ai-session-metadata">
+                    <span class="ai-badge">🤖 IA</span>
+                    <span class="ppl-badge">${this.lastGenerated.ppl_used.toUpperCase()}</span>
+                    <span class="quality-badge">Score: ${Math.round(this.lastGenerated.quality_score)}%</span>
+                </div>
+            `;
+            workoutHeader.insertAdjacentHTML('afterbegin', metadataHTML);
+        }
+    }
+      
     renderAIProgramExercisesList() {
         /**
          * Affiche liste exercices IA dans l'interface programme
@@ -1381,117 +1429,6 @@ class AISessionManager {
             `;
         }
     }
-    
-    async setupAIWorkoutInterface() {
-        /**
-         * Configure interface séance pour exercices IA
-         * 
-         * Réutilise setupProgramWorkout() existant mais adapte pour IA
-         */
-        
-        try {
-            // Cacher sélection d'exercice (pas besoin en mode IA)
-            const exerciseSelection = document.getElementById('exerciseSelection');
-            if (exerciseSelection) {
-                exerciseSelection.style.display = 'none';
-            }
-            
-            // Afficher container exercices programme (réutilise existant)
-            const programContainer = document.getElementById('programExercisesContainer');
-            if (programContainer) {
-                programContainer.style.display = 'block';
-                
-                // Générer HTML exercices (format compatible programme)
-                const exercisesHTML = this.lastGenerated.exercises.map((exercise, index) => {
-                    const isActive = index === 0; // Premier exercice actif
-                    
-                    return `
-                        <div class="program-exercise-item ${isActive ? 'active current-exercise' : ''}" 
-                             data-exercise-id="${exercise.exercise_id}"
-                             data-exercise-index="${index}"
-                             onclick="selectExerciseFromProgram(${exercise.exercise_id}, ${index})">
-                            
-                            <div class="exercise-order">${exercise.order_in_session}</div>
-                            
-                            <div class="exercise-info">
-                                <div class="exercise-name">${exercise.name}</div>
-                                <div class="exercise-params">
-                                    ${exercise.default_sets}×${exercise.default_reps_min}-${exercise.default_reps_max}
-                                    ${exercise.equipment_required ? 
-                                        ` • ${exercise.equipment_required[0]}` : ''}
-                                </div>
-                                <div class="exercise-muscles">
-                                    ${exercise.muscle_groups.map(muscle => 
-                                        `<span class="muscle-tag">${muscle}</span>`
-                                    ).join('')}
-                                </div>
-                            </div>
-                            
-                            <div class="exercise-status">
-                                ${exercise.is_favorite ? '⭐' : ''}
-                                <span class="exercise-score">Score: ${exercise.selection_score || 'N/A'}</span>
-                            </div>
-                            
-                            <div class="exercise-actions">
-                                <button class="btn-small btn-secondary" 
-                                        onclick="event.stopPropagation(); initiateSwap(${exercise.exercise_id}, ${index})">
-                                    <i class="fas fa-exchange-alt"></i>
-                                </button>
-                                <button class="btn-small btn-warning"
-                                        onclick="event.stopPropagation(); skipExerciseFromProgram(${index})">
-                                    <i class="fas fa-forward"></i>
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-                
-                programContainer.innerHTML = exercisesHTML;
-            }
-            
-            // Auto-sélectionner premier exercice (comme programme)
-            if (this.lastGenerated.exercises.length > 0) {
-                const firstExercise = this.lastGenerated.exercises[0];
-                await window.selectExerciseFromProgram(firstExercise.exercise_id, 0);
-            }
-            
-            // Afficher métadonnées séance IA
-            this.displayAISessionMetadata();
-            
-        } catch (error) {
-            console.error('❌ Erreur setup interface IA:', error);
-        }
-    }
-    
-    displayAISessionMetadata() {
-        /**
-         * Affiche informations contextuelles séance IA
-         */
-        
-        const workoutHeader = document.getElementById('workoutHeader');
-        if (workoutHeader && this.lastGenerated) {
-            // Ajouter badge IA et info PPL
-            let metadataHTML = `
-                <div class="ai-session-badge">
-                    <span class="ai-badge">🤖 IA</span>
-                    <span class="ppl-badge">${this.lastGenerated.ppl_used.toUpperCase()}</span>
-                    <span class="quality-score">Score: ${Math.round(this.lastGenerated.quality_score)}%</span>
-                </div>
-            `;
-            
-            if (this.lastGenerated.ppl_recommendation?.reasoning) {
-                metadataHTML += `
-                    <div class="ai-reasoning">
-                        <small><i class="fas fa-info-circle"></i> ${this.lastGenerated.ppl_recommendation.reasoning}</small>
-                    </div>
-                `;
-            }
-            
-            // Injecter avant le contenu existant
-            workoutHeader.insertAdjacentHTML('afterbegin', metadataHTML);
-        }
-    }
-
     
     // ===== SCORING TEMPS RÉEL ADAPTÉ DE PLANNING.JS =====
     

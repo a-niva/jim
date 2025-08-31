@@ -287,6 +287,31 @@ class AIExerciseGenerator:
             }
             exercise_list.append(exercise_data)
         
+        # S'assurer d'avoir au moins 3 exercices
+        if len(exercise_list) < 3:
+            logger.warning(f"⚠️ Seulement {len(exercise_list)} exercices, ajout fallback")
+            # Ajouter exercices bodyweight universels
+            fallback_exercises = self.db.query(Exercise).filter(
+                cast(Exercise.equipment_required, JSONB).contains(['bodyweight'])
+            ).limit(3 - len(exercise_list)).all()
+            
+            for fb_ex in fallback_exercises:
+                exercise_list.append({
+                    'exercise_id': fb_ex.id,
+                    'name': fb_ex.name,
+                    'muscle_groups': fb_ex.muscle_groups,
+                    'equipment_required': fb_ex.equipment_required,
+                    'difficulty': fb_ex.difficulty,
+                    'default_sets': 3,
+                    'default_reps_min': 8,
+                    'default_reps_max': 12,
+                    'base_rest_time_seconds': 60,
+                    'instructions': fb_ex.instructions,
+                    'order_in_session': len(exercise_list) + 1,
+                    'is_favorite': False,
+                    'selection_score': 50.0
+                })
+        
         return exercise_list
     
     def _simple_optimize_order(self, exercises: List[Dict]) -> List[Dict]:

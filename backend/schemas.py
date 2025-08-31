@@ -105,7 +105,7 @@ class ProgramResponse(BaseModel):
 class WorkoutCreate(BaseModel):
     type: str  # "free" ou "program"
     program_id: Optional[int] = None
-    ai_session_data: Optional[Dict[str, Any]] = None
+    ai_generated: Optional[bool] = False 
 
 class WorkoutResponse(BaseModel):
     id: int

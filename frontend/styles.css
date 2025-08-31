@@ -11044,3 +11044,42 @@ input {
         box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
     }
 }
+
+/* Métadonnées séance AI */
+.ai-session-metadata {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.ai-badge, .ppl-badge, .quality-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.ai-badge {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+}
+
+.ppl-badge {
+    background: var(--primary);
+    color: white;
+    text-transform: uppercase;
+}
+
+.quality-badge {
+    background: var(--success);
+    color: white;
+}
+
+/* Adaptation mobile */
+@media (max-width: 768px) {
+    .ai-session-metadata {
+        justify-content: center;
+        text-align: center;
+    }
+}

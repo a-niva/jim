@@ -2550,7 +2550,8 @@ def swap_exercise_in_program(
 
 @app.post("/api/users/{user_id}/workouts")
 def start_workout(user_id: int, workout: WorkoutCreate, db: Session = Depends(get_db)):
-    """Démarrer une nouvelle séance"""
+    """Démarrer une nouvelle séance (free, program ou AI)"""
+    
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
@@ -2564,61 +2565,27 @@ def start_workout(user_id: int, workout: WorkoutCreate, db: Session = Depends(ge
     if active_workout:
         return {"message": "Séance active existante", "workout": active_workout}
     
+    # NOUVEAU : Gérer flag AI pour workouts type 'free'
+    metadata = {}
+    if workout.type == 'free' and hasattr(workout, 'ai_generated') and workout.ai_generated:
+        logger.info(f"Création workout type 'free' généré par AI pour user {user_id}")
+        metadata['ai_generated'] = True
+        # Pas de vérifications programme nécessaires
+    
     db_workout = Workout(
         user_id=user_id,
-        type=workout.type,
-        program_id=workout.program_id
+        type=workout.type,  # Sera 'free' pour les séances AI
+        program_id=workout.program_id,
+        status="active",
+        started_at=datetime.now(timezone.utc),
+        metadata=metadata  # Stocker le flag AI
     )
     
     db.add(db_workout)
     db.commit()
     db.refresh(db_workout)
     
-    # NOUVEAU : Mettre à jour le schedule si c'est un workout de programme
-    if workout.program_id:
-        program = db.query(Program).filter(Program.id == workout.program_id).first()
-        if program and program.schedule:
-            today = datetime.now(timezone.utc).date().isoformat()
-            if today in program.schedule and program.schedule[today].get("status") == "planned":
-                program.schedule[today]["status"] = "in_progress"
-                program.schedule[today]["started_at"] = datetime.now(timezone.utc).isoformat()
-                flag_modified(program, "schedule")
-                db.commit()
-                logger.info(f"Schedule mis à jour: session {today} démarrée")
-    
-
-    # === NOUVEAU : Support type séance IA ===
-    if workout.type == 'ai':
-        # Validation données IA si fournies
-        ai_session_data = getattr(workout, 'ai_session_data', None)
-        
-        if ai_session_data and not ai_session_data.get('exercises'):
-            raise HTTPException(status_code=400, detail="Données séance IA incomplètes")
-        
-        # Workflow identique au type program - pas de logique spéciale
-        logger.info(f"Création workout type IA pour user {user_id}")
-        
-        # Marquer génération comme lancée dans l'historique du programme actif
-        try:
-            active_program = db.query(Program).filter(
-                Program.user_id == user_id,
-                Program.is_active == True
-            ).first()
-            
-            if (active_program and active_program.ai_generation_history and 
-                len(active_program.ai_generation_history) > 0):
-                # Marquer la dernière génération comme lancée
-                active_program.ai_generation_history[-1]["user_launched"] = True
-                active_program.ai_generation_history[-1]["launched_at"] = datetime.now(timezone.utc).isoformat()
-                
-                from sqlalchemy.orm.attributes import flag_modified
-                flag_modified(active_program, "ai_generation_history")
-                db.commit()
-                
-        except Exception as e:
-            logger.warning(f"Erreur marquage génération lancée: {e}")
-
-    return {"message": "Séance démarrée", "workout": db_workout}
+    return {"message": "Séance créée", "workout": db_workout}
 
 
 @app.put("/api/workouts/{workout_id}/ai-metadata")
