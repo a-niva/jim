@@ -1017,9 +1017,9 @@ class AISessionManager {
             
             // 6. Afficher directement la vue workout
             // showView gère automatiquement le masquage des autres vues et l'affichage de workout
-            window.showView('workout');
-            
-            // 7. Configurer l'interface séance
+            // Transition plus fluide
+            document.getElementById('ai-session').style.display = 'none';
+            await window.showView('workout');
             await this.setupAIWorkoutInterface();
             
             window.showToast(`🤖 Séance ${this.lastGenerated.ppl_used.toUpperCase()} démarrée !`, 'success');
@@ -1032,79 +1032,93 @@ class AISessionManager {
 
     async setupAIWorkoutInterface() {
         try {
-            // Masquer sélection d'exercice libre
-            const exerciseSelection = document.getElementById('exerciseSelection');
-            if (exerciseSelection) {
-                exerciseSelection.style.display = 'none';
-            }
+            console.log('🔧 Configuration interface séance IA complète');
             
-            // Afficher container exercices programme
+            // 1. INTERFACE GÉNÉRALE SÉANCE (comme setupProgramWorkout)
+            const exerciseSelection = document.getElementById('exerciseSelection');
+            const currentExercise = document.getElementById('currentExercise');
             const programContainer = document.getElementById('programExercisesContainer');
-            if (programContainer) {
-                programContainer.style.display = 'block';
-                
-                // Générer liste exercices
-                const exercisesHTML = this.lastGenerated.exercises.map((exercise, index) => {
-                    const isActive = index === 0;
-                    return `
-                        <div class="program-exercise-item ${isActive ? 'active current-exercise' : ''}" 
-                            data-exercise-id="${exercise.exercise_id}"
-                            data-exercise-index="${index}"
-                            onclick="selectExerciseFromProgram(${exercise.exercise_id}, ${index})">
-                            
-                            <div class="exercise-order">${exercise.order_in_session}</div>
-                            
-                            <div class="exercise-info">
-                                <div class="exercise-name">${exercise.name}</div>
-                                <div class="exercise-params">
-                                    ${exercise.default_sets}×${exercise.default_reps_min}-${exercise.default_reps_max}
-                                    ${exercise.equipment_required ? ` • ${exercise.equipment_required[0]}` : ''}
-                                </div>
-                                <div class="exercise-muscles">
-                                    ${exercise.muscle_groups.map(m => `<span class="muscle-tag">${m}</span>`).join('')}
-                                </div>
+            const workoutHeader = document.getElementById('workoutHeader');
+            const fatigueTracker = document.getElementById('fatigueTracker');
+            
+            // Configurer visibilité éléments (pattern séance programme)
+            if (exerciseSelection) exerciseSelection.style.display = 'none';
+            if (currentExercise) currentExercise.style.display = 'block';
+            if (programContainer) programContainer.style.display = 'block';
+            if (workoutHeader) workoutHeader.style.display = 'block';
+            if (fatigueTracker) fatigueTracker.style.display = 'block';
+            
+            // 2. STRUCTURE DONNÉES EXERCICES (format programme compatible)
+            window.currentWorkoutSession.programExercises = {};
+            window.currentWorkoutSession.totalExercisesCount = this.lastGenerated.exercises.length;
+            
+            this.lastGenerated.exercises.forEach((exercise, index) => {
+                window.currentWorkoutSession.programExercises[exercise.exercise_id] = {
+                    ...exercise,
+                    index: index + 1,
+                    order: index + 1,
+                    status: 'planned'
+                };
+            });
+            
+            // 3. GÉNÉRATION HTML LISTE EXERCICES
+            const exercisesHTML = this.lastGenerated.exercises.map((exercise, index) => {
+                const isActive = index === 0;
+                return `
+                    <div class="program-exercise-item ${isActive ? 'active current-exercise' : ''}" 
+                        data-exercise-id="${exercise.exercise_id}"
+                        data-exercise-index="${index}"
+                        onclick="selectExerciseFromAIProgram(${exercise.exercise_id}, ${index})">
+                        
+                        <div class="exercise-order">${exercise.order_in_session}</div>
+                        
+                        <div class="exercise-info">
+                            <div class="exercise-name">${exercise.name}</div>
+                            <div class="exercise-params">
+                                ${exercise.default_sets}×${exercise.default_reps_min}-${exercise.default_reps_max}
+                                ${exercise.equipment_required ? ` • ${exercise.equipment_required[0]}` : ''}
                             </div>
-                            
-                            <div class="exercise-status">
-                                <div class="exercise-progress">
-                                    <span class="sets-counter">0/${exercise.default_sets}</span>
-                                </div>
+                            <div class="exercise-muscles">
+                                ${exercise.muscle_groups.map(m => `<span class="muscle-tag">${m}</span>`).join('')}
                             </div>
                         </div>
-                    `;
-                }).join('');
-                
-                programContainer.innerHTML = `
-                    <div class="program-exercises-header">
-                        <h3>🤖 Séance IA - ${this.lastGenerated.ppl_used.toUpperCase()}</h3>
-                        <p>Score qualité: <strong>${Math.round(this.lastGenerated.quality_score)}%</strong></p>
-                    </div>
-                    <div class="program-exercises-list">
-                        ${exercisesHTML}
+                        
+                        <div class="exercise-status">
+                            <div class="exercise-progress">
+                                <span class="sets-counter">0/${exercise.default_sets}</span>
+                            </div>
+                        </div>
                     </div>
                 `;
-            }
+            }).join('');
             
-            // Afficher les autres éléments de l'interface séance (très important!)
-            const workoutHeader = document.getElementById('workoutHeader');
-            if (workoutHeader) {
-                workoutHeader.style.display = 'block';
-            }
+            // 4. INJECTION HTML DANS CONTAINER
+            programContainer.innerHTML = `
+                <div class="program-exercises-header">
+                    <h3>🤖 Séance IA - ${this.lastGenerated.ppl_used.toUpperCase()}</h3>
+                    <p>Score qualité: <strong>${Math.round(this.lastGenerated.quality_score)}%</strong></p>
+                </div>
+                <div class="program-exercises-list">
+                    ${exercisesHTML}
+                </div>
+            `;
             
-            const fatigueTracker = document.getElementById('fatigueTracker');
-            if (fatigueTracker) {
-                fatigueTracker.style.display = 'block';
-            }
-            
-            // Sélectionner automatiquement le premier exercice
+            // 5. SÉLECTION AUTOMATIQUE PREMIER EXERCICE (CRITIQUE)
             if (this.lastGenerated.exercises.length > 0) {
                 const firstExercise = this.lastGenerated.exercises[0];
-                // Utiliser selectProgramExercise plutôt que selectExerciseFromProgram pour cohérence
-                await window.selectProgramExercise(firstExercise.exercise_id, true);
+                console.log('🎯 Sélection automatique premier exercice:', firstExercise.name);
+                
+                // Utiliser la fonction dédiée AI
+                await window.selectExerciseFromAIProgram(firstExercise.exercise_id, 0);
             }
             
-            // Afficher métadonnées AI dans l'interface
+            // 6. MÉTADONNÉES AI DANS HEADER
             this.displayAISessionMetadata();
+            
+            // 7. INITIALISATION COMPLÈTE INTERFACE (comme programme)
+            window.updateHeaderProgress?.();
+            
+            console.log('✅ Interface séance IA configurée complètement');
             
         } catch (error) {
             console.error('❌ Erreur setup interface IA:', error);
