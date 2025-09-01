@@ -8830,7 +8830,7 @@ async function loadSessionExercisesList() {
         container.innerHTML = `
             <div class="session-active-workout-container">
                 <div class="session-header">
-                <h3>Programme du jour</h3>
+                <h3>Séance du jour</h3>
                 <div class="program-summary">
                     <div class="progress-circle">${completedCount}/${totalCount}</div>
                     <span>${completedCount} exercice${completedCount > 1 ? 's' : ''} complété${completedCount > 1 ? 's' : ''} • ~${remainingTime} min restantes</span>
@@ -12681,7 +12681,7 @@ function changeExercise() {
     }
     
     // En séance libre : retour simple à la sélection
-    if (currentWorkoutSession.type !== 'program') {
+    if (currentWorkoutSession.type === 'free') {
         showExerciseSelection();
         return;
     }
@@ -13173,7 +13173,7 @@ function showAlternativesFromAPI(originalExerciseId, alternatives, reason) {
                 
                 <div class="modal-actions">
                     <button class="btn-secondary" onclick="closeModal()">Annuler</button>
-                    <p class="help-text">💡 Score = compatibilité avec votre programme actuel</p>
+                    <p class="help-text">💡 Score = compatibilité avec Votre séance actuel</p>
                 </div>
             </div>
         </div>

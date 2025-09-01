@@ -743,7 +743,7 @@ async function loadAttendanceCalendar(userId) {
 }
 
 // ===== GRAPHIQUE 7: BURNDOWN VOLUME =====
-// ===== GRAPHIQUE 7: PROGRESSION PROGRAMME OPTIMISÉE =====
+// ===== GRAPHIQUE 7: PROGRESSION SÉANCE OPTIMISÉE =====
 async function loadVolumeBurndownChart(userId, period) {
     try {
         const data = await window.apiGet(`/api/users/${userId}/stats/volume- /${period}`);
@@ -947,13 +947,13 @@ function renderEnhancedStats(data, period) {
 
 function generateBurndownMessage(completion, remaining, velocity, estimatedDays) {
     if (completion >= 85) {
-        return "Rythme parfait ! Vous êtes en avance sur votre programme.";
+        return "Rythme parfait ! Vous êtes en avance sur Votre séance.";
     } else if (completion >= 70) {
         return `Encore ${remaining} exercices pour compléter votre objectif.`;
     } else if (velocity > 0 && estimatedDays) {
         return `À ce rythme, objectif atteint dans environ ${estimatedDays} jours.`;
     } else {
-        return "Augmentez le rythme pour rattraper le programme prévu.";
+        return "Augmentez le rythme pour rattraper le planning prévu.";
     }
 }
 
@@ -961,7 +961,7 @@ function showVolumeEmptyState() {
     document.getElementById('burndownStats').innerHTML = `
         <div class="burndown-empty-state">
             <div class="burndown-empty-icon">📋</div>
-            <div class="burndown-empty-text">Aucun programme actif</div>
+            <div class="burndown-empty-text">Aucune séance active</div>
         </div>
     `;
 }

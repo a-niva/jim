@@ -1038,7 +1038,7 @@ class AISessionManager {
             // 1. CONFIGURATION ÉLÉMENTS INTERFACE (identique setupSessionWorkout)
             const exerciseSelection = document.getElementById('exerciseSelection');
             const currentExercise = document.getElementById('currentExercise');
-            const programContainer = document.getElementById('sessionExercisesContainer');
+            const sessionContainer = document.getElementById('sessionExercisesContainer');
             const workoutHeader = document.getElementById('workoutHeader');
             const fatigueTracker = document.getElementById('fatigueTracker');
             const workoutTitle = document.getElementById('workoutTitle');
@@ -1046,7 +1046,7 @@ class AISessionManager {
             // Visibilité (pattern exact séance programme)
             if (exerciseSelection) exerciseSelection.style.display = 'none';
             if (currentExercise) currentExercise.style.display = 'block';
-            if (programContainer) programContainer.style.display = 'block';
+            if (sessionContainer) sessionContainer.style.display = 'block';
             if (workoutHeader) workoutHeader.style.display = 'block';
             if (fatigueTracker) fatigueTracker.style.display = 'block';
             
@@ -1106,7 +1106,7 @@ class AISessionManager {
             }).join('');
             
             // 4. INJECTION HTML
-            programContainer.innerHTML = `
+            sessionContainer.innerHTML = `
                 <div class="session-ai-header">
                     <h3>🤖 Séance IA - ${this.lastGenerated.ppl_used.toUpperCase()}</h3>
                     <p>Score qualité: <strong>${Math.round(this.lastGenerated.quality_score)}%</strong></p>
@@ -1533,7 +1533,7 @@ class AISessionManager {
         
         try {
             // Tenter API backend si disponible
-            const response = await window.apiPost('/api/programs/optimize-session', {
+            const response = await window.apiPost('/api/ai/optimize-session', {
                 user_id: window.currentUser.id,
                 exercises: exercises
             });

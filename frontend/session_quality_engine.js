@@ -2,7 +2,7 @@ class SessionQualityEngine {
     /**
      * Calcule le score de qualité d'une session (0-100 points)
      * @param {Array} exercises - Format réel: [{exercise_id, exercise_name, sets, reps_min, reps_max, predicted_weight}]
-     * @param {Object} userContext - {user_id, program_id}
+     * @param {Object} userContext - {user_id}
      * @returns {Object} Score total + breakdown + suggestions + confidence
      */
     static async calculateScore(exercises, userContext) {

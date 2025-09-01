@@ -1641,7 +1641,7 @@ function scheduleQuickValidation() {
         confirmFinalCount(voiceData.count);
     }, 1500)); // 1.5s pour confiance haute
     
-    console.log(`[Voice] Auto-validation rapide programmée - Count: ${voiceData.count}, Confiance: ${voiceData.confidence.toFixed(2)}`);
+    console.log(`[Voice] Auto-validation rapide schedulée - Count: ${voiceData.count}, Confiance: ${voiceData.confidence.toFixed(2)}`);
 }
 
 /**
@@ -1662,7 +1662,7 @@ function scheduleStandardValidation() {
         confirmFinalCount(voiceData.count);
     }, 4000)); // 4s pour confiance faible
     
-    console.log(`[Voice] Validation standard programmée - Count: ${voiceData.count}, Confiance: ${voiceData.confidence.toFixed(2)}`);
+    console.log(`[Voice] Validation standard schedulée - Count: ${voiceData.count}, Confiance: ${voiceData.confidence.toFixed(2)}`);
 }
 
 /**

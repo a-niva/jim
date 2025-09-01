@@ -4444,7 +4444,7 @@ input:checked + .toggle-slider:before {
     font-weight: 600;
 }
 
-.program-summary {
+.session-summary {
     display: flex;
     align-items: center;
     font-size: var(--font-sm);
@@ -7556,11 +7556,11 @@ input {
             animation-delay: .3s;
     }
 
-    .program-status-card {
+    .session-status-card {
             padding: var(--spacing-md) !important;
     }
 
-    .program-status-card h3 {
+    .session-status-card h3 {
             font-size: var(--font-base) !important;
     }
 
