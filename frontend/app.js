@@ -7154,7 +7154,7 @@ function skipRest() {
         window.workoutAudio.clearScheduledSounds();
     }
     
-    // Annuler la notification programmée
+    // Annuler la notification schedulée
     if (notificationTimeout) {
         clearTimeout(notificationTimeout);
         notificationTimeout = null;
@@ -8831,7 +8831,7 @@ async function loadSessionExercisesList() {
             <div class="session-active-workout-container">
                 <div class="session-header">
                 <h3>Séance du jour</h3>
-                <div class="program-summary">
+                <div class="session-summary">
                     <div class="progress-circle">${completedCount}/${totalCount}</div>
                     <span>${completedCount} exercice${completedCount > 1 ? 's' : ''} complété${completedCount > 1 ? 's' : ''} • ~${remainingTime} min restantes</span>
                 </div>
@@ -8912,7 +8912,7 @@ ${canSwapExercise(exerciseData.exercise_id) ?
         `;
         
     } catch (error) {
-        console.error('Erreur chargement liste exercices programme:', error);
+        console.error('Erreur chargement liste exercices:', error);
     }
 }
 
@@ -11848,14 +11848,28 @@ async function saveFeedbackAndRest() {
             currentWorkoutSession.completedSets.push(offlineSet);
             currentWorkoutSession.globalSetCount++;
             
-            // Mettre à jour le programme si nécessaire
+            // Mettre à jour les exercices de session IA si nécessaire
             if (currentWorkoutSession.type === 'ai' && currentExercise) {
-                const sessionExercise = currentWorkoutSession.sessionExercises[currentExercise.id];
-                if (sessionExercise) {
-                    sessionExercise.completedSets++;
-                    if (sessionExercise.completedSets >= sessionExercise.totalSets) {
-                        sessionExercise.isCompleted = true;
-                        sessionExercise.endTime = new Date();
+                // Trouver l'exercice dans la liste des exercices IA
+                const exerciseIndex = currentWorkoutSession.exercises.findIndex(
+                    ex => ex.exercise_id === currentExercise.id
+                );
+                
+                if (exerciseIndex !== -1) {
+                    const aiExercise = currentWorkoutSession.exercises[exerciseIndex];
+                    
+                    // Initialiser le tracking si nécessaire
+                    if (!aiExercise.completedSets) aiExercise.completedSets = 0;
+                    
+                    aiExercise.completedSets++;
+                    
+                    if (aiExercise.completedSets >= aiExercise.default_sets) {
+                        aiExercise.isCompleted = true;
+                        aiExercise.endTime = new Date();
+                        
+                        if (!currentWorkoutSession.completedExercisesCount) {
+                            currentWorkoutSession.completedExercisesCount = 0;
+                        }
                         currentWorkoutSession.completedExercisesCount++;
                     }
                 }
@@ -11896,14 +11910,28 @@ async function saveFeedbackAndRest() {
         currentWorkoutSession.completedSets.push(setWithId);
         currentWorkoutSession.globalSetCount++;
         
-        // Mettre à jour le programme si c'est une séance programme
+        // Mettre à jour les exercices de session IA si nécessaire
         if (currentWorkoutSession.type === 'ai' && currentExercise) {
-            const sessionExercise = currentWorkoutSession.sessionExercises[currentExercise.id];
-            if (sessionExercise) {
-                sessionExercise.completedSets++;
-                if (sessionExercise.completedSets >= sessionExercise.totalSets) {
-                    sessionExercise.isCompleted = true;
-                    sessionExercise.endTime = new Date();
+            // Trouver l'exercice dans la liste des exercices IA
+            const exerciseIndex = currentWorkoutSession.exercises.findIndex(
+                ex => ex.exercise_id === currentExercise.id
+            );
+            
+            if (exerciseIndex !== -1) {
+                const aiExercise = currentWorkoutSession.exercises[exerciseIndex];
+                
+                // Initialiser le tracking si nécessaire
+                if (!aiExercise.completedSets) aiExercise.completedSets = 0;
+                
+                aiExercise.completedSets++;
+                
+                if (aiExercise.completedSets >= aiExercise.default_sets) {
+                    aiExercise.isCompleted = true;
+                    aiExercise.endTime = new Date();
+                    
+                    if (!currentWorkoutSession.completedExercisesCount) {
+                        currentWorkoutSession.completedExercisesCount = 0;
+                    }
                     currentWorkoutSession.completedExercisesCount++;
                 }
             }
@@ -12012,14 +12040,25 @@ async function saveFeedbackAndRest() {
                 currentWorkoutSession.completedSets.push(offlineSet);
                 currentWorkoutSession.globalSetCount++;
                 
-                // Gérer le programme si nécessaire
+                // Gérer les exercices IA si nécessaire
                 if (currentWorkoutSession.type === 'ai' && currentExercise) {
-                    const sessionExercise = currentWorkoutSession.sessionExercises[currentExercise.id];
-                    if (sessionExercise) {
-                        sessionExercise.completedSets++;
-                        if (sessionExercise.completedSets >= sessionExercise.totalSets) {
-                            sessionExercise.isCompleted = true;
-                            sessionExercise.endTime = new Date();
+                    const exerciseIndex = currentWorkoutSession.exercises.findIndex(
+                        ex => ex.exercise_id === currentExercise.id
+                    );
+                    
+                    if (exerciseIndex !== -1) {
+                        const aiExercise = currentWorkoutSession.exercises[exerciseIndex];
+                        
+                        if (!aiExercise.completedSets) aiExercise.completedSets = 0;
+                        aiExercise.completedSets++;
+                        
+                        if (aiExercise.completedSets >= aiExercise.default_sets) {
+                            aiExercise.isCompleted = true;
+                            aiExercise.endTime = new Date();
+                            
+                            if (!currentWorkoutSession.completedExercisesCount) {
+                                currentWorkoutSession.completedExercisesCount = 0;
+                            }
                             currentWorkoutSession.completedExercisesCount++;
                         }
                     }
@@ -12686,7 +12725,7 @@ function changeExercise() {
         return;
     }
     
-    // En programme : utiliser le système de swap
+    // utiliser le système de swap
     showSwapReasonModal(currentExercise.id);
 }
 
@@ -12859,7 +12898,7 @@ async function updateCompleteSwapState(originalId, newId, newExercise, reason, c
         swapTimestamp: context.timestamp
     };
 
-    // 3. Mettre à jour le programme principal SANS changer l'ID
+    // 3. Mettre à jour la séance principale SANS changer l'ID
     const exerciseIndex = currentWorkoutSession.sessionData.exercises.findIndex(
         ex => ex.exercise_id == originalId
     );
@@ -13726,12 +13765,7 @@ function addSwipeToExerciseCards() {
 
 
 // === FONCTIONS DRAG & DROP INTEGRATION PARFAITE ===
-
-/**
- * Initialise le système de drag & drop pour réorganisation exercices
- * @param {Array} originalExercises - Exercices originaux du programme
- * @param {Object} scoringData - Données de scoring pour recalculs
- */
+// Initialise le système de drag & drop pour réorganisation exercices
 function initializeExerciseReorder(originalExercises, scoringData) {
     const container = document.getElementById('exerciseReorderList');
     if (!container) {

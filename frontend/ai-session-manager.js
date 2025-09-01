@@ -940,9 +940,9 @@ class AISessionManager {
             // 1. Nettoyer l'état existant
             window.clearWorkoutState();
             
-            // 2. Créer workout type 'free' (PAS 'program')
+            // 2. Créer workout type 'free'
             const workoutData = {
-                type: 'free',  // IMPORTANT : type 'free' pour éviter vérifications programme
+                type: 'free',  // IMPORTANT : type 'free'
                 ai_generated: true  // Flag pour identifier séances AI
             };
             
@@ -967,7 +967,7 @@ class AISessionManager {
                 totalSetTime: 0,
                 startTime: new Date(),
                 
-                // Structures pour interface programme
+                // Structures pour interface séance
                 sessionExercises: {},
                 completedExercisesCount: 0,
                 totalExercisesCount: this.lastGenerated.exercises.length,
@@ -994,7 +994,7 @@ class AISessionManager {
                 }
             };
             
-            // 4. Préparer sessionExercises (réutilise logique programme)
+            // 4. Préparer sessionExercises
             this.lastGenerated.exercises.forEach((exercise, index) => {
                 window.currentWorkoutSession.sessionDataExercises[exercise.exercise_id] = {
                     ...exercise,
@@ -1043,7 +1043,6 @@ class AISessionManager {
             const fatigueTracker = document.getElementById('fatigueTracker');
             const workoutTitle = document.getElementById('workoutTitle');
             
-            // Visibilité (pattern exact séance programme)
             if (exerciseSelection) exerciseSelection.style.display = 'none';
             if (currentExercise) currentExercise.style.display = 'block';
             if (sessionContainer) sessionContainer.style.display = 'block';
@@ -1055,7 +1054,7 @@ class AISessionManager {
                 workoutTitle.textContent = `🤖 Séance IA - ${this.lastGenerated.ppl_used.toUpperCase()}`;
             }
             
-            // 2. STRUCTURE DONNÉES (compatible programme)
+            // 2. STRUCTURE DONNÉES 
             window.currentWorkoutSession.sessionDataExercises = {};
             window.currentWorkoutSession.totalExercisesCount = this.lastGenerated.exercises.length;
             
@@ -1217,8 +1216,7 @@ class AISessionManager {
       
     renderAIsessionExercisesList() {
         /**
-         * Affiche liste exercices IA dans l'interface programme
-         * Adaptation de votre rendersessionExercises() existante
+         * Affiche liste exercices IA dans l'interface
          */
         
         const container = document.getElementById('sessionExercisesContainer');
