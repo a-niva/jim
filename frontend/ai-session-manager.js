@@ -1101,19 +1101,6 @@ class AISessionManager {
                                 <span class="session-ai-sets-counter">0/${exercise.default_sets}</span>
                             </div>
                         </div>
-                        
-                        <div class="session-ai-actions">
-                            <button class="session-ai-btn session-ai-btn-swap" 
-                                    onclick="event.stopPropagation(); initiateSwap(${exercise.exercise_id}, ${index})"
-                                    title="Remplacer exercice">
-                                <i class="fas fa-exchange-alt"></i>
-                            </button>
-                            <button class="session-ai-btn session-ai-btn-skip"
-                                    onclick="event.stopPropagation(); skipExerciseFromProgram(${index})"
-                                    title="Passer exercice">
-                                <i class="fas fa-forward"></i>
-                            </button>
-                        </div>
                     </div>
                 `;
             }).join('');
@@ -1657,116 +1644,98 @@ class AISessionManager {
     // ===== SWAP D'EXERCICES ADAPTÉ DE PLANNING.JS =====
     
     async swapExercise(exerciseIndex) {
-        /**
-         * Initie le swap d'un exercice dans la séance IA
-         * Adapté de planning.js showSwapModal()
-         */
-        
         if (!this.lastGenerated || !this.lastGenerated.exercises) return;
         
         const exercise = this.lastGenerated.exercises[exerciseIndex];
         if (!exercise) return;
         
         try {
-            // Récupérer alternatives du backend
-            const alternatives = await window.apiPost('/api/exercises/find-alternatives', {
-                exercise_id: exercise.exercise_id,
-                user_id: window.currentUser.id,
-                ppl_category: this.lastGenerated.ppl_used,
-                target_muscles: exercise.muscle_groups,
-                exclude_ids: this.lastGenerated.exercises.map(ex => ex.exercise_id)
-            });
+            // UTILISER L'ENDPOINT EXISTANT (même que app.js)
+            const response = await window.apiGet(
+                `/api/exercises/${exercise.exercise_id}/alternatives?user_id=${window.currentUser.id}&reason=user_preference`
+            );
             
-            // Afficher modal alternatives
-            this.showSwapModal(exerciseIndex, exercise, alternatives.alternatives);
+            if (response && response.alternatives) {
+                this.showSwapModal(exerciseIndex, exercise, response.alternatives);
+            } else {
+                window.showToast('Aucune alternative trouvée', 'warning');
+            }
             
         } catch (error) {
             console.error('Erreur récupération alternatives:', error);
             window.showToast('Erreur lors de la recherche d\'alternatives', 'error');
         }
     }
-    
+
     showSwapModal(exerciseIndex, currentExercise, alternatives) {
-        /**
-         * Affiche modal de sélection alternative
-         * Adapté de planning.js renderAlternative() - CLASSES CSS CORRESPONDANTES
-         */
-        
-        const alternativesHTML = alternatives.slice(0, 5).map(alt => `
-            <div class="ai-session-alternative-item" onclick="window.aiSessionManager.performSwap(${exerciseIndex}, ${alt.exercise_id})">
-                <div class="ai-session-alternative-info">
-                    <div class="ai-session-alternative-name">${alt.name}</div>
-                    <div class="ai-session-alternative-muscles">
-                        ${(alt.muscle_groups || []).map(muscle => 
-                            `<span class="ai-session-muscle-tag">${muscle}</span>`
-                        ).join('')}
+        const modalContent = `
+            <div class="swap-modal-ai">
+                <div class="current-exercise">
+                    <h4>Exercice actuel</h4>
+                    <div class="exercise-card current">
+                        <span>${currentExercise.name}</span>
+                        <div class="muscles">${currentExercise.muscle_groups?.join(', ') || ''}</div>
                     </div>
-                    <div class="ai-session-alternative-score">Score: ${Math.round((alt.score || 0.75) * 100)}%</div>
                 </div>
-            </div>
-        `).join('');
-        
-        const modalHTML = `
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Remplacer "${currentExercise.exercise_name || currentExercise.name}"</h3>
-                    <button class="modal-close" onclick="window.closeModal()">×</button>
-                </div>
-                <div class="modal-body">
-                    <div class="ai-session-alternatives-list">
-                        ${alternativesHTML}
+                
+                <div class="alternatives-section">
+                    <h4>Alternatives suggérées (${alternatives.length})</h4>
+                    <div class="alternatives-list">
+                        ${alternatives.map((alt, index) => `
+                            <div class="exercise-card alternative" 
+                                onclick="window.aiSessionManager.executeSwap(${exerciseIndex}, ${alt.exercise_id})">
+                                <div class="exercise-info">
+                                    <span class="name">${alt.name}</span>
+                                    <div class="muscles">${alt.muscle_groups?.join(', ') || ''}</div>
+                                    <div class="score">Score: ${Math.round((alt.score || 0.7) * 100)}%</div>
+                                </div>
+                                <div class="swap-reason">${alt.reason_match || 'Alternative recommandée'}</div>
+                            </div>
+                        `).join('')}
                     </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" onclick="window.closeModal()">Annuler</button>
                 </div>
             </div>
         `;
         
-        window.showModal(modalHTML);
+        window.showModal('Remplacer l\'exercice', modalContent);
     }
-    
-    async performSwap(exerciseIndex, newExerciseId) {
-        /**
-         * Effectue le remplacement d'exercice
-         * Adapté de planning.js performSwap()
-         */
+
+    executeSwap(exerciseIndex, newExerciseId) {
+        // Remplacer dans la liste générée
+        const oldExercise = this.lastGenerated.exercises[exerciseIndex];
         
-        try {
-            // Récupérer détails nouvel exercice
-            const newExercise = await window.apiGet(`/api/exercises/${newExerciseId}?user_id=${window.currentUser.id}`);
-            
-            // Remplacer dans lastGenerated
-            const oldExercise = this.lastGenerated.exercises[exerciseIndex];
-            this.lastGenerated.exercises[exerciseIndex] = {
-                exercise_id: newExercise.id,
-                exercise_name: newExercise.name,
-                name: newExercise.name,
-                muscle_groups: newExercise.muscle_groups || [newExercise.muscle_group],
-                muscle_group: newExercise.muscle_group,
-                equipment_required: newExercise.equipment_required,
-                difficulty: newExercise.difficulty,
-                sets: oldExercise.sets || 3,
-                reps_min: oldExercise.reps_min || 8,
-                reps_max: oldExercise.reps_max || 12,
-                rest_seconds: oldExercise.rest_seconds || 90
-            };
-            
-            // Fermer modal
-            window.closeModal();
-            
-            // Mettre à jour affichage
-            this.updateGeneratedSessionDisplay();
-            
-            // Recalculer scoring avec animation
-            await this.updateAISessionScoring(this.lastGenerated.exercises);
-            
-            // Réinitialiser drag & drop
-            this.initializeExercisesDragDrop();
-            
-            window.showToast(`Exercice remplacé par "${newExercise.name}"`, 'success');
-            
-        } catch (error) {
-            console.error('Erreur swap exercice:', error);
-            window.showToast('Erreur lors du remplacement', 'error');
-        }
+        // Récupérer les données du nouvel exercice
+        window.apiGet(`/api/exercises/${newExerciseId}?user_id=${window.currentUser.id}`)
+            .then(newExercise => {
+                // Adapter le format pour correspondre aux exercices AI
+                this.lastGenerated.exercises[exerciseIndex] = {
+                    exercise_id: newExercise.id,
+                    name: newExercise.name,
+                    muscle_groups: newExercise.muscle_groups,
+                    equipment_required: newExercise.equipment_required,
+                    difficulty: newExercise.difficulty,
+                    default_sets: newExercise.default_sets || oldExercise.default_sets,
+                    default_reps_min: newExercise.default_reps_min || oldExercise.default_reps_min,
+                    default_reps_max: newExercise.default_reps_max || oldExercise.default_reps_max,
+                    base_rest_time_seconds: newExercise.base_rest_time_seconds || oldExercise.base_rest_time_seconds,
+                    exercise_type: newExercise.exercise_type || 'strength',
+                    order_in_session: exerciseIndex + 1,
+                    instructions: newExercise.instructions || ''
+                };
+                
+                // Mettre à jour l'affichage
+                this.updateGeneratedSessionDisplay();
+                window.closeModal();
+                window.showToast(`${oldExercise.name} → ${newExercise.name}`, 'success');
+            })
+            .catch(error => {
+                console.error('Erreur lors du swap:', error);
+                window.showToast('Erreur lors du remplacement', 'error');
+            });
     }
     
     // ===== DRAG & DROP ADAPTÉ DE PLANNING.JS =====

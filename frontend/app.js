@@ -15834,13 +15834,10 @@ async function selectExerciseFromAIProgram(exerciseId, exerciseIndex) {
             return;
         }
         
-        // WORKFLOW PROGRAMME COMPLET (pas libre)
+        // CONFIGURATION DIRECTE (éviter selectExercise complètement)
         
-        // 1. Mettre à jour l'ordre dans la session
-        window.currentWorkoutSession.exerciseOrder = exerciseIndex + 1;
-        
-        // 2. Créer objet exercice format programme
-        const exerciseForProgramWorkflow = {
+        // 1. Variables globales critiques
+        window.currentExercise = {
             id: aiExercise.exercise_id,
             name: aiExercise.name,
             muscle_groups: aiExercise.muscle_groups,
@@ -15854,35 +15851,34 @@ async function selectExerciseFromAIProgram(exerciseId, exerciseIndex) {
             instructions: aiExercise.instructions || ''
         };
         
-        // 3. Mettre à jour variables globales (CRITIQUE)
-        window.currentExercise = exerciseForProgramWorkflow;
         window.currentSet = 1;
         window.currentWorkoutSession.currentSetNumber = 1;
+        window.currentWorkoutSession.exerciseOrder = exerciseIndex + 1;
         
-        // 4. Configurer interface exercice (workflow programme)
-        if (window.setupExerciseInterface) {
-            await window.setupExerciseInterface(exerciseForProgramWorkflow);
-        } else {
-            // Fallback si fonction dédiée n'existe pas
-            await window.selectExercise(exerciseForProgramWorkflow);
+        // 2. Timer de séance (CRITIQUE - manquait dans solution proposée)
+        if (exerciseIndex === 0 && !window.workoutTimer) {
+            window.startWorkoutTimer();
         }
         
-        // 5. Initialiser WorkoutState correctement
+        // 3. Configuration interface exercice
+        if (window.configureUIForExerciseType) {
+            await window.configureUIForExerciseType(window.currentExercise);
+        }
+        
+        // 4. WorkoutState vers READY puis countdown
         if (window.WorkoutStates && window.workoutState) {
             window.workoutState.current = window.WorkoutStates.READY;
+            
+            // Countdown automatique après stabilisation
+            setTimeout(() => {
+                if (window.workoutState.current === window.WorkoutStates.READY) {
+                    window.workoutState.current = window.WorkoutStates.COUNTDOWN;
+                    console.log('🎯 Countdown automatique démarré');
+                }
+            }, 500);
         }
         
-        // 6. Démarrer countdown automatique (comme programme)
-        setTimeout(() => {
-            if (window.startExerciseCountdown) {
-                window.startExerciseCountdown();
-            } else if (window.transitionToCountdown) {
-                window.transitionToCountdown();
-            }
-            console.log('🎯 Countdown automatique démarré pour exercice AI');
-        }, 500);
-        
-        // 7. Mettre à jour UI liste exercices
+        // 5. UI liste exercices
         document.querySelectorAll('.session-ai-exercise-item').forEach(item => {
             item.classList.remove('session-ai-active', 'session-ai-current');
         });
@@ -15891,12 +15887,12 @@ async function selectExerciseFromAIProgram(exerciseId, exerciseIndex) {
             currentItem.classList.add('session-ai-active', 'session-ai-current');
         }
         
-        // 8. Mettre à jour header progress
+        // 6. Header progress
         if (window.updateHeaderProgress) {
             window.updateHeaderProgress();
         }
         
-        console.log('✅ Exercice IA sélectionné avec workflow programme complet');
+        console.log('✅ Exercice IA configuré directement');
         
     } catch (error) {
         console.error('❌ Erreur sélection exercice IA:', error);
