@@ -1413,7 +1413,7 @@ span {
     opacity: .6;
 }
 
-.program-active-workout-container {
+.session-active-workout-container {
     background: var(--bg-card);
     border-radius: var(--radius);
     padding: var(--spacing-md);
@@ -1421,7 +1421,7 @@ span {
     margin-bottom: var(--spacing-lg);
 }
 
-.program-active-workout-container--resuming {
+.session-active-workout-container--resuming {
     border-color: var(--warning);
     background: rgba(245, 158, 11, 0.05);
 }
@@ -4425,7 +4425,7 @@ input:checked + .toggle-slider:before {
     animation: fadeIn .5s ease;
 }
 
-.program-header {
+.session-header {
     margin-bottom: var(--spacing-lg);
     padding: 0 var(--spacing-sm);
 }
@@ -4437,7 +4437,7 @@ input:checked + .toggle-slider:before {
     font-weight: 700;
 }
 
-.program-header h3 {
+.session-header h3 {
     color: var(--text);
     margin-bottom: var(--spacing-sm);
     font-size: var(--font-base);
@@ -4617,19 +4617,6 @@ input:checked + .toggle-slider:before {
     border-radius: 6px;
     font-size: .65rem;
     font-weight: 600;
-}
-
-.program-status-card {
-    transition: transform .2s ease,box-shadow .2s ease;
-}
-
-.program-status-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,.1);
-}
-
-.program-status-card [style*="transition: width"] {
-    animation: progressPulse 2s ease-in-out infinite;
 }
 
 .free-workout-container {
@@ -5876,20 +5863,6 @@ input:checked + .toggle-slider:before {
 .modal .preview-actions {
     margin-top: 1.5rem;
     padding-top: 1rem;
-}
-
-.program-builder-container .preview-stats {
-    background: var(--bg-primary);
-    border: 1px solid var(--border-color);
-}
-
-.program-builder-container .exercises-list {
-    background: var(--bg-primary);
-}
-
-.program-builder-container .muscle-distribution {
-    background: var(--bg-primary);
-    border: 1px solid var(--border-color);
 }
 
 .loading-spinner {

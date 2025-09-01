@@ -850,7 +850,6 @@ def start_workout(user_id: int, workout: WorkoutCreate, db: Session = Depends(ge
     db_workout = Workout(
         user_id=user_id,
         type=workout.type,  # Sera 'free' pour les séances AI
-        program_id=workout.program_id,
         status="active",
         started_at=datetime.now(timezone.utc),
         metadata=metadata  # Stocker le flag AI
@@ -2244,62 +2243,40 @@ def calculate_recovery_warnings(data, muscle_recovery_status=None, session_date=
     return warnings
 
 @app.get("/api/users/{user_id}/stats/volume-burndown/{period}")
-def get_volume_burndown(user_id: int, period: str, db: Session = Depends(get_db)):
-    """Graphique burndown du volume depuis le schedule - VERSION CORRIGÉE"""
+def get_volume_summary(user_id: int, period: str, db: Session = Depends(get_db)):
+    """Volume basé sur workouts réels, pas planning"""
     
-    if period not in ["week", "month", "quarter", "year"]:
-        period = "week"  # Fallback par défaut
+    days = {"week": 7, "month": 30, "quarter": 90, "year": 365}.get(period, 7)
+    start_date = datetime.now() - timedelta(days=days)
     
-    program = db.query(Program).filter(
-        Program.user_id == user_id,
-        Program.is_active == True
-    ).first()
+    # Volume réel des workouts
+    workouts = db.query(Workout).filter(
+        Workout.user_id == user_id,
+        Workout.created_at >= start_date,
+        Workout.status == 'completed'
+    ).all()
     
-    if not program or not program.schedule:
-        return {
-            "dailyVolumes": [],
-            "targetVolume": 0,
-            "currentVolume": 0,
-            "projection": {"onTrack": False, "dailyRateNeeded": 0}
-        }
+    daily_volumes = defaultdict(int)
+    for workout in workouts:
+        date = workout.created_at.date()
+        daily_volumes[date] += len(workout.sets)
     
-    # Réutiliser la logique existante mais adapter le format
-    planned_volume = 0
-    completed_volume = 0
-    daily_volumes = []
-    
-    for date_str in sorted(program.schedule.keys()):
-        session = program.schedule[date_str]
-        session_volume = len(session.get("exercises_snapshot", []))
-        planned_volume += session_volume
-        
-        if session.get("status") == "completed":
-            completed_volume += session_volume
-        
-        daily_volumes.append({
-            "date": date_str,
-            "cumulativeVolume": completed_volume
+    # Format réponse
+    cumulative = 0
+    daily_data = []
+    for date in sorted(daily_volumes.keys()):
+        cumulative += daily_volumes[date]
+        daily_data.append({
+            "date": date.isoformat(),
+            "volume": daily_volumes[date],
+            "cumulative": cumulative
         })
     
-    # Calcul projection simple
-    if planned_volume > 0:
-        completion_rate = (completed_volume / planned_volume) * 100
-        on_track = completion_rate >= 80
-        daily_rate_needed = max(0, (planned_volume - completed_volume) / 7)
-    else:
-        on_track = True
-        daily_rate_needed = 0
-    
     return {
-        "dailyVolumes": daily_volumes,
-        "targetVolume": planned_volume,
-        "currentVolume": completed_volume,
-        "projection": {
-            "onTrack": on_track,
-            "dailyRateNeeded": daily_rate_needed
-        }
+        "dailyVolumes": daily_data,
+        "totalVolume": cumulative,
+        "avgDaily": cumulative / days if days > 0 else 0
     }
-
 
 @app.get("/api/users/{user_id}/stats/muscle-sunburst")
 def get_muscle_sunburst(user_id: int, days: int = 30, db: Session = Depends(get_db)):

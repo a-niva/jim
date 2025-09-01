@@ -968,7 +968,7 @@ class AISessionManager {
                 startTime: new Date(),
                 
                 // Structures pour interface programme
-                programExercises: {},
+                sessionExercises: {},
                 completedExercisesCount: 0,
                 totalExercisesCount: this.lastGenerated.exercises.length,
                 
@@ -994,9 +994,9 @@ class AISessionManager {
                 }
             };
             
-            // 4. Préparer programExercises (réutilise logique programme)
+            // 4. Préparer sessionExercises (réutilise logique programme)
             this.lastGenerated.exercises.forEach((exercise, index) => {
-                window.currentWorkoutSession.programExercises[exercise.exercise_id] = {
+                window.currentWorkoutSession.sessionDataExercises[exercise.exercise_id] = {
                     ...exercise,
                     id: exercise.exercise_id,
                     index: index + 1,
@@ -1038,7 +1038,7 @@ class AISessionManager {
             // 1. CONFIGURATION ÉLÉMENTS INTERFACE (identique setupSessionWorkout)
             const exerciseSelection = document.getElementById('exerciseSelection');
             const currentExercise = document.getElementById('currentExercise');
-            const programContainer = document.getElementById('programExercisesContainer');
+            const programContainer = document.getElementById('sessionExercisesContainer');
             const workoutHeader = document.getElementById('workoutHeader');
             const fatigueTracker = document.getElementById('fatigueTracker');
             const workoutTitle = document.getElementById('workoutTitle');
@@ -1056,11 +1056,11 @@ class AISessionManager {
             }
             
             // 2. STRUCTURE DONNÉES (compatible programme)
-            window.currentWorkoutSession.programExercises = {};
+            window.currentWorkoutSession.sessionDataExercises = {};
             window.currentWorkoutSession.totalExercisesCount = this.lastGenerated.exercises.length;
             
             this.lastGenerated.exercises.forEach((exercise, index) => {
-                window.currentWorkoutSession.programExercises[exercise.exercise_id] = {
+                window.currentWorkoutSession.sessionDataExercises[exercise.exercise_id] = {
                     ...exercise,
                     id: exercise.exercise_id,
                     index: index + 1,
@@ -1215,13 +1215,13 @@ class AISessionManager {
         }
     }
       
-    renderAIProgramExercisesList() {
+    renderAIsessionExercisesList() {
         /**
          * Affiche liste exercices IA dans l'interface programme
-         * Adaptation de votre renderProgramExercises() existante
+         * Adaptation de votre rendersessionExercises() existante
          */
         
-        const container = document.getElementById('programExercisesContainer');
+        const container = document.getElementById('sessionExercisesContainer');
         if (!container || !this.lastGenerated) return;
         
         const exercises = this.lastGenerated.exercises;

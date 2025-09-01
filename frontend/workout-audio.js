@@ -94,14 +94,14 @@ class WorkoutAudioSystem {
                 console.warn(`Type de son non reconnu: ${type}`);
         }
     }
-    // Programmer toutes les notifications pour une période de repos
+    // Schedule toutes les notifications pour une période de repos
     scheduleRestNotifications(totalSeconds) {
         this.clearScheduledSounds();
         
         // Début du repos
         this.playRestStart();
         
-        // Programmer les notifications
+        // Schedule les notifications
         const notifications = [
             { time: Math.max(0, totalSeconds - 60), action: () => this.playOneMinuteWarning() },
             { time: Math.max(0, totalSeconds - 30), action: () => this.playThirtySecondWarning() },
@@ -120,7 +120,7 @@ class WorkoutAudioSystem {
         });
     }
 
-    // Annuler tous les sons programmés (utile si repos interrompu)
+    // Annuler tous les sons schedulés (utile si repos interrompu)
     clearScheduledSounds() {
         this.scheduledSounds.forEach(timeout => clearTimeout(timeout));
         this.scheduledSounds = [];

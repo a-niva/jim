@@ -12,8 +12,7 @@ from backend.ml_engine import FitnessMLEngine, RecoveryTracker, VolumeOptimizer,
 from backend.schemas import (
     UserCreate, WorkoutCreate, SetCreate, 
     UserCommitmentCreate, UserCommitmentResponse, 
-    AdaptiveTargetsResponse, TrajectoryAnalysis,
-    ProgramGenerationRequest
+    AdaptiveTargetsResponse, TrajectoryAnalysis
 )
 from backend.equipment_service import EquipmentService
 

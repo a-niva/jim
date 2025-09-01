@@ -73,7 +73,7 @@ class ExerciseResponse(BaseModel):
 # ===== SCHEMAS SÉANCES =====
 
 class WorkoutCreate(BaseModel):
-    type: str  # "free" ou "program"
+    type: str
     ai_generated: Optional[bool] = False 
 
 class WorkoutResponse(BaseModel):

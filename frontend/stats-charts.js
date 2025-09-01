@@ -746,7 +746,7 @@ async function loadAttendanceCalendar(userId) {
 // ===== GRAPHIQUE 7: PROGRESSION PROGRAMME OPTIMISÉE =====
 async function loadVolumeBurndownChart(userId, period) {
     try {
-        const data = await window.apiGet(`/api/users/${userId}/stats/volume-burndown/${period}`);
+        const data = await window.apiGet(`/api/users/${userId}/stats/volume- /${period}`);
         
         if (!data.dailyVolumes || data.dailyVolumes.length === 0) {
             showVolumeEmptyState();

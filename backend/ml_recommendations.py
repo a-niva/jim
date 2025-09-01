@@ -2281,7 +2281,7 @@ class FitnessRecommendationEngine:
             upcoming_weights = []
             equipment_type = equipment_context.get('type', 'other')
             
-            # Estimation basique des poids futurs (à améliorer avec vraie logique programme)
+            # Estimation basique des poids futurs
             for i in range(2):  # 2 prochains exercices estimés
                 # Estimation simple : progression +5% par exercice
                 estimated = target_weight * (1 + 0.05 * (i + 1))
@@ -2381,12 +2381,6 @@ class FitnessRecommendationEngine:
             'current_reps': 10,
             'current_plates_config': []
         }
-
-    def _get_upcoming_exercises_same_equipment(self, workout_id: int, current_exercise_id: int, equipment_type: str) -> List[int]:
-        """Récupère prochains exercices même équipement dans séance"""
-        # Cette méthode doit être implementée selon la structure du programme
-        # Pour l'instant, retourner liste vide
-        return []
 
     def _estimate_upcoming_weight(self, exercise_id: int, coefficients) -> float:
         """Estime poids probable pour un exercice futur basé sur historique user"""
