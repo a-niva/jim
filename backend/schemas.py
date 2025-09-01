@@ -104,14 +104,12 @@ class ProgramResponse(BaseModel):
 
 class WorkoutCreate(BaseModel):
     type: str  # "free" ou "program"
-    program_id: Optional[int] = None
     ai_generated: Optional[bool] = False 
 
 class WorkoutResponse(BaseModel):
     id: int
     user_id: int
     type: str
-    program_id: Optional[int]
     status: str
     started_at: datetime
     completed_at: Optional[datetime]

@@ -512,12 +512,14 @@ window.getScoreColor = getScoreColor;
 window.getScoreGradient = getScoreGradient;
 
 // Fonction helper pour récupérer le contexte utilisateur
-function getUserContext(userId) {
+async function getUserContext() {
+    if (!window.currentUser) {
+        return { user_id: null, program_id: null };
+    }
+    
     return {
-        user_id: userId,
-        // program_id supprimé
-        current_workout: currentWorkout,
-        session_type: currentWorkoutSession?.type || 'free'
+        user_id: window.currentUser.id,
+        program_id: window.currentUser.current_program_id || null
     };
 }
 

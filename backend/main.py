@@ -1401,7 +1401,6 @@ def start_workout(user_id: int, workout: WorkoutCreate, db: Session = Depends(ge
     if workout.type == 'free' and hasattr(workout, 'ai_generated') and workout.ai_generated:
         logger.info(f"Création workout type 'free' généré par AI pour user {user_id}")
         metadata['ai_generated'] = True
-        # Pas de vérifications programme nécessaires
     
     db_workout = Workout(
         user_id=user_id,

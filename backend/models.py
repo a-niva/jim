@@ -243,7 +243,6 @@ class Workout(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     type = Column(String, nullable=False)  # "free" ou "program"
-    program_id = Column(Integer, ForeignKey("programs.id"), nullable=True)
     status = Column(String, default="active")  # active, completed, abandoned
     started_at = Column(DateTime, default=datetime.now(timezone.utc))
     completed_at = Column(DateTime, nullable=True)
