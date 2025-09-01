@@ -7200,13 +7200,10 @@ function showManualCountAdjustment(currentCount) {
     });
 }
 
-function fetchMLRecommendations() {
-    // Récupère les recommandations ML pures avec gestion d'historique complète
-    // Skip pour séances AI (elles ont déjà leurs recommandations)
-    if (window.currentWorkoutSession?.type === 'ai') {
-        console.log('Skip fetchMLRecommendations pour séance AI');
-        return;
-    }
+async function fetchMLRecommendations() {
+    /**
+     * Récupère les recommandations ML pures avec gestion d'historique complète
+     */
     const sessionSets = currentWorkoutSession.completedSets.filter(s => s.exercise_id === currentExercise.id);
     const sessionHistory = sessionSets.map(set => ({
         weight: set.weight,
