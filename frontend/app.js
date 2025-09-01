@@ -14348,7 +14348,6 @@ window.filterByMuscleGroup = filterByMuscleGroup;
 window.toggleWeightPreference = toggleWeightPreference;
 window.toggleSoundNotifications = toggleSoundNotifications;
 
-window.regenerateSession = regenerateSession;
 window.renderMLToggle = renderMLToggle;
 window.toggleMLAdjustment = toggleMLAdjustment;
 
