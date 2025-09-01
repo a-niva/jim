@@ -22,24 +22,6 @@ logging.basicConfig(level=logging.INFO)
 
 router = APIRouter()
 
-@router.post("/api/users/{user_id}/program")
-async def generate_program(
-    user_id: int, 
-    request: ProgramGenerationRequest,
-    db: Session = Depends(get_db)
-):
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    ml_engine = FitnessMLEngine(db)
-
-    try:
-        program = ml_engine.generate_adaptive_program(user, request.weeks, request.frequency)
-        return {"program": program}
-    except Exception as e:
-        logger.error(f"Program generation failed for user {user_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Program generation failed")
 
 @router.get("/api/users/{user_id}/injury-risk")
 async def check_injury_risk(user_id: int, db: Session = Depends(get_db)):

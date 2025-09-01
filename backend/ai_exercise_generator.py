@@ -9,7 +9,7 @@ import random
 import logging
 
 # Imports de votre codebase existante
-from backend.models import User, Exercise, Workout, WorkoutSet, Program
+from backend.models import User, Exercise, Workout, WorkoutSet
 from backend.ml_engine import RecoveryTracker
 from backend.equipment_service import EquipmentService
 from sqlalchemy.orm.attributes import flag_modified

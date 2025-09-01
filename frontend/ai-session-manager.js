@@ -1035,7 +1035,7 @@ class AISessionManager {
         try {
             console.log('🔧 Configuration interface séance IA complète');
             
-            // 1. CONFIGURATION ÉLÉMENTS INTERFACE (identique setupProgramWorkout)
+            // 1. CONFIGURATION ÉLÉMENTS INTERFACE (identique setupSessionWorkout)
             const exerciseSelection = document.getElementById('exerciseSelection');
             const currentExercise = document.getElementById('currentExercise');
             const programContainer = document.getElementById('programExercisesContainer');
@@ -1081,7 +1081,7 @@ class AISessionManager {
                     <div class="session-ai-exercise-item ${isActive ? 'session-ai-active session-ai-current' : ''}" 
                         data-exercise-id="${exercise.exercise_id}"
                         data-exercise-index="${index}"
-                        onclick="selectExerciseFromAIProgram(${exercise.exercise_id}, ${index})">
+                        onclick="selectExerciseFromAISession(${exercise.exercise_id}, ${index})">
                         
                         <div class="session-ai-order">${exercise.order_in_session}</div>
                         
@@ -1123,7 +1123,7 @@ class AISessionManager {
             if (this.lastGenerated.exercises.length > 0) {
                 const firstExercise = this.lastGenerated.exercises[0];
                 console.log('🎯 Sélection automatique:', firstExercise.name);
-                await window.selectExerciseFromAIProgram(firstExercise.exercise_id, 0);
+                await window.selectExerciseFromAISession(firstExercise.exercise_id, 0);
             }
             
             console.log('✅ Interface séance IA configurée complètement');
@@ -1227,13 +1227,13 @@ class AISessionManager {
         const exercises = this.lastGenerated.exercises;
         
         container.innerHTML = `
-            <div class="program-exercises-header">
+            <div class="session-exercises-header">
                 <h3>🤖 Séance IA - ${this.lastGenerated.ppl_used.toUpperCase()}</h3>
                 <p>Score qualité: <strong>${Math.round(this.lastGenerated.quality_score)}%</strong></p>
             </div>
-            <div class="program-exercises-list">
+            <div class="session-exercises-list">
                 ${exercises.map((exercise, index) => `
-                    <div class="program-exercise-card ${index === 0 ? 'active' : ''}" 
+                    <div class="session-exercise-card ${index === 0 ? 'active' : ''}" 
                          data-exercise-id="${exercise.exercise_id}"
                          onclick="window.selectExercise({
                              id: ${exercise.exercise_id},

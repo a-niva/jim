@@ -937,8 +937,7 @@ const OverlayManager = {
         
         const elements = {
             'modal': document.getElementById('modal'),
-            'rest': document.getElementById('restPeriod'),
-            'programBuilder': document.getElementById('programBuilder')
+            'rest': document.getElementById('restPeriod')
         };
         
         const element = elements[id];
@@ -956,8 +955,7 @@ const OverlayManager = {
         // Liste exhaustive de tous les overlays possibles
         const overlaySelectors = [
             '#modal',
-            '#restPeriod', 
-            '#programBuilder',
+            '#restPeriod',
             '.modal-backdrop',
             '.loading-overlay'
         ];
@@ -2029,9 +2027,6 @@ function handleUrlAction(action) {
         case 'free-workout':
             setTimeout(() => startFreeWorkout(), 500);
             break;
-        case 'program-workout':
-            setTimeout(() => startProgramWorkout(), 500);
-            break;
         default:
             console.log('Action URL inconnue:', action);
     }
@@ -2753,8 +2748,7 @@ async function completeOnboarding() {
             prefer_weight_changes_between_sets: document.querySelector('input[name="weightPreference"]:checked').value === 'true',
             focus_areas: collectFocusAreas(),
             sessions_per_week: parseInt(document.getElementById('sessionsPerWeek').value),
-            session_duration: parseInt(document.getElementById('sessionDuration').value),
-            program_name: document.getElementById('programName').value.trim()
+            session_duration: parseInt(document.getElementById('sessionDuration').value)
         };
                 
         // Créer l'utilisateur
@@ -2773,21 +2767,12 @@ async function completeOnboarding() {
         
         showToast('Profil créé avec succès !', 'success');
         
-        // Redirection vers le dashboard sans lancer ProgramBuilder
+        // Redirection vers le dashboard
         // Workflow intelligent basé sur les focus_areas
         setTimeout(() => {
             document.getElementById('onboarding').classList.remove('active');
             document.getElementById('progressContainer').style.display = 'none';
-            
-            if (userData.focus_areas && userData.focus_areas.length > 0) {
-                // Si focus_areas sélectionnées, aller directement au ProgramBuilder pour affiner
-                showProgramBuilder(userData);
-                showToast('Affinons maintenant votre programme !', 'info');
-            } else {
-                // Si pas de focus_areas, aller au dashboard
-                showMainInterface();
-                showToast('Bienvenue ! Créez votre programme depuis le tableau de bord.', 'info');
-            }
+            showMainInterface();
         }, 1000);
         
     } catch (error) {
@@ -2797,12 +2782,6 @@ async function completeOnboarding() {
 }
 
 function showMainInterface() {
-    // Masquer le ProgramBuilder
-    const builderContainer = document.getElementById('programBuilder');
-    if (builderContainer) {
-        builderContainer.classList.remove('active');
-    }
-    
     // Afficher l'interface principale
     document.getElementById('bottomNav').style.display = 'flex';
     document.getElementById('userInitial').style.display = 'block';
@@ -3184,7 +3163,7 @@ async function resumeWorkout(workoutId) {
             // Récupérer le programme associé
             const program = await apiGet(`/api/users/${currentUser.id}/programs/active`);
             if (program) {
-                await setupProgramWorkout(program);
+                await setupSessionWorkout(program);
             } else {
                 throw new Error('Programme associé non trouvé');
             }
@@ -3264,7 +3243,7 @@ async function skipExercise(exerciseId, reason) {
         // Passer à exercice suivant
         const nextIndex = currentIndex + 1;
         if (nextIndex < window.currentWorkoutSession.exercises.length) {
-            await window.selectExerciseFromAIProgram(
+            await window.selectExerciseFromAISession(
                 window.currentWorkoutSession.exercises[nextIndex].exercise_id, 
                 nextIndex
             );
@@ -3279,7 +3258,7 @@ async function skipExercise(exerciseId, reason) {
 
     console.log(`📊 MODULE 0 - Skipping exercise ${exerciseId} for reason: ${reason}`);
     
-    const exerciseState = currentWorkoutSession.programExercises[exerciseId];
+    const exerciseState = currentWorkoutSession.sessionExercises[exerciseId];
     if (!exerciseState) {
         console.error(`Exercise ${exerciseId} not found in current session`);
         return;
@@ -3310,7 +3289,7 @@ async function skipExercise(exerciseId, reason) {
     closeModal();
     
     // Mettre à jour l'affichage
-    loadProgramExercisesList();
+    loadSessionExercisesList();
     updateHeaderProgress();
     
     showToast(`✅ Exercice passé : ${exerciseName}`, 'info');
@@ -3321,12 +3300,12 @@ async function skipExercise(exerciseId, reason) {
             exercise_id: exerciseId,
             reason: reason,
             workout_progress: Math.round((currentWorkoutSession.completedExercisesCount / 
-                             Object.keys(currentWorkoutSession.programExercises).length) * 100)
+                             Object.keys(currentWorkoutSession.sessionExercises).length) * 100)
         });
     }
 }
 
-async function skipExerciseFromProgram(exerciseIndex) {
+async function skipExerciseFromSession(exerciseIndex) {
     // Wrapper pour séances AI - utilise skipExercise() existante
     if (window.currentWorkoutSession?.type === 'ai') {
         const aiExercise = window.currentWorkoutSession.exercises[exerciseIndex];
@@ -3336,12 +3315,12 @@ async function skipExerciseFromProgram(exerciseIndex) {
         return;
     }
     
-    // Pour programmes normaux
-    console.warn('skipExerciseFromProgram appelée pour programme normal');
+    // Pour Sessions normales
+    console.warn('skipExerciseFromSession appelée pour programme normal');
 }
 
 // Exposer globalement
-window.skipExerciseFromProgram = skipExerciseFromProgram;
+window.skipExerciseFromSession = skipExerciseFromSession;
 
 function showSkipModal(exerciseId) {
     const exerciseName = getExerciseName(exerciseId);
@@ -3374,7 +3353,7 @@ function showSkipModal(exerciseId) {
 }
 
 async function restartSkippedExercise(exerciseId) {
-    const exerciseState = currentWorkoutSession.programExercises[exerciseId];
+    const exerciseState = currentWorkoutSession.sessionExercises[exerciseId];
     
     // Retirer de la liste des skips
     currentWorkoutSession.skipped_exercises = currentWorkoutSession.skipped_exercises.filter(
@@ -3395,14 +3374,14 @@ async function restartSkippedExercise(exerciseId) {
     );
     
     // Sélectionner l'exercice
-    await selectProgramExercise(exerciseId);
+    await selectSessionExercise(exerciseId);
     
     showToast('Exercice repris', 'success');
 }
 
 // Fonction utilitaire pour récupérer le nom d'un exercice
 function getExerciseName(exerciseId) {
-    const exerciseState = currentWorkoutSession.programExercises[exerciseId];
+    const exerciseState = currentWorkoutSession.sessionExercises[exerciseId];
     if (exerciseState && exerciseState.name) {
         return exerciseState.name;
     }
@@ -3970,7 +3949,7 @@ function setupFreeWorkout() {
     enableHorizontalScroll();
 }
 
-async function setupProgramWorkout(program) {
+async function setupSessionWorkout(program) {
     // Support séances AI
     if (window.currentWorkoutSession?.type === 'ai') {
         console.log('🤖 Séance IA détectée, pas de setup programme nécessaire');
@@ -4042,11 +4021,7 @@ async function setupProgramWorkout(program) {
     }
     
     // Stocker le programme dans la session avec les exercices du jour
-    currentWorkoutSession.program = {
-        ...program,
-        exercises: exercises  // Utiliser les exercices du schedule ou fallback
-    };
-    currentWorkoutSession.programExercises = {};
+    currentWorkoutSession.sessionExercises = {};
     currentWorkoutSession.completedExercisesCount = 0;
     currentWorkoutSession.type = 'program'; // Important pour les vérifications
     currentWorkoutSession.exerciseOrder = 0; // Initialisé à 0, sera incrémenté à 1 lors de la sélection
@@ -4061,7 +4036,7 @@ async function setupProgramWorkout(program) {
 
     // Initialiser l'état de chaque exercice - CONSERVER
     program.exercises.forEach((exerciseData, index) => {
-        currentWorkoutSession.programExercises[exerciseData.exercise_id] = {
+        currentWorkoutSession.sessionExercises[exerciseData.exercise_id] = {
             ...exerciseData,
             completedSets: 0,
             totalSets: exerciseData.sets || 3,
@@ -4084,7 +4059,7 @@ async function setupProgramWorkout(program) {
     }
     
     // Charger la liste
-    loadProgramExercisesList();
+    loadSessionExercisesList();
     
     // Prendre le premier exercice et le sélectionner
     const firstExercise = program.exercises[0];
@@ -4093,14 +4068,14 @@ async function setupProgramWorkout(program) {
         currentSet = 1;
         currentWorkoutSession.currentSetNumber = 1;
         currentWorkoutSession.isStartingExtraSet = false;
-        console.log(`🔧 setupProgramWorkout(): Variables resetées pour premier exercice`);
+        console.log(`🔧 setupSessionWorkout(): Variables resetées pour premier exercice`);
         
         // Sélectionner le premier exercice
-        await selectProgramExercise(firstExercise.exercise_id, true);
+        await selectSessionExercise(firstExercise.exercise_id, true);
     }
     
     // Recharger la liste finale
-    loadProgramExercisesList();
+    loadSessionExercisesList();
 }
 
 // Fonction pour sélectionner un exercice par ID
@@ -5027,7 +5002,7 @@ function updateHeaderProgress() {
                 totalExercises = currentWorkoutSession.exercises?.length || '?';
                 currentExerciseIndex = currentWorkoutSession.exerciseOrder || 1;
             } else {
-                // Programmes classiques
+                // Sessions classiques
                 totalExercises = currentWorkoutSession.program.exercises.length;
                 currentExerciseIndex = currentWorkoutSession.exerciseOrder || 1;
             }
@@ -5047,7 +5022,7 @@ function updateHeaderProgress() {
         
         // Mettre à jour liste exercices si programme classique
         if (currentWorkoutSession.type === 'program') {
-            updateProgramExerciseProgress();
+            updateSessionExerciseProgress();
         }
         
     } else {
@@ -5067,11 +5042,11 @@ function updateHeaderProgress() {
     }
 }
 
-function updateProgramExerciseProgress() {
-    if (!currentWorkoutSession.programExercises) return;
+function updateSessionExerciseProgress() {
+    if (!currentWorkoutSession.sessionExercises) return;
     
     // Recharger simplement toute la liste pour mettre à jour les compteurs
-    loadProgramExercisesList();
+    loadSessionExercisesList();
 }
 
 function updateSetNavigationButtons() {
@@ -7185,7 +7160,7 @@ function updateSetsHistory() {
     
     // Mettre à jour la progression dans la liste si on est en mode programme
     if (currentWorkoutSession.type === 'program') {
-        loadProgramExercisesList();
+        loadSessionExercisesList();
     }
 }
 
@@ -7228,24 +7203,24 @@ async function finishExercise() {
         currentSet = 1;
         
         // Mettre à jour la progression
-        updateProgramExerciseProgress();
+        updateSessionExerciseProgress();
         
         // Afficher la liste des exercices
         document.getElementById('programExercisesContainer').style.display = 'block';
         
         // Continuer avec la logique existante
-        loadProgramExercisesList();
+        loadSessionExercisesList();
         
         // Trouver le prochain exercice non complété
         const remainingExercises = currentWorkoutSession.program.exercises.filter(ex => 
-            !currentWorkoutSession.programExercises[ex.exercise_id].isCompleted
+            !currentWorkoutSession.sessionExercises[ex.exercise_id].isCompleted
         );
         
         // Si tous les exercices sont terminés, mettre à jour le schedule
         if (remainingExercises.length === 0 && currentWorkoutSession.scheduleDate) {
             try {
                 // Calculer le score réel de la session
-                const completedExercises = Object.values(currentWorkoutSession.programExercises)
+                const completedExercises = Object.values(currentWorkoutSession.sessionExercises)
                     .filter(ex => ex.isCompleted).length;
                 const totalExercises = currentWorkoutSession.program.exercises.length;
                 const actualScore = Math.round((completedExercises / totalExercises) * 100);
@@ -7281,7 +7256,7 @@ async function finishExercise() {
                         Il reste ${remainingExercises.length} exercice(s) à faire
                     </p>
                     <div style="display: flex; gap: 1rem; justify-content: center;">
-                        <button class="btn btn-primary" onclick="selectProgramExercise(${nextExercise.exercise_id}); closeModal();">
+                        <button class="btn btn-primary" onclick="selectSessionExercise(${nextExercise.exercise_id}); closeModal();">
                             Continuer
                         </button>
                         <button class="btn btn-secondary" onclick="closeModal(); showProgramExerciseList();">
@@ -7842,7 +7817,7 @@ async function endWorkout() {
         }
         // MODULE 0 : Identifier les exercices "zombies" (started but not completed/skipped)
         const zombieExercises = [];
-        for (const [exerciseId, exerciseState] of Object.entries(currentWorkoutSession.programExercises)) {
+        for (const [exerciseId, exerciseState] of Object.entries(currentWorkoutSession.sessionExercises)) {
             if (exerciseState.startTime && 
                 !exerciseState.isCompleted && 
                 !exerciseState.isSkipped &&
@@ -7865,13 +7840,13 @@ async function endWorkout() {
 
         // Métadonnées de session
         const sessionMetadata = {
-            total_planned_exercises: Object.keys(currentWorkoutSession.programExercises).length,
+            total_planned_exercises: Object.keys(currentWorkoutSession.sessionExercises).length,
             total_completed_exercises: currentWorkoutSession.completedExercisesCount,
             total_skipped_exercises: allSkippedExercises.length,
             completion_rate: Math.round((currentWorkoutSession.completedExercisesCount / 
-                                    Object.keys(currentWorkoutSession.programExercises).length) * 100),
+                                    Object.keys(currentWorkoutSession.sessionExercises).length) * 100),
             skip_rate: Math.round((allSkippedExercises.length / 
-                                Object.keys(currentWorkoutSession.programExercises).length) * 100)
+                                Object.keys(currentWorkoutSession.sessionExercises).length) * 100)
         };
 
         console.log(`📊 MODULE 0 - Session completed:`, {
@@ -9062,7 +9037,7 @@ function apiDelete(url) {
     });
 }
 
-async function loadProgramExercisesList() {
+async function loadSessionExercisesList() {
     if (!currentWorkoutSession.program) return;
     
     const container = document.getElementById('programExercisesContainer');
@@ -9076,7 +9051,7 @@ async function loadProgramExercisesList() {
         const exercises = await apiGet(`/api/exercises?user_id=${currentUser.id}`);
         
         // Calculer les stats
-        const completedCount = Object.values(currentWorkoutSession.programExercises)
+        const completedCount = Object.values(currentWorkoutSession.sessionExercises)
             .filter(ex => ex.isCompleted).length;
         const totalCount = currentWorkoutSession.program.exercises.length;
         const remainingTime = (totalCount - completedCount) * 8; // Estimation simple
@@ -9097,7 +9072,7 @@ async function loadProgramExercisesList() {
                     const exercise = exercises.find(ex => ex.id === exerciseData.exercise_id);
                     if (!exercise) return '';
                     
-                    const exerciseState = currentWorkoutSession.programExercises[exerciseData.exercise_id];
+                    const exerciseState = currentWorkoutSession.sessionExercises[exerciseData.exercise_id];
                     const isCurrentExercise = currentExercise && currentExercise.id === exerciseData.exercise_id;
                     
                     // Classes et état
@@ -9152,7 +9127,7 @@ async function loadProgramExercisesList() {
                                             `<button class="action-btn" onclick="event.stopPropagation(); restartExercise(${exerciseData.exercise_id})" title="Refaire">↻</button>` :
                                         exerciseState.isSkipped ? 
                                             `<button class="action-btn" onclick="event.stopPropagation(); restartSkippedExercise(${exerciseData.exercise_id})" title="Reprendre">↺</button>` :
-`<button class="action-btn primary" onclick="event.stopPropagation(); selectProgramExercise(${exerciseData.exercise_id})" title="Commencer">${exerciseState.completedSets > 0 ? '▶' : '→'}</button>
+`<button class="action-btn primary" onclick="event.stopPropagation(); selectSessionExercise(${exerciseData.exercise_id})" title="Commencer">${exerciseState.completedSets > 0 ? '▶' : '→'}</button>
 ${canSwapExercise(exerciseData.exercise_id) ? 
 `<button class="action-btn swap-btn" onclick="event.stopPropagation(); initiateSwap(${exerciseData.exercise_id})" title="Changer d'exercice" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none;">⇄</button>` : ''}
 <button class="action-btn secondary" onclick="event.stopPropagation(); showSkipModal(${exerciseData.exercise_id})" title="Passer">⏭</button>`
@@ -9172,7 +9147,7 @@ ${canSwapExercise(exerciseData.exercise_id) ?
 }
 
 function handleExerciseCardSimpleClick(exerciseId) {
-    const exerciseState = currentWorkoutSession.programExercises[exerciseId];
+    const exerciseState = currentWorkoutSession.sessionExercises[exerciseId];
     
     if (currentExercise && currentExercise.id === exerciseId) {
         // Déjà sur cet exercice
@@ -9185,12 +9160,12 @@ function handleExerciseCardSimpleClick(exerciseId) {
             restartExercise(exerciseId);
         }
     } else {
-        selectProgramExercise(exerciseId);
+        selectSessionExercise(exerciseId);
     }
 }
 
 function handleExerciseAction(exerciseId) {
-    const exerciseState = currentWorkoutSession.programExercises[exerciseId];
+    const exerciseState = currentWorkoutSession.sessionExercises[exerciseId];
     
     if (exerciseState.isCompleted) {
         // Refaire l'exercice
@@ -9199,7 +9174,7 @@ function handleExerciseAction(exerciseId) {
         }
     } else {
         // Commencer/continuer l'exercice
-        selectProgramExercise(exerciseId);
+        selectSessionExercise(exerciseId);
     }
 }
 
@@ -9208,7 +9183,7 @@ window.handleExerciseCardSimpleClick = handleExerciseCardSimpleClick;
 window.handleExerciseAction = handleExerciseAction;
 
 function handleExerciseCardClick(exerciseId) {
-    const exerciseState = currentWorkoutSession.programExercises[exerciseId];
+    const exerciseState = currentWorkoutSession.sessionExercises[exerciseId];
     
     if (currentExercise && currentExercise.id === exerciseId) {
         showToast('Vous êtes déjà sur cet exercice', 'info');
@@ -9220,11 +9195,11 @@ function handleExerciseCardClick(exerciseId) {
             restartExercise(exerciseId);
         }
     } else {
-        selectProgramExercise(exerciseId);
+        selectSessionExercise(exerciseId);
     }
 }
 
-async function selectProgramExercise(exerciseId, isInitialLoad = false) {
+async function selectSessionExercise(exerciseId, isInitialLoad = false) {
     // Support pour séances AI uniquement
     if (window.currentWorkoutSession?.type === 'ai') {
         const aiExercise = window.currentWorkoutSession.exercises.find(ex => ex.exercise_id === exerciseId);
@@ -9252,7 +9227,7 @@ async function selectProgramExercise(exerciseId, isInitialLoad = false) {
             await selectExercise(exerciseForSelection);
             
             // Mettre à jour l'UI liste exercices
-            document.querySelectorAll('.program-exercise-item').forEach(item => {
+            document.querySelectorAll('.session-exercise-item').forEach(item => {
                 item.classList.remove('active', 'current-exercise');
             });
             const currentItem = document.querySelector(`[data-exercise-index="${exerciseIndex}"]`);
@@ -9264,15 +9239,15 @@ async function selectProgramExercise(exerciseId, isInitialLoad = false) {
         }
     }
     
-    // Plus de programmes - fonction appelée hors contexte AI
-    console.warn('selectProgramExercise appelée hors contexte séance IA');
+    // Plus de Sessions - fonction appelée hors contexte AI
+    console.warn('selectSessionExercise appelée hors contexte séance IA');
     window.showToast('Cette fonction n\'est disponible qu\'en séance IA', 'warning');
 }
 
 async function saveCurrentExerciseState() {
-    if (!currentExercise || !currentWorkoutSession.programExercises[currentExercise.id]) return;
+    if (!currentExercise || !currentWorkoutSession.sessionExercises[currentExercise.id]) return;
     
-    const exerciseState = currentWorkoutSession.programExercises[currentExercise.id];
+    const exerciseState = currentWorkoutSession.sessionExercises[currentExercise.id];
     const completedSetsForThisExercise = currentWorkoutSession.completedSets.filter(
         s => s.exercise_id === currentExercise.id
     ).length;
@@ -9317,7 +9292,7 @@ function cleanupCurrentState() {
 }
 
 async function restartExercise(exerciseId) {
-    const exerciseState = currentWorkoutSession.programExercises[exerciseId];
+    const exerciseState = currentWorkoutSession.sessionExercises[exerciseId];
     
     // Réinitialiser l'état de l'exercice
     exerciseState.completedSets = 0;
@@ -9331,11 +9306,11 @@ async function restartExercise(exerciseId) {
     );
     
     // Mettre à jour le compteur global
-    currentWorkoutSession.completedExercisesCount = Object.values(currentWorkoutSession.programExercises)
+    currentWorkoutSession.completedExercisesCount = Object.values(currentWorkoutSession.sessionExercises)
         .filter(ex => ex.isCompleted).length;
     
     // Sélectionner l'exercice
-    await selectProgramExercise(exerciseId);
+    await selectSessionExercise(exerciseId);
 }
 
 // Mapping des images pour l'équipement
@@ -12105,7 +12080,7 @@ async function saveFeedbackAndRest() {
             
             // Mettre à jour le programme si nécessaire
             if (currentWorkoutSession.type === 'program' && currentExercise) {
-                const programExercise = currentWorkoutSession.programExercises[currentExercise.id];
+                const programExercise = currentWorkoutSession.sessionExercises[currentExercise.id];
                 if (programExercise) {
                     programExercise.completedSets++;
                     if (programExercise.completedSets >= programExercise.totalSets) {
@@ -12153,7 +12128,7 @@ async function saveFeedbackAndRest() {
         
         // Mettre à jour le programme si c'est une séance programme
         if (currentWorkoutSession.type === 'program' && currentExercise) {
-            const programExercise = currentWorkoutSession.programExercises[currentExercise.id];
+            const programExercise = currentWorkoutSession.sessionExercises[currentExercise.id];
             if (programExercise) {
                 programExercise.completedSets++;
                 if (programExercise.completedSets >= programExercise.totalSets) {
@@ -12230,8 +12205,8 @@ async function saveFeedbackAndRest() {
                     updateHeaderProgress();
                     
                     if (currentWorkoutSession.type === 'program') {
-                        updateProgramExerciseProgress();
-                        loadProgramExercisesList();
+                        updateSessionExerciseProgress();
+                        loadSessionExercisesList();
                     }
                     
                     updateSetRecommendations();
@@ -12269,7 +12244,7 @@ async function saveFeedbackAndRest() {
                 
                 // Gérer le programme si nécessaire
                 if (currentWorkoutSession.type === 'program' && currentExercise) {
-                    const programExercise = currentWorkoutSession.programExercises[currentExercise.id];
+                    const programExercise = currentWorkoutSession.sessionExercises[currentExercise.id];
                     if (programExercise) {
                         programExercise.completedSets++;
                         if (programExercise.completedSets >= programExercise.totalSets) {
@@ -12410,8 +12385,8 @@ function completeRest() {
         
         // Update recommendations AVANT le reset interface
         if (currentWorkoutSession.type === 'program') {
-            updateProgramExerciseProgress();
-            loadProgramExercisesList();
+            updateSessionExerciseProgress();
+            loadSessionExercisesList();
         }
         
         updateSetRecommendations();
@@ -12978,7 +12953,7 @@ async function initiateSwap(exerciseId, exerciseIndex = null) {
     }
 
     // Créer le contexte de swap avec l'état actuel
-    const originalState = currentWorkoutSession.programExercises[exerciseId];
+    const originalState = currentWorkoutSession.sessionExercises[exerciseId];
     if (!originalState) {
         showToast('État de l\'exercice non trouvé', 'error');
         return;
@@ -13013,7 +12988,7 @@ async function executeSwapTransition(originalExerciseId, newExerciseId, reason) 
     const swapContext = currentWorkoutSession.pendingSwap;
     if (!swapContext || swapContext.originalExerciseId != originalExerciseId) {
         // Créer un contexte de fallback si manquant
-        const originalState = currentWorkoutSession.programExercises[originalExerciseId];
+        const originalState = currentWorkoutSession.sessionExercises[originalExerciseId];
         if (!originalState) {
             throw new Error(`État de l'exercice ${originalExerciseId} non trouvé`);
         }
@@ -13065,7 +13040,7 @@ async function executeSwapTransition(originalExerciseId, newExerciseId, reason) 
         }
 
         // 8. MISE À JOUR DE L'AFFICHAGE
-        loadProgramExercisesList();
+        loadSessionExercisesList();
 
         // 9. NETTOYAGE ET CONFIRMATION
         currentWorkoutSession.pendingSwap = null;
@@ -13082,14 +13057,14 @@ async function executeSwapTransition(originalExerciseId, newExerciseId, reason) 
 
 async function updateCompleteSwapState(originalId, newId, newExercise, reason, context) {
     // 1. Marquer l'original comme swappé
-    const originalState = currentWorkoutSession.programExercises[originalId];
+    const originalState = currentWorkoutSession.sessionExercises[originalId];
     originalState.swapped = true;
     originalState.swappedTo = newId;
     originalState.swapReason = reason;
     originalState.swapTimestamp = context.timestamp;
 
     // 2. Créer l'état du nouvel exercice (PROPRE)
-    currentWorkoutSession.programExercises[newId] = {
+    currentWorkoutSession.sessionExercises[newId] = {
         // Préserver l'historique de progression
         completedSets: originalState.completedSets || 0,
         totalSets: originalState.totalSets || 3,
@@ -13807,7 +13782,7 @@ function showProgramExerciseList() {
     if (currentWorkoutSession.type === 'program') {
         document.getElementById('currentExercise').style.display = 'none';
         document.getElementById('programExercisesContainer').style.display = 'block';
-        loadProgramExercisesList();
+        loadSessionExercisesList();
         // Support des gestes mobiles
         addSwipeToExerciseCards();
     }
@@ -13818,7 +13793,7 @@ function showProgramExerciseList() {
 function canSwapExercise(exerciseId) {
     console.log(`🔍 canSwapExercise(${exerciseId})`);
     
-    const exerciseState = currentWorkoutSession.programExercises[exerciseId];
+    const exerciseState = currentWorkoutSession.sessionExercises[exerciseId];
     if (!exerciseState) {
         console.log(`ERROR: Exercice ${exerciseId} non trouvé`);
         return false;
@@ -13868,7 +13843,7 @@ function getCurrentExerciseData(exerciseId) {
     const exerciseData = currentWorkoutSession.program.exercises.find(ex => ex.exercise_id === exerciseId);
     if (!exerciseData) return null;
     
-    const exerciseState = currentWorkoutSession.programExercises[exerciseId];
+    const exerciseState = currentWorkoutSession.sessionExercises[exerciseId];
     
     // Utiliser les données swappées si elles existent
     const displayData = exerciseData.swappedData || exerciseData;
@@ -14329,36 +14304,10 @@ function showScoreChangeFeedback(scoreDelta) {
     // Pas de feedback pour les petites variations (±1-2 points)
 }
 
-/**
- * Lance le ProgramBuilder avec les données utilisateur
- */
-async function showProgramBuilder(userData) {
-    try {
-        console.log('🚀 Lancement ProgramBuilder avec données:', userData);
-        
-        // Vérifier que programBuilder est disponible
-        if (!window.programBuilder) {
-            console.error('❌ ProgramBuilder non disponible');
-            showToast('Erreur technique - redirection vers le tableau de bord', 'error');
-            setTimeout(() => showMainInterface(), 2000);
-            return;
-        }
-        
-        // Initialiser le ProgramBuilder
-        await window.programBuilder.initialize(userData);
-        
-    } catch (error) {
-        console.error('❌ Erreur lancement ProgramBuilder:', error);
-        showToast('Erreur lors du lancement du créateur de programme', 'error');
-        
-        // Fallback vers dashboard
-        setTimeout(() => showMainInterface(), 2000);
-    }
-}
 // ========== PARTIE 4 : ANIMATION STYLES (FIN DE FICHIER) ==========
 // ===== NOUVELLES FONCTIONS PLANNING =====
 
-async function selectExerciseFromAIProgram(exerciseId, exerciseIndex) {
+async function selectExerciseFromAISession(exerciseId, exerciseIndex) {
     if (!window.currentWorkoutSession || window.currentWorkoutSession.type !== 'ai') {
         console.error('❌ Fonction appelée hors contexte séance IA');
         return;
@@ -14440,7 +14389,7 @@ async function selectExerciseFromAIProgram(exerciseId, exerciseIndex) {
 }
 
 // Exposer globalement
-window.selectExerciseFromAIProgram = selectExerciseFromAIProgram;
+window.selectExerciseFromAISession = selectExerciseFromAISession;
 
 function showEndWorkoutModal() {
     const modal = document.getElementById('workoutEndModal');
@@ -14496,9 +14445,7 @@ window.showView = showView;
 window.nextStep = nextStep;
 window.prevStep = prevStep;
 window.completeOnboarding = completeOnboarding;
-window.showProgramBuilder = showProgramBuilder;
 window.startFreeWorkout = startFreeWorkout;
-window.startProgramWorkout = startProgramWorkout;
 window.selectExercise = selectExercise;
 window.editEquipment = editEquipment;
 window.clearHistory = clearHistory;
@@ -14550,7 +14497,7 @@ window.updateSeriesDots = updateSeriesDots;
 window.handleExtraSet = handleExtraSet;
 window.completeRest = completeRest;
 window.playRestSound = playRestSound;
-window.selectProgramExercise = selectProgramExercise;
+window.selectSessionExercise = selectSessionExercise;
 window.restartExercise = restartExercise;
 window.handleExerciseCardClick = handleExerciseCardClick;
 window.showProgramExerciseList = showProgramExerciseList;
@@ -14562,7 +14509,7 @@ window.getCurrentRepsValue = getCurrentRepsValue;
 window.applyVoiceErrorState = applyVoiceErrorState;
 window.transitionToReadyState = transitionToReadyState;
 
-window.updateProgramExerciseProgress = updateProgramExerciseProgress;
+window.updateSessionExerciseProgress = updateSessionExerciseProgress;
 window.abandonActiveWorkout = abandonActiveWorkout;
 window.finishExercise = finishExercise;
 window.updateLastSetRestDuration = updateLastSetRestDuration;

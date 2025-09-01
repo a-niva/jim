@@ -18,7 +18,6 @@ class UserCreate(BaseModel):
     focus_areas: Optional[List[str]] = None
     sessions_per_week: Optional[int] = 3
     session_duration: Optional[int] = 45
-    program_name: Optional[str] = "Mon programme"
 
 
 class UserResponse(BaseModel):
@@ -70,35 +69,6 @@ class ExerciseResponse(BaseModel):
 
     class Config:
         from_attributes = True
-
-
-# ===== SCHEMAS PROGRAMMES =====
-
-class ProgramCreate(BaseModel):
-    name: str
-    sessions_per_week: int
-    session_duration_minutes: int
-    focus_areas: List[str]  # ["upper_body", "legs", "core"]
-
-
-class ProgramResponse(BaseModel):
-    id: int
-    user_id: int
-    name: str
-    sessions_per_week: int
-    session_duration_minutes: int
-    focus_areas: List[str]
-    exercises: List[Dict[str, Any]]
-    created_at: datetime
-    is_active: bool
-    
-    # NOUVEAU : Champs schedule
-    schedule: Optional[Dict[str, Any]] = {}
-    schedule_metadata: Optional[Dict[str, Any]] = {}
-    
-    class Config:
-        from_attributes = True
-
 
 # ===== SCHEMAS SÉANCES =====
 
@@ -204,16 +174,9 @@ class RecommendationResponse(BaseModel):
     baseline_reps: int
     adaptation_strategy: str  # NOUVEAU: "variable_weight" ou "fixed_weight"
     exercise_type: Optional[str] = None  # NOUVEAU: "external", "bodyweight", "hybrid"
-
-# ===== SCHEMAS POUR LA GÉNÉRATION DE PROGRAMMES =====
-
-class ProgramGenerationRequest(BaseModel):
-    weeks: int = 4
-    frequency: int = 3
-    
+   
 
 # ===== SCHEMAS POUR LE SYSTÈME ADAPTATIF =====
-
 class UserCommitmentCreate(BaseModel):
     sessions_per_week: int
     minutes_per_session: int
@@ -264,23 +227,7 @@ class TrajectoryAnalysis(BaseModel):
     insights: List[str]
 
 
-# ===== SCHEMAS NON UTILISÉS MAIS RÉFÉRENCÉS (optionnels) =====
-
-class ProgramDayBase(BaseModel):
-    """Schéma pour un jour de programme (non utilisé actuellement)"""
-    day: int
-    exercises: List[Dict[str, Any]]
-
-
-class ProgramExerciseBase(BaseModel):
-    """Schéma pour un exercice dans un programme (non utilisé actuellement)"""
-    exercise_id: int
-    sets: int
-    reps: int
-    rest_seconds: int = 90
-
 # ===== MODULE 1 - SWAP SCHEMAS =====
-
 class SwapRequest(BaseModel):
     original_exercise_id: int
     new_exercise_id: int
@@ -306,103 +253,6 @@ class AlternativesResponse(BaseModel):
 class SwapEligibility(BaseModel):
     allowed: bool
     reason: str
-
-# ===== NOUVEAUX SCHEMAS POUR PROGRAM BUILDER =====
-
-class ProgramBuilderStart(BaseModel):
-    """Données initiales pour démarrer le ProgramBuilder"""
-    duration_weeks: int = 8  # 4-16 semaines
-    goals: List[str]  # ["muscle", "strength", "endurance"]
-    training_frequency: int  # 3-6 fois par semaine
-    experience_level: str  # de l'onboarding
-    available_time_per_session: int = 60  # minutes
-    
-    @validator('duration_weeks')
-    def validate_duration(cls, v):
-        if not 4 <= v <= 16:
-            raise ValueError('Durée doit être entre 4 et 16 semaines')
-        return v
-    
-    @validator('training_frequency')
-    def validate_frequency(cls, v):
-        if not 3 <= v <= 6:
-            raise ValueError('Fréquence doit être entre 3 et 6 fois par semaine')
-        return v
-
-class ProgramBuilderSelections(BaseModel):
-    """Réponses au questionnaire ProgramBuilder"""
-    training_frequency: int = 4  # 3-6 séances par semaine  
-    session_duration: int = 60   # 30-90 minutes par séance
-    focus_areas: List[str]  # ["upper_body", "legs", "core", "back", "shoulders", "arms"]
-    periodization_preference: str = "linear"  # "linear", "undulating"
-    exercise_variety_preference: str = "balanced"  # "minimal", "balanced", "high"
-    session_intensity_preference: str = "moderate"  # "light", "moderate", "intense"
-    recovery_priority: str = "balanced"  # "performance", "balanced", "recovery"
-    equipment_priorities: List[str] = []  # Équipements préférés
-    time_constraints: Dict[str, Any] = {}  # Contraintes horaires spécifiques
-    
-    @validator('focus_areas')
-    def validate_focus_areas(cls, v):
-        allowed = ["pectoraux", "dos", "epaules", "jambes", "abdominaux", "bras"]
-        if not all(area in allowed for area in v):
-            raise ValueError(f'Focus areas doivent être dans {allowed}')
-        if len(v) < 1 or len(v) > 3:
-            raise ValueError('1 à 3 focus areas requis')
-        return v 
-
-class ComprehensiveProgramCreate(BaseModel):
-    """Schéma pour créer un programme complet"""
-    name: str
-    duration_weeks: int
-    periodization_type: str
-    sessions_per_week: int
-    session_duration_minutes: int
-    focus_areas: List[str]
-    weekly_structure: List[Dict[str, Any]]
-    progression_rules: Dict[str, Any]
-    base_quality_score: float = 0.0
-
-class ComprehensiveProgramResponse(BaseModel):
-    """Réponse programme complet avec métadonnées"""
-    id: int
-    user_id: int
-    name: str
-    duration_weeks: int
-    periodization_type: str
-    sessions_per_week: int
-    session_duration_minutes: int
-    focus_areas: List[str]
-    weekly_structure: List[Dict[str, Any]]
-    progression_rules: Dict[str, Any]
-    current_week: int
-    current_session_in_week: int
-    started_at: Optional[datetime]
-    estimated_completion: Optional[datetime]
-    base_quality_score: float
-    format_version: str = "2.0"
-    created_at: datetime
-    is_active: bool
-    
-    class Config:
-        from_attributes = True
-
-class ProgramBuilderRecommendations(BaseModel):
-    """Recommandations ML pour le questionnaire"""
-    suggested_duration: int
-    suggested_frequency: int
-    suggested_focus_areas: List[str]
-    questionnaire_items: List[Dict[str, Any]]
-    user_insights: List[str]  # Messages personnalisés
-    confidence_level: float
-
-class WeeklySessionPreview(BaseModel):
-    """Preview d'une semaine de programme"""
-    week_number: int
-    sessions: List[Dict[str, Any]]
-    total_weekly_volume: float
-    muscle_distribution: Dict[str, float]
-    estimated_weekly_duration: int
-    progression_notes: List[str]
 
 # ===== SCHÉMA VOCAL ML =====
 

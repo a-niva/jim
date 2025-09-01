@@ -4418,7 +4418,7 @@ input:checked + .toggle-slider:before {
     font-weight: 600;
 }
 
-.program-exercises-container {
+.session-exercises-container {
     padding: var(--spacing-md);
     max-width: 100%;
     margin: 0 auto;

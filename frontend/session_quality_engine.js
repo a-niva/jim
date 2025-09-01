@@ -514,12 +514,11 @@ window.getScoreGradient = getScoreGradient;
 // Fonction helper pour récupérer le contexte utilisateur
 async function getUserContext() {
     if (!window.currentUser) {
-        return { user_id: null, program_id: null };
+        return { user_id: null};
     }
     
     return {
-        user_id: window.currentUser.id,
-        program_id: window.currentUser.current_program_id || null
+        user_id: window.currentUser.id
     };
 }
 

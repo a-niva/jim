@@ -18,12 +18,10 @@ from backend.ml_recommendations import FitnessRecommendationEngine
 from backend.ml_engine import FitnessMLEngine, RecoveryTracker, VolumeOptimizer, ProgressionAnalyzer
 from backend.constants import normalize_muscle_group, exercise_matches_focus_area
 from backend.database import engine, get_db, SessionLocal
-from backend.models import Base, User, Exercise, Program, Workout, WorkoutSet, SetHistory, UserCommitment, AdaptiveTargets, UserAdaptationCoefficients, PerformanceStates, ExerciseCompletionStats, SwapLog, ComprehensiveProgram
+from backend.models import Base, User, Exercise, Workout, WorkoutSet, SetHistory, UserCommitment, AdaptiveTargets, UserAdaptationCoefficients, PerformanceStates, ExerciseCompletionStats, SwapLog
 from backend.schemas import (
-    UserCreate, UserResponse, WorkoutResponse, ProgramCreate, WorkoutCreate, 
-    SetCreate, ExerciseResponse, UserPreferenceUpdate,
-    ProgramBuilderStart, ProgramBuilderSelections, ComprehensiveProgramCreate, 
-    ComprehensiveProgramResponse, ProgramBuilderRecommendations, WeeklySessionPreview
+    UserCreate, UserResponse, WorkoutResponse, WorkoutCreate, 
+    SetCreate, ExerciseResponse, UserPreferenceUpdate
 )
 
 from backend.equipment_service import EquipmentService
@@ -199,7 +197,7 @@ def analyze_skip_patterns_realtime(user_id: int, current_skips: List[Dict], db: 
     
     if critical_exercises:
         logger.info(f"User {user_id}: Critical skip pattern detected for exercises {critical_exercises}")
-        #TODO:Déclencher ajustement automatique du programme via ML Engine
+
 
 def score_exercise_alternative(
     source_exercise: Exercise, 
@@ -304,10 +302,10 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
         logger.info(f"📝 Tentative création user: {user.name}")
         logger.info(f"🔍 User data: {user.dict()}")
         
-        # Créer un dict User sans les champs programme
+        # Créer un dict User
         user_dict = user.dict()
         # Retirer les champs qui n'appartiennent pas au modèle User
-        for field in ['focus_areas', 'sessions_per_week', 'session_duration', 'program_name']:
+        for field in ['focus_areas', 'sessions_per_week', 'session_duration']:
             user_dict.pop(field, None)
         
         # Créer l'utilisateur avec uniquement les champs du modèle User
@@ -492,7 +490,7 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
     db.query(AdaptiveTargets).filter(AdaptiveTargets.user_id == user_id).delete(synchronize_session=False)
     db.query(SwapLog).filter(SwapLog.user_id == user_id).delete(synchronize_session=False)
 
-    # Les workouts/programs ont cascade configuré, donc seront supprimés automatiquement
+    # Les workouts ont cascade configuré, donc seront supprimés automatiquement
     db.query(ExerciseCompletionStats).filter(ExerciseCompletionStats.user_id == user_id).delete(synchronize_session=False)
     db.query(UserAdaptationCoefficients).filter(UserAdaptationCoefficients.user_id == user_id).delete(synchronize_session=False)
     db.query(PerformanceStates).filter(PerformanceStates.user_id == user_id).delete(synchronize_session=False)
@@ -656,560 +654,7 @@ def can_perform_exercise(exercise: Exercise, available_equipment: List[str]) -> 
     
     return False
 
-# ===== ENDPOINTS PROGRAMMES =====
-
-def _get_selection_reason(item):
-    """Génère une raison lisible pour la sélection d'un exercice"""
-    reasons = []
-    
-    if item['staleness'] > 0.8:
-        reasons.append("Pas fait récemment")
-    if item['readiness'] > 0.8:
-        reasons.append("Muscles récupérés")
-    if item['volume_deficit'] > 0.5:
-        reasons.append("Retard de volume")
-    if item['focus_match'] > 0.5:
-        reasons.append("Zone prioritaire")
-    
-    return " • ".join(reasons) if reasons else "Sélection équilibrée"
-
-@app.get("/api/users/{user_id}/programs/next-session")
-def get_next_intelligent_session(user_id: int, db: Session = Depends(get_db)):
-    """Sélection intelligente d'exercices via ML complet"""
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
-    
-    program = db.query(Program).filter(
-        Program.user_id == user_id,
-        Program.is_active == True
-    ).first()
-    
-    if not program:
-        raise HTTPException(status_code=404, detail="Aucun programme actif")
-
-    if program.format_version != "2.0" or not program.weekly_structure:
-        raise HTTPException(status_code=400, detail="Programme v2.0 requis - veuillez recréer votre programme")
-    
-    try:
-        recovery_tracker = RecoveryTracker(db)
-        volume_optimizer = VolumeOptimizer(db)
-        progression_analyzer = ProgressionAnalyzer(db)
-        
-        # Dictionnaires pour stocker les résultats ML
-        muscle_readiness_dict = {}
-        volume_deficit_dict = {}
-        
-        # Appels ML avec fallbacks
-        try:
-            all_muscles = ["pectoraux", "dos", "deltoïdes", "jambes", "bras", "abdominaux"]
-            for muscle in all_muscles:
-                try:
-                    readiness = recovery_tracker.get_muscle_readiness(muscle, user)
-                    muscle_readiness_dict[muscle] = readiness
-                except Exception as e:
-                    logger.warning(f"Erreur readiness pour {muscle}: {e}")
-                    muscle_readiness_dict[muscle] = 1.0
-                
-                try:
-                    deficit = volume_optimizer.get_volume_deficit(user, muscle)
-                    volume_deficit_dict[muscle] = deficit
-                except Exception as e:
-                    logger.warning(f"Erreur volume deficit pour {muscle}: {e}")
-                    volume_deficit_dict[muscle] = 0.0
-        except Exception as e:
-            logger.error(f"Erreur ML globale: {e}")
-            # Valeurs par défaut si ML échoue
-            for muscle in all_muscles:
-                muscle_readiness_dict[muscle] = 1.0
-                volume_deficit_dict[muscle] = 0.0
-        
-        # Vérifier le format du programme
-        if not (program.exercises and isinstance(program.exercises, dict) and program.exercises.get('exercise_pool')):
-            # Ancien format - fallback sur sélection statique avec enrichissement
-            if program.exercises and isinstance(program.exercises, list):
-                
-                # Enrichir les exercices avec les données de la table Exercise
-                enriched_exercises = []
-                for exercise_data in program.exercises[:6]:
-                    exercise_id = exercise_data.get('exercise_id') if isinstance(exercise_data, dict) else exercise_data
-                    
-                    # Récupérer l'exercice complet depuis la DB
-                    exercise_db = db.query(Exercise).filter(Exercise.id == exercise_id).first()
-                    if exercise_db:
-                        enriched_exercise = {
-                            "exercise_id": exercise_db.id,
-                            "exercise_name": exercise_db.name,
-                            "muscle_groups": exercise_db.muscle_groups or [],
-                            "sets": exercise_data.get('sets', 3) if isinstance(exercise_data, dict) else 3,
-                            "reps_min": exercise_data.get('reps_min', 8) if isinstance(exercise_data, dict) else 8,
-                            "reps_max": exercise_data.get('reps_max', 12) if isinstance(exercise_data, dict) else 12,
-                            "score": 0.75,  # Score par défaut
-                            "selection_reason": "Programme standard"
-                        }
-                        enriched_exercises.append(enriched_exercise)
-                    else:
-                        logger.warning(f"Exercice {exercise_id} non trouvé en DB")
-                
-                if not enriched_exercises:
-                    raise HTTPException(status_code=400, detail="Aucun exercice valide dans le programme")
-                
-                return {
-                    "selected_exercises": enriched_exercises,
-                    "session_metadata": {
-                        "ml_used": False,
-                        "reason": "Programme format v1.0",
-                        "estimated_duration": len(enriched_exercises) * 8,
-                        "muscle_distribution": {},
-                        "warnings": []
-                    }
-                }
-            else:
-                raise HTTPException(status_code=400, detail="Format de programme invalide")
-        
-        # 2. Vérifier le format du programme
-        if program.format_version == "2.0" and program.weekly_structure:
-            # NOUVEAU FORMAT v2.0: Utiliser la structure temporelle
-            try:
-                # Obtenir la session actuelle dans la structure
-                current_week_data = program.weekly_structure[program.current_week - 1]
-                session_index = (program.current_session_in_week - 1) % len(current_week_data["sessions"])
-                session_template = current_week_data["sessions"][session_index]
-                
-                # Utiliser l'exercise_pool de la session
-                exercise_pool_data = session_template.get("exercise_pool", [])
-                
-                if not exercise_pool_data:
-                    raise HTTPException(status_code=400, detail="Pas d'exercices dans le pool de cette session")
-                
-                # Convertir en format compatible avec la logique ML existante
-                program_exercises_adapted = []
-                for pool_exercise in exercise_pool_data:
-                    exercise_db = db.query(Exercise).filter(Exercise.id == pool_exercise["exercise_id"]).first()
-                    if exercise_db:
-                        adapted_exercise = {
-                            "exercise_id": pool_exercise["exercise_id"],
-                            "sets": pool_exercise.get("sets", 3),
-                            "reps_min": pool_exercise.get("reps_min", 8),
-                            "reps_max": pool_exercise.get("reps_max", 12),
-                            "priority": pool_exercise.get("priority", 3),
-                            # Ajouter données nécessaires pour ML
-                            "muscle_groups": exercise_db.muscle_groups,
-                            "equipment_required": exercise_db.equipment_required,
-                            "difficulty": exercise_db.difficulty
-                        }
-                        program_exercises_adapted.append(adapted_exercise)
-                
-                # Remplacer program.exercises par les données adaptées pour le reste de la logique
-                program_exercises_for_ml = program_exercises_adapted
-                
-                logger.info(f"Format ComprehensiveProgram détecté - {len(program_exercises_for_ml)} exercices dans le pool")
-                
-            except (IndexError, KeyError) as e:
-                logger.error(f"Erreur structure ComprehensiveProgram: {e}")
-                raise HTTPException(status_code=400, detail="Structure de programme invalide")
-                
-        elif program.exercises and isinstance(program.exercises, dict) and program.exercises.get('exercise_pool'):
-            # ANCIEN FORMAT avec exercise_pool
-            pool = program.exercises.get('exercise_pool', [])
-            program_exercises_for_ml = pool
-            logger.info(f"Format legacy avec pool détecté - {len(program_exercises_for_ml)} exercices")
-            
-        else:
-            # ANCIEN FORMAT simple liste
-            program_exercises_for_ml = program.exercises or []
-            logger.info(f"Format legacy simple détecté - {len(program_exercises_for_ml)} exercices")
-        
-        
-        # Nouveau format - sélection intelligente
-        exercise_pool = program_exercises_for_ml
-        exercise_pool_ids = [ex['exercise_id'] for ex in exercise_pool]
-        
-        # Récupérer les stats depuis la table de cache
-        stats = db.query(ExerciseCompletionStats).filter(
-            ExerciseCompletionStats.user_id == user_id,
-            ExerciseCompletionStats.exercise_id.in_(exercise_pool_ids)
-        ).all()
-        
-        # Créer un dictionnaire pour accès rapide
-        stats_dict = {stat.exercise_id: stat for stat in stats}
-        
-        # Calculer les scores pour chaque exercice
-        exercise_scores = []
-        
-        for exercise in exercise_pool:
-            exercise_id = exercise['exercise_id']
-            stat = stats_dict.get(exercise_id)
-            
-            # Score de fraîcheur (0-1, 1 = pas fait récemment)
-            if stat and stat.last_performed:
-                # CORRECTION TIMEZONE : s'assurer que last_performed a une timezone
-                last_performed = stat.last_performed
-                if last_performed.tzinfo is None:
-                    last_performed = last_performed.replace(tzinfo=timezone.utc)
-                days_since = (datetime.now(timezone.utc) - last_performed).days
-                staleness_score = min(1.0, days_since / 7.0)  # Max à 7 jours
-            else:
-                staleness_score = 1.0  # Jamais fait = priorité max
-            
-            # Récupérer les infos de l'exercice
-            exercise_db = db.query(Exercise).filter(Exercise.id == exercise_id).first()
-            if not exercise_db:
-                continue
-            
-            # Score de readiness musculaire
-            muscle_readiness = 1.0
-            if exercise_db.muscle_groups:
-                for muscle in exercise_db.muscle_groups:
-                    muscle_normalized = normalize_muscle_group(muscle)
-                    readiness = muscle_readiness_dict.get(muscle_normalized, 1.0)
-                    muscle_readiness = min(muscle_readiness, readiness)
-            
-            # Score de déficit de volume
-            volume_deficit_score = 0.0
-            if exercise_db.muscle_groups:
-                for muscle in exercise_db.muscle_groups:
-                    muscle_normalized = normalize_muscle_group(muscle)
-                    deficit = volume_deficit_dict.get(muscle_normalized, 0.0)
-                    volume_deficit_score = max(volume_deficit_score, deficit)
-            
-            # Score de correspondance avec les focus areas
-            focus_match_score = 0.0
-            if program.focus_areas and exercise_db.muscle_groups:
-                for focus in program.focus_areas:
-                    for muscle in exercise_db.muscle_groups:
-                        if normalize_muscle_group(muscle) in focus.lower():
-                            focus_match_score = 1.0
-                            break
-            
-            # Score combiné
-            score = (
-                muscle_readiness * 0.4 +
-                staleness_score * 0.3 +
-                volume_deficit_score * 0.2 +
-                focus_match_score * 0.1
-            )
-            
-            exercise_scores.append({
-                'exercise': exercise,
-                'exercise_db': exercise_db,
-                'score': score,
-                'staleness': staleness_score,
-                'readiness': muscle_readiness,
-                'volume_deficit': volume_deficit_score,
-                'focus_match': focus_match_score
-            })
-        
-        # Trier par score décroissant
-        exercise_scores.sort(key=lambda x: x['score'], reverse=True)
-        
-        # Sélectionner les exercices pour la séance
-        session_duration = program.session_duration_minutes
-        selected_exercises = []
-        total_duration = 0
-        muscle_coverage = set()
-        
-        for item in exercise_scores:
-            exercise = item['exercise']
-            exercise_db = item['exercise_db']
-            
-            # Estimer la durée (5 min par exercice en moyenne)
-            estimated_duration = 5
-            
-            if total_duration + estimated_duration > session_duration:
-                break
-            
-            # Éviter trop d'exercices sur le même muscle
-            if exercise_db.muscle_groups:
-                muscle_overlap = any(m in muscle_coverage for m in exercise_db.muscle_groups)
-                if muscle_overlap and len(selected_exercises) >= 3:
-                    continue
-                
-                muscle_coverage.update(exercise_db.muscle_groups)
-            
-            # Ajouter l'exercice avec ses métadonnées
-            exercise_with_metadata = {
-                **item['exercise'],
-                'exercise_name': item['exercise_db'].name,
-                'muscle_groups': item['exercise_db'].muscle_groups,
-                'score': item['score'],
-                'selection_reason': _get_selection_reason(item)  # Sans self.
-            }
-            
-            selected_exercises.append(exercise_with_metadata)
-            total_duration += estimated_duration
-            
-            # Limite à 8 exercices max
-            if len(selected_exercises) >= 8:
-                break
-        
-        # S'assurer d'avoir au moins 3 exercices
-        if len(selected_exercises) < 3 and len(exercise_scores) >= 3:
-            selected_exercises = []
-            for i in range(min(3, len(exercise_scores))):
-                item = exercise_scores[i]
-                exercise_with_metadata = {
-                    **item['exercise'],
-                    'exercise_name': item['exercise_db'].name,
-                    'muscle_groups': item['exercise_db'].muscle_groups,
-                    'score': item['score'],
-                    'selection_reason': _get_selection_reason(item)
-                }
-                selected_exercises.append(exercise_with_metadata)
-        
-        # Calculer la distribution musculaire
-        muscle_distribution = {}
-        for ex in selected_exercises:
-            if ex.get('muscle_groups'):
-                for muscle in ex['muscle_groups']:
-                    muscle_distribution[muscle] = muscle_distribution.get(muscle, 0) + 1
-        
-        # Métadonnées de la session
-        session_metadata = {
-            'ml_used': True,
-            'ml_confidence': 0.85,  # Valeur fixe pour l'instant
-            'muscle_distribution': muscle_distribution,
-            'estimated_duration': len(selected_exercises) * 5,
-            'warnings': []
-        }
-        
-        # Ajouter des warnings si nécessaire
-        for muscle, readiness in muscle_readiness_dict.items():
-            if readiness < 0.5 and muscle in muscle_distribution:
-                session_metadata['warnings'].append(f"{muscle.capitalize()} encore en récupération")
-        
-
-        # Ajouter métadonnées spécifiques au format ComprehensiveProgram
-        session_metadata = {
-            'ml_used': True,
-            'ml_confidence': 0.85,
-            'muscle_distribution': muscle_distribution,
-            'estimated_duration': len(selected_exercises) * 5,
-            'warnings': []
-        }
-        
-        # Si ComprehensiveProgram, ajouter infos de progression
-        if hasattr(program, 'weekly_structure') and program.weekly_structure:
-            session_metadata.update({
-                'week_number': program.current_week,
-                'session_number': program.current_session_in_week,
-                'total_weeks': program.duration_weeks,
-                'focus': session_template.get("focus", "general"),
-                'target_duration': session_template.get("target_duration", 60),
-                'format': 'comprehensive'
-            })
-            
-            # Avancer à la session suivante pour la prochaine fois
-            try:
-                program.current_session_in_week += 1
-                
-                # Si on dépasse les sessions de la semaine, passer à la semaine suivante
-                current_week_sessions = len(program.weekly_structure[program.current_week - 1]["sessions"])
-                if program.current_session_in_week > current_week_sessions:
-                    program.current_session_in_week = 1
-                    program.current_week += 1
-                    
-                    # Si première session d'une nouvelle semaine, marquer le démarrage
-                    if not program.started_at:
-                        program.started_at = datetime.now(timezone.utc)
-                        program.estimated_completion = program.started_at + timedelta(weeks=program.duration_weeks)
-                
-                db.commit()
-                logger.info(f"Progression mise à jour: semaine {program.current_week}, session {program.current_session_in_week}")
-                
-            except Exception as e:
-                logger.warning(f"Erreur mise à jour progression: {e}")
-        
-        return {
-            "selected_exercises": selected_exercises,
-            "session_metadata": session_metadata
-        }
-        
-    except Exception as e:
-        logger.error(f"Erreur sélection intelligente pour user {user_id}: {str(e)}")
-        logger.error(f"Type erreur: {type(e).__name__}")
-        
-        # Fallback sur première séance du programme v2.0
-        if program.weekly_structure and len(program.weekly_structure) > 0:
-            try:
-                week_data = program.weekly_structure[0]  # Première semaine
-                if "sessions" in week_data and len(week_data["sessions"]) > 0:
-                    first_session = week_data["sessions"][0]
-                    exercise_pool = first_session.get("exercise_pool", [])
-                    
-                    # Limiter à 6 exercices et enrichir
-                    selected = []
-                    for ex in exercise_pool[:6]:
-                        selected.append({
-                            "exercise_id": ex["exercise_id"],
-                            "exercise_name": ex.get("exercise_name", ""),
-                            "sets": ex.get("sets", 3),
-                            "target_reps": (ex.get("reps_min", 8) + ex.get("reps_max", 12)) // 2,
-                            "predicted_weight": 20.0,  # Poids par défaut
-                            "selection_reason": "Sélection de secours",
-                            "priority_score": 0.5
-                        })
-                    
-                    return {
-                        "selected_exercises": selected,
-                        "session_metadata": {
-                            "ml_used": False,
-                            "reason": f"Fallback suite erreur: {str(e)}",
-                            "estimated_duration": len(selected) * 10,
-                            "muscle_distribution": {},
-                            "warnings": ["Sélection ML indisponible - programme standard utilisé"]
-                        }
-                    }
-            except Exception as fallback_error:
-                logger.error(f"Erreur fallback v2.0: {fallback_error}")
-        
-        # Si tout échoue
-        raise HTTPException(status_code=500, detail="Erreur de sélection d'exercices")
-
-
-# ===== NOUVEAUX ENDPOINTS PROGRAM BUILDER =====
-@app.post("/api/users/{user_id}/program-builder/start", response_model=ProgramBuilderRecommendations)
-def start_program_builder(
-    user_id: int, 
-    builder_data: ProgramBuilderStart, 
-    db: Session = Depends(get_db)
-):
-    """Initialiser ProgramBuilder avec recommandations ML personnalisées"""
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
-    
-    try:
-        # Utiliser les services ML existants pour personnaliser le questionnaire
-        try:
-            ml_engine = FitnessMLEngine(db)
-        except Exception as e:
-            logger.error(f"Impossible d'initialiser FitnessMLEngine: {e}")
-            raise HTTPException(status_code=500, detail="Service ML indisponible")
-                
-        # Analyser le profil utilisateur
-        user_insights = []
-        suggested_focus_areas = []
-        
-        # Logique basée sur l'expérience
-        if user.experience_level == "beginner":
-            suggested_focus_areas = ["pectoraux", "jambes", "abdominaux"]
-            user_insights.append("Programme débutant recommandé avec focus équilibré")
-        elif user.experience_level == "intermediate":
-            suggested_focus_areas = ["pectoraux", "dos", "jambes"]
-            user_insights.append("Vous pouvez gérer une intensité modérée à élevée")
-        else:  # advanced
-            suggested_focus_areas = ["pectoraux", "dos", "jambes"]
-            user_insights.append("Programme avancé avec périodisation recommandée")
-        
-        # Adapter selon l'équipement disponible
-        equipment_keys = list(user.equipment_config.keys()) if user.equipment_config else []
-        if len(equipment_keys) < 3:
-            user_insights.append("Équipement limité détecté - focus sur exercices polyarticulaires")
-                
-        focus_options = [
-            {"value": "pectoraux", "label": "Pectoraux", "recommended": True},
-            {"value": "dos", "label": "Dos", "recommended": True},
-            {"value": "jambes", "label": "Jambes", "recommended": True},
-            {"value": "epaules", "label": "Épaules", "recommended": user.experience_level == "beginner"},
-            {"value": "bras", "label": "Bras", "recommended": False},
-            {"value": "abdominaux", "label": "Abdominaux", "recommended": user.experience_level == "beginner"}
-        ]
-
-        # Générer questionnaire adaptatif (8-12 questions)
-        questionnaire_items = [
-            {
-                "id": "training_frequency",
-                "question": "Combien de séances d'entraînement par semaine souhaitez-vous ?",
-                "type": "single_choice",
-                "options": [
-                    {"value": 1, "label": "1 séance/semaine", "recommended": False},
-                    {"value": 2, "label": "2 séances/semaine", "recommended": user.experience_level == "beginner"},
-                    {"value": 3, "label": "3 séances/semaine", "recommended": user.experience_level == "intermediate"},
-                    {"value": 4, "label": "4 séances/semaine", "recommended": user.experience_level in ["intermediate", "advanced"]},
-                    {"value": 5, "label": "5 séances/semaine", "recommended": user.experience_level == "advanced"},
-                    {"value": 6, "label": "6 séances/semaine", "recommended": False}
-                ]
-            },
-            {
-                "id": "session_duration",
-                "question": "Combien de temps pouvez-vous consacrer par séance ?",
-                "type": "single_choice",
-                "options": [
-                    {"value": 30, "label": "30-45 minutes"},
-                    {"value": 60, "label": "45-75 minutes", "recommended": True},
-                    {"value": 90, "label": "75-90 minutes", "recommended": user.experience_level == "advanced"}
-                ]
-            },
-            {
-                "id": "focus_selection",
-                "question": "Quelles zones corporelles souhaitez-vous prioriser ?",
-                "type": "multiple_choice",
-                "min_selections": 1,
-                "max_selections": 3,
-                "options": focus_options
-            },
-            {
-                "id": "periodization_preference", 
-                "question": "Quel type de progression préférez-vous ?",
-                "type": "single_choice",
-                "options": [
-                    {"value": "linear", "label": "Progression linéaire constante", "recommended": user.experience_level in ["beginner", "intermediate"]},
-                    {"value": "undulating", "label": "Progression ondulante (variation)", "recommended": user.experience_level == "advanced"}
-                ]
-            },
-            {
-                "id": "exercise_variety_preference",
-                "question": "Niveau de variété d'exercices souhaité ?", 
-                "type": "single_choice",
-                "options": [
-                    {"value": "minimal", "label": "Peu d'exercices, maîtrise technique", "recommended": user.experience_level == "beginner"},
-                    {"value": "balanced", "label": "Équilibre variété/consistance", "recommended": True},
-                    {"value": "high", "label": "Beaucoup de variété", "recommended": False}
-                ]
-            },
-            {
-                "id": "session_intensity_preference",
-                "question": "Intensité des séances préférée ?",
-                "type": "single_choice", 
-                "options": [
-                    {"value": "light", "label": "Légère", "recommended": user.experience_level == "beginner"},
-                    {"value": "moderate", "label": "Modérée", "recommended": True},
-                    {"value": "intense", "label": "Intense", "recommended": user.experience_level == "advanced"}
-                ]
-            },
-            {
-                "id": "recovery_priority",
-                "question": "Priorité récupération vs performance ?",
-                "type": "single_choice",
-                "options": [
-                    {"value": "performance", "label": "Performance maximale", "recommended": user.experience_level == "advanced"},
-                    {"value": "balanced", "label": "Équilibre performance/récupération", "recommended": True},
-                    {"value": "recovery", "label": "Récupération prioritaire", "recommended": user.experience_level == "beginner"}
-                ]
-            }
-        ]
-        
-        # Calcul de la fréquence suggérée
-        suggested_frequency = builder_data.training_frequency
-        if user.experience_level == "beginner" and suggested_frequency > 4:
-            suggested_frequency = 4
-            user_insights.append("Fréquence réduite recommandée pour débuter")
-        
-        return ProgramBuilderRecommendations(
-            suggested_duration=builder_data.duration_weeks,
-            suggested_frequency=suggested_frequency,
-            suggested_focus_areas=suggested_focus_areas,
-            questionnaire_items=questionnaire_items,
-            user_insights=user_insights,
-            confidence_level=0.85
-        )
-        
-    except Exception as e:
-        logger.error(f"Erreur initialisation ProgramBuilder pour user {user_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Erreur lors de l'initialisation")
-
-
+# ===== ENDPOINTS PROG/SESSIONS =====
 def calculate_session_quality_score(exercise_pool, user_id, db):
     """Calcule le score de qualité d'une session côté serveur"""
     # Version simplifiée pour le backend
@@ -1236,7 +681,7 @@ def calculate_session_quality_score(exercise_pool, user_id, db):
     
     return max(0, min(100, base_score))
 
-def calculate_exercise_swap_impact(current_ex, new_ex, program_id, db):
+def calculate_exercise_swap_impact(current_ex, new_ex, db):
     """Calcule l'impact d'un swap d'exercice sur le score"""
     impact = 0
     
@@ -1381,7 +826,7 @@ def calculate_session_duration(exercises_data, target_duration_minutes):
 
 @app.post("/api/users/{user_id}/workouts")
 def start_workout(user_id: int, workout: WorkoutCreate, db: Session = Depends(get_db)):
-    """Démarrer une nouvelle séance (free, program ou AI)"""
+    """Démarrer une nouvelle séance (free ou AI)"""
     
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -2257,7 +1702,6 @@ def get_user_stats(user_id: int, db: Session = Depends(get_db)):
             "id": workout.id,
             "user_id": workout.user_id,
             "type": workout.type,
-            "program_id": workout.program_id,
             "status": workout.status,
             "started_at": workout.started_at.isoformat() if workout.started_at else None,
             "completed_at": workout.completed_at.isoformat() if workout.completed_at else None,
@@ -2625,38 +2069,6 @@ def get_attendance_calendar(user_id: int, months: int = 6, db: Session = Depends
         "targetPerWeek": target_per_week
     }
 
-def _enrich_attendance_with_schedule_data(calendar_data: dict, user_id: int, db: Session) -> dict:
-    """Enrichit le calendrier avec les données du schedule pour comparaison planifié vs réalisé"""
-    
-    # Récupérer le programme actif avec son schedule
-    program = db.query(Program).filter(
-        Program.user_id == user_id,
-        Program.is_active == True
-    ).first()
-    
-    if not program or not program.schedule:
-        return calendar_data
-    
-    # Ajouter les séances planifiées vs réalisées
-    enriched_data = calendar_data.copy()
-    
-    for date_str, session in program.schedule.items():
-        session_date = datetime.fromisoformat(date_str).date()
-        date_key = session_date.isoformat()
-        
-        if date_key not in enriched_data:
-            enriched_data[date_key] = {"workouts": 0, "volume": 0, "duration": 0}
-        
-        # Ajouter info planning
-        enriched_data[date_key]["planned"] = True
-        enriched_data[date_key]["status"] = session.get("status", "planned")
-        enriched_data[date_key]["predicted_score"] = session.get("predicted_score", 0)
-        
-        # Marquer les séances manquées
-        if session.get("status") == "planned" and session_date < datetime.now(timezone.utc).date():
-            enriched_data[date_key]["missed_planned"] = True
-    
-    return enriched_data
 
 # ===== ENDPOINTS PLANNING HEBDOMADAIRE =====
 def calculate_optimal_session_spacing(sessions_per_week: int, muscle_groups_per_session: dict) -> list:
@@ -4093,79 +3505,3 @@ def record_ml_feedback(
         logger.error(f"Données reçues: {feedback_data}")
         # Ne pas faire échouer, juste logger
         return {"status": "error", "message": "Erreur mais pas bloquant"}
-    
-def update_program_schedule_metadata(program: Program, db: Session):
-    """Met à jour les métriques précalculées du schedule"""
-    
-    if not program.schedule:
-        return
-    
-    metadata = {
-        "total_sessions_planned": 0,
-        "sessions_completed": 0,
-        "sessions_skipped": 0,
-        "sessions_in_progress": 0,
-        "total_actual_score": 0,
-        "total_predicted_score": 0,
-        "muscle_distribution": {},
-        "last_metrics_update": datetime.now(timezone.utc).isoformat()
-    }
-    
-    # Calculer les métriques depuis le schedule
-    for date, session in program.schedule.items():
-        metadata["total_sessions_planned"] += 1
-        
-        status = session.get("status", "planned")
-        if status == "completed":
-            metadata["sessions_completed"] += 1
-            if session.get("actual_score"):
-                metadata["total_actual_score"] += session["actual_score"]
-        elif status == "skipped":
-            metadata["sessions_skipped"] += 1
-        elif status == "in_progress":
-            metadata["sessions_in_progress"] += 1
-            
-        if session.get("predicted_score"):
-            metadata["total_predicted_score"] += session["predicted_score"]
-        
-        # Distribution musculaire
-        exercises = session.get("exercises_snapshot", [])
-        for ex in exercises:
-            for muscle in ex.get("muscle_groups", []):
-                metadata["muscle_distribution"][muscle] = metadata["muscle_distribution"].get(muscle, 0) + 1
-    
-    # Moyennes
-    if metadata["sessions_completed"] > 0:
-        metadata["average_actual_score"] = metadata["total_actual_score"] / metadata["sessions_completed"]
-        metadata["completion_rate"] = (metadata["sessions_completed"] / metadata["total_sessions_planned"]) * 100
-    
-    if metadata["total_sessions_planned"] > 0:
-        metadata["average_predicted_score"] = metadata["total_predicted_score"] / metadata["total_sessions_planned"]
-    
-    # Calculer les 3 prochaines séances
-    today = datetime.now(timezone.utc).date()
-    next_sessions = []
-    
-    for date_str in sorted(program.schedule.keys()):
-        session_date = datetime.fromisoformat(date_str).date()
-        if session_date >= today and program.schedule[date_str].get("status") == "planned":
-            session = program.schedule[date_str]
-            muscles = set()
-            for ex in session.get("exercises_snapshot", []):
-                muscles.update(ex.get("muscle_groups", []))
-            
-            next_sessions.append({
-                "date": date_str,
-                "muscles": list(muscles),
-                "predicted_score": session.get("predicted_score", 75)
-            })
-            
-            if len(next_sessions) >= 3:
-                break
-    
-    metadata["next_sessions"] = next_sessions
-    
-    # Sauvegarder
-    program.schedule_metadata = metadata
-    flag_modified(program, "schedule_metadata")
-    db.commit()
