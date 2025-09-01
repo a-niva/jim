@@ -7200,10 +7200,13 @@ function showManualCountAdjustment(currentCount) {
     });
 }
 
-async function fetchMLRecommendations() {
-    /**
-     * Récupère les recommandations ML pures avec gestion d'historique complète
-     */
+function fetchMLRecommendations() {
+    // Récupère les recommandations ML pures avec gestion d'historique complète
+    // Skip pour séances AI (elles ont déjà leurs recommandations)
+    if (window.currentWorkoutSession?.type === 'ai') {
+        console.log('Skip fetchMLRecommendations pour séance AI');
+        return;
+    }
     const sessionSets = currentWorkoutSession.completedSets.filter(s => s.exercise_id === currentExercise.id);
     const sessionHistory = sessionSets.map(set => ({
         weight: set.weight,
@@ -11360,19 +11363,31 @@ function getCurrentProgramExercisesCount() {
 }
 
 // ===== GESTION D'ERREURS ET VALIDATION =====
-function validateWorkoutState() {
-    if (!currentWorkoutSession.workout) {
-        showToast('Erreur: Aucune séance active', 'error');
-        showView('dashboard');
-        return false;
+function validateWorkoutState(skipExerciseCheck = false) {
+    // Support complet séances AI
+    if (window.currentWorkoutSession?.type === 'ai') {
+        if (!window.currentWorkout || !window.currentWorkoutSession.workout) {
+            console.error('Validation AI échoué: pas de workout');
+            showToast('Aucune séance active', 'error');
+            return false;
+        }
+        if (!skipExerciseCheck && !window.currentExercise) {
+            console.error('Validation AI échoué: pas de currentExercise');
+            showToast('Pas d\'exercice sélectionné', 'error');
+            return false;
+        }
+        return true;
     }
     
-    if (!currentUser) {
-        showToast('Erreur: Utilisateur non connecté', 'error');
-        showOnboarding();
+    // Code existant pour autres types...
+    if (!currentWorkout || !currentWorkoutSession.workout) {
+        showToast('Aucune séance active', 'error');
         return false;
     }
-    
+    if (!skipExerciseCheck && !currentExercise) {
+        showToast('Pas d\'exercice sélectionné', 'error');
+        return false;
+    }
     return true;
 }
 
@@ -13565,6 +13580,20 @@ function setEffort(setId, value) {
 }
 
 function validateSessionState(skipExerciseCheck = false) {
+    // Support complet séances AI  
+    if (window.currentWorkoutSession?.type === 'ai') {
+        if (!window.currentWorkout || !window.currentWorkoutSession.workout) {
+            console.error('Session AI validation échoué: pas de workout');
+            showToast('Aucune séance active', 'error');
+            return false;
+        }
+        if (!skipExerciseCheck && !window.currentExercise) {
+            console.error('Session AI validation échoué: pas de currentExercise');
+            showToast('Pas d\'exercice sélectionné', 'error');
+            return false;
+        }
+        return true;
+    }
     if (!currentWorkout || !currentWorkoutSession.workout) {
         showToast('Aucune séance active', 'error');
         return false;
