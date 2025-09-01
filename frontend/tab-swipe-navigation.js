@@ -4,7 +4,7 @@
 
 class TabSwipeNavigation {
     constructor() {
-        this.tabs = ['dashboard', 'stats', 'planning', 'profile'];
+        this.tabs = ['home', 'stats', 'ai-session', 'profile'];
         this.currentTabIndex = 0;
         this.startX = 0;
         this.startY = 0;
@@ -80,22 +80,8 @@ class TabSwipeNavigation {
     }
 
     isTabSwipeZone(target) {
-        // Dans Planning : seulement zones sûres
-        if (document.getElementById('planning')?.style.display !== 'none') {
-            return this.isPlanningSwipeZone(target);
-        }
-        
-        // Autres onglets : zones basiques
+        // Zones basiques pour tous les onglets
         return !target.closest('input, textarea, select, button, .modal');
-    }
-
-    isPlanningSwipeZone(target) {
-        // Zones autorisées dans Planning
-        return target.closest('.planning-header') ||
-               target.closest('.week-navigation') ||
-               target.closest('.day-name, .day-number') ||
-               (target.closest('.container') && 
-                !target.closest('.weeks-container, .session-card, .day-sessions'));
     }
 
     navigateToTab(index) {
@@ -103,11 +89,7 @@ class TabSwipeNavigation {
         
         // Navigation après délai
         setTimeout(() => {
-            if (targetTab === 'planning') {
-                window.showPlanning?.();
-            } else {
-                window.showView?.(targetTab);
-            }
+            window.showView?.(targetTab);
         }, 100);
         
         this.currentTabIndex = index;
