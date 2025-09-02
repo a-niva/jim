@@ -368,56 +368,6 @@ class AISessionManager {
      * ACTION: Remplacer complètement cette méthode
      */
 
-    renderExercisePreview() {
-        if (!this.lastGenerated || !this.lastGenerated.exercises) return '';
-        
-        const qualityScore = Math.round(this.lastGenerated.quality_score || 75);
-        const pplUsed = this.lastGenerated.ppl_used || 'push';
-        
-        // Déterminer classe score selon valeur
-        let scoreClass = 'average';
-        if (qualityScore >= 85) scoreClass = 'excellent';
-        else if (qualityScore >= 70) scoreClass = 'good';
-        
-        return `
-            <div class="ai-session-generated-summary">
-                <div class="ai-session-meta">
-                    <div class="ai-session-exercise-count">
-                        <i class="fas fa-list"></i> ${this.lastGenerated.exercises.length} exercices
-                    </div>
-                    <div class="ai-session-ppl-badge" data-ppl="${pplUsed}">
-                        <i class="fas fa-dumbbell"></i>
-                        ${pplUsed.toUpperCase()}
-                    </div>
-                    <div class="ai-session-quality-score" data-score="${scoreClass}">
-                        <i class="fas fa-star"></i> ${qualityScore}%
-                    </div>
-                </div>
-            </div>
-            
-            <div id="aiExercisesList" class="ai-session-exercises-preview-list">
-                ${this.lastGenerated.exercises.map((ex, index) => this.renderSingleExercise(ex, index)).join('')}
-            </div>
-            
-            <div class="ai-session-optimization-actions">
-                <button id="optimizeOrderBtn" class="ai-session-btn ai-session-btn-secondary" onclick="window.aiSessionManager.optimizeExerciseOrder()">
-                    <i class="fas fa-magic"></i> Optimiser l'ordre
-                </button>
-                <small class="optimization-hint">Réorganise automatiquement pour le meilleur score</small>
-            </div>
-            
-            <div class="ai-session-launch-actions">
-                <button id="launchAISessionBtn" class="ai-session-btn ai-session-btn-success">
-                    <i class="fas fa-rocket"></i> Lancer Séance
-                </button>
-                <p class="ai-session-launch-note">
-                    <i class="fas fa-info-circle"></i> 
-                    Interface de séance classique avec tous vos outils habituels
-                </p>
-            </div>
-        `;
-    }
-
     async optimizeExerciseOrder() {
         if (!this.lastGenerated || !this.lastGenerated.exercises) {
             console.warn('Pas d\'exercices à optimiser');
