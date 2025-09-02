@@ -3470,30 +3470,38 @@ def calculate_order_quality_score(exercises):
     total_penalty = 0
     max_possible_penalty = 0
     
+    # DEBUG: Afficher l'ordre analysé
+    exercise_names = [ex.get('name', f'Ex{i}') for i, ex in enumerate(exercises)]
+    logger.info(f"🔍 Analyse ordre: {' → '.join(exercise_names)}")
+    
     for i in range(len(exercises) - 1):
         current = exercises[i]
         next_ex = exercises[i + 1]
         
-        # PÉNALITÉ 1: Isolation avant composé (critique)
+        # PÉNALITÉ 1: Isolation avant composé
         penalty_1 = penalty_isolation_before_compound(current, next_ex)
         total_penalty += penalty_1
         max_possible_penalty += 30
+        if penalty_1 > 0:
+            logger.info(f"  ❌ Isolation avant composé: {current.get('name')} → {next_ex.get('name')} (-{penalty_1})")
         
-        # PÉNALITÉ 2: Même muscle consécutif (majeure)
+        # PÉNALITÉ 2: Même muscle consécutif
         penalty_2 = penalty_same_muscle_consecutive(current, next_ex)
         total_penalty += penalty_2
         max_possible_penalty += 25
+        if penalty_2 > 0:
+            logger.info(f"  ❌ Muscles répétés: {current.get('name')} → {next_ex.get('name')} (-{penalty_2})")
         
-        # PÉNALITÉ 3: Intensité décroissante (modérée)
+        # PÉNALITÉ 3: Intensité
         penalty_3 = penalty_intensity_progression(current, next_ex)
         total_penalty += penalty_3
         max_possible_penalty += 15
+        if penalty_3 > 0:
+            logger.info(f"  ❌ Intensité croissante: {current.get('name')} → {next_ex.get('name')} (-{penalty_3})")
     
-    # Score normalisé
-    if max_possible_penalty == 0:
-        return 100.0
+    score = 100 * (1 - total_penalty / max_possible_penalty) if max_possible_penalty > 0 else 100.0
+    logger.info(f"🎯 Score final: {score:.1f} (pénalités: {total_penalty}/{max_possible_penalty})")
     
-    score = 100 * (1 - total_penalty / max_possible_penalty)
     return max(0.0, min(100.0, score))
 
 def penalty_isolation_before_compound(current, next_ex):

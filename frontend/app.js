@@ -8899,7 +8899,7 @@ async function loadSessionExercisesList() {
                                             `<button class="action-btn" onclick="event.stopPropagation(); restartSkippedExercise(${exerciseData.exercise_id})" title="Reprendre">↺</button>` :
 `<button class="action-btn primary" onclick="event.stopPropagation(); selectSessionExercise(${exerciseData.exercise_id})" title="Commencer">${exerciseState.completedSets > 0 ? '▶' : '→'}</button>
 ${canSwapExercise(exerciseData.exercise_id) ? 
-`<button class="action-btn swap-btn" onclick="event.stopPropagation(); initiateSwap(${exerciseData.exercise_id})" title="Changer d'exercice" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none;">⇄</button>` : ''}
+`<button class="action-btn swap-btn" onclick="event.stopPropagation(); safeInitiateSwap(${exerciseData.exercise_id})" title="Changer d'exercice" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none;">⇄</button>` : ''}
 <button class="action-btn secondary" onclick="event.stopPropagation(); showSkipModal(${exerciseData.exercise_id})" title="Passer">⏭</button>`
                                         }
                                     </div>
@@ -12729,56 +12729,95 @@ function changeExercise() {
     showSwapReasonModal(currentExercise.id);
 }
 
-async function initiateSwap(exerciseId, exerciseIndex = null) {    
-    console.log(`🔍 INITIATE SWAP for exercise ${exerciseId}`);
-
-    // Support séances AI
-    if (window.currentWorkoutSession?.type === 'ai' && exerciseIndex !== null) {
-        const aiExercise = window.currentWorkoutSession.exercises[exerciseIndex];
-        if (aiExercise) {
-            // Utiliser votre logique swap existante mais avec données AI
-            window.currentWorkoutSession.pendingSwap = {
-                originalExerciseId: aiExercise.exercise_id,
-                exerciseIndex: exerciseIndex,
-                context: 'ai_session'
-            };
-            
-            try {
-                // Réutiliser showAlternatives existant
-                await window.showAlternativesFromAPI(aiExercise.exercise_id, 'user_request');
-                return;
-            } catch (error) {
-                console.error('Erreur alternatives AI:', error);
-                window.showToast('Impossible de trouver des alternatives', 'error');
+function safeInitiateSwap(exerciseId, exerciseIndex = null) {
+    /**
+     * Wrapper synchrone pour onclick HTML
+     * Gère correctement les promesses async
+     */
+    
+    // Empêcher double-clic
+    if (window.currentWorkoutSession?.swapInProgress) {
+        console.warn('🚫 Swap déjà en cours, ignoré');
+        return;
+    }
+    
+    // Flag pour éviter concurrence
+    window.currentWorkoutSession.swapInProgress = true;
+    
+    // Lancer swap avec gestion d'erreur
+    initiateSwap(exerciseId, exerciseIndex)
+        .catch(error => {
+            console.error('❌ Erreur swap:', error);
+            window.showToast('Erreur lors du changement d\'exercice', 'error');
+        })
+        .finally(() => {
+            // Nettoyer flag
+            if (window.currentWorkoutSession) {
+                window.currentWorkoutSession.swapInProgress = false;
             }
-        }
-        return;
-    }
+        });
+}
 
+async function initiateSwap(exerciseId, exerciseIndex = null) {
+    console.log(`🔍 INITIATE SWAP for exercise ${exerciseId}`);
     
+    // VALIDATION PRÉALABLE
+    if (!window.currentWorkoutSession) {
+        throw new Error('Aucune séance active');
+    }
+    
+    if (window.currentWorkoutSession.pendingSwap) {
+        throw new Error('Un changement est déjà en cours');
+    }
+    
+    // Vérifier éligibilité avant de continuer
     if (!canSwapExercise(exerciseId)) {
-        showToast('Impossible de changer cet exercice maintenant', 'warning');
-        return;
+        throw new Error('Impossible de changer cet exercice maintenant');
     }
-
-    // Créer le contexte de swap avec l'état actuel
-    const originalState = currentWorkoutSession.sessionExercises[exerciseId];
-    if (!originalState) {
-        showToast('État de l\'exercice non trouvé', 'error');
-        return;
-    }
-
-    const swapContext = {
-        originalExerciseId: parseInt(exerciseId),
-        originalExerciseState: {...originalState},
-        currentSetNumber: currentSet || 1,
-        timestamp: new Date()
-    };
-
-    currentWorkoutSession.pendingSwap = swapContext;
-    console.log(`📝 SWAP CONTEXT CREATED:`, swapContext);
     
-    showSwapReasonModal(exerciseId);
+    try {
+        // RÉSERVATION : Marquer le swap comme en cours
+        window.currentWorkoutSession.pendingSwap = {
+            originalExerciseId: parseInt(exerciseId),
+            status: 'selecting_reason',
+            timestamp: Date.now()
+        };
+        
+        // Support séances AI
+        if (window.currentWorkoutSession?.type === 'ai' && exerciseIndex !== null) {
+            const aiExercise = window.currentWorkoutSession.exercises[exerciseIndex];
+            if (!aiExercise) {
+                throw new Error(`Exercice IA index ${exerciseIndex} non trouvé`);
+            }
+            
+            // Enrichir le contexte
+            window.currentWorkoutSession.pendingSwap.aiExercise = aiExercise;
+            window.currentWorkoutSession.pendingSwap.exerciseIndex = exerciseIndex;
+            
+            // CRITIQUE : Utiliser 'preference' au lieu de 'user_request'
+            await window.showAlternativesFromAPI(aiExercise.exercise_id, 'preference');
+            return;
+        }
+        
+        // Logique séances normales
+        const originalState = window.currentWorkoutSession.sessionExercises[exerciseId];
+        if (!originalState) {
+            throw new Error('État de l\'exercice non trouvé');
+        }
+        
+        window.currentWorkoutSession.pendingSwap.originalExerciseState = {...originalState};
+        window.currentWorkoutSession.pendingSwap.currentSetNumber = window.currentSet || 1;
+        
+        // Afficher modal de sélection de raison
+        showSwapReasonModal(exerciseId);
+        
+    } catch (error) {
+        // NETTOYAGE en cas d'erreur
+        if (window.currentWorkoutSession) {
+            window.currentWorkoutSession.pendingSwap = null;
+        }
+        throw error; // Propager l'erreur
+    }
 }
 
 async function executeSwapTransition(originalExerciseId, newExerciseId, reason) {
@@ -13746,7 +13785,7 @@ function addSwipeSupport(element, exerciseId) {
             } else {
                 // Swipe gauche → Swap
                 if (canSwapExercise(exerciseId)) {
-                    initiateSwap(exerciseId);
+                    safeInitiateSwap(exerciseId);
                 }
             }
         }
@@ -14397,6 +14436,7 @@ window.debugMotionPauseState = debugMotionPauseState;
 
 window.canSwapExercise = canSwapExercise;
 window.initiateSwap = initiateSwap;
+window.safeInitiateSwap = safeInitiateSwap;
 window.executeSwapTransition = executeSwapTransition;
 window.getCurrentExerciseData = getCurrentExerciseData;
 

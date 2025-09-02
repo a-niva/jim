@@ -994,18 +994,19 @@ class AISessionManager {
                 }
             };
             
-            // 4. Préparer sessionExercises
+
+            // 4. Préparer sessionExercises (CORRIGER le nom de propriété)
+            window.currentWorkoutSession.sessionExercises = {}; // Pas sessionDataExercises !
+
             this.lastGenerated.exercises.forEach((exercise, index) => {
-                window.currentWorkoutSession.sessionDataExercises[exercise.exercise_id] = {
+                window.currentWorkoutSession.sessionExercises[exercise.exercise_id] = {
                     ...exercise,
                     id: exercise.exercise_id,
                     index: index + 1,
                     totalSets: exercise.default_sets || 3,
                     completedSets: 0,
                     isCompleted: false,
-                    status: 'planned',
-                    startTime: null,
-                    endTime: null
+                    status: 'planned'
                 };
             });
             
