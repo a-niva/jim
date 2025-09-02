@@ -3464,48 +3464,93 @@ def crossover_sequences(parent1, parent2):
     return child
 
 def calculate_order_quality_score(exercises):
-    """Score 0-100 basé uniquement sur qualité de l'ordre"""
+    """Score 0-100 avec DEBUG détaillé pour identifier le bug"""
     
     if len(exercises) <= 1:
+        logger.info("🔍 Score=100 (1 seul exercice)")
         return 100.0
+    
+    # DEBUG: Afficher la liste exacte reçue
+    exercise_names = [ex.get('name', f'Ex{i}') for i, ex in enumerate(exercises)]
+    logger.info(f"🔍 CALCUL SCORE pour: {' → '.join(exercise_names)}")
     
     total_penalty = 0
     max_possible_penalty = 0
-    
-    # DEBUG: Afficher l'ordre analysé
-    exercise_names = [ex.get('name', f'Ex{i}') for i, ex in enumerate(exercises)]
-    logger.info(f"🔍 Analyse ordre: {' → '.join(exercise_names)}")
+    detailed_penalties = []
     
     for i in range(len(exercises) - 1):
         current = exercises[i]
         next_ex = exercises[i + 1]
+        
+        # DEBUG: Afficher les propriétés de chaque exercice
+        current_name = current.get('name', 'Unknown')
+        next_name = next_ex.get('name', 'Unknown')
+        current_muscles = current.get('muscle_groups', [])
+        next_muscles = next_ex.get('muscle_groups', [])
+        
+        logger.info(f"  Comparaison {i+1}: {current_name} (muscles: {current_muscles}) → {next_name} (muscles: {next_muscles})")
         
         # PÉNALITÉ 1: Isolation avant composé
         penalty_1 = penalty_isolation_before_compound(current, next_ex)
         total_penalty += penalty_1
         max_possible_penalty += 30
         if penalty_1 > 0:
-            logger.info(f"  ❌ Isolation avant composé: {current.get('name')} → {next_ex.get('name')} (-{penalty_1})")
+            detailed_penalties.append(f"Isolation→Composé: {current_name}→{next_name} (-{penalty_1})")
         
-        # PÉNALITÉ 2: Même muscle consécutif
+        # PÉNALITÉ 2: Même muscle consécutif  
         penalty_2 = penalty_same_muscle_consecutive(current, next_ex)
         total_penalty += penalty_2
         max_possible_penalty += 25
         if penalty_2 > 0:
-            logger.info(f"  ❌ Muscles répétés: {current.get('name')} → {next_ex.get('name')} (-{penalty_2})")
+            detailed_penalties.append(f"Muscles répétés: {current_name}→{next_name} (-{penalty_2})")
         
-        # PÉNALITÉ 3: Intensité
+        # PÉNALITÉ 3: Intensité progression
         penalty_3 = penalty_intensity_progression(current, next_ex)
-        total_penalty += penalty_3
+        total_penalty += penalty_3  
         max_possible_penalty += 15
         if penalty_3 > 0:
-            logger.info(f"  ❌ Intensité croissante: {current.get('name')} → {next_ex.get('name')} (-{penalty_3})")
+            detailed_penalties.append(f"Intensité croissante: {current_name}→{next_name} (-{penalty_3})")
     
-    score = 100 * (1 - total_penalty / max_possible_penalty) if max_possible_penalty > 0 else 100.0
-    logger.info(f"🎯 Score final: {score:.1f} (pénalités: {total_penalty}/{max_possible_penalty})")
+    # Calcul final avec DEBUG
+    if max_possible_penalty == 0:
+        score = 100.0
+    else:
+        score = 100 * (1 - total_penalty / max_possible_penalty)
+    
+    # LOG DÉTAILLÉ
+    logger.info(f"🎯 DÉTAIL CALCUL:")
+    logger.info(f"   Pénalités totales: {total_penalty}/{max_possible_penalty}")
+    if detailed_penalties:
+        for penalty in detailed_penalties:
+            logger.info(f"   - {penalty}")
+    else:
+        logger.info(f"   - Aucune pénalité détectée")
+    logger.info(f"   Score final: {score:.2f}")
     
     return max(0.0, min(100.0, score))
 
+def penalty_same_muscle_consecutive(current, next_ex):
+    """Pénalité debug avec logs détaillés"""
+    muscles_current = set(current.get('muscle_groups', []))
+    muscles_next = set(next_ex.get('muscle_groups', []))
+    
+    intersection = muscles_current.intersection(muscles_next)
+    overlap_count = len(intersection)
+    
+    logger.info(f"    Muscles {current.get('name', '?')}: {muscles_current}")
+    logger.info(f"    Muscles {next_ex.get('name', '?')}: {muscles_next}")
+    logger.info(f"    Intersection: {intersection} ({overlap_count} muscles)")
+    
+    if overlap_count >= 2:
+        logger.info(f"    → Pénalité MAJEURE: {overlap_count} muscles partagés (-25)")
+        return 25
+    elif overlap_count == 1:
+        logger.info(f"    → Pénalité mineure: {overlap_count} muscle partagé (-10)")
+        return 10
+    else:
+        logger.info(f"    → Pas de pénalité")
+        return 0
+    
 def penalty_isolation_before_compound(current, next_ex):
     """Pénalité si isolation avant composé"""
     current_type = current.get('exercise_type', 'compound')
