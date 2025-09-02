@@ -3350,7 +3350,8 @@ def optimize_ai_session(request_data: dict, db: Session = Depends(get_db)):
     
     exercises = request_data.get('exercises', [])
     user_id = request_data.get('user_id', 1)
-    
+    mode = request_data.get('mode', 'optimize')
+
     if len(exercises) <= 1:
         return {
             "optimized_exercises": exercises, 
@@ -3372,22 +3373,254 @@ def optimize_ai_session(request_data: dict, db: Session = Depends(get_db)):
         improvements = analyze_improvements(exercises, optimized)
         
         logger.info(f"🔄 Response envoyée: optimization_score={round(quality_score, 1)}, quality_score={round(quality_score, 1)}")
-
+        
+        if mode == 'evaluate':
+            # MODE ÉVALUATION : Score l'ordre DONNÉ sans l'optimiser
+            current_score = calculate_order_quality_score(exercises)
+            improvements = analyze_improvements_detailed(exercises, exercises, current_score)
+            final_exercises = exercises  # Garde l'ordre original
+            
+        else:
+            # MODE OPTIMISATION : Trouve le meilleur ordre possible
+            if len(exercises) <= 4:
+                optimized = optimize_by_permutations(exercises)
+            else:
+                optimized = optimize_by_genetic_algorithm(exercises)
+            
+            current_score = calculate_order_quality_score(optimized)
+            improvements = analyze_improvements_detailed(exercises, optimized, current_score)
+            final_exercises = optimized
+        
+        logger.info(f"🔄 Mode {mode}: Score={current_score:.1f}")
+        
         return {
-            "optimized_exercises": optimized,
-            "optimization_score": round(quality_score, 1),
-            "quality_score": round(quality_score, 1),  # Double pour compatibilité
+            "optimized_exercises": final_exercises,
+            "optimization_score": round(current_score, 1),
+            "quality_score": round(current_score, 1),
             "improvements": improvements,
-            "method_used": "permutations" if len(exercises) <= 4 else "genetic"
+            "method_used": f"{mode}_mode",
+            "mode_used": mode,
+            "score_breakdown": {
+                "total": round(current_score, 1),
+                "details": "Voir logs pour détail des métriques"
+            }
         }
         
     except Exception as e:
-        logger.error(f"Erreur optimisation: {e}")
+        logger.error(f"Erreur {mode}: {e}")
         return {
-            "optimized_exercises": exercises,  # Retour ordre original
+            "optimized_exercises": exercises,
+            "optimization_score": 50.0,
             "quality_score": 50.0,
-            "improvements": ["Erreur optimisation, ordre conservé"]
+            "improvements": ["Erreur calcul, ordre conservé"],
+            "mode_used": mode if 'mode' in locals() else 'unknown'
         }
+
+def analyze_improvements_detailed(original, optimized, score):
+    """Analyse détaillée des améliorations possibles"""
+    
+    improvements = []
+    
+    if score >= 90:
+        improvements.append("Excellent ordre d'entraînement")
+    elif score >= 75:
+        improvements.append("Bon ordre, quelques optimisations possibles")
+    elif score >= 60:
+        improvements.append("Ordre perfectible, réorganisation recommandée")
+    else:
+        improvements.append("Ordre sous-optimal, réorganisation nécessaire")
+    
+    # Conseils spécifiques selon le score
+    if score < 80:
+        improvements.append("💡 Placez les exercices composés en début de séance")
+        
+    if score < 70:
+        improvements.append("💡 Évitez les exercices intenses en fin de séance")
+    
+    return improvements
+
+def calculate_order_quality_score(exercises):
+    """
+    Score 0-100 basé sur plusieurs critères d'entraînement réels
+    Utilise intensity_factor, exercise_type, difficulty des données JSON
+    """
+    
+    if len(exercises) <= 1:
+        logger.info("🎯 Score=100 (1 seul exercice)")
+        return 100.0
+    
+    # Calculer chaque métrique
+    scores = {
+        'exercise_order': calculate_exercise_order_score(exercises),      # 30%
+        'intensity_flow': calculate_intensity_flow_score(exercises),      # 25% 
+        'fatigue_management': calculate_fatigue_score(exercises),         # 20%
+        'muscle_rotation': calculate_muscle_rotation_score(exercises),    # 15%
+        'difficulty_progression': calculate_difficulty_score(exercises)   # 10%
+    }
+    
+    # Pondération des métriques
+    weights = {
+        'exercise_order': 0.30, 
+        'intensity_flow': 0.25, 
+        'fatigue_management': 0.20,
+        'muscle_rotation': 0.15, 
+        'difficulty_progression': 0.10
+    }
+    
+    # Score final pondéré
+    total_score = sum(score * weights[metric] for metric, score in scores.items())
+    final_score = round(min(100.0, max(0.0, total_score)), 1)
+    
+    # DEBUG : Afficher le détail de chaque métrique
+    exercise_names = [ex.get('name', f'Ex{i}') for i, ex in enumerate(exercises)]
+    logger.info(f"🔍 ANALYSE SÉANCE : {' → '.join(exercise_names)}")
+    logger.info(f"  📊 Ordre exercices: {scores['exercise_order']:.1f}/100 (poids: {weights['exercise_order']:.0%})")
+    logger.info(f"  ⚡ Flux intensité: {scores['intensity_flow']:.1f}/100 (poids: {weights['intensity_flow']:.0%})")  
+    logger.info(f"  😴 Gestion fatigue: {scores['fatigue_management']:.1f}/100 (poids: {weights['fatigue_management']:.0%})")
+    logger.info(f"  🔄 Rotation muscles: {scores['muscle_rotation']:.1f}/100 (poids: {weights['muscle_rotation']:.0%})")
+    logger.info(f"  📈 Progression difficulté: {scores['difficulty_progression']:.1f}/100 (poids: {weights['difficulty_progression']:.0%})")
+    logger.info(f"🎯 SCORE FINAL: {final_score}")
+    
+    return final_score
+
+def calculate_exercise_order_score(exercises):
+    """30% du score - Récompense l'ordre composé → isolation"""
+    
+    score = 100.0
+    compound_positions = []
+    isolation_positions = []
+    
+    for i, ex in enumerate(exercises):
+        ex_type = ex.get('exercise_type', 'compound')  # Défaut compound si manquant
+        if ex_type == 'compound':
+            compound_positions.append(i)
+        elif ex_type == 'isolation':
+            isolation_positions.append(i)
+    
+    # Pénalité si isolation avant composé
+    violations = 0
+    for comp_pos in compound_positions:
+        for iso_pos in isolation_positions:
+            if iso_pos < comp_pos:
+                violations += 1
+                score -= 15  # Pénalité par violation
+    
+    if violations > 0:
+        logger.info(f"    ❌ Ordre: {violations} isolation(s) avant composé(s) (-{violations*15})")
+    else:
+        logger.info(f"    ✅ Ordre: Composés avant isolations")
+    
+    return max(0.0, score)
+
+def calculate_intensity_flow_score(exercises):
+    """25% du score - Récompense intensité décroissante ou stable"""
+    
+    if len(exercises) <= 1:
+        return 100.0
+    
+    score = 100.0
+    intensity_violations = 0
+    
+    for i in range(len(exercises) - 1):
+        current_intensity = exercises[i].get('intensity_factor', 0.8)
+        next_intensity = exercises[i + 1].get('intensity_factor', 0.8)
+        
+        if next_intensity <= current_intensity:
+            # Bonus léger pour flux décroissant
+            score += 2
+        else:
+            # Pénalité pour intensité croissante (plus difficile quand fatigué)
+            intensity_jump = (next_intensity - current_intensity) * 100
+            penalty = intensity_jump * 8
+            score -= penalty
+            intensity_violations += 1
+            
+            current_name = exercises[i].get('name', 'Ex')
+            next_name = exercises[i + 1].get('name', 'Ex')
+            logger.info(f"    ❌ Intensité croissante: {current_name}({current_intensity}) → {next_name}({next_intensity}) (-{penalty:.1f})")
+    
+    if intensity_violations == 0:
+        logger.info(f"    ✅ Intensité: Flux décroissant/stable")
+    
+    return max(0.0, min(120.0, score))  # Permet bonus jusqu'à 120
+
+def calculate_fatigue_score(exercises):
+    """20% du score - Simule fatigue cumulative"""
+    
+    score = 100.0
+    fatigue_level = 0.0
+    
+    for i, ex in enumerate(exercises):
+        intensity = ex.get('intensity_factor', 0.8)
+        is_compound = ex.get('exercise_type') == 'compound'
+        
+        # La fatigue augmente selon intensité et type
+        fatigue_increase = intensity * (1.5 if is_compound else 1.0)
+        fatigue_level += fatigue_increase
+        
+        # Pénalité si exercices intenses quand déjà fatigué
+        if fatigue_level > 3.0 and intensity > 1.0:
+            penalty = (fatigue_level - 3.0) * 6
+            score -= penalty
+            
+            ex_name = ex.get('name', 'Ex')
+            logger.info(f"    ❌ Fatigue: {ex_name} trop intense en position {i+1} (fatigue: {fatigue_level:.1f}) (-{penalty:.1f})")
+    
+    return max(0.0, score)
+
+def calculate_muscle_rotation_score(exercises):
+    """15% du score - Récompense alternance musculaire intelligente"""
+    
+    score = 100.0
+    
+    for i in range(len(exercises) - 1):
+        current_muscles = set(exercises[i].get('muscle_groups', []))
+        next_muscles = set(exercises[i + 1].get('muscle_groups', []))
+        
+        overlap = current_muscles.intersection(next_muscles)
+        
+        if overlap:
+            # Pénalité modulée selon le type d'exercice
+            current_type = exercises[i].get('exercise_type', 'compound')
+            next_type = exercises[i + 1].get('exercise_type', 'compound')
+            
+            current_name = exercises[i].get('name', 'Ex')
+            next_name = exercises[i + 1].get('name', 'Ex')
+            
+            if current_type == 'compound' and next_type == 'isolation':
+                penalty = 5  # Acceptable (finir un muscle)
+                logger.info(f"    ⚠️  Muscles: {current_name} → {next_name} (finition acceptable) (-{penalty})")
+            elif current_type == 'isolation' and next_type == 'isolation':
+                penalty = 15  # Mauvais (sur-fatigue)
+                logger.info(f"    ❌ Muscles: {current_name} → {next_name} (isolations répétées) (-{penalty})")
+            else:
+                penalty = 10  # Neutre
+                logger.info(f"    ❌ Muscles: {current_name} → {next_name} (chevauchement) (-{penalty})")
+            
+            score -= penalty
+    
+    return max(0.0, score)
+
+def calculate_difficulty_score(exercises):
+    """10% du score - Récompense progression logique de difficulté"""
+    
+    difficulty_values = {'beginner': 1, 'intermediate': 2, 'advanced': 3}
+    score = 100.0
+    
+    for i in range(len(exercises) - 1):
+        current_diff = difficulty_values.get(exercises[i].get('difficulty', 'intermediate'), 2)
+        next_diff = difficulty_values.get(exercises[i + 1].get('difficulty', 'intermediate'), 2)
+        
+        # Pénalité si difficulté augmente drastiquement
+        if next_diff > current_diff + 1:
+            penalty = 12
+            score -= penalty
+            
+            current_name = exercises[i].get('name', 'Ex')
+            next_name = exercises[i + 1].get('name', 'Ex')
+            logger.info(f"    ❌ Difficulté: {current_name} → {next_name} (saut de difficulté) (-{penalty})")
+    
+    return max(0.0, score)
 
 def optimize_by_permutations(exercises):
     """Optimisation par permutations complètes (≤4 exercices)"""
@@ -3463,103 +3696,6 @@ def crossover_sequences(parent1, parent2):
     
     return child
 
-def calculate_order_quality_score(exercises):
-    """Score 0-100 avec DEBUG détaillé pour identifier le bug"""
-    
-    if len(exercises) <= 1:
-        logger.info("🔍 Score=100 (1 seul exercice)")
-        return 100.0
-    
-    # DEBUG: Afficher la liste exacte reçue
-    exercise_names = [ex.get('name', f'Ex{i}') for i, ex in enumerate(exercises)]
-    logger.info(f"🔍 CALCUL SCORE pour: {' → '.join(exercise_names)}")
-    
-    total_penalty = 0
-    max_possible_penalty = 0
-    detailed_penalties = []
-    
-    for i in range(len(exercises) - 1):
-        current = exercises[i]
-        next_ex = exercises[i + 1]
-        
-        # DEBUG: Afficher les propriétés de chaque exercice
-        current_name = current.get('name', 'Unknown')
-        next_name = next_ex.get('name', 'Unknown')
-        current_muscles = current.get('muscle_groups', [])
-        next_muscles = next_ex.get('muscle_groups', [])
-        
-        logger.info(f"  Comparaison {i+1}: {current_name} (muscles: {current_muscles}) → {next_name} (muscles: {next_muscles})")
-        
-        # PÉNALITÉ 1: Isolation avant composé
-        penalty_1 = penalty_isolation_before_compound(current, next_ex)
-        total_penalty += penalty_1
-        max_possible_penalty += 30
-        if penalty_1 > 0:
-            detailed_penalties.append(f"Isolation→Composé: {current_name}→{next_name} (-{penalty_1})")
-        
-        # PÉNALITÉ 2: Même muscle consécutif  
-        penalty_2 = penalty_same_muscle_consecutive(current, next_ex)
-        total_penalty += penalty_2
-        max_possible_penalty += 25
-        if penalty_2 > 0:
-            detailed_penalties.append(f"Muscles répétés: {current_name}→{next_name} (-{penalty_2})")
-        
-        # PÉNALITÉ 3: Intensité progression
-        penalty_3 = penalty_intensity_progression(current, next_ex)
-        total_penalty += penalty_3  
-        max_possible_penalty += 15
-        if penalty_3 > 0:
-            detailed_penalties.append(f"Intensité croissante: {current_name}→{next_name} (-{penalty_3})")
-    
-    # Calcul final avec DEBUG
-    if max_possible_penalty == 0:
-        score = 100.0
-    else:
-        score = 100 * (1 - total_penalty / max_possible_penalty)
-    
-    # LOG DÉTAILLÉ
-    logger.info(f"🎯 DÉTAIL CALCUL:")
-    logger.info(f"   Pénalités totales: {total_penalty}/{max_possible_penalty}")
-    if detailed_penalties:
-        for penalty in detailed_penalties:
-            logger.info(f"   - {penalty}")
-    else:
-        logger.info(f"   - Aucune pénalité détectée")
-    logger.info(f"   Score final: {score:.2f}")
-    
-    return max(0.0, min(100.0, score))
-
-def penalty_same_muscle_consecutive(current, next_ex):
-    """Pénalité debug avec logs détaillés"""
-    muscles_current = set(current.get('muscle_groups', []))
-    muscles_next = set(next_ex.get('muscle_groups', []))
-    
-    intersection = muscles_current.intersection(muscles_next)
-    overlap_count = len(intersection)
-    
-    logger.info(f"    Muscles {current.get('name', '?')}: {muscles_current}")
-    logger.info(f"    Muscles {next_ex.get('name', '?')}: {muscles_next}")
-    logger.info(f"    Intersection: {intersection} ({overlap_count} muscles)")
-    
-    if overlap_count >= 2:
-        logger.info(f"    → Pénalité MAJEURE: {overlap_count} muscles partagés (-25)")
-        return 25
-    elif overlap_count == 1:
-        logger.info(f"    → Pénalité mineure: {overlap_count} muscle partagé (-10)")
-        return 10
-    else:
-        logger.info(f"    → Pas de pénalité")
-        return 0
-    
-def penalty_isolation_before_compound(current, next_ex):
-    """Pénalité si isolation avant composé"""
-    current_type = current.get('exercise_type', 'compound')
-    next_type = next_ex.get('exercise_type', 'compound')
-    
-    if current_type == 'isolation' and next_type == 'compound':
-        return 30  # Violation majeure des principes d'entraînement
-    return 0
-
 def penalty_same_muscle_consecutive(current, next_ex):
     """Pénalité overlap musculaire consécutif"""
     muscles_current = set(current.get('muscle_groups', []))
@@ -3571,16 +3707,6 @@ def penalty_same_muscle_consecutive(current, next_ex):
         return 25  # Conflit majeur
     elif overlap == 1:
         return 10  # Conflit mineur acceptable
-    return 0
-
-def penalty_intensity_progression(current, next_ex):
-    """Pénalité si intensité croissante en cours de séance"""
-    current_intensity = current.get('intensity_factor', 1.0)
-    next_intensity = next_ex.get('intensity_factor', 1.0)
-    
-    # Légère pénalité si intensité croît (fatigue cumulative)
-    if next_intensity > current_intensity + 0.2:
-        return 10
     return 0
 
 def analyze_improvements(original, optimized):
