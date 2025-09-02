@@ -458,38 +458,48 @@ class AISessionManager {
      * LOCALISATION: Dans ai-session-manager.js, méthode animateScoreChange()
      * ACTION: Remplacer cette méthode
      */
-
     animateScoreChange(newScore) {
         const scoreElement = document.querySelector('#generatedSessionPreview .ai-session-quality-score');
-        if (!scoreElement) return;
+        if (!scoreElement) {
+            console.warn('❌ Élément score non trouvé pour animation');
+            return;
+        }
+        
+        console.log(`🎯 Animation score: ${this.lastScore} → ${newScore}`);
+        
+        // FORCER le reset complet des styles
+        scoreElement.removeAttribute('data-score'); // Supprimer data-score
+        scoreElement.style.background = ''; // Reset inline styles
+        scoreElement.className = 'ai-session-quality-score'; // Reset classes
         
         // Comparer avec le score précédent
         let trendClass = 'score-stable';
         let trendIcon = '';
         
-        if (this.lastScore !== null) {
+        if (this.lastScore !== null && this.lastScore !== newScore) {
             if (newScore > this.lastScore) {
                 trendClass = 'score-improving';
                 trendIcon = '<span class="score-trend-indicator">↗️</span>';
+                console.log(`📈 Score amélioration: ${this.lastScore} → ${newScore}`);
             } else if (newScore < this.lastScore) {
                 trendClass = 'score-declining';  
                 trendIcon = '<span class="score-trend-indicator">↘️</span>';
-            } else {
-                trendClass = 'score-stable';
-                trendIcon = '<span class="score-trend-indicator">➡️</span>';
+                console.log(`📉 Score dégradation: ${this.lastScore} → ${newScore}`);
             }
+        } else if (this.lastScore === newScore) {
+            trendClass = 'score-stable';
+            trendIcon = '<span class="score-trend-indicator">➡️</span>';
+            console.log(`➡️ Score stable: ${newScore}`);
         }
         
-        // Supprimer les anciennes classes de tendance
-        scoreElement.classList.remove('score-improving', 'score-declining', 'score-stable');
-        
-        // Appliquer la nouvelle classe
+        // Appliquer la classe de tendance
         scoreElement.classList.add(trendClass);
+        console.log(`🎨 Classe appliquée: ${trendClass}`);
         
-        // Mettre à jour le contenu avec l'icône de tendance
+        // Mettre à jour le contenu
         scoreElement.innerHTML = `<i class="fas fa-star"></i> ${newScore}%${trendIcon}`;
         
-        // Animation de changement
+        // Animation de changement forcée
         scoreElement.style.transform = 'scale(1.1)';
         scoreElement.style.transition = 'all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
         
@@ -497,10 +507,8 @@ class AISessionManager {
             scoreElement.style.transform = 'scale(1)';
         }, 400);
         
-        // Mémoriser le score pour la prochaine comparaison
+        // Mémoriser le score
         this.lastScore = newScore;
-        
-        console.log(`🎯 Score: ${this.lastScore || 'nouveau'} → ${newScore} (${trendClass})`);
     }
 
     /**
@@ -802,7 +810,7 @@ class AISessionManager {
                         <i class="fas fa-dumbbell"></i>
                         ${pplUsed.toUpperCase()}
                     </div>
-                    <div class="ai-session-quality-score" data-score="${scoreClass}">
+                    <div class="ai-session-quality-score">
                         <i class="fas fa-star"></i> ${qualityScore}%
                     </div>
                 </div>
@@ -1634,47 +1642,7 @@ class AISessionManager {
         }
         return 0;
     }
-    
-
-    animateScoreChange(newScore) {
-        const scoreElement = document.querySelector('#generatedSessionPreview .ai-session-quality-score');
-        if (!scoreElement) return;
         
-        // Déterminer nouvelle classe selon score
-        let scoreClass = 'average';
-        if (newScore >= 85) scoreClass = 'excellent';
-        else if (newScore >= 70) scoreClass = 'good';
-        
-        // Appliquer nouvelle classe avec animation
-        scoreElement.setAttribute('data-score', scoreClass);
-        scoreElement.innerHTML = `<i class="fas fa-star"></i> ${newScore}%`;
-        
-        // Animation scale
-        scoreElement.style.transform = 'scale(1.15)';
-        scoreElement.style.transition = 'all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
-        
-        setTimeout(() => {
-            scoreElement.style.transform = 'scale(1)';
-        }, 400);
-        
-        // Animation flash couleur
-        const originalBg = scoreElement.style.background;
-        if (scoreClass === 'excellent') {
-            scoreElement.style.background = 'linear-gradient(135deg, #10b981, #059669)';
-            scoreElement.style.boxShadow = '0 8px 32px rgba(16, 185, 129, 0.6)';
-        } else if (scoreClass === 'good') {
-            scoreElement.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
-            scoreElement.style.boxShadow = '0 8px 32px rgba(245, 158, 11, 0.6)';
-        } else {
-            scoreElement.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
-            scoreElement.style.boxShadow = '0 8px 32px rgba(239, 68, 68, 0.6)';
-        }
-        
-        setTimeout(() => {
-            scoreElement.style.background = originalBg;
-        }, 1000);
-    }
-    
     // ===== SWAP D'EXERCICES ADAPTÉ DE PLANNING.JS =====
     
     async swapExercise(exerciseIndex) {
