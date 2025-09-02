@@ -3371,10 +3371,12 @@ def optimize_ai_session(request_data: dict, db: Session = Depends(get_db)):
         quality_score = calculate_order_quality_score(optimized)
         improvements = analyze_improvements(exercises, optimized)
         
+        logger.info(f"🔄 Response envoyée: optimization_score={round(quality_score, 1)}, quality_score={round(quality_score, 1)}")
+
         return {
             "optimized_exercises": optimized,
-            "quality_score": round(quality_score, 1),  # ← CORRECTION ICI
-            "optimization_score": round(quality_score, 1),  # Backward compatibility
+            "optimization_score": round(quality_score, 1),
+            "quality_score": round(quality_score, 1),  # Double pour compatibilité
             "improvements": improvements,
             "method_used": "permutations" if len(exercises) <= 4 else "genetic"
         }

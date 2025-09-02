@@ -1539,10 +1539,9 @@ class AISessionManager {
                 user_id: window.currentUser.id,
                 exercises: exercises
             });
-            
-            newScore = Math.round(response.quality_score || 75); // ← Maintenant cohérent
-            console.log('✅ [DEBUG] Score API:', newScore);
-            
+            newScore = Math.round(response.optimization_score || response.quality_score || 75);
+            console.log('✅ [DEBUG] Score API:', newScore, 'depuis response:', response);
+                        
         } catch (apiError) {
             console.warn('⚠️ [DEBUG] API scoring échouée, calcul local');
             newScore = this.calculateLocalQualityScore(exercises); // ← Maintenant cohérent aussi
@@ -1681,7 +1680,7 @@ class AISessionManager {
         try {
             // UTILISER L'ENDPOINT EXISTANT (même que app.js)
             const response = await window.apiGet(
-                `/api/exercises/${exercise.exercise_id}/alternatives?user_id=${window.currentUser.id}&reason=user_preference`
+                `/api/exercises/${exercise.exercise_id}/alternatives?user_id=${window.currentUser.id}&reason=preference`
             );
             
             if (response && response.alternatives) {
