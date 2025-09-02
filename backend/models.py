@@ -32,7 +32,8 @@ class User(Base):
     workouts = relationship("Workout", back_populates="user", cascade="all, delete-orphan")
     adaptation_coefficients = relationship("UserAdaptationCoefficients", back_populates="user", cascade="all, delete-orphan")
     performance_states = relationship("PerformanceStates", back_populates="user", cascade="all, delete-orphan")
-
+    programs = relationship("Program", back_populates="user")
+    
 class Exercise(Base):
     __tablename__ = "exercises"
     
