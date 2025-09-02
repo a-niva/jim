@@ -437,7 +437,45 @@ class AIExerciseGenerator:
             reasons.append(f"Pas travaillé depuis {days_since} jour{'s' if days_since > 1 else ''}")
         
         return " • ".join(reasons) if reasons else f"Meilleure option disponible"
-    
+
+    def _save_generation_to_history(self, user_id: int, params: Dict, exercises: List, quality_score: float):
+        """Sauvegarde génération dans Program.ai_generation_history"""
+        
+        try:
+            active_program = self.db.query(Program).filter(
+                Program.user_id == user_id,
+                Program.is_active == True
+            ).first()
+            
+            if active_program:
+                if not active_program.ai_generation_history:
+                    active_program.ai_generation_history = []
+                
+                # Ajouter nouvelle génération
+                generation_entry = {
+                    "generated_at": datetime.now(timezone.utc).isoformat(),
+                    "parameters": params,
+                    "exercises_generated": [ex.get('exercise_id') for ex in exercises],
+                    "quality_score": quality_score,
+                    "user_launched": False  # Sera mis à True si user lance la séance
+                }
+                
+                active_program.ai_generation_history.append(generation_entry)
+                
+                # Garder seulement les 10 dernières générations
+                if len(active_program.ai_generation_history) > 10:
+                    active_program.ai_generation_history = active_program.ai_generation_history[-10:]
+                
+                # IMPORTANT : Flag SQLAlchemy que JSON a changé
+                from sqlalchemy.orm.attributes import flag_modified
+                flag_modified(active_program, "ai_generation_history")
+                
+                self.db.commit()
+                logger.info("✅ Génération sauvée dans historique")
+        
+        except Exception as e:
+            logger.warning(f"Erreur sauvegarde historique: {e}")
+
     def _generate_fallback_session(self, user_id: int, params: Dict[str, Any]) -> Dict[str, Any]:
         """Génération fallback en cas d'erreur"""
         

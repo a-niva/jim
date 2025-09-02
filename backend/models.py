@@ -133,6 +133,22 @@ class WorkoutSet(Base):
     swap_from_exercise_id = Column(Integer, ForeignKey('exercises.id'), nullable=True)
     swap_reason = Column(String(50), nullable=True)
 
+class Program(Base):
+    __tablename__ = "programs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    name = Column(String(100), default="Programme Principal")
+    is_active = Column(Boolean, default=True)
+    
+    # CRITIQUE : Historique générations IA
+    ai_generation_history = Column(JSON, default=lambda: [])
+    
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc))
+    
+    user = relationship("User", back_populates="programs")
+
 class SetHistory(Base):
     """Table d'historique pour l'analyse ML avancée"""
     __tablename__ = "set_history"

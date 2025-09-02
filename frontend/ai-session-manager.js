@@ -1517,86 +1517,116 @@ class AISessionManager {
         }
     }
     
-    // ===== SCORING TEMPS RÉEL ADAPTÉ DE PLANNING.JS =====
-    
+    // ===== SCORING TEMPS RÉEL =====
+        
     async updateAISessionScoring(exercises) {
         console.log('📊 [DEBUG] Calcul scoring avec', exercises.length, 'exercices');
+        
+        // IMPORTANT : Cette méthode évalue la QUALITÉ de l'ordre des exercices
+        // Elle ne les réordonne PAS, juste calcule un score 0-100
         
         if (!exercises || exercises.length === 0) {
             console.log('⚠️ [DEBUG] Pas d\'exercices pour scoring');
             return;
         }
         
-        let newScore = 75; // Score par défaut
+        let newScore = 75;
         
         try {
-            // Tenter API backend si disponible
+            // Backend fait calcul sophistiqué avec exercise_type, intensity_factor 
             const response = await window.apiPost('/api/ai/optimize-session', {
                 user_id: window.currentUser.id,
                 exercises: exercises
             });
             
-            newScore = Math.round(response.quality_score || 75);
+            newScore = Math.round(response.quality_score || 75); // ← Maintenant cohérent
             console.log('✅ [DEBUG] Score API:', newScore);
             
         } catch (apiError) {
             console.warn('⚠️ [DEBUG] API scoring échouée, calcul local');
-            newScore = this.calculateLocalQualityScore(exercises);
+            newScore = this.calculateLocalQualityScore(exercises); // ← Maintenant cohérent aussi
         }
         
-        // Mettre à jour dans lastGenerated
+        // Suite inchangée...
         if (this.lastGenerated) {
             this.lastGenerated.quality_score = newScore;
         }
         
-        // Animer le changement
         this.animateScoreChange(newScore);
-        
         console.log('🎯 [DEBUG] Score final:', newScore);
-        
         return newScore;
     }
     
     calculateLocalQualityScore(exercises) {
         /**
-         * Calcul local basique de score qualité
-         * Adapté de planning.js calculatePreviewQualityScoreFallback()
+         * Calcul local cohérent avec algorithme backend
+         * Basé sur principes réels d'entraînement
          */
         
         if (!exercises || exercises.length === 0) return 50;
         
-        let score = 75; // Score base
+        let score = 100; // Commencer parfait, soustraire pénalités
+        let totalPenalty = 0;
+        let maxPossiblePenalty = 0;
         
-        // Bonus diversité groupes musculaires
-        const uniqueMuscles = new Set();
-        exercises.forEach(ex => {
-            if (ex.muscle_groups) {
-                ex.muscle_groups.forEach(muscle => uniqueMuscles.add(muscle));
-            }
-        });
-        score += Math.min(uniqueMuscles.size * 2, 15);
-        
-        // Bonus équilibre exercices composés/isolation
-        const compoundCount = exercises.filter(ex => 
-            ex.muscle_groups && ex.muscle_groups.length > 1
-        ).length;
-        const balanceRatio = compoundCount / exercises.length;
-        if (balanceRatio >= 0.4 && balanceRatio <= 0.7) {
-            score += 5;
+        for (let i = 0; i < exercises.length - 1; i++) {
+            const current = exercises[i];
+            const next = exercises[i + 1];
+            
+            // PÉNALITÉ 1: Isolation avant composé
+            const penalty1 = this.penaltyIsolationBeforeCompound(current, next);
+            totalPenalty += penalty1;
+            maxPossiblePenalty += 30;
+            
+            // PÉNALITÉ 2: Même muscle consécutif  
+            const penalty2 = this.penaltySameMuscleConsecutive(current, next);
+            totalPenalty += penalty2;
+            maxPossiblePenalty += 25;
+            
+            // PÉNALITÉ 3: Repos incohérent
+            const penalty3 = this.penaltyRestTransition(current, next);
+            totalPenalty += penalty3;
+            maxPossiblePenalty += 15;
         }
         
-        // Malus répétition équipements
-        const equipmentSet = new Set();
-        exercises.forEach(ex => {
-            if (ex.equipment_required) {
-                equipmentSet.add(ex.equipment_required[0]);
-            }
-        });
-        if (equipmentSet.size < exercises.length * 0.6) {
-            score -= 5;
-        }
+        // Score final normalisé
+        if (maxPossiblePenalty === 0) return 100;
         
-        return Math.min(Math.max(score, 40), 95);
+        const finalScore = 100 * (1 - totalPenalty / maxPossiblePenalty);
+        return Math.max(40, Math.min(95, Math.round(finalScore)));
+    }
+
+    penaltyIsolationBeforeCompound(current, next) {
+        // Approximation : isolation = 1 groupe musculaire, composé = 2+
+        const currentCompound = (current.muscle_groups || []).length >= 2;
+        const nextCompound = (next.muscle_groups || []).length >= 2;
+        
+        if (!currentCompound && nextCompound) {
+            return 30; // Violation majeure
+        }
+        return 0;
+    }
+
+    penaltySameMuscleConsecutive(current, next) {
+        const musclesCurrent = new Set(current.muscle_groups || []);
+        const musclesNext = new Set(next.muscle_groups || []);
+        
+        const intersection = [...musclesCurrent].filter(m => musclesNext.has(m));
+        
+        if (intersection.length >= 2) return 25; // Conflit majeur
+        if (intersection.length === 1) return 10; // Conflit mineur
+        return 0;
+    }
+
+    penaltyRestTransition(current, next) {
+        const currentRest = current.base_rest_time_seconds || 90;
+        const nextRest = next.base_rest_time_seconds || 90;
+        
+        // Pénalité si repos long → repos court (mauvaise progression)
+        if (currentRest >= 120 && nextRest <= 60) {
+            return 15;
+        }
+        return 0;
     }
     
 

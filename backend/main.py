@@ -3344,6 +3344,210 @@ def generate_ai_exercises(request_data: dict, db: Session = Depends(get_db)):
         logger.error(f"Erreur génération IA: {e}")
         raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
 
+@app.post("/api/ai/optimize-session")
+def optimize_ai_session(request_data: dict, db: Session = Depends(get_db)):
+    """Optimise l'ordre d'une séance générée - Algorithme hybride efficient"""
+    
+    exercises = request_data.get('exercises', [])
+    user_id = request_data.get('user_id', 1)
+    
+    if len(exercises) <= 1:
+        return {
+            "optimized_exercises": exercises, 
+            "optimization_score": 100.0,
+            "improvements": ["Séance trop courte pour optimiser"]
+        }
+    
+    try:
+        # STRATÉGIE HYBRIDE pour éviter explosion combinatoire
+        if len(exercises) <= 4:
+            # Permutations complètes (4! = 24, acceptable)
+            optimized = optimize_by_permutations(exercises)
+        else:
+            # Algorithme génétique simple (efficace pour 5-8 exercices)
+            optimized = optimize_by_genetic_algorithm(exercises)
+        
+        # Score de qualité normalisé
+        quality_score = calculate_order_quality_score(optimized)
+        improvements = analyze_improvements(exercises, optimized)
+        
+        return {
+            "optimized_exercises": optimized,
+            "quality_score": round(quality_score, 1),  # ← CORRECTION ICI
+            "optimization_score": round(quality_score, 1),  # Backward compatibility
+            "improvements": improvements,
+            "method_used": "permutations" if len(exercises) <= 4 else "genetic"
+        }
+        
+    except Exception as e:
+        logger.error(f"Erreur optimisation: {e}")
+        return {
+            "optimized_exercises": exercises,  # Retour ordre original
+            "quality_score": 50.0,
+            "improvements": ["Erreur optimisation, ordre conservé"]
+        }
+
+def optimize_by_permutations(exercises):
+    """Optimisation par permutations complètes (≤4 exercices)"""
+    from itertools import permutations
+    
+    best_order = exercises
+    best_score = calculate_order_quality_score(exercises)
+    
+    for perm in permutations(exercises):
+        score = calculate_order_quality_score(list(perm))
+        if score > best_score:
+            best_score = score
+            best_order = list(perm)
+    
+    return best_order
+
+def optimize_by_genetic_algorithm(exercises):
+    """Algorithme génétique simple pour 5-8 exercices"""
+    import random
+    
+    population_size = 20
+    generations = 50
+    
+    # Population initiale
+    population = []
+    for _ in range(population_size):
+        individual = exercises.copy()
+        random.shuffle(individual)
+        population.append(individual)
+    
+    for generation in range(generations):
+        # Évaluer fitness
+        fitness_scores = [(individual, calculate_order_quality_score(individual)) 
+                         for individual in population]
+        fitness_scores.sort(key=lambda x: x[1], reverse=True)
+        
+        # Garder les 50% meilleurs
+        survivors = [individual for individual, score in fitness_scores[:population_size//2]]
+        
+        # Générer nouvelles solutions par croisement
+        new_population = survivors.copy()
+        while len(new_population) < population_size:
+            parent1 = random.choice(survivors)
+            parent2 = random.choice(survivors)
+            child = crossover_sequences(parent1, parent2)
+            new_population.append(child)
+        
+        population = new_population
+    
+    # Retourner le meilleur
+    final_scores = [(individual, calculate_order_quality_score(individual)) 
+                   for individual in population]
+    return max(final_scores, key=lambda x: x[1])[0]
+
+def crossover_sequences(parent1, parent2):
+    """Croisement intelligent pour séquences d'exercices"""
+    import random
+    
+    # Order Crossover (OX) - préserve positions relatives
+    size = len(parent1)
+    start, end = sorted(random.sample(range(size), 2))
+    
+    child = [None] * size
+    child[start:end] = parent1[start:end]
+    
+    # Remplir le reste avec l'ordre de parent2
+    parent2_filtered = [ex for ex in parent2 if ex not in child]
+    child_idx = 0
+    for i, ex in enumerate(parent2_filtered):
+        while child[child_idx] is not None:
+            child_idx += 1
+        child[child_idx] = ex
+    
+    return child
+
+def calculate_order_quality_score(exercises):
+    """Score 0-100 basé uniquement sur qualité de l'ordre"""
+    
+    if len(exercises) <= 1:
+        return 100.0
+    
+    total_penalty = 0
+    max_possible_penalty = 0
+    
+    for i in range(len(exercises) - 1):
+        current = exercises[i]
+        next_ex = exercises[i + 1]
+        
+        # PÉNALITÉ 1: Isolation avant composé (critique)
+        penalty_1 = penalty_isolation_before_compound(current, next_ex)
+        total_penalty += penalty_1
+        max_possible_penalty += 30
+        
+        # PÉNALITÉ 2: Même muscle consécutif (majeure)
+        penalty_2 = penalty_same_muscle_consecutive(current, next_ex)
+        total_penalty += penalty_2
+        max_possible_penalty += 25
+        
+        # PÉNALITÉ 3: Intensité décroissante (modérée)
+        penalty_3 = penalty_intensity_progression(current, next_ex)
+        total_penalty += penalty_3
+        max_possible_penalty += 15
+    
+    # Score normalisé
+    if max_possible_penalty == 0:
+        return 100.0
+    
+    score = 100 * (1 - total_penalty / max_possible_penalty)
+    return max(0.0, min(100.0, score))
+
+def penalty_isolation_before_compound(current, next_ex):
+    """Pénalité si isolation avant composé"""
+    current_type = current.get('exercise_type', 'compound')
+    next_type = next_ex.get('exercise_type', 'compound')
+    
+    if current_type == 'isolation' and next_type == 'compound':
+        return 30  # Violation majeure des principes d'entraînement
+    return 0
+
+def penalty_same_muscle_consecutive(current, next_ex):
+    """Pénalité overlap musculaire consécutif"""
+    muscles_current = set(current.get('muscle_groups', []))
+    muscles_next = set(next_ex.get('muscle_groups', []))
+    
+    overlap = len(muscles_current.intersection(muscles_next))
+    
+    if overlap >= 2:
+        return 25  # Conflit majeur
+    elif overlap == 1:
+        return 10  # Conflit mineur acceptable
+    return 0
+
+def penalty_intensity_progression(current, next_ex):
+    """Pénalité si intensité croissante en cours de séance"""
+    current_intensity = current.get('intensity_factor', 1.0)
+    next_intensity = next_ex.get('intensity_factor', 1.0)
+    
+    # Légère pénalité si intensité croît (fatigue cumulative)
+    if next_intensity > current_intensity + 0.2:
+        return 10
+    return 0
+
+def analyze_improvements(original, optimized):
+    """Analyse des améliorations apportées"""
+    improvements = []
+    
+    # Vérifier si compound en premier
+    if (optimized[0].get('exercise_type') == 'compound' and 
+        original[0].get('exercise_type') != 'compound'):
+        improvements.append("Exercice composé placé en premier")
+    
+    # Compter violations évitées
+    original_score = calculate_order_quality_score(original)
+    optimized_score = calculate_order_quality_score(optimized)
+    
+    if optimized_score > original_score + 5:
+        improvements.append(f"Score amélioré de {optimized_score - original_score:.1f} points")
+    
+    if not improvements:
+        improvements.append("Ordre déjà optimal")
+    
+    return improvements
 
 @app.get("/api/ai/ppl-recommendation/{user_id}")
 def get_ppl_recommendation(user_id: int, db: Session = Depends(get_db)):
