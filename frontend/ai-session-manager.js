@@ -399,6 +399,13 @@ class AISessionManager {
                 ${this.lastGenerated.exercises.map((ex, index) => this.renderSingleExercise(ex, index)).join('')}
             </div>
             
+            <div class="ai-session-optimization-actions">
+                <button id="optimizeOrderBtn" class="ai-session-btn ai-session-btn-secondary" onclick="window.aiSessionManager.optimizeExerciseOrder()">
+                    <i class="fas fa-magic"></i> Optimiser l'ordre
+                </button>
+                <small class="optimization-hint">Réorganise automatiquement pour le meilleur score</small>
+            </div>
+            
             <div class="ai-session-launch-actions">
                 <button id="launchAISessionBtn" class="ai-session-btn ai-session-btn-success">
                     <i class="fas fa-rocket"></i> Lancer Séance
@@ -409,6 +416,46 @@ class AISessionManager {
                 </p>
             </div>
         `;
+    }
+
+    async optimizeExerciseOrder() {
+        if (!this.lastGenerated || !this.lastGenerated.exercises) {
+            console.warn('Pas d\'exercices à optimiser');
+            return;
+        }
+        
+        try {
+            console.log('🪄 Optimisation automatique de l\'ordre...');
+            
+            // Appeler l'API en mode 'optimize'
+            const response = await window.apiPost('/api/ai/optimize-session', {
+                user_id: window.currentUser.id,
+                exercises: this.lastGenerated.exercises,
+                mode: 'optimize'  // Mode optimisation
+            });
+            
+            if (response.optimized_exercises) {
+                // Mettre à jour l'ordre des exercices
+                this.lastGenerated.exercises = response.optimized_exercises;
+                this.lastGenerated.quality_score = response.optimization_score || response.quality_score;
+                
+                // Réafficher avec le nouvel ordre
+                await this.updateGeneratedSessionDisplay();
+                
+                // Message de succès
+                const improvement = response.improvements && response.improvements.length > 0 
+                    ? response.improvements[0] 
+                    : 'Ordre optimisé';
+                
+                window.showToast(`🪄 ${improvement} - Score: ${Math.round(this.lastGenerated.quality_score)}%`, 'success');
+                
+                console.log('✅ Ordre optimisé:', this.lastGenerated.exercises.map(ex => ex.name));
+            }
+            
+        } catch (error) {
+            console.error('❌ Erreur optimisation ordre:', error);
+            window.showToast('Erreur lors de l\'optimisation', 'error');
+        }
     }
 
     /**
@@ -1521,10 +1568,7 @@ class AISessionManager {
     // ===== SCORING TEMPS RÉEL =====
         
     async updateAISessionScoring(exercises) {
-        console.log('📊 [DEBUG] Calcul scoring avec', exercises.length, 'exercices');
-        
-        // IMPORTANT : Cette méthode évalue la QUALITÉ de l'ordre des exercices
-        // Elle ne les réordonne PAS, juste calcule un score 0-100
+        console.log('📊 [DEBUG] Évaluation score ordre actuel avec', exercises.length, 'exercices');
         
         if (!exercises || exercises.length === 0) {
             console.log('⚠️ [DEBUG] Pas d\'exercices pour scoring');
@@ -1534,26 +1578,30 @@ class AISessionManager {
         let newScore = 75;
         
         try {
-            // Backend fait calcul sophistiqué avec exercise_type, intensity_factor 
+            // TOUJOURS évaluer l'ordre donné (jamais optimiser automatiquement)
             const response = await window.apiPost('/api/ai/optimize-session', {
                 user_id: window.currentUser.id,
-                exercises: exercises
+                exercises: exercises,
+                mode: 'evaluate'  // Force l'évaluation de l'ordre actuel
             });
+            
             newScore = Math.round(response.optimization_score || response.quality_score || 75);
-            console.log('✅ [DEBUG] Score API:', newScore, 'depuis response:', response);
-                        
+            console.log('✅ [DEBUG] Score ordre actuel:', newScore);
+            
         } catch (apiError) {
             console.warn('⚠️ [DEBUG] API scoring échouée, calcul local');
-            newScore = this.calculateLocalQualityScore(exercises); // ← Maintenant cohérent aussi
+            newScore = this.calculateLocalQualityScore(exercises);
         }
         
-        // Suite inchangée...
+        // Mettre à jour dans lastGenerated
         if (this.lastGenerated) {
             this.lastGenerated.quality_score = newScore;
         }
         
+        // Animer le changement
         this.animateScoreChange(newScore);
-        console.log('🎯 [DEBUG] Score final:', newScore);
+        console.log('🎯 [DEBUG] Score final affiché:', newScore);
+        
         return newScore;
     }
     
@@ -1794,31 +1842,27 @@ class AISessionManager {
             handle: '.ai-session-exercise-drag-handle',
             ghostClass: 'ai-session-exercise-ghost',
             chosenClass: 'ai-session-exercise-chosen',
-            
+    
             onEnd: async (evt) => {
-                console.log('📦 [DEBUG] Drag terminé:', evt.oldIndex, '→', evt.newIndex);
+                const oldIndex = evt.oldIndex;
+                const newIndex = evt.newIndex;
                 
-                if (evt.oldIndex === evt.newIndex) {
-                    console.log('ℹ️ [DEBUG] Même position, rien à faire');
-                    return;
-                }
-                
-                try {
-                    // 1. RÉORGANISER le tableau exercises
-                    const [moved] = this.lastGenerated.exercises.splice(evt.oldIndex, 1);
-                    this.lastGenerated.exercises.splice(evt.newIndex, 0, moved);
+                if (oldIndex !== newIndex) {
+                    console.log(`📦 [DEBUG] Drag terminé: ${oldIndex} → ${newIndex}`);
+                    
+                    // Réorganiser le tableau exercises
+                    const movedExercise = this.lastGenerated.exercises.splice(oldIndex, 1)[0];
+                    this.lastGenerated.exercises.splice(newIndex, 0, movedExercise);
+                    
                     console.log('✅ [DEBUG] Tableau exercises réorganisé');
                     
-                    // 2. METTRE À JOUR LES NUMÉROS dans le DOM
+                    // Mettre à jour les numéros d'ordre visuels
                     this.updateExerciseNumbers();
                     
-                    // 3. RECALCULER ET ANIMER LE SCORE
+                    // RECALCULER le score avec le nouvel ordre
                     await this.updateAISessionScoring(this.lastGenerated.exercises);
                     
                     console.log('🎯 [DEBUG] Réorganisation terminée');
-                    
-                } catch (error) {
-                    console.error('❌ [DEBUG] Erreur pendant drag & drop:', error);
                 }
             }
         });
