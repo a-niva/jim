@@ -28,7 +28,7 @@ class AISessionManager {
     constructor(containerId = 'ai-session-container') {
         this.containerId = containerId;
         this.container = null;  // Sera défini dans initialize()
-            
+        this.lastScore = null;  // Pour comparer les scores    
         // Paramètres génération avec valeurs par défaut intelligentes
         this.params = {
             ppl_override: null,           // null = auto-recommendation
@@ -463,39 +463,44 @@ class AISessionManager {
         const scoreElement = document.querySelector('#generatedSessionPreview .ai-session-quality-score');
         if (!scoreElement) return;
         
-        // Déterminer nouvelle classe selon score
-        let scoreClass = 'average';
-        if (newScore >= 85) scoreClass = 'excellent';
-        else if (newScore >= 70) scoreClass = 'good';
+        // Comparer avec le score précédent
+        let trendClass = 'score-stable';
+        let trendIcon = '';
         
-        // Appliquer nouvelle classe avec animation
-        scoreElement.setAttribute('data-score', scoreClass);
-        scoreElement.innerHTML = `<i class="fas fa-star"></i> ${newScore}%`;
+        if (this.lastScore !== null) {
+            if (newScore > this.lastScore) {
+                trendClass = 'score-improving';
+                trendIcon = '<span class="score-trend-indicator">↗️</span>';
+            } else if (newScore < this.lastScore) {
+                trendClass = 'score-declining';  
+                trendIcon = '<span class="score-trend-indicator">↘️</span>';
+            } else {
+                trendClass = 'score-stable';
+                trendIcon = '<span class="score-trend-indicator">➡️</span>';
+            }
+        }
         
-        // Animation scale
-        scoreElement.style.transform = 'scale(1.15)';
+        // Supprimer les anciennes classes de tendance
+        scoreElement.classList.remove('score-improving', 'score-declining', 'score-stable');
+        
+        // Appliquer la nouvelle classe
+        scoreElement.classList.add(trendClass);
+        
+        // Mettre à jour le contenu avec l'icône de tendance
+        scoreElement.innerHTML = `<i class="fas fa-star"></i> ${newScore}%${trendIcon}`;
+        
+        // Animation de changement
+        scoreElement.style.transform = 'scale(1.1)';
         scoreElement.style.transition = 'all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
         
         setTimeout(() => {
             scoreElement.style.transform = 'scale(1)';
         }, 400);
         
-        // Animation flash couleur
-        const originalBg = scoreElement.style.background;
-        if (scoreClass === 'excellent') {
-            scoreElement.style.background = 'linear-gradient(135deg, #10b981, #059669)';
-            scoreElement.style.boxShadow = '0 8px 32px rgba(16, 185, 129, 0.6)';
-        } else if (scoreClass === 'good') {
-            scoreElement.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
-            scoreElement.style.boxShadow = '0 8px 32px rgba(245, 158, 11, 0.6)';
-        } else {
-            scoreElement.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
-            scoreElement.style.boxShadow = '0 8px 32px rgba(239, 68, 68, 0.6)';
-        }
+        // Mémoriser le score pour la prochaine comparaison
+        this.lastScore = newScore;
         
-        setTimeout(() => {
-            scoreElement.style.background = originalBg;
-        }, 1000);
+        console.log(`🎯 Score: ${this.lastScore || 'nouveau'} → ${newScore} (${trendClass})`);
     }
 
     /**
@@ -911,7 +916,7 @@ class AISessionManager {
         /**
          * Regénère avec nouveau seed aléatoire
          */
-        
+        this.lastScore = this.lastGenerated?.quality_score || null; // Mémoriser l'ancien score
         if (!this.lastGenerated) {
             await this.generateSession();
             return;
@@ -1536,6 +1541,9 @@ class AISessionManager {
             });
             
             newScore = Math.round(response.optimization_score || response.quality_score || 75);
+            if (this.lastScore === null) {
+                this.lastScore = newScore; // Pas d'animation à la première génération
+            }
             console.log('✅ [DEBUG] Score ordre actuel:', newScore);
             
         } catch (apiError) {
