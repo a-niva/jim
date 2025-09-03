@@ -291,3 +291,25 @@ class SetCreate(BaseModel):
     set_order_in_session: Optional[int] = None
     ml_adjustment_enabled: Optional[bool] = None
     voice_data: Optional[VoiceDataML] = None  # MODIFIER POUR UTILISER LE NOUVEAU SCHÉMA
+
+
+
+# ===== SCHEMAS GÉNÉRATION AI =====
+
+class AIGenerationParams(BaseModel):
+    ppl_override: Optional[str] = None  # 'push', 'pull', 'legs' ou None
+    exploration_factor: float = 0.5     # 0.0-1.0
+    target_exercise_count: int = 5      # 3-8
+    manual_muscle_focus: List[str] = [] # Liste groupes musculaires
+    randomness_seed: Optional[int] = None
+
+class GenerateExercisesRequest(BaseModel):
+    user_id: int
+    params: Optional[AIGenerationParams] = None
+
+class GenerateExercisesResponse(BaseModel):
+    exercises: List[Dict[str, Any]]
+    ppl_used: str
+    quality_score: float
+    ppl_recommendation: Dict[str, Any]
+    generation_metadata: Dict[str, Any]
