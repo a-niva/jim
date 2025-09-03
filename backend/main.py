@@ -3304,6 +3304,7 @@ def get_plate_layout(user_id: int, weight: float, exercise_id: int = Query(None)
 # ===== ENDPOINTS IA GÉNÉRATION EXERCICES =====
 
 @app.post("/api/ai/generate-exercises")
+@app.post("/api/ai/generate-exercises")
 def generate_ai_exercises(request: GenerateExercisesRequest, db: Session = Depends(get_db)):
     """Génère une séance d'exercices basée sur l'IA avec scoring ML intégré"""
     
@@ -3311,13 +3312,15 @@ def generate_ai_exercises(request: GenerateExercisesRequest, db: Session = Depen
     if not user:
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
     
-    # Extraire les paramètres
-    generation_params = request.params or {}
-    ppl_override = generation_params.get("ppl_override")
-    exploration_factor = generation_params.get("exploration_factor", 0.5)
-    target_exercise_count = generation_params.get("target_exercise_count", 5)
-    manual_muscle_focus = generation_params.get("manual_muscle_focus", [])
-    randomness_seed = generation_params.get("randomness_seed", None)
+    # Extraire les paramètres - CORRECTIF : accès direct aux attributs Pydantic
+    generation_params = request.params if request.params else AIGenerationParams()
+    
+    # Accès direct aux attributs (pas de .get())
+    ppl_override = generation_params.ppl_override
+    exploration_factor = generation_params.exploration_factor
+    target_exercise_count = generation_params.target_exercise_count
+    manual_muscle_focus = generation_params.manual_muscle_focus
+    randomness_seed = generation_params.randomness_seed
     
     # Si seed fourni, initialiser random
     if randomness_seed:

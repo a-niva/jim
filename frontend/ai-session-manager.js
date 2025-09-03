@@ -93,22 +93,22 @@ class AISessionManager {
         await this.loadMuscleReadinessForAI();
         
         return true;
-    }
-    
-    
+    }    
+
     async generateSession() {
-        /**
-         * Génère une nouvelle séance AI
-         */
         if (this.isGenerating) {
             console.log('Génération déjà en cours');
             return;
         }
         
         this.isGenerating = true;
+        const generateBtn = document.getElementById('generateSessionBtn');
+        if (generateBtn) {
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Génération...';
+        }
         
         try {
-            // Préparer paramètres
             const generationParams = {
                 ...this.params,
                 randomness_seed: this.params.randomness_seed || Date.now()
@@ -116,7 +116,6 @@ class AISessionManager {
             
             console.log('🎲 Génération avec paramètres:', generationParams);
             
-            // Appeler le backend
             const result = await window.apiPost('/api/ai/generate-exercises', {
                 user_id: window.currentUser.id,
                 params: generationParams
@@ -134,19 +133,20 @@ class AISessionManager {
             window.showToast('Erreur lors de la génération', 'error');
         } finally {
             this.isGenerating = false;
+            if (generateBtn) {
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = '<i class="fas fa-magic"></i> Générer Séance';
+            }
         }
     }
 
     async regenerateSession() {
-        /**
-         * Regénère la séance avec nouveaux exercices
-         */
         if (!this.lastGenerated) {
             window.showToast('Aucune séance à regénérer', 'warning');
             return;
         }
         
-        // Forcer un nouveau seed pour avoir des exercices différents
+        // Forcer un nouveau seed
         this.params.randomness_seed = Date.now();
         
         // Regénérer
@@ -154,29 +154,22 @@ class AISessionManager {
     }
 
     onParameterChange(paramName, value) {
-        /**
-         * Gère les changements de paramètres
-         */
         console.log(`📝 Paramètre ${paramName} changé:`, value);
         this.params[paramName] = value;
         
-        // Si exploration factor, mettre à jour l'affichage
+        // Mettre à jour l'affichage si nécessaire
         if (paramName === 'exploration_factor') {
             const displayElement = document.getElementById('explorationDisplay');
             if (displayElement) {
-                displayElement.textContent = `${Math.round(value * 100)}% nouveaux exercices`;
+                displayElement.textContent = `${Math.round(value * 100)}%`;
             }
         }
     }
 
     updateGeneratedSessionDisplay() {
-        /**
-         * Met à jour l'affichage après génération
-         */
         const previewContainer = document.getElementById('exercisePreviewContainer');
         if (!previewContainer || !this.lastGenerated) return;
         
-        // Générer le HTML des exercices
         const exercisesHTML = this.lastGenerated.exercises.map((exercise, index) => `
             <div class="ai-session-exercise-item" data-exercise-index="${index}">
                 <div class="ai-session-exercise-header">
@@ -191,8 +184,9 @@ class AISessionManager {
                 </div>
                 
                 <div class="ai-session-exercise-params">
-                    <span>${exercise.default_sets} × ${exercise.default_reps_min}-${exercise.default_reps_max} reps</span>
-                    <span>${exercise.base_rest_time_seconds}s repos</span>
+                    <span><i class="fas fa-repeat"></i> ${exercise.default_sets} séries</span>
+                    <span><i class="fas fa-bullseye"></i> ${exercise.default_reps_min}-${exercise.default_reps_max} reps</span>
+                    <span><i class="fas fa-clock"></i> ${exercise.base_rest_time_seconds}s repos</span>
                 </div>
             </div>
         `).join('');
@@ -986,56 +980,6 @@ class AISessionManager {
                 </div>
             </div>
         `;
-    }
-
-
-    async generateSession() {
-        /**
-         * FONCTION CRITIQUE - Génère séance IA
-         * 
-         * Appelle votre endpoint backend /api/ai/generate-exercises
-         */
-        
-        if (this.isGenerating) {
-            console.log('Génération déjà en cours');
-            return;
-        }
-        
-        this.isGenerating = true;
-        this.showGeneratingState();
-        
-        try {
-            // Préparer paramètres avec seed aléatoire si pas spécifié
-            const generationParams = {
-                ...this.params,
-                randomness_seed: this.params.randomness_seed || Date.now()
-            };
-            
-            console.log('🎲 Génération avec paramètres:', generationParams);
-            
-            // Appel votre backend
-            const result = await window.apiPost('/api/ai/generate-exercises', {
-                user_id: window.currentUser.id,
-                params: generationParams
-            });
-            
-            console.log('✅ Génération réussie:', result);
-            
-            this.lastGenerated = result;
-            
-            // Mise à jour interface
-            this.updateGeneratedSessionDisplay();
-            window.showToast(`Séance ${result.ppl_used.toUpperCase()} générée ! Score: ${Math.round(result.quality_score)}%`, 'success');
-            
-        } catch (error) {
-            console.error('❌ Erreur génération IA:', error);
-            window.showToast('Erreur lors de la génération', 'error');
-            this.renderError(error);
-            
-        } finally {
-            this.isGenerating = false;
-            this.updateButtonStates();
-        }
     }
     
     async selectNextAIExercise() {
