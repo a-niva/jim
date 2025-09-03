@@ -920,23 +920,30 @@ class AISessionManager {
         }
     }
     
-    async regenerateSession() {
-        /**
-         * Regénère avec nouveau seed aléatoire
-         */
-        this.lastScore = this.lastGenerated?.quality_score || null; // Mémoriser l'ancien score
-        if (!this.lastGenerated) {
-            await this.generateSession();
+    async selectNextAIExercise() {
+        if (!window.aiExerciseQueue || window.aiExerciseIndex >= window.aiExerciseQueue.length) {
+            window.showToast('Séance terminée !', 'success');
+            window.completeWorkout();
             return;
         }
         
-        // Nouveau seed pour variabilité
-        this.params.randomness_seed = Date.now();
-        console.log('🔄 Regénération avec nouveau seed:', this.params.randomness_seed);
+        const exerciseId = window.aiExerciseQueue[window.aiExerciseIndex];
+        const exercise = await window.apiGet(`/api/exercises/${exerciseId}`);
         
-        await this.generateSession();
-    }
-    
+        // Sélectionner l'exercice normalement
+        await window.selectExercise(exercise);
+        
+        // Si c'est le premier, démarrer automatiquement
+        if (window.aiExerciseIndex === 0 && window.showCountdown) {
+            // Attendre que l'UI soit stable
+            requestAnimationFrame(() => {
+                window.showCountdown();
+            });
+        }
+        
+        window.aiExerciseIndex++;
+    } 
+
 
     async launchAISession() {
         if (!this.lastGenerated || !this.lastGenerated.exercises) {
@@ -945,102 +952,42 @@ class AISessionManager {
         }
         
         try {
-            console.log('🚀 Lancement séance IA avec', this.lastGenerated.exercises.length, 'exercices');
+            console.log('🚀 Lancement séance IA');
             
-            // 1. Nettoyer l'état existant
+            // 1. Créer workout type 'free'
             window.clearWorkoutState();
             
-            // 2. Créer workout type 'free'
             const workoutData = {
-                type: 'free',  // IMPORTANT : type 'free'
-                ai_generated: true  // Flag pour identifier séances AI
+                type: 'free',
+                metadata: {
+                    source: 'ai_generation',
+                    ppl_used: this.lastGenerated.ppl_used
+                }
             };
             
             const response = await window.apiPost(`/api/users/${window.currentUser.id}/workouts`, workoutData);
             window.currentWorkout = response.workout;
-            window.currentWorkoutSession.workout = response.workout;
             
-            // 3. Initialiser currentWorkoutSession pour séance AI
-            window.currentWorkoutSession = {
-                type: 'ai',  // Type custom pour tracking
-                workout: response.workout,
-                exercises: this.lastGenerated.exercises,
-                
-                // États standards
-                currentExercise: null,
-                currentSetNumber: 1,
-                exerciseOrder: 1,
-                globalSetCount: 0,
-                sessionFatigue: 3,
-                completedSets: [],
-                totalRestTime: 0,
-                totalSetTime: 0,
-                startTime: new Date(),
-                
-                // Structures pour interface séance
-                sessionExercises: {},
-                completedExercisesCount: 0,
-                totalExercisesCount: this.lastGenerated.exercises.length,
-                
-                // Support swap/skip
-                skipped_exercises: [],
-                swaps: [],
-                modifications: [],
-                pendingSwap: null,
-                
-                // Métadonnées AI
-                aiMetadata: {
-                    pplUsed: this.lastGenerated.ppl_used,
-                    qualityScore: this.lastGenerated.quality_score,
-                    generationParams: this.params,
-                    generatedAt: new Date().toISOString()
-                },
-                
-                // Session metadata pour backend
-                session_metadata: {
-                    source: 'ai_generation',
-                    ppl_category: this.lastGenerated.ppl_used,
-                    generation_quality: this.lastGenerated.quality_score
-                }
-            };
+            // 2. Stocker la liste d'exercices pour navigation séquentielle
+            window.aiExerciseQueue = this.lastGenerated.exercises.map(ex => ex.exercise_id);
+            window.aiExerciseIndex = 0;
             
-
-            // 4. Préparer sessionExercises (CORRIGER le nom de propriété)
-            window.currentWorkoutSession.sessionExercises = {}; // Pas sessionDataExercises !
-
-            this.lastGenerated.exercises.forEach((exercise, index) => {
-                window.currentWorkoutSession.sessionExercises[exercise.exercise_id] = {
-                    ...exercise,
-                    id: exercise.exercise_id,
-                    index: index + 1,
-                    totalSets: exercise.default_sets || 3,
-                    completedSets: 0,
-                    isCompleted: false,
-                    status: 'planned'
-                };
+            // 3. Aller à la vue workout et sélectionner le premier exercice
+            window.showView('workout');
+            
+            // Utiliser requestAnimationFrame pour attendre que la vue soit prête
+            requestAnimationFrame(async () => {
+                await this.selectNextAIExercise();
             });
             
-            // 5. Masquer interface AI et afficher interface workout
-            const aiView = document.getElementById('ai-session');
-            if (aiView) {
-                aiView.classList.remove('active');
-                aiView.style.display = 'none';
-            }
-            
-            // 6. Afficher directement la vue workout
-            // showView gère automatiquement le masquage des autres vues et l'affichage de workout
-            // Transition plus fluide
-            document.getElementById('ai-session').style.display = 'none';
-            await window.showView('workout');
-            await this.setupAIWorkoutInterface();
-            
-            window.showToast(`🤖 Séance ${this.lastGenerated.ppl_used.toUpperCase()} démarrée !`, 'success');
+            window.showToast(`Séance ${this.lastGenerated.ppl_used.toUpperCase()} lancée !`, 'success');
             
         } catch (error) {
             console.error('❌ Erreur lancement séance IA:', error);
-            window.showToast('Erreur lors du lancement de la séance', 'error');
+            window.showToast('Erreur lors du lancement', 'error');
         }
     }
+
 
     async setupAIWorkoutInterface() {
         try {
@@ -1853,3 +1800,35 @@ class AISessionManager {
 
 // Exposer la classe globalement
 window.AISessionManager = AISessionManager;
+
+// Sauvegarder les fonctions originales
+const originalCompleteExercise = window.completeExercise;
+const originalSkipExercise = window.skipExercise;
+
+// Override pour navigation automatique AI
+window.completeExercise = async function() {
+    // Appeler la fonction originale
+    if (originalCompleteExercise) {
+        await originalCompleteExercise.apply(this, arguments);
+    }
+    
+    // Si on est dans une séance AI et qu'il reste des exercices
+    if (window.aiExerciseQueue && 
+        window.aiExerciseIndex < window.aiExerciseQueue.length &&
+        window.currentWorkoutSession?.completedExercisesCount < window.aiExerciseQueue.length) {
+        
+        console.log('🤖 Passage automatique au prochain exercice AI');
+        await window.aiSessionManager.selectNextAIExercise();
+    }
+};
+
+window.skipExercise = async function() {
+    // Si séance AI, passer directement au suivant
+    if (window.aiExerciseQueue && window.aiExerciseIndex < window.aiExerciseQueue.length) {
+        console.log('⏭️ Skip exercice AI');
+        await window.aiSessionManager.selectNextAIExercise();
+    } else if (originalSkipExercise) {
+        // Sinon, comportement normal
+        originalSkipExercise.apply(this, arguments);
+    }
+};

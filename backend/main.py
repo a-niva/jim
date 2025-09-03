@@ -3305,17 +3305,6 @@ def get_plate_layout(user_id: int, weight: float, exercise_id: int = Query(None)
 def generate_ai_exercises(request_data: dict, db: Session = Depends(get_db)):
     """
     Endpoint principal génération exercices IA
-    
-    Body: {
-        'user_id': 123,
-        'params': {
-            'ppl_override': null,           # ou 'push'/'pull'/'legs' 
-            'exploration_factor': 0.6,      # 0=favoris, 1=nouveaux
-            'target_exercise_count': 5,     # 3-8
-            'manual_muscle_focus': [],      # [] ou ['pectoraux', 'bras']
-            'randomness_seed': 12345        # Pour regénération reproductible
-        }
-    }
     """
     
     try:
