@@ -95,6 +95,124 @@ class AISessionManager {
         return true;
     }
     
+    
+    async generateSession() {
+        /**
+         * Génère une nouvelle séance AI
+         */
+        if (this.isGenerating) {
+            console.log('Génération déjà en cours');
+            return;
+        }
+        
+        this.isGenerating = true;
+        
+        try {
+            // Préparer paramètres
+            const generationParams = {
+                ...this.params,
+                randomness_seed: this.params.randomness_seed || Date.now()
+            };
+            
+            console.log('🎲 Génération avec paramètres:', generationParams);
+            
+            // Appeler le backend
+            const result = await window.apiPost('/api/ai/generate-exercises', {
+                user_id: window.currentUser.id,
+                params: generationParams
+            });
+            
+            console.log('✅ Génération réussie:', result);
+            
+            this.lastGenerated = result;
+            this.updateGeneratedSessionDisplay();
+            
+            window.showToast(`Séance ${result.ppl_used.toUpperCase()} générée !`, 'success');
+            
+        } catch (error) {
+            console.error('❌ Erreur génération:', error);
+            window.showToast('Erreur lors de la génération', 'error');
+        } finally {
+            this.isGenerating = false;
+        }
+    }
+
+    async regenerateSession() {
+        /**
+         * Regénère la séance avec nouveaux exercices
+         */
+        if (!this.lastGenerated) {
+            window.showToast('Aucune séance à regénérer', 'warning');
+            return;
+        }
+        
+        // Forcer un nouveau seed pour avoir des exercices différents
+        this.params.randomness_seed = Date.now();
+        
+        // Regénérer
+        await this.generateSession();
+    }
+
+    onParameterChange(paramName, value) {
+        /**
+         * Gère les changements de paramètres
+         */
+        console.log(`📝 Paramètre ${paramName} changé:`, value);
+        this.params[paramName] = value;
+        
+        // Si exploration factor, mettre à jour l'affichage
+        if (paramName === 'exploration_factor') {
+            const displayElement = document.getElementById('explorationDisplay');
+            if (displayElement) {
+                displayElement.textContent = `${Math.round(value * 100)}% nouveaux exercices`;
+            }
+        }
+    }
+
+    updateGeneratedSessionDisplay() {
+        /**
+         * Met à jour l'affichage après génération
+         */
+        const previewContainer = document.getElementById('exercisePreviewContainer');
+        if (!previewContainer || !this.lastGenerated) return;
+        
+        // Générer le HTML des exercices
+        const exercisesHTML = this.lastGenerated.exercises.map((exercise, index) => `
+            <div class="ai-session-exercise-item" data-exercise-index="${index}">
+                <div class="ai-session-exercise-header">
+                    <div class="ai-session-exercise-order">${exercise.order_in_session}</div>
+                    <div class="ai-session-exercise-info">
+                        <div class="ai-session-exercise-name">
+                            ${exercise.name}
+                            ${exercise.popularity_score > 50 ? '<i class="fas fa-brain" style="color: #667eea; font-size: 0.8em; margin-left: 0.5rem;" title="Recommandations ML disponibles"></i>' : ''}
+                        </div>
+                        <div class="ai-session-exercise-muscles">${exercise.muscle_groups.join(', ')}</div>
+                    </div>
+                </div>
+                
+                <div class="ai-session-exercise-params">
+                    <span>${exercise.default_sets} × ${exercise.default_reps_min}-${exercise.default_reps_max} reps</span>
+                    <span>${exercise.base_rest_time_seconds}s repos</span>
+                </div>
+            </div>
+        `).join('');
+        
+        previewContainer.innerHTML = exercisesHTML;
+        
+        // Afficher le conteneur de preview
+        const previewSection = document.getElementById('generatedSessionPreview');
+        if (previewSection) {
+            previewSection.style.display = 'block';
+        }
+        
+        // Activer le bouton de lancement
+        const launchButton = document.getElementById('launchAISessionBtn');
+        if (launchButton) {
+            launchButton.disabled = false;
+            launchButton.classList.add('pulse');
+        }
+    }
+
     async loadMuscleReadinessForAI() {
         /**
          * Réutilise votre loadMuscleReadiness() existante
