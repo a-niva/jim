@@ -30,7 +30,7 @@ import calendar
 from collections import defaultdict
 from backend.ai_exercise_generator import AIExerciseGenerator
 from backend.schemas import GenerateExercisesRequest
-
+import random
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -3303,7 +3303,6 @@ def get_plate_layout(user_id: int, weight: float, exercise_id: int = Query(None)
 
 # ===== ENDPOINTS IA GÉNÉRATION EXERCICES =====
 
-@app.post("/api/ai/generate-exercises")
 @app.post("/api/ai/generate-exercises")
 def generate_ai_exercises(request: GenerateExercisesRequest, db: Session = Depends(get_db)):
     """Génère une séance d'exercices basée sur l'IA avec scoring ML intégré"""
