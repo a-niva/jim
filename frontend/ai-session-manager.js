@@ -468,7 +468,7 @@ class AISessionManager {
         console.log(`🎯 Animation score: ${this.lastScore} → ${newScore}`);
         
         // FORCER le reset complet des styles
-        scoreElement.removeAttribute('data-score'); // Supprimer data-score
+        scoreElement.removeAttribute('data-score');
         scoreElement.style.background = ''; // Reset inline styles
         scoreElement.className = 'ai-session-quality-score'; // Reset classes
         
@@ -1044,103 +1044,95 @@ class AISessionManager {
 
     async setupAIWorkoutInterface() {
         try {
-            console.log('🔧 Configuration interface séance IA complète');
+            console.log('🔧 Configuration interface séance IA - réutilise interface standard');
             
-            // 1. CONFIGURATION ÉLÉMENTS INTERFACE (identique setupSessionWorkout)
-            const exerciseSelection = document.getElementById('exerciseSelection');
-            const currentExercise = document.getElementById('currentExercise');
-            const sessionContainer = document.getElementById('sessionExercisesContainer');
-            const workoutHeader = document.getElementById('workoutHeader');
-            const fatigueTracker = document.getElementById('fatigueTracker');
+            // 1. Configurer sessionExercises avec la structure COMPLÈTE
+            window.currentWorkoutSession.sessionExercises = {};
+            
+            this.lastGenerated.exercises.forEach((exercise, index) => {
+                // Structure COMPLÈTE compatible avec selectExercise()
+                window.currentWorkoutSession.sessionExercises[exercise.exercise_id] = {
+                    id: exercise.exercise_id,
+                    name: exercise.name,
+                    muscle_groups: exercise.muscle_groups || [],
+                    equipment_required: exercise.equipment_required || [],
+                    difficulty: exercise.difficulty || 'intermediate',
+                    default_sets: exercise.default_sets || 3,
+                    default_reps_min: exercise.default_reps_min || 8,
+                    default_reps_max: exercise.default_reps_max || 12,
+                    base_rest_time_seconds: exercise.base_rest_time_seconds || 90,
+                    exercise_type: exercise.exercise_type || 'strength',
+                    intensity_factor: exercise.intensity_factor || 1.0,
+                    weight_type: exercise.weight_type || 'external',
+                    instructions: exercise.instructions || '',
+                    // États de la séance
+                    totalSets: exercise.default_sets || 3,
+                    completedSets: 0,
+                    isCompleted: false,
+                    status: 'planned'
+                };
+            });
+            
+            // 2. Configurer le titre de séance
             const workoutTitle = document.getElementById('workoutTitle');
-            
-            if (exerciseSelection) exerciseSelection.style.display = 'none';
-            if (currentExercise) currentExercise.style.display = 'block';
-            if (sessionContainer) sessionContainer.style.display = 'block';
-            if (workoutHeader) workoutHeader.style.display = 'block';
-            if (fatigueTracker) fatigueTracker.style.display = 'block';
-            
-            // Titre
             if (workoutTitle) {
                 workoutTitle.textContent = `🤖 Séance IA - ${this.lastGenerated.ppl_used.toUpperCase()}`;
             }
             
-            // 2. STRUCTURE DONNÉES 
-            window.currentWorkoutSession.sessionDataExercises = {};
-            window.currentWorkoutSession.totalExercisesCount = this.lastGenerated.exercises.length;
-            
-            this.lastGenerated.exercises.forEach((exercise, index) => {
-                window.currentWorkoutSession.sessionDataExercises[exercise.exercise_id] = {
-                    ...exercise,
-                    id: exercise.exercise_id,
-                    index: index + 1,
-                    order: index + 1,
-                    totalSets: exercise.default_sets || 3,
-                    completedSets: 0,
-                    isCompleted: false,
-                    status: 'planned',
-                    startTime: null,
-                    endTime: null
-                };
-            });
-            
-            // 3. HTML EXERCICES AVEC BOUTONS
-            const exercisesHTML = this.lastGenerated.exercises.map((exercise, index) => {
-                const isActive = index === 0;
-                return `
-                    <div class="session-ai-exercise-item ${isActive ? 'session-ai-active session-ai-current' : ''}" 
-                        data-exercise-id="${exercise.exercise_id}"
-                        data-exercise-index="${index}"
-                        onclick="selectExerciseFromAISession(${exercise.exercise_id}, ${index})">
-                        
-                        <div class="session-ai-order">${exercise.order_in_session}</div>
-                        
-                        <div class="session-ai-info">
-                            <div class="session-ai-name">${exercise.name}</div>
-                            <div class="session-ai-params">
-                                ${exercise.default_sets}×${exercise.default_reps_min}-${exercise.default_reps_max}
-                                ${exercise.equipment_required ? ` • ${exercise.equipment_required[0]}` : ''}
-                            </div>
-                            <div class="session-ai-muscles">
-                                ${exercise.muscle_groups.map(m => `<span class="session-ai-muscle-tag">${m}</span>`).join('')}
-                            </div>
-                        </div>
-                        
-                        <div class="session-ai-status">
-                            <div class="session-ai-progress">
-                                <span class="session-ai-sets-counter">0/${exercise.default_sets}</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            
-            // 4. INJECTION HTML
-            sessionContainer.innerHTML = `
-                <div class="session-ai-header">
-                    <h3>🤖 Séance IA - ${this.lastGenerated.ppl_used.toUpperCase()}</h3>
-                    <p>Score qualité: <strong>${Math.round(this.lastGenerated.quality_score)}%</strong></p>
-                </div>
-                <div class="session-ai-exercises-list">
-                    ${exercisesHTML}
-                </div>
-            `;
-            
-            // 5. ÉLÉMENTS SPÉCIALISÉS AI
-            await this.setupAIStatusElements();
-            
-            // 6. SÉLECTION AUTO PREMIER EXERCICE
+            // 3. Sélectionner le premier exercice avec la fonction STANDARD
             if (this.lastGenerated.exercises.length > 0) {
                 const firstExercise = this.lastGenerated.exercises[0];
+                const exerciseData = window.currentWorkoutSession.sessionExercises[firstExercise.exercise_id];
+                
                 console.log('🎯 Sélection automatique:', firstExercise.name);
-                await window.selectExerciseFromAISession(firstExercise.exercise_id, 0);
+                console.log('📊 Données exercice:', exerciseData);
+                
+                // Utiliser selectExercise() standard - pas de fonction custom
+                if (exerciseData && window.selectExercise) {
+                    await window.selectExercise(exerciseData);
+                    console.log('✅ Exercice IA configuré directement');
+                }
             }
+            
+            // 4. Démarrer automatiquement après un délai  
+            setTimeout(() => {
+                this.startFirstExerciseAutomatically();
+            }, 1500);
             
             console.log('✅ Interface séance IA configurée complètement');
             
         } catch (error) {
             console.error('❌ Erreur setup interface IA:', error);
             window.showToast('Erreur configuration interface', 'error');
+        }
+    }
+
+    startFirstExerciseAutomatically() {
+        if (!window.currentExercise) {
+            console.warn('❌ Pas d\'exercice courant pour démarrage auto');
+            return;
+        }
+        
+        console.log('🎯 Tentative démarrage automatique');
+        
+        // Essayer les différentes fonctions de démarrage disponibles
+        if (typeof window.showCountdown === 'function') {
+            console.log('✅ Démarrage avec showCountdown()');
+            window.showCountdown();
+        } else if (typeof window.startExerciseCountdown === 'function') {
+            console.log('✅ Démarrage avec startExerciseCountdown()');
+            window.startExerciseCountdown();
+        } else if (typeof window.startCurrentExercise === 'function') {
+            console.log('✅ Démarrage direct avec startCurrentExercise()');
+            window.startCurrentExercise();
+        } else {
+            console.warn('❌ Aucune fonction de démarrage trouvée');
+            // Fallback : simuler un clic sur le bouton de démarrage
+            const startButton = document.querySelector('.start-exercise-btn, #startExerciseBtn');
+            if (startButton) {
+                console.log('🔘 Clic simulé sur bouton démarrage');
+                startButton.click();
+            }
         }
     }
 
@@ -1644,25 +1636,34 @@ class AISessionManager {
     }
         
     // ===== SWAP D'EXERCICES ADAPTÉ DE PLANNING.JS =====
-    
+        
     async swapExercise(exerciseIndex) {
         if (!this.lastGenerated || !this.lastGenerated.exercises) return;
-        
+    
         const exercise = this.lastGenerated.exercises[exerciseIndex];
         if (!exercise) return;
-        
+    
         try {
-            // UTILISER L'ENDPOINT EXISTANT (même que app.js)
-            const response = await window.apiGet(
-                `/api/exercises/${exercise.exercise_id}/alternatives?user_id=${window.currentUser.id}&reason=preference`
-            );
+            console.log('🔄 Swap exercice IA via fonction standard');
             
-            if (response && response.alternatives) {
-                this.showSwapModal(exerciseIndex, exercise, response.alternatives);
+            // Utiliser la logique de swap STANDARD au lieu de créer une custom
+            if (typeof window.changeExercise === 'function') {
+                // Utiliser changeExercise() existant
+                window.changeExercise();
+            } else if (typeof window.showSwapReasonModal === 'function') {
+                // Utiliser showSwapReasonModal() existant  
+                window.showSwapReasonModal(exercise.exercise_id);
             } else {
-                window.showToast('Aucune alternative trouvée', 'warning');
+                // Fallback : utiliser ton API directement
+                const response = await window.apiGet(`/api/exercises/${exercise.exercise_id}/alternatives?user_id=${window.currentUser.id}&reason=preference`);
+                
+                if (response && response.alternatives) {
+                    this.showSwapModal(exerciseIndex, exercise, response.alternatives);
+                } else {
+                    window.showToast('Aucune alternative trouvée', 'warning');
+                }
             }
-            
+        
         } catch (error) {
             console.error('Erreur récupération alternatives:', error);
             window.showToast('Erreur lors de la recherche d\'alternatives', 'error');

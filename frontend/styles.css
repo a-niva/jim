@@ -10339,6 +10339,8 @@ input {
     text-align: center;
     position: relative;
     transition: all 0.3s ease;
+    border-radius: 25px;
+    margin: 5px;
 }
 
 .ai-session-exercise-count {
