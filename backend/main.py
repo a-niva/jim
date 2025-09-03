@@ -3337,18 +3337,24 @@ def generate_ai_exercises(request: GenerateExercisesRequest, db: Session = Depen
         ppl_used = ppl_recommendation.get("category", "push")
     
     # Filtrer les exercices par PPL et équipement disponible
-    user_equipment = get_user_equipment(db, user.id)
-    
+    user_equipment = EquipmentService.get_available_equipment_types(user.equipment_config)
+
     query = db.query(Exercise).filter(
         Exercise.ppl.contains([ppl_used])
     )
-    
-    # Filtre équipement
-    if user_equipment:
-        equipment_conditions = []
-        for eq in user_equipment:
-            equipment_conditions.append(Exercise.equipment_required.contains([eq]))
-        query = query.filter(or_(*equipment_conditions))
+
+    # Filtre équipement - Adapter à votre logique
+    available_exercises = []
+    for exercise in query.all():
+        # Vérifier si l'exercice peut être fait avec l'équipement disponible
+        if not exercise.equipment_required or exercise.equipment_required == ["bodyweight"]:
+            available_exercises.append(exercise)
+        else:
+            # Vérifier si au moins un équipement requis est disponible
+            for eq in exercise.equipment_required:
+                if eq in user_equipment:
+                    available_exercises.append(exercise)
+                    break
     
     # Filtre muscles si spécifié
     if manual_muscle_focus:
