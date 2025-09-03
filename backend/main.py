@@ -29,6 +29,8 @@ from sqlalchemy import extract, and_
 import calendar
 from collections import defaultdict
 from backend.ai_exercise_generator import AIExerciseGenerator
+from backend.schemas import GenerateExercisesRequest
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
