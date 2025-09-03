@@ -3302,37 +3302,182 @@ def get_plate_layout(user_id: int, weight: float, exercise_id: int = Query(None)
 # ===== ENDPOINTS IA GÉNÉRATION EXERCICES =====
 
 @app.post("/api/ai/generate-exercises")
-def generate_ai_exercises(request_data: dict, db: Session = Depends(get_db)):
-    """
-    Endpoint principal génération exercices IA
-    """
+def generate_ai_exercises(request: GenerateExercisesRequest, db: Session = Depends(get_db)):
+    """Génère une séance d'exercices basée sur l'IA avec scoring ML intégré"""
     
-    try:
-        # Validation utilisateur
-        user_id = request_data.get('user_id')
-        params = request_data.get('params', {})
-        
-        if not user_id:
-            raise HTTPException(status_code=400, detail="user_id requis")
-        
-        user = db.query(User).filter(User.id == user_id).first()
-        if not user:
-            raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
-        
-        # Génération IA
-        generator = AIExerciseGenerator(db)
-        result = generator.generate_exercise_list(user_id, params)
-        
-        logger.info(f"✅ Génération IA réussie pour user {user_id}: {len(result['exercises'])} exercices")
-        
-        return result
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Erreur génération IA: {e}")
-        raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
-
+    user = db.query(User).filter(User.id == request.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
+    # Extraire les paramètres
+    generation_params = request.params or {}
+    ppl_override = generation_params.get("ppl_override")
+    exploration_factor = generation_params.get("exploration_factor", 0.5)
+    target_exercise_count = generation_params.get("target_exercise_count", 5)
+    manual_muscle_focus = generation_params.get("manual_muscle_focus", [])
+    randomness_seed = generation_params.get("randomness_seed", None)
+    
+    # Si seed fourni, initialiser random
+    if randomness_seed:
+        random.seed(randomness_seed)
+    
+    # Obtenir la recommandation PPL
+    ppl_recommendation_response = get_ppl_recommendation(user.id, db)
+    ppl_recommendation = ppl_recommendation_response.get("recommendation", {})
+    recovery_score = ppl_recommendation.get("recovery_score", 0.5)
+    
+    # Déterminer le PPL à utiliser
+    if ppl_override and ppl_override.lower() != "auto":
+        ppl_used = ppl_override.lower()
+    else:
+        ppl_used = ppl_recommendation.get("category", "push")
+    
+    # Filtrer les exercices par PPL et équipement disponible
+    user_equipment = get_user_equipment(db, user.id)
+    
+    query = db.query(Exercise).filter(
+        Exercise.ppl.contains([ppl_used])
+    )
+    
+    # Filtre équipement
+    if user_equipment:
+        equipment_conditions = []
+        for eq in user_equipment:
+            equipment_conditions.append(Exercise.equipment_required.contains([eq]))
+        query = query.filter(or_(*equipment_conditions))
+    
+    # Filtre muscles si spécifié
+    if manual_muscle_focus:
+        muscle_conditions = []
+        for muscle in manual_muscle_focus:
+            muscle_conditions.append(Exercise.muscle_groups.contains([muscle]))
+        query = query.filter(or_(*muscle_conditions))
+    
+    available_exercises = query.all()
+    
+    if len(available_exercises) < target_exercise_count:
+        # Fallback : élargir les critères
+        available_exercises = db.query(Exercise).filter(
+            Exercise.ppl.contains([ppl_used])
+        ).limit(target_exercise_count * 2).all()
+    
+    # Séparer exercices connus et nouveaux
+    exercise_history = db.query(WorkoutSet.exercise_id, func.count(WorkoutSet.id).label('count'))\
+        .join(Workout).filter(Workout.user_id == user.id)\
+        .group_by(WorkoutSet.exercise_id).all()
+    
+    known_exercise_ids = {eh.exercise_id for eh in exercise_history}
+    
+    known_exercises = [ex for ex in available_exercises if ex.id in known_exercise_ids]
+    new_exercises = [ex for ex in available_exercises if ex.id not in known_exercise_ids]
+    
+    # Sélection avec exploration
+    selected_exercises = []
+    
+    # Nombre d'exercices connus vs nouveaux basé sur exploration_factor
+    n_known = int(target_exercise_count * (1 - exploration_factor))
+    n_new = target_exercise_count - n_known
+    
+    # Sélectionner exercices connus (favoris)
+    if known_exercises:
+        weights = [next((eh.count for eh in exercise_history if eh.exercise_id == ex.id), 1) 
+                  for ex in known_exercises]
+        selected_known = random.choices(known_exercises, weights=weights, 
+                                      k=min(n_known, len(known_exercises)))
+        selected_exercises.extend(selected_known)
+    
+    # Compléter avec nouveaux exercices
+    if new_exercises:
+        n_to_select = target_exercise_count - len(selected_exercises)
+        selected_new = random.sample(new_exercises, 
+                                   k=min(n_to_select, len(new_exercises)))
+        selected_exercises.extend(selected_new)
+    
+    # Si pas assez d'exercices, compléter avec n'importe quoi
+    if len(selected_exercises) < target_exercise_count:
+        remaining = target_exercise_count - len(selected_exercises)
+        fallback_exercises = random.sample(available_exercises, 
+                                         k=min(remaining, len(available_exercises)))
+        selected_exercises.extend(fallback_exercises)
+    
+    # Ordonner les exercices intelligemment
+    # 1. Composés d'abord
+    # 2. Isolation ensuite
+    # 3. Mélanger pour éviter fatigue excessive d'un groupe
+    compound_exercises = [ex for ex in selected_exercises if ex.is_compound]
+    isolation_exercises = [ex for ex in selected_exercises if not ex.is_compound]
+    
+    ordered_exercises = []
+    if compound_exercises:
+        ordered_exercises.extend(compound_exercises[:2])  # Max 2 composés au début
+    
+    # Alterner les groupes musculaires restants
+    remaining = compound_exercises[2:] + isolation_exercises
+    random.shuffle(remaining)
+    ordered_exercises.extend(remaining)
+    
+    # Construire la réponse avec métadonnées
+    selected_exercises_with_metadata = []
+    for idx, exercise in enumerate(ordered_exercises):
+        selected_exercises_with_metadata.append({
+            "exercise_id": exercise.id,
+            "name": exercise.name,
+            "muscle_groups": exercise.muscle_groups,
+            "equipment_required": exercise.equipment_required,
+            "difficulty": exercise.difficulty,
+            "order_in_session": idx + 1,
+            "default_sets": exercise.default_sets,
+            "default_reps_min": exercise.default_reps_min,
+            "default_reps_max": exercise.default_reps_max,
+            "default_weight": exercise.default_weight,
+            "base_rest_time_seconds": exercise.base_rest_time_seconds,
+            "instructions": exercise.instructions,
+            "exercise_type": exercise.exercise_type,
+            "weight_type": exercise.weight_type,
+            "is_compound": exercise.is_compound,
+            "popularity_score": exercise.popularity_score or 0
+        })
+    
+    # NOUVEAU : Calculer le score de qualité avec capacité ML
+    from backend.ml_recommendations import FitnessRecommendationEngine
+    ml_engine = FitnessRecommendationEngine(db)
+    
+    # Vérifier combien d'exercices ont un historique ML
+    ml_capability_score = 0
+    for exercise_data in selected_exercises_with_metadata:
+        exercise = next((ex for ex in selected_exercises if ex.id == exercise_data['exercise_id']), None)
+        if exercise:
+            historical_data = ml_engine._get_historical_context(user, exercise, 1, 1)
+            if historical_data and len(historical_data) > 0:
+                ml_capability_score += 1
+    
+    # Calcul du score final
+    base_score = 60
+    recovery_bonus = recovery_score * 20  # Max 20 points pour récupération parfaite
+    ml_bonus = (ml_capability_score / len(selected_exercises_with_metadata)) * 20  # Max 20 points si tous ont ML
+    
+    # Bonus diversité musculaire
+    unique_muscle_groups = set()
+    for ex in selected_exercises_with_metadata:
+        unique_muscle_groups.update(ex['muscle_groups'])
+    diversity_bonus = min(len(unique_muscle_groups) * 2, 10)  # Max 10 points
+    
+    quality_score = min(100, base_score + recovery_bonus + ml_bonus + diversity_bonus)
+    
+    return {
+        "exercises": selected_exercises_with_metadata,
+        "quality_score": round(quality_score),
+        "ppl_used": ppl_used,
+        "ppl_recommendation": ppl_recommendation_response,
+        "generation_metadata": {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "parameters_used": generation_params,
+            "recovery_score": recovery_score,
+            "ml_exercises_count": ml_capability_score,
+            "muscle_groups_targeted": list(unique_muscle_groups)
+        }
+    }
+    
 @app.post("/api/ai/optimize-session")
 def optimize_ai_session(request_data: dict, db: Session = Depends(get_db)):
     """Optimise l'ordre d'une séance générée - Algorithme hybride efficient"""
