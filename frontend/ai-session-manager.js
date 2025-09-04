@@ -170,40 +170,23 @@ class AISessionManager {
         const previewContainer = document.getElementById('exercisePreviewContainer');
         if (!previewContainer || !this.lastGenerated) return;
         
+        // Affichage simplifié
         const exercisesHTML = this.lastGenerated.exercises.map((exercise, index) => `
             <div class="ai-session-exercise-item" data-exercise-index="${index}">
-                <div class="ai-session-exercise-header">
-                    <div class="ai-session-exercise-order">${exercise.order_in_session}</div>
-                    <div class="ai-session-exercise-info">
-                        <div class="ai-session-exercise-name">
-                            ${exercise.name}
-                            ${exercise.popularity_score > 50 ? '<i class="fas fa-brain" style="color: #667eea; font-size: 0.8em; margin-left: 0.5rem;" title="Recommandations ML disponibles"></i>' : ''}
-                        </div>
-                        <div class="ai-session-exercise-muscles">${exercise.muscle_groups.join(', ')}</div>
-                    </div>
-                </div>
-                
-                <div class="ai-session-exercise-params">
-                    <span><i class="fas fa-repeat"></i> ${exercise.default_sets} séries</span>
-                    <span><i class="fas fa-bullseye"></i> ${exercise.default_reps_min}-${exercise.default_reps_max} reps</span>
-                    <span><i class="fas fa-clock"></i> ${exercise.base_rest_time_seconds}s repos</span>
+                <div class="exercise-number">${exercise.order_in_session}</div>
+                <div class="exercise-info">
+                    <div class="exercise-name">${exercise.name}</div>
+                    <div class="exercise-muscles">${exercise.muscle_groups.join(', ')}</div>
                 </div>
             </div>
         `).join('');
         
         previewContainer.innerHTML = exercisesHTML;
         
-        // Afficher le conteneur de preview
+        // Afficher la section
         const previewSection = document.getElementById('generatedSessionPreview');
         if (previewSection) {
             previewSection.style.display = 'block';
-        }
-        
-        // Activer le bouton de lancement
-        const launchButton = document.getElementById('launchAISessionBtn');
-        if (launchButton) {
-            launchButton.disabled = false;
-            launchButton.classList.add('pulse');
         }
     }
 
@@ -981,31 +964,6 @@ class AISessionManager {
         `;
     }
     
-    async selectNextAIExercise() {
-        if (!window.aiExerciseQueue || window.aiExerciseIndex >= window.aiExerciseQueue.length) {
-            window.showToast('Séance terminée !', 'success');
-            window.completeWorkout();
-            return;
-        }
-        
-        const exerciseId = window.aiExerciseQueue[window.aiExerciseIndex];
-        const exercise = await window.apiGet(`/api/exercises/${exerciseId}`);
-        
-        // Sélectionner l'exercice normalement
-        await window.selectExercise(exercise);
-        
-        // Si c'est le premier, démarrer automatiquement
-        if (window.aiExerciseIndex === 0 && window.showCountdown) {
-            // Attendre que l'UI soit stable
-            requestAnimationFrame(() => {
-                window.showCountdown();
-            });
-        }
-        
-        window.aiExerciseIndex++;
-    } 
-
-
     async launchAISession() {
         if (!this.lastGenerated || !this.lastGenerated.exercises) {
             window.showToast('Aucune séance générée à lancer', 'warning');
@@ -1013,105 +971,35 @@ class AISessionManager {
         }
         
         try {
-            console.log('🚀 Lancement séance IA');
-            
-            // 1. Créer workout type 'free'
+            // 1. Créer workout
             window.clearWorkoutState();
-            
-            const workoutData = {
-                type: 'free',
-                metadata: {
-                    source: 'ai_generation',
-                    ppl_used: this.lastGenerated.ppl_used
-                }
-            };
-            
+            const workoutData = { type: 'free' };
             const response = await window.apiPost(`/api/users/${window.currentUser.id}/workouts`, workoutData);
             window.currentWorkout = response.workout;
             
-            // 2. Stocker la liste d'exercices pour navigation séquentielle
+            // 2. Stocker la queue d'exercices
             window.aiExerciseQueue = this.lastGenerated.exercises.map(ex => ex.exercise_id);
             window.aiExerciseIndex = 0;
             
-            // 3. Aller à la vue workout et sélectionner le premier exercice
+            // 3. Aller à la vue workout
             window.showView('workout');
             
-            // Utiliser requestAnimationFrame pour attendre que la vue soit prête
+            // 4. Sélectionner le premier après stabilisation
             requestAnimationFrame(async () => {
-                await this.selectNextAIExercise();
-            });
-            
-            window.showToast(`Séance ${this.lastGenerated.ppl_used.toUpperCase()} lancée !`, 'success');
-            
-        } catch (error) {
-            console.error('❌ Erreur lancement séance IA:', error);
-            window.showToast('Erreur lors du lancement', 'error');
-        }
-    }
-
-
-    async setupAIWorkoutInterface() {
-        try {
-            console.log('🔧 Configuration interface séance IA - réutilise interface standard');
-            
-            // 1. Configurer sessionExercises avec la structure COMPLÈTE
-            window.currentWorkoutSession.sessionExercises = {};
-            
-            this.lastGenerated.exercises.forEach((exercise, index) => {
-                // Structure COMPLÈTE compatible avec selectExercise()
-                window.currentWorkoutSession.sessionExercises[exercise.exercise_id] = {
-                    id: exercise.exercise_id,
-                    name: exercise.name,
-                    muscle_groups: exercise.muscle_groups || [],
-                    equipment_required: exercise.equipment_required || [],
-                    difficulty: exercise.difficulty || 'intermediate',
-                    default_sets: exercise.default_sets || 3,
-                    default_reps_min: exercise.default_reps_min || 8,
-                    default_reps_max: exercise.default_reps_max || 12,
-                    base_rest_time_seconds: exercise.base_rest_time_seconds || 90,
-                    exercise_type: exercise.exercise_type || 'strength',
-                    intensity_factor: exercise.intensity_factor || 1.0,
-                    weight_type: exercise.weight_type || 'external',
-                    instructions: exercise.instructions || '',
-                    // États de la séance
-                    totalSets: exercise.default_sets || 3,
-                    completedSets: 0,
-                    isCompleted: false,
-                    status: 'planned'
-                };
-            });
-            
-            // 2. Configurer le titre de séance
-            const workoutTitle = document.getElementById('workoutTitle');
-            if (workoutTitle) {
-                workoutTitle.textContent = `🤖 Séance IA - ${this.lastGenerated.ppl_used.toUpperCase()}`;
-            }
-            
-            // 3. Sélectionner le premier exercice avec la fonction STANDARD
-            if (this.lastGenerated.exercises.length > 0) {
-                const firstExercise = this.lastGenerated.exercises[0];
-                const exerciseData = window.currentWorkoutSession.sessionExercises[firstExercise.exercise_id];
+                const firstId = window.aiExerciseQueue[0];
+                const exercise = await window.apiGet(`/api/exercises/${firstId}`);
+                await window.selectExercise(exercise);
                 
-                console.log('🎯 Sélection automatique:', firstExercise.name);
-                console.log('📊 Données exercice:', exerciseData);
-                
-                // Utiliser selectExercise() standard - pas de fonction custom
-                if (exerciseData && window.selectExercise) {
-                    await window.selectExercise(exerciseData);
-                    console.log('✅ Exercice IA configuré directement');
+                // 5. Démarrage auto si souhaité
+                if (window.showCountdown) {
+                    setTimeout(() => window.showCountdown(), 1000);
                 }
-            }
+            });
             
-            // 4. Démarrer automatiquement après un délai  
-            setTimeout(() => {
-                this.startFirstExerciseAutomatically();
-            }, 1500);
-            
-            console.log('✅ Interface séance IA configurée complètement');
-            
+            window.showToast(`Séance lancée !`, 'success');
         } catch (error) {
-            console.error('❌ Erreur setup interface IA:', error);
-            window.showToast('Erreur configuration interface', 'error');
+            console.error('❌ Erreur lancement:', error);
+            window.showToast('Erreur lors du lancement', 'error');
         }
     }
 
@@ -1858,6 +1746,46 @@ class AISessionManager {
 
 
 }
+
+if (window.completeExercise) {
+    const originalComplete = window.completeExercise;
+    window.completeExercise = async function() {
+        await originalComplete.apply(this, arguments);
+        
+        // Si séance AI, passer au suivant
+        if (window.aiExerciseQueue && window.aiExerciseIndex < window.aiExerciseQueue.length) {
+            await window.selectNextAIExercise();
+        }
+    };
+}
+
+if (window.skipExercise) {
+    const originalSkip = window.skipExercise;
+    window.skipExercise = async function() {
+        // Si séance AI, passer directement au suivant
+        if (window.aiExerciseQueue) {
+            await window.selectNextAIExercise();
+        } else {
+            await originalSkip.apply(this, arguments);
+        }
+    };
+}
+
+window.selectNextAIExercise = async function() {
+    if (!window.aiExerciseQueue || window.aiExerciseIndex >= window.aiExerciseQueue.length) {
+        window.showToast('Séance terminée !', 'success');
+        if (window.completeWorkout) {
+            window.completeWorkout();
+        }
+        return;
+    }
+    
+    const exerciseId = window.aiExerciseQueue[window.aiExerciseIndex];
+    const exercise = await window.apiGet(`/api/exercises/${exerciseId}`);
+    await window.selectExercise(exercise);
+    
+    window.aiExerciseIndex++;
+};
 
 // Exposer la classe globalement
 window.AISessionManager = AISessionManager;
