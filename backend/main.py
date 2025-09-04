@@ -3335,41 +3335,36 @@ def generate_ai_exercises(request: GenerateExercisesRequest, db: Session = Depen
         ppl_used = ppl_override.lower()
     else:
         ppl_used = ppl_recommendation.get("category", "push")
-    
-    # Filtrer les exercices par PPL et équipement disponible
+        
+    # Obtenir tous les exercices et filtrer en Python
+    all_exercises = db.query(Exercise).all()
+
+    # Filtrer par PPL
+    exercises = [ex for ex in all_exercises if ex.ppl and ppl_used in ex.ppl]
+
+    # Filtrer par équipement disponible
     user_equipment = EquipmentService.get_available_equipment_types(user.equipment_config)
-
-    query = db.query(Exercise).filter(
-        Exercise.ppl.contains([ppl_used])
-    )
-
-    # Filtre équipement - Adapter à votre logique
     available_exercises = []
-    for exercise in query.all():
-        # Vérifier si l'exercice peut être fait avec l'équipement disponible
+
+    for exercise in exercises:
         if not exercise.equipment_required or exercise.equipment_required == ["bodyweight"]:
             available_exercises.append(exercise)
         else:
-            # Vérifier si au moins un équipement requis est disponible
             for eq in exercise.equipment_required:
                 if eq in user_equipment:
                     available_exercises.append(exercise)
                     break
-    
+
     # Filtre muscles si spécifié
     if manual_muscle_focus:
-        muscle_conditions = []
-        for muscle in manual_muscle_focus:
-            muscle_conditions.append(Exercise.muscle_groups.contains([muscle]))
-        query = query.filter(or_(*muscle_conditions))
-    
-    available_exercises = query.all()
-    
+        available_exercises = [
+            ex for ex in available_exercises 
+            if any(muscle in ex.muscle_groups for muscle in manual_muscle_focus)
+        ]
+
+    # Si pas assez d'exercices, élargir aux exercices du même PPL sans filtre muscle
     if len(available_exercises) < target_exercise_count:
-        # Fallback : élargir les critères
-        available_exercises = db.query(Exercise).filter(
-            Exercise.ppl.contains([ppl_used])
-        ).limit(target_exercise_count * 2).all()
+        available_exercises = [ex for ex in exercises if ex.ppl and ppl_used in ex.ppl][:target_exercise_count * 2]
     
     # Séparer exercices connus et nouveaux
     exercise_history = db.query(WorkoutSet.exercise_id, func.count(WorkoutSet.id).label('count'))\
