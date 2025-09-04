@@ -272,18 +272,10 @@ class AIExerciseGenerator:
             ex = item['exercise']
             exercise_data = {
                 'exercise_id': ex.id,
-                'name': ex.name,
-                'muscle_groups': ex.muscle_groups,
-                'equipment_required': ex.equipment_required,
-                'difficulty': ex.difficulty,
-                'default_sets': ex.default_sets,
-                'default_reps_min': ex.default_reps_min,
-                'default_reps_max': ex.default_reps_max,
-                'base_rest_time_seconds': ex.base_rest_time_seconds,
-                'instructions': ex.instructions,
                 'order_in_session': i + 1,
-                'is_favorite': item['is_favorite'],
-                'selection_score': round(item['score'], 1)
+                # Optionnel : juste pour l'affichage preview
+                'name': ex.name,
+                'muscle_groups': ex.muscle_groups
             }
             exercise_list.append(exercise_data)
         
@@ -483,45 +475,9 @@ class AIExerciseGenerator:
         
         # Exercices basiques universels bodyweight
         fallback_exercises = [
-            {
-                'exercise_id': -1,  # ID négatif pour fallback
-                'name': 'Pompes',
-                'muscle_groups': ['pectoraux', 'bras'],
-                'equipment_required': ['bodyweight'],
-                'difficulty': 'beginner',
-                'default_sets': 3,
-                'default_reps_min': 8,
-                'default_reps_max': 15,
-                'instructions': 'Pompes classiques au sol',
-                'order_in_session': 1,
-                'is_fallback': True
-            },
-            {
-                'exercise_id': -2,
-                'name': 'Planche',
-                'muscle_groups': ['abdominaux'],
-                'equipment_required': ['bodyweight'],
-                'difficulty': 'beginner',
-                'default_sets': 3,
-                'default_reps_min': 30,
-                'default_reps_max': 60,
-                'instructions': 'Maintenir position planche',
-                'order_in_session': 2,
-                'is_fallback': True
-            },
-            {
-                'exercise_id': -3,
-                'name': 'Squats',
-                'muscle_groups': ['jambes'],
-                'equipment_required': ['bodyweight'],
-                'difficulty': 'beginner',
-                'default_sets': 3,
-                'default_reps_min': 10,
-                'default_reps_max': 20,
-                'instructions': 'Squats au poids du corps',
-                'order_in_session': 3,
-                'is_fallback': True
-            }
+            {'exercise_id': 1, 'order_in_session': 1, 'name': 'Pompes'},  # IDs réels
+            {'exercise_id': 5, 'order_in_session': 2, 'name': 'Planche'},
+            {'exercise_id': 12, 'order_in_session': 3, 'name': 'Squats'}
         ]
         
         return {
