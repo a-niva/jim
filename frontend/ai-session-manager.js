@@ -434,7 +434,6 @@ class AISessionManager {
             </div>
         `;
     }
-    
 
     updateExplorationFactor(value) {
         this.params.exploration_factor = parseInt(value) / 100;
