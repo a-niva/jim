@@ -3409,8 +3409,8 @@ def generate_ai_exercises(request: GenerateExercisesRequest, db: Session = Depen
     # 1. Composés d'abord
     # 2. Isolation ensuite
     # 3. Mélanger pour éviter fatigue excessive d'un groupe
-    compound_exercises = [ex for ex in selected_exercises if ex.is_compound]
-    isolation_exercises = [ex for ex in selected_exercises if not ex.is_compound]
+    compound_exercises = [ex for ex in selected_exercises if ex.exercise_type == 'compound']
+    isolation_exercises = [ex for ex in selected_exercises if ex.exercise_type != 'compound']
     
     ordered_exercises = []
     if compound_exercises:
