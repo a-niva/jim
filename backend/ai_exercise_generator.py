@@ -286,7 +286,7 @@ class AIExerciseGenerator:
         scored_exercises.sort(key=lambda x: x['score'], reverse=True)
         selected = scored_exercises[:target_count]
         
-        # Format retour simplifié - SANS default_weight qui n'existe pas !
+        # Format retour
         exercise_list = []
         for i, item in enumerate(selected):
             ex = item['exercise']

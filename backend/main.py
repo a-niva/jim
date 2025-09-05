@@ -3440,7 +3440,6 @@ def generate_ai_exercises(request: GenerateExercisesRequest, db: Session = Depen
             "instructions": exercise.instructions,
             "exercise_type": exercise.exercise_type,
             "weight_type": exercise.weight_type,
-            "is_compound": exercise.is_compound,
             "popularity_score": exercise.popularity_score or 0
         })
     
