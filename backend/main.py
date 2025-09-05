@@ -3325,9 +3325,9 @@ def generate_ai_exercises(request: GenerateExercisesRequest, db: Session = Depen
         if randomness_seed:
             random.seed(randomness_seed)
         
-        # Obtenir recommandation PPL
-        ml_engine = FitnessMLEngine(db)
-        ppl_recommendation = ml_engine._recommend_ppl(user.id)
+        # Obtenir recommandation PPL via AIExerciseGenerator
+        ai_generator = AIExerciseGenerator(db)
+        ppl_recommendation = ai_generator._recommend_ppl(user.id)
         recovery_score = ppl_recommendation.get("recovery_score", 0.5)
         ppl_used = ppl_override.lower() if ppl_override and ppl_override.lower() != "auto" else ppl_recommendation.get("category", "push")
         
@@ -3393,27 +3393,41 @@ def generate_ai_exercises(request: GenerateExercisesRequest, db: Session = Depen
         
         # Formater réponse
         selected_exercises_with_metadata = []
-        for idx, exercise in enumerate(ordered_exercises):
-            selected_exercises_with_metadata.append({
-                "exercise_id": exercise.id,
-                "name": exercise.name,
-                "muscle_groups": exercise.muscle_groups,
-                "equipment_required": exercise.equipment_required,
-                "difficulty": exercise.difficulty,
-                "order_in_session": idx + 1,
-                "default_sets": exercise.default_sets,
-                "default_reps_min": exercise.default_reps_min,
-                "default_reps_max": exercise.default_reps_max,
-                "base_rest_time_seconds": exercise.base_rest_time_seconds,
-                "instructions": exercise.instructions,
-                "exercise_type": exercise.exercise_type,
-                "weight_type": exercise.weight_type,
-                "base_weights_kg": exercise.base_weights_kg,
-                "bodyweight_percentage": exercise.bodyweight_percentage,
-                "ppl": exercise.ppl
-            })
+        try:
+            for idx, exercise in enumerate(ordered_exercises):
+                selected_exercises_with_metadata.append({
+                    "exercise_id": exercise.id,
+                    "name": exercise.name,
+                    "muscle_groups": exercise.muscle_groups,
+                    "equipment_required": exercise.equipment_required,
+                    "difficulty": exercise.difficulty,
+                    "order_in_session": idx + 1,
+                    "default_sets": exercise.default_sets,
+                    "default_reps_min": exercise.default_reps_min,
+                    "default_reps_max": exercise.default_reps_max,
+                    "base_rest_time_seconds": exercise.base_rest_time_seconds,
+                    "instructions": exercise.instructions,
+                    "exercise_type": exercise.exercise_type,
+                    "weight_type": exercise.weight_type,
+                    "base_weights_kg": exercise.base_weights_kg,
+                    "bodyweight_percentage": exercise.bodyweight_percentage,
+                    "ppl": exercise.ppl
+                })
+        except Exception as e:
+            logger.error(f"❌ Erreur formatage exercices: {str(e)}", exc_info=True)
+            return {
+                "exercises": [],
+                "quality_score": 0,
+                "ppl_used": "none",
+                "ppl_recommendation": {},
+                "generation_metadata": {
+                    "generated_at": datetime.now(timezone.utc).isoformat(),
+                    "error": f"Formatage exercices: {str(e)}"
+                }
+            }
         
         # Calculer score qualité
+        ml_engine = FitnessMLEngine(db)
         ml_capability_score = 0
         for exercise_data in selected_exercises_with_metadata:
             exercise = next((ex for ex in selected_exercises if ex.id == exercise_data['exercise_id']), None)
@@ -3424,10 +3438,10 @@ def generate_ai_exercises(request: GenerateExercisesRequest, db: Session = Depen
         
         base_score = 60
         recovery_bonus = recovery_score * 20
-        ml_bonus = (ml_capability_score / len(selected_exercises_with_metadata)) * 20
+        ml_bonus = (ml_capability_score / max(1, len(selected_exercises_with_metadata))) * 20
         unique_muscle_groups = set()
         for ex in selected_exercises_with_metadata:
-            unique_muscle_groups.update(ex['muscle_groups'])
+            unique_muscle_groups.update(ex['muscle_groups'] or [])
         diversity_bonus = min(len(unique_muscle_groups) * 2, 10)
         quality_score = min(100, base_score + recovery_bonus + ml_bonus + diversity_bonus)
         
@@ -3457,6 +3471,7 @@ def generate_ai_exercises(request: GenerateExercisesRequest, db: Session = Depen
                 "error": str(e)
             }
         }
+    
     
 @app.post("/api/ai/optimize-session")
 def optimize_ai_session(request_data: dict, db: Session = Depends(get_db)):
