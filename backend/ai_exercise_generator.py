@@ -99,17 +99,38 @@ class AIExerciseGenerator:
     def _get_all_muscle_readiness(self, user_id: int) -> Dict[str, float]:
         """Récupère état récupération tous les muscles"""
         try:
+            user = self.db.query(User).filter(User.id == user_id).first()
+            if not user:
+                return self._default_readiness()
+            
             muscle_groups = ['pectoraux', 'dos', 'jambes', 'epaules', 'bras', 'abdominaux']
             readiness = {}
             
             for muscle in muscle_groups:
-                recovery_data = self.recovery_tracker.get_muscle_recovery(user_id, muscle)
-                readiness[muscle] = recovery_data.get('readiness_percentage', 50) / 100
+                try:
+                    # Utiliser la BONNE méthode get_muscle_readiness
+                    readiness_score = self.recovery_tracker.get_muscle_readiness(muscle, user)
+                    readiness[muscle] = float(readiness_score)
+                except Exception as e:
+                    logger.warning(f"Erreur récupération readiness {muscle}: {e}")
+                    readiness[muscle] = 0.7  # Valeur par défaut
             
             return readiness
+            
         except Exception as e:
-            logger.warning(f"Erreur récupération readiness: {e}")
-            return {m: 0.7 for m in ['pectoraux', 'dos', 'jambes', 'epaules', 'bras', 'abdominaux']}
+            logger.warning(f"Erreur récupération readiness globale: {e}")
+            return self._default_readiness()
+    
+    def _default_readiness(self) -> Dict[str, float]:
+        """Valeurs par défaut de récupération"""
+        return {
+            'pectoraux': 0.7,
+            'dos': 0.7, 
+            'jambes': 0.7,
+            'epaules': 0.7,
+            'bras': 0.7,
+            'abdominaux': 0.7
+        }
     
     def _recommend_ppl(self, user_id: int, muscle_readiness: Dict[str, float]) -> Dict[str, Any]:
         """Recommande catégorie PPL optimale"""
@@ -177,7 +198,21 @@ class AIExerciseGenerator:
         if not user:
             return []
         
-        available_equipment = user.available_equipment or ['bodyweight']
+        available_equipment = []
+        if user.equipment_config:
+            # Extraire l'équipement disponible depuis equipment_config
+            equipment_config = user.equipment_config
+            if equipment_config.get('dumbbells', {}).get('available'):
+                available_equipment.append('dumbbells')
+            if equipment_config.get('barbell', {}).get('available'):
+                available_equipment.append('barbell')
+            if equipment_config.get('kettlebells', {}).get('available'):
+                available_equipment.append('kettlebells')
+            # Toujours ajouter bodyweight
+            available_equipment.append('bodyweight')
+        else:
+            available_equipment = ['bodyweight']
+        
         target_muscles = PPL_CATEGORIES[ppl_category]['muscles']
         
         # Requête de base
@@ -195,10 +230,15 @@ class AIExerciseGenerator:
         
         exercises = query.all()
         
-        # Filtre par équipement
+        # Filtre par équipement compatible
         compatible_exercises = []
         for ex in exercises:
-            if self.equipment_service.can_perform_exercise(ex, available_equipment):
+            # Vérifier si au moins un équipement requis est disponible
+            if ex.equipment_required:
+                if any(eq in available_equipment for eq in ex.equipment_required):
+                    compatible_exercises.append(ex)
+            else:
+                # Si pas d'équipement requis, c'est bodyweight
                 compatible_exercises.append(ex)
         
         logger.info(f"📋 {len(compatible_exercises)} exercices compatibles pour {ppl_category}")
@@ -246,14 +286,13 @@ class AIExerciseGenerator:
         scored_exercises.sort(key=lambda x: x['score'], reverse=True)
         selected = scored_exercises[:target_count]
         
-        # Format retour simplifié
+        # Format retour simplifié - SANS default_weight qui n'existe pas !
         exercise_list = []
         for i, item in enumerate(selected):
             ex = item['exercise']
             exercise_data = {
                 'exercise_id': ex.id,
                 'order_in_session': i + 1,
-                # Données minimales pour l'affichage preview
                 'name': ex.name,
                 'muscle_groups': ex.muscle_groups,
                 'equipment_required': ex.equipment_required,
@@ -263,6 +302,7 @@ class AIExerciseGenerator:
                 'default_reps_max': ex.default_reps_max,
                 'base_rest_time_seconds': ex.base_rest_time_seconds,
                 'instructions': ex.instructions
+                # PAS de default_weight - ce champ n'existe pas !
             }
             exercise_list.append(exercise_data)
         
