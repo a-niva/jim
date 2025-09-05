@@ -11426,3 +11426,182 @@ input {
     color: var(--text-secondary);
     font-size: 0.8rem;
 }
+
+
+
+/* frontend/ai-session.css - Styles spécifiques pour le module IA */
+
+/* === Classes spécifiques AI Session === */
+
+.ai-ppl-selector {
+    margin-top: 1rem;
+}
+
+.ai-ppl-selector .action-card.active {
+    border-color: var(--accent-emerald);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+}
+
+.ai-params-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.ai-params-grid .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.ai-params-grid .range-input {
+    width: 100%;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    outline: none;
+    -webkit-appearance: none;
+}
+
+.ai-params-grid .range-input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    background: var(--primary);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.ai-params-grid .range-input::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: var(--primary);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+.ai-params-grid .select-input {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.5rem;
+    color: var(--text);
+}
+
+.actions-container {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin: 2rem 0;
+}
+
+.actions-container .primary-btn {
+    background: linear-gradient(135deg, var(--primary), var(--accent-purple));
+    color: white;
+    padding: 0.75rem 2rem;
+    border-radius: var(--radius);
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.actions-container .primary-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+}
+
+.actions-container .secondary-btn {
+    background: var(--bg-secondary);
+    color: var(--text);
+    padding: 0.75rem 2rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.actions-container .success-btn {
+    background: linear-gradient(135deg, var(--accent-emerald), var(--level-1-color));
+    color: white;
+    padding: 0.75rem 2rem;
+    border-radius: var(--radius);
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.session-header {
+    padding: 1rem;
+    border-radius: var(--radius) var(--radius) 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.exercises-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: var(--bg-secondary);
+    border-radius: 0 0 var(--radius) var(--radius);
+}
+
+.exercise-card.current {
+    animation: pulseCard 2s infinite;
+}
+
+@keyframes pulseCard {
+    0%, 100% { 
+        background: var(--bg-card);
+        transform: scale(1);
+    }
+    50% { 
+        background: rgba(99, 102, 241, 0.1);
+        transform: scale(1.02);
+    }
+}
+
+.info-box {
+    padding: 0.75rem;
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    border: 1px solid var(--border);
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+/* Réutilise les badges existants */
+.badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    display: inline-block;
+}
+
+/* Media queries pour mobile */
+@media (max-width: 768px) {
+    .ai-params-grid {
+        gap: 1rem;
+    }
+    
+    .actions-container {
+        flex-direction: column;
+    }
+    
+    .actions-container button {
+        width: 100%;
+    }
+}

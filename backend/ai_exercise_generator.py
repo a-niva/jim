@@ -1,4 +1,4 @@
-# backend/ai_exercise_generator.py - NOUVEAU FICHIER
+# backend/ai_exercise_generator.py
 
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any, Optional
@@ -9,14 +9,13 @@ import random
 import logging
 
 # Imports de votre codebase existante
-from backend.models import User, Exercise, Workout, WorkoutSet
+from backend.models import User, Exercise, Workout, WorkoutSet, Program
 from backend.ml_engine import RecoveryTracker
 from backend.equipment_service import EquipmentService
-from sqlalchemy.orm.attributes import flag_modified
 
 logger = logging.getLogger(__name__)
 
-# Constantes PPL (évite import manquant)
+# Constantes PPL
 PPL_CATEGORIES = {
     'push': {
         'name': 'Push (Pousser)',
@@ -43,204 +42,188 @@ class AIExerciseGenerator:
     
     def generate_exercise_list(self, user_id: int, params: Dict[str, Any]) -> Dict[str, Any]:
         """
-        POINT D'ENTRÉE PRINCIPAL - Génère liste exercices optimisée
-        
-        Args:
-            user_id: ID utilisateur
-            params: Paramètres génération (voir structure ci-dessous)
-            
-        Returns: {
-            'exercises': [...],           # Liste exercices avec métadonnées
-            'ppl_used': 'push',          # Catégorie PPL finale
-            'quality_score': 85.7,      # Score session calculé
-            'ppl_recommendation': {...}, # Détails recommandation
-            'generation_metadata': {...} # Infos debug/analytics
-        }
+        Point d'entrée principal - Génère liste exercices optimisée
         """
-        
         try:
             logger.info(f"🤖 Génération IA pour user {user_id} avec params: {params}")
             
-            # 1. ANALYSE RÉCUPÉRATION MUSCULAIRE
+            # 1. Analyse récupération musculaire
             muscle_readiness = self._get_all_muscle_readiness(user_id)
             logger.info(f"📊 Récupération musculaire: {muscle_readiness}")
             
-            # 2. RECOMMANDATION PPL
+            # 2. Recommandation PPL ou override
             ppl_recommendation = self._recommend_ppl(user_id, muscle_readiness)
-            target_ppl = params.get('ppl_override') or ppl_recommendation['category']
-            logger.info(f"🎯 PPL sélectionnée: {target_ppl} (recommandée: {ppl_recommendation['category']})")
+            ppl_category = params.get('ppl_override') or ppl_recommendation['category']
             
-            # 3. FILTRAGE EXERCICES PAR CONTRAINTES
-            available_exercises = self._filter_exercises_by_constraints(
-                user_id, target_ppl, params.get('manual_muscle_focus', [])
+            logger.info(f"🎯 PPL sélectionnée: {ppl_category} (override: {params.get('ppl_override')})")
+            
+            # 3. Filtrage exercices par PPL et équipement
+            available_exercises = self._filter_exercises_by_ppl(user_id, ppl_category, params.get('manual_muscle_focus', []))
+            
+            if not available_exercises:
+                logger.warning("⚠️ Aucun exercice disponible, génération fallback")
+                return self._fallback_generation()
+            
+            # 4. Scoring et sélection
+            exercise_list = self._score_and_select_exercises(
+                user_id=user_id,
+                exercises=available_exercises,
+                exploration_factor=params.get('exploration_factor', 0.5),
+                target_count=params.get('target_exercise_count', 5),
+                seed=params.get('randomness_seed')
             )
             
-            if len(available_exercises) < 3:
-                logger.warning("Pas assez d'exercices disponibles, assouplissement contraintes")
-                available_exercises = self._fallback_exercise_selection(user_id)
+            # 5. Calcul qualité session
+            quality_score = self._calculate_session_quality(exercise_list, muscle_readiness, ppl_category)
             
-            # 4. SÉLECTION AVEC SCORING
-            selected_exercises = self._select_exercises_with_scoring(
-                available_exercises,
-                user_id,
-                params.get('exploration_factor', 0.5),
-                params.get('target_exercise_count', 5),
-                params.get('randomness_seed')
-            )
-            
-            # 5. OPTIMISATION ORDRE (Réutilise SessionQualityEngine si disponible)
-            try:
-                # Tenter d'utiliser optimisateur existant
-                from backend.session_quality_engine import SessionQualityEngine
-                optimized_exercises = SessionQualityEngine.optimize_exercise_order(selected_exercises)
-            except (ImportError, AttributeError):
-                # Fallback simple si optimisateur non disponible
-                optimized_exercises = self._simple_optimize_order(selected_exercises)
-            
-            # 6. CALCUL SCORE QUALITÉ
-            quality_score = self._calculate_session_quality(optimized_exercises, user_id)
-            
-            # 7. SAUVEGARDE HISTORIQUE
-            self._save_generation_to_history(user_id, params, optimized_exercises, quality_score)
-            
-            return {
-                'exercises': optimized_exercises,
-                'ppl_used': target_ppl,
+            # 6. Format retour
+            result = {
+                'exercises': exercise_list,
+                'ppl_used': ppl_category,
                 'quality_score': quality_score,
                 'ppl_recommendation': ppl_recommendation,
                 'generation_metadata': {
-                    'generated_at': datetime.now(timezone.utc).isoformat(),
-                    'total_exercises': len(optimized_exercises),
-                    'equipment_used': list(set().union(*[ex.get('equipment_required', []) for ex in optimized_exercises])),
-                    'muscle_distribution': self._analyze_muscle_distribution(optimized_exercises)
+                    'available_exercises_count': len(available_exercises),
+                    'exploration_factor': params.get('exploration_factor', 0.5),
+                    'generated_at': datetime.now(timezone.utc).isoformat()
                 }
             }
             
+            logger.info(f"✅ Génération réussie: {len(exercise_list)} exercices, score: {quality_score:.1f}%")
+            return result
+            
         except Exception as e:
-            logger.error(f"Erreur génération IA user {user_id}: {str(e)}")
-            return self._generate_fallback_session(user_id, params)
+            logger.error(f"❌ Erreur génération: {e}")
+            return self._fallback_generation()
     
     def _get_all_muscle_readiness(self, user_id: int) -> Dict[str, float]:
-        """Récupère récupération pour tous groupes musculaires"""
-        
-        # Valeurs par défaut
-        default_readiness = {
-            "pectoraux": 0.75, "dos": 0.75, "jambes": 0.80,
-            "epaules": 0.70, "bras": 0.75, "abdominaux": 0.85
-        }
-        
+        """Récupère état récupération tous les muscles"""
         try:
-            user = self.db.query(User).filter(User.id == user_id).first()
-            if not user or not self.recovery_tracker:
-                return default_readiness
-            
-            muscle_groups = ["pectoraux", "dos", "jambes", "epaules", "bras", "abdominaux"]
+            muscle_groups = ['pectoraux', 'dos', 'jambes', 'epaules', 'bras', 'abdominaux']
             readiness = {}
             
             for muscle in muscle_groups:
-                try:
-                    readiness[muscle] = self.recovery_tracker.get_muscle_readiness(muscle, user)
-                except Exception as e:
-                    logger.warning(f"Erreur récupération {muscle}: {e}")
-                    readiness[muscle] = default_readiness.get(muscle, 0.75)
+                recovery_data = self.recovery_tracker.get_muscle_recovery(user_id, muscle)
+                readiness[muscle] = recovery_data.get('readiness_percentage', 50) / 100
             
             return readiness
-            
         except Exception as e:
-            logger.error(f"Erreur récupération musculaire user {user_id}: {e}")
-            return default_readiness
+            logger.warning(f"Erreur récupération readiness: {e}")
+            return {m: 0.7 for m in ['pectoraux', 'dos', 'jambes', 'epaules', 'bras', 'abdominaux']}
     
     def _recommend_ppl(self, user_id: int, muscle_readiness: Dict[str, float]) -> Dict[str, Any]:
-        """Recommande catégorie PPL basée sur récupération + historique"""
+        """Recommande catégorie PPL optimale"""
+        ppl_scores = self._get_ppl_readiness_scores(muscle_readiness)
         
-        # Calculer scores PPL moyens
-        ppl_readiness = {
-            'push': (muscle_readiness.get('pectoraux', 0.5) + 
-                    muscle_readiness.get('epaules', 0.5) + 
-                    muscle_readiness.get('bras', 0.5)) / 3,
-            'pull': (muscle_readiness.get('dos', 0.5) + 
-                    muscle_readiness.get('bras', 0.5)) / 2,
-            'legs': muscle_readiness.get('jambes', 0.5)
-        }
+        # Meilleure catégorie
+        best_category = max(ppl_scores.keys(), key=lambda k: ppl_scores[k]['score'])
         
-        # Analyser historique récent (7 derniers jours)
-        recent_ppl_usage = self._get_recent_ppl_usage(user_id)
+        # Historique pour éviter répétition
+        recent_workouts = self.db.query(Workout).filter(
+            Workout.user_id == user_id,
+            Workout.completed_at.isnot(None),
+            Workout.completed_at >= datetime.now(timezone.utc) - timedelta(days=7)
+        ).order_by(Workout.completed_at.desc()).limit(3).all()
         
-        # Ajuster scores selon historique
-        for ppl, days_since in recent_ppl_usage.items():
-            if days_since < 1:  # Moins de 24h
-                ppl_readiness[ppl] *= 0.7  # Pénalité récupération
-            elif days_since > 3:  # Plus de 3 jours
-                ppl_readiness[ppl] *= 1.2  # Bonus muscle reposé
+        recent_ppl = []
+        for workout in recent_workouts:
+            if workout.session_metadata and 'ppl_category' in workout.session_metadata:
+                recent_ppl.append(workout.session_metadata['ppl_category'])
         
-        # Sélectionner meilleur score
-        best_ppl = max(ppl_readiness, key=ppl_readiness.get)
-        confidence = min(1.0, ppl_readiness[best_ppl])
+        # Si trop de répétition, prendre la 2ème meilleure
+        if recent_ppl.count(best_category) >= 2 and len(ppl_scores) > 1:
+            sorted_categories = sorted(ppl_scores.keys(), key=lambda k: ppl_scores[k]['score'], reverse=True)
+            if len(sorted_categories) > 1:
+                best_category = sorted_categories[1]
         
         return {
-            'category': best_ppl,
-            'confidence': confidence,
-            'reasoning': self._explain_ppl_choice(best_ppl, ppl_readiness, recent_ppl_usage),
-            'alternatives': {k: v for k, v in ppl_readiness.items() if k != best_ppl}
+            'category': best_category,
+            'confidence': ppl_scores[best_category]['score'] / 100,
+            'reasoning': ppl_scores[best_category]['reasoning'],
+            'muscle_readiness': muscle_readiness,
+            'alternatives': {k: v for k, v in ppl_scores.items() if k != best_category}
         }
     
-    def _filter_exercises_by_constraints(
-        self, user_id: int, target_ppl: str, focus_muscles: List[str]
-    ) -> List[Exercise]:
-        """Filtre exercices par PPL + équipement + focus manuel"""
+    def _get_ppl_readiness_scores(self, muscle_readiness: Dict[str, float]) -> Dict[str, Dict]:
+        """Calcule scores pour chaque catégorie PPL"""
+        scores = {}
         
-        # Récupérer utilisateur et équipement
+        for ppl_key, ppl_data in PPL_CATEGORIES.items():
+            relevant_muscles = ppl_data['muscles']
+            muscle_scores = [muscle_readiness.get(m, 0.5) for m in relevant_muscles]
+            
+            if muscle_scores:
+                avg_score = sum(muscle_scores) / len(muscle_scores) * 100
+                min_muscle = min(relevant_muscles, key=lambda m: muscle_readiness.get(m, 0.5))
+                max_muscle = max(relevant_muscles, key=lambda m: muscle_readiness.get(m, 0.5))
+                
+                scores[ppl_key] = {
+                    'score': avg_score,
+                    'reasoning': f"{max_muscle.capitalize()} récupération {muscle_readiness.get(max_muscle, 0.5)*100:.0f}%",
+                    'muscles': relevant_muscles
+                }
+            else:
+                scores[ppl_key] = {
+                    'score': 70,
+                    'reasoning': 'Récupération standard',
+                    'muscles': relevant_muscles
+                }
+        
+        return scores
+    
+    def _filter_exercises_by_ppl(self, user_id: int, ppl_category: str, focus_muscles: List[str] = None) -> List[Exercise]:
+        """Filtre exercices par PPL et équipement disponible"""
         user = self.db.query(User).filter(User.id == user_id).first()
         if not user:
             return []
         
-        available_equipment = self.equipment_service.get_available_equipment_types(user.equipment_config)
+        available_equipment = user.available_equipment or ['bodyweight']
+        target_muscles = PPL_CATEGORIES[ppl_category]['muscles']
         
-        # Query de base par PPL
-        query = self.db.query(Exercise).filter(
-            cast(Exercise.ppl, JSONB).contains([target_ppl])
-        )
+        # Requête de base
+        query = self.db.query(Exercise)
         
-        # Filtre focus manuel si spécifié
+        # Filtre par muscles PPL
         if focus_muscles:
             query = query.filter(
-                or_(*[cast(Exercise.muscle_groups, JSONB).contains([muscle]) for muscle in focus_muscles])
+                Exercise.muscle_groups.overlap(cast(focus_muscles, JSONB))
+            )
+        else:
+            query = query.filter(
+                Exercise.muscle_groups.overlap(cast(target_muscles, JSONB))
             )
         
         exercises = query.all()
         
-        # Filtrage équipement (réutilise fonction existante)
+        # Filtre par équipement
         compatible_exercises = []
         for ex in exercises:
-            if self.equipment_service.can_perform_exercise(ex, list(available_equipment)):
+            if self.equipment_service.can_perform_exercise(ex, available_equipment):
                 compatible_exercises.append(ex)
         
-        logger.info(f"📋 {len(compatible_exercises)} exercices compatibles pour {target_ppl}")
+        logger.info(f"📋 {len(compatible_exercises)} exercices compatibles pour {ppl_category}")
         return compatible_exercises
     
-    def _select_exercises_with_scoring(
-        self, exercises: List[Exercise], user_id: int, 
-        exploration_factor: float, target_count: int, randomness_seed: Optional[int]
-    ) -> List[Dict[str, Any]]:
-        """Sélectionne exercices avec scoring exploration vs favoris"""
+    def _score_and_select_exercises(self, user_id: int, exercises: List[Exercise], 
+                                   exploration_factor: float, target_count: int, 
+                                   seed: Optional[int] = None) -> List[Dict]:
+        """Score et sélectionne les meilleurs exercices"""
+        if seed:
+            random.seed(seed)
         
-        if randomness_seed:
-            random.seed(randomness_seed)
-        
-        # Récupérer favoris utilisateur
         user = self.db.query(User).filter(User.id == user_id).first()
-        user_favorites = user.favorite_exercises if user else []
+        user_favorites = self._get_user_favorites(user_id)
         
-        # Score chaque exercice
+        # Scoring
         scored_exercises = []
         for ex in exercises:
-            score = 50  # Score de base
+            score = 50  # Base
             
-            # Bonus/malus selon exploration vs favoris
+            # Bonus favoris vs exploration
             if ex.id in user_favorites:
-                score += (1 - exploration_factor) * 30  # Plus on favorise familier, plus de bonus
+                score += (1 - exploration_factor) * 30
             else:
-                score += exploration_factor * 20         # Plus on explore, plus bonus nouveaux
+                score += exploration_factor * 20
             
             # Bonus difficulté appropriée
             user_level = user.experience_level if user else 'intermediate'
@@ -248,237 +231,168 @@ class AIExerciseGenerator:
                 score += 15
             elif (ex.difficulty == 'beginner' and user_level in ['intermediate', 'advanced']) or \
                  (ex.difficulty == 'intermediate' and user_level == 'advanced'):
-                score += 10  # Difficultés acceptables
+                score += 10
             
-            # Ajout variabilité aléatoire (±10 points)
+            # Variabilité
             score += random.uniform(-10, 10)
             
             scored_exercises.append({
                 'exercise': ex,
                 'score': score,
-                'is_favorite': ex.id in user_favorites,
-                'difficulty_match': ex.difficulty == user_level
+                'is_favorite': ex.id in user_favorites
             })
         
-        # Trier par score et prendre les meilleurs
+        # Trier et sélectionner
         scored_exercises.sort(key=lambda x: x['score'], reverse=True)
-        
-        # Sélectionner top exercices
         selected = scored_exercises[:target_count]
         
-        # Format retour compatible interface séance
+        # Format retour simplifié
         exercise_list = []
         for i, item in enumerate(selected):
             ex = item['exercise']
             exercise_data = {
                 'exercise_id': ex.id,
                 'order_in_session': i + 1,
-                # Optionnel : juste pour l'affichage preview
+                # Données minimales pour l'affichage preview
                 'name': ex.name,
-                'muscle_groups': ex.muscle_groups
+                'muscle_groups': ex.muscle_groups,
+                'equipment_required': ex.equipment_required,
+                'difficulty': ex.difficulty,
+                'default_sets': ex.default_sets,
+                'default_reps_min': ex.default_reps_min,
+                'default_reps_max': ex.default_reps_max,
+                'base_rest_time_seconds': ex.base_rest_time_seconds,
+                'instructions': ex.instructions
             }
             exercise_list.append(exercise_data)
         
-        # S'assurer d'avoir au moins 3 exercices
-        if len(exercise_list) < 3:
-            logger.warning(f"⚠️ Seulement {len(exercise_list)} exercices, ajout fallback")
-            # Ajouter exercices bodyweight universels
-            fallback_exercises = self.db.query(Exercise).filter(
-                cast(Exercise.equipment_required, JSONB).contains(['bodyweight'])
-            ).limit(3 - len(exercise_list)).all()
-            
-            for fb_ex in fallback_exercises:
-                exercise_list.append({
-                    'exercise_id': fb_ex.id,
-                    'name': fb_ex.name,
-                    'muscle_groups': fb_ex.muscle_groups,
-                    'equipment_required': fb_ex.equipment_required,
-                    'difficulty': fb_ex.difficulty,
-                    'default_sets': 3,
-                    'default_reps_min': 8,
-                    'default_reps_max': 12,
-                    'base_rest_time_seconds': 60,
-                    'instructions': fb_ex.instructions,
-                    'order_in_session': len(exercise_list) + 1,
-                    'is_favorite': False,
-                    'selection_score': 50.0
-                })
-        
         return exercise_list
     
-    def _simple_optimize_order(self, exercises: List[Dict]) -> List[Dict]:
-        """Optimisation ordre simple si SessionQualityEngine indisponible"""
+    def _calculate_session_quality(self, exercises: List[Dict], muscle_readiness: Dict[str, float], 
+                                  ppl_category: str) -> float:
+        """Calcule score de qualité de la session"""
+        if not exercises:
+            return 0.0
         
-        # Règles simples :
-        # 1. Exercices composés (compound) en premier
-        # 2. Groupes musculaires volumineux avant petits
-        # 3. Abdos en fin si présents
+        base_score = 50.0
         
-        def get_priority(ex):
-            priority = 50
-            
-            # Exercices composés prioritaires
-            if ex.get('exercise_type') == 'compound':
-                priority += 20
-            
-            # Gros muscles en premier
-            if 'pectoraux' in ex.get('muscle_groups', []):
-                priority += 15
-            elif 'dos' in ex.get('muscle_groups', []):
-                priority += 14
-            elif 'jambes' in ex.get('muscle_groups', []):
-                priority += 13
-            elif 'epaules' in ex.get('muscle_groups', []):
-                priority += 10
-            elif 'bras' in ex.get('muscle_groups', []):
-                priority += 8
-            
-            # Abdos en fin
-            if 'abdominaux' in ex.get('muscle_groups', []):
-                priority -= 10
-            
-            return priority
+        # Bonus nombre d'exercices
+        exercise_count = len(exercises)
+        if 4 <= exercise_count <= 6:
+            base_score += 20
+        elif 3 <= exercise_count <= 7:
+            base_score += 10
         
-        # Trier et réassigner order_in_session
-        sorted_exercises = sorted(exercises, key=get_priority, reverse=True)
-        for i, ex in enumerate(sorted_exercises):
-            ex['order_in_session'] = i + 1
+        # Bonus récupération musculaire
+        ppl_muscles = PPL_CATEGORIES[ppl_category]['muscles']
+        avg_readiness = sum(muscle_readiness.get(m, 0.5) for m in ppl_muscles) / len(ppl_muscles)
+        base_score += avg_readiness * 20
         
-        return sorted_exercises
-    
-    def _calculate_session_quality(self, exercises: List[Dict], user_id: int) -> float:
-        """Calcul score qualité session (version simplifiée)"""
-        
-        base_score = 75.0
-        
-        # Bonus/pénalités basiques
-        if len(exercises) < 3:
-            base_score -= 15
-        elif len(exercises) > 7:
-            base_score -= 10
-        
-        # Diversité musculaire
-        muscle_groups = set()
+        # Bonus diversité musculaire
+        unique_muscles = set()
         for ex in exercises:
-            muscle_groups.update(ex.get('muscle_groups', []))
+            unique_muscles.update(ex.get('muscle_groups', []))
         
-        if len(muscle_groups) >= 3:
-            base_score += 15  # Bonne diversité
-        elif len(muscle_groups) == 1:
-            base_score -= 10  # Trop focalisé
+        if len(unique_muscles) >= 3:
+            base_score += 10
         
-        # Bonus favoris (engagement)
-        user = self.db.query(User).filter(User.id == user_id).first()
-        if user and user.favorite_exercises:
-            favorite_count = sum(1 for ex in exercises if ex.get('exercise_id') in user.favorite_exercises)
-            base_score += favorite_count * 3
-        
-        return max(0, min(100, base_score))
+        return min(100, max(0, base_score))
     
-    def _get_recent_ppl_usage(self, user_id: int) -> Dict[str, int]:
-        """Analyse utilisation PPL récente (7 derniers jours)"""
-        
-        try:
-            # Récupérer workouts récents
-            cutoff_date = datetime.now(timezone.utc) - timedelta(days=7)
-            recent_workouts = self.db.query(Workout).filter(
-                Workout.user_id == user_id,
-                Workout.started_at >= cutoff_date,
-                Workout.status.in_(['completed', 'active'])
-            ).all()
-            
-            ppl_usage = {'push': 7, 'pull': 7, 'legs': 7}  # Jours depuis dernière utilisation
-            
-            for workout in recent_workouts:
-                # Analyser exercices de ce workout
-                workout_sets = self.db.query(WorkoutSet).filter(
-                    WorkoutSet.workout_id == workout.id
-                ).all()
-                
-                workout_ppls = set()
-                for ws in workout_sets:
-                    exercise = self.db.query(Exercise).filter(Exercise.id == ws.exercise_id).first()
-                    if exercise and hasattr(exercise, 'ppl'):
-                        workout_ppls.update(exercise.ppl)
-                
-                # Mettre à jour dernière utilisation
-                workout_days_ago = (datetime.now(timezone.utc) - workout.started_at.replace(tzinfo=timezone.utc)).days
-                for ppl in workout_ppls:
-                    if ppl in ppl_usage:
-                        ppl_usage[ppl] = min(ppl_usage[ppl], workout_days_ago)
-            
-            return ppl_usage
-            
-        except Exception as e:
-            logger.warning(f"Erreur analyse PPL récente: {e}")
-            return {'push': 3, 'pull': 2, 'legs': 4}  # Valeurs par défaut
+    def _get_user_workout_count(self, user_id: int) -> int:
+        """Compte nombre de séances utilisateur"""
+        return self.db.query(Workout).filter(
+            Workout.user_id == user_id,
+            Workout.completed_at.isnot(None)
+        ).count()
     
-    def _explain_ppl_choice(self, chosen_ppl: str, scores: Dict, usage: Dict) -> str:
-        """Génère explication recommandation PPL"""
+    def _get_user_favorites(self, user_id: int, limit: int = 10) -> List[int]:
+        """Récupère exercices favoris de l'utilisateur"""
+        thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
         
-        reasons = []
-        score = scores[chosen_ppl]
-        days_since = usage.get(chosen_ppl, 7)
+        favorite_exercises = self.db.query(
+            WorkoutSet.exercise_id,
+            func.count(WorkoutSet.id).label('usage_count')
+        ).join(
+            Workout, WorkoutSet.workout_id == Workout.id
+        ).filter(
+            Workout.user_id == user_id,
+            Workout.completed_at >= thirty_days_ago
+        ).group_by(
+            WorkoutSet.exercise_id
+        ).order_by(
+            func.count(WorkoutSet.id).desc()
+        ).limit(limit).all()
         
-        if score > 0.85:
-            reasons.append(f"Muscles {chosen_ppl.upper()} excellente récupération ({score*100:.0f}%)")
-        elif score > 0.7:
-            reasons.append(f"Muscles {chosen_ppl.upper()} bien récupérés ({score*100:.0f}%)")
+        return [ex_id for ex_id, _ in favorite_exercises]
+    
+    def _fallback_generation(self) -> Dict[str, Any]:
+        """Génération fallback si échec"""
+        logger.warning("🚨 Utilisation génération fallback")
         
-        if days_since > 2:
-            reasons.append(f"Pas travaillé depuis {days_since} jour{'s' if days_since > 1 else ''}")
+        # Récupérer de vrais exercices bodyweight
+        basic_exercises = self.db.query(Exercise).filter(
+            cast(Exercise.equipment_required, JSONB).contains(['bodyweight'])
+        ).limit(3).all()
         
-        return " • ".join(reasons) if reasons else f"Meilleure option disponible"
-
-    def _save_generation_to_history(self, user_id: int, params: Dict, exercises: List, quality_score: float):
-        """Sauvegarde génération dans Program.ai_generation_history"""
+        fallback_exercises = []
+        for idx, ex in enumerate(basic_exercises):
+            fallback_exercises.append({
+                'exercise_id': ex.id,
+                'order_in_session': idx + 1,
+                'name': ex.name,
+                'muscle_groups': ex.muscle_groups,
+                'equipment_required': ex.equipment_required,
+                'difficulty': ex.difficulty,
+                'default_sets': ex.default_sets,
+                'default_reps_min': ex.default_reps_min,
+                'default_reps_max': ex.default_reps_max,
+                'base_rest_time_seconds': ex.base_rest_time_seconds,
+                'instructions': ex.instructions
+            })
         
-        try:
-            active_program = self.db.query(Program).filter(
-                Program.user_id == user_id,
-                Program.is_active == True
-            ).first()
-            
-            if active_program:
-                if not active_program.ai_generation_history:
-                    active_program.ai_generation_history = []
-                
-                # Ajouter nouvelle génération
-                generation_entry = {
-                    "generated_at": datetime.now(timezone.utc).isoformat(),
-                    "parameters": params,
-                    "exercises_generated": [ex.get('exercise_id') for ex in exercises],
-                    "quality_score": quality_score,
-                    "user_launched": False  # Sera mis à True si user lance la séance
+        # Si vraiment aucun exercice en DB, fallback hardcodé
+        if not fallback_exercises:
+            fallback_exercises = [
+                {
+                    'exercise_id': 1,
+                    'order_in_session': 1,
+                    'name': 'Pompes',
+                    'muscle_groups': ['pectoraux', 'bras'],
+                    'equipment_required': ['bodyweight'],
+                    'difficulty': 'beginner',
+                    'default_sets': 3,
+                    'default_reps_min': 8,
+                    'default_reps_max': 15,
+                    'base_rest_time_seconds': 60,
+                    'instructions': 'Pompes classiques'
+                },
+                {
+                    'exercise_id': 2,
+                    'order_in_session': 2,
+                    'name': 'Squats',
+                    'muscle_groups': ['jambes'],
+                    'equipment_required': ['bodyweight'],
+                    'difficulty': 'beginner',
+                    'default_sets': 3,
+                    'default_reps_min': 10,
+                    'default_reps_max': 20,
+                    'base_rest_time_seconds': 60,
+                    'instructions': 'Squats au poids du corps'
+                },
+                {
+                    'exercise_id': 3,
+                    'order_in_session': 3,
+                    'name': 'Planche',
+                    'muscle_groups': ['abdominaux'],
+                    'equipment_required': ['bodyweight'],
+                    'difficulty': 'beginner',
+                    'default_sets': 3,
+                    'default_reps_min': 30,
+                    'default_reps_max': 60,
+                    'base_rest_time_seconds': 45,
+                    'instructions': 'Maintenir position planche'
                 }
-                
-                active_program.ai_generation_history.append(generation_entry)
-                
-                # Garder seulement les 10 dernières générations
-                if len(active_program.ai_generation_history) > 10:
-                    active_program.ai_generation_history = active_program.ai_generation_history[-10:]
-                
-                # IMPORTANT : Flag SQLAlchemy que JSON a changé
-                from sqlalchemy.orm.attributes import flag_modified
-                flag_modified(active_program, "ai_generation_history")
-                
-                self.db.commit()
-                logger.info("✅ Génération sauvée dans historique")
-        
-        except Exception as e:
-            logger.warning(f"Erreur sauvegarde historique: {e}")
-
-    def _generate_fallback_session(self, user_id: int, params: Dict[str, Any]) -> Dict[str, Any]:
-        """Génération fallback en cas d'erreur"""
-        
-        logger.warning(f"🆘 Génération fallback pour user {user_id}")
-        
-        # Exercices basiques universels bodyweight
-        fallback_exercises = [
-            {'exercise_id': 1, 'order_in_session': 1, 'name': 'Pompes'},  # IDs réels
-            {'exercise_id': 5, 'order_in_session': 2, 'name': 'Planche'},
-            {'exercise_id': 12, 'order_in_session': 3, 'name': 'Squats'}
-        ]
+            ]
         
         return {
             'exercises': fallback_exercises,
@@ -495,23 +409,3 @@ class AIExerciseGenerator:
                 'generated_at': datetime.now(timezone.utc).isoformat()
             }
         }
-    
-    def _fallback_exercise_selection(self, user_id: int) -> List[Exercise]:
-        """Sélection fallback si contraintes trop strictes"""
-        
-        # Récupérer exercices bodyweight universels
-        fallback_query = self.db.query(Exercise).filter(
-            cast(Exercise.equipment_required, JSONB).contains(['bodyweight'])
-        ).limit(10)
-        
-        return fallback_query.all()
-    
-    def _analyze_muscle_distribution(self, exercises: List[Dict]) -> Dict[str, int]:
-        """Analyse distribution musculaire pour métadonnées"""
-        
-        muscle_count = {}
-        for ex in exercises:
-            for muscle in ex.get('muscle_groups', []):
-                muscle_count[muscle] = muscle_count.get(muscle, 0) + 1
-        
-        return muscle_count
