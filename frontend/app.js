@@ -13627,13 +13627,20 @@ async function abandonWorkout() {
 }
 
 function showSessionExerciseList() {
-    if (currentWorkoutSession.type === 'ai') {
-        document.getElementById('currentExercise').style.display = 'none';
-        document.getElementById('sessionExercisesContainer').style.display = 'block';
-        loadSessionExercisesList();
-        // Support des gestes mobiles
-        addSwipeToExerciseCards();
+    const container = document.getElementById('sessionExerciseList');
+    if (!currentWorkoutSession || currentWorkoutSession.type !== 'ai') {
+        container.style.display = 'none';
+        return;
     }
+    container.style.display = 'block';
+    container.innerHTML = currentWorkoutSession.exercises.map((ex, idx) => `
+        <div class="exercise-item ${idx === currentWorkoutSession.exerciseOrder - 1 ? 'active' : ''}">
+            ${ex.name}
+            <button onclick="selectSessionExercise(${ex.exercise_id})">Passer à</button>
+            <button onclick="initiateSwap(${ex.exercise_id})">Swapper</button>
+            <button onclick="skipExercise(${ex.exercise_id})">Skip</button>
+        </div>
+    `).join('');
 }
 
 // ===== MODULE 2 : SYSTÈME DE SWAP - FONCTIONS UTILITAIRES =====

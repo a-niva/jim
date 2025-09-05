@@ -3301,10 +3301,9 @@ def get_plate_layout(user_id: int, weight: float, exercise_id: int = Query(None)
         logger.error(f"Erreur layout user {user_id}, exercice {exercise_id}, poids {weight}, equipment {exercise_equipment}: {e}")
         raise HTTPException(status_code=500, detail=f"Erreur calcul layout: {str(e)}")
 
-# Dans backend/main.py - AJOUTER après vos endpoints existants
+
 
 # ===== ENDPOINTS IA GÉNÉRATION EXERCICES =====
-
 @app.post("/api/ai/generate-exercises", response_model=GenerateExercisesResponse)
 def generate_ai_exercises(request: GenerateExercisesRequest, db: Session = Depends(get_db)):
     """Génère une séance d'exercices basée sur l'IA avec scoring ML intégré"""
@@ -3327,7 +3326,8 @@ def generate_ai_exercises(request: GenerateExercisesRequest, db: Session = Depen
         
         # Obtenir recommandation PPL via AIExerciseGenerator
         ai_generator = AIExerciseGenerator(db)
-        ppl_recommendation = ai_generator._recommend_ppl(user.id)
+        muscle_readiness = ai_generator._get_all_muscle_readiness(user.id)
+        ppl_recommendation = ai_generator._recommend_ppl(user.id, muscle_readiness)
         recovery_score = ppl_recommendation.get("recovery_score", 0.5)
         ppl_used = ppl_override.lower() if ppl_override and ppl_override.lower() != "auto" else ppl_recommendation.get("category", "push")
         
@@ -3344,25 +3344,24 @@ def generate_ai_exercises(request: GenerateExercisesRequest, db: Session = Depen
         if manual_muscle_focus:
             available_exercises = [
                 ex for ex in available_exercises 
-                if any(muscle in ex.muscle_groups for muscle in manual_muscle_focus)
+                if any(muscle in (ex.muscle_groups or []) for muscle in manual_muscle_focus)
             ]
         
         # Fallback si pas assez d'exercices
         if len(available_exercises) < target_exercise_count:
             available_exercises = [ex for ex in exercises if ex.ppl and ppl_used in ex.ppl][:target_exercise_count * 2]
         
-        # Séparer exercices connus et nouveaux
+        # Sélection avec exploration
+        selected_exercises = []
+        n_known = int(target_exercise_count * (1 - exploration_factor))
+        n_new = target_exercise_count - n_known
+        
         exercise_history = db.query(WorkoutSet.exercise_id, func.count(WorkoutSet.id).label('count'))\
             .join(Workout).filter(Workout.user_id == user.id)\
             .group_by(WorkoutSet.exercise_id).all()
         known_exercise_ids = {eh.exercise_id for eh in exercise_history}
         known_exercises = [ex for ex in available_exercises if ex.id in known_exercise_ids]
         new_exercises = [ex for ex in available_exercises if ex.id not in known_exercise_ids]
-        
-        # Sélection avec exploration
-        selected_exercises = []
-        n_known = int(target_exercise_count * (1 - exploration_factor))
-        n_new = target_exercise_count - n_known
         
         if known_exercises:
             weights = [next((eh.count for eh in exercise_history if eh.exercise_id == ex.id), 1) 
@@ -3377,11 +3376,27 @@ def generate_ai_exercises(request: GenerateExercisesRequest, db: Session = Depen
                                        k=min(n_to_select, len(new_exercises)))
             selected_exercises.extend(selected_new)
         
+        # Fallback hardcodé si aucun exercice
         if len(selected_exercises) < target_exercise_count:
             remaining = target_exercise_count - len(selected_exercises)
-            fallback_exercises = random.sample(available_exercises, 
-                                             k=min(remaining, len(available_exercises)))
-            selected_exercises.extend(fallback_exercises)
+            if not available_exercises:
+                selected_exercises.extend([
+                    Exercise(id=1, name="Pompes", muscle_groups=["pectoraux", "bras"], equipment_required=["bodyweight"], 
+                             difficulty="beginner", default_sets=3, default_reps_min=8, default_reps_max=15, 
+                             base_rest_time_seconds=60, instructions="Pompes classiques", exercise_type="isolation", 
+                             weight_type="bodyweight", base_weights_kg=0, bodyweight_percentage=0.7, ppl=["push"]),
+                    Exercise(id=2, name="Squats", muscle_groups=["jambes"], equipment_required=["bodyweight"], 
+                             difficulty="beginner", default_sets=3, default_reps_min=10, default_reps_max=20, 
+                             base_rest_time_seconds=60, instructions="Squats au poids du corps", exercise_type="compound", 
+                             weight_type="bodyweight", base_weights_kg=0, bodyweight_percentage=0.7, ppl=["legs"]),
+                    Exercise(id=3, name="Planche", muscle_groups=["abdominaux"], equipment_required=["bodyweight"], 
+                             difficulty="beginner", default_sets=3, default_reps_min=30, default_reps_max=60, 
+                             base_rest_time_seconds=45, instructions="Maintenir position planche", exercise_type="isolation", 
+                             weight_type="bodyweight", base_weights_kg=0, bodyweight_percentage=0.7, ppl=["core"])
+                ][:remaining])
+            else:
+                fallback_exercises = random.sample(available_exercises, k=min(remaining, len(available_exercises)))
+                selected_exercises.extend(fallback_exercises)
         
         # Ordonner : composés d'abord, puis alterner muscles
         compound_exercises = [ex for ex in selected_exercises if ex.exercise_type == 'compound']
@@ -3398,8 +3413,8 @@ def generate_ai_exercises(request: GenerateExercisesRequest, db: Session = Depen
                 selected_exercises_with_metadata.append({
                     "exercise_id": exercise.id,
                     "name": exercise.name,
-                    "muscle_groups": exercise.muscle_groups,
-                    "equipment_required": exercise.equipment_required,
+                    "muscle_groups": exercise.muscle_groups or [],
+                    "equipment_required": exercise.equipment_required or [],
                     "difficulty": exercise.difficulty,
                     "order_in_session": idx + 1,
                     "default_sets": exercise.default_sets,
@@ -3416,13 +3431,51 @@ def generate_ai_exercises(request: GenerateExercisesRequest, db: Session = Depen
         except Exception as e:
             logger.error(f"❌ Erreur formatage exercices: {str(e)}", exc_info=True)
             return {
-                "exercises": [],
-                "quality_score": 0,
-                "ppl_used": "none",
-                "ppl_recommendation": {},
+                "exercises": [
+                    {
+                        "exercise_id": 1,
+                        "name": "Pompes",
+                        "muscle_groups": ["pectoraux", "bras"],
+                        "equipment_required": ["bodyweight"],
+                        "difficulty": "beginner",
+                        "order_in_session": 1,
+                        "default_sets": 3,
+                        "default_reps_min": 8,
+                        "default_reps_max": 15,
+                        "base_rest_time_seconds": 60,
+                        "instructions": "Pompes classiques",
+                        "exercise_type": "isolation",
+                        "weight_type": "bodyweight",
+                        "base_weights_kg": 0,
+                        "bodyweight_percentage": 0.7,
+                        "ppl": ["push"]
+                    },
+                    {
+                        "exercise_id": 2,
+                        "name": "Squats",
+                        "muscle_groups": ["jambes"],
+                        "equipment_required": ["bodyweight"],
+                        "difficulty": "beginner",
+                        "order_in_session": 2,
+                        "default_sets": 3,
+                        "default_reps_min": 10,
+                        "default_reps_max": 20,
+                        "base_rest_time_seconds": 60,
+                        "instructions": "Squats au poids du corps",
+                        "exercise_type": "compound",
+                        "weight_type": "bodyweight",
+                        "base_weights_kg": 0,
+                        "bodyweight_percentage": 0.7,
+                        "ppl": ["legs"]
+                    }
+                ],
+                "quality_score": 60,
+                "ppl_used": "push",
+                "ppl_recommendation": {"category": "push", "confidence": 0.5, "reasoning": "Fallback exercices basiques"},
                 "generation_metadata": {
                     "generated_at": datetime.now(timezone.utc).isoformat(),
-                    "error": f"Formatage exercices: {str(e)}"
+                    "error": f"Formatage exercices: {str(e)}",
+                    "fallback": True
                 }
             }
         
@@ -3462,16 +3515,54 @@ def generate_ai_exercises(request: GenerateExercisesRequest, db: Session = Depen
     except Exception as e:
         logger.error(f"❌ Erreur génération: {str(e)}", exc_info=True)
         return {
-            "exercises": [],
-            "quality_score": 0,
-            "ppl_used": "none",
-            "ppl_recommendation": {},
+            "exercises": [
+                {
+                    "exercise_id": 1,
+                    "name": "Pompes",
+                    "muscle_groups": ["pectoraux", "bras"],
+                    "equipment_required": ["bodyweight"],
+                    "difficulty": "beginner",
+                    "order_in_session": 1,
+                    "default_sets": 3,
+                    "default_reps_min": 8,
+                    "default_reps_max": 15,
+                    "base_rest_time_seconds": 60,
+                    "instructions": "Pompes classiques",
+                    "exercise_type": "isolation",
+                    "weight_type": "bodyweight",
+                    "base_weights_kg": 0,
+                    "bodyweight_percentage": 0.7,
+                    "ppl": ["push"]
+                },
+                {
+                    "exercise_id": 2,
+                    "name": "Squats",
+                    "muscle_groups": ["jambes"],
+                    "equipment_required": ["bodyweight"],
+                    "difficulty": "beginner",
+                    "order_in_session": 2,
+                    "default_sets": 3,
+                    "default_reps_min": 10,
+                    "default_reps_max": 20,
+                    "base_rest_time_seconds": 60,
+                    "instructions": "Squats au poids du corps",
+                    "exercise_type": "compound",
+                    "weight_type": "bodyweight",
+                    "base_weights_kg": 0,
+                    "bodyweight_percentage": 0.7,
+                    "ppl": ["legs"]
+                }
+            ],
+            "quality_score": 60,
+            "ppl_used": "push",
+            "ppl_recommendation": {"category": "push", "confidence": 0.5, "reasoning": "Fallback exercices basiques"},
             "generation_metadata": {
                 "generated_at": datetime.now(timezone.utc).isoformat(),
-                "error": str(e)
+                "error": str(e),
+                "fallback": True
             }
         }
-    
+      
 
 @app.post("/api/ai/optimize-session")
 def optimize_ai_session(request_data: dict, db: Session = Depends(get_db)):
