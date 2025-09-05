@@ -3304,6 +3304,7 @@ def get_plate_layout(user_id: int, weight: float, exercise_id: int = Query(None)
 
 
 # ===== ENDPOINTS IA GÉNÉRATION EXERCICES =====
+
 @app.post("/api/ai/generate-exercises", response_model=GenerateExercisesResponse)
 def generate_ai_exercises(request: GenerateExercisesRequest, db: Session = Depends(get_db)):
     """Génère une séance d'exercices basée sur l'IA avec scoring ML intégré"""
@@ -3381,18 +3382,30 @@ def generate_ai_exercises(request: GenerateExercisesRequest, db: Session = Depen
             remaining = target_exercise_count - len(selected_exercises)
             if not available_exercises:
                 selected_exercises.extend([
-                    Exercise(id=1, name="Pompes", muscle_groups=["pectoraux", "bras"], equipment_required=["bodyweight"], 
-                             difficulty="beginner", default_sets=3, default_reps_min=8, default_reps_max=15, 
-                             base_rest_time_seconds=60, instructions="Pompes classiques", exercise_type="isolation", 
-                             weight_type="bodyweight", base_weights_kg=0, bodyweight_percentage=0.7, ppl=["push"]),
-                    Exercise(id=2, name="Squats", muscle_groups=["jambes"], equipment_required=["bodyweight"], 
-                             difficulty="beginner", default_sets=3, default_reps_min=10, default_reps_max=20, 
-                             base_rest_time_seconds=60, instructions="Squats au poids du corps", exercise_type="compound", 
-                             weight_type="bodyweight", base_weights_kg=0, bodyweight_percentage=0.7, ppl=["legs"]),
-                    Exercise(id=3, name="Planche", muscle_groups=["abdominaux"], equipment_required=["bodyweight"], 
-                             difficulty="beginner", default_sets=3, default_reps_min=30, default_reps_max=60, 
-                             base_rest_time_seconds=45, instructions="Maintenir position planche", exercise_type="isolation", 
-                             weight_type="bodyweight", base_weights_kg=0, bodyweight_percentage=0.7, ppl=["core"])
+                    Exercise(
+                        id=1, name="Pompes", muscle_groups=["pectoraux", "bras"], 
+                        equipment_required=["bodyweight"], difficulty="beginner", 
+                        default_sets=3, default_reps_min=8, default_reps_max=15, 
+                        base_rest_time_seconds=60, instructions="Pompes classiques", 
+                        exercise_type="compound", weight_type="bodyweight", 
+                        base_weights_kg=0, bodyweight_percentage=0.7, ppl=["push"]
+                    ),
+                    Exercise(
+                        id=2, name="Squats", muscle_groups=["jambes"], 
+                        equipment_required=["bodyweight"], difficulty="beginner", 
+                        default_sets=3, default_reps_min=10, default_reps_max=20, 
+                        base_rest_time_seconds=60, instructions="Squats au poids du corps", 
+                        exercise_type="compound", weight_type="bodyweight", 
+                        base_weights_kg=0, bodyweight_percentage=0.7, ppl=["legs"]
+                    ),
+                    Exercise(
+                        id=3, name="Planche", muscle_groups=["abdominaux"], 
+                        equipment_required=["bodyweight"], difficulty="beginner", 
+                        default_sets=3, default_reps_min=30, default_reps_max=60, 
+                        base_rest_time_seconds=45, instructions="Maintenir position planche", 
+                        exercise_type="isolation", weight_type="bodyweight", 
+                        base_weights_kg=0, bodyweight_percentage=0.7, ppl=["core"]
+                    )
                 ][:remaining])
             else:
                 fallback_exercises = random.sample(available_exercises, k=min(remaining, len(available_exercises)))
@@ -3444,7 +3457,7 @@ def generate_ai_exercises(request: GenerateExercisesRequest, db: Session = Depen
                         "default_reps_max": 15,
                         "base_rest_time_seconds": 60,
                         "instructions": "Pompes classiques",
-                        "exercise_type": "isolation",
+                        "exercise_type": "compound",
                         "weight_type": "bodyweight",
                         "base_weights_kg": 0,
                         "bodyweight_percentage": 0.7,
@@ -3480,14 +3493,18 @@ def generate_ai_exercises(request: GenerateExercisesRequest, db: Session = Depen
             }
         
         # Calculer score qualité
-        ml_engine = FitnessMLEngine(db)
+        ml_engine = FitnessRecommendationEngine(db)  # Changé de FitnessMLEngine à FitnessRecommendationEngine
         ml_capability_score = 0
         for exercise_data in selected_exercises_with_metadata:
             exercise = next((ex for ex in selected_exercises if ex.id == exercise_data['exercise_id']), None)
             if exercise:
-                historical_data = ml_engine._get_historical_context(user, exercise, 1, 1)
-                if historical_data and len(historical_data) > 0:
-                    ml_capability_score += 1
+                try:
+                    historical_data = ml_engine._get_historical_performance(exercise.id)  # Ajusté pour utiliser _get_historical_performance
+                    if historical_data and len(historical_data) > 0:
+                        ml_capability_score += 1
+                except Exception as e:
+                    logger.warning(f"Erreur récupération historique pour exercice {exercise.id}: {str(e)}")
+                    continue
         
         base_score = 60
         recovery_bonus = recovery_score * 20
@@ -3528,7 +3545,7 @@ def generate_ai_exercises(request: GenerateExercisesRequest, db: Session = Depen
                     "default_reps_max": 15,
                     "base_rest_time_seconds": 60,
                     "instructions": "Pompes classiques",
-                    "exercise_type": "isolation",
+                    "exercise_type": "compound",
                     "weight_type": "bodyweight",
                     "base_weights_kg": 0,
                     "bodyweight_percentage": 0.7,
@@ -3562,7 +3579,6 @@ def generate_ai_exercises(request: GenerateExercisesRequest, db: Session = Depen
                 "fallback": True
             }
         }
-      
 
 @app.post("/api/ai/optimize-session")
 def optimize_ai_session(request_data: dict, db: Session = Depends(get_db)):
