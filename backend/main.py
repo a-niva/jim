@@ -630,6 +630,8 @@ def get_exercise(exercise_id: int, db: Session = Depends(get_db)):
     exercise = db.query(Exercise).filter(Exercise.id == exercise_id).first()
     if not exercise:
         raise HTTPException(status_code=404, detail="Exercice non trouvé")
+    
+    # Retourne l'objet directement, FastAPI utilisera ExerciseResponse pour la sérialisation
     return exercise
 
 def get_available_equipment(equipment_config: Dict[str, Any]) -> List[str]:
@@ -3434,7 +3436,6 @@ def generate_ai_exercises(request: GenerateExercisesRequest, db: Session = Depen
             "default_sets": exercise.default_sets,
             "default_reps_min": exercise.default_reps_min,
             "default_reps_max": exercise.default_reps_max,
-            "default_weight": exercise.default_weight,
             "base_rest_time_seconds": exercise.base_rest_time_seconds,
             "instructions": exercise.instructions,
             "exercise_type": exercise.exercise_type,

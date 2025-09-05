@@ -42,21 +42,21 @@ MUSCLE_GROUP_MAPPING = {
 
 PPL_CATEGORIES = {
     'push': {
-        'name': 'Push (Pousser)',
+        'name': 'Push',
         'muscles': ['pectoraux', 'epaules', 'bras'],  # triceps inclus dans bras
         'description': 'Exercices de poussée - pectoraux, épaules, triceps',
         'icon': '💪',
         'color': '#3b82f6'
     },
     'pull': {
-        'name': 'Pull (Tirer)', 
+        'name': 'Pull', 
         'muscles': ['dos', 'bras'],  # biceps inclus dans bras
         'description': 'Exercices de traction - dos, biceps',
         'icon': '🏋️',
         'color': '#10b981'
     },
     'legs': {
-        'name': 'Legs (Jambes)',
+        'name': 'Legs',
         'muscles': ['jambes'],
         'description': 'Exercices jambes complètes',
         'icon': '🦵',

@@ -18,17 +18,17 @@ logger = logging.getLogger(__name__)
 # Constantes PPL
 PPL_CATEGORIES = {
     'push': {
-        'name': 'Push (Pousser)',
+        'name': 'Push',
         'muscles': ['pectoraux', 'epaules', 'bras'],
         'description': 'Exercices de poussée'
     },
     'pull': {
-        'name': 'Pull (Tirer)', 
+        'name': 'Pull', 
         'muscles': ['dos', 'bras'],
         'description': 'Exercices de traction'
     },
     'legs': {
-        'name': 'Legs (Jambes)',
+        'name': 'Legs',
         'muscles': ['jambes'],
         'description': 'Exercices jambes'
     }
@@ -302,7 +302,6 @@ class AIExerciseGenerator:
                 'default_reps_max': ex.default_reps_max,
                 'base_rest_time_seconds': ex.base_rest_time_seconds,
                 'instructions': ex.instructions
-                # PAS de default_weight - ce champ n'existe pas !
             }
             exercise_list.append(exercise_data)
         

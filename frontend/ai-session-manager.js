@@ -132,9 +132,9 @@ class AISessionManager {
         }
         
         const categories = {
-            'push': { icon: '💪', label: 'Push (Pousser)' },
-            'pull': { icon: '🎣', label: 'Pull (Tirer)' },
-            'legs': { icon: '🦵', label: 'Legs (Jambes)' }
+            'push': { icon: '💪', label: 'Push' },
+            'pull': { icon: '🎣', label: 'Pull' },
+            'legs': { icon: '🦵', label: 'Legs' }
         };
         
         // Styles avec meilleur contraste
@@ -285,7 +285,141 @@ class AISessionManager {
             this.updateButtonStates();
         }
     }
+
+    // ============= AJOUT 1 : Drag & Drop =============
+    initializeExerciseReorder() {
+        const container = document.getElementById('exercisePreviewContainer');
+        if (!container || !this.lastGenerated) return;
+        
+        // Utilise dragula si disponible, sinon fallback HTML5
+        if (typeof dragula !== 'undefined') {
+            const drake = dragula([container], {
+                moves: function (el, source, handle, sibling) {
+                    return el.classList.contains('exercise-preview-item');
+                }
+            });
+            
+            drake.on('drop', () => {
+                this.updateOrderFromDOM();
+            });
+        } else {
+            // Fallback HTML5 drag & drop
+            container.querySelectorAll('.exercise-preview-item').forEach((item, index) => {
+                item.draggable = true;
+                item.dataset.originalIndex = index;
+                
+                item.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/html', e.target.innerHTML);
+                    this.draggedElement = e.target;
+                });
+                
+                item.addEventListener('dragover', (e) => {
+                    if (e.preventDefault) e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    const afterElement = this.getDragAfterElement(container, e.clientY);
+                    if (afterElement == null) {
+                        container.appendChild(this.draggedElement);
+                    } else {
+                        container.insertBefore(this.draggedElement, afterElement);
+                    }
+                });
+                
+                item.addEventListener('drop', (e) => {
+                    if (e.stopPropagation) e.stopPropagation();
+                    this.updateOrderFromDOM();
+                    return false;
+                });
+            });
+        }
+    }
     
+    getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll('.exercise-preview-item:not(.dragging)')];
+        
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+    
+    updateOrderFromDOM() {
+        const items = document.querySelectorAll('.exercise-preview-item');
+        const newOrder = [];
+        
+        items.forEach((item, newIndex) => {
+            const exerciseId = parseInt(item.dataset.exerciseId);
+            const exercise = this.lastGenerated.exercises.find(ex => ex.exercise_id === exerciseId);
+            if (exercise) {
+                exercise.order_in_session = newIndex + 1;
+                newOrder.push(exercise);
+            }
+        });
+        
+        this.lastGenerated.exercises = newOrder;
+        this.updateQualityScore();
+        this.updateOrderNumbers();
+    }
+    
+    // ============= AJOUT 2 : Calcul du score local =============
+    updateQualityScore() {
+        if (!this.lastGenerated) return;
+        
+        const exercises = this.lastGenerated.exercises;
+        let score = 50; // Base
+        
+        // Bonus pour diversité musculaire
+        const uniqueMuscles = new Set();
+        exercises.forEach(ex => {
+            if (ex.muscle_groups) {
+                ex.muscle_groups.forEach(muscle => uniqueMuscles.add(muscle));
+            }
+        });
+        score += uniqueMuscles.size * 10;
+        
+        // Bonus pour nombre d'exercices optimal
+        if (exercises.length >= 4 && exercises.length <= 6) {
+            score += 20;
+        } else if (exercises.length >= 3 && exercises.length <= 7) {
+            score += 10;
+        }
+        
+        // Pénalité pour muscles consécutifs identiques
+        for (let i = 1; i < exercises.length; i++) {
+            const currentMuscles = new Set(exercises[i].muscle_groups || []);
+            const prevMuscles = new Set(exercises[i-1].muscle_groups || []);
+            const overlap = [...currentMuscles].filter(m => prevMuscles.has(m));
+            if (overlap.length > 0) {
+                score -= 5;
+            }
+        }
+        
+        // Limiter entre 0 et 100
+        this.lastGenerated.quality_score = Math.min(100, Math.max(0, score));
+        
+        // Mettre à jour l'affichage
+        const scoreDisplay = document.querySelector('.quality-score-display');
+        if (scoreDisplay) {
+            scoreDisplay.textContent = `Score: ${Math.round(this.lastGenerated.quality_score)}%`;
+        }
+    }
+    
+    updateOrderNumbers() {
+        const items = document.querySelectorAll('.exercise-preview-item');
+        items.forEach((item, index) => {
+            const numberEl = item.querySelector('.exercise-number');
+            if (numberEl) {
+                numberEl.textContent = index + 1;
+            }
+        });
+    }
+
     async regenerateSession() {
         if (!this.lastGenerated) return;
         
@@ -294,73 +428,442 @@ class AISessionManager {
         await this.generateSession();
     }
     
+    
+    // ============= AJOUT 3 : Lancement de séance avec auto-start =============
     async launchAISession() {
         if (!this.lastGenerated || !this.lastGenerated.exercises) {
             this.showMessage('Aucune séance générée', 'warning');
             return;
         }
         
-        if (typeof window.apiPost !== 'function') {
-            console.error('apiPost non disponible');
-            return;
-        }
-        
         try {
-            console.log('🚀 Lancement séance IA');
+            console.log('🚀 Lancement séance IA avec auto-start');
             
             // 1. Nettoyer état existant
             if (typeof window.clearWorkoutState === 'function') {
                 window.clearWorkoutState();
             }
             
-            // 2. Créer workout
+            // 2. Créer workout avec métadonnées AI
             const workoutData = {
-                type: 'free',
+                type: 'ai', // Type AI pour différencier
                 session_metadata: {
                     ai_generated: true,
                     ppl_category: this.lastGenerated.ppl_used,
                     quality_score: this.lastGenerated.quality_score,
-                    generation_params: this.params
+                    generation_params: this.params,
+                    exercises: this.lastGenerated.exercises // Stocker la liste complète
                 }
             };
             
             const response = await window.apiPost(`/api/users/${window.currentUser?.id || 1}/workouts`, workoutData);
             window.currentWorkout = response.workout;
             
-            // 3. Stocker la queue d'exercices
-            window.aiExerciseQueue = this.lastGenerated.exercises.map(ex => ex.exercise_id);
-            window.aiExerciseIndex = 0;
+            // 3. Configurer la session AI
+            window.currentWorkoutSession = {
+                type: 'ai',
+                exercises: this.lastGenerated.exercises,
+                currentIndex: 0,
+                sessionExercises: {},
+                completedExercisesCount: 0
+            };
+            
+            // Initialiser l'état des exercices
+            this.lastGenerated.exercises.forEach((ex, idx) => {
+                window.currentWorkoutSession.sessionExercises[ex.exercise_id] = {
+                    index: idx,
+                    name: ex.name,
+                    isCompleted: false,
+                    completedSets: 0,
+                    totalSets: ex.default_sets || 3
+                };
+            });
             
             // 4. Aller à la vue workout
             if (typeof window.showView === 'function') {
                 window.showView('workout');
-            } else {
-                console.error('showView non disponible');
-                return;
             }
             
-            // 5. Afficher la liste des exercices AI
-            this.showAIExercisesList();
+            // 5. Afficher l'encart AI
+            this.showAISessionPanel();
             
-            // 6. Sélectionner le premier exercice
+            // 6. Auto-start : sélectionner le premier exercice
             setTimeout(async () => {
-                await this.selectNextAIExercise();
-                
-                // 7. Démarrage auto countdown si mobile
-                const isMobile = window.isMobile || /Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent);
-                if (isMobile && typeof window.showCountdown === 'function') {
-                    setTimeout(() => window.showCountdown(), 1000);
+                const firstExercise = this.lastGenerated.exercises[0];
+                if (firstExercise && typeof window.selectExercise === 'function') {
+                    // Récupérer les détails complets de l'exercice
+                    const exerciseDetails = await window.apiGet(`/api/exercises/${firstExercise.exercise_id}`);
+                    await window.selectExercise(exerciseDetails);
+                    
+                    // 7. Lancer le countdown automatiquement (mobile)
+                    const isMobile = window.isMobile || /Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent);
+                    if (isMobile && typeof window.showCountdown === 'function') {
+                        setTimeout(() => {
+                            window.showCountdown();
+                            this.showMessage('Posez votre téléphone pour démarrer !', 'info');
+                        }, 1000);
+                    }
                 }
             }, 500);
             
-            this.showMessage('Séance lancée !', 'success');
+            this.showMessage('Séance AI lancée !', 'success');
             
         } catch (error) {
-            console.error('❌ Erreur lancement:', error);
+            console.error('❌ Erreur lancement séance AI:', error);
             this.showMessage('Erreur lors du lancement', 'error');
         }
     }
+
+
+    // ============= AJOUT 4 : Panel d'exercices AI dans la séance =============
+    // ============= AJOUT 4 : Panel d'exercices AI dans la séance =============
+    showAISessionPanel() {
+        // Créer ou mettre à jour le panel AI
+        let panel = document.getElementById('aiSessionPanel');
+        if (!panel) {
+            panel = document.createElement('div');
+            panel.id = 'aiSessionPanel';
+            panel.className = 'ai-session-panel';
+            const workoutContainer = document.getElementById('workout') || document.querySelector('.workout-container');
+            if (workoutContainer) {
+                workoutContainer.appendChild(panel);
+            }
+        }
+        
+        panel.innerHTML = `
+            <div class="ai-panel-header">
+                <h3>🤖 Séance IA - ${this.lastGenerated.ppl_used.toUpperCase()}</h3>
+                <div class="ai-panel-score">Score: ${Math.round(this.lastGenerated.quality_score)}%</div>
+            </div>
+            <div class="ai-exercises-list">
+                ${this.lastGenerated.exercises.map((exercise, index) => {
+                    const state = window.currentWorkoutSession.sessionExercises[exercise.exercise_id];
+                    const isActive = window.currentWorkoutSession.currentIndex === index;
+                    const isCompleted = state?.isCompleted;
+                    
+                    return `
+                        <div class="ai-exercise-row ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}"
+                             data-exercise-id="${exercise.exercise_id}">
+                            <div class="ai-exercise-status">
+                                ${isCompleted ? '✓' : isActive ? '▶' : exercise.order_in_session}
+                            </div>
+                            <div class="ai-exercise-info">
+                                <div class="ai-exercise-name">${exercise.name}</div>
+                                <div class="ai-exercise-details">
+                                    ${exercise.muscle_groups.join(', ')} • 
+                                    ${exercise.default_sets} séries
+                                </div>
+                            </div>
+                            <div class="ai-exercise-actions">
+                                ${!isCompleted ? `
+                                    <button onclick="window.aiSessionManager.goToExercise(${index})" 
+                                            class="btn-mini" title="Aller à">→</button>
+                                    <button onclick="window.aiSessionManager.swapExercise(${index})" 
+                                            class="btn-mini btn-swap" title="Changer">⇄</button>
+                                    <button onclick="window.aiSessionManager.skipExercise(${index})" 
+                                            class="btn-mini btn-skip" title="Passer">⏭</button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+        
+        // Ajouter les styles si nécessaire
+        this.injectPanelStyles();
+    }
     
+    // ============= AJOUT 5 : Actions sur les exercices =============
+    async goToExercise(index) {
+        const exercise = this.lastGenerated.exercises[index];
+        if (!exercise) return;
+        
+        window.currentWorkoutSession.currentIndex = index;
+        const exerciseDetails = await window.apiGet(`/api/exercises/${exercise.exercise_id}`);
+        await window.selectExercise(exerciseDetails);
+        this.showAISessionPanel(); // Refresh
+    }
+    
+    async swapExercise(index) {
+        const exercise = this.lastGenerated.exercises[index];
+        if (!exercise) return;
+        
+        // Appeler l'API pour obtenir des alternatives
+        try {
+            const alternatives = await window.apiPost('/api/exercises/alternatives', {
+                exercise_id: exercise.exercise_id,
+                muscle_groups: exercise.muscle_groups,
+                equipment_required: exercise.equipment_required
+            });
+            
+            // Afficher modal de sélection
+            this.showSwapModal(index, alternatives);
+        } catch (error) {
+            console.error('Erreur récupération alternatives:', error);
+            // Fallback : proposer des exercices du même groupe musculaire
+            const alternatives = await window.apiGet(`/api/exercises?muscle_group=${exercise.muscle_groups[0]}`);
+            this.showSwapModal(index, alternatives.slice(0, 5));
+        }
+    }
+    
+    skipExercise(index) {
+        const exercise = this.lastGenerated.exercises[index];
+        if (!exercise) return;
+        
+        // Marquer comme complété/sauté
+        const state = window.currentWorkoutSession.sessionExercises[exercise.exercise_id];
+        if (state) {
+            state.isCompleted = true;
+            state.skipped = true;
+        }
+        
+        // Passer au suivant
+        if (index < this.lastGenerated.exercises.length - 1) {
+            this.goToExercise(index + 1);
+        } else {
+            this.showMessage('Séance terminée !', 'success');
+            if (typeof window.endWorkout === 'function') {
+                window.endWorkout();
+            }
+        }
+    }
+    
+    showSwapModal(index, alternatives) {
+        const currentExercise = this.lastGenerated.exercises[index];
+        
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <h3>Remplacer "${currentExercise.name}"</h3>
+                <div class="alternatives-list">
+                    ${alternatives.map(alt => `
+                        <div class="alternative-option" onclick="window.aiSessionManager.selectAlternative(${index}, ${alt.id})">
+                            <div class="alternative-name">${alt.name}</div>
+                            <div class="alternative-muscles">${alt.muscle_groups?.join(', ') || ''}</div>
+                        </div>
+                    `).join('')}
+                </div>
+                <button onclick="this.closest('.modal-overlay').remove()" class="btn-cancel">Annuler</button>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+    }
+    
+    async selectAlternative(index, newExerciseId) {
+        // Récupérer les détails du nouvel exercice
+        const newExercise = await window.apiGet(`/api/exercises/${newExerciseId}`);
+        
+        // Remplacer dans la liste
+        this.lastGenerated.exercises[index] = {
+            exercise_id: newExercise.id,
+            name: newExercise.name,
+            muscle_groups: newExercise.muscle_groups,
+            equipment_required: newExercise.equipment_required,
+            difficulty: newExercise.difficulty,
+            default_sets: newExercise.default_sets,
+            default_reps_min: newExercise.default_reps_min,
+            default_reps_max: newExercise.default_reps_max,
+            base_rest_time_seconds: newExercise.base_rest_time_seconds,
+            instructions: newExercise.instructions,
+            order_in_session: index + 1
+        };
+        
+        // Fermer le modal
+        document.querySelector('.modal-overlay')?.remove();
+        
+        // Rafraîchir l'affichage
+        this.showAISessionPanel();
+        this.updateQualityScore();
+        
+        // Si c'est l'exercice actuel, le sélectionner
+        if (window.currentWorkoutSession.currentIndex === index) {
+            await this.goToExercise(index);
+        }
+    }
+    
+    injectPanelStyles() {
+        if (document.getElementById('ai-panel-styles')) return;
+        
+        const styles = document.createElement('style');
+        styles.id = 'ai-panel-styles';
+        styles.textContent = `
+            .ai-session-panel {
+                position: fixed;
+                right: 20px;
+                top: 80px;
+                width: 350px;
+                max-height: 70vh;
+                background: #1e293b;
+                border-radius: 12px;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                overflow-y: auto;
+                z-index: 100;
+            }
+            
+            .ai-panel-header {
+                padding: 1rem;
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                border-radius: 12px 12px 0 0;
+                color: white;
+            }
+            
+            .ai-panel-score {
+                font-size: 0.9rem;
+                opacity: 0.9;
+                margin-top: 0.25rem;
+            }
+            
+            .ai-exercises-list {
+                padding: 0.5rem;
+            }
+            
+            .ai-exercise-row {
+                display: flex;
+                align-items: center;
+                padding: 0.75rem;
+                margin: 0.25rem 0;
+                background: #0f172a;
+                border-radius: 8px;
+                transition: all 0.2s;
+            }
+            
+            .ai-exercise-row.active {
+                background: rgba(102, 126, 234, 0.2);
+                border-left: 3px solid #667eea;
+            }
+            
+            .ai-exercise-row.completed {
+                opacity: 0.6;
+            }
+            
+            .ai-exercise-status {
+                width: 30px;
+                text-align: center;
+                font-weight: bold;
+                color: #667eea;
+            }
+            
+            .ai-exercise-info {
+                flex: 1;
+                margin: 0 1rem;
+            }
+            
+            .ai-exercise-name {
+                color: #f1f5f9;
+                font-weight: 600;
+            }
+            
+            .ai-exercise-details {
+                color: #94a3b8;
+                font-size: 0.85rem;
+                margin-top: 0.25rem;
+            }
+            
+            .ai-exercise-actions {
+                display: flex;
+                gap: 0.25rem;
+            }
+            
+            .btn-mini {
+                padding: 0.25rem 0.5rem;
+                background: #334155;
+                color: #94a3b8;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 0.9rem;
+            }
+            
+            .btn-mini:hover {
+                background: #475569;
+                color: #f1f5f9;
+            }
+            
+            .btn-swap {
+                background: #667eea;
+                color: white;
+            }
+            
+            .btn-skip {
+                background: #ef4444;
+                color: white;
+            }
+            
+            @media (max-width: 768px) {
+                .ai-session-panel {
+                    position: relative;
+                    right: auto;
+                    top: auto;
+                    width: 100%;
+                    max-height: none;
+                    margin-bottom: 1rem;
+                }
+            }
+        `;
+        
+        document.head.appendChild(styles);
+    }
+    
+    // Mise à jour de updateGeneratedSessionDisplay pour supporter le drag & drop
+    updateGeneratedSessionDisplay() {
+        const container = document.getElementById('exercisePreviewContainer');
+        const preview = document.getElementById('generatedSessionPreview');
+        
+        if (!container || !this.lastGenerated) return;
+        
+        container.innerHTML = `
+            <div class="quality-score-display" style="text-align: center; margin-bottom: 1rem; font-weight: bold; color: #667eea;">
+                Score: ${Math.round(this.lastGenerated.quality_score)}%
+            </div>
+            <div class="exercises-list">
+                ${this.lastGenerated.exercises.map(exercise => `
+                    <div class="exercise-preview-item" 
+                         data-exercise-id="${exercise.exercise_id}"
+                         style="display: flex; align-items: center; padding: 0.75rem; margin: 0.5rem 0; 
+                                background: #0f172a; border-radius: 8px; cursor: move;">
+                        <div class="drag-handle" style="margin-right: 0.5rem; color: #667eea;">☰</div>
+                        <div class="exercise-number" style="width: 35px; height: 35px; background: #667eea; color: white; 
+                                    border-radius: 50%; display: flex; align-items: center; 
+                                    justify-content: center; font-weight: bold; margin-right: 1rem; font-size: 0.9rem;">
+                            ${exercise.order_in_session}
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #f1f5f9;">${exercise.name}</div>
+                            <div style="color: #94a3b8; font-size: 0.85rem; margin-top: 0.25rem;">
+                                <span style="margin-right: 1rem;">${exercise.muscle_groups.join(', ')}</span>
+                                <span style="color: #64748b;">${exercise.default_sets} séries • ${exercise.default_reps_min}-${exercise.default_reps_max} reps</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            <div style="display: flex; justify-content: space-around; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #334155;">
+                <div style="text-align: center;">
+                    <i class="fas fa-trophy" style="color: #667eea;"></i>
+                    <span style="color: #e2e8f0; margin-left: 0.5rem;">Score: ${Math.round(this.lastGenerated.quality_score)}%</span>
+                </div>
+                <div style="text-align: center;">
+                    <i class="fas fa-dumbbell" style="color: #667eea;"></i>
+                    <span style="color: #e2e8f0; margin-left: 0.5rem;">${this.lastGenerated.exercises.length} exercices</span>
+                </div>
+                <div style="text-align: center;">
+                    <i class="fas fa-clock" style="color: #667eea;"></i>
+                    <span style="color: #e2e8f0; margin-left: 0.5rem;">~${this.lastGenerated.exercises.length * 10} min</span>
+                </div>
+            </div>
+        `;
+        
+        if (preview) {
+            preview.style.display = 'block';
+        }
+        
+        // Initialiser le drag & drop après mise à jour du DOM
+        setTimeout(() => this.initializeExerciseReorder(), 100);
+    }
+
     showAIExercisesList() {
         const container = document.getElementById('sessionExercisesContainer') || 
                          document.getElementById('exercisesList');
@@ -455,9 +958,6 @@ class AISessionManager {
         }
     }
     
-    async swapExercise(exerciseIndex) {
-        this.showMessage('Swap exercice - À implémenter', 'info');
-    }
     
     // === Event Handlers ===
     
@@ -520,53 +1020,6 @@ class AISessionManager {
         if (regenerateBtn) {
             regenerateBtn.disabled = !this.lastGenerated;
             regenerateBtn.style.opacity = this.lastGenerated ? '1' : '0.6';
-        }
-    }
-    
-    updateGeneratedSessionDisplay() {
-        const container = document.getElementById('exercisePreviewContainer');
-        const preview = document.getElementById('generatedSessionPreview');
-        
-        if (!container || !this.lastGenerated) return;
-        
-        container.innerHTML = `
-            <div class="exercises-list">
-                ${this.lastGenerated.exercises.map(exercise => `
-                    <div style="display: flex; align-items: center; padding: 0.75rem; margin: 0.5rem 0; 
-                                background: #0f172a; border-radius: 8px;">
-                        <div style="width: 35px; height: 35px; background: #667eea; color: white; 
-                                    border-radius: 50%; display: flex; align-items: center; 
-                                    justify-content: center; font-weight: bold; margin-right: 1rem; font-size: 0.9rem;">
-                            ${exercise.order_in_session}
-                        </div>
-                        <div style="flex: 1;">
-                            <div style="font-weight: 600; color: #f1f5f9;">${exercise.name}</div>
-                            <div style="color: #94a3b8; font-size: 0.85rem; margin-top: 0.25rem;">
-                                <span style="margin-right: 1rem;">${exercise.muscle_groups.join(', ')}</span>
-                                <span style="color: #64748b;">${exercise.default_sets} séries • ${exercise.default_reps_min}-${exercise.default_reps_max} reps</span>
-                            </div>
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
-            <div style="display: flex; justify-content: space-around; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #334155;">
-                <div style="text-align: center;">
-                    <i class="fas fa-trophy" style="color: #667eea;"></i>
-                    <span style="color: #e2e8f0; margin-left: 0.5rem;">Score: ${Math.round(this.lastGenerated.quality_score)}%</span>
-                </div>
-                <div style="text-align: center;">
-                    <i class="fas fa-dumbbell" style="color: #667eea;"></i>
-                    <span style="color: #e2e8f0; margin-left: 0.5rem;">${this.lastGenerated.exercises.length} exercices</span>
-                </div>
-                <div style="text-align: center;">
-                    <i class="fas fa-clock" style="color: #667eea;"></i>
-                    <span style="color: #e2e8f0; margin-left: 0.5rem;">~${this.lastGenerated.exercises.length * 10} min</span>
-                </div>
-            </div>
-        `;
-        
-        if (preview) {
-            preview.style.display = 'block';
         }
     }
     

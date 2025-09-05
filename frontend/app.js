@@ -4202,7 +4202,7 @@ async function selectExercise(exercise, skipValidation = false) {
     // Configuration de l'UI selon le type d'exercice
     const exerciseType = getExerciseType(currentExercise);
     const defaultRecommendations = {
-        weight_recommendation: currentExercise.default_weight || getBarWeight(currentExercise),
+        weight_recommendation: getBarWeight(currentExercise) || 20,
         reps_recommendation: currentExercise.default_reps_min || 10,
         confidence: 0.5,
         reasoning: "Valeurs par défaut"
@@ -5162,7 +5162,7 @@ async function updateSetRecommendations() {
             const lastSet = sessionSets.slice(-1)[0];
             
             recommendations = {
-                weight_recommendation: lastSet?.weight || currentExercise.default_weight || 20,
+                weight_recommendation: lastSet?.weight || getBarWeight(currentExercise) || 20,
                 reps_recommendation: currentExercise.default_reps_min || 12,
                 confidence: 1.0,
                 reasoning: "Mode manuel activé",
@@ -5180,7 +5180,7 @@ async function updateSetRecommendations() {
             if (!recommendations || (recommendations.weight_recommendation === null && recommendations.weight_recommendation === undefined)) {
                 console.warn('⚠️ Recommandations ML invalides, fallback sur valeurs par défaut');
                 recommendations = {
-                    weight_recommendation: currentExercise.default_weight || 20,
+                    weight_recommendation: getBarWeight(currentExercise) || 20,
                     reps_recommendation: currentExercise.default_reps_min || 12,
                     confidence: 0.3,
                     reasoning: "Données insuffisantes, valeurs par défaut utilisées",
@@ -6191,7 +6191,7 @@ function applyFallbackRecommendations() {
     
     let fallbackWeight = barWeight;
     if (exerciseType === 'weighted') {
-        fallbackWeight = Math.max(barWeight, currentExercise.default_weight || 20);
+        fallbackWeight = Math.max(barWeight || 20, getBarWeight(currentExercise) || 20);
     }
     
     const fallbackStrategy = {
@@ -13003,7 +13003,7 @@ async function updateCurrentExerciseUI(newExercise) {
         // 3. Reconfigurer l'UI pour le type d'exercice
         const exerciseType = getExerciseType(newExercise);
         const fallbackRecommendations = {
-            weight_recommendation: newExercise.default_weight || 20,
+            weight_recommendation: getBarWeight(newExercise) || 20,
             reps_recommendation: newExercise.default_reps_min || 10,
             confidence: 0.5,
             reasoning: "Exercice swappé - valeurs par défaut"
