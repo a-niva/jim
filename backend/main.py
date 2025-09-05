@@ -3472,7 +3472,7 @@ def generate_ai_exercises(request: GenerateExercisesRequest, db: Session = Depen
             }
         }
     
-    
+
 @app.post("/api/ai/optimize-session")
 def optimize_ai_session(request_data: dict, db: Session = Depends(get_db)):
     """Optimise l'ordre d'une séance générée - Algorithme hybride efficient"""
