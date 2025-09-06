@@ -444,14 +444,8 @@ class AISessionManager {
             
             // 2. Créer workout backend (ATTENDRE obligatoirement)
             const workoutData = {
-                type: 'ai',
-                session_metadata: {
-                    ai_generated: true,
-                    ppl_category: this.lastGenerated.ppl_used,
-                    quality_score: this.lastGenerated.quality_score,
-                    generation_params: this.params,
-                    exercises: this.lastGenerated.exercises
-                }
+                type: 'free',
+                ai_generated: true
             };
             
             const response = await window.apiPost(`/api/users/${window.currentUser?.id || 1}/workouts`, workoutData);

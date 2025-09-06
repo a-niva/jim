@@ -2068,6 +2068,8 @@ function cleanupSpecializedViewContent(previousView) {
 async function showView(viewName) {
     console.log(`🔍 showView(${viewName}) - currentUser: ${currentUser?.name || 'UNDEFINED'}`);
     
+    cleanupAISessionPanel();
+    
     // Stocker vue précédente pour cleanup
     const previousView = currentView;
     currentView = viewName;
@@ -2161,6 +2163,19 @@ async function showView(viewName) {
         }
 }
 
+function cleanupAISessionPanel() {
+    const aiPanel = document.getElementById('aiSessionPanel');
+    if (aiPanel) {
+        aiPanel.remove();
+        console.log('[Cleanup] Panel IA supprimé');
+    }
+    
+    // Réinitialiser position boutons flottants si nécessaire
+    const floatingActions = document.getElementById('floatingWorkoutActions');
+    if (floatingActions) {
+        floatingActions.style.bottom = '';
+    }
+}
 
 async function showAISession() {
     console.log('🤖 Affichage Séance IA');
