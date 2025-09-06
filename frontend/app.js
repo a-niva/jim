@@ -10472,9 +10472,9 @@ async function executeSet() {
             return;
         }
         
-        if (!currentWorkoutSession.workout) {
-            console.error('executeSet(): currentWorkoutSession.workout manquant');
-            showToast('État de session invalide', 'error');
+        if (!currentWorkout) {
+            console.log('executeSet(): currentWorkout manquant');
+            showToast('Aucune séance active', 'error');
             return;
         }
         
