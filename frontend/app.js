@@ -1022,26 +1022,22 @@ function storeCurrentScoringData(scoringData) {
 function transitionTo(state) {
     console.log(`[State] Transition: ${workoutState.current} → ${state}`);
     
-    // 1. CAPTURER L'ANCIEN ÉTAT AVANT TOUTE MODIFICATION
     const oldState = workoutState.current;
-    // Protection transition avec pendingSetData
+    
+    // 1. Protection transition avec pendingSetData - SANS notification intrusive
     if (workoutState.pendingSetData) {
-        // Transitions interdites avec des données pending
         const forbiddenWithPending = [WorkoutStates.IDLE, WorkoutStates.COMPLETED];
         
         if (forbiddenWithPending.includes(state)) {
             console.warn(`[Transition] Interdit: ${oldState} → ${state} avec pendingSetData`);
             
-            if (confirm('Vous avez une série non confirmée. Voulez-vous la sauvegarder avant de continuer ?')) {
-                // Forcer la sauvegarde
-                if (currentWorkoutSession.currentSetFatigue && currentWorkoutSession.currentSetEffort) {
-                    saveFeedbackAndRest();
-                } else {
-                    showToast('Veuillez sélectionner fatigue et effort', 'warning');
-                    return; // Bloquer la transition
-                }
+            // NOUVEAU : Sauvegarde automatique silencieuse
+            if (currentWorkoutSession.currentSetFatigue && currentWorkoutSession.currentSetEffort) {
+                // Sauvegarder automatiquement sans demander
+                saveFeedbackAndRest();
+                return; // Bloquer la transition jusqu'à la sauvegarde
             } else {
-                // Abandonner les données
+                // Si pas de feedback, nettoyer et continuer
                 workoutState.pendingSetData = null;
                 clearPendingDataBackup();
             }
@@ -7089,7 +7085,7 @@ function updateSetsHistory() {
 }
 
 async function finishExercise() {
-    // Sauvegarder l'état final
+    // Sauvegarder l'état final de l'exercice
     if (currentExercise && currentWorkoutSession.type === 'ai') {
         await saveCurrentExerciseState();
     }
@@ -7100,45 +7096,49 @@ async function finishExercise() {
         setTimer = null;
     }
     
-    // Réinitialiser l'exercice actuel
-    document.getElementById('currentExercise').style.display = 'none';
-    currentExercise = null;
-    currentSet = 1;
-    
-    if (currentWorkout.type === 'free') {
-        // Mode libre : retour sélection
-        document.getElementById('exerciseSelection').style.display = 'block';
-        transitionTo(WorkoutStates.IDLE);
-        
-    } else if (currentWorkout.type === 'ai') {
-        // Mode IA : retour liste exercices
-        document.getElementById('sessionExercisesContainer').style.display = 'block';
-        loadSessionExercisesList();
-        
-        // Vérifier exercices restants
-        const remainingExercises = currentWorkoutSession.exercises.filter((ex, idx) => 
-            idx >= currentWorkoutSession.exerciseOrder
+    // Pour les séances AI : passer directement à l'exercice suivant
+    if (currentWorkoutSession.type === 'ai') {
+        const currentIndex = currentWorkoutSession.exercises.findIndex(
+            ex => ex.exercise_id === currentExercise.id
         );
         
-        if (remainingExercises.length > 0) {
-            showModal('Exercice terminé !', `
-                <div style="text-align: center;">
-                    <p>Excellent travail ! 💪</p>
-                    <p>Il reste ${remainingExercises.length} exercice(s)</p>
-                    <button class="btn btn-primary" onclick="selectSessionExercise(${remainingExercises[0].exercise_id}); closeModal();">
-                        Continuer
-                    </button>
-                </div>
-            `);
+        // Marquer l'exercice actuel comme complété
+        if (currentWorkoutSession.sessionExercises[currentExercise.id]) {
+            currentWorkoutSession.sessionExercises[currentExercise.id].isCompleted = true;
+            currentWorkoutSession.completedExercisesCount++;
+        }
+        
+        // Vérifier s'il reste des exercices
+        if (currentIndex < currentWorkoutSession.exercises.length - 1) {
+            // Passer à l'exercice suivant SANS modal ni retour à la sélection
+            const nextExercise = currentWorkoutSession.exercises[currentIndex + 1];
+            
+            // Mettre à jour la liste dans le panel AI
+            loadSessionExercisesList();
+            
+            // Sélectionner automatiquement le prochain exercice
+            await selectSessionExercise(nextExercise.exercise_id);
+            
+            // Notification simple
+            showToast(`Exercice suivant : ${nextExercise.name}`, 'success');
         } else {
-            showModal('Séance complétée ! 🎉', `
+            // Fin de la séance AI
+            showModal('Séance terminée ! 🎉', `
                 <div style="text-align: center;">
+                    <p>Félicitations ! Vous avez complété tous les exercices.</p>
                     <button class="btn btn-primary" onclick="endWorkout(); closeModal();">
                         Terminer la séance
                     </button>
                 </div>
             `);
         }
+    } else {
+        // Mode libre : comportement existant
+        document.getElementById('currentExercise').style.display = 'none';
+        document.getElementById('exerciseSelection').style.display = 'block';
+        currentExercise = null;
+        currentSet = 1;
+        transitionTo(WorkoutStates.IDLE);
     }
 }
 
@@ -11796,11 +11796,11 @@ async function saveFeedbackAndRest() {
     if (currentWeightMode === 'charge' && isEquipmentCompatibleWithChargeMode(currentExercise)) {
         finalWeight = convertWeight(finalWeight, 'charge', 'total', currentExercise);
     }
-    
-    // ✅ SCOPE FIX: Définir setData AVANT le try pour qu'elle soit accessible dans le catch
+
+    // Préparer les données de la série
     const setData = {
         ...workoutState.pendingSetData,
-        weight: finalWeight, // Utiliser le poids converti
+        weight: finalWeight,
         exercise_id: currentExercise.id,
         set_number: currentSet,
         fatigue_level: currentWorkoutSession.currentSetFatigue,
@@ -11808,18 +11808,16 @@ async function saveFeedbackAndRest() {
         exercise_order_in_session: currentWorkoutSession.exerciseOrder,
         set_order_in_session: currentWorkoutSession.globalSetCount + 1,
         base_rest_time_seconds: currentExercise.base_rest_time_seconds || 90,
-        // Ajouter les propriétés ML si elles existent
         ml_weight_suggestion: workoutState.currentRecommendation?.weight_recommendation,
         ml_reps_suggestion: workoutState.currentRecommendation?.reps_recommendation,
         ml_confidence: workoutState.currentRecommendation?.confidence,
         ml_adjustment_enabled: currentWorkoutSession.mlSettings?.[currentExercise.id]?.autoAdjust,
         suggested_rest_seconds: workoutState.currentRecommendation?.rest_seconds_recommendation,
-        // MODULE 3 : Ajout contexte swap
         swap_from_exercise_id: null,
         swap_reason: null
     };
 
-    // MODULE 3 : Détecter si exercice actuel provient d'un swap
+    // Détecter si exercice actuel provient d'un swap
     const activeSwap = currentWorkoutSession.swaps?.find(swap => 
         swap.new_id === currentExercise.id
     );
@@ -11828,7 +11826,7 @@ async function saveFeedbackAndRest() {
         setData.swap_from_exercise_id = activeSwap.original_id;
         setData.swap_reason = activeSwap.reason;
     }
-    
+
     try {
         // Validation des données avant envoi
         if (!setData.exercise_id || !setData.set_number || !setData.fatigue_level || !setData.effort_level) {
@@ -11836,6 +11834,7 @@ async function saveFeedbackAndRest() {
             showToast('Données incomplètes, impossible d\'enregistrer', 'error');
             return;
         }
+
         // Log pour debug
         console.log('📤 Envoi série:', setData);
 
@@ -11849,39 +11848,29 @@ async function saveFeedbackAndRest() {
         if (!navigator.onLine) {
             console.log('[Offline] Mode hors ligne détecté');
             
-            // Enrichir avec l'id temporaire
             const offlineSet = {
                 ...setData,
                 id: 'offline_' + Date.now(),
                 offline: true
             };
             
-            // Ajouter à la queue
             queueOfflineSetData(setData);
-            
-            // Ajouter aux séries complétées localement
             currentWorkoutSession.completedSets.push(offlineSet);
             currentWorkoutSession.globalSetCount++;
             
-            // Mettre à jour les exercices de session IA si nécessaire
             if (currentWorkoutSession.type === 'ai' && currentExercise) {
-                // Trouver l'exercice dans la liste des exercices IA
                 const exerciseIndex = currentWorkoutSession.exercises.findIndex(
                     ex => ex.exercise_id === currentExercise.id
                 );
                 
                 if (exerciseIndex !== -1) {
                     const aiExercise = currentWorkoutSession.exercises[exerciseIndex];
-                    
-                    // Initialiser le tracking si nécessaire
                     if (!aiExercise.completedSets) aiExercise.completedSets = 0;
-                    
                     aiExercise.completedSets++;
                     
                     if (aiExercise.completedSets >= aiExercise.default_sets) {
                         aiExercise.isCompleted = true;
                         aiExercise.endTime = new Date();
-                        
                         if (!currentWorkoutSession.completedExercisesCount) {
                             currentWorkoutSession.completedExercisesCount = 0;
                         }
@@ -11890,10 +11879,8 @@ async function saveFeedbackAndRest() {
                 }
             }
             
-            // Mettre à jour l'historique visuel
             updateSetsHistory();
             
-            // Enregistrer la décision ML si présente
             if (workoutState.currentRecommendation && currentWorkoutSession.mlHistory?.enabled) {
                 addToMLHistory(
                     currentExercise.id,
@@ -11906,44 +11893,39 @@ async function saveFeedbackAndRest() {
             
             showToast('Mode hors ligne - Série enregistrée localement', 'warning');
             
-            // Nettoyer et continuer le workflow
             workoutState.pendingSetData = null;
-            clearPendingDataBackup(); // Nettoyer aussi le localStorage
+            clearPendingDataBackup();
             
-            // Calculer et démarrer le repos
             const restDuration = calculateRestDuration();
             workoutState.plannedRestDuration = restDuration;
-            
             startRestPeriod(restDuration);
-            return; // Important : sortir de la fonction ici
+            return;
         }
 
         const savedSet = await apiPost(`/api/workouts/${currentWorkout.id}/sets`, setData);
         
+        // CRITIQUE : Nettoyer IMMÉDIATEMENT après succès
+        workoutState.pendingSetData = null;
+        clearPendingDataBackup();
+
         // Ajouter aux séries complétées
         const setWithId = { ...setData, id: savedSet.id };
         currentWorkoutSession.completedSets.push(setWithId);
         currentWorkoutSession.globalSetCount++;
         
-        // Mettre à jour les exercices de session IA si nécessaire
         if (currentWorkoutSession.type === 'ai' && currentExercise) {
-            // Trouver l'exercice dans la liste des exercices IA
             const exerciseIndex = currentWorkoutSession.exercises.findIndex(
                 ex => ex.exercise_id === currentExercise.id
             );
             
             if (exerciseIndex !== -1) {
                 const aiExercise = currentWorkoutSession.exercises[exerciseIndex];
-                
-                // Initialiser le tracking si nécessaire
                 if (!aiExercise.completedSets) aiExercise.completedSets = 0;
-                
                 aiExercise.completedSets++;
                 
                 if (aiExercise.completedSets >= aiExercise.default_sets) {
                     aiExercise.isCompleted = true;
                     aiExercise.endTime = new Date();
-                    
                     if (!currentWorkoutSession.completedExercisesCount) {
                         currentWorkoutSession.completedExercisesCount = 0;
                     }
@@ -11952,10 +11934,8 @@ async function saveFeedbackAndRest() {
             }
         }
         
-        // Mettre à jour l'historique visuel
         updateSetsHistory();
         
-        // Enregistrer la décision ML
         if (workoutState.currentRecommendation && currentWorkoutSession.mlHistory?.[currentExercise.id]) {
             const weightFollowed = Math.abs(setData.weight - workoutState.currentRecommendation.weight_recommendation) < 0.5;
             const repsFollowed = Math.abs(setData.reps - workoutState.currentRecommendation.reps_recommendation) <= 1;
@@ -11966,20 +11946,15 @@ async function saveFeedbackAndRest() {
             }
         }
         
-        // LOGIQUE DE REPOS UNIFIÉE POUR TOUS LES EXERCICES
-        
-        // Déterminer la durée de repos
-        let restDuration = currentExercise.base_rest_time_seconds || 60; // Défaut depuis exercises.json
+        let restDuration = currentExercise.base_rest_time_seconds || 60;
         let isMLRest = false;
         
-        // Si l'IA est active ET a une recommandation de repos
         if (currentWorkoutSession.mlSettings?.[currentExercise.id]?.autoAdjust && 
             workoutState.currentRecommendation?.rest_seconds_recommendation) {
             restDuration = workoutState.currentRecommendation.rest_seconds_recommendation;
             isMLRest = true;
             console.log(`🤖 Repos IA : ${restDuration}s (base: ${currentExercise.base_rest_time_seconds}s)`);
             
-            // === MODULE 1 : STOCKER LES DONNÉES ML POUR LE BADGE ===
             currentWorkoutSession.mlRestData = {
                 seconds: workoutState.currentRecommendation.rest_seconds_recommendation,
                 reason: workoutState.currentRecommendation.rest_reason || 
@@ -11991,26 +11966,17 @@ async function saveFeedbackAndRest() {
             console.log(`📊 MODULE 1 - Données ML stockées:`, currentWorkoutSession.mlRestData);
         }
         
-        // Vérifier si c'est la dernière série
         const isLastSet = currentSet >= currentWorkoutSession.totalSets;
         
         if (isLastSet) {
-            // Dernière série : pas de repos, passer à la fin
             transitionTo(WorkoutStates.COMPLETED);
             showSetCompletionOptions();
         } else {
-            // Pas la dernière série : gérer le repos
             if (currentExercise.exercise_type === 'isometric') {
-                // Pour les isométriques : pas d'écran de repos mais compter le temps
                 currentWorkoutSession.totalRestTime += restDuration;
-                
-                // Afficher un message temporaire avec le temps de repos
                 showToast(`⏱️ Repos ${isMLRest ? '🤖' : ''}: ${restDuration}s`, 'info');
-                
-                // Désactiver temporairement les boutons
                 transitionTo(WorkoutStates.TRANSITIONING);
                 
-                // Timer pour la transition automatique
                 setTimeout(() => {
                     currentSet++;
                     currentWorkoutSession.currentSetNumber = currentSet;
@@ -12026,23 +11992,18 @@ async function saveFeedbackAndRest() {
                     startSetTimer();
                     transitionTo(WorkoutStates.READY);
                 }, restDuration * 1000);
-                
             } else {
-                // Pour les autres exercices : écran de repos classique
                 transitionTo(WorkoutStates.RESTING);
                 startRestPeriod(restDuration, isMLRest);
-                // Nettoyer le backup après sauvegarde réussie
-                clearPendingDataBackup();
             }
         }
         
-        // Réinitialiser les sélections
         resetFeedbackSelection();
         
     } catch (error) {
         console.error('Erreur enregistrement série:', error);
         
-        // Si erreur réseau, proposer le mode hors ligne
+        // Gestion du mode hors ligne
         if (error.message && (error.message.includes('Failed to fetch') || 
             error.message.includes('Network') || 
             error.message.includes('connexion'))) {
@@ -12050,12 +12011,10 @@ async function saveFeedbackAndRest() {
             if (confirm('Connexion impossible. Enregistrer la série hors ligne ?')) {
                 queueOfflineSetData(setData);
                 
-                // Continuer comme si c'était sauvegardé
                 const offlineSet = { ...setData, id: 'offline_' + Date.now(), offline: true };
                 currentWorkoutSession.completedSets.push(offlineSet);
                 currentWorkoutSession.globalSetCount++;
                 
-                // Gérer les exercices IA si nécessaire
                 if (currentWorkoutSession.type === 'ai' && currentExercise) {
                     const exerciseIndex = currentWorkoutSession.exercises.findIndex(
                         ex => ex.exercise_id === currentExercise.id
@@ -12063,14 +12022,12 @@ async function saveFeedbackAndRest() {
                     
                     if (exerciseIndex !== -1) {
                         const aiExercise = currentWorkoutSession.exercises[exerciseIndex];
-                        
                         if (!aiExercise.completedSets) aiExercise.completedSets = 0;
                         aiExercise.completedSets++;
                         
                         if (aiExercise.completedSets >= aiExercise.default_sets) {
                             aiExercise.isCompleted = true;
                             aiExercise.endTime = new Date();
-                            
                             if (!currentWorkoutSession.completedExercisesCount) {
                                 currentWorkoutSession.completedExercisesCount = 0;
                             }
@@ -12081,7 +12038,6 @@ async function saveFeedbackAndRest() {
                 
                 updateSetsHistory();
                 
-                // Enregistrer ML si nécessaire
                 if (workoutState.currentRecommendation && currentWorkoutSession.mlHistory?.enabled) {
                     addToMLHistory(
                         currentExercise.id,
@@ -12093,13 +12049,17 @@ async function saveFeedbackAndRest() {
                 }
                 
                 workoutState.pendingSetData = null;
-                startRestPeriod(calculateRestDuration());
                 clearPendingDataBackup();
                 
                 showToast('Série enregistrée hors ligne', 'warning');
+                startRestPeriod(calculateRestDuration());
                 return;
             }
         }
+        
+        // CRITIQUE : Nettoyer en cas d'erreur non liée au mode hors ligne
+        workoutState.pendingSetData = null;
+        clearPendingDataBackup();
         
         showToast('Erreur lors de l\'enregistrement', 'error');
     }
