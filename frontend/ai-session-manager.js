@@ -452,7 +452,11 @@ class AISessionManager {
             
             // 3. Assignation synchrone IMMÉDIATE (résout race condition)
             window.currentWorkout = response.workout;
-            
+            // 3. Assignation synchrone IMMÉDIATE (résout race condition)
+            window.currentWorkout = response.workout;
+            window.currentWorkoutSession = window.currentWorkoutSession || {}; // Assurer que l'objet existe
+            window.currentWorkoutSession.workout = response.workout; // Pour compatibilité
+                        
             // 4. Configurer session avec workout assigné (CRITIQUE)
             window.currentWorkoutSession = {
                 type: 'ai',
@@ -493,7 +497,12 @@ class AISessionManager {
             // 7. Afficher panel AI
             this.showAISessionPanel();
             
-            // 8. Auto-sélection premier exercice (RIGOUREUX - pas de timeout)
+            // 8. Vérification synchrone avant sélection exercice
+            if (!window.currentWorkout || !window.currentWorkoutSession) {
+                throw new Error('État session invalide avant sélection exercice');
+            }
+
+            // 9. Auto-sélection premier exercice (RIGOUREUX - pas de timeout)
             if (this.lastGenerated.exercises.length > 0) {
                 const firstExerciseId = this.lastGenerated.exercises[0].exercise_id;
                 await window.selectSessionExercise(firstExerciseId, true);
