@@ -6566,6 +6566,7 @@ input:checked + .toggle-slider:before {
     z-index: calc(var(--z-nav, 100) + 10);
     pointer-events: none;
     display: none; /* Masqué par défaut */
+    transition: bottom 0.3s ease;
 }
 
 /* Animation d'apparition du container */
@@ -6593,6 +6594,28 @@ input:checked + .toggle-slider:before {
 /* Animation de la barre */
 .floating-workout-actions.show .floating-workout-bar {
     animation: barExpand 0.4s ease-out forwards;
+}
+
+
+/* Quand le panel AI est présent, ajuster automatiquement */
+body:has(.ai-session-panel.visible) .floating-workout-actions {
+    bottom: calc(var(--bottom-nav-height, 70px) + 70px); /* Position par défaut ajustée */
+}
+
+/* État réduit : moins d'espace nécessaire */
+body:has(.ai-session-panel.collapsed) .floating-workout-actions {
+    bottom: calc(var(--bottom-nav-height, 70px) + 60px);
+}
+
+/* Mobile : ajustements spécifiques */
+@media (max-width: 768px) {
+    body:has(.ai-session-panel.visible) .floating-workout-actions {
+        bottom: calc(var(--bottom-nav-height, 70px) + 60px);
+    }
+    
+    body:has(.ai-session-panel.collapsed) .floating-workout-actions {
+        bottom: calc(var(--bottom-nav-height, 70px) + 50px);
+    }
 }
 
 /* Animation des bordures dorées */

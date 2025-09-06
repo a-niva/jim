@@ -587,10 +587,14 @@ class AISessionManager {
         if (panel) {
             requestAnimationFrame(() => {
                 panel.classList.add('visible');
+                // Ajuster la position des boutons flottants après l'animation
+                setTimeout(() => {
+                    this.adjustFloatingButtonsPosition();
+                }, 300);
             });
         }
     }
-    
+
     toggleAIPanel() {
         const panel = document.getElementById('aiSessionPanel');
         const content = document.querySelector('.ai-panel-content');
