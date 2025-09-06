@@ -449,10 +449,13 @@ class AISessionManager {
             };
             
             const response = await window.apiPost(`/api/users/${window.currentUser?.id || 1}/workouts`, workoutData);
-
+            
             // 3. API retourne {message: "...", workout: db_workout}
             window.currentWorkout = response.workout;
-
+            if (typeof currentWorkout !== 'undefined') {
+                currentWorkout = response.workout;  // AJOUT: Synchronisation avec variable locale si elle existe
+            }
+            
             // 4. Configurer session avec workout assigné
             window.currentWorkoutSession = {
                 type: 'ai',
@@ -498,8 +501,8 @@ class AISessionManager {
             if (!window.currentWorkout || !window.currentWorkoutSession) {
                 throw new Error('État session invalide avant sélection exercice');
             }
-
-            // 9. Auto-sélection premier exercice 
+            
+            // 9. Auto-sélection premier exercice
             if (this.lastGenerated.exercises.length > 0) {
                 const firstExerciseId = this.lastGenerated.exercises[0].exercise_id;
                 await window.selectSessionExercise(firstExerciseId, true);

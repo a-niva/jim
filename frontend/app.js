@@ -4061,6 +4061,7 @@ async function selectExercise(exercise, skipValidation = false) {
         });
 
         currentUser = response.user;
+        window.currentUser = currentUser;  // AJOUT: Synchronisation globale
 
         // Vérification demandée
         if (currentUser && currentUser.voice_counting_enabled === undefined) {
@@ -4101,12 +4102,15 @@ async function selectExercise(exercise, skipValidation = false) {
         try {
             const fullExercise = await apiGet(`/api/exercises/${exercise.id}`);
             currentExercise = fullExercise;
+            window.currentExercise = fullExercise;  // AJOUT: Synchronisation globale
         } catch (error) {
             console.error('Erreur chargement exercice complet:', error);
             currentExercise = exercise;
+            window.currentExercise = exercise;  // AJOUT: Synchronisation globale
         }
     } else {
         currentExercise = exercise;
+        window.currentExercise = exercise;  // AJOUT: Synchronisation globale
     }
 
     // Créer session workout si mode libre
@@ -4117,6 +4121,7 @@ async function selectExercise(exercise, skipValidation = false) {
                 exercises: [currentExercise.id]
             });
             currentWorkout = response.workout;  // Structure cohérente
+            window.currentWorkout = response.workout;  // AJOUT: Synchronisation globale
             currentWorkoutSession.id = response.workout.id;
             console.log('[Session] Workout créé pour ML:', response.workout.id);
         } catch (error) {
@@ -4131,6 +4136,7 @@ async function selectExercise(exercise, skipValidation = false) {
     currentWorkoutSession.currentSetNumber = 1;
     currentWorkoutSession.totalSets = currentExercise.default_sets || 3;
     currentWorkoutSession.maxSets = 6;
+    
     // Démarrer le timer de séance au PREMIER exercice seulement
     if (!workoutTimer) {
         startWorkoutTimer();
