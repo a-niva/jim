@@ -450,17 +450,18 @@ class AISessionManager {
             
             const response = await window.apiPost(`/api/users/${window.currentUser?.id || 1}/workouts`, workoutData);
             
-            // 3. Assignation synchrone IMMÉDIATE (résout race condition)
-            window.currentWorkout = response.workout;
-            // 3. Assignation synchrone IMMÉDIATE (résout race condition)
-            window.currentWorkout = response.workout;
-            window.currentWorkoutSession = window.currentWorkoutSession || {}; // Assurer que l'objet existe
-            window.currentWorkoutSession.workout = response.workout; // Pour compatibilité
-                        
+            // 3. CORRECTION : Validation + API retourne directement l'objet workout
+            if (!response || !response.id) {
+                throw new Error('Réponse API invalide pour création workout');
+            }
+            
+            window.currentWorkout = response;  // PAS response.workout
+            
             // 4. Configurer session avec workout assigné (CRITIQUE)
             window.currentWorkoutSession = {
                 type: 'ai',
-                workout: response.workout,
+                workout: response,
+                id: response.id,  // Ajout pour compatibilité avec selectExercise
                 exercises: this.lastGenerated.exercises,
                 currentIndex: 0,
                 sessionExercises: {},
@@ -502,7 +503,7 @@ class AISessionManager {
                 throw new Error('État session invalide avant sélection exercice');
             }
 
-            // 9. Auto-sélection premier exercice (RIGOUREUX - pas de timeout)
+            // 9. Auto-sélection premier exercice 
             if (this.lastGenerated.exercises.length > 0) {
                 const firstExerciseId = this.lastGenerated.exercises[0].exercise_id;
                 await window.selectSessionExercise(firstExerciseId, true);

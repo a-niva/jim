@@ -4116,6 +4116,7 @@ async function selectExercise(exercise, skipValidation = false) {
                 type: 'free',
                 exercises: [currentExercise.id]
             });
+            currentWorkout = response;  // AJOUT : assignation manquante
             currentWorkoutSession.id = response.id;
             console.log('[Session] Workout créé pour ML:', response.id);
         } catch (error) {
