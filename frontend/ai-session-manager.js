@@ -541,13 +541,15 @@ class AISessionManager {
         
         // Créer panel avec classes CSS appropriées
         const panelHTML = `
-            <div id="aiSessionPanel" class="ai-session-panel">
+            <div id="aiSessionPanel" class="ai-session-panel expanded">
                 <div class="ai-panel-header">
                     <h3>🤖 Séance IA - ${this.lastGenerated.ppl_used.toUpperCase()}</h3>
                     <span class="quality-score">Score: ${Math.round(this.lastGenerated.quality_score)}%</span>
-                    <button class="panel-close" onclick="document.getElementById('aiSessionPanel').remove()">×</button>
+                    <button class="panel-toggle" onclick="window.aiSessionManager.toggleAIPanel()" title="Réduire/Agrandir">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
                 </div>
-                
+                        
                 <div class="ai-panel-content">
                     ${this.lastGenerated.exercises.map((exercise, index) => {
                         const isActive = window.currentWorkoutSession?.currentIndex === index;
@@ -586,6 +588,58 @@ class AISessionManager {
             requestAnimationFrame(() => {
                 panel.classList.add('visible');
             });
+        }
+    }
+    
+    toggleAIPanel() {
+        const panel = document.getElementById('aiSessionPanel');
+        const content = document.querySelector('.ai-panel-content');
+        const toggleIcon = document.querySelector('.panel-toggle i');
+        
+        if (!panel || !content || !toggleIcon) return;
+        
+        const isExpanded = panel.classList.contains('expanded');
+        
+        if (isExpanded) {
+            // Réduire : cacher le contenu
+            panel.classList.remove('expanded');
+            panel.classList.add('collapsed');
+            content.style.display = 'none';
+            toggleIcon.classList.remove('fa-chevron-down');
+            toggleIcon.classList.add('fa-chevron-up');
+        } else {
+            // Agrandir : montrer le contenu
+            panel.classList.remove('collapsed');
+            panel.classList.add('expanded');
+            content.style.display = 'block';
+            toggleIcon.classList.remove('fa-chevron-up');
+            toggleIcon.classList.add('fa-chevron-down');
+        }
+        
+        // Réajuster la position des boutons flottants
+        this.adjustFloatingButtonsPosition();
+    }
+
+    adjustFloatingButtonsPosition() {
+        const panel = document.getElementById('aiSessionPanel');
+        const floatingActions = document.getElementById('floatingWorkoutActions');
+        
+        if (!panel || !floatingActions) return;
+        
+        const isCollapsed = panel.classList.contains('collapsed');
+        const panelHeader = document.querySelector('.ai-panel-header');
+        
+        if (panelHeader) {
+            const headerHeight = panelHeader.offsetHeight;
+            
+            if (isCollapsed) {
+                // Panel réduit : boutons juste au-dessus du header
+                floatingActions.style.bottom = `calc(var(--bottom-nav-height, 70px) + ${headerHeight + 10}px)`;
+            } else {
+                // Panel étendu : boutons au-dessus du panel entier
+                const panelHeight = panel.offsetHeight;
+                floatingActions.style.bottom = `calc(var(--bottom-nav-height, 70px) + ${panelHeight + 10}px)`;
+            }
         }
     }
     

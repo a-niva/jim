@@ -11615,16 +11615,23 @@ input {
     background: rgba(30, 41, 59, 0.98);
     backdrop-filter: blur(10px);
     border-top: 1px solid var(--border);
-    max-height: 45vh;
-    overflow-y: auto;
+    overflow: hidden;
     z-index: 999;
     transform: translateY(100%);
-    transition: transform 0.3s ease;
+    transition: transform 0.3s ease, max-height 0.3s ease;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .ai-session-panel.visible {
     transform: translateY(0);
+}
+
+.ai-session-panel.expanded {
+    max-height: 45vh;
+}
+
+.ai-session-panel.collapsed {
+    max-height: 60px; /* Hauteur du header seulement */
 }
 
 .ai-panel-header {
@@ -11634,6 +11641,7 @@ input {
     padding: 1rem;
     border-bottom: 1px solid var(--border);
     background: var(--bg-primary);
+    flex-shrink: 0; /* Le header ne se réduit pas */
 }
 
 .ai-panel-header h3 {
@@ -11651,11 +11659,11 @@ input {
     font-weight: 600;
 }
 
-.panel-close {
+.panel-toggle {
     background: none;
     border: none;
     color: var(--text-secondary);
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     cursor: pointer;
     padding: 0;
     width: 30px;
@@ -11664,15 +11672,32 @@ input {
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    transition: background-color 0.2s;
+    transition: all 0.2s ease;
 }
 
-.panel-close:hover {
+.panel-toggle:hover {
     background: var(--bg-secondary);
+    color: var(--primary);
+}
+
+.panel-toggle i {
+    transition: transform 0.2s ease;
 }
 
 .ai-panel-content {
     padding: 0.5rem;
+    overflow-y: auto;
+    max-height: calc(45vh - 60px); /* Soustraire la hauteur du header */
+    transition: display 0.3s ease;
+}
+
+/* Animation smooth pour le contenu */
+.ai-session-panel.collapsed .ai-panel-content {
+    display: none;
+}
+
+.ai-session-panel.expanded .ai-panel-content {
+    display: block;
 }
 
 .ai-exercise-item {
@@ -11748,14 +11773,6 @@ input {
         max-height: 50vh;
     }
     
-    .ai-panel-header {
-        padding: 0.75rem;
-    }
-    
-    .ai-panel-header h3 {
-        font-size: 0.9rem;
-    }
-    
     .ai-exercise-item {
         padding: 0.5rem;
     }
@@ -11768,5 +11785,25 @@ input {
         min-width: 28px;
         height: 28px;
         font-size: 0.8rem;
+    }
+
+    .ai-session-panel.expanded {
+        max-height: 50vh;
+    }
+    
+    .ai-session-panel.collapsed {
+        max-height: 50px; /* Header plus compact en mobile */
+    }
+    
+    .ai-panel-header {
+        padding: 0.75rem;
+    }
+    
+    .ai-panel-header h3 {
+        font-size: 0.9rem;
+    }
+    
+    .ai-panel-content {
+        max-height: calc(50vh - 50px);
     }
 }
