@@ -456,7 +456,7 @@ class AISessionManager {
             // 4. Configurer session avec workout assigné (CRITIQUE)
             window.currentWorkoutSession = {
                 type: 'ai',
-                workout: response.workout,  // ⚠️ LIGNE CRITIQUE MANQUANTE
+                workout: response.workout,
                 exercises: this.lastGenerated.exercises,
                 currentIndex: 0,
                 sessionExercises: {},
@@ -488,33 +488,16 @@ class AISessionManager {
             });
             
             // 6. Navigation (après all assignments)
-            if (typeof window.showView === 'function') {
-                window.showView('workout');
-            }
+            window.showView('workout');
             
             // 7. Afficher panel AI
             this.showAISessionPanel();
             
-            // 8. Auto-sélection premier exercice (avec délai pour stabilité)
-            setTimeout(async () => {
-                const firstExercise = this.lastGenerated.exercises[0];
-                if (firstExercise && typeof window.selectExercise === 'function') {
-                    // Récupérer détails complets
-                    const exerciseDetails = await window.apiGet(`/api/exercises/${firstExercise.exercise_id}`);
-                    
-                    // Utiliser selectExercise existant (pas selectSessionExercise car moins robuste)
-                    await window.selectExercise(exerciseDetails);
-                    
-                    // Auto-countdown si mobile
-                    const isMobile = window.isMobile || /Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent);
-                    if (isMobile && typeof window.startCountdown === 'function') {
-                        setTimeout(() => {
-                            window.startCountdown(3);
-                            this.showMessage('Posez votre téléphone pour démarrer !', 'info');
-                        }, 1500);
-                    }
-                }
-            }, 500);
+            // 8. Auto-sélection premier exercice (RIGOUREUX - pas de timeout)
+            if (this.lastGenerated.exercises.length > 0) {
+                const firstExerciseId = this.lastGenerated.exercises[0].exercise_id;
+                await window.selectSessionExercise(firstExerciseId, true);
+            }
             
             window.showToast(`Séance ${this.lastGenerated.ppl_used.toUpperCase()} lancée !`, 'success');
             
