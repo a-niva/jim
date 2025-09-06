@@ -291,47 +291,45 @@ class AISessionManager {
         const container = document.getElementById('exercisePreviewContainer');
         if (!container || !this.lastGenerated) return;
         
-        // Utilise dragula si disponible, sinon fallback HTML5
-        if (typeof dragula !== 'undefined') {
-            const drake = dragula([container], {
-                moves: function (el, source, handle, sibling) {
-                    return el.classList.contains('exercise-preview-item');
-                }
-            });
+        // ❌ SUPPRIMER tout le code drag & drop complexe
+        // ✅ Version simplifiée sans erreurs
+        console.log('Drag & drop désactivé temporairement pour éviter erreurs DOM');
+        
+        // Alternative : boutons haut/bas pour réorganiser
+        container.querySelectorAll('.exercise-preview-item').forEach((item, index) => {
+            const actionsDiv = item.querySelector('.exercise-actions') || item;
             
-            drake.on('drop', () => {
-                this.updateOrderFromDOM();
-            });
-        } else {
-            // Fallback HTML5 drag & drop
-            container.querySelectorAll('.exercise-preview-item').forEach((item, index) => {
-                item.draggable = true;
-                item.dataset.originalIndex = index;
-                
-                item.addEventListener('dragstart', (e) => {
-                    e.dataTransfer.effectAllowed = 'move';
-                    e.dataTransfer.setData('text/html', e.target.innerHTML);
-                    this.draggedElement = e.target;
-                });
-                
-                item.addEventListener('dragover', (e) => {
-                    if (e.preventDefault) e.preventDefault();
-                    e.dataTransfer.dropEffect = 'move';
-                    const afterElement = this.getDragAfterElement(container, e.clientY);
-                    if (afterElement == null) {
-                        container.appendChild(this.draggedElement);
-                    } else {
-                        container.insertBefore(this.draggedElement, afterElement);
-                    }
-                });
-                
-                item.addEventListener('drop', (e) => {
-                    if (e.stopPropagation) e.stopPropagation();
-                    this.updateOrderFromDOM();
-                    return false;
-                });
-            });
-        }
+            // Ajouter boutons simples de réorganisation
+            const moveButtons = document.createElement('div');
+            moveButtons.className = 'move-buttons';
+            moveButtons.innerHTML = `
+                <button onclick="window.aiSessionManager.moveExercise(${index}, -1)" 
+                        class="btn-mini" title="Monter" ${index === 0 ? 'disabled' : ''}>↑</button>
+                <button onclick="window.aiSessionManager.moveExercise(${index}, 1)" 
+                        class="btn-mini" title="Descendre" ${index === this.lastGenerated.exercises.length - 1 ? 'disabled' : ''}>↓</button>
+            `;
+            
+            actionsDiv.appendChild(moveButtons);
+        });
+    }
+
+    moveExercise(index, direction) {
+        const exercises = this.lastGenerated.exercises;
+        const newIndex = index + direction;
+        
+        if (newIndex < 0 || newIndex >= exercises.length) return;
+        
+        // Échanger les exercices
+        [exercises[index], exercises[newIndex]] = [exercises[newIndex], exercises[index]];
+        
+        // Mettre à jour l'ordre
+        exercises.forEach((ex, idx) => {
+            ex.order_in_session = idx + 1;
+        });
+        
+        // Regenerer l'affichage
+        this.updateGeneratedSessionDisplay();
+        this.showMessage('Ordre modifié', 'success');
     }
     
     getDragAfterElement(container, y) {
@@ -534,62 +532,61 @@ class AISessionManager {
 
 
     // ============= AJOUT 4 : Panel d'exercices AI dans la séance =============
-    // ============= AJOUT 4 : Panel d'exercices AI dans la séance =============
     showAISessionPanel() {
-        // Créer ou mettre à jour le panel AI
-        let panel = document.getElementById('aiSessionPanel');
-        if (!panel) {
-            panel = document.createElement('div');
-            panel.id = 'aiSessionPanel';
-            panel.className = 'ai-session-panel';
-            const workoutContainer = document.getElementById('workout') || document.querySelector('.workout-container');
-            if (workoutContainer) {
-                workoutContainer.appendChild(panel);
-            }
+        // Supprimer panel existant
+        const existingPanel = document.getElementById('aiSessionPanel');
+        if (existingPanel) {
+            existingPanel.remove();
         }
         
-        panel.innerHTML = `
-            <div class="ai-panel-header">
-                <h3>🤖 Séance IA - ${this.lastGenerated.ppl_used.toUpperCase()}</h3>
-                <div class="ai-panel-score">Score: ${Math.round(this.lastGenerated.quality_score)}%</div>
-            </div>
-            <div class="ai-exercises-list">
-                ${this.lastGenerated.exercises.map((exercise, index) => {
-                    const state = window.currentWorkoutSession.sessionExercises[exercise.exercise_id];
-                    const isActive = window.currentWorkoutSession.currentIndex === index;
-                    const isCompleted = state?.isCompleted;
-                    
-                    return `
-                        <div class="ai-exercise-row ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}"
-                             data-exercise-id="${exercise.exercise_id}">
-                            <div class="ai-exercise-status">
-                                ${isCompleted ? '✓' : isActive ? '▶' : exercise.order_in_session}
-                            </div>
-                            <div class="ai-exercise-info">
-                                <div class="ai-exercise-name">${exercise.name}</div>
-                                <div class="ai-exercise-details">
-                                    ${exercise.muscle_groups.join(', ')} • 
-                                    ${exercise.default_sets} séries
+        // Créer panel avec classes CSS appropriées
+        const panelHTML = `
+            <div id="aiSessionPanel" class="ai-session-panel">
+                <div class="ai-panel-header">
+                    <h3>🤖 Séance IA - ${this.lastGenerated.ppl_used.toUpperCase()}</h3>
+                    <span class="quality-score">Score: ${Math.round(this.lastGenerated.quality_score)}%</span>
+                    <button class="panel-close" onclick="document.getElementById('aiSessionPanel').remove()">×</button>
+                </div>
+                
+                <div class="ai-panel-content">
+                    ${this.lastGenerated.exercises.map((exercise, index) => {
+                        const isActive = window.currentWorkoutSession?.currentIndex === index;
+                        
+                        return `
+                            <div class="ai-exercise-item ${isActive ? 'active' : ''}">
+                                <div class="exercise-info">
+                                    <span class="exercise-number">${index + 1}</span>
+                                    <div class="exercise-details">
+                                        <div class="exercise-name">${exercise.name}</div>
+                                        <div class="exercise-params">${exercise.muscle_groups.join(', ')} • ${exercise.default_sets} séries</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="exercise-actions">
+                                    <button onclick="window.aiSessionManager.goToExercise(${index})" 
+                                            class="btn-action btn-go" title="Aller à">→</button>
+                                    <button onclick="window.aiSessionManager.swapExercise(${index})" 
+                                            class="btn-action btn-swap" title="Changer">⇄</button>
+                                    <button onclick="window.aiSessionManager.skipExercise(${index})" 
+                                            class="btn-action btn-skip" title="Passer">⏭</button>
                                 </div>
                             </div>
-                            <div class="ai-exercise-actions">
-                                ${!isCompleted ? `
-                                    <button onclick="window.aiSessionManager.goToExercise(${index})" 
-                                            class="btn-mini" title="Aller à">→</button>
-                                    <button onclick="window.aiSessionManager.swapExercise(${index})" 
-                                            class="btn-mini btn-swap" title="Changer">⇄</button>
-                                    <button onclick="window.aiSessionManager.skipExercise(${index})" 
-                                            class="btn-mini btn-skip" title="Passer">⏭</button>
-                                ` : ''}
-                            </div>
-                        </div>
-                    `;
-                }).join('')}
+                        `;
+                    }).join('')}
+                </div>
             </div>
         `;
         
-        // Ajouter les styles si nécessaire
-        this.injectPanelStyles();
+        // Ajouter au body avec bonnes classes
+        document.body.insertAdjacentHTML('beforeend', panelHTML);
+        
+        // Animation d'apparition propre
+        const panel = document.getElementById('aiSessionPanel');
+        if (panel) {
+            requestAnimationFrame(() => {
+                panel.classList.add('visible');
+            });
+        }
     }
     
     // ============= AJOUT 5 : Actions sur les exercices =============
@@ -646,185 +643,113 @@ class AISessionManager {
             }
         }
     }
-    
+        
     showSwapModal(index, alternatives) {
         const currentExercise = this.lastGenerated.exercises[index];
         
-        const modal = document.createElement('div');
-        modal.className = 'modal-overlay';
-        modal.innerHTML = `
-            <div class="modal-content">
-                <h3>Remplacer "${currentExercise.name}"</h3>
+        const modalContent = `
+            <div class="alternatives-container">
+                <div class="exercise-context">
+                    <h4>Remplacer "${currentExercise.name}"</h4>
+                    <p>Choisissez un exercice de remplacement :</p>
+                </div>
+                
                 <div class="alternatives-list">
                     ${alternatives.map(alt => `
-                        <div class="alternative-option" onclick="window.aiSessionManager.selectAlternative(${index}, ${alt.id})">
+                        <button class="alternative-option" onclick="window.aiSessionManager.selectAlternative(${index}, ${alt.id})">
                             <div class="alternative-name">${alt.name}</div>
-                            <div class="alternative-muscles">${alt.muscle_groups?.join(', ') || ''}</div>
-                        </div>
+                            <div class="alternative-muscles">${(alt.muscle_groups || []).join(', ')}</div>
+                        </button>
                     `).join('')}
                 </div>
-                <button onclick="this.closest('.modal-overlay').remove()" class="btn-cancel">Annuler</button>
             </div>
         `;
         
-        document.body.appendChild(modal);
+        // Utiliser le système modal existant
+        window.showModal('Changer d\'exercice', modalContent);
     }
     
     async selectAlternative(index, newExerciseId) {
-        // Récupérer les détails du nouvel exercice
-        const newExercise = await window.apiGet(`/api/exercises/${newExerciseId}`);
+        // Fermer le modal proprement avec le système existant
+        window.closeModal();
         
-        // Remplacer dans la liste
-        this.lastGenerated.exercises[index] = {
-            exercise_id: newExercise.id,
-            name: newExercise.name,
-            muscle_groups: newExercise.muscle_groups,
-            equipment_required: newExercise.equipment_required,
-            difficulty: newExercise.difficulty,
-            default_sets: newExercise.default_sets,
-            default_reps_min: newExercise.default_reps_min,
-            default_reps_max: newExercise.default_reps_max,
-            base_rest_time_seconds: newExercise.base_rest_time_seconds,
-            instructions: newExercise.instructions,
-            order_in_session: index + 1
-        };
-        
-        // Fermer le modal
-        document.querySelector('.modal-overlay')?.remove();
-        
-        // Rafraîchir l'affichage
-        this.showAISessionPanel();
-        this.updateQualityScore();
-        
-        // Si c'est l'exercice actuel, le sélectionner
-        if (window.currentWorkoutSession.currentIndex === index) {
-            await this.goToExercise(index);
+        try {
+            console.log(`🔄 Remplacement exercice ${index} par ${newExerciseId}`);
+            
+            // Récupérer les détails du nouvel exercice
+            const newExercise = await window.apiGet(`/api/exercises/${newExerciseId}`);
+            
+            // Sauvegarder l'ancien exercice pour l'historique
+            const oldExercise = this.lastGenerated.exercises[index];
+            
+            // Remplacer dans la liste avec le format attendu
+            this.lastGenerated.exercises[index] = {
+                exercise_id: newExercise.id,
+                name: newExercise.name,
+                muscle_groups: newExercise.muscle_groups || [],
+                equipment_required: newExercise.equipment_required || [],
+                difficulty: newExercise.difficulty || 'intermediate',
+                default_sets: newExercise.default_sets || 3,
+                default_reps_min: newExercise.default_reps_min || 8,
+                default_reps_max: newExercise.default_reps_max || 12,
+                base_rest_time_seconds: newExercise.base_rest_time_seconds || 90,
+                instructions: newExercise.instructions || '',
+                order_in_session: index + 1,
+                exercise_type: newExercise.exercise_type || 'strength',
+                weight_type: newExercise.weight_type || 'fixed'
+            };
+            
+            // Mettre à jour sessionExercises si nécessaire
+            if (window.currentWorkoutSession && window.currentWorkoutSession.sessionExercises) {
+                // Supprimer l'ancien exercice
+                delete window.currentWorkoutSession.sessionExercises[oldExercise.exercise_id];
+                
+                // Ajouter le nouveau
+                window.currentWorkoutSession.sessionExercises[newExercise.id] = {
+                    index: index,
+                    name: newExercise.name,
+                    isCompleted: false,
+                    completedSets: 0,
+                    totalSets: newExercise.default_sets || 3,
+                    isSwapped: true,
+                    swappedFrom: oldExercise.name,
+                    swappedAt: new Date().toISOString()
+                };
+                
+                // Enregistrer le swap dans l'historique
+                if (!window.currentWorkoutSession.swaps) {
+                    window.currentWorkoutSession.swaps = [];
+                }
+                
+                window.currentWorkoutSession.swaps.push({
+                    original_id: oldExercise.exercise_id,
+                    original_name: oldExercise.name,
+                    new_id: newExercise.id,
+                    new_name: newExercise.name,
+                    reason: 'user_preference',
+                    timestamp: new Date().toISOString(),
+                    exercise_index: index
+                });
+            }
+            
+            // Rafraîchir le panel AI
+            this.showAISessionPanel();
+            
+            // Si c'est l'exercice en cours, le sélectionner automatiquement
+            if (window.currentWorkoutSession && window.currentWorkoutSession.currentIndex === index) {
+                await this.goToExercise(index);
+            }
+            
+            window.showToast(`Exercice remplacé : ${newExercise.name}`, 'success');
+            
+            console.log('✅ Remplacement exercice réussi');
+            
+        } catch (error) {
+            console.error('❌ Erreur remplacement exercice:', error);
+            window.showToast('Erreur lors du remplacement de l\'exercice', 'error');
         }
     }
-    
-    injectPanelStyles() {
-        if (document.getElementById('ai-panel-styles')) return;
         
-        const styles = document.createElement('style');
-        styles.id = 'ai-panel-styles';
-        styles.textContent = `
-            .ai-session-panel {
-                position: fixed;
-                right: 20px;
-                top: 80px;
-                width: 350px;
-                max-height: 70vh;
-                background: #1e293b;
-                border-radius: 12px;
-                box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-                overflow-y: auto;
-                z-index: 100;
-            }
-            
-            .ai-panel-header {
-                padding: 1rem;
-                background: linear-gradient(135deg, #667eea, #764ba2);
-                border-radius: 12px 12px 0 0;
-                color: white;
-            }
-            
-            .ai-panel-score {
-                font-size: 0.9rem;
-                opacity: 0.9;
-                margin-top: 0.25rem;
-            }
-            
-            .ai-exercises-list {
-                padding: 0.5rem;
-            }
-            
-            .ai-exercise-row {
-                display: flex;
-                align-items: center;
-                padding: 0.75rem;
-                margin: 0.25rem 0;
-                background: #0f172a;
-                border-radius: 8px;
-                transition: all 0.2s;
-            }
-            
-            .ai-exercise-row.active {
-                background: rgba(102, 126, 234, 0.2);
-                border-left: 3px solid #667eea;
-            }
-            
-            .ai-exercise-row.completed {
-                opacity: 0.6;
-            }
-            
-            .ai-exercise-status {
-                width: 30px;
-                text-align: center;
-                font-weight: bold;
-                color: #667eea;
-            }
-            
-            .ai-exercise-info {
-                flex: 1;
-                margin: 0 1rem;
-            }
-            
-            .ai-exercise-name {
-                color: #f1f5f9;
-                font-weight: 600;
-            }
-            
-            .ai-exercise-details {
-                color: #94a3b8;
-                font-size: 0.85rem;
-                margin-top: 0.25rem;
-            }
-            
-            .ai-exercise-actions {
-                display: flex;
-                gap: 0.25rem;
-            }
-            
-            .btn-mini {
-                padding: 0.25rem 0.5rem;
-                background: #334155;
-                color: #94a3b8;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-                font-size: 0.9rem;
-            }
-            
-            .btn-mini:hover {
-                background: #475569;
-                color: #f1f5f9;
-            }
-            
-            .btn-swap {
-                background: #667eea;
-                color: white;
-            }
-            
-            .btn-skip {
-                background: #ef4444;
-                color: white;
-            }
-            
-            @media (max-width: 768px) {
-                .ai-session-panel {
-                    position: relative;
-                    right: auto;
-                    top: auto;
-                    width: 100%;
-                    max-height: none;
-                    margin-bottom: 1rem;
-                }
-            }
-        `;
-        
-        document.head.appendChild(styles);
-    }
-    
     // Mise à jour de updateGeneratedSessionDisplay pour supporter le drag & drop
     updateGeneratedSessionDisplay() {
         const container = document.getElementById('exercisePreviewContainer');
