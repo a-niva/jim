@@ -432,43 +432,59 @@ class AISessionManager {
     // ============= AJOUT 3 : Lancement de séance avec auto-start =============
     async launchAISession() {
         if (!this.lastGenerated || !this.lastGenerated.exercises) {
-            this.showMessage('Aucune séance générée', 'warning');
+            window.showToast('Aucune séance générée à lancer', 'warning');
             return;
         }
         
         try {
             console.log('🚀 Lancement séance IA avec auto-start');
             
-            // 1. Nettoyer état existant
+            // 1. Nettoyer état existant (AVANT tout)
             if (typeof window.clearWorkoutState === 'function') {
                 window.clearWorkoutState();
             }
             
-            // 2. Créer workout avec métadonnées AI
+            // 2. Créer workout backend (ATTENDRE obligatoirement)
             const workoutData = {
-                type: 'ai', // Type AI pour différencier
+                type: 'ai',
                 session_metadata: {
                     ai_generated: true,
                     ppl_category: this.lastGenerated.ppl_used,
                     quality_score: this.lastGenerated.quality_score,
                     generation_params: this.params,
-                    exercises: this.lastGenerated.exercises // Stocker la liste complète
+                    exercises: this.lastGenerated.exercises
                 }
             };
             
             const response = await window.apiPost(`/api/users/${window.currentUser?.id || 1}/workouts`, workoutData);
+            
+            // 3. Assignation synchrone IMMÉDIATE (résout race condition)
             window.currentWorkout = response.workout;
             
-            // 3. Configurer la session AI
+            // 4. Configurer session avec workout assigné (CRITIQUE)
             window.currentWorkoutSession = {
                 type: 'ai',
+                workout: response.workout,  // ⚠️ LIGNE CRITIQUE MANQUANTE
                 exercises: this.lastGenerated.exercises,
                 currentIndex: 0,
                 sessionExercises: {},
-                completedExercisesCount: 0
+                completedExercisesCount: 0,
+                
+                // États standards pour compatibilité
+                currentExercise: null,
+                currentSetNumber: 1,
+                exerciseOrder: 1,
+                globalSetCount: 0,
+                sessionFatigue: 3,
+                completedSets: [],
+                totalRestTime: 0,
+                totalSetTime: 0,
+                skipped_exercises: [],
+                swaps: [],
+                modifications: []
             };
             
-            // Initialiser l'état des exercices
+            // 5. Initialiser sessionExercises (réutilise logique existante)
             this.lastGenerated.exercises.forEach((ex, idx) => {
                 window.currentWorkoutSession.sessionExercises[ex.exercise_id] = {
                     index: idx,
@@ -479,38 +495,40 @@ class AISessionManager {
                 };
             });
             
-            // 4. Aller à la vue workout
+            // 6. Navigation (après all assignments)
             if (typeof window.showView === 'function') {
                 window.showView('workout');
             }
             
-            // 5. Afficher l'encart AI
+            // 7. Afficher panel AI
             this.showAISessionPanel();
             
-            // 6. Auto-start : sélectionner le premier exercice
+            // 8. Auto-sélection premier exercice (avec délai pour stabilité)
             setTimeout(async () => {
                 const firstExercise = this.lastGenerated.exercises[0];
                 if (firstExercise && typeof window.selectExercise === 'function') {
-                    // Récupérer les détails complets de l'exercice
+                    // Récupérer détails complets
                     const exerciseDetails = await window.apiGet(`/api/exercises/${firstExercise.exercise_id}`);
+                    
+                    // Utiliser selectExercise existant (pas selectSessionExercise car moins robuste)
                     await window.selectExercise(exerciseDetails);
                     
-                    // 7. Lancer le countdown automatiquement (mobile)
+                    // Auto-countdown si mobile
                     const isMobile = window.isMobile || /Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent);
-                    if (isMobile && typeof window.showCountdown === 'function') {
+                    if (isMobile && typeof window.startCountdown === 'function') {
                         setTimeout(() => {
-                            window.showCountdown();
+                            window.startCountdown(3);
                             this.showMessage('Posez votre téléphone pour démarrer !', 'info');
-                        }, 1000);
+                        }, 1500);
                     }
                 }
             }, 500);
             
-            this.showMessage('Séance AI lancée !', 'success');
+            window.showToast(`Séance ${this.lastGenerated.ppl_used.toUpperCase()} lancée !`, 'success');
             
         } catch (error) {
-            console.error('❌ Erreur lancement séance AI:', error);
-            this.showMessage('Erreur lors du lancement', 'error');
+            console.error('❌ Erreur lancement séance IA:', error);
+            window.showToast('Erreur lors du lancement', 'error');
         }
     }
 
