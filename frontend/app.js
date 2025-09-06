@@ -2069,7 +2069,7 @@ async function showView(viewName) {
     console.log(`🔍 showView(${viewName}) - currentUser: ${currentUser?.name || 'UNDEFINED'}`);
     
     cleanupAISessionPanel();
-    
+
     // Stocker vue précédente pour cleanup
     const previousView = currentView;
     currentView = viewName;
@@ -4112,7 +4112,7 @@ async function selectExercise(exercise, skipValidation = false) {
     // Créer session workout si mode libre
     if (!currentWorkout && !currentWorkoutSession.id) {
         try {
-            const response = await apiPost('/api/workouts', {
+            const response = await apiPost(`/api/users/${currentUser.id}/workouts`, {
                 type: 'free',
                 exercises: [currentExercise.id]
             });
