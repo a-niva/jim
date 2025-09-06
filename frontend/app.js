@@ -9008,25 +9008,18 @@ async function selectSessionExercise(exerciseId, isInitialLoad = false) {
             const exerciseIndex = window.currentWorkoutSession.exercises.indexOf(aiExercise);
             window.currentWorkoutSession.exerciseOrder = exerciseIndex + 1;
             
-            // Utiliser selectExercise existant
-            await selectExercise(exerciseForSelection);
+            // Utiliser selectExercise existant avec skipValidation si initialisation
+            await selectExercise(exerciseForSelection, isInitialLoad);
             
             // Mettre à jour l'UI liste exercices
             document.querySelectorAll('.session-exercise-item').forEach(item => {
-                item.classList.remove('active', 'current-exercise');
+                item.classList.remove('active', 'current');
+                if (parseInt(item.dataset.exerciseId) === exerciseId) {
+                    item.classList.add('active', 'current');
+                }
             });
-            const currentItem = document.querySelector(`[data-exercise-index="${exerciseIndex}"]`);
-            if (currentItem) {
-                currentItem.classList.add('active', 'current-exercise');
-            }
-            
-            return;
         }
     }
-    
-    // Plus de Sessions - fonction appelée hors contexte AI
-    console.warn('selectSessionExercise appelée hors contexte séance IA');
-    window.showToast('Cette fonction n\'est disponible qu\'en séance IA', 'warning');
 }
 
 async function saveCurrentExerciseState() {
