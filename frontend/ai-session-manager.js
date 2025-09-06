@@ -449,19 +449,15 @@ class AISessionManager {
             };
             
             const response = await window.apiPost(`/api/users/${window.currentUser?.id || 1}/workouts`, workoutData);
-            
-            // 3. CORRECTION : Validation + API retourne directement l'objet workout
-            if (!response || !response.id) {
-                throw new Error('Réponse API invalide pour création workout');
-            }
-            
-            window.currentWorkout = response;  // PAS response.workout
-            
-            // 4. Configurer session avec workout assigné (CRITIQUE)
+
+            // 3. API retourne {message: "...", workout: db_workout}
+            window.currentWorkout = response.workout;
+
+            // 4. Configurer session avec workout assigné
             window.currentWorkoutSession = {
                 type: 'ai',
-                workout: response,
-                id: response.id,  // Ajout pour compatibilité avec selectExercise
+                workout: response.workout,
+                id: response.workout.id,
                 exercises: this.lastGenerated.exercises,
                 currentIndex: 0,
                 sessionExercises: {},

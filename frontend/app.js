@@ -4116,9 +4116,9 @@ async function selectExercise(exercise, skipValidation = false) {
                 type: 'free',
                 exercises: [currentExercise.id]
             });
-            currentWorkout = response;  // AJOUT : assignation manquante
-            currentWorkoutSession.id = response.id;
-            console.log('[Session] Workout créé pour ML:', response.id);
+            currentWorkout = response.workout;  // Structure cohérente
+            currentWorkoutSession.id = response.workout.id;
+            console.log('[Session] Workout créé pour ML:', response.workout.id);
         } catch (error) {
             console.error('[Session] Erreur création workout:', error);
             // Pas de fallback - on continue sans ML
