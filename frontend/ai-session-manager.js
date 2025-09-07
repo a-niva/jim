@@ -444,7 +444,7 @@ class AISessionManager {
             
             // 2. Créer workout backend (ATTENDRE obligatoirement)
             const workoutData = {
-                type: 'free',
+                type: 'ai',
                 ai_generated: true
             };
             
