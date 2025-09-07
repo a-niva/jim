@@ -12690,6 +12690,7 @@ async function updateLastSetRestDuration(actualRestTime) {
 }
 
 function showSetCompletionOptions() {
+    console.log('DEBUG showSetCompletionOptions - currentWorkoutSession.type:', currentWorkoutSession.type);
     // MODULE 3 : Résumé adaptations dans modal fin d'exercice
     let adaptationsHtml = '';
     if (currentWorkoutSession.swaps?.length > 0) {
