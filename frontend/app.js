@@ -25,7 +25,7 @@ let currentWorkoutSession = {
     globalSetCount: 0,
     sessionFatigue: 3,
     completedSets: [],
-    type: 'free',
+    type: null,
     totalRestTime: 0,
     totalSetTime: 0,
     // MODULE 0 : Nouvelles propriétés
@@ -12700,6 +12700,12 @@ async function updateLastSetRestDuration(actualRestTime) {
 
 function showSetCompletionOptions() {
     console.log('DEBUG showSetCompletionOptions - currentWorkoutSession.type:', currentWorkoutSession.type);
+    
+    // CORRECTION : Détecter le type réel si null
+    if (!currentWorkoutSession.type) {
+        currentWorkoutSession.type = (currentWorkoutSession.exercises && currentWorkoutSession.exercises.length > 0) ? 'ai' : 'free';
+        console.log('Type auto-détecté:', currentWorkoutSession.type);
+    }
     // MODULE 3 : Résumé adaptations dans modal fin d'exercice
     let adaptationsHtml = '';
     if (currentWorkoutSession.swaps?.length > 0) {
