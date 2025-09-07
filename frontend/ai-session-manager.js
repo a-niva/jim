@@ -525,7 +525,7 @@ class AISessionManager {
             existingPanel.remove();
         }
         
-        // Créer panel avec classes CSS appropriées
+        // Créer panel
         const panelHTML = `
             <div id="aiSessionPanel" class="ai-session-panel expanded">
                 <div class="ai-panel-header">
@@ -535,32 +535,88 @@ class AISessionManager {
                         <i class="fas fa-chevron-down"></i>
                     </button>
                 </div>
-                        
+                
                 <div class="ai-panel-content">
                     ${this.lastGenerated.exercises.map((exercise, index) => {
-                        const isActive = window.currentWorkoutSession?.currentIndex === index;
+                        // Déterminer l'état de l'exercice
+                        const exerciseState = window.currentWorkoutSession?.sessionExercises?.[exercise.exercise_id];
+                        const isActive = window.currentExercise?.id === exercise.exercise_id;
+                        const isCompleted = exerciseState?.isCompleted || false;
+                        const isNext = index === (window.currentWorkoutSession?.currentIndex || 0) + 1;
+                        const completedSets = exerciseState?.completedSets || 0;
+                        const totalSets = exercise.default_sets || 3;
+                        
+                        // Classes CSS basées sur l'état
+                        let stateClass = '';
+                        if (isCompleted) stateClass = 'completed';
+                        else if (isActive) stateClass = 'active';
+                        else if (isNext) stateClass = 'next';
                         
                         return `
-                            <div class="ai-exercise-item ${isActive ? 'active' : ''}">
+                            <div class="ai-exercise-item ${stateClass}" 
+                                data-exercise-index="${index}"
+                                data-exercise-id="${exercise.exercise_id}">
+                                
+                                <div class="exercise-status">
+                                    ${isCompleted ? 
+                                        '<i class="fas fa-check-circle"></i>' : 
+                                        isActive ? 
+                                        '<i class="fas fa-play-circle"></i>' :
+                                        `<span class="exercise-number">${index + 1}</span>`
+                                    }
+                                </div>
+                                
                                 <div class="exercise-info">
-                                    <span class="exercise-number">${index + 1}</span>
+                                    <div class="exercise-name">${exercise.name}</div>
                                     <div class="exercise-details">
-                                        <div class="exercise-name">${exercise.name}</div>
-                                        <div class="exercise-params">${exercise.muscle_groups.join(', ')} • ${exercise.default_sets} séries</div>
+                                        <span class="muscle-groups">${exercise.muscle_groups.join(', ')}</span>
+                                        <span class="sets-progress">
+                                            ${isActive || isCompleted ? 
+                                                `${completedSets}/${totalSets} séries` : 
+                                                `${totalSets} séries`
+                                            }
+                                        </span>
                                     </div>
+                                    ${isNext ? '<div class="next-indicator">Suivant</div>' : ''}
                                 </div>
                                 
                                 <div class="exercise-actions">
-                                    <button onclick="window.aiSessionManager.goToExercise(${index})" 
-                                            class="btn-action btn-go" title="Aller à">→</button>
-                                    <button onclick="window.aiSessionManager.swapExercise(${index})" 
-                                            class="btn-action btn-swap" title="Changer">⇄</button>
-                                    <button onclick="window.aiSessionManager.skipExercise(${index})" 
-                                            class="btn-action btn-skip" title="Passer">⏭</button>
+                                    ${!isCompleted ? `
+                                        <button onclick="window.selectSessionExercise(${exercise.exercise_id})"
+                                                class="btn-action btn-go ${isActive ? 'disabled' : ''}" 
+                                                title="Sélectionner"
+                                                ${isActive ? 'disabled' : ''}>
+                                            <i class="fas fa-arrow-right"></i>
+                                        </button>
+                                        ${!isActive ? `
+                                            <button onclick="window.aiSessionManager.swapExercise(${index})"
+                                                    class="btn-action btn-swap" 
+                                                    title="Remplacer">
+                                                <i class="fas fa-exchange-alt"></i>
+                                            </button>
+                                        ` : ''}
+                                    ` : `
+                                        <button onclick="window.restartExercise(${exercise.exercise_id})"
+                                                class="btn-action btn-restart" 
+                                                title="Refaire">
+                                            <i class="fas fa-redo"></i>
+                                        </button>
+                                    `}
                                 </div>
                             </div>
                         `;
                     }).join('')}
+                </div>
+                
+                <div class="ai-panel-footer">
+                    <div class="session-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${Math.round((window.currentWorkoutSession?.completedExercisesCount || 0) / this.lastGenerated.exercises.length * 100)}%"></div>
+                        </div>
+                        <span class="progress-text">
+                            ${window.currentWorkoutSession?.completedExercisesCount || 0} / ${this.lastGenerated.exercises.length} exercices
+                        </span>
+                    </div>
                 </div>
             </div>
         `;
