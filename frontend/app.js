@@ -12249,8 +12249,80 @@ function completeRest() {
     
     // === PRÉPARATION SÉRIE SUIVANTE ===
     if (currentSet >= currentWorkoutSession.totalSets) {
-        transitionTo(WorkoutStates.COMPLETED);
-        showSetCompletionOptions();
+        // Pour les séances AI : transition automatique
+        if (currentWorkoutSession.type === 'ai') {
+            // Marquer l'exercice comme complété
+            if (currentWorkoutSession.sessionExercises && currentWorkoutSession.sessionExercises[currentExercise.id]) {
+                currentWorkoutSession.sessionExercises[currentExercise.id].isCompleted = true;
+                currentWorkoutSession.sessionExercises[currentExercise.id].completedSets = currentSet;
+            }
+            
+            // Trouver l'exercice suivant
+            const currentIndex = currentWorkoutSession.exercises.findIndex(
+                ex => ex.exercise_id === currentExercise.id
+            );
+            
+            if (currentIndex < currentWorkoutSession.exercises.length - 1) {
+                // Il reste des exercices
+                const nextExercise = currentWorkoutSession.exercises[currentIndex + 1];
+                
+                showToast(`✅ ${currentExercise.name} terminé !`, 'success');
+                
+                // Transition directe vers le prochain exercice
+                setTimeout(async () => {
+                    // Mettre à jour le panel AI
+                    if (window.aiSessionManager) {
+                        window.aiSessionManager.showAISessionPanel();
+                    }
+                    
+                    // Sélectionner le prochain exercice
+                    await selectSessionExercise(nextExercice.exercise_id);
+                    
+                    showToast(`Exercice ${currentIndex + 2}/${currentWorkoutSession.exercises.length} : ${nextExercise.name}`, 'info');
+                }, 1000);
+                
+            } else {
+                // C'était le dernier exercice
+                transitionTo(WorkoutStates.COMPLETED);
+                
+                // Calculer la durée totale
+                let totalDuration = 0;
+                if (workoutStartTime) {
+                    totalDuration = Math.floor((Date.now() - workoutStartTime) / 1000);
+                } else {
+                    const timerDisplay = document.getElementById('workoutTimer')?.textContent;
+                    if (timerDisplay) {
+                        const [minutes, seconds] = timerDisplay.split(':').map(Number);
+                        totalDuration = (minutes * 60) + seconds;
+                    }
+                }
+                
+                showModal('Séance terminée ! 🎉', `
+                    <div style="text-align: center;">
+                        <h3>Bravo ! 💪</h3>
+                        <p>Vous avez complété tous les exercices de la séance.</p>
+                        <div style="margin: 1.5rem 0;">
+                            <div style="font-size: 1.2rem; margin: 0.5rem;">
+                                ⏱️ Durée : ${formatTime(totalDuration)}
+                            </div>
+                            <div style="font-size: 1.2rem; margin: 0.5rem;">
+                                🏋️ Exercices : ${currentWorkoutSession.completedExercisesCount || 0}
+                            </div>
+                            <div style="font-size: 1.2rem; margin: 0.5rem;">
+                                📊 Séries : ${currentWorkoutSession.globalSetCount}
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="endWorkout(); closeModal();" style="margin-top: 1rem;">
+                            Voir le résumé détaillé
+                        </button>
+                    </div>
+                `);
+            }
+        } else {
+            // Séances libres : comportement classique
+            transitionTo(WorkoutStates.COMPLETED);
+            showSetCompletionOptions();
+        }
     } else {
         // Incrémentation série
         currentSet++;
@@ -12283,60 +12355,33 @@ function completeRest() {
             if (typeof initializeModernRepsDisplay === 'function') {
                 const targetRep = document.getElementById('targetRep');
                 const targetValue = targetRep ? parseInt(targetRep.textContent) : 12;
-                initializeModernRepsDisplay(targetValue, 0);
+                initializeModernRepsDisplay(targetValue);
             }
         }
         
-        // Transition vers READY
+        // Transition vers état READY
         transitionTo(WorkoutStates.READY);
         
-        // Gestion motion/vocal selon les priorités
+        // Pour motion detection
         if (currentUser?.motion_detection_enabled && 
             window.motionDetectionEnabled && 
             window.motionDetector &&
             currentExercise?.exercise_type !== 'isometric') {
             
             console.log('[Motion] Réactivation motion detector pour série suivante');
-            
-            // Reset state interne motion detector
-            window.motionDetector.state = 'unknown';
-            window.motionDetector.stationaryStartTime = null;
-            window.motionDetector.pickupStartTime = null;
-            
-            // Réafficher instructions motion
             showMotionInstructions();
-            updateMotionIndicator(false);
-            
-            // Redémarrer monitoring
             window.motionDetector.startMonitoring(createMotionCallbacksV2());
-            
             console.log('[Motion] Motion detector prêt, vocal en attente');
-            
-            // ✅ PAS d'activation vocale ici si motion est actif
-            // Le vocal sera activé automatiquement après le countdown motion
-            
         } else {
-            // ✅ Activer vocal SEULEMENT si pas de motion
-            console.log('[Rest] Pas de motion, activation vocale directe');
-            activateVoiceForWorkout();
+            // Mode manuel
+            startSetTimer();
         }
         
-        // S'assurer que les steppers sont bien visibles
-        const inputSection = document.querySelector('.input-section');
-        if (inputSection) {
-            // Retirer tous les styles inline problématiques
-            inputSection.removeAttribute('style');
-            
-            // Nettoyer les classes
-            inputSection.classList.remove('hidden', 'countdown-active', 'motion-active', 'transitioning');
-            
-            // Forcer chaque row à utiliser le layout CSS natif
-            const allInputRows = inputSection.querySelectorAll('.input-row');
-            allInputRows.forEach(row => {
-                row.removeAttribute('style'); // Laisser CSS gérer
-                row.removeAttribute('data-hidden');
-            });
-            
+        // Reset CSS spécifique (layout steppers)
+        const steppersContainer = document.querySelector('.exercise-controls-container');
+        if (steppersContainer) {
+            steppersContainer.style.gridTemplateColumns = '';
+            steppersContainer.style.gap = '';
             console.log('[Rest] Steppers réinitialisés avec layout CSS natif');
         }
     }
