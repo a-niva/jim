@@ -4111,7 +4111,7 @@ async function selectExercise(exercise, skipValidation = false) {
     }
 
     // Créer session workout si mode libre
-    if (!currentWorkout && !currentWorkoutSession.id && currentWorkoutSession.type !== 'ai') {
+    if ((!currentWorkout && !currentWorkoutSession.id) && (!currentWorkoutSession.type || currentWorkoutSession.type !== 'ai')) {
         try {
             const response = await apiPost(`/api/users/${currentUser.id}/workouts`, {
                 type: 'free',
@@ -4121,6 +4121,10 @@ async function selectExercise(exercise, skipValidation = false) {
             window.currentWorkout = response.workout;  // AJOUT: Synchronisation globale
             currentWorkoutSession.id = response.workout.id;
             console.log('[Session] Workout créé pour ML:', response.workout.id);
+            console.log('🔍 selectExercise DEBUG - Après création workout:', {
+                currentWorkoutType: currentWorkoutSession.type,
+                newWorkoutId: response.workout.id
+            });
         } catch (error) {
             console.error('[Session] Erreur création workout:', error);
             // Pas de fallback - on continue sans ML
