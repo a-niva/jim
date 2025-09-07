@@ -12276,10 +12276,12 @@ function completeRest() {
                     }
                     
                     // Sélectionner le prochain exercice
-                    await selectSessionExercise(nextExercice.exercise_id);
+                    await selectSessionExercise(nextExercise.exercise_id);
                     
                     showToast(`Exercice ${currentIndex + 2}/${currentWorkoutSession.exercises.length} : ${nextExercise.name}`, 'info');
                 }, 1000);
+                
+                return;
                 
             } else {
                 // C'était le dernier exercice
@@ -12317,6 +12319,7 @@ function completeRest() {
                         </button>
                     </div>
                 `);
+                return;
             }
         } else {
             // Séances libres : comportement classique
