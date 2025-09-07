@@ -4111,7 +4111,7 @@ async function selectExercise(exercise, skipValidation = false) {
     }
 
     // Créer session workout si mode libre
-    if (!currentWorkout && !currentWorkoutSession.id) {
+    if (!currentWorkout && !currentWorkoutSession.id && currentWorkoutSession.type !== 'ai') {
         try {
             const response = await apiPost(`/api/users/${currentUser.id}/workouts`, {
                 type: 'free',
