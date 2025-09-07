@@ -12642,7 +12642,7 @@ function showSetCompletionOptions() {
                     Série supplémentaire
                 </button>
                 <button class="btn btn-primary" onclick="finishExercise(); closeModal();">
-                    ${currentWorkout.type === 'free' ? 'Changer d\'exercice' : 'Exercice suivant'}
+                    ${currentWorkoutSession.type === 'ai' ? 'Exercice suivant' : 'Changer d\'exercice'}
                 </button>
                 <button class="btn btn-danger" onclick="endWorkout(); closeModal();">
                     Terminer la séance
