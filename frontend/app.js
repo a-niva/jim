@@ -3808,6 +3808,11 @@ function toggleMuscleTooltip(segment) {
 
 // ===== SÉANCES =====
 async function startFreeWorkout() {
+    // Empêcher l'écrasement des séances AI
+    if (currentWorkoutSession.type === 'ai') {
+        console.log('🚫 startFreeWorkout bloqué pour séance AI active');
+        return;
+    }
     try {
         // Nettoyer TOUT l'état avant de commencer
         clearWorkoutState();
@@ -3821,7 +3826,7 @@ async function startFreeWorkout() {
         const response = await apiPost(`/api/users/${currentUser.id}/workouts`, workoutData);
         
         currentWorkout = response.workout;
-        currentWorkoutSession.type = 'free';
+        currentWorkoutSession.type = currentWorkoutSession.type || 'free';
         currentWorkoutSession.workout = response.workout;
         // MODULE 0 : Préserver les propriétés essentielles
         currentWorkoutSession.skipped_exercises = currentWorkoutSession.skipped_exercises || [];
