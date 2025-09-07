@@ -11988,7 +11988,7 @@ async function saveFeedbackAndRest() {
                 // Marquer l'exercice comme complété
                 if (currentWorkoutSession.sessionExercises && currentWorkoutSession.sessionExercises[currentExercise.id]) {
                     currentWorkoutSession.sessionExercises[currentExercise.id].isCompleted = true;
-                    currentWorkoutSession.sessionExercises[currentExercice.id].completedSets = currentSet;
+                    currentWorkoutSession.sessionExercises[currentExercise.id].completedSets = currentSet;
                 }
                 
                 // Trouver l'exercice suivant
