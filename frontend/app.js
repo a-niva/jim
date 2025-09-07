@@ -9844,7 +9844,7 @@ function clearWorkoutState() {
         globalSetCount: 0,
         sessionFatigue: 3,
         completedSets: [],
-        type: 'free',
+        type: currentWorkoutSession.type || 'free',
         totalRestTime: 0,
         totalSetTime: 0,
         sessionExercises: {},
