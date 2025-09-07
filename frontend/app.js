@@ -7573,6 +7573,12 @@ async function endWorkout() {
     hideEndWorkoutModal();
     
     try {
+        // Initialisation défensive de TOUTES les propriétés potentiellement manquantes
+        currentWorkoutSession.skipped_exercises = currentWorkoutSession.skipped_exercises || [];
+        currentWorkoutSession.swaps = currentWorkoutSession.swaps || [];
+        currentWorkoutSession.modifications = currentWorkoutSession.modifications || [];
+        currentWorkoutSession.sessionExercises = currentWorkoutSession.sessionExercises || {};
+        
         // Arrêter tous les timers
         if (workoutTimer) clearInterval(workoutTimer);
         if (setTimer) clearInterval(setTimer);
@@ -11969,8 +11975,74 @@ async function saveFeedbackAndRest() {
         const isLastSet = currentSet >= currentWorkoutSession.totalSets;
         
         if (isLastSet) {
-            transitionTo(WorkoutStates.COMPLETED);
-            showSetCompletionOptions();
+            // Pour les séances AI : transition automatique sans modal
+            if (currentWorkoutSession.type === 'ai') {
+                // Marquer l'exercice comme complété
+                if (currentWorkoutSession.sessionExercises && currentWorkoutSession.sessionExercises[currentExercise.id]) {
+                    currentWorkoutSession.sessionExercises[currentExercise.id].isCompleted = true;
+                    currentWorkoutSession.sessionExercises[currentExercise.id].completedSets = currentSet;
+                }
+                
+                // Incrémenter le compteur global
+                currentWorkoutSession.completedExercisesCount = 
+                    (currentWorkoutSession.completedExercisesCount || 0) + 1;
+                
+                // Trouver l'exercice suivant
+                const currentIndex = currentWorkoutSession.exercises.findIndex(
+                    ex => ex.exercise_id === currentExercise.id
+                );
+                
+                if (currentIndex < currentWorkoutSession.exercises.length - 1) {
+                    // Il reste des exercices
+                    const nextExercise = currentWorkoutSession.exercises[currentIndex + 1];
+                    
+                    // Message de transition
+                    showToast(`✅ ${currentExercise.name} terminé !`, 'success');
+                    
+                    // Transition douce après 3 secondes
+                    transitionTo(WorkoutStates.TRANSITIONING);
+                    
+                    setTimeout(async () => {
+                        // Mettre à jour le panel AI
+                        if (window.aiSessionManager) {
+                            window.aiSessionManager.showAISessionPanel();
+                        }
+                        
+                        // Sélectionner le prochain exercice
+                        await selectSessionExercise(nextExercise.exercise_id);
+                        
+                        showToast(`Exercice ${currentIndex + 2}/${currentWorkoutSession.exercises.length} : ${nextExercise.name}`, 'info');
+                    }, 3000);
+                    
+                } else {
+                    // C'était le dernier exercice
+                    transitionTo(WorkoutStates.COMPLETED);
+                    showModal('Séance terminée ! 🎉', `
+                        <div style="text-align: center;">
+                            <h3>Bravo ! 💪</h3>
+                            <p>Vous avez complété tous les exercices de la séance.</p>
+                            <div style="margin: 1.5rem 0;">
+                                <div style="font-size: 1.2rem; margin: 0.5rem;">
+                                    ⏱️ Durée : ${formatTime(Math.floor((Date.now() - workoutStartTime) / 1000))}
+                                </div>
+                                <div style="font-size: 1.2rem; margin: 0.5rem;">
+                                    🏋️ Exercices : ${currentWorkoutSession.completedExercisesCount}
+                                </div>
+                                <div style="font-size: 1.2rem; margin: 0.5rem;">
+                                    📊 Séries : ${currentWorkoutSession.globalSetCount}
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" onclick="endWorkout(); closeModal();" style="margin-top: 1rem;">
+                                Voir le résumé détaillé
+                            </button>
+                        </div>
+                    `);
+                }
+            } else {
+                // Séances libres : modal classique avec options
+                transitionTo(WorkoutStates.COMPLETED);
+                showSetCompletionOptions();
+            }
         } else {
             if (currentExercise.exercise_type === 'isometric') {
                 currentWorkoutSession.totalRestTime += restDuration;

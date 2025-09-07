@@ -828,7 +828,28 @@ span {
 }
 
 .btn-secondary {
-    background: var(--bg-card)
+    background-color: #475569;  /* Gris plus clair que le fond */
+    color: #e2e8f0;  /* Texte clair */
+    border: 1px solid #64748b;  /* Bordure visible */
+    transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+    background-color: #64748b;  /* Encore plus clair au survol */
+    border-color: #94a3b8;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Spécifiquement dans les modals sur fond sombre */
+#modal .btn-secondary {
+    background-color: #64748b;  /* Plus contrasté dans les modals */
+    color: #f8fafc;
+}
+
+#modal .btn-secondary:hover {
+    background-color: #94a3b8;
+    color: #0f172a;  /* Texte sombre sur fond clair */
 }
 
 .btn-success {
@@ -5711,12 +5732,6 @@ input:checked + .toggle-slider:before {
     text-align: center;
     border-top: 1px solid var(--border);
     margin-top: 1rem;
-}
-
-.btn-secondary:hover {
-    background: var(--border);
-    transform: translateY(-1px);
-    color: var(--text) !important;
 }
 
 .session-preview {
