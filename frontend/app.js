@@ -8,6 +8,7 @@ let currentWorkout = null;
 let currentExercise = null;
 let currentSet = 1;
 let workoutTimer = null;
+let workoutStartTime = null;
 let restTimer = null;
 // Tracking vue courante pour cleanup intelligent
 let currentView = null;
@@ -7252,9 +7253,9 @@ function endRest() {
 function startWorkoutTimer() {
     if (workoutTimer) clearInterval(workoutTimer);
     
-    const startTime = new Date();
+    workoutStartTime = new Date(); // UTILISER la variable globale
     workoutTimer = setInterval(() => {
-        const elapsed = new Date() - startTime;
+        const elapsed = new Date() - workoutStartTime;
         const minutes = Math.floor(elapsed / 60000);
         const seconds = Math.floor((elapsed % 60000) / 1000);
         document.getElementById('workoutTimer').textContent = 
@@ -10906,7 +10907,7 @@ function setupWeightModeSwipe(iconElement) {
 }
 
 // ===== TIMER DE REPOS =====
-function startRestPeriod(duration, isMLSuggested = false) {
+function startRestPeriod(duration, isMLSuggested = false, callback = null)  {
     console.log('[Rest] Démarrage période repos');
     
     // === NETTOYAGE PRÉALABLE STRICT ===
@@ -10973,6 +10974,13 @@ function startRestPeriod(duration, isMLSuggested = false) {
         window.motionDetector.stopMonitoring();
         updateMotionIndicator(false);
         console.log('[Motion] Désactivé pendant repos');
+    }
+
+    // À la fin du repos, appeler le callback si fourni
+    if (callback && typeof callback === 'function') {
+        setTimeout(() => {
+            callback();
+        }, duration * 1000);
     }
 }
 
@@ -11975,17 +11983,13 @@ async function saveFeedbackAndRest() {
         const isLastSet = currentSet >= currentWorkoutSession.totalSets;
         
         if (isLastSet) {
-            // Pour les séances AI : transition automatique sans modal
+            // Pour les séances AI : transition automatique avec repos
             if (currentWorkoutSession.type === 'ai') {
                 // Marquer l'exercice comme complété
                 if (currentWorkoutSession.sessionExercises && currentWorkoutSession.sessionExercises[currentExercise.id]) {
                     currentWorkoutSession.sessionExercises[currentExercise.id].isCompleted = true;
-                    currentWorkoutSession.sessionExercises[currentExercise.id].completedSets = currentSet;
+                    currentWorkoutSession.sessionExercises[currentExercice.id].completedSets = currentSet;
                 }
-                
-                // Incrémenter le compteur global
-                currentWorkoutSession.completedExercisesCount = 
-                    (currentWorkoutSession.completedExercisesCount || 0) + 1;
                 
                 // Trouver l'exercice suivant
                 const currentIndex = currentWorkoutSession.exercises.findIndex(
@@ -11993,16 +11997,18 @@ async function saveFeedbackAndRest() {
                 );
                 
                 if (currentIndex < currentWorkoutSession.exercises.length - 1) {
-                    // Il reste des exercices
+                    // Il reste des exercices : repos puis transition
                     const nextExercise = currentWorkoutSession.exercises[currentIndex + 1];
                     
-                    // Message de transition
-                    showToast(`✅ ${currentExercise.name} terminé !`, 'success');
+                    // Calculer le temps de repos avant le prochain exercice
+                    const transitionRestDuration = 120; // 2 minutes entre exercices
                     
-                    // Transition douce après 3 secondes
-                    transitionTo(WorkoutStates.TRANSITIONING);
+                    showToast(`✅ ${currentExercise.name} terminé ! Repos ${transitionRestDuration}s avant ${nextExercise.name}`, 'success');
                     
-                    setTimeout(async () => {
+                    // Démarrer le repos avec transition automatique
+                    transitionTo(WorkoutStates.RESTING);
+                    startRestPeriod(transitionRestDuration, false, async () => {
+                        // Callback après le repos
                         // Mettre à jour le panel AI
                         if (window.aiSessionManager) {
                             window.aiSessionManager.showAISessionPanel();
@@ -12012,21 +12018,35 @@ async function saveFeedbackAndRest() {
                         await selectSessionExercise(nextExercise.exercise_id);
                         
                         showToast(`Exercice ${currentIndex + 2}/${currentWorkoutSession.exercises.length} : ${nextExercise.name}`, 'info');
-                    }, 3000);
+                    });
                     
                 } else {
                     // C'était le dernier exercice
                     transitionTo(WorkoutStates.COMPLETED);
+                    
+                    // Calculer la durée totale de la séance
+                    let totalDuration = 0;
+                    if (workoutStartTime) {
+                        totalDuration = Math.floor((Date.now() - workoutStartTime) / 1000);
+                    } else {
+                        // Fallback : utiliser le timer affiché
+                        const timerDisplay = document.getElementById('workoutTimer')?.textContent;
+                        if (timerDisplay) {
+                            const [minutes, seconds] = timerDisplay.split(':').map(Number);
+                            totalDuration = (minutes * 60) + seconds;
+                        }
+                    }
+                    
                     showModal('Séance terminée ! 🎉', `
                         <div style="text-align: center;">
                             <h3>Bravo ! 💪</h3>
                             <p>Vous avez complété tous les exercices de la séance.</p>
                             <div style="margin: 1.5rem 0;">
                                 <div style="font-size: 1.2rem; margin: 0.5rem;">
-                                    ⏱️ Durée : ${formatTime(Math.floor((Date.now() - workoutStartTime) / 1000))}
+                                    ⏱️ Durée : ${formatTime(totalDuration)}
                                 </div>
                                 <div style="font-size: 1.2rem; margin: 0.5rem;">
-                                    🏋️ Exercices : ${currentWorkoutSession.completedExercisesCount}
+                                    🏋️ Exercices : ${currentWorkoutSession.completedExercisesCount || 0}
                                 </div>
                                 <div style="font-size: 1.2rem; margin: 0.5rem;">
                                     📊 Séries : ${currentWorkoutSession.globalSetCount}
@@ -12044,6 +12064,7 @@ async function saveFeedbackAndRest() {
                 showSetCompletionOptions();
             }
         } else {
+            // Pas la dernière série : repos normal avant prochaine série
             if (currentExercise.exercise_type === 'isometric') {
                 currentWorkoutSession.totalRestTime += restDuration;
                 showToast(`⏱️ Repos ${isMLRest ? '🤖' : ''}: ${restDuration}s`, 'info');
@@ -12097,7 +12118,7 @@ async function saveFeedbackAndRest() {
                         if (!aiExercise.completedSets) aiExercise.completedSets = 0;
                         aiExercise.completedSets++;
                         
-                        if (aiExercise.completedSets >= aiExercise.default_sets) {
+                        if (aiExercise.completedSets >= aiExercice.default_sets) {
                             aiExercise.isCompleted = true;
                             aiExercise.endTime = new Date();
                             if (!currentWorkoutSession.completedExercisesCount) {
