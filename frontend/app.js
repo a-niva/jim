@@ -3812,7 +3812,7 @@ async function startFreeWorkout() {
     if (currentWorkoutSession.type === 'ai') {
         console.log('🚫 startFreeWorkout bloqué pour séance AI active');
         return;
-    }
+    }startFreeWorkout
     try {
         // Nettoyer TOUT l'état avant de commencer
         clearWorkoutState();
