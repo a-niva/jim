@@ -4161,7 +4161,7 @@ async function selectExercise(exercise, skipValidation = false) {
         }
     }
     console.log('📍 selectExercise - APRÈS création workout, type:', currentWorkoutSession.type);
-    
+
     // Initialiser les variables de session
     currentSet = 1;
     currentWorkoutSession.currentExercise = currentExercise;
@@ -9816,6 +9816,9 @@ function loadWorkoutState() {
 }
 
 function clearWorkoutState() {
+    //Préservation du currentWorkoutSession.type
+    const preservedType = (typeof currentWorkoutSession !== 'undefined' && currentWorkoutSession?.type === 'ai') ? 'ai' : null;
+
     // Arrêter tous les timers actifs
     if (setTimer) {
         clearInterval(setTimer);
@@ -9875,7 +9878,7 @@ function clearWorkoutState() {
         globalSetCount: 0,
         sessionFatigue: 3,
         completedSets: [],
-        type: currentWorkoutSession.type || 'free',
+        type: preservedType || 'free',
         totalRestTime: 0,
         totalSetTime: 0,
         sessionExercises: {},
