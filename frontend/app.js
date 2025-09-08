@@ -4062,6 +4062,8 @@ function resetAnimationState() {
 
 async function selectExercise(exercise, skipValidation = false) {
     // Protection contre l'écrasement du type AI
+    console.log('🐎 selectExercise, currentWorkoutSession:', window.currentWorkoutSession);
+
     const isAISession = currentWorkoutSession.type === 'ai';
     console.log('🔍 selectExercise - Type session:', currentWorkoutSession.type, 'isAI:', isAISession);
     
@@ -9066,9 +9068,11 @@ async function selectSessionExercise(exerciseId, isInitialLoad = false) {
             const exerciseIndex = window.currentWorkoutSession.exercises.indexOf(aiExercise);
             window.currentWorkoutSession.exerciseOrder = exerciseIndex + 1;
             
+            console.log('✅ juste avant selectExercise:', window.currentWorkoutSession.type);
             // Utiliser selectExercise existant avec skipValidation si initialisation
             await selectExercise(exerciseForSelection, isInitialLoad);
-            
+            console.log('✅ juste après selectExercise:', window.currentWorkoutSession.type);
+
             // Mettre à jour l'UI liste exercices
             document.querySelectorAll('.session-exercise-item').forEach(item => {
                 item.classList.remove('active', 'current');

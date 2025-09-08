@@ -491,15 +491,12 @@ class AISessionManager {
                     totalSets: ex.default_sets || 3
                 };
             });
-            console.log('✅ fin de 5 - Type défini:', window.currentWorkoutSession.type);
 
             // 6. Navigation (après all assignments)
             window.showView('workout');
-            console.log('✅ fin de 6 - Type défini:', window.currentWorkoutSession.type);
             
             // 7. Afficher panel AI
             this.showAISessionPanel();
-            console.log('✅ fin de 7 - Type défini:', window.currentWorkoutSession.type);
             
             // 8. Vérification synchrone avant sélection exercice
             if (!window.currentWorkout || !window.currentWorkoutSession) {
@@ -512,6 +509,7 @@ class AISessionManager {
                 const firstExerciseId = this.lastGenerated.exercises[0].exercise_id;
                 await window.selectSessionExercise(firstExerciseId, true);
             }
+            console.log('✅ fin de 9 - Type défini:', window.currentWorkoutSession.type);
             
             window.showToast(`Séance ${this.lastGenerated.ppl_used.toUpperCase()} lancée !`, 'success');
             
