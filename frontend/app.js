@@ -54,7 +54,7 @@ Object.defineProperty(currentWorkoutSession, 'type', {
 });
 
 // Initialiser la valeur par défaut
-currentWorkoutSession._type = null;
+currentWorkoutSession.type = null;
 
 // ===== MACHINE D'ÉTAT SÉANCE =====
 const WorkoutStates = {
@@ -4064,8 +4064,8 @@ async function selectExercise(exercise, skipValidation = false) {
     // Protection contre l'écrasement du type AI
     console.log('🐎 selectExercise, currentWorkoutSession:', window.currentWorkoutSession);
 
-    const isAISession = currentWorkoutSession.type === 'ai';
-    console.log('🔍 selectExercise - Type session:', currentWorkoutSession.type, 'isAI:', isAISession);
+    const isAISession = window.currentWorkoutSession.type === 'ai';
+    console.log('🔍 selectExercise - Type session:', window.currentWorkoutSession.type, 'isAI:', isAISession);
     
     console.log('[DEBUG SMARTPHONE] UA:', navigator.userAgent);
     console.log('[DEBUG SMARTPHONE] Motion enabled:', currentUser?.motion_detection_enabled);
@@ -4143,8 +4143,9 @@ async function selectExercise(exercise, skipValidation = false) {
     }
 
     // Créer session workout si mode libre (pas pour séances AI)
-    console.log('📍 selectExercise - AVANT création workout, type:', currentWorkoutSession.type);
-    if (!currentWorkout && !currentWorkoutSession.id && currentWorkoutSession.type !== 'ai') {
+    console.log('📍 selectExercise - AVANT création workout, type LOCAL:', currentWorkoutSession.type);
+    console.log('📍 selectExercise - AVANT création workout, type GLOBAL:', window.currentWorkoutSession.type);
+    if (!currentWorkout && !currentWorkoutSession.id && window.currentWorkoutSession.type !== 'ai') {
         try {
             const response = await apiPost(`/api/users/${currentUser.id}/workouts`, {
                 type: 'free',
@@ -4163,7 +4164,8 @@ async function selectExercise(exercise, skipValidation = false) {
             // Pas de fallback - on continue sans ML
         }
     }
-    console.log('📍 selectExercise - APRÈS création workout, type:', currentWorkoutSession.type);
+    console.log('📍 selectExercise - APRES création workout, type LOCAL:', currentWorkoutSession.type);
+    console.log('📍 selectExercise - APRES création workout, type GLOBAL:', window.currentWorkoutSession.type);
 
     // Initialiser les variables de session
     currentSet = 1;
