@@ -2177,6 +2177,8 @@ async function showView(viewName) {
             // Initialisation gérée par showPlanning()
             break;
         }
+
+    console.log('✅ Fin de showview - Type défini:', window.currentWorkoutSession.type);
 }
 
 function cleanupAISessionPanel() {
