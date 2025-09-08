@@ -491,17 +491,21 @@ class AISessionManager {
                     totalSets: ex.default_sets || 3
                 };
             });
-            
+            console.log('✅ fin de 5 - Type défini:', window.currentWorkoutSession.type);
+
             // 6. Navigation (après all assignments)
             window.showView('workout');
+            console.log('✅ fin de 6 - Type défini:', window.currentWorkoutSession.type);
             
             // 7. Afficher panel AI
             this.showAISessionPanel();
+            console.log('✅ fin de 7 - Type défini:', window.currentWorkoutSession.type);
             
             // 8. Vérification synchrone avant sélection exercice
             if (!window.currentWorkout || !window.currentWorkoutSession) {
                 throw new Error('État session invalide avant sélection exercice');
             }
+            console.log('✅ fin de 8 - Type défini:', window.currentWorkoutSession.type);
             
             // 9. Auto-sélection premier exercice
             if (this.lastGenerated.exercises.length > 0) {
