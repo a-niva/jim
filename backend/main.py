@@ -845,7 +845,6 @@ def start_workout(user_id: int, workout: WorkoutCreate, db: Session = Depends(ge
     if active_workout:
         return {"message": "Séance active existante", "workout": active_workout}
     
-    # NOUVEAU : Gérer flag AI pour workouts type 'free'
     metadata = {}
     if workout.type == 'free' and hasattr(workout, 'ai_generated') and workout.ai_generated:
         logger.info(f"Création workout type 'free' généré par AI pour user {user_id}")
@@ -853,7 +852,7 @@ def start_workout(user_id: int, workout: WorkoutCreate, db: Session = Depends(ge
     
     db_workout = Workout(
         user_id=user_id,
-        type=workout.type,  # Sera 'free' pour les séances AI
+        type=workout.type,
         status="active",
         started_at=datetime.now(timezone.utc),
         metadata=metadata  # Stocker le flag AI

@@ -43,7 +43,6 @@ Object.defineProperty(currentWorkoutSession, 'type', {
         return this._type;
     },
     set(value) {
-        // Empêcher l'écrasement de 'ai' vers 'free'
         if (this._type === 'ai' && value === 'free') {
             console.warn('🚫 Tentative écrasement type AI → free bloquée');
             console.trace(); // Afficher la stack trace pour identifier le coupable
@@ -3832,7 +3831,7 @@ async function startFreeWorkout() {
     if (currentWorkoutSession.type === 'ai') {
         console.log('🚫 startFreeWorkout bloqué pour séance AI active');
         return;
-    }startFreeWorkout
+    }
     try {
         // Nettoyer TOUT l'état avant de commencer
         clearWorkoutState();
@@ -9034,6 +9033,14 @@ function handleExerciseCardClick(exerciseId) {
 }
 
 async function selectSessionExercise(exerciseId, isInitialLoad = false) {
+    console.log('🎯 selectSessionExercise appelé:', {
+        exerciseId,
+        isInitialLoad,
+        sessionType: window.currentWorkoutSession?.type,
+        sessionTypeEquals: window.currentWorkoutSession?.type === 'ai',
+        sessionObject: window.currentWorkoutSession
+    });
+    
     // Support pour séances AI uniquement
     if (window.currentWorkoutSession?.type === 'ai') {
         const aiExercise = window.currentWorkoutSession.exercises.find(ex => ex.exercise_id === exerciseId);
