@@ -37,6 +37,26 @@ let currentWorkoutSession = {
     pendingSwap: null       // Swap en cours (pour recovery)
 };
 
+// Protection contre l'écrasement du type AI
+Object.defineProperty(currentWorkoutSession, 'type', {
+    get() {
+        return this._type;
+    },
+    set(value) {
+        // Empêcher l'écrasement de 'ai' vers 'free'
+        if (this._type === 'ai' && value === 'free') {
+            console.warn('🚫 Tentative écrasement type AI → free bloquée');
+            console.trace(); // Afficher la stack trace pour identifier le coupable
+            return;
+        }
+        console.log(`📝 Type changé: ${this._type} → ${value}`);
+        this._type = value;
+    }
+});
+
+// Initialiser la valeur par défaut
+currentWorkoutSession._type = null;
+
 // ===== MACHINE D'ÉTAT SÉANCE =====
 const WorkoutStates = {
     IDLE: 'idle',
