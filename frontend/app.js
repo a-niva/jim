@@ -4060,6 +4060,10 @@ function resetAnimationState() {
 }
 
 async function selectExercise(exercise, skipValidation = false) {
+    // Protection contre l'écrasement du type AI
+    const isAISession = currentWorkoutSession.type === 'ai';
+    console.log('🔍 selectExercise - Type session:', currentWorkoutSession.type, 'isAI:', isAISession);
+    
     console.log('[DEBUG SMARTPHONE] UA:', navigator.userAgent);
     console.log('[DEBUG SMARTPHONE] Motion enabled:', currentUser?.motion_detection_enabled);
     console.log('[DEBUG SMARTPHONE] Voice enabled:', currentUser?.voice_counting_enabled);
@@ -4135,8 +4139,9 @@ async function selectExercise(exercise, skipValidation = false) {
         window.currentExercise = exercise;  // AJOUT: Synchronisation globale
     }
 
-    // Créer session workout si mode libre
-    if ((!currentWorkout && !currentWorkoutSession.id) && (!currentWorkoutSession.type || currentWorkoutSession.type !== 'ai')) {
+    // Créer session workout si mode libre (pas pour séances AI)
+    console.log('📍 selectExercise - AVANT création workout, type:', currentWorkoutSession.type);
+    if (!currentWorkout && !currentWorkoutSession.id && currentWorkoutSession.type !== 'ai') {
         try {
             const response = await apiPost(`/api/users/${currentUser.id}/workouts`, {
                 type: 'free',
@@ -4155,6 +4160,7 @@ async function selectExercise(exercise, skipValidation = false) {
             // Pas de fallback - on continue sans ML
         }
     }
+    console.log('📍 selectExercise - APRÈS création workout, type:', currentWorkoutSession.type);
     
     // Initialiser les variables de session
     currentSet = 1;

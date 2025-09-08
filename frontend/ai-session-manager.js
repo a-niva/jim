@@ -479,6 +479,7 @@ class AISessionManager {
                 swaps: [],
                 modifications: []
             };
+            console.log('✅ AISessionManager - Type défini:', window.currentWorkoutSession.type);
             
             // 5. Initialiser sessionExercises (réutilise logique existante)
             this.lastGenerated.exercises.forEach((ex, idx) => {
