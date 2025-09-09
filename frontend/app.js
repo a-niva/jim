@@ -7168,10 +7168,8 @@ async function finishExercise() {
             
             // Démarrer le repos avec transition automatique
             transitionTo(WorkoutStates.RESTING);
-            startRestPeriod(adjustedRestDuration, false);
-            
-            // Gérer la transition après le repos avec un setTimeout direct
-            setTimeout(async () => {
+            startRestPeriod(adjustedRestDuration, false, async () => {
+                // Callback après le repos
                 // Mettre à jour la liste dans le panel AI
                 loadSessionExercisesList();
                 
@@ -7184,7 +7182,7 @@ async function finishExercise() {
                 
                 // Notification
                 showToast(`Exercice ${currentIndex + 2}/${window.currentWorkoutSession.exercises.length} : ${nextExercise.name}`, 'info');
-            }, adjustedRestDuration * 1000);
+            });
             
             // Nettoyer le timestamp
             window.modalOpenTime = null;
@@ -11060,7 +11058,7 @@ function startRestPeriod(duration, isMLSuggested = false, callback = null)  {
         }, 1000);
         
         // NOUVEAU : Activation preview série suivante
-        if (currentWorkout?.id && currentExercise?.id) {
+        if (window.currentWorkoutSession.id && currentExercise?.id) {
             preloadNextSeriesRecommendations()
                 .then(previewData => {
                     renderNextSeriesPreview(previewData);
@@ -13663,17 +13661,7 @@ function pauseWorkout(event = null) {
 
 
 async function abandonWorkout() {
-    if (!confirm('Voulez-vous vraiment abandonner cette séance ?')) {
-        return;
-    }
-
-    // Cleanup panel AI
-    if (window.aiSessionManager) {
-        const aiPanel = document.getElementById('aiSessionPanel');
-        if (aiPanel) {
-            aiPanel.style.display = 'none';
-        }
-    }
+    if (!confirm('Êtes-vous sûr de vouloir abandonner cette séance ?')) return;
     
     hideEndWorkoutModal();
     
