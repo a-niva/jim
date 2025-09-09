@@ -7137,7 +7137,7 @@ async function finishExercise() {
         setTimer = null;
     }
     
-    // Pour les séances AI : passer directement à l'exercice suivant
+    // Pour les séances AI : gérer le repos entre exercices
     if (window.currentWorkoutSession.type === 'ai') {
         const currentIndex = window.currentWorkoutSession.exercises.findIndex(
             ex => ex.exercise_id === currentExercise.id
@@ -7151,30 +7151,81 @@ async function finishExercise() {
         
         // Vérifier s'il reste des exercices
         if (currentIndex < window.currentWorkoutSession.exercises.length - 1) {
-            // Passer à l'exercice suivant SANS modal ni retour à la sélection
             const nextExercise = window.currentWorkoutSession.exercises[currentIndex + 1];
             
-            // Mettre à jour la liste dans le panel AI
-            loadSessionExercisesList();
+            // Calculer le temps passé dans la modal
+            const timeInModal = window.modalOpenTime ? Math.floor((Date.now() - window.modalOpenTime) / 1000) : 0;
+            const baseRestDuration = 120; // 2 minutes
+            const adjustedRestDuration = Math.max(10, baseRestDuration - timeInModal); // Minimum 10 secondes
             
-            // Sélectionner automatiquement le prochain exercice
-            await selectSessionExercise(nextExercise.exercise_id);
+            console.log(`⏱️ Temps dans modal: ${timeInModal}s, repos ajusté: ${adjustedRestDuration}s`);
             
-            // Notification simple
-            showToast(`Exercice suivant : ${nextExercise.name}`, 'success');
+            // Fermer la modal
+            closeModal();
+            
+            // Afficher le toast avec le temps de repos ajusté
+            showToast(`✅ ${currentExercise.name} terminé ! Repos ${adjustedRestDuration}s avant ${nextExercise.name}`, 'success');
+            
+            // Démarrer le repos avec transition automatique
+            transitionTo(WorkoutStates.RESTING);
+            startRestPeriod(adjustedRestDuration, false, async () => {
+                // Callback après le repos
+                // Mettre à jour la liste dans le panel AI
+                loadSessionExercisesList();
+                
+                if (window.aiSessionManager) {
+                    window.aiSessionManager.showAISessionPanel();
+                }
+                
+                // Sélectionner automatiquement le prochain exercice
+                await selectSessionExercise(nextExercise.exercise_id);
+                
+                // Notification
+                showToast(`Exercice ${currentIndex + 2}/${window.currentWorkoutSession.exercises.length} : ${nextExercise.name}`, 'info');
+            });
+            
+            // Nettoyer le timestamp
+            window.modalOpenTime = null;
+            
         } else {
-            // Fin de la séance AI
+            // Fin de la séance AI - utiliser la même modal que dans saveFeedbackAndRest
+            closeModal();
+            
+            // Calculer la durée totale
+            let totalDuration = 0;
+            if (workoutStartTime) {
+                totalDuration = Math.floor((Date.now() - workoutStartTime) / 1000);
+            } else {
+                const timerDisplay = document.getElementById('workoutTimer')?.textContent;
+                if (timerDisplay) {
+                    const [minutes, seconds] = timerDisplay.split(':').map(Number);
+                    totalDuration = (minutes * 60) + seconds;
+                }
+            }
+            
             showModal('Séance terminée ! 🎉', `
                 <div style="text-align: center;">
-                    <p>Félicitations ! Vous avez complété tous les exercices.</p>
-                    <button class="btn btn-primary" onclick="endWorkout(); closeModal();">
-                        Terminer la séance
+                    <h3>Bravo ! 💪</h3>
+                    <p>Vous avez complété tous les exercices de la séance.</p>
+                    <div style="margin: 1.5rem 0;">
+                        <div style="font-size: 1.2rem; margin: 0.5rem;">
+                            ⏱️ Durée : ${formatTime(totalDuration)}
+                        </div>
+                        <div style="font-size: 1.2rem; margin: 0.5rem;">
+                            🏋️ Exercices : ${window.currentWorkoutSession.completedExercisesCount || 0}
+                        </div>
+                        <div style="font-size: 1.2rem; margin: 0.5rem;">
+                            📊 Séries : ${window.currentWorkoutSession.globalSetCount}
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="endWorkout(); closeModal();" style="margin-top: 1rem;">
+                        Voir le résumé détaillé
                     </button>
                 </div>
             `);
         }
     } else {
-        // Mode libre : comportement existant
+        // Mode libre : comportement existant inchangé
         document.getElementById('currentExercise').style.display = 'none';
         document.getElementById('exerciseSelection').style.display = 'block';
         currentExercise = null;
@@ -12036,86 +12087,13 @@ async function saveFeedbackAndRest() {
         const isLastSet = currentSet >= window.currentWorkoutSession.totalSets;
         
         if (isLastSet) {
-            // Pour les séances AI : transition automatique avec repos
-            if (window.currentWorkoutSession.type === 'ai') {
-                // Marquer l'exercice comme complété
-                if (window.currentWorkoutSession.sessionExercises && window.currentWorkoutSession.sessionExercises[currentExercise.id]) {
-                    window.currentWorkoutSession.sessionExercises[currentExercise.id].isCompleted = true;
-                    window.currentWorkoutSession.sessionExercises[currentExercise.id].completedSets = currentSet;
-                }
-                
-                // Trouver l'exercice suivant
-                const currentIndex = window.currentWorkoutSession.exercises.findIndex(
-                    ex => ex.exercise_id === currentExercise.id
-                );
-                
-                if (currentIndex < window.currentWorkoutSession.exercises.length - 1) {
-                    // Il reste des exercices : repos puis transition
-                    const nextExercise = window.currentWorkoutSession.exercises[currentIndex + 1];
-                    
-                    // Calculer le temps de repos avant le prochain exercice
-                    const transitionRestDuration = 120; // 2 minutes entre exercices
-                    
-                    showToast(`✅ ${currentExercise.name} terminé ! Repos ${transitionRestDuration}s avant ${nextExercise.name}`, 'success');
-                    
-                    // Démarrer le repos avec transition automatique
-                    transitionTo(WorkoutStates.RESTING);
-                    startRestPeriod(transitionRestDuration, false, async () => {
-                        // Callback après le repos
-                        // Mettre à jour le panel AI
-                        if (window.aiSessionManager) {
-                            window.aiSessionManager.showAISessionPanel();
-                        }
-                        
-                        // Sélectionner le prochain exercice
-                        await selectSessionExercise(nextExercise.exercise_id);
-                        
-                        showToast(`Exercice ${currentIndex + 2}/${window.currentWorkoutSession.exercises.length} : ${nextExercise.name}`, 'info');
-                    });
-                    
-                } else {
-                    // C'était le dernier exercice
-                    transitionTo(WorkoutStates.COMPLETED);
-                    
-                    // Calculer la durée totale de la séance
-                    let totalDuration = 0;
-                    if (workoutStartTime) {
-                        totalDuration = Math.floor((Date.now() - workoutStartTime) / 1000);
-                    } else {
-                        // Fallback : utiliser le timer affiché
-                        const timerDisplay = document.getElementById('workoutTimer')?.textContent;
-                        if (timerDisplay) {
-                            const [minutes, seconds] = timerDisplay.split(':').map(Number);
-                            totalDuration = (minutes * 60) + seconds;
-                        }
-                    }
-                    
-                    showModal('Séance terminée ! 🎉', `
-                        <div style="text-align: center;">
-                            <h3>Bravo ! 💪</h3>
-                            <p>Vous avez complété tous les exercices de la séance.</p>
-                            <div style="margin: 1.5rem 0;">
-                                <div style="font-size: 1.2rem; margin: 0.5rem;">
-                                    ⏱️ Durée : ${formatTime(totalDuration)}
-                                </div>
-                                <div style="font-size: 1.2rem; margin: 0.5rem;">
-                                    🏋️ Exercices : ${window.currentWorkoutSession.completedExercisesCount || 0}
-                                </div>
-                                <div style="font-size: 1.2rem; margin: 0.5rem;">
-                                    📊 Séries : ${window.currentWorkoutSession.globalSetCount}
-                                </div>
-                            </div>
-                            <button class="btn btn-primary" onclick="endWorkout(); closeModal();" style="margin-top: 1rem;">
-                                Voir le résumé détaillé
-                            </button>
-                        </div>
-                    `);
-                }
-            } else {
-                // Séances libres : modal classique avec options
-                transitionTo(WorkoutStates.COMPLETED);
-                showSetCompletionOptions();
-            }
+            // Afficher la modal pour TOUTES les séances (AI et libres)
+            transitionTo(WorkoutStates.COMPLETED);
+            
+            // Stocker le timestamp pour calculer le temps passé dans la modal
+            window.modalOpenTime = Date.now();
+            
+            showSetCompletionOptions();
         } else {
             // Pas la dernière série : repos normal avant prochaine série
             if (currentExercise.exercise_type === 'isometric') {
