@@ -17,7 +17,7 @@ let setExecutionInProgress = false;
 
 let notificationTimeout = null;
 let currentStep = 1;
-let currentWorkoutSession = {
+window.currentWorkoutSession = {
     workout: null,
     currentExercise: null,
     currentSetNumber: 1,
@@ -38,7 +38,7 @@ let currentWorkoutSession = {
 };
 
 // Protection contre l'écrasement du type AI
-Object.defineProperty(currentWorkoutSession, 'type', {
+Object.defineProperty(window.currentWorkoutSession, 'type', {
     get() {
         return this._type;
     },
@@ -54,7 +54,7 @@ Object.defineProperty(currentWorkoutSession, 'type', {
 });
 
 // Initialiser la valeur par défaut
-currentWorkoutSession.type = null;
+window.currentWorkoutSession.type = null;
 
 // ===== MACHINE D'ÉTAT SÉANCE =====
 const WorkoutStates = {
@@ -1052,7 +1052,7 @@ function transitionTo(state) {
             console.warn(`[Transition] Interdit: ${oldState} → ${state} avec pendingSetData`);
             
             // NOUVEAU : Sauvegarde automatique silencieuse
-            if (currentWorkoutSession.currentSetFatigue && currentWorkoutSession.currentSetEffort) {
+            if (window.currentWorkoutSession.currentSetFatigue && window.currentWorkoutSession.currentSetEffort) {
                 // Sauvegarder automatiquement sans demander
                 saveFeedbackAndRest();
                 return; // Bloquer la transition jusqu'à la sauvegarde
@@ -3292,7 +3292,7 @@ async function skipExercise(exerciseId, reason) {
 
     console.log(`📊 MODULE 0 - Skipping exercise ${exerciseId} for reason: ${reason}`);
     
-    const exerciseState = currentWorkoutSession.sessionExercises[exerciseId];
+    const exerciseState = window.currentWorkoutSession.sessionExercises[exerciseId];
     if (!exerciseState) {
         console.error(`Exercise ${exerciseId} not found in current session`);
         return;
@@ -3312,7 +3312,7 @@ async function skipExercise(exerciseId, reason) {
     };
     
     // Ajouter à la liste des skips
-    currentWorkoutSession.skipped_exercises.push(skipEntry);
+    window.currentWorkoutSession.skipped_exercises.push(skipEntry);
     
     // Marquer l'exercice comme skippé (NOUVELLE propriété)
     exerciseState.isSkipped = true;
@@ -3333,8 +3333,8 @@ async function skipExercise(exerciseId, reason) {
         trackEvent('exercise_skipped', {
             exercise_id: exerciseId,
             reason: reason,
-            workout_progress: Math.round((currentWorkoutSession.completedExercisesCount / 
-                             Object.keys(currentWorkoutSession.sessionExercises).length) * 100)
+            workout_progress: Math.round((window.currentWorkoutSession.completedExercisesCount / 
+                             Object.keys(window.currentWorkoutSession.sessionExercises).length) * 100)
         });
     }
 }
@@ -3384,10 +3384,10 @@ function showSkipModal(exerciseId) {
 }
 
 async function restartSkippedExercise(exerciseId) {
-    const exerciseState = currentWorkoutSession.sessionExercises[exerciseId];
+    const exerciseState = window.currentWorkoutSession.sessionExercises[exerciseId];
     
     // Retirer de la liste des skips
-    currentWorkoutSession.skipped_exercises = currentWorkoutSession.skipped_exercises.filter(
+    window.currentWorkoutSession.skipped_exercises = window.currentWorkoutSession.skipped_exercises.filter(
         skip => skip.exercise_id !== exerciseId
     );
     
@@ -3400,7 +3400,7 @@ async function restartSkippedExercise(exerciseId) {
     exerciseState.endTime = null;
     
     // Supprimer les séries de cet exercice de l'historique
-    currentWorkoutSession.completedSets = currentWorkoutSession.completedSets.filter(
+    window.currentWorkoutSession.completedSets = window.currentWorkoutSession.completedSets.filter(
         s => s.exercise_id !== exerciseId
     );
     
@@ -3412,7 +3412,7 @@ async function restartSkippedExercise(exerciseId) {
 
 // Fonction utilitaire pour récupérer le nom d'un exercice
 function getExerciseName(exerciseId) {
-    const exerciseState = currentWorkoutSession.sessionExercises[exerciseId];
+    const exerciseState = window.currentWorkoutSession.sessionExercises[exerciseId];
     if (exerciseState && exerciseState.name) {
         return exerciseState.name;
     }
@@ -3830,7 +3830,7 @@ function toggleMuscleTooltip(segment) {
 // ===== SÉANCES =====
 async function startFreeWorkout() {
     // Empêcher l'écrasement des séances AI
-    if (currentWorkoutSession.type === 'ai') {
+    if (window.currentWorkoutSession.type === 'ai') {
         console.log('🚫 startFreeWorkout bloqué pour séance AI active');
         return;
     }
@@ -3847,16 +3847,16 @@ async function startFreeWorkout() {
         const response = await apiPost(`/api/users/${currentUser.id}/workouts`, workoutData);
         
         currentWorkout = response.workout;
-        currentWorkoutSession.type = currentWorkoutSession.type || 'free';
-        currentWorkoutSession.workout = response.workout;
+        window.currentWorkoutSession.type = window.currentWorkoutSession.type || 'free';
+        window.currentWorkoutSession.workout = response.workout;
         // MODULE 0 : Préserver les propriétés essentielles
-        currentWorkoutSession.skipped_exercises = currentWorkoutSession.skipped_exercises || [];
-        currentWorkoutSession.session_metadata = currentWorkoutSession.session_metadata || {};
+        window.currentWorkoutSession.skipped_exercises = window.currentWorkoutSession.skipped_exercises || [];
+        window.currentWorkoutSession.session_metadata = window.currentWorkoutSession.session_metadata || {};
 
         // MODULE 2 : Initialiser propriétés swap system
-        currentWorkoutSession.swaps = currentWorkoutSession.swaps || [];
-        currentWorkoutSession.modifications = currentWorkoutSession.modifications || [];
-        currentWorkoutSession.pendingSwap = null;
+        window.currentWorkoutSession.swaps = window.currentWorkoutSession.swaps || [];
+        window.currentWorkoutSession.modifications = window.currentWorkoutSession.modifications || [];
+        window.currentWorkoutSession.pendingSwap = null;
                 
         // Toujours resynchroniser les favoris
         try {
@@ -4062,7 +4062,7 @@ function resetAnimationState() {
 
 async function selectExercise(exercise, skipValidation = false) {
     // Protection contre l'écrasement du type AI
-    console.log('🐎 selectExercise, currentWorkoutSession:', window.currentWorkoutSession);
+    console.log('🐎 selectExercise, window.currentWorkoutSession:', window.currentWorkoutSession);
 
     const isAISession = window.currentWorkoutSession.type === 'ai';
     console.log('🔍 selectExercise - Type session:', window.currentWorkoutSession.type, 'isAI:', isAISession);
@@ -4143,9 +4143,9 @@ async function selectExercise(exercise, skipValidation = false) {
     }
 
     // Créer session workout si mode libre (pas pour séances AI)
-    console.log('📍 selectExercise - AVANT création workout, type LOCAL:', currentWorkoutSession.type);
+    console.log('📍 selectExercise - AVANT création workout, type LOCAL:', window.currentWorkoutSession.type);
     console.log('📍 selectExercise - AVANT création workout, type GLOBAL:', window.currentWorkoutSession.type);
-    if (!currentWorkout && !currentWorkoutSession.id && window.currentWorkoutSession.type !== 'ai') {
+    if (!currentWorkout && !window.currentWorkoutSession.id && window.currentWorkoutSession.type !== 'ai') {
         try {
             const response = await apiPost(`/api/users/${currentUser.id}/workouts`, {
                 type: 'free',
@@ -4153,10 +4153,10 @@ async function selectExercise(exercise, skipValidation = false) {
             });
             currentWorkout = response.workout;  // Structure cohérente
             window.currentWorkout = response.workout;  // AJOUT: Synchronisation globale
-            currentWorkoutSession.id = response.workout.id;
+            window.currentWorkoutSession.id = response.workout.id;
             console.log('[Session] Workout créé pour ML:', response.workout.id);
             console.log('🔍 selectExercise DEBUG - Après création workout:', {
-                currentWorkoutType: currentWorkoutSession.type,
+                currentWorkoutType: window.currentWorkoutSession.type,
                 newWorkoutId: response.workout.id
             });
         } catch (error) {
@@ -4164,15 +4164,15 @@ async function selectExercise(exercise, skipValidation = false) {
             // Pas de fallback - on continue sans ML
         }
     }
-    console.log('📍 selectExercise - APRES création workout, type LOCAL:', currentWorkoutSession.type);
+    console.log('📍 selectExercise - APRES création workout, type LOCAL:', window.currentWorkoutSession.type);
     console.log('📍 selectExercise - APRES création workout, type GLOBAL:', window.currentWorkoutSession.type);
 
     // Initialiser les variables de session
     currentSet = 1;
-    currentWorkoutSession.currentExercise = currentExercise;
-    currentWorkoutSession.currentSetNumber = 1;
-    currentWorkoutSession.totalSets = currentExercise.default_sets || 3;
-    currentWorkoutSession.maxSets = 6;
+    window.currentWorkoutSession.currentExercise = currentExercise;
+    window.currentWorkoutSession.currentSetNumber = 1;
+    window.currentWorkoutSession.totalSets = currentExercise.default_sets || 3;
+    window.currentWorkoutSession.maxSets = 6;
     
     // Démarrer le timer de séance au PREMIER exercice seulement
     if (!workoutTimer) {
@@ -4187,7 +4187,7 @@ async function selectExercise(exercise, skipValidation = false) {
     document.getElementById('exerciseSelection').style.display = 'none';
     document.getElementById('currentExercise').style.display = 'block';
     
-    if (currentWorkoutSession.type === 'ai') {
+    if (window.currentWorkoutSession.type === 'ai') {
         const sessionExercisesContainer = document.getElementById('sessionExercisesContainer');
         if (sessionExercisesContainer) {
             sessionExercisesContainer.style.display = 'block';
@@ -4236,11 +4236,11 @@ async function selectExercise(exercise, skipValidation = false) {
     `;
 
     // Initialiser les settings ML pour cet exercice
-    if (!currentWorkoutSession.mlSettings) {
-        currentWorkoutSession.mlSettings = {};
+    if (!window.currentWorkoutSession.mlSettings) {
+        window.currentWorkoutSession.mlSettings = {};
     }
-    if (!currentWorkoutSession.mlSettings[currentExercise.id]) {
-        currentWorkoutSession.mlSettings[currentExercise.id] = {
+    if (!window.currentWorkoutSession.mlSettings[currentExercise.id]) {
+        window.currentWorkoutSession.mlSettings[currentExercise.id] = {
             autoAdjust: currentUser.prefer_weight_changes_between_sets,
             lastManualWeight: null,
             lastMLWeight: null,
@@ -4252,7 +4252,7 @@ async function selectExercise(exercise, skipValidation = false) {
     const changeExerciseBtn = document.querySelector('.btn-change-exercise');
     if (changeExerciseBtn) {
         changeExerciseBtn.style.display = 
-            currentWorkoutSession.type === 'ai' ? 'none' : 'flex';
+            window.currentWorkoutSession.type === 'ai' ? 'none' : 'flex';
     }
     
     // Mettre à jour l'affichage des points de série
@@ -4272,7 +4272,7 @@ async function selectExercise(exercise, skipValidation = false) {
     
     // Appeler les recommandations ML seulement si activé
     try {
-        const mlEnabled = currentWorkoutSession.mlSettings[currentExercise.id]?.autoAdjust ?? true;
+        const mlEnabled = window.currentWorkoutSession.mlSettings[currentExercise.id]?.autoAdjust ?? true;
         if (mlEnabled) {
             await updateSetRecommendations();
         }
@@ -4407,7 +4407,7 @@ function createVoiceControlsUnified(exercise) {
 
 // Nouvelle fonction pour le rendu du toggle ML
 function renderMLToggle(exerciseId) {
-    const isEnabled = currentWorkoutSession.mlSettings[exerciseId]?.autoAdjust ?? 
+    const isEnabled = window.currentWorkoutSession.mlSettings[exerciseId]?.autoAdjust ?? 
                      currentUser.prefer_weight_changes_between_sets;
     
     return `
@@ -4509,12 +4509,12 @@ function renderMLConfidence(confidence) {
 function toggleMLAdjustment(exerciseId) {
     console.log('🔄 Toggle ML appelé pour exercice:', exerciseId);
     
-    if (!currentWorkoutSession.mlSettings) {
-        currentWorkoutSession.mlSettings = {};
+    if (!window.currentWorkoutSession.mlSettings) {
+        window.currentWorkoutSession.mlSettings = {};
     }
     
-    if (!currentWorkoutSession.mlSettings[exerciseId]) {
-        currentWorkoutSession.mlSettings[exerciseId] = {
+    if (!window.currentWorkoutSession.mlSettings[exerciseId]) {
+        window.currentWorkoutSession.mlSettings[exerciseId] = {
             autoAdjust: currentUser?.prefer_weight_changes_between_sets ?? true,
             lastManualWeight: null,
             lastMLWeight: null
@@ -4531,20 +4531,20 @@ function toggleMLAdjustment(exerciseId) {
     
     // L'état est déjà changé par le navigateur, on lit la nouvelle valeur
     const newState = toggleElement.checked;
-    const oldState = currentWorkoutSession.mlSettings[exerciseId].autoAdjust;
+    const oldState = window.currentWorkoutSession.mlSettings[exerciseId].autoAdjust;
     
     // Mettre à jour l'état interne
-    currentWorkoutSession.mlSettings[exerciseId].autoAdjust = newState;
+    window.currentWorkoutSession.mlSettings[exerciseId].autoAdjust = newState;
     
     console.log('🔄 Nouvel état ML:', newState);
     
     // CORRECTION CRITIQUE : Sauvegarder les poids selon l'état
     if (newState && !oldState) {
         // ON → OFF : Sauvegarder le poids ML actuel
-        currentWorkoutSession.mlSettings[exerciseId].lastMLWeight = currentExerciseRealWeight;
+        window.currentWorkoutSession.mlSettings[exerciseId].lastMLWeight = currentExerciseRealWeight;
     } else if (!newState && oldState) {
         // OFF → ON : Sauvegarder le poids manuel actuel
-        currentWorkoutSession.mlSettings[exerciseId].lastManualWeight = currentExerciseRealWeight;
+        window.currentWorkoutSession.mlSettings[exerciseId].lastManualWeight = currentExerciseRealWeight;
     }
     
     // Ajouter cette section après la mise à jour de l'état
@@ -4576,7 +4576,7 @@ function toggleMLAdjustment(exerciseId) {
     // Au lieu de ça, utiliser les poids sauvegardés
     if (newState) {
         // Mode ML activé : restaurer le dernier poids ML si disponible
-        const lastMLWeight = currentWorkoutSession.mlSettings[exerciseId].lastMLWeight;
+        const lastMLWeight = window.currentWorkoutSession.mlSettings[exerciseId].lastMLWeight;
         if (lastMLWeight && lastMLWeight > 0) {
             currentExerciseRealWeight = lastMLWeight;
             updateWeightDisplay();
@@ -4604,7 +4604,7 @@ function toggleMLAdjustment(exerciseId) {
             }
         } else {
             // Sauvegarder comme poids manuel
-            currentWorkoutSession.mlSettings[exerciseId].lastManualWeight = currentWeight;
+            window.currentWorkoutSession.mlSettings[exerciseId].lastManualWeight = currentWeight;
             console.log('🔧 Mode manuel - Poids conservé:', currentWeight);
         }
         
@@ -4771,15 +4771,15 @@ function displayRecommendations(recommendations) {
 
 // Historique ML
 function addToMLHistory(exerciseId, recommendation) {
-    if (!currentWorkoutSession.mlHistory) {
-        currentWorkoutSession.mlHistory = {};
+    if (!window.currentWorkoutSession.mlHistory) {
+        window.currentWorkoutSession.mlHistory = {};
     }
     
-    if (!currentWorkoutSession.mlHistory[exerciseId]) {
-        currentWorkoutSession.mlHistory[exerciseId] = [];
+    if (!window.currentWorkoutSession.mlHistory[exerciseId]) {
+        window.currentWorkoutSession.mlHistory[exerciseId] = [];
     }
     
-    currentWorkoutSession.mlHistory[exerciseId].push({
+    window.currentWorkoutSession.mlHistory[exerciseId].push({
         setNumber: currentSet,
         timestamp: new Date(),
         weight: recommendation.weight_recommendation || recommendation.weight,
@@ -4792,7 +4792,7 @@ function addToMLHistory(exerciseId, recommendation) {
 
 // Affichage de l'historique ML
 function renderMLHistory(exerciseId) {
-    const history = currentWorkoutSession.mlHistory?.[exerciseId] || [];
+    const history = window.currentWorkoutSession.mlHistory?.[exerciseId] || [];
     
     if (history.length === 0) {
         return '';
@@ -4883,9 +4883,9 @@ function toggleMLHistory() {
 
 // Enregistrer décision ML
 function recordMLDecision(exerciseId, setNumber, accepted) {
-    if (!currentWorkoutSession.mlHistory?.[exerciseId]) return;
+    if (!window.currentWorkoutSession.mlHistory?.[exerciseId]) return;
     
-    const history = currentWorkoutSession.mlHistory[exerciseId];
+    const history = window.currentWorkoutSession.mlHistory[exerciseId];
     const lastEntry = history[history.length - 1];
     if (lastEntry) {
         lastEntry.accepted = accepted;
@@ -4902,9 +4902,9 @@ function recordMLDecision(exerciseId, setNumber, accepted) {
 
 // Mettre à jour l'affichage de l'historique ML
 function updateMLHistoryDisplay() {
-    if (!currentExercise || !currentWorkoutSession.mlHistory) return;
+    if (!currentExercise || !window.currentWorkoutSession.mlHistory) return;
     
-    const history = currentWorkoutSession.mlHistory[currentExercise.id];
+    const history = window.currentWorkoutSession.mlHistory[currentExercise.id];
     if (!history || history.length === 0) return;
     
     // Mettre à jour le compteur S'IL EXISTE
@@ -4933,7 +4933,7 @@ function updateSeriesDots() {
     // Vider et recréer les dots selon le nombre de séries
     dotsContainer.innerHTML = '';
     
-    for (let i = 1; i <= (currentWorkoutSession.totalSets || 3); i++) {
+    for (let i = 1; i <= (window.currentWorkoutSession.totalSets || 3); i++) {
         const dot = document.createElement('span');
         dot.className = 'dot';
         if (i < currentSet) {
@@ -4947,7 +4947,7 @@ function updateSeriesDots() {
 
 function updateHeaderProgress() {
     // Support 2 types : free, ai
-    const isStructuredSession = currentWorkoutSession.type === 'ai' || currentWorkoutSession.type === 'ai';
+    const isStructuredSession = window.currentWorkoutSession.type === 'ai' || window.currentWorkoutSession.type === 'ai';
     
     // Éléments UI
     const exerciseProgressEl = document.getElementById('exerciseProgress');
@@ -4958,14 +4958,14 @@ function updateHeaderProgress() {
         if (exerciseProgressEl) {
             let totalExercises, currentExerciseIndex;
             
-            if (currentWorkoutSession.type === 'ai') {
+            if (window.currentWorkoutSession.type === 'ai') {
                 // Séances AI
-                totalExercises = currentWorkoutSession.exercises?.length || '?';
-                currentExerciseIndex = currentWorkoutSession.exerciseOrder || 1;
+                totalExercises = window.currentWorkoutSession.exercises?.length || '?';
+                currentExerciseIndex = window.currentWorkoutSession.exerciseOrder || 1;
             } else {
                 // Sessions classiques
-                totalExercises = currentWorkoutSession.sessionData.exercises.length;
-                currentExerciseIndex = currentWorkoutSession.exerciseOrder || 1;
+                totalExercises = window.currentWorkoutSession.sessionData.exercises.length;
+                currentExerciseIndex = window.currentWorkoutSession.exerciseOrder || 1;
             }
             
             exerciseProgressEl.textContent = `Exercice ${currentExerciseIndex}/${totalExercises}`;
@@ -4982,7 +4982,7 @@ function updateHeaderProgress() {
         }
         
         // Mettre à jour liste exercices
-        if (currentWorkoutSession.type === 'ai') {
+        if (window.currentWorkoutSession.type === 'ai') {
             updateSessionExerciseProgress();
         }
         
@@ -5004,7 +5004,7 @@ function updateHeaderProgress() {
 }
 
 function updateSessionExerciseProgress() {
-    if (!currentWorkoutSession.sessionExercises) return;
+    if (!window.currentWorkoutSession.sessionExercises) return;
     
     // Recharger simplement toute la liste pour mettre à jour les compteurs
     loadSessionExercisesList();
@@ -5022,10 +5022,10 @@ function updateSetNavigationButtons() {
     
     // Bouton suivant
     if (nextBtn) {
-        if (currentSet < currentWorkoutSession.totalSets) {
+        if (currentSet < window.currentWorkoutSession.totalSets) {
             nextBtn.textContent = 'Série suivante →';
             nextBtn.style.display = 'inline-block';
-        } else if (currentSet === currentWorkoutSession.totalSets) {
+        } else if (currentSet === window.currentWorkoutSession.totalSets) {
             nextBtn.textContent = 'Terminer l\'exercice →';
             nextBtn.style.display = 'inline-block';
         } else {
@@ -5035,8 +5035,8 @@ function updateSetNavigationButtons() {
     
     // Bouton ajouter série (visible seulement sur la dernière série prévue)
     if (addSetBtn) {
-        addSetBtn.style.display = (currentSet === currentWorkoutSession.totalSets && 
-                                  currentWorkoutSession.totalSets < currentWorkoutSession.maxSets) 
+        addSetBtn.style.display = (currentSet === window.currentWorkoutSession.totalSets && 
+                                  window.currentWorkoutSession.totalSets < window.currentWorkoutSession.maxSets) 
                                   ? 'inline-block' : 'none';
     }
 }
@@ -5188,7 +5188,7 @@ async function updateSetRecommendations() {
     if (!currentUser || !currentWorkout || !currentExercise) return;
 
     // Eliminer définitivement le bug de diminution du poids lors des toggles ML
-    const mlEnabled = currentWorkoutSession.mlSettings?.[currentExercise.id]?.autoAdjust ?? true;
+    const mlEnabled = window.currentWorkoutSession.mlSettings?.[currentExercise.id]?.autoAdjust ?? true;
     if (!mlEnabled) {
         // Mode manuel : pas d'appel ML, juste conserver le poids actuel
         return;
@@ -5211,8 +5211,8 @@ async function updateSetRecommendations() {
 
     try {
         // === ÉTAPE 1 : RÉCUPÉRATION ML AVEC MODE MANUEL ===
-        const sessionSets = currentWorkoutSession.completedSets.filter(s => s.exercise_id === currentExercise.id);
-        const mlEnabled = currentWorkoutSession.mlSettings?.[currentExercise.id]?.autoAdjust ?? true;
+        const sessionSets = window.currentWorkoutSession.completedSets.filter(s => s.exercise_id === currentExercise.id);
+        const mlEnabled = window.currentWorkoutSession.mlSettings?.[currentExercise.id]?.autoAdjust ?? true;
         
         let recommendations;
 
@@ -5283,10 +5283,10 @@ async function updateSetRecommendations() {
         updateAdvancedMLInterface(strategyResult, sessionSets);
         
         // === GESTION MANUELLE PAR EXERCICE ===
-        if (!currentWorkoutSession.mlSettings[currentExercise.id]?.autoAdjust) {
+        if (!window.currentWorkoutSession.mlSettings[currentExercise.id]?.autoAdjust) {
             const lastSet = sessionSets.slice(-1)[0];
             const lastWeight = lastSet?.weight || 
-                            currentWorkoutSession.mlSettings[currentExercise.id]?.lastManualWeight ||
+                            window.currentWorkoutSession.mlSettings[currentExercise.id]?.lastManualWeight ||
                             strategyResult.baseline_weight;
             
             strategyResult.weight_recommendation = lastWeight;
@@ -5687,10 +5687,10 @@ let nextSeriesRecommendationsCache = null;
  * @returns {Promise<Object>} Recommandations {weight, reps, rest, confidence}
  */
 async function preloadNextSeriesRecommendations() {
-    console.log('[Preview] Debug - Session ID:', currentWorkoutSession.id);
+    console.log('[Preview] Debug - Session ID:', window.currentWorkoutSession.id);
     console.log('[Preview] Debug - Exercise:', currentExercise?.id);
     
-    if (!currentWorkoutSession.id) {
+    if (!window.currentWorkoutSession.id) {
         console.log('[Preview] Pas de session - première série');
         return null;
     }
@@ -5699,10 +5699,10 @@ async function preloadNextSeriesRecommendations() {
         const nextSetNumber = currentSet + 1;
         console.log('[Preview] Appel API pour série:', nextSetNumber);
         
-        const response = await apiPost(`/api/workouts/${currentWorkoutSession.id}/recommendations`, {
+        const response = await apiPost(`/api/workouts/${window.currentWorkoutSession.id}/recommendations`, {
             exercise_id: currentExercise.id,
             set_number: nextSetNumber,
-            workout_id: currentWorkoutSession.id
+            workout_id: window.currentWorkoutSession.id
         });
         
         if (response && response.weight_recommendation !== null) {
@@ -6007,7 +6007,7 @@ async function fetchMLRecommendations() {
     /**
      * Récupère les recommandations ML pures avec gestion d'historique complète
      */
-    const sessionSets = currentWorkoutSession.completedSets.filter(s => s.exercise_id === currentExercise.id);
+    const sessionSets = window.currentWorkoutSession.completedSets.filter(s => s.exercise_id === currentExercise.id);
     const sessionHistory = sessionSets.map(set => ({
         weight: set.weight,
         reps: set.reps,
@@ -6030,12 +6030,12 @@ async function fetchMLRecommendations() {
     return await apiPost(`/api/workouts/${currentWorkout.id}/recommendations`, {
         exercise_id: currentExercise.id,
         set_number: currentSet,
-        current_fatigue: currentWorkoutSession.sessionFatigue,
+        current_fatigue: window.currentWorkoutSession.sessionFatigue,
         previous_effort: currentSet > 1 ? 
             sessionSets.slice(-1)[0]?.effort_level || 3 : 3,
-        exercise_order: currentWorkoutSession.exerciseOrder,
-        set_order_global: currentWorkoutSession.globalSetCount + 1,
-        last_rest_duration: currentWorkoutSession.lastActualRestDuration,
+        exercise_order: window.currentWorkoutSession.exerciseOrder,
+        set_order_global: window.currentWorkoutSession.globalSetCount + 1,
+        last_rest_duration: window.currentWorkoutSession.lastActualRestDuration,
         session_history: sessionHistory,
         completed_sets_this_exercise: sessionSets.length
     });
@@ -6133,7 +6133,7 @@ function updateAdvancedMLInterface(strategyResult, sessionSets) {
     const aiConfidenceEl = document.getElementById('aiConfidence');
     
     if (aiStatusEl && currentExercise) {
-        const mlSettings = currentWorkoutSession.mlSettings?.[currentExercise.id];
+        const mlSettings = window.currentWorkoutSession.mlSettings?.[currentExercise.id];
         const isActive = mlSettings?.autoAdjust ?? currentUser.prefer_weight_changes_between_sets;
         
         // Calcul dynamique de confiance qui évolue pendant la séance
@@ -6571,10 +6571,10 @@ function toggleAIDetails() {
 
 // Fonction syncMLToggles manquante
 function syncMLToggles() {
-    if (!currentExercise || !currentWorkoutSession.mlSettings) return;
+    if (!currentExercise || !window.currentWorkoutSession.mlSettings) return;
     
     const exerciseId = currentExercise.id;
-    const currentState = currentWorkoutSession.mlSettings[exerciseId]?.autoAdjust ?? true;
+    const currentState = window.currentWorkoutSession.mlSettings[exerciseId]?.autoAdjust ?? true;
     
     // Synchroniser tous les toggles avec l'état actuel
     const toggles = document.querySelectorAll('[id^="mlToggle"]');
@@ -7098,7 +7098,7 @@ function updateSetsHistory() {
     const container = document.getElementById('setsHistory');
     if (!container) return;
     
-    const exerciseSets = currentWorkoutSession.completedSets.filter(
+    const exerciseSets = window.currentWorkoutSession.completedSets.filter(
         s => s.exercise_id === currentExercise.id
     );
     
@@ -7120,14 +7120,14 @@ function updateSetsHistory() {
     `).join('');
     
     // Mettre à jour la progression dans la liste si on est en mode Séance IA
-    if (currentWorkoutSession.type === 'ai') {
+    if (window.currentWorkoutSession.type === 'ai') {
         loadSessionExercisesList();
     }
 }
 
 async function finishExercise() {
     // Sauvegarder l'état final de l'exercice
-    if (currentExercise && currentWorkoutSession.type === 'ai') {
+    if (currentExercise && window.currentWorkoutSession.type === 'ai') {
         await saveCurrentExerciseState();
     }
     
@@ -7138,21 +7138,21 @@ async function finishExercise() {
     }
     
     // Pour les séances AI : passer directement à l'exercice suivant
-    if (currentWorkoutSession.type === 'ai') {
-        const currentIndex = currentWorkoutSession.exercises.findIndex(
+    if (window.currentWorkoutSession.type === 'ai') {
+        const currentIndex = window.currentWorkoutSession.exercises.findIndex(
             ex => ex.exercise_id === currentExercise.id
         );
         
         // Marquer l'exercice actuel comme complété
-        if (currentWorkoutSession.sessionExercises[currentExercise.id]) {
-            currentWorkoutSession.sessionExercises[currentExercise.id].isCompleted = true;
-            currentWorkoutSession.completedExercisesCount++;
+        if (window.currentWorkoutSession.sessionExercises[currentExercise.id]) {
+            window.currentWorkoutSession.sessionExercises[currentExercise.id].isCompleted = true;
+            window.currentWorkoutSession.completedExercisesCount++;
         }
         
         // Vérifier s'il reste des exercices
-        if (currentIndex < currentWorkoutSession.exercises.length - 1) {
+        if (currentIndex < window.currentWorkoutSession.exercises.length - 1) {
             // Passer à l'exercice suivant SANS modal ni retour à la sélection
-            const nextExercise = currentWorkoutSession.exercises[currentIndex + 1];
+            const nextExercise = window.currentWorkoutSession.exercises[currentIndex + 1];
             
             // Mettre à jour la liste dans le panel AI
             loadSessionExercisesList();
@@ -7226,8 +7226,8 @@ function skipRest() {
     // UTILISER LE TIMESTAMP RÉEL STOCKÉ
     if (workoutState.restStartTime) {
         const actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
-        currentWorkoutSession.totalRestTime += actualRestTime;
-        console.log(`Repos ignoré après ${actualRestTime}s. Total: ${currentWorkoutSession.totalRestTime}s`);
+        window.currentWorkoutSession.totalRestTime += actualRestTime;
+        console.log(`Repos ignoré après ${actualRestTime}s. Total: ${window.currentWorkoutSession.totalRestTime}s`);
         
         updateLastSetRestDuration(actualRestTime);
         workoutState.restStartTime = null; //
@@ -7241,8 +7241,8 @@ function endRest() {
     clearNextSeriesPreview();
     if (workoutState.restStartTime) {
         const actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
-        currentWorkoutSession.totalRestTime += actualRestTime;
-        console.log(`Repos terminé (endRest) après ${actualRestTime}s. Total: ${currentWorkoutSession.totalRestTime}s`);
+        window.currentWorkoutSession.totalRestTime += actualRestTime;
+        console.log(`Repos terminé (endRest) après ${actualRestTime}s. Total: ${window.currentWorkoutSession.totalRestTime}s`);
         
         //  Sauvegarder la durée réelle en base
         updateLastSetRestDuration(actualRestTime);
@@ -7615,10 +7615,10 @@ async function endWorkout() {
     
     try {
         // Initialisation défensive de TOUTES les propriétés potentiellement manquantes
-        currentWorkoutSession.skipped_exercises = currentWorkoutSession.skipped_exercises || [];
-        currentWorkoutSession.swaps = currentWorkoutSession.swaps || [];
-        currentWorkoutSession.modifications = currentWorkoutSession.modifications || [];
-        currentWorkoutSession.sessionExercises = currentWorkoutSession.sessionExercises || {};
+        window.currentWorkoutSession.skipped_exercises = window.currentWorkoutSession.skipped_exercises || [];
+        window.currentWorkoutSession.swaps = window.currentWorkoutSession.swaps || [];
+        window.currentWorkoutSession.modifications = window.currentWorkoutSession.modifications || [];
+        window.currentWorkoutSession.sessionExercises = window.currentWorkoutSession.sessionExercises || {};
         
         // Arrêter tous les timers
         if (workoutTimer) clearInterval(workoutTimer);
@@ -7650,8 +7650,8 @@ async function endWorkout() {
         }
         
         // ✅ DEBUG DÉCOMPOSITION COMPLÈTE
-        const exerciseTime = currentWorkoutSession.totalSetTime || 0;
-        const restTime = currentWorkoutSession.totalRestTime || 0;
+        const exerciseTime = window.currentWorkoutSession.totalSetTime || 0;
+        const restTime = window.currentWorkoutSession.totalRestTime || 0;
         const transitionTime = Math.max(0, totalDurationSeconds - exerciseTime - restTime);
         
         console.log(`📊 DÉCOMPOSITION FINALE:`);
@@ -7662,20 +7662,20 @@ async function endWorkout() {
         
         // Enregistrer la séance comme terminée
         // === MODULE 4 : ENVOI STATS ML ===
-        if (currentWorkoutSession.mlRestStats?.length > 0) {
+        if (window.currentWorkoutSession.mlRestStats?.length > 0) {
             try {
                 const mlFeedback = {
-                    stats: currentWorkoutSession.mlRestStats,
+                    stats: window.currentWorkoutSession.mlRestStats,
                     summary: {
-                        total_suggestions: currentWorkoutSession.mlRestStats.length,
-                        accepted_count: currentWorkoutSession.mlRestStats.filter(s => s.accepted).length,
-                        average_deviation: currentWorkoutSession.mlRestStats.reduce((sum, s) => 
-                            sum + Math.abs(s.actual - s.suggested), 0) / currentWorkoutSession.mlRestStats.length
+                        total_suggestions: window.currentWorkoutSession.mlRestStats.length,
+                        accepted_count: window.currentWorkoutSession.mlRestStats.filter(s => s.accepted).length,
+                        average_deviation: window.currentWorkoutSession.mlRestStats.reduce((sum, s) => 
+                            sum + Math.abs(s.actual - s.suggested), 0) / window.currentWorkoutSession.mlRestStats.length
                     }
                 };
                 
                 await apiPost(`/api/workouts/${currentWorkout.id}/ml-rest-feedback`, mlFeedback);
-                console.log(`📊 MODULE 4 - Stats ML envoyées: ${currentWorkoutSession.mlRestStats.length} recommendations`);
+                console.log(`📊 MODULE 4 - Stats ML envoyées: ${window.currentWorkoutSession.mlRestStats.length} recommendations`);
             } catch (error) {
                 console.error('Erreur envoi stats ML:', error);
                 // Ne pas bloquer la fin de séance si l'envoi échoue
@@ -7683,7 +7683,7 @@ async function endWorkout() {
         }
         // MODULE 0 : Identifier les exercices "zombies" (started but not completed/skipped)
         const zombieExercises = [];
-        for (const [exerciseId, exerciseState] of Object.entries(currentWorkoutSession.sessionExercises)) {
+        for (const [exerciseId, exerciseState] of Object.entries(window.currentWorkoutSession.sessionExercises)) {
             if (exerciseState.startTime && 
                 !exerciseState.isCompleted && 
                 !exerciseState.isSkipped &&
@@ -7702,22 +7702,22 @@ async function endWorkout() {
         }
 
         // Combiner skips explicites et zombies
-        const allSkippedExercises = [...currentWorkoutSession.skipped_exercises, ...zombieExercises];
+        const allSkippedExercises = [...window.currentWorkoutSession.skipped_exercises, ...zombieExercises];
 
         // Métadonnées de session
         const sessionMetadata = {
-            total_planned_exercises: Object.keys(currentWorkoutSession.sessionExercises).length,
-            total_completed_exercises: currentWorkoutSession.completedExercisesCount,
+            total_planned_exercises: Object.keys(window.currentWorkoutSession.sessionExercises).length,
+            total_completed_exercises: window.currentWorkoutSession.completedExercisesCount,
             total_skipped_exercises: allSkippedExercises.length,
-            completion_rate: Math.round((currentWorkoutSession.completedExercisesCount / 
-                                    Object.keys(currentWorkoutSession.sessionExercises).length) * 100),
+            completion_rate: Math.round((window.currentWorkoutSession.completedExercisesCount / 
+                                    Object.keys(window.currentWorkoutSession.sessionExercises).length) * 100),
             skip_rate: Math.round((allSkippedExercises.length / 
-                                Object.keys(currentWorkoutSession.sessionExercises).length) * 100)
+                                Object.keys(window.currentWorkoutSession.sessionExercises).length) * 100)
         };
 
         console.log(`📊 MODULE 0 - Session completed:`, {
-            completed: currentWorkoutSession.completedExercisesCount,
-            explicit_skips: currentWorkoutSession.skipped_exercises.length,
+            completed: window.currentWorkoutSession.completedExercisesCount,
+            explicit_skips: window.currentWorkoutSession.skipped_exercises.length,
             zombie_exercises: zombieExercises.length,
             total_skipped: allSkippedExercises.length,
             completion_rate: sessionMetadata.completion_rate
@@ -7726,23 +7726,23 @@ async function endWorkout() {
         // Préparation des données pour l'API
         const completeData = {
             total_duration: totalDurationSeconds,
-            total_rest_time: currentWorkoutSession.totalRestTime,
+            total_rest_time: window.currentWorkoutSession.totalRestTime,
             skipped_exercises: allSkippedExercises,
             session_metadata: sessionMetadata,
-            swaps: currentWorkoutSession.swaps || [],
-            modifications: currentWorkoutSession.modifications || []
+            swaps: window.currentWorkoutSession.swaps || [],
+            modifications: window.currentWorkoutSession.modifications || []
         };
 
         // NOUVEAU : Ajouter métadonnées AI si séance AI
-        if (currentWorkoutSession?.type === 'ai' && currentWorkoutSession.aiMetadata) {
-            const { pplUsed, qualityScore, generationParams } = currentWorkoutSession.aiMetadata;
+        if (window.currentWorkoutSession?.type === 'ai' && window.currentWorkoutSession.aiMetadata) {
+            const { pplUsed, qualityScore, generationParams } = window.currentWorkoutSession.aiMetadata;
             if (pplUsed && qualityScore && generationParams) {
                 completeData.ai_metadata = {
                     ppl_used: pplUsed,
                     quality_score: qualityScore,
                     generation_params: generationParams,
-                    exercises_completed: currentWorkoutSession.completedExercisesCount,
-                    exercises_skipped: currentWorkoutSession.skipped_exercises.length
+                    exercises_completed: window.currentWorkoutSession.completedExercisesCount,
+                    exercises_skipped: window.currentWorkoutSession.skipped_exercises.length
                 };
                 console.log('📊 Ajout métadonnées AI à la sauvegarde de séance:', completeData.ai_metadata);
             } else {
@@ -7774,8 +7774,8 @@ async function endWorkout() {
         loadDashboard();
         // MODULE 3 : Message enrichi avec adaptations
         let toastMessage = 'Séance terminée ! Bravo ! 🎉';
-        if (currentWorkoutSession.swaps?.length > 0) {
-            const swapCount = currentWorkoutSession.swaps.length;
+        if (window.currentWorkoutSession.swaps?.length > 0) {
+            const swapCount = window.currentWorkoutSession.swaps.length;
             toastMessage = `Séance terminée avec ${swapCount} adaptation(s) ! 🎉`;
         }
         showToast(toastMessage, 'success');
@@ -8426,7 +8426,7 @@ async function clearHistory() {
         currentWorkout = null;
         currentExercise = null;
         currentSet = 1;
-        currentWorkoutSession = null;
+        window.currentWorkoutSession = null;
         
         // Supprimer la bannière si elle existe
         const banner = document.querySelector('.workout-resume-notification-banner');
@@ -8877,7 +8877,7 @@ function apiDelete(url) {
 }
 
 async function loadSessionExercisesList() {
-    if (!currentWorkoutSession.sessionData) return;
+    if (!window.currentWorkoutSession.sessionData) return;
     
     const container = document.getElementById('sessionExercisesContainer');
     if (!container) {
@@ -8890,9 +8890,9 @@ async function loadSessionExercisesList() {
         const exercises = await apiGet(`/api/exercises?user_id=${currentUser.id}`);
         
         // Calculer les stats
-        const completedCount = Object.values(currentWorkoutSession.sessionExercises)
+        const completedCount = Object.values(window.currentWorkoutSession.sessionExercises)
             .filter(ex => ex.isCompleted).length;
-        const totalCount = currentWorkoutSession.sessionData.exercises.length;
+        const totalCount = window.currentWorkoutSession.sessionData.exercises.length;
         const remainingTime = (totalCount - completedCount) * 8; // Estimation simple
         
         // Générer le HTML
@@ -8907,11 +8907,11 @@ async function loadSessionExercisesList() {
             </div>
             
             <div class="exercises-list">
-                ${currentWorkoutSession.sessionData.exercises.map((exerciseData, index) => {
+                ${window.currentWorkoutSession.sessionData.exercises.map((exerciseData, index) => {
                     const exercise = exercises.find(ex => ex.id === exerciseData.exercise_id);
                     if (!exercise) return '';
                     
-                    const exerciseState = currentWorkoutSession.sessionExercises[exerciseData.exercise_id];
+                    const exerciseState = window.currentWorkoutSession.sessionExercises[exerciseData.exercise_id];
                     const isCurrentExercise = currentExercise && currentExercise.id === exerciseData.exercise_id;
                     
                     // Classes et état
@@ -8986,7 +8986,7 @@ ${canSwapExercise(exerciseData.exercise_id) ?
 }
 
 function handleExerciseCardSimpleClick(exerciseId) {
-    const exerciseState = currentWorkoutSession.sessionExercises[exerciseId];
+    const exerciseState = window.currentWorkoutSession.sessionExercises[exerciseId];
     
     if (currentExercise && currentExercise.id === exerciseId) {
         // Déjà sur cet exercice
@@ -9004,7 +9004,7 @@ function handleExerciseCardSimpleClick(exerciseId) {
 }
 
 function handleExerciseAction(exerciseId) {
-    const exerciseState = currentWorkoutSession.sessionExercises[exerciseId];
+    const exerciseState = window.currentWorkoutSession.sessionExercises[exerciseId];
     
     if (exerciseState.isCompleted) {
         // Refaire l'exercice
@@ -9022,7 +9022,7 @@ window.handleExerciseCardSimpleClick = handleExerciseCardSimpleClick;
 window.handleExerciseAction = handleExerciseAction;
 
 function handleExerciseCardClick(exerciseId) {
-    const exerciseState = currentWorkoutSession.sessionExercises[exerciseId];
+    const exerciseState = window.currentWorkoutSession.sessionExercises[exerciseId];
     
     if (currentExercise && currentExercise.id === exerciseId) {
         showToast('Vous êtes déjà sur cet exercice', 'info');
@@ -9087,10 +9087,10 @@ async function selectSessionExercise(exerciseId, isInitialLoad = false) {
 }
 
 async function saveCurrentExerciseState() {
-    if (!currentExercise || !currentWorkoutSession.sessionExercises[currentExercise.id]) return;
+    if (!currentExercise || !window.currentWorkoutSession.sessionExercises[currentExercise.id]) return;
     
-    const exerciseState = currentWorkoutSession.sessionExercises[currentExercise.id];
-    const completedSetsForThisExercise = currentWorkoutSession.completedSets.filter(
+    const exerciseState = window.currentWorkoutSession.sessionExercises[currentExercise.id];
+    const completedSetsForThisExercise = window.currentWorkoutSession.completedSets.filter(
         s => s.exercise_id === currentExercise.id
     ).length;
     
@@ -9100,7 +9100,7 @@ async function saveCurrentExerciseState() {
     // Vérifier si l'exercice est terminé
     if (completedSetsForThisExercise >= exerciseState.totalSets) {
         exerciseState.isCompleted = true;
-        currentWorkoutSession.completedExercisesCount++;
+        window.currentWorkoutSession.completedExercisesCount++;
     }
 }
 
@@ -9134,7 +9134,7 @@ function cleanupCurrentState() {
 }
 
 async function restartExercise(exerciseId) {
-    const exerciseState = currentWorkoutSession.sessionExercises[exerciseId];
+    const exerciseState = window.currentWorkoutSession.sessionExercises[exerciseId];
     
     // Réinitialiser l'état de l'exercice
     exerciseState.completedSets = 0;
@@ -9143,12 +9143,12 @@ async function restartExercise(exerciseId) {
     exerciseState.endTime = null;
     
     // Supprimer les séries de cet exercice de l'historique
-    currentWorkoutSession.completedSets = currentWorkoutSession.completedSets.filter(
+    window.currentWorkoutSession.completedSets = window.currentWorkoutSession.completedSets.filter(
         s => s.exercise_id !== exerciseId
     );
     
     // Mettre à jour le compteur global
-    currentWorkoutSession.completedExercisesCount = Object.values(currentWorkoutSession.sessionExercises)
+    window.currentWorkoutSession.completedExercisesCount = Object.values(window.currentWorkoutSession.sessionExercises)
         .filter(ex => ex.isCompleted).length;
     
     // Sélectionner l'exercice
@@ -9714,23 +9714,23 @@ function calculateAdaptiveRestTime(exercise, fatigue, effort, setNumber) {
 // ===== ANALYTICS ET INSIGHTS =====
 function calculateSessionStats() {
     const stats = {
-        totalSets: currentWorkoutSession.completedSets.length,
+        totalSets: window.currentWorkoutSession.completedSets.length,
         totalVolume: 0,
         averageFatigue: 0,
         averageEffort: 0,
-        exercisesCount: new Set(currentWorkoutSession.completedSets.map(s => s.exercise_id)).size
+        exercisesCount: new Set(window.currentWorkoutSession.completedSets.map(s => s.exercise_id)).size
     };
     
     if (stats.totalSets > 0) {
-        stats.totalVolume = currentWorkoutSession.completedSets.reduce((total, set) => {
+        stats.totalVolume = window.currentWorkoutSession.completedSets.reduce((total, set) => {
             return total + ((set.weight || 0) * set.reps);
         }, 0);
         
-        stats.averageFatigue = currentWorkoutSession.completedSets.reduce((sum, set) => {
+        stats.averageFatigue = window.currentWorkoutSession.completedSets.reduce((sum, set) => {
             return sum + (set.fatigue_level || 0);
         }, 0) / stats.totalSets;
         
-        stats.averageEffort = currentWorkoutSession.completedSets.reduce((sum, set) => {
+        stats.averageEffort = window.currentWorkoutSession.completedSets.reduce((sum, set) => {
             return sum + (set.effort_level || 0);
         }, 0) / stats.totalSets;
     }
@@ -9798,13 +9798,13 @@ function vibratePattern(pattern) {
 // ===== SAUVEGARDE ET RÉCUPÉRATION D'ÉTAT =====
 function saveWorkoutState() {
     const state = {
-        workout: currentWorkoutSession.workout,
-        currentExercise: currentWorkoutSession.currentExercise,
-        currentSetNumber: currentWorkoutSession.currentSetNumber,
-        exerciseOrder: currentWorkoutSession.exerciseOrder,
-        globalSetCount: currentWorkoutSession.globalSetCount,
-        sessionFatigue: currentWorkoutSession.sessionFatigue,
-        completedSets: currentWorkoutSession.completedSets,
+        workout: window.currentWorkoutSession.workout,
+        currentExercise: window.currentWorkoutSession.currentExercise,
+        currentSetNumber: window.currentWorkoutSession.currentSetNumber,
+        exerciseOrder: window.currentWorkoutSession.exerciseOrder,
+        globalSetCount: window.currentWorkoutSession.globalSetCount,
+        sessionFatigue: window.currentWorkoutSession.sessionFatigue,
+        completedSets: window.currentWorkoutSession.completedSets,
         timestamp: new Date().toISOString()
     };
     
@@ -9831,8 +9831,8 @@ function loadWorkoutState() {
 }
 
 function clearWorkoutState() {
-    //Préservation du currentWorkoutSession.type
-    const preservedType = (typeof currentWorkoutSession !== 'undefined' && currentWorkoutSession?.type === 'ai') ? 'ai' : null;
+    //Préservation du window.currentWorkoutSession.type
+    const preservedType = (typeof window.currentWorkoutSession !== 'undefined' && window.currentWorkoutSession?.type === 'ai') ? 'ai' : null;
 
     // Arrêter tous les timers actifs
     if (setTimer) {
@@ -9884,8 +9884,8 @@ function clearWorkoutState() {
     workoutState.plannedRestDuration = null;
     workoutState.currentRecommendation = null;
     
-    // Réinitialiser complètement currentWorkoutSession
-    currentWorkoutSession = {
+    // Réinitialiser complètement window.currentWorkoutSession
+    window.currentWorkoutSession = {
         workout: null,
         currentExercise: null,
         currentSetNumber: 1,
@@ -9917,34 +9917,34 @@ function updateExerciseProgress() {
     // Mettre à jour visuellement les éléments de l'interface
     const progressElement = document.querySelector('.workout-progress');
     if (progressElement) {
-        const totalExercises = currentWorkoutSession.type === 'ai' ? 
+        const totalExercises = window.currentWorkoutSession.type === 'ai' ? 
             getCurrentsessionExercisesCount() : '∞';
         
         progressElement.innerHTML = `
-            <div>Exercice ${currentWorkoutSession.exerciseOrder}${totalExercises !== '∞' ? '/' + totalExercises : ''}</div>
-            <div>Série ${currentWorkoutSession.currentSetNumber}</div>
-            <div>${currentWorkoutSession.globalSetCount} séries totales</div>
+            <div>Exercice ${window.currentWorkoutSession.exerciseOrder}${totalExercises !== '∞' ? '/' + totalExercises : ''}</div>
+            <div>Série ${window.currentWorkoutSession.currentSetNumber}</div>
+            <div>${window.currentWorkoutSession.globalSetCount} séries totales</div>
         `;
     }
 }
 
 function getCurrentsessionExercisesCount() {
     // Si pas de session active
-    if (!currentWorkoutSession.sessionData) {
+    if (!window.currentWorkoutSession.sessionData) {
         return 0;
     }
     
     // Si on a une date de schedule, compter depuis la session du jour
-    if (currentWorkoutSession.scheduleDate && currentWorkoutSession.sessionData.schedule) {
-        const todaySession = currentWorkoutSession.sessionData.schedule[currentWorkoutSession.scheduleDate];
+    if (window.currentWorkoutSession.scheduleDate && window.currentWorkoutSession.sessionData.schedule) {
+        const todaySession = window.currentWorkoutSession.sessionData.schedule[window.currentWorkoutSession.scheduleDate];
         if (todaySession && todaySession.exercises_snapshot) {
             return todaySession.exercises_snapshot.length;
         }
     }
     
     // Fallback
-    if (currentWorkoutSession.sessionData.exercises) {
-        return currentWorkoutSession.sessionData.exercises.length;
+    if (window.currentWorkoutSession.sessionData.exercises) {
+        return window.currentWorkoutSession.sessionData.exercises.length;
     }
     
     return 0;
@@ -9968,7 +9968,7 @@ function validateWorkoutState(skipExerciseCheck = false) {
     }
     
     // Code existant pour autres types...
-    if (!currentWorkout || !currentWorkoutSession.workout) {
+    if (!currentWorkout || !window.currentWorkoutSession.workout) {
         showToast('Aucune séance active', 'error');
         return false;
     }
@@ -10519,7 +10519,7 @@ async function executeSet() {
             return;
         }
         
-        // Validation CORRIGÉE - Plus de currentWorkoutSession.id
+        // Validation CORRIGÉE - Plus de window.currentWorkoutSession.id
         if (!currentWorkout) {
             console.error('executeSet(): currentWorkout manquant');
             showToast('Aucune séance active', 'error');
@@ -10571,16 +10571,16 @@ async function executeSet() {
         }
         
         // === VALIDATION PRÉALABLE (CONSERVÉ) ===
-        console.log(`🔧 executeSet(): currentSet=${currentSet}, currentSetNumber=${currentWorkoutSession.currentSetNumber}`);
+        console.log(`🔧 executeSet(): currentSet=${currentSet}, currentSetNumber=${window.currentWorkoutSession.currentSetNumber}`);
         
         // Synchroniser les variables avant exécution (CONSERVÉ)
-        currentWorkoutSession.currentSetNumber = currentSet;
+        window.currentWorkoutSession.currentSetNumber = currentSet;
         
         // Si incohérence détectée, corriger (CONSERVÉ)
-        if (currentSet > currentWorkoutSession.totalSets) {
-            console.warn(`🔧 ANOMALIE: currentSet(${currentSet}) > totalSets(${currentWorkoutSession.totalSets}), correction à totalSets`);
-            currentSet = currentWorkoutSession.totalSets;
-            currentWorkoutSession.currentSetNumber = currentSet;
+        if (currentSet > window.currentWorkoutSession.totalSets) {
+            console.warn(`🔧 ANOMALIE: currentSet(${currentSet}) > totalSets(${window.currentWorkoutSession.totalSets}), correction à totalSets`);
+            currentSet = window.currentWorkoutSession.totalSets;
+            window.currentWorkoutSession.currentSetNumber = currentSet;
         }
 
         // Fix temporaire : Les variables sont vérifiées correctes avant l'appel
@@ -10608,7 +10608,7 @@ async function executeSet() {
             // Durée minimale de 10 secondes pour éviter les clics trop rapides (CONSERVÉ)
             setTime = Math.max(setTime, 10);
             
-            currentWorkoutSession.totalSetTime += setTime;
+            window.currentWorkoutSession.totalSetTime += setTime;
             clearInterval(setTimer);
             setTimer = null;
         }
@@ -10979,7 +10979,7 @@ function startRestPeriod(duration, isMLSuggested = false, callback = null)  {
     
     // Préparations
     workoutState.restStartTime = Date.now();
-    currentWorkoutSession.restAdjustments = [];
+    window.currentWorkoutSession.restAdjustments = [];
     
     // === AFFICHAGE EXCLUSIF DU MODAL REPOS ===
     const restPeriod = document.getElementById('restPeriod');
@@ -11007,7 +11007,7 @@ function startRestPeriod(duration, isMLSuggested = false, callback = null)  {
         }, 1000);
         
         // NOUVEAU : Activation preview série suivante
-        if (currentWorkoutSession.id && currentExercise?.id) {
+        if (window.currentWorkoutSession.id && currentExercise?.id) {
             preloadNextSeriesRecommendations()
                 .then(previewData => {
                     renderNextSeriesPreview(previewData);
@@ -11050,7 +11050,7 @@ async function requestNotificationPermission() {
 
 // ===== FONCTIONS MANQUANTES POUR L'INTERFACE DÉTAILLÉE =====
 function setSessionFatigue(level) {
-    currentWorkoutSession.sessionFatigue = level;
+    window.currentWorkoutSession.sessionFatigue = level;
     
     // Masquer le panneau de fatigue après sélection
     const fatigueTracker = document.getElementById('fatigueTracker');
@@ -11504,7 +11504,7 @@ function selectFatigue(button, value) {
     button.classList.add('selected');
     
     // Stocker la valeur
-    currentWorkoutSession.currentSetFatigue = value;
+    window.currentWorkoutSession.currentSetFatigue = value;
     
     // Mettre à jour l'indicateur de progression SI IL EXISTE
     const progressIndicator = document.getElementById('fatigueProgress');
@@ -11536,7 +11536,7 @@ function selectEffort(button, value) {
     button.classList.add('selected');
     
     // Stocker la valeur
-    currentWorkoutSession.currentSetEffort = value;
+    window.currentWorkoutSession.currentSetEffort = value;
     
     // Mettre à jour l'indicateur de progression SI IL EXISTE
     const progressIndicator = document.getElementById('effortProgress');
@@ -11551,7 +11551,7 @@ function selectEffort(button, value) {
 
 // Fonction pour la validation automatique
 function checkAutoValidation() {
-    if (currentWorkoutSession.currentSetFatigue && currentWorkoutSession.currentSetEffort) {
+    if (window.currentWorkoutSession.currentSetFatigue && window.currentWorkoutSession.currentSetEffort) {
         setTimeout(() => {
             saveFeedbackAndRest();
         }, 300);
@@ -11630,7 +11630,7 @@ function safeguardPendingData() {
         exerciseId: currentExercise.id,
         setNumber: currentSet,
         tabId: window.tabId,
-        workoutType: currentWorkoutSession.type,
+        workoutType: window.currentWorkoutSession.type,
         exerciseName: currentExercise.name,
         // Ajouter le mode de poids actuel pour restaurer correctement
         weightMode: currentWeightMode,
@@ -11843,7 +11843,7 @@ function calculateRestDuration() {
     let isMLRest = false;
     
     // Si l'IA est active ET a une recommandation
-    if (currentWorkoutSession.mlSettings?.[currentExercise.id]?.autoAdjust && 
+    if (window.currentWorkoutSession.mlSettings?.[currentExercise.id]?.autoAdjust && 
         workoutState.currentRecommendation?.rest_seconds_recommendation) {
         restDuration = workoutState.currentRecommendation.rest_seconds_recommendation;
         isMLRest = true;
@@ -11870,22 +11870,22 @@ async function saveFeedbackAndRest() {
         weight: finalWeight,
         exercise_id: currentExercise.id,
         set_number: currentSet,
-        fatigue_level: currentWorkoutSession.currentSetFatigue,
-        effort_level: currentWorkoutSession.currentSetEffort,
-        exercise_order_in_session: currentWorkoutSession.exerciseOrder,
-        set_order_in_session: currentWorkoutSession.globalSetCount + 1,
+        fatigue_level: window.currentWorkoutSession.currentSetFatigue,
+        effort_level: window.currentWorkoutSession.currentSetEffort,
+        exercise_order_in_session: window.currentWorkoutSession.exerciseOrder,
+        set_order_in_session: window.currentWorkoutSession.globalSetCount + 1,
         base_rest_time_seconds: currentExercise.base_rest_time_seconds || 90,
         ml_weight_suggestion: workoutState.currentRecommendation?.weight_recommendation,
         ml_reps_suggestion: workoutState.currentRecommendation?.reps_recommendation,
         ml_confidence: workoutState.currentRecommendation?.confidence,
-        ml_adjustment_enabled: currentWorkoutSession.mlSettings?.[currentExercise.id]?.autoAdjust,
+        ml_adjustment_enabled: window.currentWorkoutSession.mlSettings?.[currentExercise.id]?.autoAdjust,
         suggested_rest_seconds: workoutState.currentRecommendation?.rest_seconds_recommendation,
         swap_from_exercise_id: null,
         swap_reason: null
     };
 
     // Détecter si exercice actuel provient d'un swap
-    const activeSwap = currentWorkoutSession.swaps?.find(swap => 
+    const activeSwap = window.currentWorkoutSession.swaps?.find(swap => 
         swap.new_id === currentExercise.id
     );
 
@@ -11922,33 +11922,33 @@ async function saveFeedbackAndRest() {
             };
             
             queueOfflineSetData(setData);
-            currentWorkoutSession.completedSets.push(offlineSet);
-            currentWorkoutSession.globalSetCount++;
+            window.currentWorkoutSession.completedSets.push(offlineSet);
+            window.currentWorkoutSession.globalSetCount++;
             
-            if (currentWorkoutSession.type === 'ai' && currentExercise) {
-                const exerciseIndex = currentWorkoutSession.exercises.findIndex(
+            if (window.currentWorkoutSession.type === 'ai' && currentExercise) {
+                const exerciseIndex = window.currentWorkoutSession.exercises.findIndex(
                     ex => ex.exercise_id === currentExercise.id
                 );
                 
                 if (exerciseIndex !== -1) {
-                    const aiExercise = currentWorkoutSession.exercises[exerciseIndex];
+                    const aiExercise = window.currentWorkoutSession.exercises[exerciseIndex];
                     if (!aiExercise.completedSets) aiExercise.completedSets = 0;
                     aiExercise.completedSets++;
                     
                     if (aiExercise.completedSets >= aiExercise.default_sets) {
                         aiExercise.isCompleted = true;
                         aiExercise.endTime = new Date();
-                        if (!currentWorkoutSession.completedExercisesCount) {
-                            currentWorkoutSession.completedExercisesCount = 0;
+                        if (!window.currentWorkoutSession.completedExercisesCount) {
+                            window.currentWorkoutSession.completedExercisesCount = 0;
                         }
-                        currentWorkoutSession.completedExercisesCount++;
+                        window.currentWorkoutSession.completedExercisesCount++;
                     }
                 }
             }
             
             updateSetsHistory();
             
-            if (workoutState.currentRecommendation && currentWorkoutSession.mlHistory?.enabled) {
+            if (workoutState.currentRecommendation && window.currentWorkoutSession.mlHistory?.enabled) {
                 addToMLHistory(
                     currentExercise.id,
                     currentSet,
@@ -11977,33 +11977,33 @@ async function saveFeedbackAndRest() {
 
         // Ajouter aux séries complétées
         const setWithId = { ...setData, id: savedSet.id };
-        currentWorkoutSession.completedSets.push(setWithId);
-        currentWorkoutSession.globalSetCount++;
+        window.currentWorkoutSession.completedSets.push(setWithId);
+        window.currentWorkoutSession.globalSetCount++;
         
-        if (currentWorkoutSession.type === 'ai' && currentExercise) {
-            const exerciseIndex = currentWorkoutSession.exercises.findIndex(
+        if (window.currentWorkoutSession.type === 'ai' && currentExercise) {
+            const exerciseIndex = window.currentWorkoutSession.exercises.findIndex(
                 ex => ex.exercise_id === currentExercise.id
             );
             
             if (exerciseIndex !== -1) {
-                const aiExercise = currentWorkoutSession.exercises[exerciseIndex];
+                const aiExercise = window.currentWorkoutSession.exercises[exerciseIndex];
                 if (!aiExercise.completedSets) aiExercise.completedSets = 0;
                 aiExercise.completedSets++;
                 
                 if (aiExercise.completedSets >= aiExercise.default_sets) {
                     aiExercise.isCompleted = true;
                     aiExercise.endTime = new Date();
-                    if (!currentWorkoutSession.completedExercisesCount) {
-                        currentWorkoutSession.completedExercisesCount = 0;
+                    if (!window.currentWorkoutSession.completedExercisesCount) {
+                        window.currentWorkoutSession.completedExercisesCount = 0;
                     }
-                    currentWorkoutSession.completedExercisesCount++;
+                    window.currentWorkoutSession.completedExercisesCount++;
                 }
             }
         }
         
         updateSetsHistory();
         
-        if (workoutState.currentRecommendation && currentWorkoutSession.mlHistory?.[currentExercise.id]) {
+        if (workoutState.currentRecommendation && window.currentWorkoutSession.mlHistory?.[currentExercise.id]) {
             const weightFollowed = Math.abs(setData.weight - workoutState.currentRecommendation.weight_recommendation) < 0.5;
             const repsFollowed = Math.abs(setData.reps - workoutState.currentRecommendation.reps_recommendation) <= 1;
             const accepted = weightFollowed && repsFollowed;
@@ -12016,13 +12016,13 @@ async function saveFeedbackAndRest() {
         let restDuration = currentExercise.base_rest_time_seconds || 60;
         let isMLRest = false;
         
-        if (currentWorkoutSession.mlSettings?.[currentExercise.id]?.autoAdjust && 
+        if (window.currentWorkoutSession.mlSettings?.[currentExercise.id]?.autoAdjust && 
             workoutState.currentRecommendation?.rest_seconds_recommendation) {
             restDuration = workoutState.currentRecommendation.rest_seconds_recommendation;
             isMLRest = true;
             console.log(`🤖 Repos IA : ${restDuration}s (base: ${currentExercise.base_rest_time_seconds}s)`);
             
-            currentWorkoutSession.mlRestData = {
+            window.currentWorkoutSession.mlRestData = {
                 seconds: workoutState.currentRecommendation.rest_seconds_recommendation,
                 reason: workoutState.currentRecommendation.rest_reason || 
                        workoutState.currentRecommendation.reasoning || 
@@ -12030,28 +12030,28 @@ async function saveFeedbackAndRest() {
                 range: workoutState.currentRecommendation.rest_range || null,
                 confidence: workoutState.currentRecommendation.confidence || 0.8
             };
-            console.log(`📊 MODULE 1 - Données ML stockées:`, currentWorkoutSession.mlRestData);
+            console.log(`📊 MODULE 1 - Données ML stockées:`, window.currentWorkoutSession.mlRestData);
         }
         
-        const isLastSet = currentSet >= currentWorkoutSession.totalSets;
+        const isLastSet = currentSet >= window.currentWorkoutSession.totalSets;
         
         if (isLastSet) {
             // Pour les séances AI : transition automatique avec repos
-            if (currentWorkoutSession.type === 'ai') {
+            if (window.currentWorkoutSession.type === 'ai') {
                 // Marquer l'exercice comme complété
-                if (currentWorkoutSession.sessionExercises && currentWorkoutSession.sessionExercises[currentExercise.id]) {
-                    currentWorkoutSession.sessionExercises[currentExercise.id].isCompleted = true;
-                    currentWorkoutSession.sessionExercises[currentExercise.id].completedSets = currentSet;
+                if (window.currentWorkoutSession.sessionExercises && window.currentWorkoutSession.sessionExercises[currentExercise.id]) {
+                    window.currentWorkoutSession.sessionExercises[currentExercise.id].isCompleted = true;
+                    window.currentWorkoutSession.sessionExercises[currentExercise.id].completedSets = currentSet;
                 }
                 
                 // Trouver l'exercice suivant
-                const currentIndex = currentWorkoutSession.exercises.findIndex(
+                const currentIndex = window.currentWorkoutSession.exercises.findIndex(
                     ex => ex.exercise_id === currentExercise.id
                 );
                 
-                if (currentIndex < currentWorkoutSession.exercises.length - 1) {
+                if (currentIndex < window.currentWorkoutSession.exercises.length - 1) {
                     // Il reste des exercices : repos puis transition
-                    const nextExercise = currentWorkoutSession.exercises[currentIndex + 1];
+                    const nextExercise = window.currentWorkoutSession.exercises[currentIndex + 1];
                     
                     // Calculer le temps de repos avant le prochain exercice
                     const transitionRestDuration = 120; // 2 minutes entre exercices
@@ -12070,7 +12070,7 @@ async function saveFeedbackAndRest() {
                         // Sélectionner le prochain exercice
                         await selectSessionExercise(nextExercise.exercise_id);
                         
-                        showToast(`Exercice ${currentIndex + 2}/${currentWorkoutSession.exercises.length} : ${nextExercise.name}`, 'info');
+                        showToast(`Exercice ${currentIndex + 2}/${window.currentWorkoutSession.exercises.length} : ${nextExercise.name}`, 'info');
                     });
                     
                 } else {
@@ -12099,10 +12099,10 @@ async function saveFeedbackAndRest() {
                                     ⏱️ Durée : ${formatTime(totalDuration)}
                                 </div>
                                 <div style="font-size: 1.2rem; margin: 0.5rem;">
-                                    🏋️ Exercices : ${currentWorkoutSession.completedExercisesCount || 0}
+                                    🏋️ Exercices : ${window.currentWorkoutSession.completedExercisesCount || 0}
                                 </div>
                                 <div style="font-size: 1.2rem; margin: 0.5rem;">
-                                    📊 Séries : ${currentWorkoutSession.globalSetCount}
+                                    📊 Séries : ${window.currentWorkoutSession.globalSetCount}
                                 </div>
                             </div>
                             <button class="btn btn-primary" onclick="endWorkout(); closeModal();" style="margin-top: 1rem;">
@@ -12119,17 +12119,17 @@ async function saveFeedbackAndRest() {
         } else {
             // Pas la dernière série : repos normal avant prochaine série
             if (currentExercise.exercise_type === 'isometric') {
-                currentWorkoutSession.totalRestTime += restDuration;
+                window.currentWorkoutSession.totalRestTime += restDuration;
                 showToast(`⏱️ Repos ${isMLRest ? '🤖' : ''}: ${restDuration}s`, 'info');
                 transitionTo(WorkoutStates.TRANSITIONING);
                 
                 setTimeout(() => {
                     currentSet++;
-                    currentWorkoutSession.currentSetNumber = currentSet;
+                    window.currentWorkoutSession.currentSetNumber = currentSet;
                     updateSeriesDots();
                     updateHeaderProgress();
                     
-                    if (currentWorkoutSession.type === 'ai') {
+                    if (window.currentWorkoutSession.type === 'ai') {
                         updateSessionExerciseProgress();
                         loadSessionExercisesList();
                     }
@@ -12158,33 +12158,33 @@ async function saveFeedbackAndRest() {
                 queueOfflineSetData(setData);
                 
                 const offlineSet = { ...setData, id: 'offline_' + Date.now(), offline: true };
-                currentWorkoutSession.completedSets.push(offlineSet);
-                currentWorkoutSession.globalSetCount++;
+                window.currentWorkoutSession.completedSets.push(offlineSet);
+                window.currentWorkoutSession.globalSetCount++;
                 
-                if (currentWorkoutSession.type === 'ai' && currentExercise) {
-                    const exerciseIndex = currentWorkoutSession.exercises.findIndex(
+                if (window.currentWorkoutSession.type === 'ai' && currentExercise) {
+                    const exerciseIndex = window.currentWorkoutSession.exercises.findIndex(
                         ex => ex.exercise_id === currentExercise.id
                     );
                     
                     if (exerciseIndex !== -1) {
-                        const aiExercise = currentWorkoutSession.exercises[exerciseIndex];
+                        const aiExercise = window.currentWorkoutSession.exercises[exerciseIndex];
                         if (!aiExercise.completedSets) aiExercise.completedSets = 0;
                         aiExercise.completedSets++;
                         
                         if (aiExercise.completedSets >= aiExercice.default_sets) {
                             aiExercise.isCompleted = true;
                             aiExercise.endTime = new Date();
-                            if (!currentWorkoutSession.completedExercisesCount) {
-                                currentWorkoutSession.completedExercisesCount = 0;
+                            if (!window.currentWorkoutSession.completedExercisesCount) {
+                                window.currentWorkoutSession.completedExercisesCount = 0;
                             }
-                            currentWorkoutSession.completedExercisesCount++;
+                            window.currentWorkoutSession.completedExercisesCount++;
                         }
                     }
                 }
                 
                 updateSetsHistory();
                 
-                if (workoutState.currentRecommendation && currentWorkoutSession.mlHistory?.enabled) {
+                if (workoutState.currentRecommendation && window.currentWorkoutSession.mlHistory?.enabled) {
                     addToMLHistory(
                         currentExercise.id,
                         currentSet,
@@ -12223,8 +12223,8 @@ function resetFeedbackSelection() {
     document.getElementById('effortProgress')?.classList.remove('completed');
     
     // Réinitialiser les valeurs
-    currentWorkoutSession.currentSetFatigue = null;
-    currentWorkoutSession.currentSetEffort = null;
+    window.currentWorkoutSession.currentSetFatigue = null;
+    window.currentWorkoutSession.currentSetEffort = null;
 }
 
 function showAutoValidation() {
@@ -12267,7 +12267,7 @@ function validateSessionState(skipExerciseCheck = false) {
         }
         return true;
     }
-    if (!currentWorkout || !currentWorkoutSession.workout) {
+    if (!currentWorkout || !window.currentWorkoutSession.workout) {
         showToast('Aucune séance active', 'error');
         return false;
     }
@@ -12296,28 +12296,28 @@ function completeRest() {
     // Reset workflow timings (conserver logique existante)
     if (workoutState.restStartTime) {
         const actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
-        currentWorkoutSession.totalRestTime += actualRestTime;
+        window.currentWorkoutSession.totalRestTime += actualRestTime;
         workoutState.restStartTime = null;
     }
     
     // === PRÉPARATION SÉRIE SUIVANTE ===
-    if (currentSet >= currentWorkoutSession.totalSets) {
+    if (currentSet >= window.currentWorkoutSession.totalSets) {
         // Pour les séances AI : transition automatique
-        if (currentWorkoutSession.type === 'ai') {
+        if (window.currentWorkoutSession.type === 'ai') {
             // Marquer l'exercice comme complété
-            if (currentWorkoutSession.sessionExercises && currentWorkoutSession.sessionExercises[currentExercise.id]) {
-                currentWorkoutSession.sessionExercises[currentExercise.id].isCompleted = true;
-                currentWorkoutSession.sessionExercises[currentExercise.id].completedSets = currentSet;
+            if (window.currentWorkoutSession.sessionExercises && window.currentWorkoutSession.sessionExercises[currentExercise.id]) {
+                window.currentWorkoutSession.sessionExercises[currentExercise.id].isCompleted = true;
+                window.currentWorkoutSession.sessionExercises[currentExercise.id].completedSets = currentSet;
             }
             
             // Trouver l'exercice suivant
-            const currentIndex = currentWorkoutSession.exercises.findIndex(
+            const currentIndex = window.currentWorkoutSession.exercises.findIndex(
                 ex => ex.exercise_id === currentExercise.id
             );
             
-            if (currentIndex < currentWorkoutSession.exercises.length - 1) {
+            if (currentIndex < window.currentWorkoutSession.exercises.length - 1) {
                 // Il reste des exercices
-                const nextExercise = currentWorkoutSession.exercises[currentIndex + 1];
+                const nextExercise = window.currentWorkoutSession.exercises[currentIndex + 1];
                 
                 showToast(`✅ ${currentExercise.name} terminé !`, 'success');
                 
@@ -12331,7 +12331,7 @@ function completeRest() {
                     // Sélectionner le prochain exercice
                     await selectSessionExercise(nextExercise.exercise_id);
                     
-                    showToast(`Exercice ${currentIndex + 2}/${currentWorkoutSession.exercises.length} : ${nextExercise.name}`, 'info');
+                    showToast(`Exercice ${currentIndex + 2}/${window.currentWorkoutSession.exercises.length} : ${nextExercise.name}`, 'info');
                 }, 1000);
                 
                 return;
@@ -12361,10 +12361,10 @@ function completeRest() {
                                 ⏱️ Durée : ${formatTime(totalDuration)}
                             </div>
                             <div style="font-size: 1.2rem; margin: 0.5rem;">
-                                🏋️ Exercices : ${currentWorkoutSession.completedExercisesCount || 0}
+                                🏋️ Exercices : ${window.currentWorkoutSession.completedExercisesCount || 0}
                             </div>
                             <div style="font-size: 1.2rem; margin: 0.5rem;">
-                                📊 Séries : ${currentWorkoutSession.globalSetCount}
+                                📊 Séries : ${window.currentWorkoutSession.globalSetCount}
                             </div>
                         </div>
                         <button class="btn btn-primary" onclick="endWorkout(); closeModal();" style="margin-top: 1rem;">
@@ -12382,14 +12382,14 @@ function completeRest() {
     } else {
         // Incrémentation série
         currentSet++;
-        currentWorkoutSession.currentSetNumber = currentSet;
+        window.currentWorkoutSession.currentSetNumber = currentSet;
         
         // Mises à jour interface
         updateSeriesDots();
         updateHeaderProgress();
         
         // Update recommendations AVANT le reset interface
-        if (currentWorkoutSession.type === 'ai') {
+        if (window.currentWorkoutSession.type === 'ai') {
             updateSessionExerciseProgress();
             loadSessionExercisesList();
         }
@@ -12716,10 +12716,10 @@ async function calibrateMotion() {
 async function updateLastSetRestDuration(actualRestTime) {
     try {
         console.log(`Tentative mise à jour repos: ${actualRestTime}s`);
-        console.log(`Sets complétés: ${currentWorkoutSession.completedSets.length}`);
+        console.log(`Sets complétés: ${window.currentWorkoutSession.completedSets.length}`);
         
-        if (currentWorkoutSession.completedSets.length > 0) {
-            const lastSet = currentWorkoutSession.completedSets[currentWorkoutSession.completedSets.length - 1];
+        if (window.currentWorkoutSession.completedSets.length > 0) {
+            const lastSet = window.currentWorkoutSession.completedSets[window.currentWorkoutSession.completedSets.length - 1];
             console.log(`Dernier set:`, lastSet);
             
             if (lastSet.id) {
@@ -12743,17 +12743,17 @@ async function updateLastSetRestDuration(actualRestTime) {
 }
 
 function showSetCompletionOptions() {
-    console.log('DEBUG showSetCompletionOptions - currentWorkoutSession.type:', currentWorkoutSession.type);
+    console.log('DEBUG showSetCompletionOptions - window.currentWorkoutSession.type:', window.currentWorkoutSession.type);
     
     // CORRECTION : Détecter le type réel si null
-    if (!currentWorkoutSession.type) {
-        currentWorkoutSession.type = (currentWorkoutSession.exercises && currentWorkoutSession.exercises.length > 0) ? 'ai' : 'free';
-        console.log('Type auto-détecté:', currentWorkoutSession.type);
+    if (!window.currentWorkoutSession.type) {
+        window.currentWorkoutSession.type = (window.currentWorkoutSession.exercises && window.currentWorkoutSession.exercises.length > 0) ? 'ai' : 'free';
+        console.log('Type auto-détecté:', window.currentWorkoutSession.type);
     }
     // MODULE 3 : Résumé adaptations dans modal fin d'exercice
     let adaptationsHtml = '';
-    if (currentWorkoutSession.swaps?.length > 0) {
-        const swapCount = currentWorkoutSession.swaps.length;
+    if (window.currentWorkoutSession.swaps?.length > 0) {
+        const swapCount = window.currentWorkoutSession.swaps.length;
         adaptationsHtml = `
             <p style="color: var(--primary); font-size: 0.85rem; margin: 0.5rem 0; font-style: italic;">
                 🔄 ${swapCount} exercice(s) adapté(s) cette séance
@@ -12764,14 +12764,14 @@ function showSetCompletionOptions() {
     const modalContent = `
         <div style="text-align: center;">
             <p>${currentSet} séries de ${currentExercise.name} complétées</p>
-            <p>Temps de repos total: ${formatTime(currentWorkoutSession.totalRestTime)}</p>
+            <p>Temps de repos total: ${formatTime(window.currentWorkoutSession.totalRestTime)}</p>
             ${adaptationsHtml}
             <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; margin-top: 2rem;">
                 <button class="btn btn-secondary" onclick="handleExtraSet(); closeModal();">
                     Série supplémentaire
                 </button>
                 <button class="btn btn-primary" onclick="finishExercise(); closeModal();">
-                    ${currentWorkoutSession.type === 'ai' ? 'Exercice suivant' : 'Changer d\'exercice'}
+                    ${window.currentWorkoutSession.type === 'ai' ? 'Exercice suivant' : 'Changer d\'exercice'}
                 </button>
                 <button class="btn btn-danger" onclick="endWorkout(); closeModal();">
                     Terminer la séance
@@ -12783,36 +12783,36 @@ function showSetCompletionOptions() {
 }
 
 function addExtraSet() {
-    if (currentWorkoutSession.totalSets >= currentWorkoutSession.maxSets) {
+    if (window.currentWorkoutSession.totalSets >= window.currentWorkoutSession.maxSets) {
         showToast('Nombre maximum de séries atteint', 'warning');
         return;
     }
     
-    currentWorkoutSession.totalSets++;
-    showToast(`Série supplémentaire ajoutée (${currentWorkoutSession.totalSets} au total)`, 'success');
+    window.currentWorkoutSession.totalSets++;
+    showToast(`Série supplémentaire ajoutée (${window.currentWorkoutSession.totalSets} au total)`, 'success');
     
     // Mettre à jour l'affichage
-    document.getElementById('setProgress').textContent = `Série ${currentSet}/${currentWorkoutSession.totalSets}`;
+    document.getElementById('setProgress').textContent = `Série ${currentSet}/${window.currentWorkoutSession.totalSets}`;
     updateSetNavigationButtons();
 }
 
 // ===== GESTION DES SÉRIES SUPPLEMENTAIRES =====
 function handleExtraSet() {
     // 1. Incrémenter le total
-    currentWorkoutSession.totalSets++;
+    window.currentWorkoutSession.totalSets++;
 
     // 2. === SYNCHRONISATION STRICTE ===
-    currentSet = currentWorkoutSession.totalSets;
-    currentWorkoutSession.currentSetNumber = currentSet;
+    currentSet = window.currentWorkoutSession.totalSets;
+    window.currentWorkoutSession.currentSetNumber = currentSet;
 
     // 3. Flag pour les séries supplémentaires
-    currentWorkoutSession.isStartingExtraSet = true;
+    window.currentWorkoutSession.isStartingExtraSet = true;
 
-    console.log(`🔧 addExtraSet(): currentSet=${currentSet}, totalSets=${currentWorkoutSession.totalSets}, flag=${currentWorkoutSession.isStartingExtraSet}`);
+    console.log(`🔧 addExtraSet(): currentSet=${currentSet}, totalSets=${window.currentWorkoutSession.totalSets}, flag=${window.currentWorkoutSession.isStartingExtraSet}`);
     
     // 4. Mettre à jour l'interface EXACTEMENT comme l'ancienne version
     updateSeriesDots();
-    console.log(`[ExtraSet] Série ${currentSet}/${currentWorkoutSession.totalSets} - Dots mis à jour`);
+    console.log(`[ExtraSet] Série ${currentSet}/${window.currentWorkoutSession.totalSets} - Dots mis à jour`);
     
     // 5. Réinitialisations d'interface (preservation ancienne version)
     document.getElementById('setFeedback').style.display = 'none';
@@ -12832,7 +12832,7 @@ function handleExtraSet() {
     // 8. Mettre à jour les recommandations ML
     updateSetRecommendations();
     
-    console.log(`🔄 Série supplémentaire ${currentSet}/${currentWorkoutSession.totalSets}`);
+    console.log(`🔄 Série supplémentaire ${currentSet}/${window.currentWorkoutSession.totalSets}`);
     
     // ✅ 9. NOUVEAU : Reset interface et réactiver motion
     transitionToReadyState();
@@ -12869,11 +12869,11 @@ function previousSet() {
     if (currentSet <= 1) return;
     
     currentSet--;
-    currentWorkoutSession.currentSetNumber = currentSet;
+    window.currentWorkoutSession.currentSetNumber = currentSet;
     updateSeriesDots();
     
     // Recharger les données de la série précédente si elle existe
-    const previousSetData = currentWorkoutSession.completedSets.find(
+    const previousSetData = window.currentWorkoutSession.completedSets.find(
         s => s.exercise_id === currentExercise.id && s.set_number === currentSet
     );
     
@@ -12896,7 +12896,7 @@ function changeExercise() {
     }
     
     // En séance libre : retour simple à la sélection
-    if (currentWorkoutSession.type === 'free') {
+    if (window.currentWorkoutSession.type === 'free') {
         showExerciseSelection();
         return;
     }
@@ -13009,10 +13009,10 @@ async function executeSwapTransition(originalExerciseId, newExerciseId, reason) 
     }
 
     // 2. RÉCUPÉRER LE CONTEXTE SWAP
-    const swapContext = currentWorkoutSession.pendingSwap;
+    const swapContext = window.currentWorkoutSession.pendingSwap;
     if (!swapContext || swapContext.originalExerciseId != originalExerciseId) {
         // Créer un contexte de fallback si manquant
-        const originalState = currentWorkoutSession.sessionExercises[originalExerciseId];
+        const originalState = window.currentWorkoutSession.sessionExercises[originalExerciseId];
         if (!originalState) {
             throw new Error(`État de l'exercice ${originalExerciseId} non trouvé`);
         }
@@ -13024,10 +13024,10 @@ async function executeSwapTransition(originalExerciseId, newExerciseId, reason) 
             currentSetNumber: currentSet || 1,
             timestamp: new Date()
         };
-        currentWorkoutSession.pendingSwap = fallbackContext;
+        window.currentWorkoutSession.pendingSwap = fallbackContext;
     }
 
-    const context = currentWorkoutSession.pendingSwap;
+    const context = window.currentWorkoutSession.pendingSwap;
     
     try {
         // 3. VALIDATION BACKEND
@@ -13067,28 +13067,28 @@ async function executeSwapTransition(originalExerciseId, newExerciseId, reason) 
         loadSessionExercisesList();
 
         // 9. NETTOYAGE ET CONFIRMATION
-        currentWorkoutSession.pendingSwap = null;
+        window.currentWorkoutSession.pendingSwap = null;
         showToast(`✅ ${newExercise.name} remplace ${context.originalExerciseState.name || 'l\'exercice'}`, 'success');
         
         console.log(`✅ SWAP COMPLETE: ${originalExerciseId} → ${newExerciseId}`);
 
     } catch (error) {
         console.error('❌ SWAP FAILED:', error);
-        currentWorkoutSession.pendingSwap = null;
+        window.currentWorkoutSession.pendingSwap = null;
         throw error; // Re-lancer pour que selectAlternative puisse l'attraper
     }
 }
 
 async function updateCompleteSwapState(originalId, newId, newExercise, reason, context) {
     // 1. Marquer l'original comme swappé
-    const originalState = currentWorkoutSession.sessionExercises[originalId];
+    const originalState = window.currentWorkoutSession.sessionExercises[originalId];
     originalState.swapped = true;
     originalState.swappedTo = newId;
     originalState.swapReason = reason;
     originalState.swapTimestamp = context.timestamp;
 
     // 2. Créer l'état du nouvel exercice (PROPRE)
-    currentWorkoutSession.sessionExercises[newId] = {
+    window.currentWorkoutSession.sessionExercises[newId] = {
         // Préserver l'historique de progression
         completedSets: originalState.completedSets || 0,
         totalSets: originalState.totalSets || 3,
@@ -13114,13 +13114,13 @@ async function updateCompleteSwapState(originalId, newId, newExercise, reason, c
     };
 
     // 3. Mettre à jour la séance principale SANS changer l'ID
-    const exerciseIndex = currentWorkoutSession.sessionData.exercises.findIndex(
+    const exerciseIndex = window.currentWorkoutSession.sessionData.exercises.findIndex(
         ex => ex.exercise_id == originalId
     );
     
     if (exerciseIndex !== -1) {
         // GARDER l'exercise_id original, ajouter les données swappées
-        currentWorkoutSession.sessionData.exercises[exerciseIndex].swappedData = {
+        window.currentWorkoutSession.sessionData.exercises[exerciseIndex].swappedData = {
             exercise_id: newId,
             name: newExercise.name,
             instructions: newExercise.instructions,
@@ -13133,8 +13133,8 @@ async function updateCompleteSwapState(originalId, newId, newExercise, reason, c
     }
 
     // 4. Tracking des swaps
-    if (!currentWorkoutSession.swaps) currentWorkoutSession.swaps = [];
-    currentWorkoutSession.swaps.push({
+    if (!window.currentWorkoutSession.swaps) window.currentWorkoutSession.swaps = [];
+    window.currentWorkoutSession.swaps.push({
         original_id: originalId,
         new_id: newId,
         reason: reason,
@@ -13145,8 +13145,8 @@ async function updateCompleteSwapState(originalId, newId, newExercise, reason, c
     });
 
     // 5. Tracking des modifications
-    if (!currentWorkoutSession.modifications) currentWorkoutSession.modifications = [];
-    currentWorkoutSession.modifications.push({
+    if (!window.currentWorkoutSession.modifications) window.currentWorkoutSession.modifications = [];
+    window.currentWorkoutSession.modifications.push({
         type: 'swap',
         timestamp: context.timestamp,
         original: originalId,
@@ -13155,7 +13155,7 @@ async function updateCompleteSwapState(originalId, newId, newExercise, reason, c
         sets_completed_before: context.originalExerciseState.completedSets || 0
     });
 
-    console.log(`📊 SWAP STATE UPDATED - Total swaps: ${currentWorkoutSession.swaps.length}`);
+    console.log(`📊 SWAP STATE UPDATED - Total swaps: ${window.currentWorkoutSession.swaps.length}`);
 }
 
 async function updateCurrentExerciseUI(newExercise) {
@@ -13209,7 +13209,7 @@ async function updateCurrentExerciseUI(newExercise) {
         currentExercise.base_rest_time_seconds = newExercise.base_rest_time_seconds || 90;
         
         // 6. Réinitialiser le compte de sets pour ce nouvel exercice
-        currentWorkoutSession.totalSets = newExercise.default_sets || 3;
+        window.currentWorkoutSession.totalSets = newExercise.default_sets || 3;
         
         // 7. Mettre à jour les recommandations ML
         await updateSetRecommendations();
@@ -13330,8 +13330,8 @@ async function proceedToAlternatives(exerciseId, reason) {
     try {
         // Obtenir l'index de l'exercice dans la session
         let exerciseIndex = -1;
-        if (currentWorkoutSession.sessionData && currentWorkoutSession.sessionData.exercises) {
-            exerciseIndex = currentWorkoutSession.sessionData.exercises.findIndex(ex => ex.exercise_id === exerciseId);
+        if (window.currentWorkoutSession.sessionData && window.currentWorkoutSession.sessionData.exercises) {
+            exerciseIndex = window.currentWorkoutSession.sessionData.exercises.findIndex(ex => ex.exercise_id === exerciseId);
         }
         
         // Appeler l'API pour obtenir les alternatives
@@ -13470,7 +13470,7 @@ function selectAlternativeManual(originalExerciseId, reason) {
     closeModal();
     
     // Sauvegarder le contexte de swap
-    currentWorkoutSession.pendingSwap = {
+    window.currentWorkoutSession.pendingSwap = {
         originalExerciseId: originalExerciseId,
         reason: reason,
         timestamp: new Date()
@@ -13513,8 +13513,8 @@ function keepCurrentWithAdaptation(exerciseId, reason) {
     showToast(adaptationMessages[reason] || '💡 Continuons avec des adaptations', 'info');
     
     // Tracker la décision (si le système existe)
-    if (currentWorkoutSession.modifications) {
-        currentWorkoutSession.modifications.push({
+    if (window.currentWorkoutSession.modifications) {
+        window.currentWorkoutSession.modifications.push({
             type: 'keep_with_adaptation',
             timestamp: new Date(),
             exercise_id: exerciseId,
@@ -13547,14 +13547,14 @@ function adjustRestTime(deltaSeconds) {
     currentSeconds = Math.max(0, Math.min(600, currentSeconds)); // Limites 0-10min
     
     // === MODULE 4 : TRACKING AJUSTEMENTS ===
-    if (!currentWorkoutSession.restAdjustments) {
-        currentWorkoutSession.restAdjustments = [];
+    if (!window.currentWorkoutSession.restAdjustments) {
+        window.currentWorkoutSession.restAdjustments = [];
     }
-    currentWorkoutSession.restAdjustments.push({
+    window.currentWorkoutSession.restAdjustments.push({
         timestamp: Date.now(),
         delta: deltaSeconds,
-        fromML: !!currentWorkoutSession.mlRestData?.seconds,
-        originalML: currentWorkoutSession.mlRestData?.seconds,
+        fromML: !!window.currentWorkoutSession.mlRestData?.seconds,
+        originalML: window.currentWorkoutSession.mlRestData?.seconds,
         finalTime: currentSeconds
     });
     
@@ -13604,12 +13604,12 @@ function adjustRestTime(deltaSeconds) {
             
             // Calculer et enregistrer le temps de repos réel
             const actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
-            currentWorkoutSession.totalRestTime += actualRestTime;
+            window.currentWorkoutSession.totalRestTime += actualRestTime;
             console.log(`⏱️ Repos terminé après ajustement: ${actualRestTime}s réels`);
             
-            if (currentWorkoutSession.autoAdvance) {
+            if (window.currentWorkoutSession.autoAdvance) {
                 setTimeout(() => {
-                    if (currentWorkoutSession.state === WorkoutStates.RESTING) {
+                    if (window.currentWorkoutSession.state === WorkoutStates.RESTING) {
                         endRest();
                     }
                 }, 1000);
@@ -13642,8 +13642,8 @@ function pauseWorkout(event = null) {
     if (document.querySelector('.modal.active')) {
         closeModal();
     }
-    if (currentWorkoutSession.pendingSwap) {
-        delete currentWorkoutSession.pendingSwap;
+    if (window.currentWorkoutSession.pendingSwap) {
+        delete window.currentWorkoutSession.pendingSwap;
         console.log('🔍 Pending swap annulé par pause');
     }
     
@@ -13804,13 +13804,13 @@ async function abandonWorkout() {
 
 function showSessionExerciseList() {
     const container = document.getElementById('sessionExerciseList');
-    if (!currentWorkoutSession || currentWorkoutSession.type !== 'ai') {
+    if (!window.currentWorkoutSession || window.currentWorkoutSession.type !== 'ai') {
         container.style.display = 'none';
         return;
     }
     container.style.display = 'block';
-    container.innerHTML = currentWorkoutSession.exercises.map((ex, idx) => `
-        <div class="exercise-item ${idx === currentWorkoutSession.exerciseOrder - 1 ? 'active' : ''}">
+    container.innerHTML = window.currentWorkoutSession.exercises.map((ex, idx) => `
+        <div class="exercise-item ${idx === window.currentWorkoutSession.exerciseOrder - 1 ? 'active' : ''}">
             ${ex.name}
             <button onclick="selectSessionExercise(${ex.exercise_id})">Passer à</button>
             <button onclick="initiateSwap(${ex.exercise_id})">Swapper</button>
@@ -13824,7 +13824,7 @@ function showSessionExerciseList() {
 function canSwapExercise(exerciseId) {
     console.log(`🔍 canSwapExercise(${exerciseId})`);
     
-    const exerciseState = currentWorkoutSession.sessionExercises[exerciseId];
+    const exerciseState = window.currentWorkoutSession.sessionExercises[exerciseId];
     if (!exerciseState) {
         console.log(`ERROR: Exercice ${exerciseId} non trouvé`);
         return false;
@@ -13867,14 +13867,14 @@ function canSwapExercise(exerciseId) {
 
 
 function getCurrentExerciseData(exerciseId) {
-    if (!currentWorkoutSession.sessionData || !currentWorkoutSession.sessionData.exercises) {
+    if (!window.currentWorkoutSession.sessionData || !window.currentWorkoutSession.sessionData.exercises) {
         return null;
     }
     
-    const exerciseData = currentWorkoutSession.sessionData.exercises.find(ex => ex.exercise_id === exerciseId);
+    const exerciseData = window.currentWorkoutSession.sessionData.exercises.find(ex => ex.exercise_id === exerciseId);
     if (!exerciseData) return null;
     
-    const exerciseState = currentWorkoutSession.sessionExercises[exerciseId];
+    const exerciseState = window.currentWorkoutSession.sessionExercises[exerciseId];
     
     // Utiliser les données swappées si elles existent
     const displayData = exerciseData.swappedData || exerciseData;
@@ -14219,8 +14219,8 @@ async function finalizeDragOperation() {
         lastKnownScore = newScore.total;
         
         // Stocker le nouvel ordre dans la session
-        if (currentWorkoutSession && currentWorkoutSession.sessionData) {
-            currentWorkoutSession.sessionData.exercises = newOrder;
+        if (window.currentWorkoutSession && window.currentWorkoutSession.sessionData) {
+            window.currentWorkoutSession.sessionData.exercises = newOrder;
         }
         
     } catch (error) {
@@ -14585,7 +14585,7 @@ window.getConfidenceIcon = getConfidenceIcon;
 window.resetFeedbackSelection = resetFeedbackSelection;
 
 window.currentWorkout = currentWorkout;
-window.currentWorkoutSession = currentWorkoutSession;
+window.currentWorkoutSession = window.currentWorkoutSession;
 window.workoutState = workoutState;
 window.currentExercise = currentExercise;
 
