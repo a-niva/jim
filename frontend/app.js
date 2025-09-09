@@ -12087,7 +12087,7 @@ async function saveFeedbackAndRest() {
         const isLastSet = currentSet >= window.currentWorkoutSession.totalSets;
         
         if (isLastSet) {
-            // Pour TOUTES les séances (AI et libres)
+            // Afficher la modal pour TOUTES les séances (AI et libres)
             transitionTo(WorkoutStates.COMPLETED);
             
             // Stocker le timestamp pour calculer le temps passé dans la modal
@@ -12149,7 +12149,7 @@ async function saveFeedbackAndRest() {
                         if (!aiExercise.completedSets) aiExercise.completedSets = 0;
                         aiExercise.completedSets++;
                         
-                        if (aiExercise.completedSets >= aiExercise.default_sets) {
+                        if (aiExercise.completedSets >= aiExercice.default_sets) {
                             aiExercise.isCompleted = true;
                             aiExercise.endTime = new Date();
                             if (!window.currentWorkoutSession.completedExercisesCount) {
@@ -12279,68 +12279,145 @@ function completeRest() {
     }
     
     // === PRÉPARATION SÉRIE SUIVANTE ===
-    // RETIRER TOUTE LA LOGIQUE DE TRANSITION AUTOMATIQUE
-    // La modal sera gérée dans saveFeedbackAndRest() après le dernier set
-    
-    // Incrémentation série
-    currentSet++;
-    window.currentWorkoutSession.currentSetNumber = currentSet;
-    
-    // Mises à jour interface
-    updateSeriesDots();
-    updateHeaderProgress();
-    
-    // Update recommendations AVANT le reset interface
-    if (window.currentWorkoutSession.type === 'ai') {
-        updateSessionExerciseProgress();
-        loadSessionExercisesList();
-    }
-    
-    updateSetRecommendations();
-    
-    // Reset interface N/R avec protection
-    if (typeof transitionToReadyState === 'function') {
-        transitionToReadyState();
-        console.log('[Rest] Interface N/R reset via transitionToReadyState');
+    if (currentSet >= window.currentWorkoutSession.totalSets) {
+        // Pour les séances AI : transition automatique
+        if (window.currentWorkoutSession.type === 'ai') {
+            // Marquer l'exercice comme complété
+            if (window.currentWorkoutSession.sessionExercises && window.currentWorkoutSession.sessionExercises[currentExercise.id]) {
+                window.currentWorkoutSession.sessionExercises[currentExercise.id].isCompleted = true;
+                window.currentWorkoutSession.sessionExercises[currentExercise.id].completedSets = currentSet;
+            }
+            
+            // Trouver l'exercice suivant
+            const currentIndex = window.currentWorkoutSession.exercises.findIndex(
+                ex => ex.exercise_id === currentExercise.id
+            );
+            
+            if (currentIndex < window.currentWorkoutSession.exercises.length - 1) {
+                // Il reste des exercices
+                const nextExercise = window.currentWorkoutSession.exercises[currentIndex + 1];
+                
+                showToast(`✅ ${currentExercise.name} terminé !`, 'success');
+                
+                // Transition directe vers le prochain exercice
+                setTimeout(async () => {
+                    // Mettre à jour le panel AI
+                    if (window.aiSessionManager) {
+                        window.aiSessionManager.showAISessionPanel();
+                    }
+                    
+                    // Sélectionner le prochain exercice
+                    await selectSessionExercise(nextExercise.exercise_id);
+                    
+                    showToast(`Exercice ${currentIndex + 2}/${window.currentWorkoutSession.exercises.length} : ${nextExercise.name}`, 'info');
+                }, 1000);
+                
+                return;
+                
+            } else {
+                // C'était le dernier exercice
+                transitionTo(WorkoutStates.COMPLETED);
+                
+                // Calculer la durée totale
+                let totalDuration = 0;
+                if (workoutStartTime) {
+                    totalDuration = Math.floor((Date.now() - workoutStartTime) / 1000);
+                } else {
+                    const timerDisplay = document.getElementById('workoutTimer')?.textContent;
+                    if (timerDisplay) {
+                        const [minutes, seconds] = timerDisplay.split(':').map(Number);
+                        totalDuration = (minutes * 60) + seconds;
+                    }
+                }
+                
+                showModal('Séance terminée ! 🎉', `
+                    <div style="text-align: center;">
+                        <h3>Bravo ! 💪</h3>
+                        <p>Vous avez complété tous les exercices de la séance.</p>
+                        <div style="margin: 1.5rem 0;">
+                            <div style="font-size: 1.2rem; margin: 0.5rem;">
+                                ⏱️ Durée : ${formatTime(totalDuration)}
+                            </div>
+                            <div style="font-size: 1.2rem; margin: 0.5rem;">
+                                🏋️ Exercices : ${window.currentWorkoutSession.completedExercisesCount || 0}
+                            </div>
+                            <div style="font-size: 1.2rem; margin: 0.5rem;">
+                                📊 Séries : ${window.currentWorkoutSession.globalSetCount}
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="endWorkout(); closeModal();" style="margin-top: 1rem;">
+                            Voir le résumé détaillé
+                        </button>
+                    </div>
+                `);
+                return;
+            }
+        } else {
+            // Séances libres : comportement classique
+            transitionTo(WorkoutStates.COMPLETED);
+            showSetCompletionOptions();
+        }
     } else {
-        // Fallback direct si la fonction n'existe pas
-        const currentRepEl = document.getElementById('currentRep');
-        if (currentRepEl) {
-            currentRepEl.textContent = '0';
-            console.log('[Rest] Reset manuel du compteur de reps');
-        }
-        // Reset aussi via la fonction moderne si elle existe
-        if (typeof initializeModernRepsDisplay === 'function') {
-            const targetRep = document.getElementById('targetRep');
-            const targetValue = targetRep ? parseInt(targetRep.textContent) : 12;
-            initializeModernRepsDisplay(targetValue);
-        }
-    }
-    
-    // Transition vers état READY
-    transitionTo(WorkoutStates.READY);
-    
-    // Pour motion detection
-    if (currentUser?.motion_detection_enabled && 
-        window.motionDetectionEnabled && 
-        window.motionDetector &&
-        currentExercise?.exercise_type !== 'isometric') {
+        // Incrémentation série
+        currentSet++;
+        window.currentWorkoutSession.currentSetNumber = currentSet;
         
-        console.log('[Motion] Réactivation motion detector pour série suivante');
-        showMotionInstructions();
-        window.motionDetector.startMonitoring(createMotionCallbacksV2());
-        console.log('[Motion] Motion detector prêt, vocal en attente');
-    } else {
-        // Mode manuel
-        startSetTimer();
-    }
-    
-    // Reset CSS spécifique (layout steppers)
-    const steppersContainer = document.querySelector('.exercise-controls-container');
-    if (steppersContainer) {
-        steppersContainer.style.gridTemplateColumns = '';
-        steppersContainer.style.gap = '';
-        console.log('[Rest] Steppers réinitialisés avec layout CSS natif');
+        // Mises à jour interface
+        updateSeriesDots();
+        updateHeaderProgress();
+        
+        // Update recommendations AVANT le reset interface
+        if (window.currentWorkoutSession.type === 'ai') {
+            updateSessionExerciseProgress();
+            loadSessionExercisesList();
+        }
+        
+        updateSetRecommendations();
+        
+        // Reset interface N/R avec protection
+        if (typeof transitionToReadyState === 'function') {
+            transitionToReadyState();
+            console.log('[Rest] Interface N/R reset via transitionToReadyState');
+        } else {
+            // Fallback direct si la fonction n'existe pas
+            const currentRepEl = document.getElementById('currentRep');
+            if (currentRepEl) {
+                currentRepEl.textContent = '0';
+                console.log('[Rest] Reset manuel du compteur de reps');
+            }
+            // Reset aussi via la fonction moderne si elle existe
+            if (typeof initializeModernRepsDisplay === 'function') {
+                const targetRep = document.getElementById('targetRep');
+                const targetValue = targetRep ? parseInt(targetRep.textContent) : 12;
+                initializeModernRepsDisplay(targetValue);
+            }
+        }
+        
+        // Transition vers état READY
+        transitionTo(WorkoutStates.READY);
+        
+        // Pour motion detection
+        if (currentUser?.motion_detection_enabled && 
+            window.motionDetectionEnabled && 
+            window.motionDetector &&
+            currentExercise?.exercise_type !== 'isometric') {
+            
+            console.log('[Motion] Réactivation motion detector pour série suivante');
+            showMotionInstructions();
+            window.motionDetector.startMonitoring(createMotionCallbacksV2());
+            console.log('[Motion] Motion detector prêt, vocal en attente');
+        } else {
+            // Mode manuel
+            startSetTimer();
+        }
+        
+        // Reset CSS spécifique (layout steppers)
+        const steppersContainer = document.querySelector('.exercise-controls-container');
+        if (steppersContainer) {
+            steppersContainer.style.gridTemplateColumns = '';
+            steppersContainer.style.gap = '';
+            console.log('[Rest] Steppers réinitialisés avec layout CSS natif');
+        }
     }
 }
 
