@@ -11927,7 +11927,7 @@ async function saveFeedbackAndRest() {
             
             if (window.currentWorkoutSession.type === 'ai' && currentExercise) {
                 const exerciseIndex = window.currentWorkoutSession.exercises.findIndex(
-                    ex => ex.exercise_id === currentExercise.id
+                    ex => ex.exercise_id === currentExercise.exercise_id
                 );
                 
                 if (exerciseIndex !== -1) {
