@@ -12041,17 +12041,26 @@ async function saveFeedbackAndRest() {
             
             // Modal dès qu'on atteint ou dépasse les séries de base (3, 4, 5, ...)
             if (currentSet >= baseSets) {
+                // Identifier l'exercice avec la bonne propriété
+                const exerciseId = parseInt(currentExercise.exercise_id || currentExercise.id);
+                
                 // Marquer exercice comme complété pour cette série
-                if (window.currentWorkoutSession.sessionExercises && window.currentWorkoutSession.sessionExercises[currentExercise.exercise_id]) {
-                    const exerciseState = window.currentWorkoutSession.sessionExercises[currentExercise.exercise_id];
+                if (window.currentWorkoutSession.sessionExercises && window.currentWorkoutSession.sessionExercises[exerciseId]) {
+                    const exerciseState = window.currentWorkoutSession.sessionExercises[exerciseId];
                     exerciseState.isCompleted = true;
                     exerciseState.completedSets = currentSet;
                 }
                 
-                // Trouver l'exercice suivant
+                // Trouver l'index de l'exercice courant (avec conversion de type)
                 const currentIndex = window.currentWorkoutSession.exercises.findIndex(
-                    ex => ex.exercise_id === currentExercise.exercise_id
+                    ex => parseInt(ex.exercise_id || ex.id) === exerciseId
                 );
+                
+                // Validation de l'index trouvé
+                if (currentIndex === -1) {
+                    console.error(`[AI Modal] Exercice ${exerciseId} non trouvé dans la session AI`);
+                    return;
+                }
                 
                 // Afficher modal AVANT repos pour CHAQUE série >= baseSets
                 showAIExerciseCompletionModal(currentIndex);
@@ -12330,13 +12339,22 @@ function completeRest() {
 }
 
 function showAIExerciseCompletionModal(currentExerciseIndex) {
-    // Validation des paramètres
-    if (!window.currentWorkoutSession?.exercises || currentExerciseIndex < 0) {
-        console.error('[AI Modal] Paramètres invalides:', { currentExerciseIndex, exercises: window.currentWorkoutSession?.exercises });
+    // Validation stricte des paramètres
+    if (!window.currentWorkoutSession?.exercises) {
+        console.error('[AI Modal] Session AI ou exercices manquants');
         return;
     }
     
     const exercises = window.currentWorkoutSession.exercises;
+    
+    if (currentExerciseIndex < 0 || currentExerciseIndex >= exercises.length) {
+        console.error('[AI Modal] Index exercice invalide:', {
+            index: currentExerciseIndex,
+            exercisesCount: exercises.length
+        });
+        return;
+    }
+    
     const isLastExercise = currentExerciseIndex >= exercises.length - 1;
     const exerciseName = currentExercise?.name || exercises[currentExerciseIndex]?.name || 'Exercice';
     
@@ -12349,16 +12367,16 @@ function showAIExerciseCompletionModal(currentExerciseIndex) {
             
             <div style="display: flex; flex-direction: column; gap: 1rem; max-width: 300px; margin: 0 auto;">
                 ${!isLastExercise ? `
-                    <button class="btn btn-primary" onclick="handleAIExerciseTransition('next', ${currentExerciseIndex}); closeModal();">
+                    <button class="btn btn-primary" onclick="handleAIExerciseTransition('next', ${currentExerciseIndex});" style="padding: 12px; font-size: 16px;">
                         🏃‍♂️ Exercice suivant
                     </button>
                 ` : ''}
                 
-                <button class="btn btn-secondary" onclick="handleAIExerciseTransition('extra', ${currentExerciseIndex}); closeModal();">
+                <button class="btn btn-secondary" onclick="handleAIExerciseTransition('extra', ${currentExerciseIndex});" style="padding: 12px; font-size: 16px;">
                     ➕ Série supplémentaire
                 </button>
                 
-                <button class="btn btn-outline" onclick="handleAIExerciseTransition('finish', ${currentExerciseIndex}); closeModal();">
+                <button class="btn btn-outline" onclick="handleAIExerciseTransition('finish', ${currentExerciseIndex});" style="padding: 12px; font-size: 16px;">
                     ✅ Terminer la séance
                 </button>
             </div>
@@ -12369,10 +12387,21 @@ function showAIExerciseCompletionModal(currentExerciseIndex) {
 }
 
 async function handleAIExerciseTransition(action, exerciseIndex) {
-    // Validation des paramètres
-    if (!window.currentWorkoutSession?.exercises || exerciseIndex < 0) {
+    // Validation stricte des paramètres
+    if (!window.currentWorkoutSession?.exercises || exerciseIndex < 0 || exerciseIndex >= window.currentWorkoutSession.exercises.length) {
         console.error('[AI Transition] Paramètres invalides:', { action, exerciseIndex });
         return;
+    }
+    
+    // Fermer le modal de manière robuste
+    if (typeof hideModal === 'function') {
+        hideModal();
+    } else if (typeof closeModal === 'function') {
+        closeModal();
+    } else {
+        // Fallback fermeture manuelle
+        const modals = document.querySelectorAll('.modal, .modal-overlay');
+        modals.forEach(modal => modal.style.display = 'none');
     }
     
     const exercises = window.currentWorkoutSession.exercises;
@@ -12382,46 +12411,28 @@ async function handleAIExerciseTransition(action, exerciseIndex) {
             case 'next':
                 if (exerciseIndex < exercises.length - 1) {
                     const nextExercise = exercises[exerciseIndex + 1];
-                    
-                    // Déclencher repos de 120s avec preview ML
                     showToast('🏃‍♂️ Passage à l\'exercice suivant dans 120s...', 'info');
                     await startAIInterExerciseRest(nextExercise);
                 } else {
-                    console.warn('[AI Transition] Pas d\'exercice suivant');
+                    showToast('Plus d\'exercice suivant', 'info');
                 }
                 break;
                 
             case 'extra':
-                // Relancer l'exercice actuel
                 await restartCurrentAIExercise();
                 break;
                 
             case 'finish':
-                // Terminer la séance avec stats
-                const totalDuration = workoutStartTime ? Date.now() - workoutStartTime : 0;
-                const formattedDuration = typeof formatTime === 'function' ? 
-                    formatTime(Math.floor(totalDuration / 1000)) : 
-                    `${Math.floor(totalDuration / 60000)}:${Math.floor((totalDuration % 60000) / 1000).toString().padStart(2, '0')}`;
-                
-                const finishModalContent = `
-                    <div style="text-align: center;">
-                        <h3>Bravo ! 💪</h3>
-                        <p>Vous avez complété votre séance IA.</p>
-                        <div style="margin: 1.5rem 0;">
-                            <div style="font-size: 1.2rem; margin: 0.5rem;">
-                                ⏱️ Durée : ${formattedDuration}
-                            </div>
-                            <div style="font-size: 1.2rem; margin: 0.5rem;">
-                                🏋️ Exercices : ${window.currentWorkoutSession.completedExercisesCount || 0}
-                            </div>
-                        </div>
-                        <button class="btn btn-primary" onclick="if(typeof endWorkout === 'function') endWorkout(); closeModal();">
-                            Voir le résumé détaillé
-                        </button>
-                    </div>
-                `;
-                
-                showModal('Séance terminée ! 🎉', finishModalContent);
+                if (typeof endWorkout === 'function') {
+                    endWorkout();
+                } else {
+                    showToast('Séance terminée !', 'success');
+                    setTimeout(() => {
+                        if (typeof showView === 'function') {
+                            showView('dashboard');
+                        }
+                    }, 2000);
+                }
                 break;
                 
             default:
@@ -12433,67 +12444,18 @@ async function handleAIExerciseTransition(action, exerciseIndex) {
     }
 }
 
-
-async function transitionToNextAIExercise(nextExercise) {
-    if (!nextExercise || !window.currentWorkoutSession?.exercises) {
-        console.error('[AI Transition] Paramètres invalides pour transition');
-        return;
-    }
-    
-    try {
-        // Identifier l'exercice avec la bonne propriété
-        const exerciseId = nextExercise.exercise_id || nextExercise.id;
-        
-        // Mettre à jour l'index actuel dans la session AI avant appel selectSessionExercise
-        const nextIndex = window.currentWorkoutSession.exercises.findIndex(
-            ex => (ex.exercise_id || ex.id) === exerciseId
-        );
-        
-        if (nextIndex === -1) {
-            console.error('[AI Transition] Exercice suivant non trouvé dans la session');
-            return;
-        }
-        
-        console.log(`[AI Transition] Passage à l'exercice ${nextIndex}: ${nextExercise.name}`);
-        
-        // Mettre à jour l'index AVANT d'appeler selectSessionExercise
-        window.currentWorkoutSession.currentIndex = nextIndex;
-        
-        // Appeler selectSessionExercise qui fera le reste des mises à jour
-        await selectSessionExercise(exerciseId, false);
-        
-        // Vérifier que la transition s'est bien passée
-        if (currentExercise && (currentExercise.id === exerciseId || currentExercise.exercise_id === exerciseId)) {
-            showToast(`🎯 ${nextExercise.name}`, 'success');
-            
-            // Mettre à jour l'affichage de la liste des exercices
-            if (typeof loadSessionExercisesList === 'function') {
-                loadSessionExercisesList();
-            }
-        } else {
-            console.warn('[AI Transition] Transition partielle - continuons quand même');
-            showToast(`🎯 ${nextExercise.name}`, 'info');
-        }
-        
-    } catch (error) {
-        console.error('[AI Transition] Erreur lors de la transition:', error);
-        showToast('Erreur lors du passage à l\'exercice suivant', 'error');
-    }
-}
-
 async function startAIInterExerciseRest(nextExercise) {
     if (!nextExercise) {
         console.error('[AI Rest] Exercice suivant non fourni');
         return;
     }
     
-    const restDuration = 120; // 2 minutes entre exercices IA
+    const restDuration = 120;
     
     try {
-        // Transition vers état repos
         transitionTo(WorkoutStates.RESTING);
         
-        // Afficher le modal repos si disponible
+        // Afficher modal repos si disponible
         if (window.OverlayManager && document.getElementById('restPeriod')) {
             const restPeriod = document.getElementById('restPeriod');
             window.OverlayManager.show('rest', restPeriod);
@@ -12504,27 +12466,13 @@ async function startAIInterExerciseRest(nextExercise) {
             }
         }
         
-        // Charger preview ML pour l'exercice suivant
-        try {
-            const previewData = await forcePreloadAIExerciseData(nextExercise);
-            renderNextSeriesPreviewSafe(previewData);
-        } catch (previewError) {
-            console.error('[AI Rest] Erreur preview ML:', previewError);
-            renderNextSeriesPreviewSafe({
-                weight: '--',
-                reps: nextExercise.default_reps_min || nextExercise.default_reps_max || '--',
-                rest: Math.round((nextExercise.base_rest_time_seconds || 90) / 10) * 10
-            });
-        }
-        
-        // Timer de repos avec auto-transition
+        // Timer avec auto-transition
         if (typeof workoutState !== 'undefined') {
             workoutState.restStartTime = Date.now();
         }
         
         let timeLeft = restDuration;
         
-        // Nettoyer timer existant si présent
         if (typeof restTimer !== 'undefined' && restTimer) {
             clearInterval(restTimer);
         }
@@ -12532,7 +12480,6 @@ async function startAIInterExerciseRest(nextExercise) {
         restTimer = setInterval(() => {
             timeLeft--;
             
-            // Mettre à jour l'affichage si fonction disponible
             if (typeof updateRestTimer === 'function') {
                 updateRestTimer(timeLeft);
             }
@@ -12555,15 +12502,52 @@ async function startAIInterExerciseRest(nextExercise) {
                     window.OverlayManager.hide('rest');
                 }
                 
-                // CORRECTION: Transition simple vers exercice suivant
+                // Transition vers exercice suivant
                 transitionToNextAIExercise(nextExercise);
             }
         }, 1000);
         
     } catch (error) {
         console.error('[AI Rest] Erreur lors du repos inter-exercices:', error);
-        // Fallback: transition directe
         transitionToNextAIExercise(nextExercise);
+    }
+}
+
+async function transitionToNextAIExercise(nextExercise) {
+    if (!nextExercise || !window.currentWorkoutSession?.exercises) {
+        console.error('[AI Transition] Paramètres invalides pour transition');
+        return;
+    }
+    
+    try {
+        // Identifier l'exercice avec conversion de type cohérente
+        const exerciseId = parseInt(nextExercise.exercise_id || nextExercise.id);
+        
+        // Mettre à jour l'index dans la session AI
+        const nextIndex = window.currentWorkoutSession.exercises.findIndex(
+            ex => parseInt(ex.exercise_id || ex.id) === exerciseId
+        );
+        
+        if (nextIndex === -1) {
+            console.error('[AI Transition] Exercice suivant non trouvé dans la session');
+            return;
+        }
+        
+        window.currentWorkoutSession.currentIndex = nextIndex;
+        
+        // Appeler selectSessionExercise pour changer d'exercice
+        await selectSessionExercise(exerciseId, false);
+        
+        showToast(`🎯 ${nextExercise.name}`, 'success');
+        
+        // Mettre à jour l'affichage
+        if (typeof loadSessionExercisesList === 'function') {
+            loadSessionExercisesList();
+        }
+        
+    } catch (error) {
+        console.error('[AI Transition] Erreur lors de la transition:', error);
+        showToast('Erreur lors du passage à l\'exercice suivant', 'error');
     }
 }
 
@@ -12608,8 +12592,6 @@ async function forcePreloadAIExerciseData(exercise) {
     };
 }
 
-
-
 async function restartCurrentAIExercise() {
     if (!currentExercise || window.currentWorkoutSession?.type !== 'ai') {
         console.error('[AI Restart] Exercice IA non trouvé ou session incorrecte');
@@ -12618,8 +12600,8 @@ async function restartCurrentAIExercise() {
     }
     
     try {
-        // CORRECTION: Identifier l'exercice avec exercise_id (pas id)
-        const exerciseId = currentExercise.exercise_id || currentExercise.id;
+        // Identifier l'exercice avec conversion de type cohérente
+        const exerciseId = parseInt(currentExercise.exercise_id || currentExercise.id);
         
         // Incrémenter le nombre total de séries pour cet exercice spécifique
         window.currentWorkoutSession.totalSets++;
@@ -12627,16 +12609,15 @@ async function restartCurrentAIExercise() {
         // Mettre à jour l'état de l'exercice dans la session AI
         if (window.currentWorkoutSession.sessionExercises?.[exerciseId]) {
             const exerciseState = window.currentWorkoutSession.sessionExercises[exerciseId];
-            exerciseState.isCompleted = false; // Plus complété puisqu'on ajoute une série
+            exerciseState.isCompleted = false;
             exerciseState.endTime = null;
-            // Garder completedSets intact - il sera incrémenté à la prochaine série
         }
         
-        // Incrémenter la série courante pour commencer la série supplémentaire
+        // Incrémenter la série courante
         currentSet++;
         window.currentWorkoutSession.currentSetNumber = currentSet;
         
-        // Mettre à jour l'affichage des dots/progress
+        // Mettre à jour l'affichage
         updateSeriesDots();
         updateHeaderProgress();
         
@@ -12645,12 +12626,12 @@ async function restartCurrentAIExercise() {
             loadSessionExercisesList();
         }
         
-        // Réinitialiser l'interface pour la nouvelle série
+        // Réinitialiser l'interface
         if (typeof transitionToReadyState === 'function') {
             transitionToReadyState();
         }
         
-        // Transition vers état READY pour commencer la série supplémentaire
+        // Transition vers état READY
         transitionTo(WorkoutStates.READY);
         
         // Activer motion detection si disponible
