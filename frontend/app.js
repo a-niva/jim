@@ -12034,16 +12034,18 @@ async function saveFeedbackAndRest() {
         }
         
         const isLastSet = currentSet >= window.currentWorkoutSession.totalSets;
-        
-        if (isLastSet) {
-            // =====================================================
-            // CORRECTION MAJEURE: Séances AI - Modal AVANT repos
-            // =====================================================
-            if (window.currentWorkoutSession.type === 'ai') {
-                // Marquer l'exercice comme complété
+
+        // NOUVEAU: Pour les séances AI - Vérifier AVANT isLastSet si on dépasse les séries de base
+        if (window.currentWorkoutSession.type === 'ai') {
+            const baseSets = currentExercise.default_sets || 3;
+            
+            // Modal dès qu'on atteint ou dépasse les séries de base (3, 4, 5, ...)
+            if (currentSet >= baseSets) {
+                // Marquer exercice comme complété pour cette série
                 if (window.currentWorkoutSession.sessionExercises && window.currentWorkoutSession.sessionExercises[currentExercise.id]) {
-                    window.currentWorkoutSession.sessionExercises[currentExercise.id].isCompleted = true;
-                    window.currentWorkoutSession.sessionExercises[currentExercise.id].completedSets = currentSet;
+                    const exerciseState = window.currentWorkoutSession.sessionExercises[currentExercise.id];
+                    exerciseState.isCompleted = true;
+                    exerciseState.completedSets = currentSet;
                 }
                 
                 // Trouver l'exercice suivant
@@ -12051,15 +12053,20 @@ async function saveFeedbackAndRest() {
                     ex => ex.exercise_id === currentExercise.id
                 );
                 
-                // NOUVELLE LOGIQUE: Afficher modal AVANT repos
+                // Afficher modal AVANT repos pour CHAQUE série >= baseSets
                 showAIExerciseCompletionModal(currentIndex);
                 return; // Stopper ici, le modal gère la suite
-                
-            } else {
-                // PRÉSERVER: Séances libres/programmes - modal classique avec options
+            }
+        }
+
+        // PRÉSERVER: Logique classique pour dernière série (séances libres/programmes ou séances AI < baseSets)
+        if (isLastSet) {
+            if (window.currentWorkoutSession.type !== 'ai') {
+                // Séances libres/programmes : modal classique avec options
                 transitionTo(WorkoutStates.COMPLETED);
                 showSetCompletionOptions();
             }
+            // Note: Les séances AI sont gérées par la section au-dessus
         } else {
             // PRÉSERVER: Pas la dernière série - repos normal avant prochaine série
             if (currentExercise.exercise_type === 'isometric') {
@@ -12426,6 +12433,54 @@ async function handleAIExerciseTransition(action, exerciseIndex) {
     }
 }
 
+
+async function transitionToNextAIExercise(nextExercise) {
+    if (!nextExercise || !window.currentWorkoutSession?.exercises) {
+        console.error('[AI Transition] Paramètres invalides pour transition');
+        return;
+    }
+    
+    try {
+        // Identifier l'exercice avec la bonne propriété
+        const exerciseId = nextExercise.exercise_id || nextExercise.id;
+        
+        // Mettre à jour l'index actuel dans la session AI avant appel selectSessionExercise
+        const nextIndex = window.currentWorkoutSession.exercises.findIndex(
+            ex => (ex.exercise_id || ex.id) === exerciseId
+        );
+        
+        if (nextIndex === -1) {
+            console.error('[AI Transition] Exercice suivant non trouvé dans la session');
+            return;
+        }
+        
+        console.log(`[AI Transition] Passage à l'exercice ${nextIndex}: ${nextExercise.name}`);
+        
+        // Mettre à jour l'index AVANT d'appeler selectSessionExercise
+        window.currentWorkoutSession.currentIndex = nextIndex;
+        
+        // Appeler selectSessionExercise qui fera le reste des mises à jour
+        await selectSessionExercise(exerciseId, false);
+        
+        // Vérifier que la transition s'est bien passée
+        if (currentExercise && (currentExercise.id === exerciseId || currentExercise.exercise_id === exerciseId)) {
+            showToast(`🎯 ${nextExercise.name}`, 'success');
+            
+            // Mettre à jour l'affichage de la liste des exercices
+            if (typeof loadSessionExercisesList === 'function') {
+                loadSessionExercisesList();
+            }
+        } else {
+            console.warn('[AI Transition] Transition partielle - continuons quand même');
+            showToast(`🎯 ${nextExercise.name}`, 'info');
+        }
+        
+    } catch (error) {
+        console.error('[AI Transition] Erreur lors de la transition:', error);
+        showToast('Erreur lors du passage à l\'exercice suivant', 'error');
+    }
+}
+
 async function startAIInterExerciseRest(nextExercise) {
     if (!nextExercise) {
         console.error('[AI Rest] Exercice suivant non fourni');
@@ -12455,11 +12510,10 @@ async function startAIInterExerciseRest(nextExercise) {
             renderNextSeriesPreviewSafe(previewData);
         } catch (previewError) {
             console.error('[AI Rest] Erreur preview ML:', previewError);
-            // Fallback preview avec données exercice AI réelles
             renderNextSeriesPreviewSafe({
-                weight: '--', // Les exercices AI n'ont pas de poids par défaut
+                weight: '--',
                 reps: nextExercise.default_reps_min || nextExercise.default_reps_max || '--',
-                rest: Math.round((nextExercise.base_rest_time_seconds || 90) / 10) * 10 // Arrondir à 10s
+                rest: Math.round((nextExercise.base_rest_time_seconds || 90) / 10) * 10
             });
         }
         
@@ -12501,16 +12555,15 @@ async function startAIInterExerciseRest(nextExercise) {
                     window.OverlayManager.hide('rest');
                 }
                 
-                // TRANSITION AUTOMATIQUE vers exercice suivant (AI uniquement)
-                selectSessionExercise(nextExercise.exercise_id, false);
-                showToast(`🎯 ${nextExercise.name}`, 'success');
+                // CORRECTION: Transition simple vers exercice suivant
+                transitionToNextAIExercise(nextExercise);
             }
         }, 1000);
         
     } catch (error) {
         console.error('[AI Rest] Erreur lors du repos inter-exercices:', error);
-        // Fallback: transition directe (AI uniquement)
-        selectSessionExercise(nextExercise.exercise_id, false);
+        // Fallback: transition directe
+        transitionToNextAIExercise(nextExercise);
     }
 }
 
@@ -12555,6 +12608,7 @@ async function forcePreloadAIExerciseData(exercise) {
     };
 }
 
+
 async function restartCurrentAIExercise() {
     if (!currentExercise || window.currentWorkoutSession?.type !== 'ai') {
         console.error('[AI Restart] Exercice IA non trouvé ou session incorrecte');
@@ -12563,32 +12617,56 @@ async function restartCurrentAIExercise() {
     }
     
     try {
-        // Réinitialiser l'état de l'exercice
-        if (window.currentWorkoutSession.sessionExercises?.[currentExercise.id]) {
-            const exerciseState = window.currentWorkoutSession.sessionExercises[currentExercise.id];
-            
-            // Décrémenter le compteur si l'exercice était complété
-            if (exerciseState.isCompleted && window.currentWorkoutSession.completedExercisesCount > 0) {
-                window.currentWorkoutSession.completedExercisesCount--;
-            }
-            
-            exerciseState.isCompleted = false;
-            exerciseState.completedSets = 0;
+        // CORRECTION: Identifier l'exercice avec exercise_id (pas id)
+        const exerciseId = currentExercise.exercise_id || currentExercise.id;
+        
+        // Incrémenter le nombre total de séries pour cet exercice spécifique
+        window.currentWorkoutSession.totalSets++;
+        
+        // Mettre à jour l'état de l'exercice dans la session AI
+        if (window.currentWorkoutSession.sessionExercises?.[exerciseId]) {
+            const exerciseState = window.currentWorkoutSession.sessionExercises[exerciseId];
+            exerciseState.isCompleted = false; // Plus complété puisqu'on ajoute une série
             exerciseState.endTime = null;
+            // Garder completedSets intact - il sera incrémenté à la prochaine série
         }
         
-        // Réinitialiser variables globales si elles existent
-        if (typeof currentSet !== 'undefined') {
-            currentSet = 1;
+        // Incrémenter la série courante pour commencer la série supplémentaire
+        currentSet++;
+        window.currentWorkoutSession.currentSetNumber = currentSet;
+        
+        // Mettre à jour l'affichage des dots/progress
+        updateSeriesDots();
+        updateHeaderProgress();
+        
+        if (window.currentWorkoutSession.type === 'ai') {
+            updateSessionExerciseProgress();
+            loadSessionExercisesList();
         }
         
-        // Redémarrer l'exercice (AI uniquement)
-        await selectSessionExercise(currentExercise.id, false);
-        showToast('🔄 Exercice redémarré', 'success');
+        // Réinitialiser l'interface pour la nouvelle série
+        if (typeof transitionToReadyState === 'function') {
+            transitionToReadyState();
+        }
+        
+        // Transition vers état READY pour commencer la série supplémentaire
+        transitionTo(WorkoutStates.READY);
+        
+        // Activer motion detection si disponible
+        if (currentUser?.motion_detection_enabled && 
+            window.motionDetectionEnabled && 
+            window.motionDetector &&
+            currentExercise?.exercise_type !== 'isometric') {
+            
+            showMotionInstructions();
+            window.motionDetector.startMonitoring(createMotionCallbacksV2());
+        }
+        
+        showToast(`Série supplémentaire ${currentSet}/${window.currentWorkoutSession.totalSets}`, 'success');
         
     } catch (error) {
-        console.error('[AI Restart] Erreur lors du redémarrage:', error);
-        showToast('Erreur lors du redémarrage', 'error');
+        console.error('[AI Restart] Erreur lors de l\'ajout série supplémentaire:', error);
+        showToast('Erreur lors de l\'ajout série supplémentaire', 'error');
     }
 }
 
@@ -14837,3 +14915,4 @@ window.startAIInterExerciseRest = startAIInterExerciseRest;
 window.forcePreloadAIExerciseData = forcePreloadAIExerciseData;
 window.restartCurrentAIExercise = restartCurrentAIExercise;
 window.renderNextSeriesPreviewSafe = renderNextSeriesPreviewSafe;
+window.transitionToNextAIExercise = transitionToNextAIExercise;
