@@ -12042,15 +12042,15 @@ async function saveFeedbackAndRest() {
             // Modal dès qu'on atteint ou dépasse les séries de base (3, 4, 5, ...)
             if (currentSet >= baseSets) {
                 // Marquer exercice comme complété pour cette série
-                if (window.currentWorkoutSession.sessionExercises && window.currentWorkoutSession.sessionExercises[currentExercise.id]) {
-                    const exerciseState = window.currentWorkoutSession.sessionExercises[currentExercise.id];
+                if (window.currentWorkoutSession.sessionExercises && window.currentWorkoutSession.sessionExercises[currentExercise.exercise_id]) {
+                    const exerciseState = window.currentWorkoutSession.sessionExercises[currentExercise.exercise_id];
                     exerciseState.isCompleted = true;
                     exerciseState.completedSets = currentSet;
                 }
                 
                 // Trouver l'exercice suivant
                 const currentIndex = window.currentWorkoutSession.exercises.findIndex(
-                    ex => ex.exercise_id === currentExercise.id
+                    ex => ex.exercise_id === currentExercise.exercise_id
                 );
                 
                 // Afficher modal AVANT repos pour CHAQUE série >= baseSets
@@ -12607,6 +12607,7 @@ async function forcePreloadAIExerciseData(exercise) {
         rest: Math.round((exercise.base_rest_time_seconds || 90) / 10) * 10
     };
 }
+
 
 
 async function restartCurrentAIExercise() {
