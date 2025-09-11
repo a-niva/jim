@@ -7207,6 +7207,46 @@ function updateRestTimer(seconds) {
 
 function skipRest() {
     clearNextSeriesPreview();
+    
+    // Gestion spéciale pour repos inter-exercices AI
+    if (workoutState.isInterExerciseRest) {
+        console.log('[Rest] Skip repos inter-exercices AI');
+        
+        // Arrêter le timer
+        if (restTimer) {
+            clearInterval(restTimer);
+            restTimer = null;
+        }
+        
+        // Enregistrer temps de repos réel
+        if (workoutState.restStartTime) {
+            const actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
+            window.currentWorkoutSession.totalRestTime += actualRestTime;
+            workoutState.restStartTime = null;
+            console.log(`[Rest] Repos inter-exercices AI écourté après ${actualRestTime}s`);
+        }
+        
+        // Reset flag
+        workoutState.isInterExerciseRest = false;
+        
+        // Fermer modal repos
+        if (window.OverlayManager) {
+            window.OverlayManager.hide('rest');
+        }
+        
+        // Récupérer l'exercice suivant depuis la session
+        const currentIndex = window.currentWorkoutSession.currentIndex || 0;
+        const nextExercise = window.currentWorkoutSession.exercises[currentIndex + 1];
+        
+        if (nextExercise) {
+            console.log('[Rest] Transition directe vers exercice suivant');
+            transitionToNextAIExercise(nextExercise);
+        }
+        
+        return; // Ne pas continuer avec la logique normale
+    }
+
+    // Suite pour les repos normaux :
     if (restTimer) {
         clearInterval(restTimer);
         restTimer = null;
