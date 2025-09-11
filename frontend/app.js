@@ -7234,13 +7234,16 @@ function skipRest() {
             window.OverlayManager.hide('rest');
         }
         
-        // Récupérer l'exercice suivant depuis la session
-        const currentIndex = window.currentWorkoutSession.currentIndex || 0;
-        const nextExercise = window.currentWorkoutSession.exercises[currentIndex + 1];
+        // Utiliser l'exercice stocké dans workoutState
+        const nextExercise = workoutState.nextExerciseForRest;
         
         if (nextExercise) {
-            console.log('[Rest] Transition directe vers exercice suivant');
+            console.log('[Rest] Transition directe vers exercice suivant:', nextExercise);
+            // Nettoyer la référence
+            workoutState.nextExerciseForRest = null;
             transitionToNextAIExercise(nextExercise);
+        } else {
+            console.error('[Rest] Aucun exercice suivant trouvé dans workoutState');
         }
         
         return; // Ne pas continuer avec la logique normale
@@ -7270,7 +7273,7 @@ function skipRest() {
         console.log(`Repos ignoré après ${actualRestTime}s. Total: ${window.currentWorkoutSession.totalRestTime}s`);
         
         updateLastSetRestDuration(actualRestTime);
-        workoutState.restStartTime = null; //
+        workoutState.restStartTime = null;
     }
     
     completeRest();
@@ -12444,7 +12447,6 @@ function showAIExerciseCompletionModal(currentExerciseIndex) {
 }
 
 async function handleAIExerciseTransition(action, exerciseIndex) {
-    // AJOUT : Log immédiat pour confirmer l'appel
     console.log(`🔍 [DEBUG] handleAIExerciseTransition appelée - Action: ${action}, Index: ${exerciseIndex}`);
     
     // Validation stricte des paramètres avec logs détaillés
@@ -12488,6 +12490,10 @@ async function handleAIExerciseTransition(action, exerciseIndex) {
                 if (exerciseIndex < exercises.length - 1) {
                     const nextExercise = exercises[exerciseIndex + 1];
                     console.log(`🎯 [DEBUG] Exercice suivant trouvé:`, nextExercise);
+                    
+                    // IMPORTANT: Stocker l'exercice suivant dans le workoutState
+                    workoutState.nextExerciseForRest = nextExercise;
+                    
                     showToast('🏃‍♂️ Passage à l\'exercice suivant dans 120s...', 'info');
                     console.log(`⏰ [DEBUG] Démarrage repos inter-exercices...`);
                     await startAIInterExerciseRest(nextExercise);
@@ -12593,6 +12599,9 @@ async function startAIInterExerciseRest(nextExercise) {
                 
                 // Reset le flag
                 workoutState.isInterExerciseRest = false;
+                
+                // Nettoyer la référence
+                workoutState.nextExerciseForRest = null;
                 
                 // Enregistrer temps de repos
                 if (typeof workoutState !== 'undefined' && workoutState.restStartTime) {
