@@ -12549,7 +12549,7 @@ async function transitionToNextAIExercise(nextExercise) {
         console.error('[AI Transition] Erreur lors de la transition:', error);
         showToast('Erreur lors du passage à l\'exercice suivant', 'error');
     }
-}
+}}
 
 async function forcePreloadAIExerciseData(exercise) {
     if (!exercise) {
