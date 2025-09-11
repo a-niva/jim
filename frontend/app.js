@@ -12482,39 +12482,52 @@ async function handleAIExerciseTransition(action, exerciseIndex) {
     console.log(`✅ [DEBUG] handleAIExerciseTransition terminée`);
 }
 
+
 async function startAIInterExerciseRest(nextExercise) {
+    console.log(`🔍 [DEBUG REST] startAIInterExerciseRest appelée avec:`, nextExercise);
+    
     if (!nextExercise) {
         console.error('[AI Rest] Exercice suivant non fourni');
         return;
     }
     
     const restDuration = 120;
+    console.log(`⏰ [DEBUG REST] Repos de ${restDuration}s prévu`);
     
     try {
+        console.log(`🔄 [DEBUG REST] Transition vers état RESTING`);
         transitionTo(WorkoutStates.RESTING);
         
         // Afficher modal repos si disponible
         if (window.OverlayManager && document.getElementById('restPeriod')) {
             const restPeriod = document.getElementById('restPeriod');
             window.OverlayManager.show('rest', restPeriod);
+            console.log(`✅ [DEBUG REST] Modal repos affiché`);
             
             const timerDisplay = document.getElementById('restTimer');
             if (timerDisplay) {
                 timerDisplay.textContent = `${Math.floor(restDuration / 60)}:${(restDuration % 60).toString().padStart(2, '0')}`;
+                console.log(`⏱️ [DEBUG REST] Timer affiché: ${timerDisplay.textContent}`);
             }
+        } else {
+            console.log(`⚠️ [DEBUG REST] Modal repos non disponible`);
         }
         
         // Timer avec auto-transition
         if (typeof workoutState !== 'undefined') {
             workoutState.restStartTime = Date.now();
+            console.log(`🕐 [DEBUG REST] Temps de repos démarré`);
         }
         
         let timeLeft = restDuration;
         
+        // CORRECTION CRITIQUE : Ligne qui plantait avec syntaxe invalide
         if (typeof restTimer !== 'undefined' && restTimer) {
             clearInterval(restTimer);
+            console.log(`🔄 [DEBUG REST] Timer existant nettoyé`);
         }
         
+        console.log(`⏳ [DEBUG REST] Démarrage timer de ${restDuration}s`);
         restTimer = setInterval(() => {
             timeLeft--;
             
@@ -12523,6 +12536,7 @@ async function startAIInterExerciseRest(nextExercise) {
             }
             
             if (timeLeft <= 0) {
+                console.log(`⏰ [DEBUG REST] Timer terminé, transition vers exercice suivant`);
                 clearInterval(restTimer);
                 restTimer = null;
                 
@@ -12533,25 +12547,33 @@ async function startAIInterExerciseRest(nextExercise) {
                         window.currentWorkoutSession.totalRestTime += actualRestTime;
                     }
                     workoutState.restStartTime = null;
+                    console.log(`📊 [DEBUG REST] Temps de repos enregistré: ${actualRestTime}s`);
                 }
                 
                 // Fermer modal repos
                 if (window.OverlayManager) {
                     window.OverlayManager.hide('rest');
+                    console.log(`❌ [DEBUG REST] Modal repos fermé`);
                 }
                 
                 // Transition vers exercice suivant
+                console.log(`🎯 [DEBUG REST] Appel transitionToNextAIExercise`);
                 transitionToNextAIExercise(nextExercise);
             }
         }, 1000);
         
+        console.log(`✅ [DEBUG REST] Timer configuré avec succès`);
+        
     } catch (error) {
-        console.error('[AI Rest] Erreur lors du repos inter-exercices:', error);
+        console.error('❌ [DEBUG REST] Erreur lors du repos inter-exercices:', error);
+        console.log(`🔄 [DEBUG REST] Fallback vers transition directe`);
         transitionToNextAIExercise(nextExercise);
     }
 }
 
 async function transitionToNextAIExercise(nextExercise) {
+    console.log(`🔍 [DEBUG TRANSITION] transitionToNextAIExercise appelée avec:`, nextExercise);
+    
     if (!nextExercise || !window.currentWorkoutSession?.exercises) {
         console.error('[AI Transition] Paramètres invalides pour transition');
         return;
@@ -12560,6 +12582,7 @@ async function transitionToNextAIExercise(nextExercise) {
     try {
         // Identifier l'exercice avec conversion de type cohérente
         const exerciseId = parseInt(nextExercise.exercise_id || nextExercise.id);
+        console.log(`🆔 [DEBUG TRANSITION] ID exercice suivant: ${exerciseId}`);
         
         // Mettre à jour l'index dans la session AI
         const nextIndex = window.currentWorkoutSession.exercises.findIndex(
@@ -12571,20 +12594,26 @@ async function transitionToNextAIExercise(nextExercise) {
             return;
         }
         
+        console.log(`📍 [DEBUG TRANSITION] Index exercice suivant: ${nextIndex}`);
         window.currentWorkoutSession.currentIndex = nextIndex;
         
         // Appeler selectSessionExercise pour changer d'exercice
+        console.log(`🔄 [DEBUG TRANSITION] Appel selectSessionExercise(${exerciseId}, false)`);
         await selectSessionExercise(exerciseId, false);
         
         showToast(`🎯 ${nextExercise.name}`, 'success');
+        console.log(`✅ [DEBUG TRANSITION] Toast affiché pour: ${nextExercise.name}`);
         
         // Mettre à jour l'affichage
         if (typeof loadSessionExercisesList === 'function') {
             loadSessionExercisesList();
+            console.log(`🔄 [DEBUG TRANSITION] Liste des exercices mise à jour`);
         }
         
+        console.log(`✅ [DEBUG TRANSITION] Transition terminée avec succès`);
+        
     } catch (error) {
-        console.error('[AI Transition] Erreur lors de la transition:', error);
+        console.error('❌ [DEBUG TRANSITION] Erreur lors de la transition:', error);
         showToast('Erreur lors du passage à l\'exercice suivant', 'error');
     }
 }
