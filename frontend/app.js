@@ -4142,6 +4142,13 @@ async function selectExercise(exercise, skipValidation = false) {
         window.currentExercise = exercise;  // AJOUT: Synchronisation globale
     }
 
+    // Synchroniser currentWorkout pour les séances AI
+    if (window.currentWorkoutSession?.type === 'ai' && window.currentWorkoutSession?.workout && !currentWorkout) {
+        currentWorkout = window.currentWorkoutSession.workout;
+        window.currentWorkout = window.currentWorkoutSession.workout;
+        console.log('[AI Sync] currentWorkout synchronisé depuis session AI:', currentWorkout.id);
+    }
+
     // Créer session workout si mode libre (pas pour séances AI)
     console.log('📍 selectExercise - AVANT création workout, type LOCAL:', window.currentWorkoutSession.type);
     console.log('📍 selectExercise - AVANT création workout, type GLOBAL:', window.currentWorkoutSession.type);
@@ -5682,42 +5689,92 @@ function applyReadyStateToRepsDisplay() {
  */
 let nextSeriesRecommendationsCache = null;
 
-/**
- * Précharge les recommandations pour la série suivante
- * @returns {Promise<Object>} Recommandations {weight, reps, rest, confidence}
- */
+// Précharge les recommandations pour la série suivante
 async function preloadNextSeriesRecommendations() {
-    console.log('[Preview] Debug - Session ID:', window.currentWorkoutSession.id);
-    console.log('[Preview] Debug - Exercise:', currentExercise?.id);
+    // Supporter séances libres ET AI avec validation
+    const workoutId = window.currentWorkoutSession?.id || currentWorkout?.id;
+    const exerciseId = currentExercise?.id || currentExercise?.exercise_id;
     
-    if (!window.currentWorkoutSession.id) {
-        console.log('[Preview] Pas de session - première série');
+    console.log('[Preview] Debug - Workout ID:', workoutId);
+    console.log('[Preview] Debug - Session type:', window.currentWorkoutSession?.type);
+    console.log('[Preview] Debug - Exercise ID:', exerciseId);
+    
+    if (!workoutId || !exerciseId) {
+        console.log('[Preview] Pas de workout ou exercice - première série ou mode hors ligne');
         return null;
+    }
+    
+    // Utiliser le cache si disponible
+    if (nextSeriesRecommendationsCache && 
+        nextSeriesRecommendationsCache.exerciseId === exerciseId && 
+        nextSeriesRecommendationsCache.setNumber === currentSet + 1) {
+        console.log('[Preview] Utilisation du cache');
+        return nextSeriesRecommendationsCache.data;
     }
     
     try {
         const nextSetNumber = currentSet + 1;
         console.log('[Preview] Appel API pour série:', nextSetNumber);
         
-        const response = await apiPost(`/api/workouts/${window.currentWorkoutSession.id}/recommendations`, {
-            exercise_id: currentExercise.id,
-            set_number: nextSetNumber,
-            workout_id: window.currentWorkoutSession.id
-        });
-        
-        if (response && response.weight_recommendation !== null) {
-            return {
-                weight: response.weight_recommendation,
-                reps: response.reps_recommendation,
-                rest: response.rest_seconds_recommendation || 90,
-                confidence: response.confidence
-            };
+        // Préparer l'historique de session pour cet exercice
+        const sessionHistory = [];
+        if (window.currentWorkoutSession?.completedSets) {
+            window.currentWorkoutSession.completedSets.forEach(set => {
+                // Gérer les deux formats d'ID possibles
+                if (set.exercise_id === exerciseId || 
+                    (currentExercise?.id && set.exercise_id === currentExercise.id) ||
+                    (currentExercise?.exercise_id && set.exercise_id === currentExercise.exercise_id)) {
+                    sessionHistory.push({
+                        weight: set.weight || 0,
+                        reps: set.reps || 0,
+                        fatigue_level: set.fatigue_level || 3,
+                        effort_level: set.effort_level || 3,
+                        set_number: sessionHistory.length + 1
+                    });
+                }
+            });
         }
         
+        const requestData = {
+            exercise_id: exerciseId,
+            set_number: nextSetNumber,
+            workout_id: workoutId,
+            current_fatigue: window.currentWorkoutSession?.sessionFatigue || 3,
+            previous_effort: window.currentWorkoutSession?.currentSetEffort || 3,
+            session_history: sessionHistory,
+            completed_sets_this_exercise: sessionHistory.length
+        };
+        
+        console.log('[Preview] Request data:', requestData);
+        
+        const response = await apiPost(`/api/workouts/${workoutId}/recommendations`, requestData);
+        
+        if (response && (response.weight_recommendation !== null || response.reps_recommendation !== null)) {
+            const previewData = {
+                weight: response.weight_recommendation || 0,
+                reps: response.reps_recommendation || 0,
+                rest: response.rest_seconds_recommendation || 90,
+                confidence: response.confidence || 0
+            };
+            
+            // Mettre en cache
+            nextSeriesRecommendationsCache = {
+                exerciseId: exerciseId,
+                setNumber: nextSetNumber,
+                data: previewData
+            };
+            
+            console.log('[Preview] Preview affiché avec succès:', previewData);
+            return previewData;
+        }
+        
+        console.log('[Preview] Réponse API invalide:', response);
         return null;
         
     } catch (error) {
         console.error('[Preview] Erreur ML:', error);
+        // Clear cache en cas d'erreur
+        nextSeriesRecommendationsCache = null;
         return null;
     }
 }
@@ -11954,10 +12011,16 @@ async function saveFeedbackAndRest() {
         console.log('📤 Envoi série:', setData);
 
         // Enregistrer la série
-        if (!currentWorkout?.id) {
-            console.error('❌ currentWorkout.id manquant pour enregistrement série');
+        // Vérifier si on a un workout valide (séance libre OU AI)
+        const hasValidWorkout = currentWorkout?.id || window.currentWorkoutSession?.id;
+
+        if (!hasValidWorkout) {
+            console.error('❌ Aucun workout valide (ni currentWorkout.id ni session.id)');
             throw new Error('Aucune séance active - impossible d\'enregistrer la série');
         }
+
+        // Utiliser l'ID approprié selon le type de séance
+        const targetWorkoutId = currentWorkout?.id || window.currentWorkoutSession?.id;
 
         // Vérifier la connexion avant de sauvegarder
         if (!navigator.onLine) {
@@ -12017,7 +12080,7 @@ async function saveFeedbackAndRest() {
             return;
         }
 
-        const savedSet = await apiPost(`/api/workouts/${currentWorkout.id}/sets`, setData);
+        const savedSet = await apiPost(`/api/workouts/${targetWorkoutId}/sets`, setData);
         
         // CRITIQUE : Nettoyer IMMÉDIATEMENT après succès
         workoutState.pendingSetData = null;
