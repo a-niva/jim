@@ -5799,6 +5799,7 @@ function renderNextSeriesPreview(previewData) {
     document.getElementById('previewWeight').textContent = `${previewData.weight}`;
     document.getElementById('previewReps').textContent = `${previewData.reps}`;
     document.getElementById('previewRest').textContent = `${previewData.rest}`;
+    previewEl.style.display = 'flex';
 }
 
 /**
