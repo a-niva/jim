@@ -13968,17 +13968,47 @@ function adjustRestTime(deltaSeconds) {
                 notificationTimeout = null;
             }
             
-            // Calculer et enregistrer le temps de repos réel
-            const actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
-            window.currentWorkoutSession.totalRestTime += actualRestTime;
-            console.log(`⏱️ Repos terminé après ajustement: ${actualRestTime}s réels`);
-            
-            if (window.currentWorkoutSession.autoAdvance) {
-                setTimeout(() => {
-                    if (window.currentWorkoutSession.state === WorkoutStates.RESTING) {
-                        endRest();
-                    }
-                }, 1000);
+            // CORRECTION CRITIQUE : Gérer repos inter-exercices AI
+            if (workoutState.isInterExerciseRest) {
+                console.log(`⏱️ [AI Rest] Timer ajusté terminé après ${(Date.now() - workoutState.restStartTime) / 1000}s`);
+                
+                // Enregistrer temps de repos
+                if (workoutState.restStartTime) {
+                    const actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
+                    window.currentWorkoutSession.totalRestTime += actualRestTime;
+                    workoutState.restStartTime = null;
+                }
+                
+                // Reset flag
+                workoutState.isInterExerciseRest = false;
+                
+                // Fermer modal repos
+                if (window.OverlayManager) {
+                    window.OverlayManager.hide('rest');
+                }
+                
+                // Transition vers exercice suivant
+                const nextExercise = workoutState.nextExerciseForRest;
+                if (nextExercise) {
+                    workoutState.nextExerciseForRest = null;
+                    transitionToNextAIExercise(nextExercise);
+                }
+            } else {
+                // Repos normal : comportement existant
+                const actualRestTime = Math.round((Date.now() - workoutState.restStartTime) / 1000);
+                window.currentWorkoutSession.totalRestTime += actualRestTime;
+                console.log(`⏱️ Repos terminé après ajustement: ${actualRestTime}s réels`);
+                
+                if (window.currentWorkoutSession.autoAdvance) {
+                    setTimeout(() => {
+                        if (window.currentWorkoutSession.state === WorkoutStates.RESTING) {
+                            endRest();
+                        }
+                    }, 1000);
+                } else {
+                    // Pour repos normaux sans autoAdvance, appeler endRest directement
+                    endRest();
+                }
             }
         }
     }, 1000);
