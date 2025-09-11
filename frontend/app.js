@@ -7237,6 +7237,11 @@ function skipRest() {
 }
 
 function endRest() {
+    // Protection contre interruption repos inter-exercices AI
+    if (workoutState.isInterExerciseRest) {
+        console.log('[Rest] Repos inter-exercices AI en cours, interruption bloquée');
+        return;
+    }
     // Calculer et accumuler le temps de repos réel
     clearNextSeriesPreview();
     if (workoutState.restStartTime) {
@@ -12498,6 +12503,9 @@ async function startAIInterExerciseRest(nextExercise) {
         console.log(`🔄 [DEBUG REST] Transition vers état RESTING`);
         transitionTo(WorkoutStates.RESTING);
         
+        // Stocker un flag pour identifier ce repos spécial
+        workoutState.isInterExerciseRest = true;
+        
         // Afficher modal repos si disponible
         if (window.OverlayManager && document.getElementById('restPeriod')) {
             const restPeriod = document.getElementById('restPeriod');
@@ -12521,13 +12529,16 @@ async function startAIInterExerciseRest(nextExercise) {
         
         let timeLeft = restDuration;
         
-        // CORRECTION CRITIQUE : Ligne qui plantait avec syntaxe invalide
+        // Clear any existing timer
         if (typeof restTimer !== 'undefined' && restTimer) {
             clearInterval(restTimer);
             console.log(`🔄 [DEBUG REST] Timer existant nettoyé`);
         }
         
         console.log(`⏳ [DEBUG REST] Démarrage timer de ${restDuration}s`);
+        
+        // NE PAS appeler startRestPeriod() qui interfère
+        // Créer notre propre timer simple
         restTimer = setInterval(() => {
             timeLeft--;
             
@@ -12539,6 +12550,9 @@ async function startAIInterExerciseRest(nextExercise) {
                 console.log(`⏰ [DEBUG REST] Timer terminé, transition vers exercice suivant`);
                 clearInterval(restTimer);
                 restTimer = null;
+                
+                // Reset le flag
+                workoutState.isInterExerciseRest = false;
                 
                 // Enregistrer temps de repos
                 if (typeof workoutState !== 'undefined' && workoutState.restStartTime) {
@@ -12567,6 +12581,7 @@ async function startAIInterExerciseRest(nextExercise) {
     } catch (error) {
         console.error('❌ [DEBUG REST] Erreur lors du repos inter-exercices:', error);
         console.log(`🔄 [DEBUG REST] Fallback vers transition directe`);
+        workoutState.isInterExerciseRest = false;
         transitionToNextAIExercise(nextExercise);
     }
 }
