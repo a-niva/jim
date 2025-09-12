@@ -5336,7 +5336,7 @@ async function updateSetRecommendations() {
         // === ACTIVATION INTERFACE N/R MODERNE ===
         const targetReps = strategyResult.reps_recommendation || strategyResult.reps || 
                           currentExercise.default_reps_min || 12;
-        initializeRepsDisplay(targetReps, 'ready');
+        applyMLRecommendationsToInterface(strategyResult);
         
     } catch (error) {
         console.error('Erreur recommandations ML:', error);
@@ -5360,11 +5360,6 @@ async function updateSetRecommendations() {
 
 // ===== INTERFACE N/R MODERNE - FONCTIONS CORE =====
 
-/**
- * ✅ FONCTION CORRIGÉE : Initialise interface N/R selon état vocal
- * @param {number} targetReps - Objectif reps ML
- * @param {string} state - État interface ('ready'|'executing'|'validating')
- */
 function initializeRepsDisplay(targetReps, state = 'ready') {
     const currentRepEl = document.getElementById('currentRep');
     const targetRepEl = document.getElementById('targetRep');
@@ -5377,19 +5372,19 @@ function initializeRepsDisplay(targetReps, state = 'ready') {
         return;
     }
     
-    // Protection contre targetReps invalide
+    // Protection
     targetReps = targetReps || 12;
     
-    // CORRECTION CRITIQUE: Utiliser currentUser?.voice_enabled (pas voice_counting_enabled)
+    // ✅ LOGIQUE CORRIGÉE : Utiliser voice_enabled (pas voice_counting_enabled)
     const isVoiceEnabled = currentUser?.voice_enabled === true;
     let initialCurrentReps;
     
     if (isVoiceEnabled) {
-        // Mode vocal : PRÉSERVER comportement original (progression depuis 0)
+        // Mode vocal : progression depuis 0
         initialCurrentReps = 0;
         console.log('[RepsDisplay] Mode vocal : 0/' + targetReps);
     } else {
-        // Mode manuel : ✅ OPTIMISATION - Commencer à targetReps pour minimiser clics
+        // Mode manuel : commencer à targetReps pour minimiser clics
         initialCurrentReps = targetReps;
         console.log('[RepsDisplay] Mode manuel optimisé : ' + targetReps + '/' + targetReps);
     }
@@ -5414,77 +5409,6 @@ function initializeRepsDisplay(targetReps, state = 'ready') {
     }
     
     console.log(`[RepsDisplay] Initialisé - Mode: ${isVoiceEnabled ? 'vocal' : 'manuel'}, Current: ${initialCurrentReps}, Target: ${targetReps}`);
-}
-
-
-/**
- * ✅ FONCTION CORRIGÉE : Initialise interface moderne avec logique vocale
- * @param {number} targetReps - Objectif de répétitions
- * @param {number} currentReps - Compteur initial (calculé automatiquement)
- */
-function initializeRepsDisplay(targetReps, state = 'ready') {
-    // ✅ CALCUL INTELLIGENT du currentReps initial
-    if (currentReps === null) {
-        const isVoiceEnabled = currentUser?.voice_counting_enabled === true;
-        currentReps = isVoiceEnabled ? 0 : targetReps;
-    }
-    
-    console.log(`[UI] Initialisation interface N/R: ${currentReps}/${targetReps} (vocal: ${currentUser?.voice_counting_enabled})`);
-   
-    // Vérifier si container existe déjà
-    let repsDisplay = document.getElementById('repsDisplay');
-   
-    if (!repsDisplay) {
-        // Chercher l'ancienne structure pour la remplacer
-        const oldSetReps = document.getElementById('setReps');
-        if (oldSetReps && oldSetReps.parentNode) {
-            repsDisplay = document.createElement('div');
-            repsDisplay.id = 'repsDisplay';
-            repsDisplay.className = 'reps-display-modern';
-           
-            // Remplacer l'ancien élément
-            oldSetReps.parentNode.replaceChild(repsDisplay, oldSetReps);
-        } else {
-            console.error('[UI] Impossible de créer interface N/R - pas de container parent');
-            return;
-        }
-    }
-   
-    // Structure HTML moderne avec valeurs calculées
-    repsDisplay.innerHTML = `
-        <div class="current-rep" id="currentRep">${currentReps}</div>
-        <div class="rep-separator">/</div>
-        <div class="target-rep" id="targetRep">${targetReps}</div>
-        <div class="next-rep-preview" id="nextRepPreview"></div>
-    `;
-
-    // Synchroniser avec container vocal
-    const voiceContainer = document.getElementById('voiceStatusContainer');
-    if (voiceContainer && currentUser?.voice_counting_enabled) {
-        voiceContainer.style.display = 'flex';
-        
-        // Synchroniser état visuel
-        checkMicrophonePermissions().then(hasPermission => {
-            if (hasPermission) {
-                const isCurrentlyActive = window.voiceRecognitionActive?.() || false;
-                if (isCurrentlyActive) {
-                    window.updateMicrophoneVisualState?.('listening');
-                }
-            } else {
-                window.updateMicrophoneVisualState?.('error');
-            }
-        });
-    } else if (voiceContainer) {
-        // Masquer si vocal désactivé
-        voiceContainer.style.display = 'none';
-    }
-
-    // État initial selon workflow
-    if (workoutState.current === WorkoutStates.READY) {
-        transitionToReadyState();
-    }
-   
-    console.log('[UI] Interface N/R initialisée avec succès');
 }
 
 
@@ -5646,27 +5570,17 @@ function transitionToReadyState() {
     const targetRepEl = document.getElementById('targetRep');
     const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) || 12 : 12;
     
-    // ✅ CORRECTION CRITIQUE: Utiliser currentUser?.voice_enabled (pas voice_counting_enabled)
+    // ✅ CORRECTION : Utiliser voice_enabled (pas voice_counting_enabled)
     const isVoiceEnabled = currentUser?.voice_enabled === true;
     const readyCurrentReps = isVoiceEnabled ? 0 : targetReps;
     
     // Affichage avec état ready
     updateRepDisplayModern(readyCurrentReps, targetReps, { readyState: true });
     
-    // Synchroniser interface vocal avec état ready
+    // Synchroniser interface vocal
     const voiceContainer = document.getElementById('voiceStatusContainer');
     if (voiceContainer) {
-        if (isVoiceEnabled) {
-            voiceContainer.style.display = 'flex';
-            // Mettre à jour état visuel si vocal pas encore actif
-            if (window.voiceRecognitionActive || (typeof window.voiceRecognitionActive === 'function' && window.voiceRecognitionActive())) {
-                if (typeof updateMicrophoneVisualState === 'function') {
-                    updateMicrophoneVisualState('listening');
-                }
-            }
-        } else {
-            voiceContainer.style.display = 'none';
-        }
+        voiceContainer.style.display = isVoiceEnabled ? 'flex' : 'none';
     }
     
     console.log(`[RepsDisplay] Transition ready: ${readyCurrentReps}/${targetReps} reps (mode: ${isVoiceEnabled ? 'vocal' : 'manuel'})`);
@@ -5765,6 +5679,12 @@ async function preloadNextSeriesRecommendations() {
             };
             
             console.log('[Preview] Preview affiché avec succès:', previewData);
+            // Si c'est pour la série courante, appliquer immédiatement
+            if (nextSetNumber === currentSet + 1) {
+                applyMLRecommendationsToInterface({
+                    reps_recommendation: previewData.reps
+                });
+            }
             return previewData;
         }
         
@@ -5782,12 +5702,12 @@ async function preloadNextSeriesRecommendations() {
 function getCurrentRepsValue() {
     const currentRepEl = document.getElementById('currentRep');
     
-    // ✅ PRIORITÉ ABSOLUE - Si interface moderne existe, l'utiliser
+    // Priorité interface moderne
     if (currentRepEl) {
-        return parseInt(currentRepEl.textContent) || 0;  // ✅ Même si "0"
+        return parseInt(currentRepEl.textContent) || 0;
     }
     
-    // Fallback legacy SEULEMENT si interface moderne absente
+    // Fallback legacy
     const backwardCompatEl = document.getElementById('setReps');
     if (backwardCompatEl) {
         return parseInt(backwardCompatEl.textContent) || 0;
@@ -5804,7 +5724,6 @@ function renderNextSeriesPreview(previewData) {
     const previewEl = document.getElementById('nextSeriesPreview');
     if (!previewEl) return;
     
-    // Si pas de données (première série), afficher '--'
     if (!previewData) {
         document.getElementById('previewWeight').textContent = '--';
         document.getElementById('previewReps').textContent = '--';
@@ -5812,12 +5731,12 @@ function renderNextSeriesPreview(previewData) {
         return;
     }
     
-    // Afficher les vraies recommandations ML
+    // Afficher les recommandations
     document.getElementById('previewWeight').textContent = `${previewData.weight}`;
     document.getElementById('previewReps').textContent = `${previewData.reps}`;
     document.getElementById('previewRest').textContent = `${previewData.rest}`;
     
-    // Rendre visible après mise à jour du contenu
+    // Rendre visible
     previewEl.style.display = 'flex';
 }
 
@@ -6818,11 +6737,8 @@ async function configureUIForExerciseType(type, recommendations) {
     }
     
     // Création DOM synchrone garantie AVANT activation vocale
-    const modernDisplayReady = await initializeModernRepsDisplaySync(targetReps, 0);
-    if (!modernDisplayReady) {
-        console.error('[DOM] Impossible de créer interface moderne');
-        return;
-    }
+    initializeRepsDisplay(targetReps, 'ready');
+
     // Créer bouton GO seulement quand nécessaire
     const executeBtn = document.getElementById('executeSetBtn');
     if (executeBtn) {
@@ -11568,12 +11484,36 @@ function animateWeightModeSwitch(newMode, displayWeight) {
     }, 200);
 }
 
-/**
- * Ajuste les reps via steppers +/- avec nouvelle interface
- * @param {number} delta - Changement (-1 ou +1)
- */
+function applyMLRecommendationsToInterface(recommendations) {
+    if (!recommendations || !recommendations.reps_recommendation) {
+        console.warn('[ML] Pas de recommandations reps à appliquer');
+        return;
+    }
+    
+    const newTargetReps = recommendations.reps_recommendation;
+    const targetRepEl = document.getElementById('targetRep');
+    const backwardCompatEl = document.getElementById('setReps');
+    
+    // Mettre à jour targetReps dans l'interface
+    if (targetRepEl) {
+        targetRepEl.textContent = newTargetReps;
+    }
+    if (backwardCompatEl) {
+        backwardCompatEl.textContent = newTargetReps;
+    }
+    
+    // Réinitialiser currentReps selon le mode
+    const isVoiceEnabled = currentUser?.voice_enabled === true;
+    const newCurrentReps = isVoiceEnabled ? 0 : newTargetReps;
+    
+    // Mettre à jour l'affichage
+    updateRepDisplayModern(newCurrentReps, newTargetReps);
+    
+    console.log(`[ML] Recommandations appliquées: ${newCurrentReps}/${newTargetReps} reps (mode: ${isVoiceEnabled ? 'vocal' : 'manuel'})`);
+}
+
 function adjustReps(delta) {
-    // Utiliser currentUser?.voice_enabled (pas voice_counting_enabled)
+    // ✅ CORRECTION : Utiliser voice_enabled (pas voice_counting_enabled)
     if (currentUser?.voice_enabled) {
         showToast('Désactivez le vocal pour ajuster manuellement', 'info');
         return;
@@ -11583,13 +11523,12 @@ function adjustReps(delta) {
     const targetRepEl = document.getElementById('targetRep');
     const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) : 12;
     
-    // Limites : entre 1 et targetReps + 5 (permettre dépassement)
+    // Limites : entre 1 et targetReps + 5
     const newRep = Math.max(1, Math.min(targetReps + 5, currentRep + delta));
     
     if (newRep !== currentRep) {
         updateRepDisplayModern(newRep, targetReps);
         
-        // Vibration feedback
         if (navigator.vibrate) {
             navigator.vibrate(20);
         }
@@ -12304,20 +12243,20 @@ async function saveFeedbackAndRest() {
 
 // Fonction de réinitialisation des sélections
 function resetFeedbackSelection() {
-    // Supprimer toutes les sélections avec protection DOM
+    // Supprimer toutes les sélections
     const selectedButtons = document.querySelectorAll('.emoji-btn-modern.selected, .emoji-btn.selected');
     selectedButtons.forEach(btn => {
         btn.classList.remove('selected');
     });
     
-    // Réinitialiser les indicateurs de progression avec protection
+    // Réinitialiser indicateurs
     const fatigueProgress = document.getElementById('fatigueProgress');
     const effortProgress = document.getElementById('effortProgress');
     
     if (fatigueProgress) fatigueProgress.classList.remove('completed');
     if (effortProgress) effortProgress.classList.remove('completed');
     
-    // Réinitialiser les valeurs en session
+    // Réinitialiser valeurs session
     if (window.currentWorkoutSession) {
         window.currentWorkoutSession.currentSetFatigue = null;
         window.currentWorkoutSession.currentSetEffort = null;
