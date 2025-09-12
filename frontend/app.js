@@ -5570,7 +5570,7 @@ function transitionToReadyState() {
     const targetRepEl = document.getElementById('targetRep');
     const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) || 12 : 12;
     
-    // ✅ CORRECTION : Utiliser voice_enabled (pas voice_counting_enabled)
+    // ✅Utiliser voice_enabled
     const isVoiceEnabled = currentUser?.voice_enabled === true;
     const readyCurrentReps = isVoiceEnabled ? 0 : targetReps;
     
@@ -6974,7 +6974,7 @@ async function configureUIForExerciseType(type, recommendations) {
     // === NOUVEAU : Initialiser l'interface moderne N/R après configuration ===
     // Attendre un tick pour que les éléments soient bien configurés
     setTimeout(() => {
-        initializeModernRepsDisplay(targetReps, 0);
+        initializeModernRepsDisplay(targetReps);
     }, 100);
     
     // Créer bouton GO seulement quand nécessaire
