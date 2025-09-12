@@ -5380,8 +5380,8 @@ function initializeRepsDisplay(targetReps, state = 'ready') {
     // Protection contre targetReps invalide
     targetReps = targetReps || 12;
     
-    // ✅ CORRECTION: Préserver logique vocale, optimiser mode manuel
-    const isVoiceEnabled = currentUser?.voice_counting_enabled === true;
+    // CORRECTION CRITIQUE: Utiliser currentUser?.voice_enabled (pas voice_counting_enabled)
+    const isVoiceEnabled = currentUser?.voice_enabled === true;
     let initialCurrentReps;
     
     if (isVoiceEnabled) {
@@ -5540,9 +5540,9 @@ function initializeModernRepsDisplay(targetReps = 12, currentReps = null) {
     // Protection contre targetReps invalide
     targetReps = targetReps || 12;
     
-    // ✅ CORRECTION: Optimiser le mode manuel, préserver le mode vocal
+    // Utiliser currentUser?.voice_enabled (pas voice_counting_enabled)
     if (currentReps === null) {
-        const isVoiceEnabled = currentUser?.voice_counting_enabled === true;
+        const isVoiceEnabled = currentUser?.voice_enabled === true;
         currentReps = isVoiceEnabled ? 0 : targetReps; // Vocal: 0, Manuel: targetReps
     }
     
@@ -5646,8 +5646,8 @@ function transitionToReadyState() {
     const targetRepEl = document.getElementById('targetRep');
     const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) || 12 : 12;
     
-    // Optimiser le mode manuel, préserver le mode vocal
-    const isVoiceEnabled = currentUser?.voice_counting_enabled === true;
+    // ✅ CORRECTION CRITIQUE: Utiliser currentUser?.voice_enabled (pas voice_counting_enabled)
+    const isVoiceEnabled = currentUser?.voice_enabled === true;
     const readyCurrentReps = isVoiceEnabled ? 0 : targetReps;
     
     // Affichage avec état ready
@@ -11573,8 +11573,8 @@ function animateWeightModeSwitch(newMode, displayWeight) {
  * @param {number} delta - Changement (-1 ou +1)
  */
 function adjustReps(delta) {
-    // ✅ VÉRIFICATION : Ne fonctionne qu'en mode manuel
-    if (currentUser?.voice_counting_enabled) {
+    // Utiliser currentUser?.voice_enabled (pas voice_counting_enabled)
+    if (currentUser?.voice_enabled) {
         showToast('Désactivez le vocal pour ajuster manuellement', 'info');
         return;
     }
