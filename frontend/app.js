@@ -1190,7 +1190,9 @@ function transitionTo(state) {
             if (setFeedbackReady) {
                 setFeedbackReady.style.display = 'none';
             }
-            
+            // Reset feedback après masquage, avant interface N/R
+            resetFeedbackSelection();
+
             // Code existant pour l'interface N/R...
             const currentRepEl = document.getElementById('currentRep');
             if (currentRepEl && currentRepEl.textContent !== '0') {
@@ -5375,18 +5377,21 @@ function initializeRepsDisplay(targetReps, state = 'ready') {
         return;
     }
     
-    // ✅ LOGIQUE INTELLIGENTE selon vocal
+    // Protection contre targetReps invalide
+    targetReps = targetReps || 12;
+    
+    // ✅ CORRECTION: Préserver logique vocale, optimiser mode manuel
     const isVoiceEnabled = currentUser?.voice_counting_enabled === true;
     let initialCurrentReps;
     
     if (isVoiceEnabled) {
-        // Mode vocal : Commence à 0, progression par reconnaissance
+        // Mode vocal : PRÉSERVER comportement original (progression depuis 0)
         initialCurrentReps = 0;
         console.log('[RepsDisplay] Mode vocal : 0/' + targetReps);
     } else {
-        // Mode manuel : Commence à target, utilisateur décrémente ou clique validation
+        // Mode manuel : ✅ OPTIMISATION - Commencer à targetReps pour minimiser clics
         initialCurrentReps = targetReps;
-        console.log('[RepsDisplay] Mode manuel : ' + targetReps + '/' + targetReps);
+        console.log('[RepsDisplay] Mode manuel optimisé : ' + targetReps + '/' + targetReps);
     }
     
     // Configuration selon état
@@ -5398,39 +5403,17 @@ function initializeRepsDisplay(targetReps, state = 'ready') {
         repsDisplayEl.className = 'reps-display-modern';
     }
     
-    targetRepEl.textContent = targetReps || 12;
-    nextRepPreviewEl.textContent = isVoiceEnabled ? '1' : (targetReps - 1);
+    targetRepEl.textContent = targetReps;
+    nextRepPreviewEl.textContent = isVoiceEnabled ? '1' : Math.max(1, targetReps - 1);
     nextRepPreviewEl.style.opacity = '0';
     nextRepPreviewEl.className = 'next-rep-preview';
     
     // Backward compatibility
     if (backwardCompatEl) {
-        backwardCompatEl.textContent = targetReps || 12;
+        backwardCompatEl.textContent = targetReps;
     }
     
     console.log(`[RepsDisplay] Initialisé - Mode: ${isVoiceEnabled ? 'vocal' : 'manuel'}, Current: ${initialCurrentReps}, Target: ${targetReps}`);
-}
-
-/**
- * Récupère la valeur actuelle des reps de manière abstraite
- * Compatible avec ancienne et nouvelle UI
- * @returns {number} Nombre de répétitions actuel
- * */
-function getCurrentRepsValue() {
-    const currentRepEl = document.getElementById('currentRep');
-    
-    // ✅ PRIORITÉ ABSOLUE - Si interface moderne existe, l'utiliser
-    if (currentRepEl) {
-        return parseInt(currentRepEl.textContent) || 0;  // ✅ Même si "0"
-    }
-    
-    // Fallback legacy SEULEMENT si interface moderne absente
-    const backwardCompatEl = document.getElementById('setReps');
-    if (backwardCompatEl) {
-        return parseInt(backwardCompatEl.textContent) || 0;
-    }
-    
-    return 0;
 }
 
 
@@ -5439,7 +5422,7 @@ function getCurrentRepsValue() {
  * @param {number} targetReps - Objectif de répétitions
  * @param {number} currentReps - Compteur initial (calculé automatiquement)
  */
-function initializeModernRepsDisplay(targetReps = 12, currentReps = null) {
+function initializeRepsDisplay(targetReps, state = 'ready') {
     // ✅ CALCUL INTELLIGENT du currentReps initial
     if (currentReps === null) {
         const isVoiceEnabled = currentUser?.voice_counting_enabled === true;
@@ -5553,6 +5536,21 @@ async function syncVoiceCountingWithProfile(enabled) {
     }
 }
 
+function initializeModernRepsDisplay(targetReps = 12, currentReps = null) {
+    // Protection contre targetReps invalide
+    targetReps = targetReps || 12;
+    
+    // ✅ CORRECTION: Optimiser le mode manuel, préserver le mode vocal
+    if (currentReps === null) {
+        const isVoiceEnabled = currentUser?.voice_counting_enabled === true;
+        currentReps = isVoiceEnabled ? 0 : targetReps; // Vocal: 0, Manuel: targetReps
+    }
+    
+    // Appel existant préservé
+    updateRepDisplayModern(currentReps, targetReps);
+    console.log(`[RepsDisplay] Moderne initialisé - Current: ${currentReps}, Target: ${targetReps}`);
+}
+
 /**
  * Version synchrone pour éviter race conditions
  */
@@ -5646,9 +5644,9 @@ function applyVoiceErrorState(errorType = 'generic', duration = 1000) {
 // Transition vers état prêt avec objectif affiché
 function transitionToReadyState() {
     const targetRepEl = document.getElementById('targetRep');
-    const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) : 12;
+    const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) || 12 : 12;
     
-    // ✅ CALCUL INTELLIGENT selon mode vocal
+    // Optimiser le mode manuel, préserver le mode vocal
     const isVoiceEnabled = currentUser?.voice_counting_enabled === true;
     const readyCurrentReps = isVoiceEnabled ? 0 : targetReps;
     
@@ -5661,8 +5659,10 @@ function transitionToReadyState() {
         if (isVoiceEnabled) {
             voiceContainer.style.display = 'flex';
             // Mettre à jour état visuel si vocal pas encore actif
-            if (window.voiceRecognitionActive || window.voiceRecognitionActive()) {
-                updateMicrophoneVisualState('listening');
+            if (window.voiceRecognitionActive || (typeof window.voiceRecognitionActive === 'function' && window.voiceRecognitionActive())) {
+                if (typeof updateMicrophoneVisualState === 'function') {
+                    updateMicrophoneVisualState('listening');
+                }
             }
         } else {
             voiceContainer.style.display = 'none';
@@ -5799,6 +5799,8 @@ function renderNextSeriesPreview(previewData) {
     document.getElementById('previewWeight').textContent = `${previewData.weight}`;
     document.getElementById('previewReps').textContent = `${previewData.reps}`;
     document.getElementById('previewRest').textContent = `${previewData.rest}`;
+    
+    // Rendre visible après mise à jour du contenu
     previewEl.style.display = 'flex';
 }
 
@@ -12285,18 +12287,26 @@ async function saveFeedbackAndRest() {
 
 // Fonction de réinitialisation des sélections
 function resetFeedbackSelection() {
-    // Supprimer toutes les sélections
-    document.querySelectorAll('.emoji-btn-modern.selected').forEach(btn => {
+    // Supprimer toutes les sélections avec protection DOM
+    const selectedButtons = document.querySelectorAll('.emoji-btn-modern.selected, .emoji-btn.selected');
+    selectedButtons.forEach(btn => {
         btn.classList.remove('selected');
     });
     
-    // Réinitialiser les indicateurs de progression
-    document.getElementById('fatigueProgress')?.classList.remove('completed');
-    document.getElementById('effortProgress')?.classList.remove('completed');
+    // Réinitialiser les indicateurs de progression avec protection
+    const fatigueProgress = document.getElementById('fatigueProgress');
+    const effortProgress = document.getElementById('effortProgress');
     
-    // Réinitialiser les valeurs
-    window.currentWorkoutSession.currentSetFatigue = null;
-    window.currentWorkoutSession.currentSetEffort = null;
+    if (fatigueProgress) fatigueProgress.classList.remove('completed');
+    if (effortProgress) effortProgress.classList.remove('completed');
+    
+    // Réinitialiser les valeurs en session
+    if (window.currentWorkoutSession) {
+        window.currentWorkoutSession.currentSetFatigue = null;
+        window.currentWorkoutSession.currentSetEffort = null;
+    }
+    
+    console.log('[Feedback] Reset effectué');
 }
 
 function showAutoValidation() {
