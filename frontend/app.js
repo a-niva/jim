@@ -5779,6 +5779,23 @@ async function preloadNextSeriesRecommendations() {
     }
 }
 
+function getCurrentRepsValue() {
+    const currentRepEl = document.getElementById('currentRep');
+    
+    // ✅ PRIORITÉ ABSOLUE - Si interface moderne existe, l'utiliser
+    if (currentRepEl) {
+        return parseInt(currentRepEl.textContent) || 0;  // ✅ Même si "0"
+    }
+    
+    // Fallback legacy SEULEMENT si interface moderne absente
+    const backwardCompatEl = document.getElementById('setReps');
+    if (backwardCompatEl) {
+        return parseInt(backwardCompatEl.textContent) || 0;
+    }
+    
+    return 0;
+}
+
 /**
  * Affiche le preview de la série suivante avec design moderne
  * @param {Object|null} previewData - Données ou null pour skeleton
