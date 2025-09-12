@@ -6736,8 +6736,12 @@ async function configureUIForExerciseType(type, recommendations) {
             break;
     }
     
-    // Création DOM synchrone garantie AVANT activation vocale
-    initializeRepsDisplay(targetReps, 'ready');
+    // Appliquer les nouvelles recommandations sans écraser currentRep
+    if (recommendations?.reps_recommendation) {
+        applyMLRecommendationsToInterface({
+            reps_recommendation: targetReps
+        });
+    }
 
     // Créer bouton GO seulement quand nécessaire
     const executeBtn = document.getElementById('executeSetBtn');
