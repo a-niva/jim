@@ -6704,6 +6704,11 @@ async function configureUIForExerciseType(type, recommendations) {
         applyMLRecommendationsToInterface({
             reps_recommendation: targetReps
         });
+    } else if (type !== 'isometric') {
+        // Initialiser manuellement si pas de recommandations ML
+        setTimeout(() => {
+            initializeModernRepsDisplay(targetReps);
+        }, 100);
     }
 
     // Créer bouton GO seulement quand nécessaire
