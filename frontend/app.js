@@ -6934,12 +6934,6 @@ async function configureUIForExerciseType(type, recommendations) {
             break;
     }
     
-    // === NOUVEAU : Initialiser l'interface moderne N/R après configuration ===
-    // Attendre un tick pour que les éléments soient bien configurés
-    setTimeout(() => {
-        initializeModernRepsDisplay(targetReps);
-    }, 100);
-    
     // Créer bouton GO seulement quand nécessaire
     const executeBtn = document.getElementById('executeSetBtn');
     if (executeBtn) {
