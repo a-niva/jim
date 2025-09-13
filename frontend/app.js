@@ -747,14 +747,6 @@ function startSeriesAfterCountdown() {
     setTimerState.start();
     window.currentSetStartTime = Date.now();
     startSetTimer();
-    
-    // NOUVEAU : Diagnostic vocal complet
-    console.log('[Series] Diagnostic vocal pré-démarrage:', {
-        currentUser: !!currentUser,
-        voice_enabled: currentUser?.voice_counting_enabled,
-        startVoiceRecognition: typeof window.startVoiceRecognition,
-        voiceRecognitionActive: window.voiceRecognitionActive?.() || false
-    });
 
     // Vocal si activé
     if (currentUser?.voice_counting_enabled) {
@@ -4073,23 +4065,10 @@ async function selectExercise(exercise, skipValidation = false) {
     console.log('[DEBUG SMARTPHONE] Motion enabled:', currentUser?.motion_detection_enabled);
     console.log('[DEBUG SMARTPHONE] Voice enabled:', currentUser?.voice_counting_enabled);
     console.log('[DEBUG SMARTPHONE] Motion detector exists:', !!window.MotionDetector);
-    console.log('[VOICE DEBUG] selectExercise - Conditions:', {
-        currentUser: currentUser,
-        voice_enabled: currentUser?.voice_counting_enabled,
-        exercise_type: exercise.exercise_type,
-        is_mobile: /Android|iPhone/i.test(navigator.userAgent),
-        user_agent: navigator.userAgent
-    });
 
     // Si récupération de currentUser depuis API
     if (!currentUser) {
         const response = await apiGet('/api/users/current');
-
-        console.log('[VOICE DEBUG] selectExercise - État initial:', {
-            currentUser: !!currentUser,
-            voice_enabled_before: currentUser?.voice_counting_enabled,
-            motion_enabled_before: currentUser?.motion_detection_enabled
-        });
 
         currentUser = response.user;
         window.currentUser = currentUser;  // AJOUT: Synchronisation globale
@@ -4099,12 +4078,6 @@ async function selectExercise(exercise, skipValidation = false) {
             console.warn('[Voice] voice_counting_enabled undefined, défaut à true');
             currentUser.voice_counting_enabled = true;
         }
-
-        console.log('[VOICE DEBUG] selectExercise - Après récupération user:', {
-            voice_enabled_after: currentUser?.voice_counting_enabled,
-            motion_enabled_after: currentUser?.motion_detection_enabled,
-            user_id: currentUser?.id
-        });
     }
 
     // Pour le setup initial, on peut skipper la validation
@@ -4298,12 +4271,6 @@ async function selectExercise(exercise, skipValidation = false) {
 
     // ========== INITIALISATION MOTION SYSTEM ==========
     await initializeMotionSystemOnce();
-
-    console.log('[VOICE DEBUG] selectExercise - Avant config motion:', {
-        voice_enabled: currentUser?.voice_counting_enabled,
-        motion_enabled: currentUser?.motion_detection_enabled,
-        motion_system_ready: !!window.motionDetectionEnabled
-    });
 
     // ========== NOUVELLE LOGIQUE MOTION V2 ==========
     if (currentUser?.motion_detection_enabled && 
@@ -5375,8 +5342,7 @@ function initializeRepsDisplay(targetReps, state = 'ready') {
     // Protection
     targetReps = targetReps || 12;
     
-    // ✅ LOGIQUE CORRIGÉE : Utiliser voice_enabled (pas voice_counting_enabled)
-    const isVoiceEnabled = currentUser?.voice_enabled === true;
+    const isVoiceEnabled = currentUser?.voice_counting_enabled === true;
     let initialCurrentReps;
     
     if (isVoiceEnabled) {
@@ -5464,17 +5430,16 @@ function initializeModernRepsDisplay(targetReps = 12, currentReps = null) {
     // Protection contre targetReps invalide
     targetReps = targetReps || 12;
     
-    // Utiliser currentUser?.voice_enabled (pas voice_counting_enabled)
+    // Utiliser currentUser?.voice_counting_enabled (la bonne propriété)
     if (currentReps === null) {
-        const isVoiceEnabled = currentUser?.voice_enabled === true;
-        currentReps = isVoiceEnabled ? 0 : targetReps; // Vocal: 0, Manuel: targetReps
+        const isVoiceEnabled = currentUser?.voice_counting_enabled === true;
+        currentReps = isVoiceEnabled ? 0 : targetReps;
     }
     
     // Appel existant préservé
     updateRepDisplayModern(currentReps, targetReps);
     console.log(`[RepsDisplay] Moderne initialisé - Current: ${currentReps}, Target: ${targetReps}`);
 }
-
 /**
  * Version synchrone pour éviter race conditions
  */
@@ -5569,9 +5534,7 @@ function applyVoiceErrorState(errorType = 'generic', duration = 1000) {
 function transitionToReadyState() {
     const targetRepEl = document.getElementById('targetRep');
     const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) || 12 : 12;
-    
-    // ✅Utiliser voice_enabled
-    const isVoiceEnabled = currentUser?.voice_enabled === true;
+    const isVoiceEnabled = currentUser?.voice_counting_enabled === true;
     const readyCurrentReps = isVoiceEnabled ? 0 : targetReps;
     
     // Affichage avec état ready
@@ -11507,7 +11470,7 @@ function applyMLRecommendationsToInterface(recommendations) {
     }
     
     // Réinitialiser currentReps selon le mode
-    const isVoiceEnabled = currentUser?.voice_enabled === true;
+    const isVoiceEnabled = currentUser?.voice_counting_enabled === true;
     const newCurrentReps = isVoiceEnabled ? 0 : newTargetReps;
     
     // Mettre à jour l'affichage
@@ -11517,8 +11480,7 @@ function applyMLRecommendationsToInterface(recommendations) {
 }
 
 function adjustReps(delta) {
-    // ✅ CORRECTION : Utiliser voice_enabled (pas voice_counting_enabled)
-    if (currentUser?.voice_enabled) {
+    if (currentUser?.voice_counting_enabled) {
         showToast('Désactivez le vocal pour ajuster manuellement', 'info');
         return;
     }
