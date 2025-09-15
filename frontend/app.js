@@ -6830,8 +6830,10 @@ function configureBodyweight(elements, recommendations) {
     if (typeText) {
         typeText.textContent = 'Corps';
     }
-    
+    // S'assurer que l'aide au montage est masquée pour les exercices bodyweight
+    hidePlateHelper();
     console.log('[Bodyweight] Configuration terminée');
+
 }
 
 // Calculer le poids maximum théorique pour dumbbells
@@ -7672,10 +7674,14 @@ async function loadStats() {
 async function loadProfile() {
     console.log('loadProfile called, currentUser:', currentUser);
 
+    // Au début de loadProfile, après la vérification de currentUser
     if (!currentUser) {
-        console.error('Pas de currentUser !');
+        document.getElementById('profile').innerHTML = '<p>Aucun profil chargé</p>';
         return;
     }
+
+    // Synchroniser currentWeightMode avec la préférence utilisateur
+    currentWeightMode = currentUser.preferred_weight_display_mode || 'total';
 
     // Toujours recharger currentUser depuis la base pour avoir les dernières valeurs
     try {
@@ -7743,7 +7749,8 @@ async function loadProfile() {
             <div class="toggle-container">
                 <label class="toggle-switch">
                     <input type="checkbox" id="weightPreferenceToggle"
-                           ${currentUser.prefer_weight_changes_between_sets ? 'checked' : ''}>
+                        ${currentUser.prefer_weight_changes_between_sets ? 'checked' : ''}
+                        onchange="toggleWeightPreference()">
                     <span class="toggle-slider"></span>
                 </label>
                 <span id="weightPreferenceLabel">${currentUser.prefer_weight_changes_between_sets ? 'Poids variables' : 'Poids fixes'}</span>
@@ -7883,24 +7890,56 @@ async function loadProfile() {
     }
 }
 
+async function refreshUserProfile() {
+    try {
+        const response = await apiGet(`/api/users/${currentUser.id}`);
+        if (response) {
+            // Mettre à jour les préférences
+            currentUser.show_plate_helper = response.show_plate_helper;
+            currentUser.preferred_weight_display_mode = response.preferred_weight_display_mode;
+            currentUser.prefer_weight_changes_between_sets = response.prefer_weight_changes_between_sets;
+            currentUser.sound_notifications_enabled = response.sound_notifications_enabled;
+            currentUser.voice_counting_enabled = response.voice_counting_enabled;
+            currentUser.motion_detection_enabled = response.motion_detection_enabled;
+            
+            // Synchroniser currentWeightMode
+            currentWeightMode = currentUser.preferred_weight_display_mode || 'total';
+            
+            console.log('Profil utilisateur rafraîchi');
+        }
+    } catch (error) {
+        console.error('Erreur lors du rafraîchissement du profil:', error);
+    }
+}
 
 async function toggleWeightPreference() {
     const toggle = document.getElementById('weightPreferenceToggle');
+    const label = document.getElementById('weightPreferenceLabel');
+    
+    if (!toggle || !label) return;
+    
     const newPreference = toggle.checked;
     
     try {
-        // Utiliser apiPut au lieu de apiCall
-        const response = await apiPut(`/api/users/${currentUser.id}/preferences`, {
+        // Utiliser l'endpoint correct qui existe déjà
+        const response = await apiPut(`/api/users/${currentUser.id}/update`, {
             prefer_weight_changes_between_sets: newPreference
         });
         
-        currentUser.prefer_weight_changes_between_sets = newPreference;
-        document.getElementById('weightPreferenceLabel').textContent = 
-            newPreference ? 'Poids variables' : 'Poids fixes';
-        
-        showToast('Préférence mise à jour', 'success');
+        if (response) {
+            currentUser.prefer_weight_changes_between_sets = newPreference;
+            label.textContent = newPreference ? 'Poids variables' : 'Poids fixes';
+            
+            // Si on est en séance AI, mettre à jour les settings ML
+            if (window.currentWorkoutSession?.type === 'ai' && currentExercise) {
+                window.currentWorkoutSession.mlSettings[currentExercise.id].autoAdjust = newPreference;
+            }
+            
+            showToast('Préférence mise à jour', 'success');
+        }
     } catch (error) {
-        toggle.checked = !newPreference; // Revert on error
+        console.error('Erreur toggle weight preference:', error);
+        toggle.checked = !newPreference;
         showToast('Erreur lors de la mise à jour', 'error');
     }
 }
@@ -9971,7 +10010,13 @@ async function updatePlateHelper(weightTOTAL) {
         console.log('[PlateHelper] Déjà en cours, skip');
         return;
     }
-    
+    // Vérifier si c'est un exercice purement bodyweight
+    if (currentExercise.equipment_required.length === 1 && 
+        currentExercise.equipment_required[0] === 'bodyweight') {
+        console.log('[PlateHelper] Exercice purement bodyweight, pas d\'aide au montage');
+        hidePlateHelper();
+        return;
+    }
     // NOUVEAU : Vérifier que l'exercice supporte l'aide au montage
     if (!currentExercise?.equipment_required) {
         hidePlateHelper();
