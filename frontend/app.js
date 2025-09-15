@@ -6775,7 +6775,22 @@ async function configureUIForExerciseType(type, recommendations) {
             await configureWeighted(elements, currentExercise, recommendations.weight_recommendation || 20);
             break;
     }
-    
+        
+    // TOUJOURS initialiser l'interface pour weighted et bodyweight
+    if (type !== 'isometric') {
+        // Si on a des recommandations, les appliquer
+        if (recommendations?.reps_recommendation) {
+            applyMLRecommendationsToInterface({
+                reps_recommendation: targetReps
+            });
+        } else {
+            // Sinon initialiser avec les valeurs par défaut
+            setTimeout(() => {
+                initializeModernRepsDisplay(targetReps);
+            }, 100);
+        }
+    }
+
     // Créer bouton GO seulement quand nécessaire
     const executeBtn = document.getElementById('executeSetBtn');
     if (executeBtn) {
@@ -6786,6 +6801,7 @@ async function configureUIForExerciseType(type, recommendations) {
     updateRestRecommendation(recommendations);
     updateConfidence(recommendations);
 }
+
 
 /**
  * Configuration pour exercices bodyweight
