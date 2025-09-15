@@ -1020,17 +1020,6 @@ function closeModal() {
     OverlayManager.hide('modal');
 }
 
-
-
-// Stocke les données de scoring pour utilisation ultérieure
-function storeCurrentScoringData(scoringData) {
-    currentScoringData = scoringData;
-    lastKnownScore = scoringData.currentScore.total;
-}
-
-
-
-
 function transitionTo(state) {
     console.log(`[State] Transition: ${workoutState.current} → ${state}`);
     
@@ -1470,29 +1459,6 @@ function updateMotionIndicator(active) {
         indicator.classList.toggle('active', active);
         indicator.title = active ? 'Motion actif' : 'Motion prêt';
     }
-}
-
-// Applique les états d'erreur vocale avec feedback visuel
-function applyVoiceErrorState(errorType = 'detection') {
-    const targetRepEl = document.getElementById('targetRep');
-    const targetReps = targetRepEl ? parseInt(targetRepEl.textContent) : 12;
-    const currentRep = getCurrentRepsValue();
-    
-    // Mapping types erreur vers détails
-    const errorDetails = {
-        'detection': { errorType: 'detection', errorMessage: 'Détection incertaine' },
-        'jump': { errorType: 'jump_too_large', errorMessage: 'Saut trop important' },
-        'validation': { errorType: 'repetition', errorMessage: 'Nombre répété' }
-    };
-    
-    const details = errorDetails[errorType] || errorDetails.detection;
-    
-    updateRepDisplayModern(currentRep, targetReps, {
-        voiceError: true,
-        ...details
-    });
-    
-    console.log(`[RepsDisplay] État erreur appliqué: ${errorType}`);
 }
 
 // ===== PHASE 3/4 - FONCTION CORE INTERFACE N/R =====
@@ -2204,39 +2170,6 @@ async function showAISession() {
         console.log('🔄 Refresh AISessionManager existant');
         await window.aiSessionManager.initialize();
     }
-}
-
-// Exposer globalement pour navigation
-window.showAISession = showAISession;
-
-function showMainInterface() {
-    document.getElementById('onboarding').classList.remove('active');
-    document.getElementById('progressContainer').style.display = 'none';
-    document.getElementById('bottomNav').style.display = 'flex';
-    
-    if (currentUser) {
-        // Header desktop seulement
-        document.getElementById('userInitial').textContent = currentUser.name[0].toUpperCase();
-        document.getElementById('userInitial').style.display = 'flex';
-        
-        // Navigation avatar (remplace emoji profil)
-        const navAvatar = document.getElementById('navUserAvatar');
-        const profileEmoji = document.getElementById('profileEmoji');
-        if (navAvatar && profileEmoji) {
-            navAvatar.textContent = currentUser.name[0].toUpperCase();
-            navAvatar.style.display = 'flex';
-            profileEmoji.style.display = 'none';
-        }
-        
-        window.currentUser = currentUser;
-    }
-    
-    showView('dashboard');
-
-    // Forcer l'affichage de la navigation après un court délai
-    setTimeout(() => {
-        document.getElementById('bottomNav').style.display = 'flex';
-    }, 100);
 }
 
 function showOnboarding() {
@@ -5704,27 +5637,6 @@ function renderNextSeriesPreview(previewData) {
 }
 
 /**
- * Nettoie le preview de série suivante
- */
-function clearNextSeriesPreview() {
-    const previewEl = document.getElementById('nextSeriesPreview');
-    if (previewEl) {
-        // NE PAS supprimer l'élément, juste réinitialiser les valeurs
-        document.getElementById('previewWeight').textContent = '--';
-        document.getElementById('previewReps').textContent = '--';
-        document.getElementById('previewRest').textContent = '--';
-        
-        // Cacher temporairement sans détruire
-        previewEl.style.opacity = '0';
-        setTimeout(() => {
-            previewEl.style.opacity = '1';
-        }, 300);
-        
-        console.log('[Preview] Nettoyage effectué');
-    }
-}
-
-/**
  * Affiche la preview de la série suivante dans l'interface repos
  * @param {Object} recommendations - Données ML
  */
@@ -7415,12 +7327,6 @@ function showManualConfirmationUI() {
             </button>
         </div>
     `;
-}
-
-function formatTime(seconds) {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
 async function checkMicrophonePermissions() {
@@ -12758,44 +12664,6 @@ function resetMotionDetectorForNewSeries() {
     console.log('[Motion] Detector reset pour nouvelle série');
 }
 
-// === MOTION SENSOR : FONCTIONS UI SIMPLES ===
-function showMotionInstructions() {
-    console.log('[Motion] === showMotionInstructions() appelée ===');
-    console.log('[Motion] État actuel:', workoutState.current);
-    
-    // Protection contre état executing
-    if (workoutState.current === WorkoutStates.EXECUTING) {
-        console.warn('[Motion] PROTECTION: Instructions motion bloquées en état EXECUTING');
-        return;
-    }
-
-    // Arrêter le timer série si il tourne (bug fix)
-    if (setTimer) {
-        clearInterval(setTimer);
-        setTimer = null;
-        console.log('[Motion] Timer série arrêté pour éviter conflit');
-    }
-
-    // 1. Dots en mode motion (tous bleus)
-    setSeriesDotsMotionMode(true);
-    
-    // 2. ✅ ACTIVER LA ZONE MOTION DÉDIÉE
-    const motionZone = document.getElementById('motionNotificationZone');
-    if (motionZone) {
-        motionZone.classList.add('active');
-        console.log('[Motion] Zone motion activée (height 0 → 80px)');
-    } else {
-        console.error('[Motion] ⚠️ Zone motionNotificationZone introuvable !');
-    }
-    
-    // 3. S'assurer que les steppers restent visibles
-    const inputSection = document.querySelector('.input-section');
-    if (inputSection) {
-        inputSection.style.display = 'block'; // ou 'flex'
-        inputSection.style.opacity = '1';
-    }
-}
-
 function hideMotionInstructions() {
     console.log('[Motion] hideMotionInstructions appelé');
     
@@ -14983,3 +14851,4 @@ window.forcePreloadAIExerciseData = forcePreloadAIExerciseData;
 window.restartCurrentAIExercise = restartCurrentAIExercise;
 window.renderNextSeriesPreviewSafe = renderNextSeriesPreviewSafe;
 window.transitionToNextAIExercise = transitionToNextAIExercise;
+window.showAISession = showAISession;

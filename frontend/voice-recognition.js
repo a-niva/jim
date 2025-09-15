@@ -11,18 +11,6 @@
 
 // ===== VARIABLES GLOBALES =====
 
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
-
 /**
  * Instance de reconnaissance vocale du navigateur
  * @type {SpeechRecognition|null}
@@ -2098,48 +2086,6 @@ function validateCorrectionCount(count) {
     }
     
     return { valid: true, adjustedCount: count };
-}
-
-/**
- * Version améliorée d'applyCorrectionCount avec validation
- * 
- * @param {number} rawCount - Count brut de la correction
- */
-function applyCorrectionCount(rawCount) {
-    const validation = validateCorrectionCount(rawCount);
-    
-    if (!validation.valid) {
-        console.warn(`[Voice] Correction rejetée: ${validation.reason}`);
-        return;
-    }
-    
-    const newCount = validation.adjustedCount;
-    const previousCount = voiceData.count;
-    
-    // Appliquer la correction
-    voiceData.count = newCount;
-    
-    // Mise à jour interface
-    updateCorrectionUI(newCount, previousCount);
-    
-    // Feedback utilisateur
-    if (navigator.vibrate) {
-        navigator.vibrate([50, 50, 50]);
-    }
-    
-    // Log avec détails
-    const logMessage = validation.reason ? 
-        `[Voice] Correction: ${previousCount} → ${newCount} (${validation.reason})` :
-        `[Voice] Correction: ${previousCount} → ${newCount}`;
-    console.log(logMessage);
-    
-    // Arrêter écoute passive et confirmer
-    stopPassiveListening();
-    
-    // Confirmation immédiate
-    if (VOICE_FEATURES.validation_ui && voiceState === 'VALIDATING') {
-        confirmVoiceCount(newCount);
-    }
 }
 
 /**

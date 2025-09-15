@@ -1284,28 +1284,6 @@ class FitnessRecommendationEngine:
             "average_increase": statistics.mean(weight_increases) if weight_increases else 0
         }
 
-    def _determine_change(
-        self, 
-        recommended: float, 
-        baseline: float, 
-        threshold: float
-    ) -> str:
-        """Détermine si c'est une augmentation, diminution ou maintien"""
-        
-        if recommended is None and baseline is None:
-            return "same"
-        elif recommended is None or baseline is None or baseline == 0:
-            return "same"
-        
-        change_ratio = abs(recommended - baseline) / baseline
-        
-        if change_ratio < threshold:
-            return "same"
-        elif recommended > baseline:
-            return "increase"
-        else:
-            return "decrease"
-
     def _estimate_initial_weight(self, user: User, exercise: Exercise) -> Optional[float]:
         """Estime un poids initial basé sur les profils de l'exercice"""
         
@@ -1956,7 +1934,6 @@ class FitnessRecommendationEngine:
     ) -> str:
         """Détermine si c'est une augmentation, diminution ou maintien"""
         
-        # PROTECTION CONTRE None
         if recommended is None and baseline is None:
             return "same"
         elif recommended is None or baseline is None:
