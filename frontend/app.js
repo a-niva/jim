@@ -1175,16 +1175,12 @@ function transitionTo(state) {
             resetFeedbackSelection();
 
             // Code existant pour l'interface N/R...
-            const currentRepEl = document.getElementById('currentRep');
-            if (currentRepEl && currentRepEl.textContent !== '0') {
-                currentRepEl.textContent = '0';
-                console.log('[Fix] Interface N/R préservée avant démarrage vocal');
-                // Nettoyer pendingSetData au début d'une nouvelle série
-                if (workoutState.pendingSetData && oldState === WorkoutStates.RESTING) {
-                    workoutState.pendingSetData = null;
-                    console.log('[UI] PendingSetData nettoyée pour nouvelle série');
-                }
+            // Nettoyer pendingSetData au début d'une nouvelle série
+            if (workoutState.pendingSetData && oldState === WorkoutStates.RESTING) {
+                workoutState.pendingSetData = null;
+                console.log('[UI] PendingSetData nettoyée pour nouvelle série');
             }
+            // Ne pas modifier currentRepEl ici - c'est déjà géré par transitionToReadyState()
             
             // Code existant pour le vocal :
             if (currentUser?.voice_counting_enabled && 
