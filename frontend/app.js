@@ -1602,9 +1602,9 @@ function updateRepDisplayModern(currentRep, targetRep, options = {}) {
         repsDisplayEl.className = 'reps-display-modern voice-active';
         
     } else if (options.readyState) {
-        // PHASE 4 - État ready avec objectif affiché
-        repsDisplayEl.className = 'reps-display-modern ready-state';
-        currentRepEl.textContent = '0'; // Force l'affichage 0 en ready
+    // État ready : afficher la valeur selon le mode (0 pour vocal, targetReps pour manuel)
+    repsDisplayEl.className = 'reps-display-modern ready-state';
+    currentRepEl.textContent = currentRep;
         
     } else {
         repsDisplayEl.className = 'reps-display-modern';
