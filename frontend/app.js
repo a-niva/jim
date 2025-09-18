@@ -6153,7 +6153,15 @@ async function configureWeighted(elements, exercise, weightRec) {
         return;
     }
 
-    // ✅ CORRECTIF 3 : Ne pas modifier les steppers pendant countdown motion
+    // NOUVEAU : Protection contre les exercices bodyweight
+    if (exercise?.weight_type === 'bodyweight' || 
+        (exercise?.equipment_required?.length === 1 && 
+         exercise?.equipment_required[0] === 'bodyweight')) {
+        console.warn('[ConfigureWeighted] Appelé sur exercice bodyweight, abandon');
+        return;
+    }
+    
+    // ✅ CORRECTIF 2 : Ne pas modifier les steppers pendant countdown motion
     if (workoutState.current === WorkoutStates.READY_COUNTDOWN) {
         console.log('[ConfigureWeighted] Configuration suspendue pendant countdown motion');
         return;
@@ -6761,7 +6769,7 @@ async function configureUIForExerciseType(type, recommendations) {
     
     switch (type) {
         case 'isometric':
-            targetReps = recommendations?.duration_recommendation || 30; // Durée en secondes
+            targetReps = recommendations?.duration_recommendation || 30;
             configureIsometric(elements, recommendations);
             break;
             
@@ -6774,8 +6782,13 @@ async function configureUIForExerciseType(type, recommendations) {
             targetReps = recommendations?.reps_recommendation || currentExercise?.last_reps || 12;
             await configureWeighted(elements, currentExercise, recommendations.weight_recommendation || 20);
             break;
+            
+        default:
+            console.warn('[ConfigureUI] Type inconnu:', type);
+            // NE PAS appeler configureWeighted par défaut
+            break;
     }
-        
+            
     // TOUJOURS initialiser l'interface pour weighted et bodyweight
     if (type !== 'isometric') {
         // Si on a des recommandations, les appliquer
