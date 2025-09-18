@@ -6812,28 +6812,38 @@ function configureBodyweight(elements, recommendations) {
         console.log('[Bodyweight] Configuration suspendue pendant countdown motion');
         return;
     }
+   
+    console.log('[Bodyweight] Configuration pour exercice poids de corps');
     
     // Masquer la ligne de poids
     if (elements.weightRow) {
         elements.weightRow.setAttribute('data-hidden', 'true');
         elements.weightRow.style.display = 'none';
     }
-    
+   
     // S'assurer que la ligne reps est visible
     if (elements.repsRow) {
         elements.repsRow.removeAttribute('data-hidden');
         elements.repsRow.style.display = 'flex';
     }
-    
+   
     // Configuration de base
     const typeText = document.querySelector('.type-text');
     if (typeText) {
         typeText.textContent = 'Corps';
     }
+    
+    // Configuration des reps
+    const targetReps = recommendations?.reps_recommendation || 15;
+    
+    if (elements.setReps) {
+        elements.setReps.textContent = targetReps;
+    }
+    
     // S'assurer que l'aide au montage est masquée pour les exercices bodyweight
     hidePlateHelper();
+    
     console.log('[Bodyweight] Configuration terminée');
-
 }
 
 // Calculer le poids maximum théorique pour dumbbells
@@ -11015,6 +11025,14 @@ function adjustWeight(direction, availableWeights, exercise) {
 function adjustWeightUp(step = 1) {
     if (!validateSessionState()) return;
     
+    // PROTECTION BODYWEIGHT
+    if (currentExercise?.weight_type === 'bodyweight' || 
+        (currentExercise?.equipment_required?.length === 1 && 
+         currentExercise?.equipment_required[0] === 'bodyweight')) {
+        console.warn('[AdjustWeight] Tentative d\'ajustement sur exercice bodyweight');
+        return;
+    }
+    
     let weights = JSON.parse(sessionStorage.getItem('availableWeights') || '[]');
     
     // Si pas de poids disponibles, essayer de les charger
@@ -11105,8 +11123,17 @@ function adjustWeightUp(step = 1) {
     console.log('[AdjustWeight] Increased to:', currentExerciseRealWeight);
 }
 
+
 function adjustWeightDown(step = 1) {
     if (!validateSessionState()) return;
+    
+    // PROTECTION BODYWEIGHT
+    if (currentExercise?.weight_type === 'bodyweight' || 
+        (currentExercise?.equipment_required?.length === 1 && 
+         currentExercise?.equipment_required[0] === 'bodyweight')) {
+        console.warn('[AdjustWeight] Tentative d\'ajustement sur exercice bodyweight');
+        return;
+    }
     
     let weights = JSON.parse(sessionStorage.getItem('availableWeights') || '[]');
     
